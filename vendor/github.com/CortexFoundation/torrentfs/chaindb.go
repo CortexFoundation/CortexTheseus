@@ -700,14 +700,14 @@ func (fs *ChainDB) SkipPrint() {
 		//		}
 		//Skip{From: 160264, To: 395088},
 		if b.Number-from > 1000 {
-			str = str + "Skip{From:" + strconv.FormatUint(from, 10) + ",To:" + strconv.FormatUint(b.Number, 10) + "},"
+			str = str + "{From:" + strconv.FormatUint(from, 10) + ",To:" + strconv.FormatUint(b.Number, 10) + "},"
 		}
 		from = b.Number
 		//fmt.Println(b.Number, ":true,")
 	}
 
 	if fs.LastListenBlockNumber-from > 1000 {
-		str = str + "Skip{From:" + strconv.FormatUint(from, 10) + ",To:" + strconv.FormatUint(fs.LastListenBlockNumber, 10) + "},"
+		str = str + "{From:" + strconv.FormatUint(from, 10) + ",To:" + strconv.FormatUint(fs.LastListenBlockNumber, 10) + "},"
 	}
 
 	//log.Info("Skip chart", "skips", str)

@@ -160,11 +160,21 @@ func (cl *Client) WriteStatus(_w io.Writer) {
 	}
 }
 
+// Filters things that are less than warning from UPnP discovery.
+func upnpDiscoverLogFilter(m log.Msg) bool {
+	level, ok := m.GetLevel()
+	return !m.HasValue(UpnpDiscoverLogTag) || (!level.LessThan(log.Warning) && ok)
+}
+
 func (cl *Client) initLogger() {
-	cl.logger = cl.config.Logger.WithValues(cl)
-	if !cl.config.Debug {
-		cl.logger = cl.logger.FilterLevel(log.Info)
+	logger := cl.config.Logger
+	if logger.IsZero() {
+		logger = log.Default
+		if !cl.config.Debug {
+			logger = logger.FilterLevel(log.Info).WithFilter(upnpDiscoverLogFilter)
+		}
 	}
+	cl.logger = logger.WithValues(cl)
 }
 
 func (cl *Client) announceKey() int32 {
@@ -756,7 +766,7 @@ func (cl *Client) outgoingConnection(t *Torrent, addr PeerRemoteAddr, ps PeerSou
 	c, err := cl.establishOutgoingConn(t, addr)
 	cl.lock()
 	defer cl.unlock()
-	// Don't release lock between here and addConnection, unless it's for
+	// Don't release lock between here and addPeerConn, unless it's for
 	// failure.
 	cl.noLongerHalfOpen(t, addr.String())
 	if err != nil {
@@ -941,7 +951,7 @@ func (cl *Client) runHandshookConn(c *PeerConn, t *Torrent) error {
 	if connIsIpv6(c.conn) {
 		torrent.Add("completed handshake over ipv6", 1)
 	}
-	if err := t.addConnection(c); err != nil {
+	if err := t.addPeerConn(c); err != nil {
 		return fmt.Errorf("adding connection: %w", err)
 	}
 	defer t.dropConnection(c)

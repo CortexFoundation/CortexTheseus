@@ -1,12 +1,13 @@
 package sctp
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"math"
 	"sync"
 
 	"github.com/pion/logging"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -16,6 +17,11 @@ const (
 	ReliabilityTypeRexmit byte = 1
 	// ReliabilityTypeTimed is used for partial reliability by retransmission duration
 	ReliabilityTypeTimed byte = 2
+)
+
+var (
+	errOutboundPacketTooLarge = errors.New("outbound packet larger than maximum message size")
+	errStreamClosed           = errors.New("Stream closed")
 )
 
 // Stream represents an SCTP stream
@@ -181,7 +187,17 @@ func (s *Stream) Write(p []byte) (n int, err error) {
 func (s *Stream) WriteSCTP(p []byte, ppi PayloadProtocolIdentifier) (n int, err error) {
 	maxMessageSize := s.association.MaxMessageSize()
 	if len(p) > int(maxMessageSize) {
-		return 0, errors.Errorf("Outbound packet larger than maximum message size %v", math.MaxUint16)
+		return 0, fmt.Errorf("%w: %v", errOutboundPacketTooLarge, math.MaxUint16)
+	}
+
+	switch s.association.getState() {
+	case shutdownSent, shutdownAckSent, shutdownPending, shutdownReceived:
+		s.lock.Lock()
+		if s.writeErr == nil {
+			s.writeErr = errStreamClosed
+		}
+		s.lock.Unlock()
+	default:
 	}
 
 	s.lock.RLock()
@@ -263,7 +279,7 @@ func (s *Stream) Close() error {
 
 		isOpen := true
 		if s.writeErr == nil {
-			s.writeErr = errors.New("Stream closed")
+			s.writeErr = errStreamClosed
 		} else {
 			isOpen = false
 		}

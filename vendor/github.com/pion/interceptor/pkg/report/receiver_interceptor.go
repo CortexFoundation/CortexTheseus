@@ -83,6 +83,7 @@ func (r *ReceiverInterceptor) loop(rtcpWriter interceptor.RTCPWriter) {
 	defer r.wg.Done()
 
 	ticker := time.NewTicker(r.interval)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:

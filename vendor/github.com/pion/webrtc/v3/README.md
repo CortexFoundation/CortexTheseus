@@ -54,6 +54,9 @@ Now go build something awesome! Here are some **ideas** to get your creative jui
 * Remotely control a robots and stream its cameras in realtime.
 
 ### Want to learn more about WebRTC?
+Join our [Office Hours](https://github.com/pion/webrtc/wiki/OfficeHours). Come hang out, ask questions, get help debugging and
+hear about the cool things being built with WebRTC. We also start every meeting with basic project planning.
+
 Check out [WebRTC for the Curious](https://webrtcforthecurious.com). A book about WebRTC in depth, not just about the APIs.
 Learn the full details of ICE, SCTP, DTLS, SRTP, and how they work together to make up the WebRTC stack.
 
@@ -265,6 +268,12 @@ Check out the **[contributing wiki](https://github.com/pion/webrtc/wiki/Contribu
 * [donotanswer](https://github.com/f-viktor)
 * [Reese](https://github.com/figadore)
 * [David Zhao](https://github.com/davidzhao)
+* [Nam V. Do](https://github.com/namvdo)
+* [Markus Tzoe](https://github.com/zyxar)
+* [Benny Daon](https://github.com/daonb)
+* [Tomek](https://github.com/trojek)
+* [Jin Gong](https://github.com/cgojin)
+* [yusuke](https://github.com/yusukem99)
 
 ### License
 MIT License - see [LICENSE](LICENSE) for full text

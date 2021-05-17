@@ -20,6 +20,19 @@ type RTPTransceiver struct {
 	kind    RTPCodecType
 }
 
+func newRTPTransceiver(
+	receiver *RTPReceiver,
+	sender *RTPSender,
+	direction RTPTransceiverDirection,
+	kind RTPCodecType,
+) *RTPTransceiver {
+	t := &RTPTransceiver{kind: kind}
+	t.setReceiver(receiver)
+	t.setSender(sender)
+	t.setDirection(direction)
+	return t
+}
+
 // Sender returns the RTPTransceiver's RTPSender if it has one
 func (t *RTPTransceiver) Sender() *RTPSender {
 	if v := t.sender.Load(); v != nil {
@@ -115,6 +128,12 @@ func (t *RTPTransceiver) setSendingTrack(track TrackLocal) error {
 		t.setDirection(RTPTransceiverDirectionSendonly)
 	case track == nil && t.Direction() == RTPTransceiverDirectionSendrecv:
 		t.setDirection(RTPTransceiverDirectionRecvonly)
+	case track != nil && t.Direction() == RTPTransceiverDirectionSendonly:
+		// Handle the case where a sendonly transceiver was added by a negotiation
+		// initiated by remote peer. For example a remote peer added a transceiver
+		// with direction recvonly.
+	case track != nil && t.Direction() == RTPTransceiverDirectionSendrecv:
+		// Similar to above, but for sendrecv transceiver.
 	case track == nil && t.Direction() == RTPTransceiverDirectionSendonly:
 		t.setDirection(RTPTransceiverDirectionInactive)
 	default:

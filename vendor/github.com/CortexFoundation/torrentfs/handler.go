@@ -371,6 +371,15 @@ func (tm *TorrentManager) addInfoHash(ih string, BytesRequested int64, ch chan b
 
 	if spec == nil {
 		tmpDataPath := filepath.Join(tm.TmpDataDir, ih)
+		if err := os.MkdirAll(tmpDataPath, 0660); err != nil {
+			return nil
+		}
+
+		os.Symlink(
+			filepath.Join(tm.DataDir, ".torrent.db"),
+			filepath.Join(tmpDataPath, ".torrent.db"),
+		)
+
 		spec = &torrent.TorrentSpec{
 			InfoHash: metainfo.NewHashFromHex(ih),
 			Storage:  storage.NewFile(tmpDataPath),
