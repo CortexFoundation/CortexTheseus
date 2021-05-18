@@ -192,7 +192,11 @@ func NewDatabaseWithFreezer(db ctxcdb.KeyValueStore, freezer string, namespace s
 		}
 	}
 	// Freezer is consistent with the key-value database, permit combining the two
-	go frdb.freeze(db)
+	frdb.wg.Add(1)
+	go func() {
+		frdb.freeze(db)
+		frdb.wg.Done()
+	}()
 
 	return &freezerdb{
 		KeyValueStore: db,
