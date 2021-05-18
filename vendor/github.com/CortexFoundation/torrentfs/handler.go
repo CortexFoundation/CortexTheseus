@@ -322,6 +322,19 @@ func (tm *TorrentManager) addInfoHash(ih string, BytesRequested int64, ch chan b
 		spec = tm.loadSpec(ih, tmpTorrentPath)
 	}
 
+	/*if _, err := os.Stat(filepath.Join(tm.TmpDataDir, ih, ".torrent.db")); err != nil {
+		os.Symlink(
+			filepath.Join(tm.DataDir, ".torrent.db"),
+			filepath.Join(tm.TmpDataDir, ih, ".torrent.db"),
+		)
+	}
+	if _, err := os.Stat(filepath.Join(tm.TmpDataDir, ih, ".torrent.bolt.db")); err != nil {
+		os.Symlink(
+			filepath.Join(tm.DataDir, ".torrent.bolt.db"),
+			filepath.Join(tm.TmpDataDir, ih, ".torrent.bolt.db"),
+		)
+	}*/
+
 	//if spec == nil {
 	/*if tm.boost {
 		if data, err := tm.boostFetcher.FetchTorrent(ih.String()); err == nil {
@@ -372,17 +385,28 @@ func (tm *TorrentManager) addInfoHash(ih string, BytesRequested int64, ch chan b
 	if spec == nil {
 		tmpDataPath := filepath.Join(tm.TmpDataDir, ih)
 
-		if _, err := os.Stat(filepath.Join(tmpDataPath, ".torrent.db")); err != nil {
+		//if _, err := os.Stat(filepath.Join(tmpDataPath, ".torrent.db")); err != nil {
+		if _, err := os.Stat(tmpDataPath); err != nil {
 
 			if err := os.MkdirAll(tmpDataPath, 0660); err != nil {
+				log.Warn("torrent path create failed", "err", err)
 				return nil
 			}
-
-			os.Symlink(
-				filepath.Join(tm.DataDir, ".torrent.db"),
-				filepath.Join(tmpDataPath, ".torrent.db"),
-			)
 		}
+
+		//if _, err := os.Stat(filepath.Join(tmpDataPath, ".torrent.db")); err != nil {
+		//	os.Symlink(
+		//		filepath.Join(tm.DataDir, ".torrent.db"),
+		//		filepath.Join(tmpDataPath, ".torrent.db"),
+		//	)
+		//}
+
+		//if _, err := os.Stat(filepath.Join(tmpDataPath, ".torrent.bolt.db")); err != nil {
+		//	os.Symlink(
+		//		filepath.Join(tm.DataDir, ".torrent.bolt.db"),
+		//		filepath.Join(tmpDataPath, ".torrent.bolt.db"),
+		//	)
+		//}
 
 		spec = &torrent.TorrentSpec{
 			InfoHash: metainfo.NewHashFromHex(ih),

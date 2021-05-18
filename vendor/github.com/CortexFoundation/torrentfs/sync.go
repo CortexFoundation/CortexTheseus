@@ -599,7 +599,7 @@ func (m *Monitor) syncLatestBlock() {
 				}
 				timer.Reset(time.Millisecond * 6000)
 			}
-			log.Info("Block sync", "count", progress, "current", m.currentNumber)
+			log.Info(ProgressBar(int64(m.lastNumber), int64(m.currentNumber), ""), "count", progress, "current", m.currentNumber, "latest", m.lastNumber)
 			m.fs.Flush()
 		case <-m.exitCh:
 			log.Debug("Block syncer stopped")
