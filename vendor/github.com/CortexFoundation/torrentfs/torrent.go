@@ -50,7 +50,6 @@ type Torrent struct {
 	fast                bool
 	start               mclock.AbsTime
 	ch                  chan bool
-	//dir                 string
 }
 
 func (t *Torrent) BytesLeft() int64 {
@@ -138,16 +137,7 @@ func (t *Torrent) WriteTorrent() error {
 		t.Pause()
 		return nil
 	}
-	//if err := os.MkdirAll(t.filepath, 0660); err != nil {
-	//	return err
-	//}
 
-	//log.Warn("Path ln", "t.filepath", t.filepath)
-	///root/.cortex/storage/.tmp/f0e21373b2b9acf0b56b504abcd60aeff7e6c56b
-	//os.Symlink(
-	//	filepath.Join(t.dir, ".torrent.db"),
-	//	filepath.Join(t.filepath, ".torrent.db"),
-	//)
 	if f, err := os.OpenFile(filepath.Join(t.filepath, "torrent"), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0660); err == nil {
 		defer f.Close()
 		log.Debug("Write seed file", "path", t.filepath)
