@@ -21,6 +21,9 @@ import (
 )
 
 func ProgressBar(x, y int64, desc string) string {
+	if y == 0 {
+		return "[            ] 0%"
+	}
 	progress := ""
 	for i := 10; i > 0; i-- {
 		if int64(i) > (10*x)/y {

@@ -387,8 +387,7 @@ func (tm *TorrentManager) addInfoHash(ih string, BytesRequested int64, ch chan b
 
 		//if _, err := os.Stat(filepath.Join(tmpDataPath, ".torrent.db")); err != nil {
 		if _, err := os.Stat(tmpDataPath); err != nil {
-
-			if err := os.MkdirAll(tmpDataPath, 0660); err != nil {
+			if err := os.MkdirAll(tmpDataPath, 0600); err != nil {
 				log.Warn("torrent path create failed", "err", err)
 				return nil
 			}
@@ -476,7 +475,7 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 	tmpFilePath := filepath.Join(config.DataDir, defaultTmpPath)
 
 	if _, err := os.Stat(tmpFilePath); err != nil {
-		err = os.MkdirAll(filepath.Dir(tmpFilePath), 0770) //os.FileMode(os.ModePerm))
+		err = os.MkdirAll(filepath.Dir(tmpFilePath), 0600) //os.FileMode(os.ModePerm))
 		if err != nil {
 			log.Error("Mkdir failed", "path", tmpFilePath)
 			return nil, err

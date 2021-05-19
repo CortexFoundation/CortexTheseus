@@ -65,7 +65,7 @@ func (t *Torrent) InfoHash() string {
 
 func (t *Torrent) ReloadFile(files []string, datas [][]byte, tm *TorrentManager) {
 	if len(files) > 1 {
-		err := os.MkdirAll(filepath.Dir(filepath.Join(t.filepath, "data")), 0750) //os.ModePerm)
+		err := os.MkdirAll(filepath.Dir(filepath.Join(t.filepath, "data")), 0600) //os.ModePerm)
 		if err != nil {
 			return
 		}
