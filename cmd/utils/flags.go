@@ -707,7 +707,7 @@ var (
 	JSpathFlag = DirectoryFlag{
 		Name:  "jspath",
 		Usage: "JavaScript root path for `loadScript`",
-		Value: DirectoryString("."),
+		Value: DirectoryString{"."},
 	}
 
 	// Gas price oracle settings
