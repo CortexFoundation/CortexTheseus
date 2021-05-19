@@ -2,6 +2,7 @@ package mdns
 
 import (
 	"context"
+	"errors"
 	"math/big"
 	"net"
 	"sync"
@@ -69,7 +70,6 @@ func Server(conn *ipv4.PacketConn, config *Config) (*Conn, error) {
 	dstAddr, err := net.ResolveUDPAddr("udp", destinationAddress)
 	if err != nil {
 		return nil, err
-
 	}
 
 	loggerFactory := config.LoggerFactory
@@ -131,6 +131,8 @@ func (c *Conn) Query(ctx context.Context, name string) (dnsmessage.ResourceHeade
 	c.queries = append(c.queries, query{nameWithSuffix, queryChan})
 	ticker := time.NewTicker(c.queryInterval)
 	c.mu.Unlock()
+
+	defer ticker.Stop()
 
 	c.sendQuestion(nameWithSuffix)
 	for {
@@ -242,7 +244,7 @@ func (c *Conn) sendAnswer(name string, dst net.IP) {
 	}
 }
 
-func (c *Conn) start() {
+func (c *Conn) start() { //nolint gocognit
 	defer func() {
 		c.mu.Lock()
 		defer c.mu.Unlock()
@@ -269,7 +271,7 @@ func (c *Conn) start() {
 
 			for i := 0; i <= maxMessageRecords; i++ {
 				q, err := p.Question()
-				if err == dnsmessage.ErrSectionDone {
+				if errors.Is(err, dnsmessage.ErrSectionDone) {
 					break
 				} else if err != nil {
 					c.log.Warnf("Failed to parse mDNS packet %v", err)
@@ -278,7 +280,6 @@ func (c *Conn) start() {
 
 				for _, localName := range c.localNames {
 					if localName == q.Name.String() {
-
 						localAddress, err := interfaceForRemote(src.String())
 						if err != nil {
 							c.log.Warnf("Failed to get local interface to communicate with %s: %v", src.String(), err)
@@ -292,7 +293,7 @@ func (c *Conn) start() {
 
 			for i := 0; i <= maxMessageRecords; i++ {
 				a, err := p.AnswerHeader()
-				if err == dnsmessage.ErrSectionDone {
+				if errors.Is(err, dnsmessage.ErrSectionDone) {
 					return
 				}
 				if err != nil {

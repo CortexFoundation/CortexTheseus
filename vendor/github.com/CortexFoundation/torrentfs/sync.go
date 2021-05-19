@@ -583,21 +583,23 @@ func (m *Monitor) syncLatestBlock() {
 			progress = m.syncLastBlock()
 			// Avoid sync in full mode, fresh interval may be less.
 			if progress >= delay {
-				timer.Reset(0)
+				//timer.Reset(0)
+				timer.Reset(time.Millisecond * 2000)
 			} else if progress > 1 {
-				timer.Reset(time.Millisecond * 1000)
+				timer.Reset(time.Millisecond * 3000)
 			} else {
 				if !m.listen {
 					if (m.ckp != nil && m.currentNumber >= m.ckp.TfsCheckPoint) || (m.ckp == nil && m.currentNumber > 0) {
 						m.fs.Flush()
 						go m.exit()
 						elapsed := time.Duration(mclock.Now()) - time.Duration(m.start)
-						log.Warn("Finish sync, listener will be stopped", "current", m.currentNumber, "elapsed", common.PrettyDuration(elapsed))
+						log.Warn("Finish sync, listener will be stopped", "current", m.currentNumber, "elapsed", common.PrettyDuration(elapsed), "ckp", m.ckp.TfsCheckPoint, "progress", progress)
 						return
 					}
 				}
-				timer.Reset(time.Millisecond * 2000)
+				timer.Reset(time.Millisecond * 6000)
 			}
+			log.Info(ProgressBar(int64(m.lastNumber), int64(m.currentNumber), ""), "count", progress, "current", m.currentNumber, "latest", m.lastNumber)
 			m.fs.Flush()
 		case <-m.exitCh:
 			log.Debug("Block syncer stopped")

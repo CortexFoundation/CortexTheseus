@@ -3,6 +3,7 @@ package torrent
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -19,7 +20,6 @@ import (
 	"github.com/anacrolix/missinggo/v2/prioritybitmap"
 	"github.com/anacrolix/multiless"
 	"github.com/anacrolix/torrent/metainfo"
-	"github.com/pkg/errors"
 
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/mse"
@@ -680,7 +680,7 @@ func (cn *PeerConn) writer(keepAliveTimeout time.Duration) {
 		}
 		if cn.writeBuffer.Len() == 0 && time.Since(lastWrite) >= keepAliveTimeout && cn.useful() {
 			cn.writeBuffer.Write(pp.Message{Keepalive: true}.MustMarshalBinary())
-			postedKeepalives.Add(1)
+			torrent.Add("written keepalives", 1)
 		}
 		if cn.writeBuffer.Len() == 0 {
 			// TODO: Minimize wakeups....
@@ -743,12 +743,13 @@ func (cn *PeerConn) updateRequests() {
 func iterBitmapsDistinct(skip *bitmap.Bitmap, bms ...bitmap.Bitmap) iter.Func {
 	return func(cb iter.Callback) {
 		for _, bm := range bms {
+			bm.Sub(*skip)
 			if !iter.All(
 				func(i interface{}) bool {
 					skip.Add(i.(int))
 					return cb(i)
 				},
-				bitmap.Sub(bm, *skip).Iter,
+				bm.Iter,
 			) {
 				return
 			}
@@ -1290,7 +1291,7 @@ func (c *PeerConn) onReadExtendedMsg(id pp.ExtensionNumber, payload []byte) (err
 		var d pp.ExtendedHandshakeMessage
 		if err := bencode.Unmarshal(payload, &d); err != nil {
 			c.logger.Printf("error parsing extended handshake message %q: %s", payload, err)
-			return errors.Wrap(err, "unmarshalling extended handshake payload")
+			return fmt.Errorf("unmarshalling extended handshake payload: %w", err)
 		}
 		if cb := c.callbacks.ReadExtendedHandshake; cb != nil {
 			cb(c, &d)
@@ -1307,13 +1308,13 @@ func (c *PeerConn) onReadExtendedMsg(id pp.ExtensionNumber, payload []byte) (err
 		c.PeerPrefersEncryption = d.Encryption
 		for name, id := range d.M {
 			if _, ok := c.PeerExtensionIDs[name]; !ok {
-				torrent.Add(fmt.Sprintf("peers supporting extension %q", name), 1)
+				peersSupportingExtension.Add(string(name), 1)
 			}
 			c.PeerExtensionIDs[name] = id
 		}
 		if d.MetadataSize != 0 {
 			if err = t.setMetadataSize(d.MetadataSize); err != nil {
-				return errors.Wrapf(err, "setting metadata size to %d", d.MetadataSize)
+				return fmt.Errorf("setting metadata size to %d: %w", d.MetadataSize, err)
 			}
 		}
 		c.requestPendingMetadata()
@@ -1356,22 +1357,22 @@ func (cn *PeerConn) rw() io.ReadWriter {
 func (c *Peer) receiveChunk(msg *pp.Message) error {
 	t := c.t
 	cl := t.cl
-	torrent.Add("chunks received", 1)
+	chunksReceived.Add("total", 1)
 
 	req := newRequestFromMessage(msg)
 
 	if c.peerChoking {
-		torrent.Add("chunks received while choking", 1)
+		chunksReceived.Add("while choked", 1)
 	}
 
 	if c.validReceiveChunks[req] <= 0 {
-		torrent.Add("chunks received unexpected", 1)
+		chunksReceived.Add("unexpected", 1)
 		return errors.New("received unexpected chunk")
 	}
 	c.decExpectedChunkReceive(req)
 
 	if c.peerChoking && c.peerAllowedFast.Get(int(req.Index)) {
-		torrent.Add("chunks received due to allowed fast", 1)
+		chunksReceived.Add("due to allowed fast", 1)
 	}
 
 	// TODO: This needs to happen immediately, to prevent cancels occurring asynchronously when have
@@ -1388,13 +1389,13 @@ func (c *Peer) receiveChunk(msg *pp.Message) error {
 				c._chunksReceivedWhileExpecting++
 			}
 		} else {
-			torrent.Add("chunks received unwanted", 1)
+			chunksReceived.Add("unwanted", 1)
 		}
 	}
 
 	// Do we actually want this chunk?
 	if t.haveChunk(req) {
-		torrent.Add("chunks received wasted", 1)
+		chunksReceived.Add("wasted", 1)
 		c.allStats(add(1, func(cs *ConnStats) *Count { return &cs.ChunksReadWasted }))
 		return nil
 	}
