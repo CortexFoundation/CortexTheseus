@@ -79,6 +79,7 @@ type freezer struct {
 	trigger chan chan struct{} // Manual blocking freeze trigger, test determinism
 
 	quit      chan struct{}
+	wg        sync.WaitGroup
 	closeOnce sync.Once
 }
 
@@ -136,16 +137,20 @@ func newFreezer(datadir string, namespace string) (*freezer, error) {
 
 // Close terminates the chain freezer, unmapping all the data files.
 func (f *freezer) Close() error {
-	f.quit <- struct{}{}
 	var errs []error
-	for _, table := range f.tables {
-		if err := table.Close(); err != nil {
+	f.closeOnce.Do(func() {
+		close(f.quit)
+		// Wait for any background freezing to stop
+		f.wg.Wait()
+		for _, table := range f.tables {
+			if err := table.Close(); err != nil {
+				errs = append(errs, err)
+			}
+		}
+		if err := f.instanceLock.Release(); err != nil {
 			errs = append(errs, err)
 		}
-	}
-	if err := f.instanceLock.Release(); err != nil {
-		errs = append(errs, err)
-	}
+	})
 	if errs != nil {
 		return fmt.Errorf("%v", errs)
 	}
