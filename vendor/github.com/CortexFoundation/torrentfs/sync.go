@@ -587,7 +587,7 @@ func (m *Monitor) syncLatestBlock() {
 				//timer.Reset(0)
 				end = false
 				timer.Reset(time.Millisecond * 2000)
-			} else if progress > 1 {
+			} else if progress >= 1 {
 				end = false
 				timer.Reset(time.Millisecond * 3000)
 			} else {
