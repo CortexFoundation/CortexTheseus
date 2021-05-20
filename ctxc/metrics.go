@@ -17,6 +17,7 @@
 package ctxc
 
 import (
+	"github.com/CortexFoundation/CortexTheseus/ctxc/protocols/ctxc"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 )
@@ -91,19 +92,19 @@ func (rw *meteredMsgReadWriter) ReadMsg() (p2p.Msg, error) {
 	// Account for the data traffic
 	packets, traffic := miscInPacketsMeter, miscInTrafficMeter
 	switch {
-	case msg.Code == BlockHeadersMsg:
+	case msg.Code == ctxc.BlockHeadersMsg:
 		packets, traffic = reqHeaderInPacketsMeter, reqHeaderInTrafficMeter
-	case msg.Code == BlockBodiesMsg:
+	case msg.Code == ctxc.BlockBodiesMsg:
 		packets, traffic = reqBodyInPacketsMeter, reqBodyInTrafficMeter
-	case msg.Code == NodeDataMsg:
+	case msg.Code == ctxc.NodeDataMsg:
 		packets, traffic = reqStateInPacketsMeter, reqStateInTrafficMeter
-	case msg.Code == ReceiptsMsg:
+	case msg.Code == ctxc.ReceiptsMsg:
 		packets, traffic = reqReceiptInPacketsMeter, reqReceiptInTrafficMeter
-	case msg.Code == NewBlockHashesMsg:
+	case msg.Code == ctxc.NewBlockHashesMsg:
 		packets, traffic = propHashInPacketsMeter, propHashInTrafficMeter
-	case msg.Code == NewBlockMsg:
+	case msg.Code == ctxc.NewBlockMsg:
 		packets, traffic = propBlockInPacketsMeter, propBlockInTrafficMeter
-	case msg.Code == TransactionMsg:
+	case msg.Code == ctxc.TransactionMsg:
 		packets, traffic = propTxnInPacketsMeter, propTxnInTrafficMeter
 	}
 	packets.Mark(1)
@@ -116,19 +117,19 @@ func (rw *meteredMsgReadWriter) WriteMsg(msg p2p.Msg) error {
 	// Account for the data traffic
 	packets, traffic := miscOutPacketsMeter, miscOutTrafficMeter
 	switch {
-	case msg.Code == BlockHeadersMsg:
+	case msg.Code == ctxc.BlockHeadersMsg:
 		packets, traffic = reqHeaderOutPacketsMeter, reqHeaderOutTrafficMeter
-	case msg.Code == BlockBodiesMsg:
+	case msg.Code == ctxc.BlockBodiesMsg:
 		packets, traffic = reqBodyOutPacketsMeter, reqBodyOutTrafficMeter
-	case msg.Code == NodeDataMsg:
+	case msg.Code == ctxc.NodeDataMsg:
 		packets, traffic = reqStateOutPacketsMeter, reqStateOutTrafficMeter
-	case msg.Code == ReceiptsMsg:
+	case msg.Code == ctxc.ReceiptsMsg:
 		packets, traffic = reqReceiptOutPacketsMeter, reqReceiptOutTrafficMeter
-	case msg.Code == NewBlockHashesMsg:
+	case msg.Code == ctxc.NewBlockHashesMsg:
 		packets, traffic = propHashOutPacketsMeter, propHashOutTrafficMeter
-	case msg.Code == NewBlockMsg:
+	case msg.Code == ctxc.NewBlockMsg:
 		packets, traffic = propBlockOutPacketsMeter, propBlockOutTrafficMeter
-	case msg.Code == TransactionMsg:
+	case msg.Code == ctxc.TransactionMsg:
 		packets, traffic = propTxnOutPacketsMeter, propTxnOutTrafficMeter
 	}
 	packets.Mark(1)
