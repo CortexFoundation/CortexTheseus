@@ -29,6 +29,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
+	"github.com/CortexFoundation/CortexTheseus/ctxc/protocols/ctxc"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
@@ -57,23 +58,23 @@ func TestStatusMsgErrors64(t *testing.T) {
 		wantError error
 	}{
 		{
-			code: TransactionMsg, data: []interface{}{},
+			code: ctxc.TransactionMsg, data: []interface{}{},
 			wantError: errResp(ErrNoStatusMsg, "first msg has code 2 (!= 0)"),
 		},
 		{
-			code: StatusMsg, data: statusData{10, DefaultConfig.NetworkId, td, head.Hash(), genesis.Hash(), forkID},
+			code: ctxc.StatusMsg, data: statusData{10, DefaultConfig.NetworkId, td, head.Hash(), genesis.Hash(), forkID},
 			wantError: errResp(ErrProtocolVersionMismatch, "10 (!= %d)", 64),
 		},
 		{
-			code: StatusMsg, data: statusData{64, 999, td, head.Hash(), genesis.Hash(), forkID},
+			code: ctxc.StatusMsg, data: statusData{64, 999, td, head.Hash(), genesis.Hash(), forkID},
 			wantError: errResp(ErrNetworkIDMismatch, "999 (!= %d)", DefaultConfig.NetworkId),
 		},
 		{
-			code: StatusMsg, data: statusData{64, DefaultConfig.NetworkId, td, head.Hash(), common.Hash{3}, forkID},
+			code: ctxc.StatusMsg, data: statusData{64, DefaultConfig.NetworkId, td, head.Hash(), common.Hash{3}, forkID},
 			wantError: errResp(ErrGenesisMismatch, "0300000000000000000000000000000000000000000000000000000000000000 (!= %x)", genesis.Hash()),
 		},
 		{
-			code: StatusMsg, data: statusData{64, DefaultConfig.NetworkId, td, head.Hash(), genesis.Hash(), forkid.ID{Hash: [4]byte{0x00, 0x01, 0x02, 0x03}}},
+			code: ctxc.StatusMsg, data: statusData{64, DefaultConfig.NetworkId, td, head.Hash(), genesis.Hash(), forkid.ID{Hash: [4]byte{0x00, 0x01, 0x02, 0x03}}},
 			wantError: errResp(ErrForkIDRejected, forkid.ErrLocalIncompatibleOrStale.Error()),
 		},
 	}
@@ -202,7 +203,7 @@ func testRecvTransactions(t *testing.T, protocol int) {
 	defer p.close()
 
 	tx := newTestTransaction(testAccount, 0, 0)
-	if err := p2p.Send(p.app, TransactionMsg, []interface{}{tx}); err != nil {
+	if err := p2p.Send(p.app, ctxc.TransactionMsg, []interface{}{tx}); err != nil {
 		t.Fatalf("send error: %v", err)
 	}
 	select {
@@ -256,7 +257,7 @@ func testSendTransactions(t *testing.T, protocol int) {
 				if err != nil {
 					t.Errorf("%v: read error: %v", p.Peer, err)
 					continue
-				} else if msg.Code != TransactionMsg {
+				} else if msg.Code != ctxc.TransactionMsg {
 					t.Errorf("%v: got code %d, want TxMsg", p.Peer, msg.Code)
 					continue
 				}
@@ -275,7 +276,7 @@ func testSendTransactions(t *testing.T, protocol int) {
 				if err != nil {
 					t.Errorf("%v: read error: %v", p.Peer, err)
 					continue
-				} else if msg.Code != NewPooledTransactionHashesMsg {
+				} else if msg.Code != ctxc.NewPooledTransactionHashesMsg {
 					t.Errorf("%v: got code %d, want NewPooledTransactionHashesMsg", p.Peer, msg.Code)
 					continue
 				}
