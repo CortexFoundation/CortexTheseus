@@ -1,18 +1,18 @@
-// Copyright 2018 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2017 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package asm
 
@@ -22,7 +22,7 @@ import (
 )
 
 func lexAll(src string) []token {
-	ch := Lex("test.asm", []byte(src), false)
+	ch := Lex([]byte(src), false)
 
 	var tokens []token
 	for i := range ch {
@@ -59,6 +59,18 @@ func TestLexer(t *testing.T) {
 		{
 			input:  "0123abc",
 			tokens: []token{{typ: lineStart}, {typ: number, text: "0123"}, {typ: element, text: "abc"}, {typ: eof}},
+		},
+		{
+			input:  "00123abc",
+			tokens: []token{{typ: lineStart}, {typ: number, text: "00123"}, {typ: element, text: "abc"}, {typ: eof}},
+		},
+		{
+			input:  "@foo",
+			tokens: []token{{typ: lineStart}, {typ: label, text: "foo"}, {typ: eof}},
+		},
+		{
+			input:  "@label123",
+			tokens: []token{{typ: lineStart}, {typ: label, text: "label123"}, {typ: eof}},
 		},
 	}
 

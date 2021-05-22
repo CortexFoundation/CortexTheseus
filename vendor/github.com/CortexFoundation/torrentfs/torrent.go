@@ -65,14 +65,14 @@ func (t *Torrent) InfoHash() string {
 
 func (t *Torrent) ReloadFile(files []string, datas [][]byte, tm *TorrentManager) {
 	if len(files) > 1 {
-		err := os.MkdirAll(filepath.Dir(filepath.Join(t.filepath, "data")), 0750) //os.ModePerm)
+		err := os.MkdirAll(filepath.Dir(filepath.Join(t.filepath, "data")), 0600) //os.ModePerm)
 		if err != nil {
 			return
 		}
 	}
 	for i, filename := range files {
 		filePath := filepath.Join(t.filepath, filename)
-		f, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0660)
+		f, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 		if err != nil {
 			return
 		}
@@ -138,7 +138,7 @@ func (t *Torrent) WriteTorrent() error {
 		return nil
 	}
 
-	if f, err := os.OpenFile(filepath.Join(t.filepath, "torrent"), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0660); err == nil {
+	if f, err := os.OpenFile(filepath.Join(t.filepath, "torrent"), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600); err == nil {
 		defer f.Close()
 		log.Debug("Write seed file", "path", t.filepath)
 		if err := t.Metainfo().Write(f); err == nil {

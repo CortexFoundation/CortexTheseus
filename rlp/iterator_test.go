@@ -1,4 +1,4 @@
-// Copyright 2015 The CortexTheseus Authors
+// Copyright 2019 The CortexTheseus Authors
 // This file is part of the CortexTheseus library.
 //
 // The CortexTheseus library is free software: you can redistribute it and/or modify
@@ -17,8 +17,9 @@
 package rlp
 
 import (
-	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"testing"
+
+	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 )
 
 // TestIterator tests some basic things about the ListIterator. A more

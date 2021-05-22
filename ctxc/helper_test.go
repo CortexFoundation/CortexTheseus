@@ -31,6 +31,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
+	"github.com/CortexFoundation/CortexTheseus/ctxc/protocols/ctxc"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
@@ -201,10 +202,10 @@ func (p *testPeer) handshake(t *testing.T, td *big.Int, head common.Hash, genesi
 		Genesis:         genesis,
 		ForkID:          forkID,
 	}
-	if err := p2p.ExpectMsg(p.app, StatusMsg, msg); err != nil {
+	if err := p2p.ExpectMsg(p.app, ctxc.StatusMsg, msg); err != nil {
 		t.Fatalf("status recv: %v", err)
 	}
-	if err := p2p.Send(p.app, StatusMsg, msg); err != nil {
+	if err := p2p.Send(p.app, ctxc.StatusMsg, msg); err != nil {
 		t.Fatalf("status send: %v", err)
 	}
 }

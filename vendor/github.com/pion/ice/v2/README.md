@@ -62,6 +62,9 @@ Check out the **[contributing wiki](https://github.com/pion/webrtc/wiki/Contribu
 * [Assad Obaid](https://github.com/assadobaid)
 * [Antoine Baché](https://github.com/Antonito)
 * [Will Forcey](https://github.com/wawesomeNOGUI)
+* [David Zhao](https://github.com/davidzhao)
+* [Juliusz Chroboczek](https://github.com/jech)
+* [Jin Gong](https://github.com/cgojin)
 
 ### License
 MIT License - see [LICENSE](LICENSE) for full text

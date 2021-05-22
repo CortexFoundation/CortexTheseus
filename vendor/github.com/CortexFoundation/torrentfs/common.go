@@ -21,6 +21,9 @@ import (
 )
 
 func ProgressBar(x, y int64, desc string) string {
+	if y == 0 {
+		return "[            ] 0%"
+	}
 	progress := ""
 	for i := 10; i > 0; i-- {
 		if int64(i) > (10*x)/y {
@@ -31,6 +34,6 @@ func ProgressBar(x, y int64, desc string) string {
 	}
 
 	prog := float64(x*100) / float64(y)
-	f := strconv.FormatFloat(prog, 'f', 2, 64)
+	f := strconv.FormatFloat(prog, 'f', 4, 64)
 	return "[ " + progress + " ] " + f + "% " + desc
 }

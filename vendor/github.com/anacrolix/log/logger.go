@@ -71,6 +71,12 @@ func (l Logger) WithDefaultLevel(level Level) Logger {
 	})
 }
 
+func (l Logger) WithLevel(level Level) Logger {
+	return l.WithMap(func(m Msg) Msg {
+		return m.SetLevel(level)
+	})
+}
+
 func (l Logger) FilterLevel(minLevel Level) Logger {
 	return l.WithFilter(func(m Msg) bool {
 		level, ok := m.GetLevel()
@@ -88,4 +94,8 @@ func (l Logger) WithContextText(s string) Logger {
 	return l.WithText(func(m Msg) string {
 		return s + ": " + m.Text()
 	})
+}
+
+func (l Logger) IsZero() bool {
+	return l == Logger{}
 }

@@ -577,27 +577,40 @@ func (m *Monitor) syncLatestBlock() {
 	timer := time.NewTimer(time.Second * queryTimeInterval)
 	defer timer.Stop()
 	progress := uint64(0)
+	end := false
 	for {
 		select {
 		case <-timer.C:
 			progress = m.syncLastBlock()
 			// Avoid sync in full mode, fresh interval may be less.
 			if progress >= delay {
-				timer.Reset(0)
-			} else if progress > 1 {
-				timer.Reset(time.Millisecond * 1000)
+				//timer.Reset(0)
+				end = false
+				timer.Reset(time.Millisecond * 2000)
+			} else if progress >= 1 {
+				end = false
+				timer.Reset(time.Millisecond * 3000)
 			} else {
 				if !m.listen {
 					if (m.ckp != nil && m.currentNumber >= m.ckp.TfsCheckPoint) || (m.ckp == nil && m.currentNumber > 0) {
+						if !end {
+							end = true
+							timer.Reset(time.Millisecond * 6000)
+							continue
+						}
 						m.fs.Flush()
-						go m.exit()
+						//go m.exit()
 						elapsed := time.Duration(mclock.Now()) - time.Duration(m.start)
-						log.Warn("Finish sync, listener will be stopped", "current", m.currentNumber, "elapsed", common.PrettyDuration(elapsed))
-						return
+						log.Warn("Finish sync, listener will be paused", "current", m.currentNumber, "elapsed", common.PrettyDuration(elapsed), "ckp", m.ckp.TfsCheckPoint, "progress", progress, "end", end)
+						//return
+						timer.Reset(time.Millisecond * 1000 * 300)
+						end = false
+						continue
 					}
 				}
-				timer.Reset(time.Millisecond * 2000)
+				timer.Reset(time.Millisecond * 6000)
 			}
+			log.Info(ProgressBar(int64(m.lastNumber), int64(m.currentNumber), ""), "blocks", progress, "current", m.currentNumber, "latest", m.lastNumber, "end", end)
 			m.fs.Flush()
 		case <-m.exitCh:
 			log.Debug("Block syncer stopped")
