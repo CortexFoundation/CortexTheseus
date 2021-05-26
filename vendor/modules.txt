@@ -260,7 +260,7 @@ github.com/hashicorp/golang-lru/simplelru
 github.com/holiman/uint256
 # github.com/huandu/xstrings v1.3.2
 github.com/huandu/xstrings
-# github.com/huin/goupnp v1.0.1-0.20210310174557-0ca763054c88
+# github.com/huin/goupnp v1.0.1-0.20210522212431-b5cf3be9f29c
 ## explicit
 github.com/huin/goupnp
 github.com/huin/goupnp/dcps/internetgateway1
