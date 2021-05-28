@@ -237,6 +237,14 @@ func (pm *ProtocolManager) makeProtocol(version uint) p2p.Protocol {
 }
 
 func (pm *ProtocolManager) removePeer(id string) {
+	peer := pm.peers.Peer(id)
+	if peer != nil {
+		peer.Peer.Disconnect(p2p.DiscUselessPeer)
+	}
+}
+
+// unregisterPeer removes a peer from the downloader, fetchers and main peer set.
+func (pm *ProtocolManager) unregisterPeer(id string) {
 	// Short circuit if the peer was already removed
 	peer := pm.peers.Peer(id)
 	if peer == nil {
@@ -253,7 +261,7 @@ func (pm *ProtocolManager) removePeer(id string) {
 	}
 	// Hard disconnect at the networking layer
 	if peer != nil {
-		peer.Peer.Disconnect(p2p.DiscUselessPeer)
+		//peer.Peer.Disconnect(p2p.DiscUselessPeer)
 	}
 }
 
@@ -337,7 +345,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 		p.Log().Error("Cortex peer registration failed", "err", err)
 		return err
 	}
-	defer pm.removePeer(p.id)
+	defer pm.unregisterPeer(p.id)
 
 	// Register the peer in the downloader. If the downloader considers it banned, we disconnect
 	if err := pm.downloader.RegisterPeer(p.id, p.version, p); err != nil {
