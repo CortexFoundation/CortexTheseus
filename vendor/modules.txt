@@ -242,9 +242,10 @@ github.com/go-stack/stack
 github.com/golang/snappy
 # github.com/google/btree v1.0.1
 github.com/google/btree
-# github.com/google/gofuzz v1.0.0
+# github.com/google/gofuzz v1.2.1-0.20210524182514-9eed411d8615
 ## explicit
 github.com/google/gofuzz
+github.com/google/gofuzz/bytesource
 # github.com/google/uuid v1.2.0
 ## explicit
 github.com/google/uuid
