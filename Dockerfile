@@ -29,6 +29,11 @@ RUN ls -alt /work/bin/plugins
 
 RUN cp /work/src/CortexTheseus/docker/node.conf /etc/supervisor/conf.d/
 
+# if you want to use a specified supervisor conf
+#COPY node.conf /etc/supervisor/conf.d/
+
+RUN ls /etc/supervisor/conf.d/
+
 RUN rm -rf /work/src/CortexTheseus
 
 CMD supervisord -n -c /etc/supervisor/supervisord.conf
