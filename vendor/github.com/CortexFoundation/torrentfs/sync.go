@@ -576,7 +576,7 @@ func (m *Monitor) syncLatestBlock() {
 	defer m.wg.Done()
 	timer := time.NewTimer(time.Second * queryTimeInterval)
 	defer timer.Stop()
-	progress := uint64(0)
+	progress, counter := uint64(0), 0
 	end := false
 	for {
 		select {
@@ -610,7 +610,11 @@ func (m *Monitor) syncLatestBlock() {
 				}
 				timer.Reset(time.Millisecond * 6000)
 			}
-			log.Info(ProgressBar(int64(m.lastNumber), int64(m.currentNumber), ""), "blocks", progress, "current", m.currentNumber, "latest", m.lastNumber, "end", end)
+			counter++
+			if counter%10 == 0 {
+				log.Info(ProgressBar(int64(m.lastNumber), int64(m.currentNumber), ""), "blocks", progress, "current", m.currentNumber, "latest", m.lastNumber, "end", end)
+				counter = 0
+			}
 			m.fs.Flush()
 		case <-m.exitCh:
 			log.Debug("Block syncer stopped")
