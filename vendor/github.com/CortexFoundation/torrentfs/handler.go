@@ -627,6 +627,13 @@ func (tm *TorrentManager) Search(ctx context.Context, hex string, request uint64
 		return nil
 	}
 
+	//if tm.mode == FULL {
+	//if request == 0 {
+	//	log.Warn("Prepare mode", "ih", hex)
+	//	request = uint64(block)
+	//}
+	//}
+
 	downloadMeter.Mark(1)
 
 	return tm.commit(ctx, hex, request, ch)
@@ -644,7 +651,12 @@ func (tm *TorrentManager) mainLoop() {
 			if IsBad(meta.InfoHash) {
 				continue
 			}
+
 			bytes := int64(meta.BytesRequested)
+			if bytes == 0 {
+				bytes = block
+			}
+
 			if t := tm.addInfoHash(meta.InfoHash, bytes, meta.Ch); t == nil {
 				log.Error("Seed [create] failed", "ih", meta.InfoHash, "request", bytes)
 				continue
@@ -858,9 +870,9 @@ func (tm *TorrentManager) activeLoop() {
 				if t.bytesCompleted >= t.bytesLimitation {
 					t.Pause()
 					active_paused++
-					if log_counter%45 == 0 {
+					if log_counter%300 == 0 && active_paused < 11 {
 						bar := ProgressBar(t.bytesCompleted, t.Torrent.Length(), "[Paused]")
-						log.Info(bar, "ih", ih, "complete", common.StorageSize(t.bytesCompleted), "req", common.StorageSize(t.bytesRequested), "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.bytesMissing+t.bytesCompleted), "prog", math.Min(float64(t.bytesCompleted), float64(t.bytesRequested))/float64(t.bytesCompleted+t.bytesMissing), "seg", len(t.Torrent.PieceStateRuns()), "peers", t.currentConns, "max", t.Torrent.NumPieces())
+						log.Debug(bar, "ih", ih, "complete", common.StorageSize(t.bytesCompleted), "req", common.StorageSize(t.bytesRequested), "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.bytesMissing+t.bytesCompleted), "seg", len(t.Torrent.PieceStateRuns()), "peers", t.currentConns, "max", t.Torrent.NumPieces())
 					}
 					continue
 				} /*else if t.bytesRequested >= t.bytesCompleted+t.bytesMissing {

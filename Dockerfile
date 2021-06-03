@@ -34,6 +34,8 @@ RUN cp /work/src/CortexTheseus/docker/node.conf /etc/supervisor/conf.d/
 
 RUN ls /etc/supervisor/conf.d/
 
+RUN cat /etc/supervisor/conf.d/node.conf
+
 RUN rm -rf /work/src/CortexTheseus
 
 CMD supervisord -n -c /etc/supervisor/supervisord.conf

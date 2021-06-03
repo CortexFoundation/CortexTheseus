@@ -62,7 +62,7 @@ type ChainDB struct {
 }
 
 func NewChainDB(config *Config) (*ChainDB, error) {
-	if err := os.MkdirAll(config.DataDir, 0700); err != nil {
+	if err := os.MkdirAll(config.DataDir, 0600); err != nil {
 		log.Error("Make data dir failed", "err", err, "dir", config.DataDir)
 		return nil, err
 	}
@@ -84,11 +84,8 @@ func NewChainDB(config *Config) (*ChainDB, error) {
 	}
 
 	fs.config = config
-
 	fs.metrics = config.Metrics
-
 	fs.version = version
-
 	fs.torrents = make(map[string]uint64)
 
 	//fs.rootCache, _ = lru.New(8)
