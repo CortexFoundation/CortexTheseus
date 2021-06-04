@@ -595,7 +595,7 @@ func (m *Monitor) syncLatestBlock() {
 					if (m.ckp != nil && m.currentNumber >= m.ckp.TfsCheckPoint) || (m.ckp == nil && m.currentNumber > 0) {
 						if !end {
 							end = true
-							timer.Reset(time.Millisecond * 6000)
+							timer.Reset(time.Millisecond * 15000)
 							continue
 						}
 						m.fs.Flush()
