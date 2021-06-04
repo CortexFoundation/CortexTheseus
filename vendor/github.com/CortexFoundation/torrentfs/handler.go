@@ -304,6 +304,8 @@ func (tm *TorrentManager) loadSpec(ih string, filePath string) *torrent.TorrentS
 func (tm *TorrentManager) addInfoHash(ih string, BytesRequested int64, ch chan bool) *Torrent {
 	log.Debug("Add seed", "ih", ih, "bytes", BytesRequested, "ch", ch)
 	if t := tm.getTorrent(ih); t != nil {
+		//update
+		tm.updateInfoHash(t, BytesRequested)
 		return t
 	}
 
@@ -657,18 +659,20 @@ func (tm *TorrentManager) mainLoop() {
 				bytes = block
 			}
 
+			//tm.addInfoHash(meta.InfoHash, bytes, meta.Ch)
+
 			if t := tm.addInfoHash(meta.InfoHash, bytes, meta.Ch); t == nil {
 				log.Error("Seed [create] failed", "ih", meta.InfoHash, "request", bytes)
 				continue
 			} else {
-				if bytes > 0 {
-					tm.updateInfoHash(t, bytes)
-					if t.currentConns <= 1 {
-						t.currentConns = tm.maxEstablishedConns
-						t.Torrent.SetMaxEstablishedConns(tm.maxEstablishedConns)
-						log.Warn("Active torrent", "ih", meta.InfoHash, "bytes", bytes)
-					}
+				//if bytes > 0 {
+				//	tm.updateInfoHash(t, bytes)
+				if t.currentConns <= 1 {
+					t.currentConns = tm.maxEstablishedConns
+					t.Torrent.SetMaxEstablishedConns(tm.maxEstablishedConns)
+					log.Warn("Active torrent", "ih", meta.InfoHash, "bytes", bytes)
 				}
+				//}
 			}
 			//time.Sleep(time.Second)
 		case <-tm.closeAll:
