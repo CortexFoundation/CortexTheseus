@@ -20,3 +20,5 @@ all:
 clean:
 	go clean -cache
 	rm -rf $(GOBIN)/*
+format:
+	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "*/generated/*" | xargs gofmt -w -s
