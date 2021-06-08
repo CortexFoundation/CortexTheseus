@@ -18,7 +18,7 @@ github.com/CortexFoundation/merkletree
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.23-0.20210608021016-c66c448d928c
+# github.com/CortexFoundation/torrentfs v1.0.23-0.20210608062143-9c7f52d92372
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -81,7 +81,7 @@ github.com/anacrolix/stm/rate
 github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.2.0
 github.com/anacrolix/sync
-# github.com/anacrolix/torrent v1.28.1-0.20210525084859-8f6f47a2e0ed
+# github.com/anacrolix/torrent v1.28.1-0.20210608054535-e2a559e2435a
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/common

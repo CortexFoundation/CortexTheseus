@@ -387,6 +387,8 @@ func (t *Torrent) cacheLength() {
 	t.length = &l
 }
 
+// TODO: This shouldn't fail for storage reasons. Instead we should handle storage failure
+// separately.
 func (t *Torrent) setInfo(info *metainfo.Info) error {
 	if err := validateInfo(info); err != nil {
 		return fmt.Errorf("bad info: %s", err)
@@ -808,10 +810,20 @@ func (t *Torrent) pieceLength(piece pieceIndex) pp.Integer {
 }
 
 func (t *Torrent) hashPiece(piece pieceIndex) (ret metainfo.Hash, err error) {
-	hash := pieceHash.New()
 	p := t.piece(piece)
 	p.waitNoPendingWrites()
 	storagePiece := t.pieces[piece].Storage()
+
+	//Does the backend want to do its own hashing?
+	if i, ok := storagePiece.PieceImpl.(storage.SelfHashing); ok {
+		var sum metainfo.Hash
+		//log.Printf("A piece decided to self-hash: %d", piece)
+		sum, err = i.SelfHash()
+		missinggo.CopyExact(&ret, sum)
+		return
+	}
+
+	hash := pieceHash.New()
 	const logPieceContents = false
 	if logPieceContents {
 		var examineBuf bytes.Buffer
@@ -1193,8 +1205,9 @@ func (t *Torrent) readAt(b []byte, off int64) (n int, err error) {
 	return
 }
 
-// Returns an error if the metadata was completed, but couldn't be set for
-// some reason. Blame it on the last peer to contribute.
+// Returns an error if the metadata was completed, but couldn't be set for some reason. Blame it on
+// the last peer to contribute. TODO: Actually we shouldn't blame peers for failure to open storage
+// etc. Also we should probably cached metadata pieces per-Peer, to isolate failure appropriately.
 func (t *Torrent) maybeCompleteMetadata() error {
 	if t.haveInfo() {
 		// Nothing to do.
@@ -1535,17 +1548,23 @@ func (t *Torrent) consumeDhtAnnouncePeers(pvs <-chan dht.PeersValues) {
 	cl := t.cl
 	for v := range pvs {
 		cl.lock()
+		added := 0
 		for _, cp := range v.Peers {
 			if cp.Port == 0 {
 				// Can't do anything with this.
 				continue
 			}
-			t.addPeer(PeerInfo{
+			if t.addPeer(PeerInfo{
 				Addr:   ipPortAddr{cp.IP, cp.Port},
 				Source: PeerSourceDhtGetPeers,
-			})
+			}) {
+				added++
+			}
 		}
 		cl.unlock()
+		if added != 0 {
+			//log.Printf("added %v peers from dht for %v", added, t.InfoHash().HexString())
+		}
 	}
 }
 
