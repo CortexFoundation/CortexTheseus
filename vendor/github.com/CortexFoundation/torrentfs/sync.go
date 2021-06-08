@@ -612,7 +612,7 @@ func (m *Monitor) syncLatestBlock() {
 			}
 			counter++
 			if counter%10 == 0 {
-				log.Info(ProgressBar(int64(m.lastNumber), int64(m.currentNumber), ""), "blocks", progress, "current", m.currentNumber, "latest", m.lastNumber, "end", end)
+				log.Info(ProgressBar(int64(m.lastNumber), int64(m.currentNumber), ""), "blocks", progress, "current", m.currentNumber, "latest", m.lastNumber, "end", end, "txs", m.fs.Txs())
 				counter = 0
 			}
 			m.fs.Flush()
