@@ -51,8 +51,9 @@ github.com/CortexFoundation/CortexTheseus v1.10.8/go.mod h1:BxMcNBe5UuA9WWMLBdHP
 github.com/CortexFoundation/CortexTheseus v1.10.17/go.mod h1:BwFbjqs4a31m8WC/lqlE0WTc/7q+xX1Abjrtvw+fpoI=
 github.com/CortexFoundation/cvm-runtime v0.0.0-20210119064759-82917ece736a h1:ZGM/JiLEEaE0gxmUnCR0M3SSh+z56oMXHW8Q5ghQncM=
 github.com/CortexFoundation/cvm-runtime v0.0.0-20210119064759-82917ece736a/go.mod h1:oLEQaJbHT0SAIVjY90BYPYVikGylXHrPyf1yTPS7HZg=
-github.com/CortexFoundation/inference v0.0.0-20210119065113-cfd300c22e86 h1:gRoRU8nG06S13M6qP5TSIA918Z7o3Bwf6yKnZhUeQE4=
 github.com/CortexFoundation/inference v0.0.0-20210119065113-cfd300c22e86/go.mod h1:uioLPDl9WVs5BELuGw1SNzrsLYNDfjmzb25q4wTpHLk=
+github.com/CortexFoundation/inference v0.0.0-20210421082402-95328102e764 h1:hOCFRO2G1/+Yz0BcCWyXo4MiSDPPyoBjwN+YHjvFhjg=
+github.com/CortexFoundation/inference v0.0.0-20210421082402-95328102e764/go.mod h1:uioLPDl9WVs5BELuGw1SNzrsLYNDfjmzb25q4wTpHLk=
 github.com/CortexFoundation/merkletree v0.0.0-20210226031755-94f6423532ee h1:jfpPt8Ii/jb4FbANNMZ2jhTofPN2HBNh1fwn8mc7P+E=
 github.com/CortexFoundation/merkletree v0.0.0-20210226031755-94f6423532ee/go.mod h1:wEZt1PDFxLVO2NzqcAsP8CpeovOL4wL8n/1k3aEQ8M4=
 github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66 h1:yJbN4DFvpStCShXOVxNV64aawsPqizLuXZhrnhCr2fY=
