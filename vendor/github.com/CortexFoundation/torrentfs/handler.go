@@ -516,7 +516,7 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 			MaxEntrySize:       512,
 			StatsEnabled:       true,
 			Verbose:            true,
-			HardMaxCacheSize:   2048, //MB
+			HardMaxCacheSize:   512, //MB
 		}
 
 		torrentManager.fileCache, err = bigcache.NewBigCache(conf)

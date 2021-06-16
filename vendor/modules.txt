@@ -18,7 +18,7 @@ github.com/CortexFoundation/merkletree
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.23-0.20210608062143-9c7f52d92372
+# github.com/CortexFoundation/torrentfs v1.0.23-0.20210616085251-2e495e38ec93
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -33,6 +33,7 @@ github.com/StackExchange/wmi
 ## explicit
 github.com/VictoriaMetrics/fastcache
 # github.com/allegro/bigcache/v3 v3.0.0
+## explicit
 github.com/allegro/bigcache/v3
 github.com/allegro/bigcache/v3/queue
 # github.com/anacrolix/confluence v1.7.1-0.20210311004351-d642adb8546c
