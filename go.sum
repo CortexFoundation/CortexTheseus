@@ -49,6 +49,7 @@ github.com/CortexFoundation/CortexTheseus v1.10.3-0.20200624034846-46f8f368cbee/
 github.com/CortexFoundation/CortexTheseus v1.10.3-0.20200704025058-f0885ec2bd83/go.mod h1:++9X1TLZ+XbAFxrQO5Cl9T/5/OW6JaLlvVnDsEH0qkA=
 github.com/CortexFoundation/CortexTheseus v1.10.8/go.mod h1:BxMcNBe5UuA9WWMLBdHP5JqpFKyCBZza+6FLSMx7Nhk=
 github.com/CortexFoundation/CortexTheseus v1.10.17/go.mod h1:BwFbjqs4a31m8WC/lqlE0WTc/7q+xX1Abjrtvw+fpoI=
+github.com/CortexFoundation/CortexTheseus v1.10.25-0.20210616090951-81bbac34d824/go.mod h1:GoI/S4BQnPAPxku6wfUBrF8gtuZAL/cv+pdvQ4KJWLA=
 github.com/CortexFoundation/cvm-runtime v0.0.0-20210119064759-82917ece736a h1:ZGM/JiLEEaE0gxmUnCR0M3SSh+z56oMXHW8Q5ghQncM=
 github.com/CortexFoundation/cvm-runtime v0.0.0-20210119064759-82917ece736a/go.mod h1:oLEQaJbHT0SAIVjY90BYPYVikGylXHrPyf1yTPS7HZg=
 github.com/CortexFoundation/inference v0.0.0-20210119065113-cfd300c22e86/go.mod h1:uioLPDl9WVs5BELuGw1SNzrsLYNDfjmzb25q4wTpHLk=
@@ -63,8 +64,9 @@ github.com/CortexFoundation/torrentfs v1.0.14-0.20200703071639-3fcabcabf274/go.m
 github.com/CortexFoundation/torrentfs v1.0.20-0.20200810031954-d36d26f82fcc/go.mod h1:N5BsicP5ynjXIi/Npl/SRzlJ630n1PJV2sRj0Z0t2HA=
 github.com/CortexFoundation/torrentfs v1.0.22-0.20201126093427-f455d2481b9b/go.mod h1:lcAYtGEoWAeIhWH/JpXno34eNA17xslgwg6UBBd769U=
 github.com/CortexFoundation/torrentfs v1.0.23-0.20210119015245-ae2a4c2c966c/go.mod h1:iyTtPicpVt2NTVGDyhQ1LurDZFB/uR0R2dK22Pv3M1g=
-github.com/CortexFoundation/torrentfs v1.0.23-0.20210616085251-2e495e38ec93 h1:4r4rEn8nw9NmsqxW9IePNBOBLNPrQEAX74gkvChV+FE=
 github.com/CortexFoundation/torrentfs v1.0.23-0.20210616085251-2e495e38ec93/go.mod h1:C6zunC/Lvcnf33vvMTu8pNitdytWbPDq2qzrX+WPv+k=
+github.com/CortexFoundation/torrentfs v1.0.23-0.20210617074223-1c816fe8dc21 h1:FeNvyJa/4GYYM7/WY6ahaoPF0+5moNQEL+J9fPI+oPU=
+github.com/CortexFoundation/torrentfs v1.0.23-0.20210617074223-1c816fe8dc21/go.mod h1:YNgNDVGU1de5VR8q1AsCyacHDutDg0gx4at89RQO5ck=
 github.com/DATA-DOG/go-sqlmock v1.3.3/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
 github.com/Julusian/godocdown v0.0.0-20170816220326-6d19f8ff2df8/go.mod h1:INZr5t32rG59/5xeltqoCJoNY7e5x/3xoY9WSWVWg74=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
