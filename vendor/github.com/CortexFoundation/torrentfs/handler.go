@@ -777,15 +777,16 @@ func (tm *TorrentManager) activeLoop() {
 	defer tm.wg.Done()
 	timer := time.NewTimer(time.Second * queryTimeInterval)
 	defer timer.Stop()
-	var total_size, current_size, log_counter, counter uint64
+	var total_size, current_size, log_counter, counter, actual_counter uint64 = 0, 0, 1, 1, 1
 	var active_paused, active_wait, active_running int
 	for {
-		counter++
+		//counter++
 		select {
 		case t := <-tm.activeChan:
 			tm.activeTorrents[t.Torrent.InfoHash().HexString()] = t
 			timer.Reset(0)
 		case <-timer.C:
+			counter++
 			log_counter++
 
 			for ih, t := range tm.activeTorrents {
@@ -832,6 +833,8 @@ func (tm *TorrentManager) activeLoop() {
 				if t.BytesCompleted() > t.bytesCompleted {
 					total_size += uint64(t.BytesCompleted() - t.bytesCompleted)
 					current_size += uint64(t.BytesCompleted() - t.bytesCompleted)
+					//actual_size +=  uint64(t.BytesCompleted() - t.bytesCompleted)
+					actual_counter++
 				}
 
 				t.bytesCompleted = t.BytesCompleted()
@@ -920,7 +923,7 @@ func (tm *TorrentManager) activeLoop() {
 				}
 
 				if t.bytesCompleted < t.bytesLimitation && !t.isBoosting {
-					t.Run(tm.slot)
+					go t.Run(tm.slot)
 					active_running++
 				}
 			}
@@ -930,12 +933,12 @@ func (tm *TorrentManager) activeLoop() {
 					log.Warn(ProgressBar(int64(len(tm.seedingTorrents)), int64(len(GoodFiles)), "Network scanning"), "mode", tm.mode, "ports", "40401,5008,40404", "seeding", len(tm.seedingTorrents), "expected", len(GoodFiles))
 				} else {
 					if tm.cache {
-						log.Info("Fs status", "pending", len(tm.pendingTorrents), "waiting", active_wait, "downloading", active_running, "paused", active_paused, "seeding", len(tm.seedingTorrents), "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s", "metrics", common.PrettyDuration(tm.Updates), "hot", tm.hotCache.Len(), "stats", tm.fileCache.Stats(), "len", tm.fileCache.Len(), "capacity", common.StorageSize(tm.fileCache.Capacity()).String())
+						log.Info("Fs status", "pending", len(tm.pendingTorrents), "waiting", active_wait, "downloading", active_running, "paused", active_paused, "seeding", len(tm.seedingTorrents), "size", common.StorageSize(total_size), "speed", common.StorageSize(total_size/actual_counter*queryTimeInterval).String()+"/s", "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s", "metrics", common.PrettyDuration(tm.Updates), "hot", tm.hotCache.Len(), "stats", tm.fileCache.Stats(), "len", tm.fileCache.Len(), "capacity", common.StorageSize(tm.fileCache.Capacity()).String())
 					} else {
-						log.Info("Fs status", "pending", len(tm.pendingTorrents), "waiting", active_wait, "downloading", active_running, "paused", active_paused, "seeding", len(tm.seedingTorrents), "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s", "metrics", common.PrettyDuration(tm.Updates), "hot", tm.hotCache.Len())
+						log.Info("Fs status", "pending", len(tm.pendingTorrents), "waiting", active_wait, "downloading", active_running, "paused", active_paused, "seeding", len(tm.seedingTorrents), "size", common.StorageSize(total_size), "speed", common.StorageSize(total_size/actual_counter*queryTimeInterval).String()+"/s", "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s", "metrics", common.PrettyDuration(tm.Updates), "hot", tm.hotCache.Len())
 					}
 				}
-				counter = 0
+				counter = 1
 				current_size = 0
 			}
 			active_paused, active_wait, active_running = 0, 0, 0

@@ -7,4 +7,5 @@ type (
 	Cond      = sync.Cond
 	Pool      = sync.Pool
 	Locker    = sync.Locker
+	Once      = sync.Once
 )
