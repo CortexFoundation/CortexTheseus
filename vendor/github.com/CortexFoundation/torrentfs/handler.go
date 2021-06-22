@@ -923,7 +923,7 @@ func (tm *TorrentManager) activeLoop() {
 				}
 
 				if t.bytesCompleted < t.bytesLimitation && !t.isBoosting {
-					go t.Run(tm.slot)
+					t.Run(tm.slot)
 					active_running++
 				}
 			}
