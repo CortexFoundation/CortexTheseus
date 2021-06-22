@@ -18,7 +18,7 @@ github.com/CortexFoundation/merkletree
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.23-0.20210621072626-8f924dd71aa7
+# github.com/CortexFoundation/torrentfs v1.0.23-0.20210621110343-0401e3009bcd
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
