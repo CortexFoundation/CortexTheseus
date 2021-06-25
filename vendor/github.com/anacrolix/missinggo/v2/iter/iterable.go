@@ -3,7 +3,7 @@ package iter
 import (
 	"sync"
 
-	"github.com/anacrolix/missinggo"
+	"github.com/anacrolix/missinggo/v2"
 )
 
 type Iterable interface {

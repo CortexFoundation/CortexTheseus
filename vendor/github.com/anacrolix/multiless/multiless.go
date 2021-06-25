@@ -34,6 +34,7 @@ func (me Computation) LazySameLess(lazy func() (same, less bool)) Computation {
 	return me
 }
 
+// Sorts so that false comes before true.
 func (me Computation) Bool(l, r bool) Computation {
 	return me.EagerSameLess(l == r, r)
 }
@@ -43,6 +44,10 @@ func (me Computation) Uint32(l, r uint32) Computation {
 }
 
 func (me Computation) Int64(l, r int64) Computation {
+	return me.EagerSameLess(l == r, l < r)
+}
+
+func (me Computation) Uint64(l, r uint64) Computation {
 	return me.EagerSameLess(l == r, l < r)
 }
 
