@@ -436,9 +436,9 @@ func (tm *TorrentManager) updateInfoHash(t *Torrent, BytesRequested int64) {
 
 func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*TorrentManager, error) {
 	cfg := torrent.NewDefaultClientConfig()
-	cfg.DisableUTP = config.DisableUTP
+	cfg.DisableUTP = false//config.DisableUTP
 	cfg.NoDHT = config.DisableDHT
-	cfg.DisableTCP = config.DisableTCP
+	cfg.DisableTCP = true//config.DisableTCP
 	cfg.DisableIPv6 = config.DisableIPv6
 
 	//cfg.HeaderObfuscationPolicy.Preferred = true
