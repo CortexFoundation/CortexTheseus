@@ -7,6 +7,6 @@ import (
 )
 
 func fileInfoAccessTime(fi os.FileInfo) time.Time {
-	sec := fi.Sys().(*syscall.Dir).Atime
-	return time.Unix(int64(sec), 0)
+	sys := fi.Sys().(*syscall.Stat_t)
+	return time.Unix(sys.Atime, sys.AtimeNsec)
 }

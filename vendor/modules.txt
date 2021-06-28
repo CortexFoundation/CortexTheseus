@@ -18,7 +18,7 @@ github.com/CortexFoundation/merkletree
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.23-0.20210621110343-0401e3009bcd
+# github.com/CortexFoundation/torrentfs v1.0.23-0.20210626012529-c4ff533c3f90
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -50,7 +50,7 @@ github.com/anacrolix/envpprof
 github.com/anacrolix/go-libutp
 # github.com/anacrolix/log v0.9.0
 github.com/anacrolix/log
-# github.com/anacrolix/missinggo v1.2.1
+# github.com/anacrolix/missinggo v1.3.0
 github.com/anacrolix/missinggo
 github.com/anacrolix/missinggo/bitmap
 github.com/anacrolix/missinggo/expect
@@ -64,10 +64,11 @@ github.com/anacrolix/missinggo/pubsub
 github.com/anacrolix/missinggo/slices
 # github.com/anacrolix/missinggo/perf v1.0.0
 github.com/anacrolix/missinggo/perf
-# github.com/anacrolix/missinggo/v2 v2.5.1-0.20210520011502-b3d95d6b1d02
+# github.com/anacrolix/missinggo/v2 v2.5.2-0.20210623112532-e21e4ddc477d
 github.com/anacrolix/missinggo/v2
 github.com/anacrolix/missinggo/v2/bitmap
 github.com/anacrolix/missinggo/v2/conntrack
+github.com/anacrolix/missinggo/v2/expect
 github.com/anacrolix/missinggo/v2/iter
 github.com/anacrolix/missinggo/v2/pproffd
 github.com/anacrolix/missinggo/v2/prioritybitmap
@@ -75,7 +76,7 @@ github.com/anacrolix/missinggo/v2/resource
 # github.com/anacrolix/mmsg v1.0.0
 github.com/anacrolix/mmsg
 github.com/anacrolix/mmsg/socket
-# github.com/anacrolix/multiless v0.1.1-0.20210520040635-10ee7b5f3cff
+# github.com/anacrolix/multiless v0.1.1-0.20210529082330-de2f6cf29619
 github.com/anacrolix/multiless
 # github.com/anacrolix/stm v0.3.0-alpha
 github.com/anacrolix/stm
@@ -83,7 +84,7 @@ github.com/anacrolix/stm/rate
 github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.3.0
 github.com/anacrolix/sync
-# github.com/anacrolix/torrent v1.28.1-0.20210621023005-9f5ce7e90e82
+# github.com/anacrolix/torrent v1.28.1-0.20210626003150-8b39fcf68b30
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/common
@@ -99,7 +100,11 @@ github.com/anacrolix/torrent/request-strategy
 github.com/anacrolix/torrent/segments
 github.com/anacrolix/torrent/storage
 github.com/anacrolix/torrent/tracker
+github.com/anacrolix/torrent/tracker/http
+github.com/anacrolix/torrent/tracker/shared
+github.com/anacrolix/torrent/tracker/udp
 github.com/anacrolix/torrent/types
+github.com/anacrolix/torrent/version
 github.com/anacrolix/torrent/webseed
 github.com/anacrolix/torrent/webtorrent
 # github.com/anacrolix/upnp v0.1.2-0.20200416075019-5e9378ed1425
