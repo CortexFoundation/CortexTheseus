@@ -8,8 +8,8 @@ func Sub(left, right Bitmap) Bitmap {
 	}
 }
 
-func Flip(bm Bitmap, start, end int) Bitmap {
+func Flip(bm Bitmap, start, end BitRange) Bitmap {
 	return Bitmap{
-		RB: roaring.FlipInt(bm.lazyRB(), start, end),
+		RB: roaring.Flip(bm.lazyRB(), start, end),
 	}
 }

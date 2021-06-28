@@ -4,9 +4,9 @@ go 1.16
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
-	github.com/CortexFoundation/inference v0.0.0-20210421082402-95328102e764
+	github.com/CortexFoundation/inference v0.0.0-20210616063310-1525c55b5300
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.23-0.20210608062143-9c7f52d92372
+	github.com/CortexFoundation/torrentfs v1.0.23-0.20210625021226-3f151ab53e66
 	github.com/VictoriaMetrics/fastcache v1.5.8
 	github.com/arsham/figurine v1.0.1
 	github.com/aws/aws-sdk-go-v2 v1.3.0
@@ -30,7 +30,7 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
 	github.com/holiman/uint256 v1.2.0
-	github.com/huin/goupnp v1.0.1-0.20210522212431-b5cf3be9f29c
+	github.com/huin/goupnp v1.0.1-0.20210619221024-16e24d576276
 	github.com/influxdata/influxdb v1.8.0
 	github.com/jackpal/go-nat-pmp v1.0.2
 	github.com/jedisct1/go-minisign v0.0.0-20190909160543-45766022959e
@@ -50,7 +50,6 @@ require (
 	github.com/steakknife/bloomfilter v0.0.0-20180922174646-6819c0d2a570
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.1-0.20210305035536-64b5b1c73954
-	github.com/tklauser/go-sysconf v0.3.5 // indirect
 	github.com/ucwong/color v1.10.1-0.20200624105241-fba1e010fe1e
 	github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43
 	github.com/ucwong/tsdb v0.10.4-0.20200518132041-df9cb51f3a80

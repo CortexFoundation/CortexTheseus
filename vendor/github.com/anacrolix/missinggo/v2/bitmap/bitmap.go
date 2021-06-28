@@ -4,16 +4,15 @@
 package bitmap
 
 import (
-	"math"
-
 	"github.com/RoaringBitmap/roaring"
 
 	"github.com/anacrolix/missinggo/iter"
 )
 
-const MaxInt = -1
-
-type BitIndex = int
+type (
+	BitIndex = uint32
+	BitRange = uint64
+)
 
 type Interface interface {
 	Len() int
@@ -25,24 +24,24 @@ type Bitmap struct {
 	RB *roaring.Bitmap
 }
 
-var ToEnd int = -1
+const (
+	MaxInt BitIndex = roaring.MaxUint32
+	ToEnd  BitRange = roaring.MaxRange
+)
 
 // The number of set bits in the bitmap. Also known as cardinality.
-func (me Bitmap) Len() int {
+func (me Bitmap) Len() BitRange {
 	if me.RB == nil {
 		return 0
 	}
-	return int(me.RB.GetCardinality())
+	return me.RB.GetCardinality()
 }
 
-func (me Bitmap) ToSortedSlice() (ret []int) {
+func (me Bitmap) ToSortedSlice() []BitIndex {
 	if me.RB == nil {
-		return
+		return nil
 	}
-	for _, ui32 := range me.RB.ToArray() {
-		ret = append(ret, int(int32(ui32)))
-	}
-	return
+	return me.RB.ToArray()
 }
 
 func (me *Bitmap) lazyRB() *roaring.Bitmap {
@@ -73,24 +72,24 @@ func (me Bitmap) IterTyped(f func(int) bool) bool {
 }
 
 func checkInt(i BitIndex) {
-	if i < math.MinInt32 || i > math.MaxInt32 {
-		panic("out of bounds")
-	}
+	// Nothing to do if BitIndex is uint32, as this matches what roaring can handle.
 }
 
 func (me *Bitmap) Add(is ...BitIndex) {
 	rb := me.lazyRB()
 	for _, i := range is {
 		checkInt(i)
-		rb.AddInt(i)
+		rb.Add(i)
 	}
 }
 
-func (me *Bitmap) AddRange(begin, end BitIndex) {
+func (me *Bitmap) AddRange(begin, end BitRange) {
+	// Filter here so we don't prematurely create a bitmap before having roaring do this check
+	// anyway.
 	if begin >= end {
 		return
 	}
-	me.lazyRB().AddRange(uint64(begin), uint64(end))
+	me.lazyRB().AddRange(begin, end)
 }
 
 func (me *Bitmap) Remove(i BitIndex) bool {
@@ -104,11 +103,11 @@ func (me *Bitmap) Union(other Bitmap) {
 	me.lazyRB().Or(other.lazyRB())
 }
 
-func (me Bitmap) Contains(i int) bool {
+func (me Bitmap) Contains(i BitIndex) bool {
 	if me.RB == nil {
 		return false
 	}
-	return me.RB.Contains(uint32(i))
+	return me.RB.Contains(i)
 }
 
 func (me *Bitmap) Sub(other Bitmap) {
@@ -136,33 +135,29 @@ func (me Bitmap) Copy() (ret Bitmap) {
 	return
 }
 
-func (me *Bitmap) FlipRange(begin, end BitIndex) {
-	me.lazyRB().FlipInt(begin, end)
+func (me *Bitmap) FlipRange(begin, end BitRange) {
+	me.lazyRB().Flip(begin, end)
 }
 
 func (me Bitmap) Get(bit BitIndex) bool {
-	return me.RB != nil && me.RB.ContainsInt(bit)
+	return me.RB != nil && me.RB.Contains(bit)
 }
 
 func (me *Bitmap) Set(bit BitIndex, value bool) {
 	if value {
-		me.lazyRB().AddInt(bit)
+		me.lazyRB().Add(bit)
 	} else {
 		if me.RB != nil {
-			me.RB.Remove(uint32(bit))
+			me.RB.Remove(bit)
 		}
 	}
 }
 
-func (me *Bitmap) RemoveRange(begin, end BitIndex) *Bitmap {
+func (me *Bitmap) RemoveRange(begin, end BitRange) *Bitmap {
 	if me.RB == nil {
 		return me
 	}
-	rangeEnd := uint64(end)
-	if end == ToEnd {
-		rangeEnd = 0x100000000
-	}
-	me.RB.RemoveRange(uint64(begin), rangeEnd)
+	me.RB.RemoveRange(begin, end)
 	return me
 }
 

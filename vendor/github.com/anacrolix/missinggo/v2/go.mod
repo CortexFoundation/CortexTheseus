@@ -1,6 +1,7 @@
 module github.com/anacrolix/missinggo/v2
 
 require (
+	crawshaw.io/sqlite v0.3.2
 	github.com/RoaringBitmap/roaring v0.4.23
 	github.com/anacrolix/envpprof v1.1.0
 	github.com/anacrolix/log v0.6.0
@@ -14,7 +15,6 @@ require (
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.4.0 // indirect
 	github.com/google/btree v1.0.0
-	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/huandu/xstrings v1.3.1
 	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect

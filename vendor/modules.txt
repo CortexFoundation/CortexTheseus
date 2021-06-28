@@ -9,7 +9,7 @@ github.com/Azure/azure-pipeline-go/pipeline
 github.com/Azure/azure-storage-blob-go/azblob
 # github.com/CortexFoundation/cvm-runtime v0.0.0-20210119064759-82917ece736a
 github.com/CortexFoundation/cvm-runtime/kernel
-# github.com/CortexFoundation/inference v0.0.0-20210421082402-95328102e764
+# github.com/CortexFoundation/inference v0.0.0-20210616063310-1525c55b5300
 ## explicit
 github.com/CortexFoundation/inference
 github.com/CortexFoundation/inference/synapse
@@ -18,7 +18,7 @@ github.com/CortexFoundation/merkletree
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.23-0.20210608062143-9c7f52d92372
+# github.com/CortexFoundation/torrentfs v1.0.23-0.20210625021226-3f151ab53e66
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -35,6 +35,8 @@ github.com/VictoriaMetrics/fastcache
 # github.com/allegro/bigcache/v3 v3.0.0
 github.com/allegro/bigcache/v3
 github.com/allegro/bigcache/v3/queue
+# github.com/anacrolix/chansync v0.0.0-20210524073341-a336ebc2de92
+github.com/anacrolix/chansync
 # github.com/anacrolix/confluence v1.7.1-0.20210311004351-d642adb8546c
 github.com/anacrolix/confluence/debug-writer
 # github.com/anacrolix/dht/v2 v2.9.1
@@ -48,7 +50,7 @@ github.com/anacrolix/envpprof
 github.com/anacrolix/go-libutp
 # github.com/anacrolix/log v0.9.0
 github.com/anacrolix/log
-# github.com/anacrolix/missinggo v1.2.1
+# github.com/anacrolix/missinggo v1.3.0
 github.com/anacrolix/missinggo
 github.com/anacrolix/missinggo/bitmap
 github.com/anacrolix/missinggo/expect
@@ -62,7 +64,7 @@ github.com/anacrolix/missinggo/pubsub
 github.com/anacrolix/missinggo/slices
 # github.com/anacrolix/missinggo/perf v1.0.0
 github.com/anacrolix/missinggo/perf
-# github.com/anacrolix/missinggo/v2 v2.5.0
+# github.com/anacrolix/missinggo/v2 v2.5.1
 github.com/anacrolix/missinggo/v2
 github.com/anacrolix/missinggo/v2/bitmap
 github.com/anacrolix/missinggo/v2/conntrack
@@ -73,15 +75,15 @@ github.com/anacrolix/missinggo/v2/resource
 # github.com/anacrolix/mmsg v1.0.0
 github.com/anacrolix/mmsg
 github.com/anacrolix/mmsg/socket
-# github.com/anacrolix/multiless v0.1.0
+# github.com/anacrolix/multiless v0.1.1-0.20210529082330-de2f6cf29619
 github.com/anacrolix/multiless
 # github.com/anacrolix/stm v0.3.0-alpha
 github.com/anacrolix/stm
 github.com/anacrolix/stm/rate
 github.com/anacrolix/stm/stmutil
-# github.com/anacrolix/sync v0.2.0
+# github.com/anacrolix/sync v0.3.0
 github.com/anacrolix/sync
-# github.com/anacrolix/torrent v1.28.1-0.20210608054535-e2a559e2435a
+# github.com/anacrolix/torrent v1.28.1-0.20210625012959-a570b8387086
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/common
@@ -93,9 +95,15 @@ github.com/anacrolix/torrent/metainfo
 github.com/anacrolix/torrent/mmap_span
 github.com/anacrolix/torrent/mse
 github.com/anacrolix/torrent/peer_protocol
+github.com/anacrolix/torrent/request-strategy
 github.com/anacrolix/torrent/segments
 github.com/anacrolix/torrent/storage
 github.com/anacrolix/torrent/tracker
+github.com/anacrolix/torrent/tracker/http
+github.com/anacrolix/torrent/tracker/shared
+github.com/anacrolix/torrent/tracker/udp
+github.com/anacrolix/torrent/types
+github.com/anacrolix/torrent/version
 github.com/anacrolix/torrent/webseed
 github.com/anacrolix/torrent/webtorrent
 # github.com/anacrolix/upnp v0.1.2-0.20200416075019-5e9378ed1425
@@ -261,7 +269,7 @@ github.com/hashicorp/golang-lru/simplelru
 github.com/holiman/uint256
 # github.com/huandu/xstrings v1.3.2
 github.com/huandu/xstrings
-# github.com/huin/goupnp v1.0.1-0.20210522212431-b5cf3be9f29c
+# github.com/huin/goupnp v1.0.1-0.20210619221024-16e24d576276
 ## explicit
 github.com/huin/goupnp
 github.com/huin/goupnp/dcps/internetgateway1
@@ -440,7 +448,6 @@ github.com/syndtr/goleveldb/leveldb/storage
 github.com/syndtr/goleveldb/leveldb/table
 github.com/syndtr/goleveldb/leveldb/util
 # github.com/tklauser/go-sysconf v0.3.5
-## explicit
 github.com/tklauser/go-sysconf
 # github.com/tklauser/numcpus v0.2.2
 github.com/tklauser/numcpus
@@ -482,9 +489,6 @@ golang.org/x/crypto/ssh/terminal
 # golang.org/x/net v0.0.0-20210427231257-85d9c07bbe3a
 golang.org/x/net/bpf
 golang.org/x/net/dns/dnsmessage
-golang.org/x/net/html
-golang.org/x/net/html/atom
-golang.org/x/net/html/charset
 golang.org/x/net/http/httpproxy
 golang.org/x/net/idna
 golang.org/x/net/internal/iana
@@ -512,24 +516,12 @@ golang.org/x/term
 ## explicit
 golang.org/x/text/cases
 golang.org/x/text/collate
-golang.org/x/text/encoding
-golang.org/x/text/encoding/charmap
-golang.org/x/text/encoding/htmlindex
-golang.org/x/text/encoding/internal
-golang.org/x/text/encoding/internal/identifier
-golang.org/x/text/encoding/japanese
-golang.org/x/text/encoding/korean
-golang.org/x/text/encoding/simplifiedchinese
-golang.org/x/text/encoding/traditionalchinese
-golang.org/x/text/encoding/unicode
 golang.org/x/text/internal
 golang.org/x/text/internal/colltab
 golang.org/x/text/internal/language
 golang.org/x/text/internal/language/compact
 golang.org/x/text/internal/tag
-golang.org/x/text/internal/utf8internal
 golang.org/x/text/language
-golang.org/x/text/runes
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
