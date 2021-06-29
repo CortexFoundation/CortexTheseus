@@ -6,8 +6,9 @@ require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 	github.com/CortexFoundation/inference v0.0.0-20210616063310-1525c55b5300
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.23-0.20210628020644-40394211da90
+	github.com/CortexFoundation/torrentfs v1.0.23-0.20210629065122-0995553f7950
 	github.com/VictoriaMetrics/fastcache v1.5.8
+	github.com/allegro/bigcache/v3 v3.0.0 // indirect
 	github.com/arsham/figurine v1.0.1
 	github.com/aws/aws-sdk-go-v2 v1.3.0
 	github.com/aws/aws-sdk-go-v2/config v1.1.3
@@ -24,7 +25,7 @@ require (
 	github.com/fogleman/ease v0.0.0-20170301025033-8da417bf1776
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
 	github.com/go-stack/stack v1.8.0
-	github.com/golang/snappy v0.0.3
+	github.com/golang/snappy v0.0.4-0.20210608040537-544b4180ac70
 	github.com/google/gofuzz v1.2.1-0.20210524182514-9eed411d8615
 	github.com/google/uuid v1.2.0
 	github.com/gorilla/websocket v1.4.2
