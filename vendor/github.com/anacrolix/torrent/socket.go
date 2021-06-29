@@ -5,8 +5,8 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/anacrolix/missinggo"
 	"github.com/anacrolix/missinggo/perf"
+	"github.com/anacrolix/missinggo/v2"
 	"github.com/pkg/errors"
 )
 
@@ -39,15 +39,16 @@ func listenTcp(network, address string) (s socket, err error) {
 	l, err := net.Listen(network, address)
 	return tcpSocket{
 		Listener: l,
-		NetDialer: NetDialer{
+		NetworkDialer: NetworkDialer{
 			Network: network,
+			Dialer:  DefaultNetDialer,
 		},
 	}, err
 }
 
 type tcpSocket struct {
 	net.Listener
-	NetDialer
+	NetworkDialer
 }
 
 func listenAll(networks []network, getHost func(string) string, port int, f firewallCallback) ([]socket, error) {
@@ -106,9 +107,14 @@ func listenUtp(network, addr string, fc firewallCallback) (socket, error) {
 	return utpSocketSocket{us, network}, err
 }
 
+// utpSocket wrapper, additionally wrapped for the torrent package's socket interface.
 type utpSocketSocket struct {
 	utpSocket
 	network string
+}
+
+func (me utpSocketSocket) DialerNetwork() string {
+	return me.network
 }
 
 func (me utpSocketSocket) Dial(ctx context.Context, addr string) (conn net.Conn, err error) {
