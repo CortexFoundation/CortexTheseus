@@ -148,7 +148,11 @@ var (
 		ConstantinopleBlock: big.NewInt(0),
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
-		Cuckoo:              new(CuckooConfig),
+		//Cuckoo:              new(CuckooConfig),
+		Clique: &CliqueConfig{
+			Period: 15,
+			Epoch:  30000,
+		},
 	}
 
 	// TestnetChainConfig contains the chain parameters to run a node on the Dolores test network.
