@@ -148,7 +148,6 @@ var (
 		ConstantinopleBlock: big.NewInt(0),
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
-		//Cuckoo:              new(CuckooConfig),
 		Clique: &CliqueConfig{
 			Period: 15,
 			Epoch:  30000,
