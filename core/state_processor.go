@@ -25,6 +25,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/params"
+	"math/big"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -58,10 +59,12 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		receipts types.Receipts
 		usedGas  = new(uint64)
 		//quotaLimit = big.NewInt(0)//parent.quota+64k - parent.quotaUsed
-		header  = block.Header()
-		allLogs []*types.Log
-		gp      = new(GasPool).AddGas(block.GasLimit())
-		qp      = NewQuotaPool(header.Quota)
+		header      = block.Header()
+		blockHash   = block.Hash()
+		blockNumber = block.Number()
+		allLogs     []*types.Log
+		gp          = new(GasPool).AddGas(block.GasLimit())
+		qp          = NewQuotaPool(header.Quota)
 	)
 	if err := qp.SubQuota(header.QuotaUsed); err != nil {
 		return nil, nil, 0, err
@@ -79,8 +82,8 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		if err != nil {
 			return nil, nil, 0, err
 		}
-		statedb.Prepare(tx.Hash(), block.Hash(), i)
-		receipt, _, err := applyTransaction(msg, p.config, p.bc, nil, gp, qp, statedb, header, tx, usedGas, vmenv)
+		statedb.Prepare(tx.Hash(), i)
+		receipt, _, err := applyTransaction(msg, p.config, p.bc, nil, gp, qp, statedb, header, blockNumber, blockHash, tx, usedGas, vmenv)
 		if err != nil {
 			return nil, nil, 0, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
 		}
@@ -102,7 +105,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 // and uses the input parameters for its environment. It returns the receipt
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
-func applyTransaction(msg types.Message, config *params.ChainConfig, bc ChainContext, author *common.Address, gp *GasPool, qp *QuotaPool, statedb *state.StateDB, header *types.Header, tx *types.Transaction, usedGas *uint64, cvm *vm.CVM) (*types.Receipt, uint64, error) {
+func applyTransaction(msg types.Message, config *params.ChainConfig, bc ChainContext, author *common.Address, gp *GasPool, qp *QuotaPool, statedb *state.StateDB, header *types.Header, blockNumber *big.Int, blockHash common.Hash, tx *types.Transaction, usedGas *uint64, cvm *vm.CVM) (*types.Receipt, uint64, error) {
 	// Create a new context to be used in the CVM environment
 	txContext := NewCVMTxContext(msg)
 	// Update the evm with the new transaction context.
@@ -142,10 +145,12 @@ func applyTransaction(msg types.Message, config *params.ChainConfig, bc ChainCon
 		receipt.ContractAddress = crypto.CreateAddress(cvm.TxContext.Origin, tx.Nonce())
 	}
 	// Set the receipt logs and create a bloom for filtering
-	receipt.Logs = statedb.GetLogs(tx.Hash())
+	receipt.Logs = statedb.GetLogs(tx.Hash(), blockHash)
 	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
-	receipt.BlockHash = statedb.BlockHash()
-	receipt.BlockNumber = header.Number
+
+	receipt.BlockHash = blockHash
+	receipt.BlockNumber = blockNumber
+
 	receipt.TransactionIndex = uint(statedb.TxIndex())
 
 	return receipt, gas, err
@@ -163,5 +168,5 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	// Create a new context to be used in the CVM environment
 	blockContext := NewCVMBlockContext(header, bc, author)
 	vmenv := vm.NewCVM(blockContext, vm.TxContext{}, statedb, config, cfg)
-	return applyTransaction(msg, config, bc, author, gp, qp, statedb, header, tx, usedGas, vmenv)
+	return applyTransaction(msg, config, bc, author, gp, qp, statedb, header, header.Number, header.Hash(), tx, usedGas, vmenv)
 }
