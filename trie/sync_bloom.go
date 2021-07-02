@@ -58,11 +58,12 @@ func (f syncBloomHasher) Sum64() uint64                     { return binary.BigE
 // provided disk database on creation in a background thread and will only start
 // returning live results once that's finished.
 type SyncBloom struct {
-	bloom  *bloomfilter.Filter
-	inited uint32
-	closer sync.Once
-	closed uint32
-	pend   sync.WaitGroup
+	bloom   *bloomfilter.Filter
+	inited  uint32
+	closer  sync.Once
+	closed  uint32
+	pend    sync.WaitGroup
+	closeCh chan struct{}
 }
 
 // NewSyncBloom creates a new bloom filter of the given size (in megabytes) and
@@ -77,7 +78,8 @@ func NewSyncBloom(memory uint64, database ctxcdb.Iteratee) *SyncBloom {
 
 	// Assemble the fast sync bloom and init it from previous sessions
 	b := &SyncBloom{
-		bloom: bloom,
+		bloom:   bloom,
+		closeCh: make(chan struct{}),
 	}
 	b.pend.Add(2)
 	go func() {
@@ -139,16 +141,15 @@ func (b *SyncBloom) init(database ctxcdb.Iteratee) {
 // meter periodically recalculates the false positive error rate of the bloom
 // filter and reports it in a metric.
 func (b *SyncBloom) meter() {
+	// check every second
+	tick := time.NewTicker(1 * time.Second)
 	for {
-		// Report the current error ration. No floats, lame, scale it up.
-		bloomErrorGauge.Update(int64(b.errorRate() * 100000))
-
-		// Wait one second, but check termination more frequently
-		for i := 0; i < 10; i++ {
-			if atomic.LoadUint32(&b.closed) == 1 {
-				return
-			}
-			time.Sleep(100 * time.Millisecond)
+		select {
+		case <-tick.C:
+			// Report the current error ration. No floats, lame, scale it up.
+			bloomErrorGauge.Update(int64(b.bloom.FalsePosititveProbability() * 100000))
+		case <-b.closeCh:
+			return
 		}
 	}
 }
@@ -159,6 +160,7 @@ func (b *SyncBloom) Close() error {
 	b.closer.Do(func() {
 		// Ensure the initializer is stopped
 		atomic.StoreUint32(&b.closed, 1)
+		close(b.closeCh)
 		b.pend.Wait()
 
 		// Wipe the bloom, but mark it "uninited" just in case someone attempts an access
