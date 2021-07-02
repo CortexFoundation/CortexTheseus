@@ -158,7 +158,7 @@ var (
 	}
 	BernardFlag = cli.BoolFlag{
 		Name:  "bernard",
-		Usage: "Bernard network: pre-configured cortex test network",
+		Usage: "Bernard network: pre-configured cortex test network with POA",
 	}
 	DoloresFlag = cli.BoolFlag{
 		Name:  "dolores",
