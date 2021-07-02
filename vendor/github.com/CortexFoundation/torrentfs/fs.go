@@ -117,12 +117,20 @@ func New(config *Config, cache, compress, listen bool) (*TorrentFS, error) {
 			inst.peerMu.Lock()
 			defer inst.peerMu.Unlock()
 			if p := inst.peers[fmt.Sprintf("%x", id[:8])]; p != nil {
-				return map[string]interface{}{
-					"version": p.version,
-					"listen":  p.Info().Listen,
-					"root":    p.Info().Root.Hex(),
-					"files":   p.Info().Files,
-					"leafs":   p.Info().Leafs,
+
+				if p.Info() != nil {
+					return map[string]interface{}{
+						"version": p.version,
+						"listen":  p.Info().Listen,
+						"root":    p.Info().Root.Hex(),
+						"files":   p.Info().Files,
+						"leafs":   p.Info().Leafs,
+					}
+				} else {
+
+					return map[string]interface{}{
+						"version": p.version,
+					}
 				}
 			}
 			return nil
@@ -325,7 +333,28 @@ func (fs *TorrentFS) Download(ctx context.Context, ih string, request uint64) er
 		}
 	}
 
+	//for k, _ := range GoodFiles {
+	//	status, _ := fs.Status(ctx, k)
+	//	log.Info("Torrent status", "ih", k, "status", status)
+	//}
+
 	return nil
+}
+
+func (fs *TorrentFS) Status(ctx context.Context, ih string) (int, error) {
+	if fs.storage().IsPending(ih) {
+		return 1, nil
+	}
+
+	if fs.storage().IsDownloading(ih) {
+		return 2, nil
+	}
+
+	if fs.storage().IsSeeding(ih) {
+		return 0, nil
+	}
+
+	return 3, nil
 }
 
 func (fs *TorrentFS) LocalPort() int {
