@@ -354,7 +354,11 @@ func DefaultBernardGenesisBlock() *Genesis {
 		Nonce:      0x0,
 		GasLimit:   params.GenesisGasLimit,
 		Difficulty: big.NewInt(2),
-		ExtraData:  hexutil.MustDecode("0xea11755ae41d889ceec39a63e6ff75a02bc1c00d"),
+		//ExtraData:  hexutil.MustDecode("0xea11755ae41d889ceec39a63e6ff75a02bc1c00d"),
+		ExtraData: hexutil.MustDecode("0x52657370656374206d7920617574686f7269746168207e452e436172746d616ebb03262d175ac5329836d625ca88481db02cfb370000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		Alloc: map[common.Address]GenesisAccount{
+			common.HexToAddress("0xbb03262d175ac5329836d625ca88481db02cfb37"): {Balance: params.CTXC_INIT},
+		},
 	}
 }
 
@@ -364,6 +368,20 @@ func DefaultDoloresGenesisBlock() *Genesis {
 		Config:     params.DoloresChainConfig,
 		Nonce:      0x0000000000000043,
 		ExtraData:  hexutil.MustDecode("0x313732323a206e756d65726f20706f6e64657265206574206d656e737572612e"),
+		GasLimit:   params.GenesisGasLimit,
+		Difficulty: big.NewInt(2),
+		Alloc: map[common.Address]GenesisAccount{
+			common.HexToAddress("0xb84041d064397bd8a1037220d996c16410c20f11"): {Balance: params.CTXC_INIT},
+		},
+		Supply: params.CTXC_INIT,
+	}
+}
+
+func DefaultFloodGenesisBlock() *Genesis {
+	return &Genesis{
+		Config:     params.FloodChainConfig,
+		Timestamp:  1492009146,
+		ExtraData:  hexutil.MustDecode("0x52657370656374206d7920617574686f7269746168207e452e436172746d616e42eb768f2244c8811c63729a21a3569731535f067ffc57839b00206d1ad20c69a1981b489f772031b279182d99e65703f0076e4812653aab85fca0f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
 		GasLimit:   params.GenesisGasLimit,
 		Difficulty: big.NewInt(2),
 		Alloc: map[common.Address]GenesisAccount{
