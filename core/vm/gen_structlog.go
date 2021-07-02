@@ -4,11 +4,11 @@ package vm
 
 import (
 	"encoding/json"
-	"math/big"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/common/math"
+	"github.com/holiman/uint256"
 )
 
 var _ = (*structLogMarshaling)(nil)
@@ -22,7 +22,7 @@ func (s StructLog) MarshalJSON() ([]byte, error) {
 		GasCost       math.HexOrDecimal64         `json:"gasCost"`
 		Memory        hexutil.Bytes               `json:"memory"`
 		MemorySize    int                         `json:"memSize"`
-		Stack         []*math.HexOrDecimal256     `json:"stack"`
+		Stack         []uint256.Int               `json:"stack"`
 		ReturnData    hexutil.Bytes               `json:"returnData"`
 		Storage       map[common.Hash]common.Hash `json:"-"`
 		Depth         int                         `json:"depth"`
@@ -38,12 +38,7 @@ func (s StructLog) MarshalJSON() ([]byte, error) {
 	enc.GasCost = math.HexOrDecimal64(s.GasCost)
 	enc.Memory = s.Memory
 	enc.MemorySize = s.MemorySize
-	if s.Stack != nil {
-		enc.Stack = make([]*math.HexOrDecimal256, len(s.Stack))
-		for k, v := range s.Stack {
-			enc.Stack[k] = (*math.HexOrDecimal256)(v)
-		}
-	}
+	enc.Stack = s.Stack
 	enc.ReturnData = s.ReturnData
 	enc.Storage = s.Storage
 	enc.Depth = s.Depth
@@ -63,7 +58,7 @@ func (s *StructLog) UnmarshalJSON(input []byte) error {
 		GasCost       *math.HexOrDecimal64        `json:"gasCost"`
 		Memory        *hexutil.Bytes              `json:"memory"`
 		MemorySize    *int                        `json:"memSize"`
-		Stack         []*math.HexOrDecimal256     `json:"stack"`
+		Stack         []uint256.Int               `json:"stack"`
 		ReturnData    *hexutil.Bytes              `json:"returnData"`
 		Storage       map[common.Hash]common.Hash `json:"-"`
 		Depth         *int                        `json:"depth"`
@@ -93,10 +88,7 @@ func (s *StructLog) UnmarshalJSON(input []byte) error {
 		s.MemorySize = *dec.MemorySize
 	}
 	if dec.Stack != nil {
-		s.Stack = make([]*big.Int, len(dec.Stack))
-		for k, v := range dec.Stack {
-			s.Stack[k] = (*big.Int)(v)
-		}
+		s.Stack = dec.Stack
 	}
 	if dec.ReturnData != nil {
 		s.ReturnData = *dec.ReturnData
