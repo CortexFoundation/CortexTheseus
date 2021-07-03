@@ -29,6 +29,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/common/compiler"
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/state"
@@ -179,10 +180,10 @@ func runCmd(ctx *cli.Context) error {
 		Time:        new(big.Int).SetUint64(genesisConfig.Timestamp),
 		Coinbase:    genesisConfig.Coinbase,
 		BlockNumber: new(big.Int).SetUint64(genesisConfig.Number),
-		EVMConfig: vm.Config{
+		CVMConfig: vm.Config{
 			Tracer:         tracer,
 			Debug:          ctx.GlobalBool(DebugFlag.Name) || ctx.GlobalBool(MachineFlag.Name),
-			EVMInterpreter: ctx.GlobalString(EVMInterpreterFlag.Name),
+			CVMInterpreter: ctx.GlobalString(CVMInterpreterFlag.Name),
 		},
 	}
 
@@ -251,7 +252,7 @@ func runCmd(ctx *cli.Context) error {
 	}
 
 	if ctx.GlobalBool(StatDumpFlag.Name) {
-		fmt.Fprintf(os.Stderr, `EVM gas used:    %d
+		fmt.Fprintf(os.Stderr, `CVM gas used:    %d
 execution time:  %v
 allocations:     %d
 allocated bytes: %d
