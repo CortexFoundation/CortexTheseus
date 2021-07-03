@@ -174,7 +174,8 @@ func SealHash(header *types.Header) (hash common.Hash) {
 		header.MixDigest,
 		header.Nonce,
 	})
-	hasher.Sum(hash[:0])
+	//hasher.Sum(hash[:0])
+	hasher.(crypto.KeccakState).Read(hash[:])
 	return hash
 }
 

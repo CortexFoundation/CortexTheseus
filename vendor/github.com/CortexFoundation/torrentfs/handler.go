@@ -1152,3 +1152,15 @@ func (tm *TorrentManager) Candidate() int {
 func (tm *TorrentManager) Nominee() int {
 	return len(tm.pendingTorrents)
 }
+
+func (tm *TorrentManager) IsPending(ih string) bool {
+	return tm.pendingTorrents[ih] != nil
+}
+
+func (tm *TorrentManager) IsDownloading(ih string) bool {
+	return tm.activeTorrents[ih] != nil
+}
+
+func (tm *TorrentManager) IsSeeding(ih string) bool {
+	return tm.seedingTorrents[ih] != nil
+}

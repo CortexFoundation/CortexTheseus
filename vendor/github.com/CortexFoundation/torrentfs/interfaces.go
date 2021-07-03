@@ -27,4 +27,7 @@ type CortexStorage interface {
 	Stop() error
 
 	Download(ctx context.Context, ih string, request uint64) error
+
+	//0 finish, 1 pending, 2 downloading, 3 none
+	Status(ctx context.Context, ih string) (int, error)
 }
