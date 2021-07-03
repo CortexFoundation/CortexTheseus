@@ -116,7 +116,7 @@ And then, run any command to start full node `cortex`:
 
 It is easy for you to view the help document by running ./build/bin/cortex --help
 ```
-### Running Testnet for developers
+### Running Testnet for developers (Bernard)
 ```
 ./cortex --bernard
 ```
