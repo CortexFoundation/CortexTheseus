@@ -710,7 +710,7 @@ func (cuckoo *Cuckoo) Prepare(chain consensus.ChainHeaderReader, header *types.H
 // setting the final state on the header
 func (cuckoo *Cuckoo) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header) error {
 	// Always need parent to caculate the reward of current block
-	parent := chain.GetHeaderByHash(header.ParentHash)
+	parent := chain.GetHeader(header.ParentHash, header.Number.Uint64()-1)
 	if parent == nil {
 		return consensus.ErrUnknownAncestor
 	}
