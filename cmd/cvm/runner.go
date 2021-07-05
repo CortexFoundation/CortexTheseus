@@ -27,9 +27,9 @@ import (
 	"runtime/pprof"
 	"time"
 
+	"github.com/CortexFoundation/CortexTheseus/cmd/cvm/compiler"
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/common/compiler"
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/state"
@@ -89,7 +89,7 @@ func timedExec(execFunc func() ([]byte, uint64, error)) (output []byte, gasLeft 
 }
 
 func runCmd(ctx *cli.Context) error {
-	fmt.Printf("Runner Started!")
+	fmt.Println("CVM Individual Runner Started!")
 
 	var (
 		tracer        vm.Tracer
@@ -203,7 +203,7 @@ func runCmd(ctx *cli.Context) error {
 	if chainConfig != nil {
 		runtimeConfig.ChainConfig = chainConfig
 	} else {
-		runtimeConfig.ChainConfig = params.AllEthashProtocolChanges
+		runtimeConfig.ChainConfig = params.AllCuckooProtocolChanges
 	}
 
 	var hexInput []byte
@@ -239,7 +239,20 @@ func runCmd(ctx *cli.Context) error {
 	if ctx.GlobalBool(DumpFlag.Name) {
 		statedb.Commit(true)
 		statedb.IntermediateRoot(true)
-		fmt.Println(string(statedb.Dump(nil)))
+		fmt.Println(string(statedb.Dump(false, false, true)))
+	}
+
+	if memProfilePath := ctx.GlobalString(MemProfileFlag.Name); memProfilePath != "" {
+		f, err := os.Create(memProfilePath)
+		if err != nil {
+			fmt.Println("could not create memory profile: ", err)
+			os.Exit(1)
+		}
+		if err := pprof.WriteHeapProfile(f); err != nil {
+			fmt.Println("could not write memory profile: ", err)
+			os.Exit(1)
+		}
+		f.Close()
 	}
 
 	if ctx.GlobalBool(DebugFlag.Name) {

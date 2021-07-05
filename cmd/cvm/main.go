@@ -84,10 +84,6 @@ var (
 		Name:  "inputfile",
 		Usage: "file containing input for the CVM",
 	}
-	VerbosityFlag = cli.IntFlag{
-		Name:  "verbosity",
-		Usage: "sets the verbosity level",
-	}
 	BenchFlag = cli.BoolFlag{
 		Name:  "bench",
 		Usage: "benchmark the execution",
@@ -112,22 +108,6 @@ var (
 		Name:  "receiver",
 		Usage: "The transaction receiver (execution context)",
 	}
-	DisableMemoryFlag = cli.BoolFlag{
-		Name:  "nomemory",
-		Usage: "disable memory output",
-	}
-	DisableStackFlag = cli.BoolFlag{
-		Name:  "nostack",
-		Usage: "disable stack output",
-	}
-	DisableStorageFlag = cli.BoolFlag{
-		Name:  "nostorage",
-		Usage: "disable storage output",
-	}
-	DisableReturnDataFlag = cli.BoolFlag{
-		Name:  "noreturndata",
-		Usage: "disable return data output",
-	}
 	CVMInterpreterFlag = cli.StringFlag{
 		Name:  "vm.cvm",
 		Usage: "External CVM configuration (default = built-in interpreter)",
@@ -138,8 +118,23 @@ var (
 func init() {
 	app = utils.NewApp(gitCommit, "CortexFoundation checkpoint helper tool")
 	app.Flags = []cli.Flag{
-		CodeFlag,
+		CVMInterpreterFlag,
+		ReceiverFlag,
+		SenderFlag,
+		MachineFlag,
+		GenesisFlag,
+		CreateFlag,
+		BenchFlag,
+		InputFileFlag,
+		InputFlag,
+		DumpFlag,
+		GasFlag,
 		CodeFileFlag,
+		CodeFlag,
+		StatDumpFlag,
+		CPUProfileFlag,
+		MemProfileFlag,
+		DebugFlag,
 	}
 	app.Commands = []cli.Command{
 		runCommand,
