@@ -60,39 +60,12 @@ type Config struct {
 	// Storagefs    torrentfs.CVMStorage
 	JumpTable [256]*operation // CVM instruction table, automatically populated if unset
 
-	CWASMInterpreter string // External CWASM interpreter options
-	CVMInterpreter   string // External CVM interpreter options
-
 	ExtraEips []int // Additional EIPS that are to be enabled
 }
 
 // only for the sake of debug info of NewPublicBlockChainAPI
 type ConfigAux struct {
 	InferURI string
-}
-
-// Interpreter is used to run Cortex based contracts and will utilise the
-// passed environment to query external sources for state information.
-// The Interpreter will run the byte code VM based on the passed
-// configuration.
-type Interpreter interface {
-	// Run loops and evaluates the contract's code with the given input data and returns
-	// the return byte-slice and an error if one occurred.
-	Run(contract *Contract, input []byte, static bool) ([]byte, error)
-	// CanRun tells if the contract, passed as an argument, can be
-	// run by the current interpreter. This is meant so that the
-	// caller can do something like:
-	//
-	// ```golang
-	// for _, interpreter := range interpreters {
-	//   if interpreter.CanRun(contract.code) {
-	//     interpreter.Run(contract.code, input)
-	//   }
-	// }
-	// ```
-	CanRun([]byte) bool
-	//IsModelMeta([]byte) bool
-	//IsInputMeta([]byte) bool
 }
 
 // callCtx contains the things that are per-call, such as stack and memory,
@@ -212,6 +185,10 @@ func (in *CVMInterpreter) IsInputMeta(code []byte) bool {
 // considered a revert-and-consume-all-gas operation except for
 // errExecutionReverted which means revert-and-keep-gas-left.
 func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
+
+	// Cortex code category solved
+	in.cvm.category = Category{}
+	in.cvm.category.IsCode, in.cvm.category.IsModel, in.cvm.category.IsInput = in.cvm.IsCode(contract.Code), in.cvm.IsModel(contract.Code), in.cvm.IsInput(contract.Code)
 
 	// Increment the call depth which is restricted to 1024
 	in.cvm.depth++
@@ -500,13 +477,4 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 	}
 	return nil, nil
-}
-
-// CanRun tells if the contract, passed as an argument, can be
-// run by the current interpreter.
-func (in *CVMInterpreter) CanRun(code []byte) bool {
-	//in.Code = in.IsCode(code)
-	//in.ModelMeta = in.IsModelMeta(code)
-	//in.InputMeta = in.IsInputMeta(code)
-	return true
 }

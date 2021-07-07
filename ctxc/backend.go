@@ -174,8 +174,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 	var (
 		vmConfig = vm.Config{
 			EnablePreimageRecording: config.EnablePreimageRecording,
-			CWASMInterpreter:        config.CWASMInterpreter,
-			CVMInterpreter:          config.CVMInterpreter,
 			StorageDir:              config.StorageDir,
 		}
 		cacheConfig = &core.CacheConfig{

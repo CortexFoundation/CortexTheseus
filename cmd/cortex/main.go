@@ -137,8 +137,6 @@ var (
 		configFileFlag,
 		// utils.ModelCallInterfaceFlag,
 		utils.GpoMaxGasPriceFlag,
-		utils.CWASMInterpreterFlag,
-		utils.CVMInterpreterFlag,
 	}
 
 	inferFlags = []cli.Flag{

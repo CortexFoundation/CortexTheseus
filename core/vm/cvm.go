@@ -79,26 +79,6 @@ func (cvm *CVM) precompile(addr common.Address) (PrecompiledContract, bool) {
 	return p, ok
 }
 
-// run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
-func run(cvm *CVM, contract *Contract, input []byte, readOnly bool) ([]byte, error) {
-	cvm.category = Category{}
-	cvm.category.IsCode, cvm.category.IsModel, cvm.category.IsInput = cvm.IsCode(contract.Code), cvm.IsModel(contract.Code), cvm.IsInput(contract.Code)
-	for _, interpreter := range cvm.interpreters {
-		if interpreter.CanRun(contract.Code) {
-			if cvm.interpreter != interpreter {
-				// Ensure that the interpreter pointer is set back
-				// to its current value upon return.
-				defer func(i Interpreter) {
-					cvm.interpreter = i
-				}(cvm.interpreter)
-				cvm.interpreter = interpreter
-			}
-			return interpreter.Run(contract, input, readOnly)
-		}
-	}
-	return nil, ErrNoCompatibleInterpreter
-}
-
 // Context provides the CVM with auxiliary information. Once provided
 // it shouldn't be modified.
 type BlockContext struct {
@@ -153,10 +133,9 @@ type CVM struct {
 	// virtual machine configuration options used to initialise the
 	// cvm.
 	vmConfig Config
-	// global (to this context) cortex virtual machine
+	// global (to this context) ethereum virtual machine
 	// used throughout the execution of the tx.
-	interpreters []Interpreter
-	interpreter  Interpreter
+	interpreter *CVMInterpreter
 	// abort is used to abort the CVM calling operations
 	// NOTE: must be set atomically
 	abort int32
@@ -172,35 +151,17 @@ type CVM struct {
 func NewCVM(blockCtx BlockContext, txCtx TxContext, statedb StateDB, chainConfig *params.ChainConfig, vmConfig Config) *CVM {
 
 	cvm := &CVM{
-		Context:      blockCtx,
-		TxContext:    txCtx,
-		StateDB:      statedb,
-		vmConfig:     vmConfig,
-		chainConfig:  chainConfig,
-		category:     Category{},
-		chainRules:   chainConfig.Rules(blockCtx.BlockNumber),
-		interpreters: make([]Interpreter, 1),
+		Context:     blockCtx,
+		TxContext:   txCtx,
+		StateDB:     statedb,
+		vmConfig:    vmConfig,
+		chainConfig: chainConfig,
+		category:    Category{},
+		chainRules:  chainConfig.Rules(blockCtx.BlockNumber),
 		//Fs:           fileFs,
 	}
 
-	if chainConfig.IsEWASM(blockCtx.BlockNumber) {
-		// to be implemented by CVM-C and Wagon PRs.
-		// if vmConfig.EWASMInterpreter != "" {
-		//  extIntOpts := strings.Split(vmConfig.EWASMInterpreter, ":")
-		//  path := extIntOpts[0]
-		//  options := []string{}
-		//  if len(extIntOpts) > 1 {
-		//    options = extIntOpts[1..]
-		//  }
-		//  cvm.interpreters = append(cvm.interpreters, NewCVMVCInterpreter(cvm, vmConfig, options))
-		// } else {
-		//      cvm.interpreters = append(cvm.interpreters, NewEWASMInterpreter(cvm, vmConfig))
-		// }
-		panic("No supported ewasm interpreter yet.")
-	}
-
-	cvm.interpreters[0] = NewCVMInterpreter(cvm, vmConfig)
-	cvm.interpreter = cvm.interpreters[0]
+	cvm.interpreter = NewCVMInterpreter(cvm, vmConfig)
 
 	return cvm
 }
@@ -223,7 +184,7 @@ func (cvm *CVM) Cancelled() bool {
 }
 
 // Interpreter returns the current interpreter
-func (cvm *CVM) Interpreter() Interpreter {
+func (cvm *CVM) Interpreter() *CVMInterpreter {
 	return cvm.interpreter
 }
 
@@ -286,7 +247,7 @@ func (cvm *CVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 			// The depth-check is already done, and precompiles handled above
 			contract := NewContract(caller, AccountRef(addrCopy), value, gas)
 			contract.SetCallCode(&addrCopy, cvm.StateDB.GetCodeHash(addrCopy), code)
-			ret, err = run(cvm, contract, input, false)
+			ret, err = cvm.interpreter.Run(contract, input, false)
 			gas = contract.Gas
 			modelGas = contract.ModelGas
 			if cvm.vmConfig.RPC_GetInternalTransaction {
@@ -340,7 +301,7 @@ func (cvm *CVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 		// The contract is a scoped environment for this execution context only.
 		contract := NewContract(caller, AccountRef(caller.Address()), value, gas)
 		contract.SetCallCode(&addrCopy, cvm.StateDB.GetCodeHash(addrCopy), cvm.StateDB.GetCode(addrCopy))
-		ret, err = run(cvm, contract, input, false)
+		ret, err = cvm.interpreter.Run(contract, input, false)
 		gas = contract.Gas
 		modelGas = contract.ModelGas
 	}
@@ -376,7 +337,7 @@ func (cvm *CVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 		// Initialise a new contract and make initialise the delegate values
 		contract := NewContract(caller, AccountRef(caller.Address()), nil, gas).AsDelegate()
 		contract.SetCallCode(&addrCopy, cvm.StateDB.GetCodeHash(addrCopy), cvm.StateDB.GetCode(addrCopy))
-		ret, err = run(cvm, contract, input, false)
+		ret, err = cvm.interpreter.Run(contract, input, false)
 		gas = contract.Gas
 		modelGas = contract.ModelGas
 	}
@@ -428,7 +389,7 @@ func (cvm *CVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 		// When an error was returned by the CVM or when setting the creation code
 		// above we revert to the snapshot and consume any gas remaining. Additionally
 		// when we're in Homestead this also counts for code storage gas errors.
-		ret, err = run(cvm, contract, input, true)
+		ret, err = cvm.interpreter.Run(contract, input, true)
 		gas = contract.Gas
 		modelGas = contract.ModelGas
 	}
@@ -493,7 +454,7 @@ func (cvm *CVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	}
 	start := time.Now()
 
-	ret, err := run(cvm, contract, nil, false)
+	ret, err := cvm.interpreter.Run(contract, nil, false)
 
 	if cvm.vmConfig.RPC_GetInternalTransaction {
 		ret = append(ret, []byte(caller.Address().String()+"-"+address.String()+"-"+value.String()+",")...)

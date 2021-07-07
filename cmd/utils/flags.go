@@ -807,17 +807,6 @@ var (
 		Usage: "Comma-separated InfluxDB tags (key/values) attached to all measurements",
 		Value: "host=localhost",
 	}
-
-	CWASMInterpreterFlag = cli.StringFlag{
-		Name:  "vm.cwasm",
-		Usage: "External cwasm configuration (default = built-in interpreter)",
-		Value: "",
-	}
-	CVMInterpreterFlag = cli.StringFlag{
-		Name:  "vm.cvm",
-		Usage: "External CVM configuration (default = built-in interpreter)",
-		Value: "",
-	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -1462,13 +1451,6 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	}
 	if ctx.GlobalIsSet(VMEnableDebugFlag.Name) {
 		cfg.EnablePreimageRecording = ctx.GlobalBool(VMEnableDebugFlag.Name)
-	}
-	if ctx.GlobalIsSet(CWASMInterpreterFlag.Name) {
-		cfg.CWASMInterpreter = ctx.GlobalString(CWASMInterpreterFlag.Name)
-	}
-
-	if ctx.GlobalIsSet(CVMInterpreterFlag.Name) {
-		cfg.CVMInterpreter = ctx.GlobalString(CVMInterpreterFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerLegacyExtraDataFlag.Name) {
 		cfg.Miner.ExtraData = []byte(ctx.GlobalString(MinerLegacyExtraDataFlag.Name))
