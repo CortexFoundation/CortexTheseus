@@ -246,6 +246,12 @@ func (w *worker) setCoinbase(addr common.Address) {
 	w.coinbase = addr
 }
 
+func (w *worker) setGasCeil(ceil uint64) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.config.GasCeil = ceil
+}
+
 // setExtra sets the content used to initialize the block extra field.
 func (w *worker) setExtra(extra []byte) {
 	w.mu.Lock()
