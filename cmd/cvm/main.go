@@ -21,6 +21,7 @@ import (
 	"math/big"
 	"os"
 
+	"github.com/CortexFoundation/CortexTheseus/cmd/cvm/t8ntool"
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"gopkg.in/urfave/cli.v1"
@@ -115,6 +116,30 @@ var (
 	}
 )
 
+var stateTransitionCommand = cli.Command{
+	Name:    "transition",
+	Aliases: []string{"t8n"},
+	Usage:   "executes a full state transition",
+	Action:  t8ntool.Main,
+	Flags: []cli.Flag{
+		t8ntool.TraceFlag,
+		t8ntool.TraceDisableMemoryFlag,
+		t8ntool.TraceDisableStackFlag,
+		t8ntool.TraceDisableReturnDataFlag,
+		t8ntool.OutputBasedir,
+		t8ntool.OutputAllocFlag,
+		t8ntool.OutputResultFlag,
+		t8ntool.OutputBodyFlag,
+		t8ntool.InputAllocFlag,
+		t8ntool.InputEnvFlag,
+		t8ntool.InputTxsFlag,
+		t8ntool.ForknameFlag,
+		t8ntool.ChainIDFlag,
+		t8ntool.RewardFlag,
+		t8ntool.VerbosityFlag,
+	},
+}
+
 func init() {
 	app = utils.NewApp(gitCommit, "CortexFoundation checkpoint helper tool")
 	app.Flags = []cli.Flag{
@@ -138,6 +163,7 @@ func init() {
 	}
 	app.Commands = []cli.Command{
 		runCommand,
+		stateTransitionCommand,
 	}
 
 	cli.CommandHelpTemplate = utils.OriginCommandHelpTemplate
