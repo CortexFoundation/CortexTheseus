@@ -128,8 +128,6 @@ type Config struct {
 	GPO gasprice.Config
 
 	EnablePreimageRecording bool
-	CWASMInterpreter        string
-	CVMInterpreter          string
 
 	InferURI   string
 	StorageDir string

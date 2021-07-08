@@ -45,8 +45,6 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		TxPool                  core.TxPoolConfig
 		GPO                     gasprice.Config
 		EnablePreimageRecording bool
-		CWASMInterpreter        string
-		CVMInterpreter          string
 		InferURI                string
 		StorageDir              string
 		DocRoot                 string                         `toml:"-"`
@@ -85,8 +83,6 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.TxPool = c.TxPool
 	enc.GPO = c.GPO
 	enc.EnablePreimageRecording = c.EnablePreimageRecording
-	enc.CWASMInterpreter = c.CWASMInterpreter
-	enc.CVMInterpreter = c.CVMInterpreter
 	enc.InferURI = c.InferURI
 	enc.StorageDir = c.StorageDir
 	enc.DocRoot = c.DocRoot
@@ -129,8 +125,6 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		TxPool                  *core.TxPoolConfig
 		GPO                     *gasprice.Config
 		EnablePreimageRecording *bool
-		CWASMInterpreter        *string
-		CVMInterpreter          *string
 		InferURI                *string
 		StorageDir              *string
 		DocRoot                 *string                        `toml:"-"`
@@ -227,12 +221,6 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.EnablePreimageRecording != nil {
 		c.EnablePreimageRecording = *dec.EnablePreimageRecording
-	}
-	if dec.CWASMInterpreter != nil {
-		c.CWASMInterpreter = *dec.CWASMInterpreter
-	}
-	if dec.CVMInterpreter != nil {
-		c.CVMInterpreter = *dec.CVMInterpreter
 	}
 	if dec.InferURI != nil {
 		c.InferURI = *dec.InferURI

@@ -243,8 +243,6 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			// utils.ModelCallInterfaceFlag,
 			utils.VMEnableDebugFlag,
-			utils.CVMInterpreterFlag,
-			utils.CWASMInterpreterFlag,
 		},
 	},
 	// {
