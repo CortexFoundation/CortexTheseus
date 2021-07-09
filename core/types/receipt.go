@@ -87,7 +87,7 @@ type receiptRLP struct {
 type storedReceiptRLP struct {
 	PostStateOrStatus []byte
 	CumulativeGasUsed uint64
-	Logs              []*LogForStorage
+	Logs              []*Log
 }
 
 // v4StoredReceiptRLP is the storage encoding of a receipt used in database version 4.
@@ -96,7 +96,7 @@ type v4StoredReceiptRLP struct {
 	CumulativeGasUsed uint64
 	TxHash            common.Hash
 	ContractAddress   common.Address
-	Logs              []*LogForStorage
+	Logs              []*Log
 	GasUsed           uint64
 }
 
@@ -107,7 +107,7 @@ type v3StoredReceiptRLP struct {
 	Bloom             Bloom
 	TxHash            common.Hash
 	ContractAddress   common.Address
-	Logs              []*LogForStorage
+	Logs              []*Log
 	GasUsed           uint64
 }
 
@@ -188,10 +188,7 @@ func (r *ReceiptForStorage) EncodeRLP(w io.Writer) error {
 	enc := &storedReceiptRLP{
 		PostStateOrStatus: (*Receipt)(r).statusEncoding(),
 		CumulativeGasUsed: r.CumulativeGasUsed,
-		Logs:              make([]*LogForStorage, len(r.Logs)),
-	}
-	for i, log := range r.Logs {
-		enc.Logs[i] = (*LogForStorage)(log)
+		Logs:              r.Logs,
 	}
 	return rlp.Encode(w, enc)
 }
@@ -225,10 +222,7 @@ func decodeStoredReceiptRLP(r *ReceiptForStorage, blob []byte) error {
 		return err
 	}
 	r.CumulativeGasUsed = stored.CumulativeGasUsed
-	r.Logs = make([]*Log, len(stored.Logs))
-	for i, log := range stored.Logs {
-		r.Logs[i] = (*Log)(log)
-	}
+	r.Logs = stored.Logs
 	r.Bloom = CreateBloom(Receipts{(*Receipt)(r)})
 
 	return nil

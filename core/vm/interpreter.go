@@ -187,7 +187,6 @@ func (in *CVMInterpreter) IsInputMeta(code []byte) bool {
 func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
 
 	// Cortex code category solved
-	in.cvm.category = Category{}
 	in.cvm.category.IsCode, in.cvm.category.IsModel, in.cvm.category.IsInput = in.cvm.IsCode(contract.Code), in.cvm.IsModel(contract.Code), in.cvm.IsInput(contract.Code)
 
 	// Increment the call depth which is restricted to 1024

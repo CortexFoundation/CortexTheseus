@@ -133,7 +133,7 @@ type CVM struct {
 	// virtual machine configuration options used to initialise the
 	// cvm.
 	vmConfig Config
-	// global (to this context) ethereum virtual machine
+	// global (to this context) cortex virtual machine
 	// used throughout the execution of the tx.
 	interpreter *CVMInterpreter
 	// abort is used to abort the CVM calling operations
