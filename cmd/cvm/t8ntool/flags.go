@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/CortexFoundation/CortexTheseus/cmd/cvm/t8ntool/tests"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
-	"github.com/CortexFoundation/CortexTheseus/tests"
 	"gopkg.in/urfave/cli.v1"
 )
 
