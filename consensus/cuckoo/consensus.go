@@ -448,6 +448,7 @@ func calcDifficultyByzantium(time uint64, parent *types.Header) *big.Int {
 		x.Set(big0)
 	}
 
+	// TODO
 	if parent.Difficulty.Cmp(params.MeanDifficultyBoundDivisor) >= 0 && parent.Difficulty.Cmp(params.HighDifficultyBoundDivisor) < 0 {
 		y.Div(parent.Difficulty, params.MeanDifficultyBoundDivisor)
 	} else if parent.Difficulty.Cmp(params.HighDifficultyBoundDivisor) >= 0 {
