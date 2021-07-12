@@ -71,9 +71,9 @@ func (w *multiWorker) setRecommitInterval(interval time.Duration) {
 	}
 }
 
-func (w *multiWorker) setEtherbase(addr common.Address) {
+func (w *multiWorker) setCoinbase(addr common.Address) {
 	for _, worker := range w.workers {
-		worker.setEtherbase(addr)
+		worker.setCoinbase(addr)
 	}
 }
 
