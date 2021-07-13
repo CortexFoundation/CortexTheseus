@@ -1682,7 +1682,7 @@ func (s *PrivateTxBundleAPI) SendBundle(ctx context.Context, args SendBundleArgs
 
 	for _, encodedTx := range args.Txs {
 		tx := new(types.Transaction)
-		if err := tx.UnmarshalBinary(encodedTx); err != nil {
+		if err := rlp.DecodeBytes(encodedTx, tx); err != nil {
 			return err
 		}
 		txs = append(txs, tx)
