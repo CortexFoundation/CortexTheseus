@@ -53,6 +53,8 @@ type Config struct {
 	Recommit  time.Duration  // The time interval for miner to re-create mining work.
 	Noverify  bool           // Disable remote mining solution verification(only useful in cuckoo).
 
+	MaxMergedBundles int
+
 	Cuda    bool
 	Devices string
 }
@@ -60,7 +62,7 @@ type Config struct {
 // Miner creates blocks and searches for proof-of-work values.
 type Miner struct {
 	mux      *event.TypeMux
-	worker   *worker
+	worker   *multiWorker
 	coinbase common.Address
 	ctxc     Backend
 	engine   consensus.Engine
@@ -76,7 +78,7 @@ func New(ctxc Backend, config *Config, chainConfig *params.ChainConfig, mux *eve
 		mux:     mux,
 		engine:  engine,
 		exitCh:  make(chan struct{}),
-		worker:  newWorker(config, chainConfig, engine, ctxc, mux, isLocalBlock, true),
+		worker:  newMultiWorker(config, chainConfig, engine, ctxc, mux, isLocalBlock, true),
 		startCh: make(chan common.Address),
 		stopCh:  make(chan struct{}),
 	}
@@ -185,7 +187,7 @@ func (miner *Miner) SetRecommitInterval(interval time.Duration) {
 
 // Pending returns the currently pending block and associated state.
 func (miner *Miner) Pending() (*types.Block, *state.StateDB) {
-	return miner.worker.pending()
+	return miner.worker.regularWorker.pending()
 }
 
 // PendingBlock returns the currently pending block.
@@ -194,7 +196,7 @@ func (miner *Miner) Pending() (*types.Block, *state.StateDB) {
 // simultaneously, please use Pending(), as the pending state can
 // change between multiple method calls
 func (miner *Miner) PendingBlock() *types.Block {
-	return miner.worker.pendingBlock()
+	return miner.worker.regularWorker.pendingBlock()
 }
 
 func (miner *Miner) SetCoinbase(addr common.Address) {
@@ -205,7 +207,7 @@ func (miner *Miner) SetCoinbase(addr common.Address) {
 // SetGasCeil sets the gaslimit to strive for when mining blocks post 1559.
 // For pre-1559 blocks, it sets the ceiling.
 func (miner *Miner) SetGasCeil(ceil uint64) {
-	miner.worker.setGasCeil(ceil)
+	miner.worker.regularWorker.setGasCeil(ceil)
 }
 
 // EnablePreseal turns on the preseal mining feature. It's enabled by default.
@@ -228,5 +230,5 @@ func (miner *Miner) DisablePreseal() {
 // SubscribePendingLogs starts delivering logs from pending transactions
 // to the given channel.
 func (miner *Miner) SubscribePendingLogs(ch chan<- []*types.Log) event.Subscription {
-	return miner.worker.pendingLogsFeed.Subscribe(ch)
+	return miner.worker.regularWorker.pendingLogsFeed.Subscribe(ch)
 }
