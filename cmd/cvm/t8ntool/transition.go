@@ -19,7 +19,6 @@ package t8ntool
 import (
 	"crypto/ecdsa"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -41,7 +40,7 @@ import (
 )
 
 const (
-	ErrorEVM              = 2
+	ErrorCVM              = 2
 	ErrorVMConfig         = 3
 	ErrorMissingBlockhash = 4
 
@@ -98,7 +97,7 @@ func Main(ctx *cli.Context) error {
 		}
 	}
 	if ctx.Bool(TraceFlag.Name) {
-		// Configure the EVM logger
+		// Configure the CVM logger
 		logConfig := &vm.LogConfig{
 			DisableStack:      ctx.Bool(TraceDisableStackFlag.Name),
 			DisableMemory:     ctx.Bool(TraceDisableMemoryFlag.Name),
@@ -212,11 +211,11 @@ func Main(ctx *cli.Context) error {
 		return NewError(ErrorJson, fmt.Errorf("failed signing transactions: %v", err))
 	}
 	// Sanity check, to not `panic` in state_transition
-	if chainConfig.IsLondon(big.NewInt(int64(prestate.Env.Number))) {
-		if prestate.Env.BaseFee == nil {
-			return NewError(ErrorVMConfig, errors.New("EIP-1559 config but missing 'currentBaseFee' in env section"))
-		}
-	}
+	//	if chainConfig.IsLondon(big.NewInt(int64(prestate.Env.Number))) {
+	//		if prestate.Env.BaseFee == nil {
+	//			return NewError(ErrorVMConfig, errors.New("EIP-1559 config but missing 'currentBaseFee' in env section"))
+	//		}
+	//	}
 	// Run the test and aggregate the result
 	s, result, err := prestate.Apply(vmConfig, chainConfig, txs, ctx.Int64(RewardFlag.Name), getTracer)
 	if err != nil {
@@ -308,7 +307,7 @@ func (g Alloc) OnAccount(addr common.Address, dumpAccount state.DumpAccount) {
 		}
 	}
 	genesisAccount := core.GenesisAccount{
-		Code:    dumpAccount.Code,
+		Code:    []byte(dumpAccount.Code),
 		Storage: storage,
 		Balance: balance,
 		Nonce:   dumpAccount.Nonce,
