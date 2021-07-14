@@ -228,6 +228,14 @@ func (b *CortexAPIBackend) TxPoolContent() (map[common.Address]types.Transaction
 	return b.ctxc.TxPool().Content()
 }
 
+func (b *CortexAPIBackend) TxPoolContentFrom(addr common.Address) (types.Transactions, types.Transactions) {
+	return b.ctxc.TxPool().ContentFrom(addr)
+}
+
+func (b *CortexAPIBackend) TxPool() *core.TxPool {
+	return b.ctxc.TxPool()
+}
+
 func (b *CortexAPIBackend) SubscribeNewTxsEvent(ch chan<- core.NewTxsEvent) event.Subscription {
 	return b.ctxc.TxPool().SubscribeNewTxsEvent(ch)
 }
@@ -276,4 +284,8 @@ func (b *CortexAPIBackend) ServiceFilter(ctx context.Context, session *bloombits
 	for i := 0; i < bloomFilterThreads; i++ {
 		go session.Multiplex(bloomRetrievalBatch, bloomRetrievalWait, b.ctxc.bloomRequests)
 	}
+}
+
+func (b *CortexAPIBackend) CurrentHeader() *types.Header {
+	return b.ctxc.blockchain.CurrentHeader()
 }
