@@ -190,6 +190,11 @@ func (miner *Miner) Pending() (*types.Block, *state.StateDB) {
 	return miner.worker.regularWorker.pending()
 }
 
+// PendingBlockAndReceipts returns the currently pending block and corresponding receipts.
+func (miner *Miner) PendingBlockAndReceipts() (*types.Block, types.Receipts) {
+	return miner.worker.pendingBlockAndReceipts()
+}
+
 // PendingBlock returns the currently pending block.
 //
 // Note, to access both the pending block and the pending state
