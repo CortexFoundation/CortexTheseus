@@ -112,6 +112,7 @@ var (
 		//utils.MinerOpenCLFlag,
 		utils.MinerDevicesFlag,
 		//utils.MinerAlgorithmFlag,
+		utils.MinerMaxMergedBundles,
 		utils.NATFlag,
 		utils.NoDiscoverFlag,
 		utils.DiscoveryV5Flag,

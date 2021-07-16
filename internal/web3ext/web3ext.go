@@ -494,6 +494,11 @@ web3._extend({
 			params: 2,
 			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter, web3._extend.utils.toHex]
 		}),
+		new web3._extend.Method({
+			name: 'sendBundle',
+			call: 'ctxc_sendBundle',
+			params: 1
+		}),
 	],
 	properties: [
 		new web3._extend.Property({

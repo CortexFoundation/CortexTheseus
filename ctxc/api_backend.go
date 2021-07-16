@@ -195,6 +195,10 @@ func (b *CortexAPIBackend) SendTx(ctx context.Context, signedTx *types.Transacti
 	return b.ctxc.txPool.AddLocal(signedTx)
 }
 
+func (b *CortexAPIBackend) SendBundle(ctx context.Context, txs types.Transactions, blockNumber rpc.BlockNumber, minTimestamp uint64, maxTimestamp uint64, revertingTxHashes []common.Hash) error {
+	return b.ctxc.txPool.AddMevBundle(txs, big.NewInt(blockNumber.Int64()), minTimestamp, maxTimestamp, revertingTxHashes)
+}
+
 func (b *CortexAPIBackend) GetPoolTransactions() (types.Transactions, error) {
 	pending, err := b.ctxc.txPool.Pending()
 	if err != nil {

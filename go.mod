@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 	github.com/CortexFoundation/inference v0.0.0-20210706060454-ada520ff9946
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.23-0.20210702063150-4523491e0ae7
+	github.com/CortexFoundation/torrentfs v1.0.24-0.20210702071746-5d18cdc0f12b
 	github.com/VictoriaMetrics/fastcache v1.5.8
 	github.com/allegro/bigcache/v3 v3.0.0 // indirect
 	github.com/arsham/figurine v1.0.1
@@ -31,7 +31,7 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
 	github.com/holiman/uint256 v1.2.0
-	github.com/huin/goupnp v1.0.1-0.20210626160114-33cdcbb30dda
+	github.com/huin/goupnp v1.0.2
 	github.com/influxdata/influxdb v1.8.0
 	github.com/jackpal/go-nat-pmp v1.0.2
 	github.com/jedisct1/go-minisign v0.0.0-20190909160543-45766022959e

@@ -476,6 +476,11 @@ var (
 		Usage: "Time interval to recreate the block being mined",
 		Value: ctxc.DefaultConfig.Miner.Recommit,
 	}
+	MinerMaxMergedBundles = cli.IntFlag{
+		Name:  "miner.maxmergedbundles",
+		Usage: "flashbots - The maximum amount of bundles to merge. The miner will run this many workers in parallel to calculate if the full block is more profitable with these additional bundles.",
+		Value: 3,
+	}
 	MinerNoVerfiyFlag = cli.BoolFlag{
 		Name:  "miner.noverify",
 		Usage: "Disable remote sealing verification",
@@ -1479,6 +1484,8 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	if ctx.GlobalIsSet(MinerNoVerfiyFlag.Name) {
 		cfg.Miner.Noverify = ctx.GlobalBool(MinerNoVerfiyFlag.Name)
 	}
+
+	cfg.Miner.MaxMergedBundles = ctx.GlobalInt(MinerMaxMergedBundles.Name)
 
 	if ctx.GlobalIsSet(MiningEnabledFlag.Name) {
 		//cfg.Cuckoo.Mine = true

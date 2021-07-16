@@ -52,6 +52,17 @@ func MakeSigner(config *params.ChainConfig, blockNumber *big.Int) Signer {
 	return signer
 }
 
+// Use this in transaction-handling code where the current block number is unknown. If you
+// have the current block number available, use MakeSigner instead.
+func LatestSigner(config *params.ChainConfig) Signer {
+	if config.ChainID != nil {
+		if config.EIP155Block != nil {
+			return NewEIP155Signer(config.ChainID)
+		}
+	}
+	return HomesteadSigner{}
+}
+
 // SignTx signs the transaction using the given signer and private key
 func SignTx(tx *Transaction, s Signer, prv *ecdsa.PrivateKey) (*Transaction, error) {
 	h := s.Hash(tx)
