@@ -58,10 +58,11 @@ var DefaultConfig = Config{
 	TrieTimeout:             60 * time.Minute,
 	SnapshotCache:           102,
 	Miner: miner.Config{
-		GasFloor: params.MinerGasFloor,
-		GasCeil:  params.MinerGasCeil,
-		GasPrice: big.NewInt(params.GWei),
-		Recommit: 3 * time.Second,
+		GasFloor:         params.MinerGasFloor,
+		GasCeil:          params.MinerGasCeil,
+		GasPrice:         big.NewInt(params.GWei),
+		Recommit:         3 * time.Second,
+		MaxMergedBundles: 0,
 	},
 
 	TxPool:      core.DefaultTxPoolConfig,

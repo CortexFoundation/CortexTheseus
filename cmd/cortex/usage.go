@@ -201,6 +201,7 @@ var AppHelpFlagGroups = []flagGroup{
 			//utils.MinerOpenCLFlag,
 			utils.MinerDevicesFlag,
 			//utils.MinerAlgorithmFlag,
+			utils.MinerMaxMergedBundles,
 		},
 	},
 	{
