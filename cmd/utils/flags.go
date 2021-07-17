@@ -1484,8 +1484,9 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	if ctx.GlobalIsSet(MinerNoVerfiyFlag.Name) {
 		cfg.Miner.Noverify = ctx.GlobalBool(MinerNoVerfiyFlag.Name)
 	}
-
-	cfg.Miner.MaxMergedBundles = ctx.GlobalInt(MinerMaxMergedBundles.Name)
+	if ctx.GlobalIsSet(MinerMaxMergedBundles.Name) {
+		cfg.Miner.MaxMergedBundles = ctx.GlobalInt(MinerMaxMergedBundles.Name)
+	}
 
 	if ctx.GlobalIsSet(MiningEnabledFlag.Name) {
 		//cfg.Cuckoo.Mine = true
