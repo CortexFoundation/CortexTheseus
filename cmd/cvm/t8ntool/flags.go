@@ -21,7 +21,6 @@ import (
 	"strings"
 
 	"github.com/CortexFoundation/CortexTheseus/cmd/cvm/t8ntool/tests"
-	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -102,7 +101,7 @@ var (
 			"\n\t    %v"+
 			"\n\tSyntax <forkname>(+ExtraEip)",
 			strings.Join(tests.AvailableForks(), "\n\t    "),
-			strings.Join(vm.ActivateableEips(), ", ")),
+			strings.Join(tests.ActivateableEips(), ", ")),
 		Value: "Istanbul",
 	}
 	VerbosityFlag = cli.IntFlag{
