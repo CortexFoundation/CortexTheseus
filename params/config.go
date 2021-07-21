@@ -149,7 +149,7 @@ var (
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		Clique: &CliqueConfig{
-			Period: 15,
+			Period: 3,
 			Epoch:  30000,
 		},
 	}
