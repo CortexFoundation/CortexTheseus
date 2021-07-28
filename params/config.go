@@ -118,16 +118,15 @@ var (
 	}
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
-		ChainID:        big.NewInt(21), // If all gold available to men is melted into a cube, it's approx. 21mx21mx21m
-		HomesteadBlock: big.NewInt(0),
-		DAOForkBlock:   big.NewInt(0),
-		DAOForkSupport: false,
-		EIP150Block:    big.NewInt(0), // TangerineWhistle
-		EIP150Hash:     common.HexToHash("0x"),
-		EIP155Block:    big.NewInt(0), // SpuriousDragon
-		EIP158Block:    big.NewInt(0), // SpuriousDragon
-		ByzantiumBlock: big.NewInt(0),
-		//CortexBlock:	     big.NewInt(8409600),
+		ChainID:             big.NewInt(21), // If all gold available to men is melted into a cube, it's approx. 21mx21mx21m
+		HomesteadBlock:      big.NewInt(0),
+		DAOForkBlock:        big.NewInt(0),
+		DAOForkSupport:      false,
+		EIP150Block:         big.NewInt(0), // TangerineWhistle
+		EIP150Hash:          common.HexToHash("0x"),
+		EIP155Block:         big.NewInt(0), // SpuriousDragon
+		EIP158Block:         big.NewInt(0), // SpuriousDragon
+		ByzantiumBlock:      big.NewInt(0),
 		ConstantinopleBlock: big.NewInt(0),
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(3_230_000),
