@@ -4,3 +4,40 @@
 cmd/cvm/*
 core/state/dump_collector.go
 core/vm/logger_json.go
+
+
+## How to run Infer test:
+1. prepare plugins/libcvm_runtime.so
+
+2. prepare test model files
+```
+tf_data
+|-- 0000000000000000000000000000000000001013
+|   '-- data
+|       |-- params
+|       '-- symbol
+'-- 0000000000000000000000000000000000002013
+    '-- data
+```
+
+3. modify torrentfs instance(fs.go) to read files with dataDir, infoHash and subPath
+``` go
+func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSize uint64, subpath string) ([]byte, error) {
+    return fs.GetFile(ctx, infohash, subpath)
+}
+// GetFile is used to get file from storage, current this will not be call after available passed
+func (fs *TorrentFS) GetFile(ctx context.Context, infohash, subpath string) ([]byte, error) {
+    return ioutil.ReadFile(fs.storage().DataDir + "/" + infohash + subpath)
+}
+```
+
+4. append len(output) to bigLen in WriteSolidityUint256Array(core/vm/memory.go)
+
+5. insert log stdout for viewing opcode, stack and memory in Run(core/vm/interpreter.go) and opInfer(core/vm/instructions.go)
+
+6. compile solidity infer with ctxc-solc-v2 and get hexcode:
+`ctxc-solc-v2 --bin $(SOLFILENAME)`
+
+7. run test under cmd/cvm with:
+`go build && ./cvm --code <hexcode> run`
+

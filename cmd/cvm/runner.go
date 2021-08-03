@@ -37,6 +37,9 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/vm/runtime"
 	_ "github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/inference/synapse"
+	torrentfs "github.com/CortexFoundation/torrentfs"
+	torrentfsType "github.com/CortexFoundation/torrentfs/types"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -179,7 +182,7 @@ func runCmd(ctx *cli.Context) error {
 		Difficulty:  genesisConfig.Difficulty,
 		Time:        new(big.Int).SetUint64(genesisConfig.Timestamp),
 		Coinbase:    genesisConfig.Coinbase,
-		BlockNumber: new(big.Int).SetUint64(genesisConfig.Number),
+		BlockNumber: new(big.Int).SetUint64(3230001), //new(big.Int).SetUint64(genesisConfig.Number),
 		CVMConfig: vm.Config{
 			Tracer:         tracer,
 			Debug:          ctx.GlobalBool(DebugFlag.Name) || ctx.GlobalBool(MachineFlag.Name),
@@ -203,7 +206,7 @@ func runCmd(ctx *cli.Context) error {
 	if chainConfig != nil {
 		runtimeConfig.ChainConfig = chainConfig
 	} else {
-		runtimeConfig.ChainConfig = params.AllCuckooProtocolChanges
+		runtimeConfig.ChainConfig = params.MainnetChainConfig
 	}
 
 	var hexInput []byte
@@ -234,6 +237,90 @@ func runCmd(ctx *cli.Context) error {
 		}
 	}
 
+	// set address of AI model
+	modelAddress := [20]byte{}
+	modelAddress[18] = 0x10
+	modelAddress[19] = 0x13
+	modelAddress = common.Address(modelAddress)
+
+	modelMeta := torrentfsType.ModelMeta{
+		Hash:        modelAddress,
+		RawSize:     446905,
+		InputShape:  []uint64{10},
+		OutputShape: []uint64{10},
+		Gas:         222,
+		BlockNum:    *big.NewInt(1),
+	}
+
+	modelCode, err := modelMeta.ToBytes()
+	if err != nil {
+		fmt.Println("could not encode model: ", err)
+		os.Exit(1)
+	}
+	modelCodeAddPrefix := make([]byte, 0)
+	modelCodeAddPrefix = append(modelCodeAddPrefix, 0x00, 0x01)
+	modelCodeAddPrefix = append(modelCodeAddPrefix, modelCode...)
+	statedb.SetCode(modelAddress, modelCodeAddPrefix)
+	statedb.SetNum(modelAddress, &modelMeta.BlockNum)
+	modelMetaRaw := statedb.GetCode(modelAddress)
+	err = modelMeta.DecodeRLP(modelMetaRaw)
+	if err != nil {
+		fmt.Println("could not decode model: ", err)
+		os.Exit(1)
+	}
+
+	// set address of AI input
+	inputAddress := [20]byte{}
+	inputAddress[18] = 0x20
+	inputAddress[19] = 0x13
+	inputAddress = common.Address(inputAddress)
+
+	inputMeta := torrentfsType.InputMeta{
+		Hash:     inputAddress,
+		RawSize:  912,
+		Shape:    []uint64{10},
+		BlockNum: *big.NewInt(1),
+	}
+
+	inputCode, err := inputMeta.ToBytes()
+	if err != nil {
+		fmt.Println("could not encode input: ", err)
+		os.Exit(1)
+	}
+	inputCodeAddPrefix := make([]byte, 0)
+	inputCodeAddPrefix = append(inputCodeAddPrefix, 0x00, 0x02)
+	inputCodeAddPrefix = append(inputCodeAddPrefix, inputCode...)
+
+	statedb.SetCode(inputAddress, inputCodeAddPrefix)
+	statedb.SetNum(inputAddress, &inputMeta.BlockNum)
+	inputMetaRaw := statedb.GetCode(inputAddress)
+	err = inputMeta.DecodeRLP(inputMetaRaw)
+	if err != nil {
+		fmt.Println("could not decode input: ", err)
+		os.Exit(1)
+	}
+
+	// prepare engine for running Infer!
+	fsCfg := torrentfs.DefaultConfig
+	fsCfg.DataDir = "tf_data"
+	storagefs, fsErr := torrentfs.New(&fsCfg, true, false, true)
+	if fsErr != nil {
+		fmt.Println("New torrentfs err: ", err)
+		os.Exit(1)
+	}
+
+	synapse.New(&synapse.Config{
+		IsNotCache:     false,
+		DeviceType:     "cpu",
+		DeviceId:       0,
+		MaxMemoryUsage: synapse.DefaultConfig.MaxMemoryUsage,
+		IsRemoteInfer:  false,
+		InferURI:       "",
+		Storagefs:      storagefs,
+	})
+	fmt.Println("New torrentfs and synapse Success!")
+
+	// config done, start execution
 	output, leftOverGas, stats, err := timedExec(execFunc)
 
 	if ctx.GlobalBool(DumpFlag.Name) {
