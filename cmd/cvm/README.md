@@ -41,3 +41,7 @@ func (fs *TorrentFS) GetFile(ctx context.Context, infohash, subpath string) ([]b
 7. run test under cmd/cvm with:
 `go build && ./cvm --code <hexcode> run`
 
+
+## Result:
+1. infer: model(cvm_mnist) input(data) output[129 211 178 164 214 183 137 72 129 200](Complement)
+2. inferArray: model(cvm_mnist) input(uint8[1,1,28,28]{0}) output[255 1 255 255 0 255 255 0 0 0](Complement)
