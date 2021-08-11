@@ -69,8 +69,7 @@ address sizes	: 46 bits physical, 48 bits virtual
 ```
 
 ## Not Support
-```
-# lscpu     
+``` 
 Architecture:        x86_64
 CPU op-mode(s):      32-bit, 64-bit
 Byte Order:          Little Endian
