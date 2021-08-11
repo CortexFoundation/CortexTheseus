@@ -31,7 +31,7 @@ https://github.com/CortexFoundation/rosetta-cortex
 https://github.com/CortexFoundation/docker
 
 ## System Requirements
-#### x64 support 
+### **** x64 support  ****
 ```
 Intel(R) Xeon(R) CPU E5-2680 v3 @ 2.50GHz
 
