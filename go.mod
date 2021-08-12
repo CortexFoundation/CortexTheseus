@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 	github.com/CortexFoundation/inference v0.0.0-20210706060454-ada520ff9946
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.23-0.20210811062918-431058f236bd
+	github.com/CortexFoundation/torrentfs v1.0.23-0.20210812055643-96a4b100cc9c
 	github.com/VictoriaMetrics/fastcache v1.5.8
 	github.com/allegro/bigcache/v3 v3.0.0 // indirect
 	github.com/arsham/figurine v1.0.1
