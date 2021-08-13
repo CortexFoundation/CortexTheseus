@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 	github.com/CortexFoundation/inference v0.0.0-20210706060454-ada520ff9946
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.23-0.20210812055643-96a4b100cc9c
+	github.com/CortexFoundation/torrentfs v1.0.23-0.20210813055626-d03875ab166b
 	github.com/VictoriaMetrics/fastcache v1.5.8
 	github.com/allegro/bigcache/v3 v3.0.0 // indirect
 	github.com/arsham/figurine v1.0.1
@@ -56,7 +56,7 @@ require (
 	github.com/ucwong/tsdb v0.10.4-0.20200518132041-df9cb51f3a80
 	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210426230700-d19ff857e887
+	golang.org/x/sys v0.0.0-20210809222454-d867a43fc93e
 	golang.org/x/text v0.3.6
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15

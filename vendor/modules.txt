@@ -18,7 +18,7 @@ github.com/CortexFoundation/merkletree
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.23-0.20210812055643-96a4b100cc9c
+# github.com/CortexFoundation/torrentfs v1.0.23-0.20210813055626-d03875ab166b
 ## explicit
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -85,7 +85,7 @@ github.com/anacrolix/stm/rate
 github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.3.0
 github.com/anacrolix/sync
-# github.com/anacrolix/torrent v1.30.2-0.20210812034602-901a8b1b366e
+# github.com/anacrolix/torrent v1.30.2
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
 github.com/anacrolix/torrent/common
@@ -504,7 +504,7 @@ golang.org/x/net/publicsuffix
 golang.org/x/sync/errgroup
 golang.org/x/sync/singleflight
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.0.0-20210426230700-d19ff857e887
+# golang.org/x/sys v0.0.0-20210809222454-d867a43fc93e
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
