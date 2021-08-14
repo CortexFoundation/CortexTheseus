@@ -794,3 +794,25 @@ func (t *freezerTable) printIndex() {
 	}
 	fmt.Printf("|-----------------|\n")
 }
+
+// DumpIndex is a debug print utility function, mainly for testing. It can also
+// be used to analyse a live freezer table index.
+func (t *freezerTable) DumpIndex(start, stop int64) {
+	buf := make([]byte, indexEntrySize)
+
+	fmt.Printf("| number | fileno | offset |\n")
+	fmt.Printf("|--------|--------|--------|\n")
+
+	for i := uint64(start); ; i++ {
+		if _, err := t.index.ReadAt(buf, int64(i*indexEntrySize)); err != nil {
+			break
+		}
+		var entry indexEntry
+		entry.unmarshalBinary(buf)
+		fmt.Printf("|  %03d   |  %03d   |  %03d   | \n", i, entry.filenum, entry.offset)
+		if stop > 0 && i >= uint64(stop) {
+			break
+		}
+	}
+	fmt.Printf("|--------------------------|\n")
+}
