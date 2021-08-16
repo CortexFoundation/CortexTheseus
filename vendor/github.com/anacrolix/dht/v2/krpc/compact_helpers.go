@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"github.com/anacrolix/missinggo/slices"
+
 	"github.com/anacrolix/torrent/bencode"
 )
 
@@ -26,13 +27,19 @@ func unmarshalBinarySlice(slice elemSizer, b []byte) (err error) {
 	sliceValue := reflect.ValueOf(slice).Elem()
 	elemType := sliceValue.Type().Elem()
 	bytesPerElem := slice.ElemSize()
+	elem := reflect.New(elemType)
 	for len(b) != 0 {
 		if len(b) < bytesPerElem {
 			err = fmt.Errorf("%d trailing bytes < %d required for element", len(b), bytesPerElem)
 			break
 		}
-		elem := reflect.New(elemType)
-		err = elem.Interface().(encoding.BinaryUnmarshaler).UnmarshalBinary(b[:bytesPerElem])
+		if bu, ok := elem.Interface().(encoding.BinaryUnmarshaler); ok {
+			err = bu.UnmarshalBinary(b[:bytesPerElem])
+		} else if elem.Elem().Len() == bytesPerElem {
+			reflect.Copy(elem.Elem(), reflect.ValueOf(b[:bytesPerElem]))
+		} else {
+			err = fmt.Errorf("can't unmarshal %v bytes into %v", bytesPerElem, elem.Type())
+		}
 		if err != nil {
 			return
 		}

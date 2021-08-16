@@ -5,7 +5,7 @@ import (
 )
 
 // Can be used as zero-value. Due to the caller needing to bring their own synchronization, an
-// eqiuvalent to "sync".Cond.Signal is not provided. BroadcastCond is intended to be selected on
+// equivalent to "sync".Cond.Signal is not provided. BroadcastCond is intended to be selected on
 // with other channels.
 type BroadcastCond struct {
 	mu sync.Mutex

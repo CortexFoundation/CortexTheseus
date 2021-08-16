@@ -5,7 +5,7 @@ import (
 	"github.com/pion/rtp"
 )
 
-func (c *Context) decryptRTP(dst, ciphertext []byte, header *rtp.Header) ([]byte, error) {
+func (c *Context) decryptRTP(dst, ciphertext []byte, header *rtp.Header, headerLen int) ([]byte, error) {
 	s := c.getSRTPSSRCState(header.SSRC)
 
 	markAsValid, ok := s.replayDetector.Check(uint64(header.SequenceNumber))
@@ -18,7 +18,7 @@ func (c *Context) decryptRTP(dst, ciphertext []byte, header *rtp.Header) ([]byte
 	dst = growBufferSize(dst, len(ciphertext)-c.cipher.authTagLen())
 	roc, updateROC := s.nextRolloverCount(header.SequenceNumber)
 
-	dst, err := c.cipher.decryptRTP(dst, ciphertext, header, roc)
+	dst, err := c.cipher.decryptRTP(dst, ciphertext, header, headerLen, roc)
 	if err != nil {
 		return nil, err
 	}
@@ -34,11 +34,12 @@ func (c *Context) DecryptRTP(dst, encrypted []byte, header *rtp.Header) ([]byte,
 		header = &rtp.Header{}
 	}
 
-	if err := header.Unmarshal(encrypted); err != nil {
+	headerLen, err := header.Unmarshal(encrypted)
+	if err != nil {
 		return nil, err
 	}
 
-	return c.decryptRTP(dst, encrypted, header)
+	return c.decryptRTP(dst, encrypted, header, headerLen)
 }
 
 // EncryptRTP marshals and encrypts an RTP packet, writing to the dst buffer provided.
@@ -49,11 +50,12 @@ func (c *Context) EncryptRTP(dst []byte, plaintext []byte, header *rtp.Header) (
 		header = &rtp.Header{}
 	}
 
-	if err := header.Unmarshal(plaintext); err != nil {
+	headerLen, err := header.Unmarshal(plaintext)
+	if err != nil {
 		return nil, err
 	}
 
-	return c.encryptRTP(dst, header, plaintext[header.PayloadOffset:])
+	return c.encryptRTP(dst, header, plaintext[headerLen:])
 }
 
 // encryptRTP marshals and encrypts an RTP packet, writing to the dst buffer provided.

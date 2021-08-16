@@ -1,0 +1,10 @@
+# Thank you to everyone that made Pion possible. If you are interested in contributing
+# we would love to have you https://github.com/pion/webrtc/wiki/Contributing
+#
+# This file is auto generated, using git to list all individuals contributors.
+# see `.github/generate-authors.sh` for the scripting
+Adam Kiss <masterada@gmail.com>
+aler9 <46489434+aler9@users.noreply.github.com>
+Atsushi Watanabe <atsushi.w@ieee.org>
+Mathis Engelbart <mathis.engelbart@gmail.com>
+Sean DuBois <sean@siobud.com>

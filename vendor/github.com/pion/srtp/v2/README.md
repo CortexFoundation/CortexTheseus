@@ -32,23 +32,5 @@ If you need commercial support or don't want to use public methods you can conta
 ### Contributing
 Check out the **[contributing wiki](https://github.com/pion/webrtc/wiki/Contributing)** to join the group of amazing people making this project possible:
 
-* [Sean DuBois](https://github.com/Sean-Der) - *Original Author*
-* [Michiel De Backker](https://github.com/backkem) - *io.Writer interfaces*
-* [Tobias Fridén](https://github.com/tobiasfriden) *SRTP authentication verification*
-* [chenkaiC4](https://github.com/chenkaiC4) - *Fix GolangCI Linter*
-* [Luke Curley](https://github.com/kixelated) - *Performance*
-* [Chris Hiszpanski](https://github.com/thinkski) - *Fix out-of-bounds access*
-* [Yutaka Takeda](https://github.com/enobufs) - *Fix log messages*
-* [Max Hawkins](https://github.com/maxhawkins)
-* [Woodrow Douglass](https://github.com/wdouglass)
-* [Hugo Arregui](https://github.com/hugoArregui)
-* [Atsushi Watanabe](https://github.com/at-wat)
-* [Novel Corpse](https://github.com/NovelCorpse)
-* [Jerko Steiner](https://github.com/jeremija)
-* [Juliusz Chroboczek](https://github.com/jech)
-* [Mission Liao](https://github.com/mission-liao)
-* [Orlando](https://github.com/OrlandoCo)
-* [Tarrence van As](https://github.com/tarrencev)
-
 ### License
 MIT License - see [LICENSE](LICENSE) for full text

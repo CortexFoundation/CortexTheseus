@@ -100,7 +100,7 @@ func (s *srtpCipherAesCmHmacSha1) encryptRTP(dst []byte, header *rtp.Header, pay
 	return dst, nil
 }
 
-func (s *srtpCipherAesCmHmacSha1) decryptRTP(dst, ciphertext []byte, header *rtp.Header, roc uint32) ([]byte, error) {
+func (s *srtpCipherAesCmHmacSha1) decryptRTP(dst, ciphertext []byte, header *rtp.Header, headerLen int, roc uint32) ([]byte, error) {
 	// Split the auth tag and the cipher text into two parts.
 	actualTag := ciphertext[len(ciphertext)-s.authTagLen():]
 	ciphertext = ciphertext[:len(ciphertext)-s.authTagLen()]
@@ -118,12 +118,12 @@ func (s *srtpCipherAesCmHmacSha1) decryptRTP(dst, ciphertext []byte, header *rtp
 	}
 
 	// Write the plaintext header to the destination buffer.
-	copy(dst, ciphertext[:header.PayloadOffset])
+	copy(dst, ciphertext[:headerLen])
 
 	// Decrypt the ciphertext for the payload.
 	counter := generateCounter(header.SequenceNumber, roc, header.SSRC, s.srtpSessionSalt)
 	stream := cipher.NewCTR(s.srtpBlock, counter)
-	stream.XORKeyStream(dst[header.PayloadOffset:], ciphertext[header.PayloadOffset:])
+	stream.XORKeyStream(dst[headerLen:], ciphertext[headerLen:])
 	return dst, nil
 }
 

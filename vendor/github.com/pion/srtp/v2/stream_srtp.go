@@ -85,7 +85,7 @@ func (r *ReadStreamSRTP) ReadRTP(buf []byte) (int, *rtp.Header, error) {
 
 	header := &rtp.Header{}
 
-	err = header.Unmarshal(buf[:n])
+	_, err = header.Unmarshal(buf[:n])
 	if err != nil {
 		return 0, nil, err
 	}

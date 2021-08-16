@@ -15,8 +15,10 @@ const (
 	labelSRTCPAuthenticationTag = 0x04
 	labelSRTCPSalt              = 0x05
 
-	maxROCDisorder    = 100
 	maxSequenceNumber = 65535
+
+	seqNumMedian = 1 << 15
+	seqNumMax    = 1 << 16
 
 	srtcpIndexSize = 4
 )
@@ -24,9 +26,8 @@ const (
 // Encrypt/Decrypt state for a single SRTP SSRC
 type srtpSSRCState struct {
 	ssrc                 uint32
-	rolloverCounter      uint32
+	index                uint64
 	rolloverHasProcessed bool
-	lastSequenceNumber   uint16
 	replayDetector       replaydetector.ReplayDetector
 }
 
@@ -109,31 +110,49 @@ func CreateContext(masterKey, masterSalt []byte, profile ProtectionProfile, opts
 
 // https://tools.ietf.org/html/rfc3550#appendix-A.1
 func (s *srtpSSRCState) nextRolloverCount(sequenceNumber uint16) (uint32, func()) {
-	roc := s.rolloverCounter
+	seq := int32(sequenceNumber)
+	localRoc := uint32(s.index >> 16)
+	localSeq := int32(s.index & (seqNumMax - 1))
 
-	switch {
-	case !s.rolloverHasProcessed:
-	case sequenceNumber == 0: // We exactly hit the rollover count
-		// Only update rolloverCounter if lastSequenceNumber is greater then maxROCDisorder
-		// otherwise we already incremented for disorder
-		if s.lastSequenceNumber > maxROCDisorder {
-			roc++
+	guessRoc := localRoc
+	var difference int32 = 0
+
+	if s.rolloverHasProcessed {
+		// When localROC is equal to 0, and entering seq-localSeq > seqNumMedian
+		// judgment, it will cause guessRoc calculation error
+		if s.index > seqNumMedian {
+			if localSeq < seqNumMedian {
+				if seq-localSeq > seqNumMedian {
+					guessRoc = localRoc - 1
+					difference = seq - localSeq - seqNumMax
+				} else {
+					guessRoc = localRoc
+					difference = seq - localSeq
+				}
+			} else {
+				if localSeq-seqNumMedian > seq {
+					guessRoc = localRoc + 1
+					difference = seq - localSeq + seqNumMax
+				} else {
+					guessRoc = localRoc
+					difference = seq - localSeq
+				}
+			}
+		} else {
+			// localRoc is equal to 0
+			difference = seq - localSeq
 		}
-	case s.lastSequenceNumber < maxROCDisorder &&
-		sequenceNumber > (maxSequenceNumber-maxROCDisorder):
-		// Our last sequence number incremented because we crossed 0, but then our current number was within maxROCDisorder of the max
-		// So we fell behind, drop to account for jitter
-		roc--
-	case sequenceNumber < maxROCDisorder &&
-		s.lastSequenceNumber > (maxSequenceNumber-maxROCDisorder):
-		// our current is within a maxROCDisorder of 0
-		// and our last sequence number was a high sequence number, increment to account for jitter
-		roc++
 	}
-	return roc, func() {
-		s.rolloverHasProcessed = true
-		s.lastSequenceNumber = sequenceNumber
-		s.rolloverCounter = roc
+
+	return guessRoc, func() {
+		if !s.rolloverHasProcessed {
+			s.index |= uint64(sequenceNumber)
+			s.rolloverHasProcessed = true
+			return
+		}
+		if difference > 0 {
+			s.index += uint64(difference)
+		}
 	}
 }
 
@@ -171,13 +190,13 @@ func (c *Context) ROC(ssrc uint32) (uint32, bool) {
 	if !ok {
 		return 0, false
 	}
-	return s.rolloverCounter, true
+	return uint32(s.index >> 16), true
 }
 
 // SetROC sets SRTP rollover counter value of specified SSRC.
 func (c *Context) SetROC(ssrc uint32, roc uint32) {
 	s := c.getSRTPSSRCState(ssrc)
-	s.rolloverCounter = roc
+	s.index = uint64(roc<<16) | (s.index & (seqNumMax - 1))
 }
 
 // Index returns SRTCP index value of specified SSRC.

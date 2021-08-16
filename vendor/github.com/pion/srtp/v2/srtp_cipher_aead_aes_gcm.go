@@ -84,7 +84,7 @@ func (s *srtpCipherAeadAesGcm) encryptRTP(dst []byte, header *rtp.Header, payloa
 	return dst, nil
 }
 
-func (s *srtpCipherAeadAesGcm) decryptRTP(dst, ciphertext []byte, header *rtp.Header, roc uint32) ([]byte, error) {
+func (s *srtpCipherAeadAesGcm) decryptRTP(dst, ciphertext []byte, header *rtp.Header, headerLen int, roc uint32) ([]byte, error) {
 	// Grow the given buffer to fit the output.
 	nDst := len(ciphertext) - s.aeadAuthTagLen()
 	if nDst < 0 {
@@ -96,12 +96,12 @@ func (s *srtpCipherAeadAesGcm) decryptRTP(dst, ciphertext []byte, header *rtp.He
 	iv := s.rtpInitializationVector(header, roc)
 
 	if _, err := s.srtpCipher.Open(
-		dst[header.PayloadOffset:header.PayloadOffset], iv, ciphertext[header.PayloadOffset:], ciphertext[:header.PayloadOffset],
+		dst[headerLen:headerLen], iv, ciphertext[headerLen:], ciphertext[:headerLen],
 	); err != nil {
 		return nil, err
 	}
 
-	copy(dst[:header.PayloadOffset], ciphertext[:header.PayloadOffset])
+	copy(dst[:headerLen], ciphertext[:headerLen])
 	return dst, nil
 }
 

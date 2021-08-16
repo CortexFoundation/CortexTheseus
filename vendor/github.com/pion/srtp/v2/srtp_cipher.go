@@ -16,7 +16,7 @@ type srtpCipher interface {
 	encryptRTP([]byte, *rtp.Header, []byte, uint32) ([]byte, error)
 	encryptRTCP([]byte, []byte, uint32, uint32) ([]byte, error)
 
-	decryptRTP([]byte, []byte, *rtp.Header, uint32) ([]byte, error)
+	decryptRTP([]byte, []byte, *rtp.Header, int, uint32) ([]byte, error)
 	decryptRTCP([]byte, []byte, uint32, uint32) ([]byte, error)
 }
 

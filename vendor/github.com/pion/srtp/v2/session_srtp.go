@@ -141,7 +141,8 @@ func (s *SessionSRTP) setWriteDeadline(t time.Time) error {
 
 func (s *SessionSRTP) decrypt(buf []byte) error {
 	h := &rtp.Header{}
-	if err := h.Unmarshal(buf); err != nil {
+	headerLen, err := h.Unmarshal(buf)
+	if err != nil {
 		return err
 	}
 
@@ -157,7 +158,7 @@ func (s *SessionSRTP) decrypt(buf []byte) error {
 		return errFailedTypeAssertion
 	}
 
-	decrypted, err := s.remoteContext.decryptRTP(buf, buf, h)
+	decrypted, err := s.remoteContext.decryptRTP(buf, buf, h, headerLen)
 	if err != nil {
 		return err
 	}

@@ -7,4 +7,6 @@ type (
 	Done     <-chan struct{}
 	Active   <-chan struct{}
 	Signal   chan<- struct{}
+	Acquire  chan<- struct{}
+	Release  <-chan struct{}
 )

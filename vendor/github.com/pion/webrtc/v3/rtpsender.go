@@ -38,6 +38,8 @@ type RTPSender struct {
 	api *API
 	id  string
 
+	tr *RTPTransceiver
+
 	mu                     sync.RWMutex
 	sendCalled, stopCalled chan struct{}
 }
@@ -88,6 +90,12 @@ func (r *RTPSender) setNegotiated() {
 	r.negotiated = true
 }
 
+func (r *RTPSender) setRTPTransceiver(tr *RTPTransceiver) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.tr = tr
+}
+
 // Transport returns the currently-configured *DTLSTransport or nil
 // if one has not yet been configured
 func (r *RTPSender) Transport() *DTLSTransport {
@@ -96,10 +104,8 @@ func (r *RTPSender) Transport() *DTLSTransport {
 	return r.transport
 }
 
-// GetParameters describes the current configuration for the encoding and
-// transmission of media on the sender's track.
-func (r *RTPSender) GetParameters() RTPSendParameters {
-	return RTPSendParameters{
+func (r *RTPSender) getParameters() RTPSendParameters {
+	sendParameters := RTPSendParameters{
 		RTPParameters: r.api.mediaEngine.getRTPParametersByKind(
 			r.track.Kind(),
 			[]RTPTransceiverDirection{RTPTransceiverDirectionSendonly},
@@ -113,6 +119,16 @@ func (r *RTPSender) GetParameters() RTPSendParameters {
 			},
 		},
 	}
+	sendParameters.Codecs = r.tr.getCodecs()
+	return sendParameters
+}
+
+// GetParameters describes the current configuration for the encoding and
+// transmission of media on the sender's track.
+func (r *RTPSender) GetParameters() RTPSendParameters {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.getParameters()
 }
 
 // Track returns the RTCRtpTransceiver track, or nil
@@ -129,6 +145,10 @@ func (r *RTPSender) ReplaceTrack(track TrackLocal) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	if track != nil && r.tr.kind != track.Kind() {
+		return ErrRTPSenderNewTrackHasIncorrectKind
+	}
+
 	if r.hasSent() && r.track != nil {
 		if err := r.track.Unbind(r.context); err != nil {
 			return err
@@ -140,13 +160,24 @@ func (r *RTPSender) ReplaceTrack(track TrackLocal) error {
 		return nil
 	}
 
-	if _, err := track.Bind(r.context); err != nil {
+	codec, err := track.Bind(TrackLocalContext{
+		id:          r.context.id,
+		params:      r.api.mediaEngine.getRTPParametersByKind(track.Kind(), []RTPTransceiverDirection{RTPTransceiverDirectionSendonly}),
+		ssrc:        r.context.ssrc,
+		writeStream: r.context.writeStream,
+	})
+	if err != nil {
 		// Re-bind the original track
 		if _, reBindErr := r.track.Bind(r.context); reBindErr != nil {
 			return reBindErr
 		}
 
 		return err
+	}
+
+	// Codec has changed
+	if r.payloadType != codec.PayloadType {
+		r.context.params.Codecs = []RTPCodecParameters{codec}
 	}
 
 	r.track = track

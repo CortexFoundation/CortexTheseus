@@ -3,7 +3,6 @@ package dht
 import (
 	"context"
 	"crypto"
-	crand "crypto/rand"
 	_ "crypto/sha1"
 	"errors"
 	"math/rand"
@@ -11,11 +10,9 @@ import (
 	"time"
 
 	peer_store "github.com/anacrolix/dht/v2/peer-store"
-	"github.com/rs/dnscache"
 
 	"github.com/anacrolix/log"
-	"github.com/anacrolix/missinggo"
-	"github.com/anacrolix/missinggo/v2/conntrack"
+	"github.com/anacrolix/missinggo/v2"
 	"github.com/anacrolix/torrent/iplist"
 	"github.com/anacrolix/torrent/metainfo"
 
@@ -39,7 +36,7 @@ type StartingNodesGetter func() ([]Addr, error)
 type ServerConfig struct {
 	// Set NodeId Manually. Caller must ensure that if NodeId does not conform
 	// to DHT Security Extensions, that NoSecurity is also set.
-	NodeId [20]byte
+	NodeId krpc.ID
 	Conn   net.PacketConn
 	// Don't respond to queries from other nodes.
 	Passive       bool
@@ -63,12 +60,12 @@ type ServerConfig struct {
 	// TODO: Expose Peers, to return NodeInfo for received get_peers queries.
 	PeerStore peer_store.Interface
 
-	ConnectionTracking *conntrack.Instance
-
 	// If no Logger is provided, log.Default is used and log.Debug messages are filtered out. Note
 	// that all messages without a log.Level, have log.Debug added to them before being passed to
 	// this Logger.
 	Logger log.Logger
+
+	DefaultWant []krpc.Want
 }
 
 // ServerStats instance is returned by Server.Stats() and stores Server metrics
@@ -93,22 +90,8 @@ func jitterDuration(average time.Duration, plusMinus time.Duration) time.Duratio
 
 type Peer = krpc.NodeAddr
 
-var dnsResolver = &dnscache.Resolver{}
-
-func dnsResolverRefresher() {
-	ticker := time.NewTicker(5 * time.Minute)
-	defer ticker.Stop()
-	for {
-		<-ticker.C
-		dnsResolver.Refresh(false)
-	}
-}
-
-func init() {
-	go dnsResolverRefresher()
-}
-
 func GlobalBootstrapAddrs(network string) (addrs []Addr, err error) {
+	initDnsResolver()
 	for _, s := range []string{
 		"router.utorrent.com:6881",
 		"router.bittorrent.com:6881",
@@ -141,12 +124,12 @@ func GlobalBootstrapAddrs(network string) (addrs []Addr, err error) {
 	return
 }
 
-func RandomNodeID() (id [20]byte) {
-	crand.Read(id[:])
-	return
+// Deprecated: Use function from krpc.
+func RandomNodeID() (id krpc.ID) {
+	return krpc.RandomNodeID()
 }
 
-func MakeDeterministicNodeID(public net.Addr) (id [20]byte) {
+func MakeDeterministicNodeID(public net.Addr) (id krpc.ID) {
 	h := crypto.SHA1.New()
 	h.Write([]byte(public.String()))
 	h.Sum(id[:0:20])

@@ -2,7 +2,8 @@ package codecs
 
 // VP8Payloader payloads VP8 packets
 type VP8Payloader struct {
-	pictureID uint16
+	EnablePictureID bool
+	pictureID       uint16
 }
 
 const (
@@ -10,7 +11,7 @@ const (
 )
 
 // Payload fragments a VP8 packet across one or more byte arrays
-func (p *VP8Payloader) Payload(mtu int, payload []byte) [][]byte {
+func (p *VP8Payloader) Payload(mtu uint16, payload []byte) [][]byte {
 	/*
 	 * https://tools.ietf.org/html/rfc7741#section-4.2
 	 *
@@ -33,15 +34,17 @@ func (p *VP8Payloader) Payload(mtu int, payload []byte) [][]byte {
 	 */
 
 	usingHeaderSize := vp8HeaderSize
-	switch {
-	case p.pictureID == 0:
-	case p.pictureID < 128:
-		usingHeaderSize = vp8HeaderSize + 2
-	default:
-		usingHeaderSize = vp8HeaderSize + 3
+	if p.EnablePictureID {
+		switch {
+		case p.pictureID == 0:
+		case p.pictureID < 128:
+			usingHeaderSize = vp8HeaderSize + 2
+		default:
+			usingHeaderSize = vp8HeaderSize + 3
+		}
 	}
 
-	maxFragmentSize := mtu - usingHeaderSize
+	maxFragmentSize := int(mtu) - usingHeaderSize
 
 	payloadData := payload
 	payloadDataRemaining := len(payload)
@@ -62,17 +65,19 @@ func (p *VP8Payloader) Payload(mtu int, payload []byte) [][]byte {
 			out[0] = 0x10
 			first = false
 		}
-		switch usingHeaderSize {
-		case vp8HeaderSize:
-		case vp8HeaderSize + 2:
-			out[0] |= 0x80
-			out[1] |= 0x80
-			out[2] |= uint8(p.pictureID & 0x7F)
-		case vp8HeaderSize + 3:
-			out[0] |= 0x80
-			out[1] |= 0x80
-			out[2] |= 0x80 | uint8((p.pictureID>>8)&0x7F)
-			out[3] |= uint8(p.pictureID & 0xFF)
+		if p.EnablePictureID {
+			switch usingHeaderSize {
+			case vp8HeaderSize:
+			case vp8HeaderSize + 2:
+				out[0] |= 0x80
+				out[1] |= 0x80
+				out[2] |= uint8(p.pictureID & 0x7F)
+			case vp8HeaderSize + 3:
+				out[0] |= 0x80
+				out[1] |= 0x80
+				out[2] |= 0x80 | uint8((p.pictureID>>8)&0x7F)
+				out[3] |= uint8(p.pictureID & 0xFF)
+			}
 		}
 
 		copy(out[usingHeaderSize:], payloadData[payloadDataIndex:payloadDataIndex+currentFragmentSize])
@@ -91,18 +96,23 @@ func (p *VP8Payloader) Payload(mtu int, payload []byte) [][]byte {
 // VP8Packet represents the VP8 header that is stored in the payload of an RTP Packet
 type VP8Packet struct {
 	// Required Header
-	X   uint8 /* extended controlbits present */
-	N   uint8 /* (non-reference frame)  when set to 1 this frame can be discarded */
+	X   uint8 /* extended control bits present */
+	N   uint8 /* when set to 1 this frame can be discarded */
 	S   uint8 /* start of VP8 partition */
 	PID uint8 /* partition index */
 
-	// Optional Header
-	I         uint8  /* 1 if PictureID is present */
-	L         uint8  /* 1 if TL0PICIDX is present */
-	T         uint8  /* 1 if TID is present */
-	K         uint8  /* 1 if KEYIDX is present */
+	// Extended control bits
+	I uint8 /* 1 if PictureID is present */
+	L uint8 /* 1 if TL0PICIDX is present */
+	T uint8 /* 1 if TID is present */
+	K uint8 /* 1 if KEYIDX is present */
+
+	// Optional extension
 	PictureID uint16 /* 8 or 16 bits, picture ID */
 	TL0PICIDX uint8  /* 8 bits temporal level zero index */
+	TID       uint8  /* 2 bits temporal layer index */
+	Y         uint8  /* 1 bit layer sync bit */
+	KEYIDX    uint8  /* 5 bits temporal key frame index */
 
 	Payload []byte
 }
@@ -152,11 +162,27 @@ func (p *VP8Packet) Unmarshal(payload []byte) ([]byte, error) {
 		}
 	}
 
+	if payloadIndex >= payloadLen {
+		return nil, errShortPacket
+	}
+
 	if p.L == 1 {
+		p.TL0PICIDX = payload[payloadIndex]
 		payloadIndex++
 	}
 
+	if payloadIndex >= payloadLen {
+		return nil, errShortPacket
+	}
+
 	if p.T == 1 || p.K == 1 {
+		if p.T == 1 {
+			p.TID = payload[payloadIndex] >> 6
+			p.Y = (payload[payloadIndex] >> 5) & 0x1
+		}
+		if p.K == 1 {
+			p.KEYIDX = payload[payloadIndex] & 0x1F
+		}
 		payloadIndex++
 	}
 
