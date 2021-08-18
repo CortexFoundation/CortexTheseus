@@ -1,3 +1,4 @@
+//go:build !disable_miner
 // +build !disable_miner
 
 package cuckoo
