@@ -337,7 +337,7 @@ func (api *PrivateDebugAPI) GetBadBlocks(ctx context.Context) ([]*BadBlockArgs, 
 		} else {
 			results[i].RLP = fmt.Sprintf("0x%x", rlpBytes)
 		}
-		if results[i].Block, err = ctxcapi.RPCMarshalBlock(block, true, true); err != nil {
+		if results[i].Block, err = ctxcapi.RPCMarshalBlock(block, true, true, api.ctxc.engine); err != nil {
 			results[i].Block = map[string]interface{}{"error": err.Error()}
 		}
 	}

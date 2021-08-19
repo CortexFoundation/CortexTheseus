@@ -23,6 +23,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/consensus"
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
@@ -75,6 +76,8 @@ type Backend interface {
 	CurrentBlock() *types.Block
 	CurrentHeader() *types.Header
 	GetTransaction(ctx context.Context, txHash common.Hash) (*types.Transaction, common.Hash, uint64, uint64, error)
+
+	Engine() consensus.Engine
 }
 
 func GetAPIs(apiBackend Backend, vmConfig vm.Config) []rpc.API {

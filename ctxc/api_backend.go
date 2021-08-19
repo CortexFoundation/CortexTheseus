@@ -24,6 +24,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/consensus"
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/bloombits"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
@@ -305,6 +306,10 @@ func (b *CortexAPIBackend) ServiceFilter(ctx context.Context, session *bloombits
 	for i := 0; i < bloomFilterThreads; i++ {
 		go session.Multiplex(bloomRetrievalBatch, bloomRetrievalWait, b.ctxc.bloomRequests)
 	}
+}
+
+func (b *CortexAPIBackend) Engine() consensus.Engine {
+	return b.ctxc.engine
 }
 
 func (b *CortexAPIBackend) CurrentHeader() *types.Header {
