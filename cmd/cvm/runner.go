@@ -35,7 +35,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/core/vm/runtime"
-	_ "github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/inference/synapse"
 	torrentfs "github.com/CortexFoundation/torrentfs"
@@ -91,8 +91,96 @@ func timedExec(execFunc func() ([]byte, uint64, error)) (output []byte, gasLeft 
 	return output, gasLeft, stats, err
 }
 
+// set address of AI input
+func setInputMeta(statedb *state.StateDB) (err error) {
+	inputAddress := [20]byte{}
+	inputAddress[18] = 0x20
+	inputAddress[19] = 0x13
+	inputAddress = common.Address(inputAddress)
+
+	inputMeta := torrentfsType.InputMeta{
+		Hash:     inputAddress,
+		RawSize:  912,
+		Shape:    []uint64{10},
+		BlockNum: *big.NewInt(1),
+	}
+
+	inputCode, err := inputMeta.ToBytes()
+	if err != nil {
+		fmt.Println("could not encode input: ", err)
+		os.Exit(1)
+	}
+	inputCodeAddPrefix := make([]byte, 0)
+	inputCodeAddPrefix = append(inputCodeAddPrefix, 0x00, 0x02)
+	inputCodeAddPrefix = append(inputCodeAddPrefix, inputCode...)
+
+	statedb.SetCode(inputAddress, inputCodeAddPrefix)
+	statedb.SetNum(inputAddress, &inputMeta.BlockNum)
+	inputMetaRaw := statedb.GetCode(inputAddress)
+	err = inputMeta.DecodeRLP(inputMetaRaw)
+
+	return
+}
+
+// set address of AI model
+func setModelMeta(statedb *state.StateDB) (err error) {
+	modelAddress := [20]byte{}
+	modelAddress[18] = 0x10
+	modelAddress[19] = 0x13
+	modelAddress = common.Address(modelAddress)
+
+	modelMeta := torrentfsType.ModelMeta{
+		Hash:        modelAddress,
+		RawSize:     446905,
+		InputShape:  []uint64{10},
+		OutputShape: []uint64{10},
+		Gas:         222,
+		BlockNum:    *big.NewInt(1),
+	}
+
+	modelCode, err := modelMeta.ToBytes()
+	if err != nil {
+		fmt.Println("could not encode model: ", err)
+		os.Exit(1)
+	}
+	modelCodeAddPrefix := make([]byte, 0)
+	modelCodeAddPrefix = append(modelCodeAddPrefix, 0x00, 0x01)
+	modelCodeAddPrefix = append(modelCodeAddPrefix, modelCode...)
+	statedb.SetCode(modelAddress, modelCodeAddPrefix)
+	statedb.SetNum(modelAddress, &modelMeta.BlockNum)
+	modelMetaRaw := statedb.GetCode(modelAddress)
+	err = modelMeta.DecodeRLP(modelMetaRaw)
+
+	return
+}
+
+// prepare cvm-runtime engine for running Infer!
+func startSynapse() (err error) {
+	fsCfg := torrentfs.DefaultConfig
+	fsCfg.DataDir = "tf_data"
+	storagefs, fsErr := torrentfs.New(&fsCfg, true, false, true)
+	if fsErr != nil {
+		return fsErr
+	}
+
+	synapse.New(&synapse.Config{
+		IsNotCache:     false,
+		DeviceType:     "cpu",
+		DeviceId:       0,
+		MaxMemoryUsage: synapse.DefaultConfig.MaxMemoryUsage,
+		IsRemoteInfer:  false,
+		InferURI:       "",
+		Storagefs:      storagefs,
+	})
+
+	return nil
+}
+
 func runCmd(ctx *cli.Context) error {
 	fmt.Println("CVM Individual Runner Started!")
+	logConfig := &vm.LogConfig{
+		Debug: true,
+	}
 
 	var (
 		tracer        vm.Tracer
@@ -104,7 +192,9 @@ func runCmd(ctx *cli.Context) error {
 		genesisConfig *core.Genesis
 	)
 
-	debugLogger = vm.NewStructLogger(nil)
+	debugLogger = vm.NewStructLogger(logConfig)
+	tracer = debugLogger
+
 	if ctx.GlobalString(GenesisFlag.Name) != "" {
 		gen := readGenesis(ctx.GlobalString(GenesisFlag.Name))
 		genesisConfig = gen
@@ -238,90 +328,31 @@ func runCmd(ctx *cli.Context) error {
 	}
 
 	// set address of AI model
-	modelAddress := [20]byte{}
-	modelAddress[18] = 0x10
-	modelAddress[19] = 0x13
-	modelAddress = common.Address(modelAddress)
-
-	modelMeta := torrentfsType.ModelMeta{
-		Hash:        modelAddress,
-		RawSize:     446905,
-		InputShape:  []uint64{10},
-		OutputShape: []uint64{10},
-		Gas:         222,
-		BlockNum:    *big.NewInt(1),
-	}
-
-	modelCode, err := modelMeta.ToBytes()
+	err := setModelMeta(statedb)
 	if err != nil {
-		fmt.Println("could not encode model: ", err)
-		os.Exit(1)
-	}
-	modelCodeAddPrefix := make([]byte, 0)
-	modelCodeAddPrefix = append(modelCodeAddPrefix, 0x00, 0x01)
-	modelCodeAddPrefix = append(modelCodeAddPrefix, modelCode...)
-	statedb.SetCode(modelAddress, modelCodeAddPrefix)
-	statedb.SetNum(modelAddress, &modelMeta.BlockNum)
-	modelMetaRaw := statedb.GetCode(modelAddress)
-	err = modelMeta.DecodeRLP(modelMetaRaw)
-	if err != nil {
-		fmt.Println("could not decode model: ", err)
+		log.Error(fmt.Sprintf("could not decode model: %v", err))
 		os.Exit(1)
 	}
 
 	// set address of AI input
-	inputAddress := [20]byte{}
-	inputAddress[18] = 0x20
-	inputAddress[19] = 0x13
-	inputAddress = common.Address(inputAddress)
-
-	inputMeta := torrentfsType.InputMeta{
-		Hash:     inputAddress,
-		RawSize:  912,
-		Shape:    []uint64{10},
-		BlockNum: *big.NewInt(1),
-	}
-
-	inputCode, err := inputMeta.ToBytes()
+	err = setInputMeta(statedb)
 	if err != nil {
-		fmt.Println("could not encode input: ", err)
+		log.Error(fmt.Sprintf("could not decode input: %v", err))
 		os.Exit(1)
 	}
-	inputCodeAddPrefix := make([]byte, 0)
-	inputCodeAddPrefix = append(inputCodeAddPrefix, 0x00, 0x02)
-	inputCodeAddPrefix = append(inputCodeAddPrefix, inputCode...)
 
-	statedb.SetCode(inputAddress, inputCodeAddPrefix)
-	statedb.SetNum(inputAddress, &inputMeta.BlockNum)
-	inputMetaRaw := statedb.GetCode(inputAddress)
-	err = inputMeta.DecodeRLP(inputMetaRaw)
+	// prepare cvm-runtime engine for running Infer!
+	err = startSynapse()
 	if err != nil {
-		fmt.Println("could not decode input: ", err)
+		log.Error(fmt.Sprintf("New torrentfs err: %v", err))
 		os.Exit(1)
 	}
-
-	// prepare engine for running Infer!
-	fsCfg := torrentfs.DefaultConfig
-	fsCfg.DataDir = "tf_data"
-	storagefs, fsErr := torrentfs.New(&fsCfg, true, false, true)
-	if fsErr != nil {
-		fmt.Println("New torrentfs err: ", err)
-		os.Exit(1)
-	}
-
-	synapse.New(&synapse.Config{
-		IsNotCache:     false,
-		DeviceType:     "cpu",
-		DeviceId:       0,
-		MaxMemoryUsage: synapse.DefaultConfig.MaxMemoryUsage,
-		IsRemoteInfer:  false,
-		InferURI:       "",
-		Storagefs:      storagefs,
-	})
-	fmt.Println("New torrentfs and synapse Success!")
+	log.Info("New torrentfs and synapse Success!")
 
 	// config done, start execution
 	output, leftOverGas, stats, err := timedExec(execFunc)
+
+	fmt.Printf("CVM Runner Execute Done! err? [%v]\n", err)
 
 	if ctx.GlobalBool(DumpFlag.Name) {
 		statedb.Commit(true)
