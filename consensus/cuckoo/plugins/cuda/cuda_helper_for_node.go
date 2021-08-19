@@ -1,3 +1,4 @@
+//go:build cuda_miner
 // +build cuda_miner
 
 package main
