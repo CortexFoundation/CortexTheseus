@@ -31,15 +31,15 @@ func (fs *TorrentFS) GetFile(ctx context.Context, infohash, subpath string) ([]b
 }
 ```
 
-4. append len(output) to bigLen in WriteSolidityUint256Array(core/vm/memory.go)
+4. insert log stdout for viewing opcode, stack and memory in Run(core/vm/interpreter.go) and opInfer(core/vm/instructions.go)
 
-5. insert log stdout for viewing opcode, stack and memory in Run(core/vm/interpreter.go) and opInfer(core/vm/instructions.go)
-
-6. compile solidity infer with ctxc-solc-v2 and get hexcode:
+5. compile solidity infer with ctxc-solc-v2 and get hexcode:
 `ctxc-solc-v2 --bin $(SOLFILENAME)`
 
-7. run test under cmd/cvm with:
+6. run test under cmd/cvm with:
 `go build && ./cvm --code <hexcode> run`
+or run with default tracer with detailed debug msg:
+`go build && ./cvm --code <hexcode> --debug run`
 
 
 ## Result:
