@@ -37,7 +37,7 @@ func (pc *PeerConn) startWriter() {
 		defer pc.locker().Unlock()
 		defer pc.close()
 		defer pc.locker().Lock()
-		pc.messageWriter.run(time.Minute)
+		pc.messageWriter.run(pc.t.cl.config.KeepAliveTimeout)
 	}()
 }
 
@@ -59,34 +59,17 @@ type peerConnMsgWriter struct {
 // activity elsewhere in the Client, and some is determined locally when the
 // connection is writable.
 func (cn *peerConnMsgWriter) run(keepAliveTimeout time.Duration) {
-	var (
-		lastWrite      time.Time = time.Now()
-		keepAliveTimer *time.Timer
-	)
-	keepAliveTimer = time.AfterFunc(keepAliveTimeout, func() {
-		cn.mu.Lock()
-		defer cn.mu.Unlock()
-		if time.Since(lastWrite) >= keepAliveTimeout {
-			cn.writeCond.Broadcast()
-		}
-		keepAliveTimer.Reset(keepAliveTimeout)
-	})
-	cn.mu.Lock()
-	defer cn.mu.Unlock()
-	defer keepAliveTimer.Stop()
+	lastWrite := time.Now()
+	keepAliveTimer := time.NewTimer(keepAliveTimeout)
 	frontBuf := new(bytes.Buffer)
 	for {
 		if cn.closed.IsSet() {
 			return
 		}
-		if cn.writeBuffer.Len() == 0 {
-			func() {
-				cn.mu.Unlock()
-				defer cn.mu.Lock()
-				cn.fillWriteBuffer()
-			}()
-		}
-		if cn.writeBuffer.Len() == 0 && time.Since(lastWrite) >= keepAliveTimeout && cn.keepAlive() {
+		cn.fillWriteBuffer()
+		keepAlive := cn.keepAlive()
+		cn.mu.Lock()
+		if cn.writeBuffer.Len() == 0 && time.Since(lastWrite) >= keepAliveTimeout && keepAlive {
 			cn.writeBuffer.Write(pp.Message{Keepalive: true}.MustMarshalBinary())
 			torrent.Add("written keepalives", 1)
 		}
@@ -96,15 +79,14 @@ func (cn *peerConnMsgWriter) run(keepAliveTimeout time.Duration) {
 			select {
 			case <-cn.closed.Done():
 			case <-writeCond:
+			case <-keepAliveTimer.C:
 			}
-			cn.mu.Lock()
 			continue
 		}
 		// Flip the buffers.
 		frontBuf, cn.writeBuffer = cn.writeBuffer, frontBuf
 		cn.mu.Unlock()
 		n, err := cn.w.Write(frontBuf.Bytes())
-		cn.mu.Lock()
 		if n != 0 {
 			lastWrite = time.Now()
 			keepAliveTimer.Reset(keepAliveTimeout)

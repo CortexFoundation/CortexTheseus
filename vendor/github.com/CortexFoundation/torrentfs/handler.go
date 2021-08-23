@@ -614,11 +614,11 @@ func (tm *TorrentManager) init() {
 //Search and donwload files from torrent
 func (tm *TorrentManager) Search(ctx context.Context, hex string, request uint64, ch chan bool) error {
 	if !common.IsHexAddress(hex) {
-		return errors.New("Invalid infohash format")
+		return errors.New("invalid infohash format")
 	}
 
 	if request < 0 {
-		return errors.New("Request can't be negative")
+		return errors.New("request can't be negative")
 	}
 
 	hex = strings.TrimPrefix(strings.ToLower(hex), common.Prefix)
@@ -1011,7 +1011,7 @@ func (tm *TorrentManager) available(infohash string, rawSize uint64) (bool, uint
 	}
 
 	if !common.IsHexAddress(infohash) {
-		return false, 0, 0, errors.New("Invalid infohash format")
+		return false, 0, 0, errors.New("invalid infohash format")
 	}
 
 	ih := strings.TrimPrefix(strings.ToLower(infohash), common.Prefix)
@@ -1048,7 +1048,7 @@ func (tm *TorrentManager) getFile(infohash, subpath string) ([]byte, uint64, err
 	}
 
 	if !common.IsHexAddress(infohash) {
-		return nil, 0, errors.New("Invalid infohash format")
+		return nil, 0, errors.New("invalid infohash format")
 	}
 	ih := strings.TrimPrefix(strings.ToLower(infohash), common.Prefix)
 

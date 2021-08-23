@@ -444,18 +444,6 @@ func (cl *Client) wantConns() bool {
 	return false
 }
 
-func (cl *Client) waitAccept() {
-	for {
-		if cl.closed.IsSet() {
-			return
-		}
-		if cl.wantConns() {
-			return
-		}
-		cl.event.Wait()
-	}
-}
-
 // TODO: Apply filters for non-standard networks, particularly rate-limiting.
 func (cl *Client) rejectAccepted(conn net.Conn) error {
 	if !cl.wantConns() {
@@ -537,7 +525,11 @@ func (cl *Client) incomingConnection(nc net.Conn) {
 	}
 	c := cl.newConnection(nc, false, nc.RemoteAddr(), nc.RemoteAddr().Network(),
 		regularNetConnPeerConnConnString(nc))
-	defer c.close()
+	defer func() {
+		cl.lock()
+		defer cl.unlock()
+		c.close()
+	}()
 	c.Discovery = PeerSourceIncoming
 	cl.runReceivedConn(c)
 }
@@ -1421,14 +1413,6 @@ func firstNotNil(ips ...net.IP) net.IP {
 		}
 	}
 	return nil
-}
-
-func (cl *Client) eachDialer(f func(Dialer) bool) {
-	for _, s := range cl.dialers {
-		if !f(s) {
-			break
-		}
-	}
 }
 
 func (cl *Client) eachListener(f func(Listener) bool) {
