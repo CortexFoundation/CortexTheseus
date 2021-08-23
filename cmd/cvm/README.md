@@ -45,3 +45,8 @@ or run with default tracer with detailed debug msg:
 ## Result:
 1. infer: model(cvm_mnist) input(data) output[129 211 178 164 214 183 137 72 129 200](Complement)
 2. inferArray: model(cvm_mnist) input(uint8[1,1,28,28]{0}) output[255 1 255 255 0 255 255 0 0 0](Complement)
+
+## Transition Tool::
+1. alloc.json allocates accounts(better with secretKey), account gen by Generate
+2. txs.json puts transactions, may not be signed with secretKey of Sender Account
+

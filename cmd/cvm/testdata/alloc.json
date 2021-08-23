@@ -1,16 +1,19 @@
 {
-  "0x095e7baea6a6c7c4c2dfeb977efac326af552d87" : {
-    "balance" : "0x0de0b6b3a7640000",
+  "0x3b5ed957128e0b764ef8338460698566e4dbb477" : {
     "code" : "0x6001600053600160006001f0ff00",
+    "balance" : "0x0de0b6b3a7640000",
     "nonce" : "0x00",
     "storage" : {
-    }
+    },
+    "secretKey" : "0x15541ecb302d5379474e077ec78e2a35da5c59c7a3186d4ff0cf249860b8f927"
   },
-  "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b" : {
+
+  "0xafa92e8a79de53331267aacd03fb60e4a48f6957" : {
     "balance" : "0x0de0b6b3a7640000",
     "code" : "0x",
     "nonce" : "0x00",
     "storage" : {
-    }
+    },
+    "secretKey" : "0x35ef572ca252484b801a420ff8b8e9e8515aedd09fcdf5816efa3727dced58f5"
   }
 }

@@ -19,6 +19,7 @@ package t8ntool
 import (
 	"crypto/ecdsa"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -199,12 +200,14 @@ func Main(ctx *cli.Context) error {
 		defer inFile.Close()
 		decoder := json.NewDecoder(inFile)
 		if err := decoder.Decode(&txsWithKeys); err != nil {
+			// this is not fatal error, can be solved with signKey
 			return NewError(ErrorJson, fmt.Errorf("failed unmarshaling txs-file: %v", err))
 		}
 	} else {
 		txsWithKeys = inputData.Txs
 	}
-	// We may have to sign the transactions.
+	// We may have to sign the transactions
+	// signer with sender Address
 	signer := types.MakeSigner(chainConfig, big.NewInt(int64(prestate.Env.Number)))
 
 	if txs, err = signUnsignedTransactions(txsWithKeys, signer); err != nil {
@@ -226,6 +229,22 @@ func Main(ctx *cli.Context) error {
 	collector := make(Alloc)
 	s.DumpToCollector(collector, nil)
 	return dispatchOutput(ctx, baseDir, result, collector, body)
+}
+
+// do not call unless merely create accounts!
+// demo example for gen new accounts
+func GenNewAccount() {
+	pri, err := crypto.GenerateKey()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("GenAccount :: pubAddress[0x%x]  priKey[0x%x]\n", crypto.PubkeyToAddress(pri.PublicKey), crypto.FromECDSA(pri))
+}
+
+// do not call unless merely create accounts!
+// demo example for gen new accounts
+func GetOriAccount(priKey *ecdsa.PrivateKey) common.Address {
+	return crypto.PubkeyToAddress(priKey.PublicKey)
 }
 
 // txWithKey is a helper-struct, to allow us to use the types.Transaction along with
@@ -252,12 +271,100 @@ func (t *txWithKey) UnmarshalJSON(input []byte) error {
 			t.key = ecdsaKey
 		}
 	}
+
 	// Now, read the transaction itself
 	var tx types.Transaction
 	if err := json.Unmarshal(input, &tx); err != nil {
-		return err
+		if err == types.ErrInvalidSig {
+			txsUnsigned := &txsUnsigned{}
+			err = txsUnsigned.UnmarshalJSON(input)
+			if err != nil {
+				return err
+			}
+			tx = *types.NewTransaction(txsUnsigned.AccountNonce, *txsUnsigned.Recipient, txsUnsigned.Amount, txsUnsigned.GasLimit, txsUnsigned.Price, txsUnsigned.Payload)
+			//fmt.Printf("decoding result :: to[%#v] value[%#v] price[%#v]\n", tx.To(), tx.Value().Uint64(), tx.GasPrice())
+		} else {
+			return err
+		}
 	}
 	t.tx = &tx
+	return nil
+}
+
+// Modificaion: core/types/gen_tx_json
+type txsUnsigned struct {
+	AccountNonce uint64          `json:"nonce"    gencodec:"required"`
+	Price        *big.Int        `json:"gasPrice" gencodec:"required"`
+	GasLimit     uint64          `json:"gas"      gencodec:"required"`
+	Recipient    *common.Address `json:"to"       rlp:"nil"` // nil means contract creation
+	Amount       *big.Int        `json:"value"    gencodec:"required"`
+	Payload      []byte          `json:"input"    gencodec:"required"`
+
+	// Signature values
+	V *big.Int `json:"v" gencodec:"required"`
+	R *big.Int `json:"r" gencodec:"required"`
+	S *big.Int `json:"s" gencodec:"required"`
+
+	// This is only used when marshaling to JSON.
+	Hash *common.Hash `json:"hash" rlp:"-"`
+}
+
+// UnmarshalJSON unmarshals from JSON.
+func (t *txsUnsigned) UnmarshalJSON(input []byte) error {
+	type txdata struct {
+		AccountNonce *hexutil.Uint64 `json:"nonce"    gencodec:"required"`
+		Price        *hexutil.Big    `json:"gasPrice" gencodec:"required"`
+		GasLimit     *hexutil.Uint64 `json:"gas"      gencodec:"required"`
+		Recipient    *common.Address `json:"to"       rlp:"nil"`
+		Amount       *hexutil.Big    `json:"value"    gencodec:"required"`
+		Payload      *hexutil.Bytes  `json:"input"    gencodec:"required"`
+		V            *hexutil.Big    `json:"v" gencodec:"required"`
+		R            *hexutil.Big    `json:"r" gencodec:"required"`
+		S            *hexutil.Big    `json:"s" gencodec:"required"`
+		Hash         *common.Hash    `json:"hash" rlp:"-"`
+	}
+	var dec txdata
+	if err := json.Unmarshal(input, &dec); err != nil {
+		return err
+	}
+	if dec.AccountNonce == nil {
+		return errors.New("missing required field 'nonce' for txdata")
+	}
+	t.AccountNonce = uint64(*dec.AccountNonce)
+	if dec.Price == nil {
+		return errors.New("missing required field 'gasPrice' for txdata")
+	}
+	t.Price = (*big.Int)(dec.Price)
+	if dec.GasLimit == nil {
+		return errors.New("missing required field 'gas' for txdata")
+	}
+	t.GasLimit = uint64(*dec.GasLimit)
+	if dec.Recipient != nil {
+		t.Recipient = dec.Recipient
+	}
+	if dec.Amount == nil {
+		return errors.New("missing required field 'value' for txdata")
+	}
+	t.Amount = (*big.Int)(dec.Amount)
+	if dec.Payload == nil {
+		return errors.New("missing required field 'input' for txdata")
+	}
+	t.Payload = *dec.Payload
+	if dec.V == nil {
+		return errors.New("missing required field 'v' for txdata")
+	}
+	t.V = (*big.Int)(dec.V)
+	if dec.R == nil {
+		return errors.New("missing required field 'r' for txdata")
+	}
+	t.R = (*big.Int)(dec.R)
+	if dec.S == nil {
+		return errors.New("missing required field 's' for txdata")
+	}
+	t.S = (*big.Int)(dec.S)
+	if dec.Hash != nil {
+		t.Hash = dec.Hash
+	}
 	return nil
 }
 
@@ -277,8 +384,10 @@ func signUnsignedTransactions(txs []*txWithKey, signer types.Signer) (types.Tran
 	for i, txWithKey := range txs {
 		tx := txWithKey.tx
 		key := txWithKey.key
+
 		v, r, s := tx.RawSignatureValues()
 		if key != nil && v.BitLen()+r.BitLen()+s.BitLen() == 0 {
+			fmt.Printf("txs require signing, sender[0x%x]\n", GetOriAccount(key))
 			// This transaction needs to be signed
 			signed, err := types.SignTx(tx, signer, key)
 			if err != nil {
