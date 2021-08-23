@@ -2,3 +2,6 @@
 	path = cvm-runtime
 	url = https://github.com/CortexFoundation/cvm-runtime.git
 	branch = master
+[submodule "solution"]
+	path = solution
+	url = https://github.com/CortexFoundation/solution.git
