@@ -34,8 +34,8 @@ cpu: cortex_cpu
 
 mine: cortex_mine
 
-format:
-	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "*/generated/*" | xargs gofmt -w -s
+#format:
+#	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "*/generated/*" | xargs gofmt -w -s
 
 submodule:
 	build/env.sh
