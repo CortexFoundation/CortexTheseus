@@ -42,7 +42,7 @@ search:
 				cuckoo.hashrate.Mark(int64(attempts))
 				attempts = 0
 			}
-
+			//Gen solution
 			m, err := cuckoo.minerPlugin.Lookup("CuckooFindSolutions")
 			if err != nil {
 				panic(err)
@@ -56,6 +56,7 @@ search:
 			}
 			copy(result[:], res[0][0:len(res[0])])
 
+			// Check solution
 			if cuckoo.CuckooVerifyHeader(hash, nonce, &result, target) {
 				// Correct solution found, create a new header with it
 				header = types.CopyHeader(header)
@@ -70,6 +71,8 @@ search:
 				}
 				break search
 			}
+
+			//next loop
 			nonce++
 		}
 	}
