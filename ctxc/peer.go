@@ -221,9 +221,10 @@ func (p *peer) broadcastTransactions(removePeer func(string)) {
 // node internals and at the same time rate limits queued data.
 func (p *peer) announceTransactions(removePeer func(string)) {
 	var (
-		queue []common.Hash         // Queue of hashes to announce as transaction stubs
-		done  chan struct{}         // Non-nil if background announcer is running
-		fail  = make(chan error, 1) // Channel used to receive network error
+		queue  []common.Hash         // Queue of hashes to announce as transaction stubs
+		done   chan struct{}         // Non-nil if background announcer is running
+		fail   = make(chan error, 1) // Channel used to receive network error
+		failed bool
 	)
 	for {
 		// If there's no in-flight announce running, check if a new one is needed
@@ -240,6 +241,7 @@ func (p *peer) announceTransactions(removePeer func(string)) {
 					size += common.HashLength
 				}
 			}
+			// Shift and trim queue
 			queue = queue[:copy(queue, queue[count:])]
 
 			// If there's anything available to transfer, fire up an async writer
@@ -258,6 +260,10 @@ func (p *peer) announceTransactions(removePeer func(string)) {
 		// Transfer goroutine may or may not have been started, listen for events
 		select {
 		case hashes := <-p.txAnnounce:
+			// If the connection failed, discard all transaction events
+			if failed {
+				continue
+			}
 			// New batch of transactions to be broadcast, queue them (with cap)
 			queue = append(queue, hashes...)
 			if len(queue) > maxQueuedTxAnns {
@@ -269,6 +275,7 @@ func (p *peer) announceTransactions(removePeer func(string)) {
 			done = nil
 
 		case <-fail:
+			failed = true
 			removePeer(p.id)
 			return
 
