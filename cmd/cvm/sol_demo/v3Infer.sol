@@ -1,19 +1,26 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.6.0 <0.9.0;
-          
-// Creating a contract
-contract v3Infer{
 
-    // infer_array input is bytes storage(defined by ctxc-solc-v2)
-    bytes public input_array;
+contract AIContract {
 
-    constructor() {
-        Infer(address(0x0000000000000000000000000000000000001013),address(0x0000000000000000000000000000000000002013));
-    }
+  // bytes infer_output = new uint256[](((1 * 10 + 31) >> 5) << 5);
+  uint256[] infer_output = new uint256[](1);
+  uint256[] input_data;
   
-    function Infer(address model_addr, address input_addr) public pure returns (bool) {
-        // feed data in input_addr, feed model into model_addr, and store the output in infer_output
-        bytes memory output = new bytes(1);
-        return infer(model_addr, input_addr, output);
-    }
+  constructor() {
+      input_data = new uint256[]((1 * 28 * 28 + 31) >> 5);
+      Infer(address(0x0000000000000000000000000000000000001013),address(0x0000000000000000000000000000000000002013));
+      InferArray(address(0x0000000000000000000000000000000000001013));
+  }
+  
+  function Infer(address model, address input) public view returns (uint256) {
+    // feed data in input to model and store the output in infer_output
+    return infer(model, input, infer_output);
+  }
+  
+  function InferArray(address model) public view returns (uint256) {
+    // feed data in input_data to model and store the output in infer_output
+    uint256[] memory output2 = new uint256[](1);
+    return inferArray(model, input_data, output2);
+  }
 }
