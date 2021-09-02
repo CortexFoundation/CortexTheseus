@@ -69,8 +69,8 @@ github.com/CortexFoundation/torrentfs v1.0.23-0.20210119015245-ae2a4c2c966c/go.m
 github.com/CortexFoundation/torrentfs v1.0.23-0.20210312032424-2ec30f482b4f/go.mod h1:u718eB+2YjIlvyoi/aUuKpKpLjnfIdGZxljWFI3EXFc=
 github.com/CortexFoundation/torrentfs v1.0.23-0.20210702063150-4523491e0ae7/go.mod h1:4sLT6ms8kUyqRA+4a5XbF5r5ifzjwsqfD/OOGQ5/zbs=
 github.com/CortexFoundation/torrentfs v1.0.23-0.20210802025536-75827943d9b9/go.mod h1:DvP6vKe5Jl8XkoFsWLCouheg2J8Nx7C5hwAwLTakVR0=
-github.com/CortexFoundation/torrentfs v1.0.23-0.20210823013549-0a4dd8fd650a h1:QCu+c9v9Jb/T6fIDWUmrOvWFUziyVjmbEzuTRbvWAHw=
-github.com/CortexFoundation/torrentfs v1.0.23-0.20210823013549-0a4dd8fd650a/go.mod h1:Yo488ZVuaM9dLkOWBYOVb+aTGzNcL1nKYMKPHmPNFQo=
+github.com/CortexFoundation/torrentfs v1.0.23-0.20210902031848-70211dc2ce13 h1:rvKxx1IwrzmP8N7xnEKLlpXS52bZfTtx0HIk28oAmpc=
+github.com/CortexFoundation/torrentfs v1.0.23-0.20210902031848-70211dc2ce13/go.mod h1:2cW83W2xfyIXazO4N23+k/VY2JhDBntvURw4Y3Ss0x4=
 github.com/DATA-DOG/go-sqlmock v1.3.3/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
 github.com/Julusian/godocdown v0.0.0-20170816220326-6d19f8ff2df8/go.mod h1:INZr5t32rG59/5xeltqoCJoNY7e5x/3xoY9WSWVWg74=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
@@ -201,8 +201,9 @@ github.com/anacrolix/stm v0.1.1-0.20191106051447-e749ba3531cf/go.mod h1:zoVQRvSi
 github.com/anacrolix/stm v0.2.0/go.mod h1:zoVQRvSiGjGoTmbM0vSLIiaKjWtNPeTvXUSdJQA4hsg=
 github.com/anacrolix/stm v0.2.1-0.20201002073511-c35a2c748c6a/go.mod h1:spImf/rXwiAUoYYJK1YCZeWkpaHZ3kzjGFjwK5OStfU=
 github.com/anacrolix/stm v0.2.1-0.20210310231625-45c211559de6/go.mod h1:spImf/rXwiAUoYYJK1YCZeWkpaHZ3kzjGFjwK5OStfU=
-github.com/anacrolix/stm v0.3.0-alpha h1:yhOHk1NPkpGKqCAOB4XkgFXwB5Eh2KU/WVMksNnxr2Y=
 github.com/anacrolix/stm v0.3.0-alpha/go.mod h1:spImf/rXwiAUoYYJK1YCZeWkpaHZ3kzjGFjwK5OStfU=
+github.com/anacrolix/stm v0.3.0 h1:peQncJSNJtk1YBrFbW0DLKYqll+sa0kOk8EvXRcO+wA=
+github.com/anacrolix/stm v0.3.0/go.mod h1:spImf/rXwiAUoYYJK1YCZeWkpaHZ3kzjGFjwK5OStfU=
 github.com/anacrolix/sync v0.0.0-20171108081538-eee974e4f8c1/go.mod h1:+u91KiUuf0lyILI6x3n/XrW7iFROCZCG+TjgK8nW52w=
 github.com/anacrolix/sync v0.0.0-20180611022320-3c4cb11f5a01/go.mod h1:+u91KiUuf0lyILI6x3n/XrW7iFROCZCG+TjgK8nW52w=
 github.com/anacrolix/sync v0.0.0-20180808010631-44578de4e778/go.mod h1:s735Etp3joe/voe2sdaXLcqDdJSay1O0OPnM0ystjqk=
@@ -238,8 +239,8 @@ github.com/anacrolix/torrent v1.28.1-0.20210622065255-582f0ccd48a0/go.mod h1:15V
 github.com/anacrolix/torrent v1.28.1-0.20210627015728-4fb13a186850/go.mod h1:40Hf2bWxFqTbTWbrdig57JnmYLCjShbWWjdbB3VN5n4=
 github.com/anacrolix/torrent v1.29.0/go.mod h1:40Hf2bWxFqTbTWbrdig57JnmYLCjShbWWjdbB3VN5n4=
 github.com/anacrolix/torrent v1.29.3-0.20210801125251-d42f2516a4c1/go.mod h1:40Hf2bWxFqTbTWbrdig57JnmYLCjShbWWjdbB3VN5n4=
-github.com/anacrolix/torrent v1.30.4 h1:xZXQo1kL7NqRN/wY2OumUrGM4ekq9dyMFdKtF293gPU=
-github.com/anacrolix/torrent v1.30.4/go.mod h1:IUGa0cjbz4vo2S0jNx2RQXAiCew+WITcUoxaw2gF20o=
+github.com/anacrolix/torrent v1.31.0 h1:G/vERyt+9oiJz6Ehpd+KqFIKh22/qfeUeWCwCVRGJKI=
+github.com/anacrolix/torrent v1.31.0/go.mod h1:IUGa0cjbz4vo2S0jNx2RQXAiCew+WITcUoxaw2gF20o=
 github.com/anacrolix/upnp v0.1.1/go.mod h1:LXsbsp5h+WGN7YR+0A7iVXm5BL1LYryDev1zuJMWYQo=
 github.com/anacrolix/upnp v0.1.2-0.20200416075019-5e9378ed1425 h1:/Wi6l2ONI1FUFWN4cBwHOO90V4ylp4ud/eov6GUcVFk=
 github.com/anacrolix/upnp v0.1.2-0.20200416075019-5e9378ed1425/go.mod h1:Pz94W3kl8rf+wxH3IbCa9Sq+DTJr8OSbV2Q3/y51vYs=
@@ -413,8 +414,8 @@ github.com/frankban/quicktest v1.11.3 h1:8sXhOn0uLys67V8EsXLc6eszDs8VXWxL3iRvebP
 github.com/frankban/quicktest v1.11.3/go.mod h1:wRf/ReqHper53s+kmmSZizM8NamnL3IM0I9ntUbOk+k=
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
 github.com/fsnotify/fsnotify v1.4.9/go.mod h1:znqG4EE+3YCdAaPaxE2ZRY/06pZUdp0tY4IgpuI1SZQ=
-github.com/fsnotify/fsnotify v1.5.0 h1:NO5hkcB+srp1x6QmwvNZLeaOgbM8cmBTN32THzjvu2k=
-github.com/fsnotify/fsnotify v1.5.0/go.mod h1:BX0DCEr5pT4jm2CnQdVP1lFV521fcCNcyEeNp4DQQDk=
+github.com/fsnotify/fsnotify v1.5.1 h1:mZcQUHVQUQWoPXXtuf9yuEXKudkV2sx1E06UadKWpgI=
+github.com/fsnotify/fsnotify v1.5.1/go.mod h1:T3375wBYaZdLLcVNkcVbzGHY7f1l/uK5T5Ai1i3InKU=
 github.com/garyburd/redigo v1.6.0/go.mod h1:NR3MbYisc3/PwhQ00EMzDiPmrwpPxAn5GI05/YaO1SY=
 github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08 h1:f6D9Hr8xV8uYKlyuj8XIruxlh9WjVjdh1gIicAS7ays=
 github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08/go.mod h1:x7DCsMOv1taUwEWCzT4cmDeAkigA5/QCwUodaVOe8Ww=
@@ -861,8 +862,9 @@ github.com/pion/rtp v1.6.1/go.mod h1:bDb5n+BFZxXx0Ea7E5qe+klMuqiBrP+w8XSjiWtCUko
 github.com/pion/rtp v1.6.2/go.mod h1:bDb5n+BFZxXx0Ea7E5qe+klMuqiBrP+w8XSjiWtCUko=
 github.com/pion/rtp v1.6.5/go.mod h1:bDb5n+BFZxXx0Ea7E5qe+klMuqiBrP+w8XSjiWtCUko=
 github.com/pion/rtp v1.7.0/go.mod h1:bDb5n+BFZxXx0Ea7E5qe+klMuqiBrP+w8XSjiWtCUko=
-github.com/pion/rtp v1.7.1 h1:hCaxfVgPGt13eF/Tu9RhVn04c+dAcRZmhdDWqUE13oY=
 github.com/pion/rtp v1.7.1/go.mod h1:bDb5n+BFZxXx0Ea7E5qe+klMuqiBrP+w8XSjiWtCUko=
+github.com/pion/rtp v1.7.2 h1:HCDKDCixh7PVjkQTsqHAbk1lg+bx059EHxcnyl42dYs=
+github.com/pion/rtp v1.7.2/go.mod h1:bDb5n+BFZxXx0Ea7E5qe+klMuqiBrP+w8XSjiWtCUko=
 github.com/pion/sctp v1.7.6/go.mod h1:ichkYQ5tlgCQwEwvgfdcAolqx1nHbYCxo4D7zK/K0X8=
 github.com/pion/sctp v1.7.10/go.mod h1:EhpTUQu1/lcK3xI+eriS6/96fWetHGCvBi9MSsnaBN0=
 github.com/pion/sctp v1.7.11/go.mod h1:EhpTUQu1/lcK3xI+eriS6/96fWetHGCvBi9MSsnaBN0=

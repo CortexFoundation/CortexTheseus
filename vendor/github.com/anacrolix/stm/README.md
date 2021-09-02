@@ -1,6 +1,7 @@
 # stm
 
-[![GoDoc](https://godoc.org/github.com/anacrolix/stm?status.svg)](https://godoc.org/github.com/anacrolix/stm) [![Go Report Card](https://goreportcard.com/badge/github.com/anacrolix/stm)](https://goreportcard.com/report/github.com/anacrolix/stm)
+[![Go Reference](https://pkg.go.dev/badge/github.com/anacrolix/stm.svg)](https://pkg.go.dev/github.com/anacrolix/stm)
+[![Go Report Card](https://goreportcard.com/badge/github.com/anacrolix/stm)](https://goreportcard.com/report/github.com/anacrolix/stm)
 
 Package `stm` provides [Software Transactional Memory](https://en.wikipedia.org/wiki/Software_transactional_memory) operations for Go. This is
 an alternative to the standard way of writing concurrent code (channels and
@@ -28,85 +29,14 @@ applications in Go. If you find this package useful, please tell us about it!
 
 ## Examples
 
-Note that `Operation` now returns a value of type `interface{}`, which isn't included in the examples
-throughout the documentation yet. See the type signatures for `Atomically` and `Operation`.
-
-Here's some example code that demonstrates how to perform common operations:
-
-```go
-// create a shared variable
-n := stm.NewVar(3)
-
-// read a variable
-var v int
-stm.Atomically(func(tx *stm.Tx) {
-	v = tx.Get(n).(int)
-})
-// or:
-v = stm.AtomicGet(n).(int)
-
-// write to a variable
-stm.Atomically(func(tx *stm.Tx) {
-	tx.Set(n, 12)
-})
-// or:
-stm.AtomicSet(n, 12)
-
-// update a variable
-stm.Atomically(func(tx *stm.Tx) {
-	cur := tx.Get(n).(int)
-	tx.Set(n, cur-1)
-})
-
-// block until a condition is met
-stm.Atomically(func(tx *stm.Tx) {
-	cur := tx.Get(n).(int)
-	if cur != 0 {
-		tx.Retry()
-	}
-	tx.Set(n, 10)
-})
-// or:
-stm.Atomically(func(tx *stm.Tx) {
-	cur := tx.Get(n).(int)
-	tx.Assert(cur == 0)
-	tx.Set(n, 10)
-})
-
-// select among multiple (potentially blocking) transactions
-stm.Atomically(stm.Select(
-	// this function blocks forever, so it will be skipped
-	func(tx *stm.Tx) { tx.Retry() },
-
-	// this function will always succeed without blocking
-	func(tx *stm.Tx) { tx.Set(n, 10) },
-
-	// this function will never run, because the previous
-	// function succeeded
-	func(tx *stm.Tx) { tx.Set(n, 11) },
-))
-
-// since Select is a normal transaction, if the entire select retries
-// (blocks), it will be retried as a whole:
-x := 0
-stm.Atomically(stm.Select(
-	// this function will run twice, and succeed the second time
-	func(tx *stm.Tx) { tx.Assert(x == 1) },
-
-	// this function will run once
-	func(tx *stm.Tx) {
-		x = 1
-		tx.Retry()
-	},
-))
-// But wait! Transactions are only retried when one of the Vars they read is
-// updated. Since x isn't a stm Var, this code will actually block forever --
-// but you get the idea.
-```
+See the package examples in the Go package docs for examples of common operations.
 
 See [example_santa_test.go](example_santa_test.go) for a more complex example.
 
 ## Pointers
+
+Note that `Operation` now returns a value of type `interface{}`, which isn't included in the
+examples throughout the documentation yet. See the type signatures for `Atomically` and `Operation`.
 
 Be very careful when managing pointers inside transactions! (This includes
 slices, maps, channels, and captured variables.) Here's why:
@@ -190,4 +120,5 @@ BenchmarkReadVarChannel-4  	   10000	    240086 ns/op
 
 ## Credits
 
-Package stm was [originally](https://github.com/lukechampine/stm/issues/3#issuecomment-549087541) created by lukechampine.
+Package stm was [originally](https://github.com/lukechampine/stm/issues/3#issuecomment-549087541)
+created by lukechampine.
