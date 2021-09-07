@@ -353,12 +353,14 @@ func (cuckoo *Cuckoo) CalcDifficulty(chain consensus.ChainHeaderReader, time uin
 func CalcDifficulty(config *params.ChainConfig, time uint64, parent *types.Header) *big.Int {
 	next := new(big.Int).Add(parent.Number, big1)
 	switch {
+	case config.IsNeo(next):
+		return calcDifficultyNeo(time, parent, true)
 	case config.IsIstanbul(next):
-		return calcDifficultyIstanbul(time, parent)
+		return calcDifficultyIstanbul(time, parent, false)
 	case config.IsConstantinople(next):
-		return calcDifficultyConstantinople(time, parent)
+		return calcDifficultyConstantinople(time, parent, false)
 	case config.IsByzantium(next):
-		return calcDifficultyByzantium(time, parent)
+		return calcDifficultyByzantium(time, parent, false)
 	case config.IsHomestead(next):
 		return calcDifficultyHomestead(time, parent)
 	default:
@@ -406,18 +408,22 @@ var (
 	bigMinus99    = big.NewInt(-99)
 )
 
-func calcDifficultyIstanbul(time uint64, parent *types.Header) *big.Int {
-	return calcDifficultyConstantinople(time, parent)
+func calcDifficultyIstanbul(time uint64, parent *types.Header, neo bool) *big.Int {
+	return calcDifficultyConstantinople(time, parent, neo)
 }
 
-func calcDifficultyConstantinople(time uint64, parent *types.Header) *big.Int {
-	return calcDifficultyByzantium(time, parent)
+func calcDifficultyConstantinople(time uint64, parent *types.Header, neo bool) *big.Int {
+	return calcDifficultyByzantium(time, parent, neo)
+}
+
+func calcDifficultyNeo(time uint64, parent *types.Header, neo bool) *big.Int {
+	return calcDifficultyIstanbul(time, parent, neo)
 }
 
 // calcDifficultyByzantium is the difficulty adjustment algorithm. It returns
 // the difficulty that a new block should have when created at time given the
 // parent block's time and difficulty. The calculation uses the Byzantium rules.
-func calcDifficultyByzantium(time uint64, parent *types.Header) *big.Int {
+func calcDifficultyByzantium(time uint64, parent *types.Header, neo bool) *big.Int {
 	// https://github.com/cortex/EIPs/issues/100.
 	// algorithm:
 	// diff = (parent_diff +
@@ -448,13 +454,16 @@ func calcDifficultyByzantium(time uint64, parent *types.Header) *big.Int {
 		x.Set(big0)
 	}
 
-	// TODO
 	if parent.Difficulty.Cmp(params.MeanDifficultyBoundDivisor) >= 0 && parent.Difficulty.Cmp(params.HighDifficultyBoundDivisor) < 0 {
 		y.Div(parent.Difficulty, params.MeanDifficultyBoundDivisor)
 	} else if parent.Difficulty.Cmp(params.HighDifficultyBoundDivisor) >= 0 {
 		y.Div(parent.Difficulty, params.HighDifficultyBoundDivisor)
 	} else {
-		y.Div(parent.Difficulty, params.DifficultyBoundDivisor)
+		if neo {
+			y = params.MinimumDifficulty // delta 2
+		} else {
+			y.Div(parent.Difficulty, params.DifficultyBoundDivisor_2)
+		}
 
 		if x.Cmp(big0) > 0 {
 			x.Set(big1)
@@ -533,7 +542,7 @@ func makeDifficultyCalculator(bombDelay *big.Int) func(time uint64, parent *type
 			x.Set(bigMinus99)
 		}
 		// parent_diff + (parent_diff / 2048 * max((2 if len(parent.uncles) else 1) - ((timestamp - parent.timestamp) // 9), -99))
-		y.Div(parent.Difficulty, params.DifficultyBoundDivisor)
+		y.Div(parent.Difficulty, params.DifficultyBoundDivisor_2)
 		x.Mul(y, x)
 		x.Add(parent.Difficulty, x)
 
@@ -594,7 +603,7 @@ func calcDifficultyHomestead(time uint64, parent *types.Header) *big.Int {
 	} else if parent.Difficulty.Cmp(params.HighDifficultyBoundDivisor) >= 0 {
 		y.Div(parent.Difficulty, params.HighDifficultyBoundDivisor)
 	} else {
-		y.Div(parent.Difficulty, params.DifficultyBoundDivisor)
+		y.Div(parent.Difficulty, params.DifficultyBoundDivisor_2)
 	}
 	x.Mul(y, x)
 	x.Add(parent.Difficulty, x)
@@ -622,7 +631,7 @@ func calcDifficultyHomestead(time uint64, parent *types.Header) *big.Int {
 // block's time and difficulty. The calculation uses the Frontier rules.
 func calcDifficultyFrontier(time uint64, parent *types.Header) *big.Int {
 	diff := new(big.Int)
-	adjust := new(big.Int).Div(parent.Difficulty, params.DifficultyBoundDivisor)
+	adjust := new(big.Int).Div(parent.Difficulty, params.DifficultyBoundDivisor_2)
 	bigTime := new(big.Int)
 	bigParentTime := new(big.Int)
 
