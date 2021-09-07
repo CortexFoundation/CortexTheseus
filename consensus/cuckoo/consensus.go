@@ -454,15 +454,13 @@ func calcDifficultyByzantium(time uint64, parent *types.Header, neo bool) *big.I
 		x.Set(big0)
 	}
 
-	// TODO
 	if parent.Difficulty.Cmp(params.MeanDifficultyBoundDivisor) >= 0 && parent.Difficulty.Cmp(params.HighDifficultyBoundDivisor) < 0 {
 		y.Div(parent.Difficulty, params.MeanDifficultyBoundDivisor)
 	} else if parent.Difficulty.Cmp(params.HighDifficultyBoundDivisor) >= 0 {
 		y.Div(parent.Difficulty, params.HighDifficultyBoundDivisor)
 	} else {
 		if neo {
-			//y.Div(parent.Difficulty, params.DifficultyBoundDivisor_512)
-			y = params.MinimumDifficulty
+			y = params.MinimumDifficulty // delta 2
 		} else {
 			y.Div(parent.Difficulty, params.DifficultyBoundDivisor_2)
 		}

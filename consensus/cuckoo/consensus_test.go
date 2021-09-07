@@ -23,11 +23,11 @@ func TestReward(t *testing.T) {
 
 func TestDifficultyCalculators(t *testing.T) {
 	rand.Seed(2)
-	diff := big.NewInt(1000)
+	diff := big.NewInt(10)
 	for i := 0; i < 30; i++ {
 
 		// 1 to 300 seconds diff
-		var timeDelta = uint64(8)
+		var timeDelta = uint64(18)
 		//rand.Read(difficulty)
 		header := &types.Header{
 			Difficulty: diff,

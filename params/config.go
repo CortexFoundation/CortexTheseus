@@ -130,7 +130,7 @@ var (
 		ConstantinopleBlock: big.NewInt(0),
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(3_230_000),
-		NeoBlock:            nil, //big.NewInt(4_551_000),
+		NeoBlock:            nil,//big.NewInt(4_600_000),
 		Cuckoo:              new(CuckooConfig),
 	}
 
