@@ -112,7 +112,7 @@ const (
 
 // freezerNoSnappy configures whether compression is disabled for the ancient-tables.
 // Hashes and difficulties don't compress well.
-var freezerNoSnappy = map[string]bool{
+var FreezerNoSnappy = map[string]bool{
 	freezerHeaderTable:     false,
 	freezerHashTable:       true,
 	freezerBodiesTable:     false,
