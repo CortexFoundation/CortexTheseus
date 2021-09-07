@@ -1008,7 +1008,7 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 			log.Info("Commit new mining work", "number", block.Number(), "sealhash", w.engine.SealHash(block.Header()),
 				"uncles", len(uncles), "txs", w.current.tcount,
 				"gas", block.GasUsed(), "fees", totalFees(block, receipts),
-				"elapsed", common.PrettyDuration(time.Since(start)))
+				"elapsed", common.PrettyDuration(time.Since(start)), "diff", block.Difficulty())
 
 		case <-w.exitCh:
 			log.Info("Worker has exited")
