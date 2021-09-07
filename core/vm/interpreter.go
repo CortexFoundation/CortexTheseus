@@ -109,6 +109,8 @@ func NewCVMInterpreter(cvm *CVM, cfg Config) *CVMInterpreter {
 	if cfg.JumpTable[STOP] == nil {
 		var jt JumpTable
 		switch {
+		case cvm.chainRules.IsNeo:
+			jt = istanbulInstructionSet
 		case cvm.chainRules.IsIstanbul:
 			jt = istanbulInstructionSet
 		case cvm.chainRules.IsConstantinople:

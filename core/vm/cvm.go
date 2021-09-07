@@ -68,6 +68,8 @@ func (cvm *CVM) IsInput(code []byte) bool {
 func (cvm *CVM) precompile(addr common.Address) (PrecompiledContract, bool) {
 	var precompiles map[common.Address]PrecompiledContract
 	switch {
+	case cvm.chainRules.IsNeo:
+                precompiles = PrecompiledContractsIstanbul
 	case cvm.chainRules.IsIstanbul:
 		precompiles = PrecompiledContractsIstanbul
 	case cvm.chainRules.IsByzantium:
