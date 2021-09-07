@@ -76,6 +76,8 @@ var PrecompiledContractsIstanbul = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{9}): &blake2F{},
 }
 
+var PrecompiledContractsNeo = PrecompiledContractsIstanbul
+
 // PrecompiledContractsBerlin contains the default set of pre-compiled Cortex
 // contracts used in the Berlin release.
 var PrecompiledContractsBerlin = map[common.Address]PrecompiledContract{
