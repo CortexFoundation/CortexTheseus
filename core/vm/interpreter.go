@@ -372,7 +372,6 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		contract.Code = contract.Code[2:]
 	}
 	cgas := uint64(0)
-	//res := make([]byte, 10)
 	for atomic.LoadInt32(&in.cvm.abort) == 0 {
 		if in.cfg.Debug {
 			// Capture pre-execution values for tracing.
@@ -466,8 +465,6 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		// set the last return to the result of the operation.
 		if operation.returns {
 			in.returnData = common.CopyBytes(res)
-			log.Warn("return data", "res", in.returnData)
-			//in.returnData = res
 		}
 		switch {
 		case err != nil:
