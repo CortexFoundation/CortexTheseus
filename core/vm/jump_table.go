@@ -54,10 +54,17 @@ var (
 	byzantiumInstructionSet        = newByzantiumInstructionSet()
 	constantinopleInstructionSet   = newConstantinopleInstructionSet()
 	istanbulInstructionSet         = newIstanbulInstructionSet()
+	neoInstructionSet              = newNeoInstructionSet()
 )
 
 // JumpTable contains the CVM opcodes supported at a given fork.
 type JumpTable [256]*operation
+
+func newNeoInstructionSet() JumpTable {
+	instructionSet := newIstanbulInstructionSet()
+
+	return instructionSet
+}
 
 // newIstanbulInstructionSet returns the frontier, homestead
 // byzantium, contantinople and petersburg instructions.

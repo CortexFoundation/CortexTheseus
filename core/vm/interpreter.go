@@ -110,7 +110,7 @@ func NewCVMInterpreter(cvm *CVM, cfg Config) *CVMInterpreter {
 		var jt JumpTable
 		switch {
 		case cvm.chainRules.IsNeo:
-			jt = istanbulInstructionSet
+			jt = neoInstructionSet
 		case cvm.chainRules.IsIstanbul:
 			jt = istanbulInstructionSet
 		case cvm.chainRules.IsConstantinople:
