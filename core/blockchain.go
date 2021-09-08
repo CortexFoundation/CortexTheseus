@@ -208,9 +208,9 @@ type BlockChain struct {
 	processor  Processor // Block transaction processor interface
 	vmConfig   vm.Config
 
-	badBlocks          *lru.Cache                     // Bad block cache
-	shouldPreserve     func(*types.Block) bool        // Function used to determine whether should preserve the given block.
-	writeLegacyJournal bool                           // Testing flag used to flush the snapshot journal in legacy format.
+	badBlocks          *lru.Cache              // Bad block cache
+	shouldPreserve     func(*types.Block) bool // Function used to determine whether should preserve the given block.
+	writeLegacyJournal bool                    // Testing flag used to flush the snapshot journal in legacy format.
 	utcNow             int64
 	Viper              bool
 }
