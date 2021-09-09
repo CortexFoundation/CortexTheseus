@@ -444,9 +444,13 @@ func (h *priceHeap) Pop() interface{} {
 // in txpool but only interested in the remote part. It means only remote transactions
 // will be considered for tracking, sorting, eviction, etc.
 type txPricedList struct {
+	// Number of stale price points to (re-heap trigger).
+	// This field is accessed atomically, and must be the first field
+	// to ensure it has correct alignment for atomic.AddInt64.
+	// See https://golang.org/pkg/sync/atomic/#pkg-note-BUG.
+	stales   int64
 	all      *txLookup  // Pointer to the map of all transactions
 	remotes  *priceHeap // Heap of prices of all the stored **remote** transactions
-	stales   int64      // Number of stale price points to (re-heap trigger)
 	reheapMu sync.Mutex // Mutex asserts that only one routine is reheaping the list
 }
 
