@@ -13,12 +13,12 @@ import (
 	"net/url"
 	"sort"
 	"strings"
-	"sync"
 	"text/tabwriter"
 	"time"
 	"unsafe"
 
 	"github.com/RoaringBitmap/roaring"
+	"github.com/anacrolix/chansync"
 	"github.com/anacrolix/dht/v2"
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo/iter"
@@ -29,6 +29,7 @@ import (
 	"github.com/anacrolix/missinggo/v2/bitmap"
 	"github.com/anacrolix/missinggo/v2/prioritybitmap"
 	"github.com/anacrolix/multiless"
+	"github.com/anacrolix/sync"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/pion/datachannel"
 
@@ -52,12 +53,12 @@ type Torrent struct {
 	cl     *Client
 	logger log.Logger
 
-	networkingEnabled      bool
-	dataDownloadDisallowed bool
+	networkingEnabled      chansync.Flag
+	dataDownloadDisallowed chansync.Flag
 	dataUploadDisallowed   bool
 	userOnWriteChunkErr    func(error)
 
-	closed   missinggo.Event
+	closed   chansync.SetOnce
 	infoHash metainfo.Hash
 	pieces   []Piece
 	// Values are the piece indices that changed.
@@ -65,7 +66,7 @@ type Torrent struct {
 	// The size of chunks to request from peers over the wire. This is
 	// normally 16KiB by convention these days.
 	chunkSize pp.Integer
-	chunkPool *sync.Pool
+	chunkPool sync.Pool
 	// Total length of the torrent in bytes. Stored because it's not O(1) to
 	// get this from the info dict.
 	length *int64
@@ -192,13 +193,9 @@ func (t *Torrent) pendingPieces() *prioritybitmap.PriorityBitmap {
 	return &t._pendingPieces
 }
 
-func (t *Torrent) tickleReaders() {
-	t.cl.event.Broadcast()
-}
-
 // Returns a channel that is closed when the Torrent is closed.
-func (t *Torrent) Closed() <-chan struct{} {
-	return t.closed.LockedChan(t.cl.locker())
+func (t *Torrent) Closed() chansync.Done {
+	return t.closed.Done()
 }
 
 // KnownSwarm returns the known subset of the peers in the Torrent's swarm, including active,
@@ -236,7 +233,7 @@ func (t *Torrent) KnownSwarm() (ks []PeerInfo) {
 
 func (t *Torrent) setChunkSize(size pp.Integer) {
 	t.chunkSize = size
-	t.chunkPool = &sync.Pool{
+	t.chunkPool = sync.Pool{
 		New: func() interface{} {
 			b := make([]byte, size)
 			return &b
@@ -792,15 +789,19 @@ func (t *Torrent) numPiecesCompleted() (num pieceIndex) {
 	return pieceIndex(t._completedPieces.GetCardinality())
 }
 
-func (t *Torrent) close() (err error) {
+func (t *Torrent) close(wg *sync.WaitGroup) (err error) {
 	t.closed.Set()
-	t.tickleReaders()
 	if t.storage != nil {
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			t.storageLock.Lock()
 			defer t.storageLock.Unlock()
 			if f := t.storage.Close; f != nil {
-				f()
+				err1 := f()
+				if err1 != nil {
+					t.logger.WithDefaultLevel(log.Warning).Printf("error closing storage: %v", err1)
+				}
 			}
 		}()
 	}
@@ -1162,7 +1163,6 @@ func (t *Torrent) pendRequest(req Request) {
 }
 
 func (t *Torrent) pieceCompletionChanged(piece pieceIndex) {
-	t.tickleReaders()
 	t.cl.event.Broadcast()
 	if t.pieceComplete(piece) {
 		t.onPieceCompleted(piece)
@@ -1501,7 +1501,7 @@ func (t *Torrent) runHandshookConnLoggingErr(pc *PeerConn) {
 func (t *Torrent) startWebsocketAnnouncer(u url.URL) torrentTrackerAnnouncer {
 	wtc, release := t.cl.websocketTrackers.Get(u.String())
 	go func() {
-		<-t.closed.LockedChan(t.cl.locker())
+		<-t.closed.Done()
 		release()
 	}()
 	wst := websocketTrackerStatus{u, wtc}
@@ -1664,7 +1664,7 @@ func (t *Torrent) timeboxedAnnounceToDht(s DhtServer) error {
 		return err
 	}
 	select {
-	case <-t.closed.LockedChan(t.cl.locker()):
+	case <-t.closed.Done():
 	case <-time.After(5 * time.Minute):
 	}
 	stop()
@@ -1815,7 +1815,7 @@ func (t *Torrent) addPeerConn(c *PeerConn) (err error) {
 }
 
 func (t *Torrent) wantConns() bool {
-	if !t.networkingEnabled {
+	if !t.networkingEnabled.Bool() {
 		return false
 	}
 	if t.closed.IsSet() {
@@ -1949,6 +1949,7 @@ func (t *Torrent) cancelRequestsForPiece(piece pieceIndex) {
 func (t *Torrent) onPieceCompleted(piece pieceIndex) {
 	t.pendAllChunkSpecs(piece)
 	t.cancelRequestsForPiece(piece)
+	t.piece(piece).readerCond.Broadcast()
 	for conn := range t.conns {
 		conn.have(piece)
 		t.maybeDropMutuallyCompletePeer(&conn.Peer)
@@ -2137,27 +2138,15 @@ func (t *Torrent) onWriteChunkErr(err error) {
 }
 
 func (t *Torrent) DisallowDataDownload() {
-	t.cl.lock()
-	defer t.cl.unlock()
 	t.disallowDataDownloadLocked()
 }
 
 func (t *Torrent) disallowDataDownloadLocked() {
-	t.dataDownloadDisallowed = true
-	t.iterPeers(func(c *Peer) {
-		c.updateRequests()
-	})
-	t.tickleReaders()
+	t.dataDownloadDisallowed.Set()
 }
 
 func (t *Torrent) AllowDataDownload() {
-	t.cl.lock()
-	defer t.cl.unlock()
-	t.dataDownloadDisallowed = false
-	t.tickleReaders()
-	t.iterPeers(func(c *Peer) {
-		c.updateRequests()
-	})
+	t.dataDownloadDisallowed.Clear()
 }
 
 // Enables uploading data, if it was disabled.

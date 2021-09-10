@@ -23,7 +23,7 @@ There are some small [examples](https://godoc.org/github.com/anacrolix/torrent#p
 
 ## Mentions
 
- * [@anacrolix](https://github.com/anacrolix) and this repo are in [Console 32](https://console.substack.com/p/console-32).
+ * [@anacrolix](https://github.com/anacrolix) is interviewed about this repo in [Console 32](https://console.substack.com/p/console-32).
 
 ### Downstream projects
 
@@ -43,6 +43,7 @@ There are several web-frontends and Android clients among the known public proje
  * [Go-PeersToHTTP](https://github.com/WinPooh32/peerstohttp)
  * [CortexFoundation/torrentfs](https://github.com/CortexFoundation/torrentfs): P2P file system of cortex full node
  * [TorrServ](https://github.com/YouROK/TorrServer): Torrent streaming server over http.
+ * [Webtor](https://webtor.io/): free cloud BitTorrent-client
 
 ## Help
 
@@ -50,7 +51,7 @@ Communication about the project is primarily through [Discussions](https://githu
 
 ## Command packages
 
-Here I'll describe what some of the packages in `./cmd` do. Install them with `go get github.com/anacrolix/torrent/cmd/...`.
+Here I'll describe what some of the packages in `./cmd` do. See [installation](#installation) to make them available.
 
 ### torrent
 
