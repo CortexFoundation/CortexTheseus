@@ -36,13 +36,18 @@ type reader struct {
 	responsive bool
 	// Adjust the read/seek window to handle Readers locked to File extents and the like.
 	offset, length int64
-	// Ensure operations that change the position are exclusive, like Read() and Seek().
-	opMu sync.Mutex
 
 	// Required when modifying pos and readahead, or reading them without opMu.
-	mu        sync.Locker
-	pos       int64
+	mu  sync.Locker
+	pos int64
+	// Reads have been initiated since the last seek. This is used to prevent readahead occuring
+	// after a seek or with a new reader at the starting position.
+	reading   bool
 	readahead int64
+	// Function to dynamically calculate readahead. If nil, readahead is static.
+	readaheadFunc func() int64
+	// Position that reads have continued contiguously from.
+	contiguousReadStartPos int64
 	// The cached piece range this reader wants downloaded. The zero value corresponds to nothing.
 	// We cache this so that changes can be detected, and bubbled up to the Torrent only as
 	// required.
@@ -64,10 +69,9 @@ func (r *reader) SetNonResponsive() {
 
 func (r *reader) SetReadahead(readahead int64) {
 	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.readahead = readahead
-	r.mu.Unlock()
-	r.t.cl.lock()
-	defer r.t.cl.unlock()
+	r.readaheadFunc = nil
 	r.posChanged()
 }
 
@@ -97,18 +101,19 @@ func (r *reader) available(off, max int64) (ret int64) {
 	return
 }
 
-func (r *reader) waitReadable(off int64) {
-	// We may have been sent back here because we were told we could read but it failed.
-	r.t.cl.event.Wait()
-}
-
 // Calculates the pieces this reader wants downloaded, ignoring the cached value at r.pieces.
 func (r *reader) piecesUncached() (ret pieceRange) {
 	ra := r.readahead
+	if r.readaheadFunc != nil {
+		ra = r.readaheadFunc()
+	}
 	if ra < 1 {
 		// Needs to be at least 1, because [x, x) means we don't want
 		// anything.
 		ra = 1
+	}
+	if !r.reading {
+		ra = 0
 	}
 	if ra > r.length-r.pos {
 		ra = r.length - r.pos
@@ -122,27 +127,15 @@ func (r *reader) Read(b []byte) (n int, err error) {
 }
 
 func (r *reader) ReadContext(ctx context.Context, b []byte) (n int, err error) {
-	// This is set under the Client lock if the Context is canceled. I think we coordinate on a
-	// separate variable so as to avoid false negatives with race conditions due to Contexts being
-	// synchronized.
-	var ctxErr error
-	if ctx.Done() != nil {
-		ctx, cancel := context.WithCancel(ctx)
-		// Abort the goroutine when the function returns.
-		defer cancel()
-		go func() {
-			<-ctx.Done()
-			r.t.cl.lock()
-			ctxErr = ctx.Err()
-			r.t.tickleReaders()
-			r.t.cl.unlock()
-		}()
+	if len(b) > 0 {
+		r.reading = true
+		// TODO: Rework reader piece priorities so we don't have to push updates in to the Client
+		// and take the lock here.
+		r.mu.Lock()
+		r.posChanged()
+		r.mu.Unlock()
 	}
-	// Hmmm, if a Read gets stuck, this means you can't change position for other purposes. That
-	// seems reasonable, but unusual.
-	r.opMu.Lock()
-	defer r.opMu.Unlock()
-	n, err = r.readOnceAt(b, r.pos, &ctxErr)
+	n, err = r.readOnceAt(ctx, b, r.pos)
 	if n == 0 {
 		if err == nil && len(b) > 0 {
 			panic("expected error")
@@ -163,32 +156,44 @@ func (r *reader) ReadContext(ctx context.Context, b []byte) (n int, err error) {
 	return
 }
 
+var closedChan = make(chan struct{})
+
+func init() {
+	close(closedChan)
+}
+
 // Wait until some data should be available to read. Tickles the client if it isn't. Returns how
 // much should be readable without blocking.
-func (r *reader) waitAvailable(pos, wanted int64, ctxErr *error, wait bool) (avail int64, err error) {
-	r.t.cl.lock()
-	defer r.t.cl.unlock()
+func (r *reader) waitAvailable(ctx context.Context, pos, wanted int64, wait bool) (avail int64, err error) {
+	t := r.t
 	for {
+		r.t.cl.rLock()
 		avail = r.available(pos, wanted)
+		readerCond := t.piece(int((r.offset + pos) / t.info.PieceLength)).readerCond.Signaled()
+		r.t.cl.rUnlock()
 		if avail != 0 {
 			return
 		}
-		if r.t.closed.IsSet() {
+		var dontWait <-chan struct{}
+		if !wait || wanted == 0 {
+			dontWait = closedChan
+		}
+		select {
+		case <-r.t.closed.Done():
 			err = errors.New("torrent closed")
 			return
-		}
-		if *ctxErr != nil {
-			err = *ctxErr
+		case <-ctx.Done():
+			err = ctx.Err()
 			return
-		}
-		if r.t.dataDownloadDisallowed || !r.t.networkingEnabled {
-			err = errors.New("downloading disabled and data not already available")
+		case <-r.t.dataDownloadDisallowed.On():
+			err = errors.New("torrent data downloading disabled")
+		case <-r.t.networkingEnabled.Off():
+			err = errors.New("torrent networking disabled")
 			return
-		}
-		if !wait || wanted == 0 {
+		case <-dontWait:
 			return
+		case <-readerCond:
 		}
-		r.waitReadable(pos)
 	}
 }
 
@@ -199,14 +204,14 @@ func (r *reader) torrentOffset(readerPos int64) int64 {
 }
 
 // Performs at most one successful read to torrent storage.
-func (r *reader) readOnceAt(b []byte, pos int64, ctxErr *error) (n int, err error) {
+func (r *reader) readOnceAt(ctx context.Context, b []byte, pos int64) (n int, err error) {
 	if pos >= r.length {
 		err = io.EOF
 		return
 	}
 	for {
 		var avail int64
-		avail, err = r.waitAvailable(pos, int64(len(b)), ctxErr, n == 0)
+		avail, err = r.waitAvailable(ctx, pos, int64(len(b)), n == 0)
 		if avail == 0 {
 			return
 		}
@@ -258,23 +263,30 @@ func (r *reader) posChanged() {
 	r.t.readerPosChanged(from, to)
 }
 
-func (r *reader) Seek(off int64, whence int) (ret int64, err error) {
-	r.opMu.Lock()
-	defer r.opMu.Unlock()
-
+func (r *reader) Seek(off int64, whence int) (newPos int64, err error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	switch whence {
-	case io.SeekStart:
-		r.pos = off
-	case io.SeekCurrent:
-		r.pos += off
-	case io.SeekEnd:
-		r.pos = r.length + off
-	default:
-		err = errors.New("bad whence")
+	newPos, err = func() (int64, error) {
+		switch whence {
+		case io.SeekStart:
+			return off, err
+		case io.SeekCurrent:
+			return r.pos + off, nil
+		case io.SeekEnd:
+			return r.length + off, nil
+		default:
+			return r.pos, errors.New("bad whence")
+		}
+	}()
+	if err != nil {
+		return
 	}
-	ret = r.pos
+	if newPos == r.pos {
+		return
+	}
+	r.reading = false
+	r.pos = newPos
+	r.contiguousReadStartPos = newPos
 
 	r.posChanged()
 	return
@@ -282,4 +294,9 @@ func (r *reader) Seek(off int64, whence int) (ret int64, err error) {
 
 func (r *reader) log(m log.Msg) {
 	r.t.logger.Log(m.Skip(1))
+}
+
+// Implementation inspired by https://news.ycombinator.com/item?id=27019613.
+func (r *reader) defaultReadaheadFunc() int64 {
+	return r.pos - r.contiguousReadStartPos
 }

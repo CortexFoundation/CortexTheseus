@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -19,7 +20,6 @@ import (
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo/perf"
 	"github.com/anacrolix/missinggo/pubsub"
-	"github.com/anacrolix/missinggo/slices"
 	"github.com/anacrolix/missinggo/v2"
 	"github.com/anacrolix/missinggo/v2/bitmap"
 	"github.com/anacrolix/missinggo/v2/pproffd"
@@ -29,7 +29,6 @@ import (
 	"github.com/google/btree"
 	"github.com/pion/datachannel"
 	"golang.org/x/time/rate"
-	"golang.org/x/xerrors"
 
 	"github.com/anacrolix/chansync"
 
@@ -86,14 +85,21 @@ type Client struct {
 
 type ipStr string
 
-func (cl *Client) BadPeerIPs() []string {
+func (cl *Client) BadPeerIPs() (ips []string) {
 	cl.rLock()
-	defer cl.rUnlock()
-	return cl.badPeerIPsLocked()
+	ips = cl.badPeerIPsLocked()
+	cl.rUnlock()
+	return
 }
 
-func (cl *Client) badPeerIPsLocked() []string {
-	return slices.FromMapKeys(cl.badPeerIPs).([]string)
+func (cl *Client) badPeerIPsLocked() (ips []string) {
+	ips = make([]string, len(cl.badPeerIPs))
+	i := 0
+	for k := range cl.badPeerIPs {
+		ips[i] = k
+		i += 1
+	}
+	return
 }
 
 func (cl *Client) PeerID() PeerID {
@@ -134,11 +140,13 @@ func (cl *Client) WriteStatus(_w io.Writer) {
 		writeDhtServerStatus(w, s)
 	})
 	spew.Fdump(w, &cl.stats)
-	fmt.Fprintf(w, "# Torrents: %d\n", len(cl.torrentsAsSlice()))
+	torrentsSlice := cl.torrentsAsSlice()
+	fmt.Fprintf(w, "# Torrents: %d\n", len(torrentsSlice))
 	fmt.Fprintln(w)
-	for _, t := range slices.Sort(cl.torrentsAsSlice(), func(l, r *Torrent) bool {
-		return l.InfoHash().AsString() < r.InfoHash().AsString()
-	}).([]*Torrent) {
+	sort.Slice(torrentsSlice, func(l, r int) bool {
+		return torrentsSlice[l].infoHash.AsString() < torrentsSlice[r].infoHash.AsString()
+	})
+	for _, t := range torrentsSlice {
 		if t.name() == "" {
 			fmt.Fprint(w, "<unknown name>")
 		} else {
@@ -411,11 +419,13 @@ func (cl *Client) eachDhtServer(f func(DhtServer)) {
 // Stops the client. All connections to peers are closed and all activity will
 // come to a halt.
 func (cl *Client) Close() {
+	var closeGroup sync.WaitGroup // WaitGroup for any concurrent cleanup to complete before returning.
+	defer closeGroup.Wait()       // defer is LIFO. We want to Wait() after cl.unlock()
 	cl.lock()
 	defer cl.unlock()
 	cl.closed.Set()
 	for _, t := range cl.torrents {
-		t.close()
+		t.close(&closeGroup)
 	}
 	for i := range cl.onClose {
 		cl.onClose[len(cl.onClose)-1-i]()
@@ -693,7 +703,7 @@ func (cl *Client) establishOutgoingConnEx(t *Torrent, addr PeerRemoteAddr, obfus
 	nc := dr.Conn
 	if nc == nil {
 		if dialCtx.Err() != nil {
-			return nil, xerrors.Errorf("dialing: %w", dialCtx.Err())
+			return nil, fmt.Errorf("dialing: %w", dialCtx.Err())
 		}
 		return nil, errors.New("dial failed")
 	}
@@ -843,8 +853,7 @@ func (cl *Client) receiveHandshakes(c *PeerConn) (t *Torrent, err error) {
 	}
 	ih, err := cl.connBtHandshake(c, nil)
 	if err != nil {
-		err = xerrors.Errorf("during bt handshake: %w", err)
-		return
+		return nil, fmt.Errorf("during bt handshake: %w", err)
 	}
 	cl.lock()
 	t = cl.torrents[ih]
@@ -991,17 +1000,14 @@ func (cl *Client) sendInitialMessages(conn *PeerConn, torrent *Torrent) {
 }
 
 func (cl *Client) dhtPort() (ret uint16) {
-	cl.eachDhtServer(func(s DhtServer) {
-		ret = uint16(missinggo.AddrPort(s.Addr()))
-	})
-	return
+	if len(cl.dhtServers) == 0 {
+		return
+	}
+	return uint16(missinggo.AddrPort(cl.dhtServers[len(cl.dhtServers)-1].Addr()))
 }
 
-func (cl *Client) haveDhtServer() (ret bool) {
-	cl.eachDhtServer(func(_ DhtServer) {
-		ret = true
-	})
-	return
+func (cl *Client) haveDhtServer() bool {
+	return len(cl.dhtServers) > 0
 }
 
 // Process incoming ut_metadata message.
@@ -1100,12 +1106,12 @@ func (cl *Client) newTorrent(ih metainfo.Hash, specStorage storage.ClientImpl) (
 		storageOpener:       storageClient,
 		maxEstablishedConns: cl.config.EstablishedConnsPerTorrent,
 
-		networkingEnabled: true,
 		metadataChanged: sync.Cond{
 			L: cl.locker(),
 		},
 		webSeeds: make(map[string]*Peer),
 	}
+	t.networkingEnabled.Set()
 	t._pendingPieces.NewSet = priorityBitmapStableNewSet
 	t.logger = cl.logger.WithContextValue(t)
 	t.setChunkSize(defaultChunkSize)
@@ -1201,30 +1207,28 @@ func (t *Torrent) MergeSpec(spec *TorrentSpec) error {
 	}
 	t.addTrackers(spec.Trackers)
 	t.maybeNewConns()
-	t.dataDownloadDisallowed = spec.DisallowDataDownload
+	t.dataDownloadDisallowed.SetBool(spec.DisallowDataDownload)
 	t.dataUploadDisallowed = spec.DisallowDataUpload
 	return nil
 }
 
 func useTorrentSources(sources []string, t *Torrent) {
-	for _, s := range sources {
-		go func(s string) {
-			err := useTorrentSource(s, t)
-			if err != nil {
+	// TODO: bind context to the lifetime of *Torrent so that it's cancelled if the torrent closes
+	ctx := context.Background()
+	for i := 0; i < len(sources); i += 1 {
+		s := sources[i]
+		go func() {
+			if err := useTorrentSource(ctx, s, t); err != nil {
 				t.logger.WithDefaultLevel(log.Warning).Printf("using torrent source %q: %v", s, err)
 			} else {
 				t.logger.Printf("successfully used source %q", s)
 			}
-		}(s)
+		}()
 	}
 }
 
-func useTorrentSource(source string, t *Torrent) error {
-	req, err := http.NewRequest(http.MethodGet, source, nil)
-	if err != nil {
-		panic(err)
-	}
-	ctx, cancel := context.WithCancel(context.Background())
+func useTorrentSource(ctx context.Context, source string, t *Torrent) (err error) {
+	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	go func() {
 		select {
@@ -1234,19 +1238,24 @@ func useTorrentSource(source string, t *Torrent) error {
 		}
 		cancel()
 	}()
-	req = req.WithContext(ctx)
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
+	var req *http.Request
+	if req, err = http.NewRequestWithContext(ctx, http.MethodGet, source, nil); err != nil {
+		panic(err)
 	}
-	mi, err := metainfo.Load(resp.Body)
+	var resp *http.Response
+	if resp, err = http.DefaultClient.Do(req); err != nil {
+		return
+	}
+	var mi metainfo.MetaInfo
+	err = bencode.NewDecoder(resp.Body).Decode(&mi)
+	resp.Body.Close()
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil
 		}
-		return err
+		return
 	}
-	return t.MergeSpec(TorrentSpecFromMetaInfo(mi))
+	return t.MergeSpec(TorrentSpecFromMetaInfo(&mi))
 }
 
 func (cl *Client) dropTorrent(infoHash metainfo.Hash) (err error) {
@@ -1255,7 +1264,9 @@ func (cl *Client) dropTorrent(infoHash metainfo.Hash) (err error) {
 		err = fmt.Errorf("no such torrent")
 		return
 	}
-	err = t.close()
+	var wg sync.WaitGroup
+	defer wg.Wait()
+	err = t.close(&wg)
 	if err != nil {
 		panic(err)
 	}

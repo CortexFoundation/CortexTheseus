@@ -53,7 +53,7 @@ func (ctx *ServiceContext) OpenDatabase(name string, cache int, handles int, nam
 // also attaching a chain freezer to it that moves ancient chain data from the
 // database to immutable append-only files. If the node is an ephemeral one, a
 // memory database is returned.
-func (ctx *ServiceContext) OpenDatabaseWithFreezer(name string, cache int, handles int, freezer string, namespace string) (ctxcdb.Database, error) {
+func (ctx *ServiceContext) OpenDatabaseWithFreezer(name string, cache int, handles int, freezer string, namespace string, readonly bool) (ctxcdb.Database, error) {
 	if ctx.Config.DataDir == "" {
 		return rawdb.NewMemoryDatabase(), nil
 	}
@@ -65,7 +65,7 @@ func (ctx *ServiceContext) OpenDatabaseWithFreezer(name string, cache int, handl
 	case !filepath.IsAbs(freezer):
 		freezer = ctx.Config.ResolvePath(freezer)
 	}
-	return rawdb.NewLevelDBDatabaseWithFreezer(root, cache, handles, freezer, namespace)
+	return rawdb.NewLevelDBDatabaseWithFreezer(root, cache, handles, freezer, namespace, readonly)
 }
 
 // ResolvePath resolves a user path into the data directory if that was relative

@@ -28,6 +28,13 @@ var (
 	ErrQuotaLimitReached   = errors.New("quota limit reached")
 	ErrQuotaUpLimitReached = errors.New("quota uint64 upper limit reached")
 	ErrUnhandleTx          = errors.New("current unhandle tx encounter")
+	// ErrBannedHash is returned if a block to import is on the banned list.
+	ErrBannedHash = errors.New("banned hash")
+
+	// ErrNoGenesis is returned when there is no Genesis Block.
+	ErrNoGenesis = errors.New("genesis not found in chain")
+
+	errSideChainReceipts = errors.New("side blocks can't be accepted as ancient chain data")
 
 	// ErrBlacklistedHash is returned if a block to import is on the blacklist.
 	ErrBlacklistedHash = errors.New("blacklisted hash")
@@ -39,6 +46,5 @@ var (
 	// ErrBuiltInTorrentFs is returned if torrent fs havn't sync done torrent.
 
 	//ErrMetaInfoNotMature     = errors.New("cvm: errMetaInfoNotMature")
-	ErrNoGenesis                    = errors.New("genesis not found in chain")
 	ErrInsufficientFundsForTransfer = errors.New("insufficient funds for transfer")
 )

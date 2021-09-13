@@ -23,6 +23,7 @@ import (
 	"io/ioutil"
 	"math/big"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -367,9 +368,9 @@ func TestAncientStorage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp freezer dir: %v", err)
 	}
-	defer os.Remove(frdir)
+	defer os.RemoveAll(frdir)
 
-	db, err := NewDatabaseWithFreezer(NewMemoryDatabase(), frdir, "")
+	db, err := NewDatabaseWithFreezer(NewMemoryDatabase(), frdir, "", false)
 	if err != nil {
 		t.Fatalf("failed to create database with ancient backend")
 	}
@@ -396,8 +397,10 @@ func TestAncientStorage(t *testing.T) {
 	if blob := ReadTdRLP(db, hash, number); len(blob) > 0 {
 		t.Fatalf("non existent td returned")
 	}
+
 	// Write and verify the header in the database
-	WriteAncientBlock(db, block, nil, big.NewInt(100))
+	WriteAncientBlocks(db, []*types.Block{block}, []types.Receipts{nil}, big.NewInt(100))
+
 	if blob := ReadHeaderRLP(db, hash, number); len(blob) == 0 {
 		t.Fatalf("no header returned")
 	}
@@ -410,6 +413,7 @@ func TestAncientStorage(t *testing.T) {
 	if blob := ReadTdRLP(db, hash, number); len(blob) == 0 {
 		t.Fatalf("no td returned")
 	}
+
 	// Use a fake hash for data retrieval, nothing should be returned.
 	fakeHash := common.BytesToHash([]byte{0x01, 0x02, 0x03})
 	if blob := ReadHeaderRLP(db, fakeHash, number); len(blob) != 0 {
@@ -423,5 +427,78 @@ func TestAncientStorage(t *testing.T) {
 	}
 	if blob := ReadTdRLP(db, fakeHash, number); len(blob) != 0 {
 		t.Fatalf("invalid td returned")
+	}
+}
+
+func TestCanonicalHashIteration(t *testing.T) {
+	var cases = []struct {
+		from, to uint64
+		limit    int
+		expect   []uint64
+	}{
+		{1, 8, 0, nil},
+		{1, 8, 1, []uint64{1}},
+		{1, 8, 10, []uint64{1, 2, 3, 4, 5, 6, 7}},
+		{1, 9, 10, []uint64{1, 2, 3, 4, 5, 6, 7, 8}},
+		{2, 9, 10, []uint64{2, 3, 4, 5, 6, 7, 8}},
+		{9, 10, 10, nil},
+	}
+	// Test empty db iteration
+	db := NewMemoryDatabase()
+	numbers, _ := ReadAllCanonicalHashes(db, 0, 10, 10)
+	if len(numbers) != 0 {
+		t.Fatalf("No entry should be returned to iterate an empty db")
+	}
+	// Fill database with testing data.
+	for i := uint64(1); i <= 8; i++ {
+		WriteCanonicalHash(db, common.Hash{}, i)
+		WriteTd(db, common.Hash{}, i, big.NewInt(10)) // Write some interferential data
+	}
+	for i, c := range cases {
+		numbers, _ := ReadAllCanonicalHashes(db, c.from, c.to, c.limit)
+		if !reflect.DeepEqual(numbers, c.expect) {
+			t.Fatalf("Case %d failed, want %v, got %v", i, c.expect, numbers)
+		}
+	}
+}
+
+func TestHashesInRange(t *testing.T) {
+	mkHeader := func(number, seq int) *types.Header {
+		h := types.Header{
+			Difficulty: new(big.Int),
+			Number:     big.NewInt(int64(number)),
+			GasLimit:   uint64(seq),
+		}
+		return &h
+	}
+	db := NewMemoryDatabase()
+	// For each number, write N versions of that particular number
+	total := 0
+	for i := 0; i < 15; i++ {
+		for ii := 0; ii < i; ii++ {
+			WriteHeader(db, mkHeader(i, ii))
+			total++
+		}
+	}
+	if have, want := len(ReadAllHashesInRange(db, 10, 10)), 10; have != want {
+		t.Fatalf("Wrong number of hashes read, want %d, got %d", want, have)
+	}
+	if have, want := len(ReadAllHashesInRange(db, 10, 9)), 0; have != want {
+		t.Fatalf("Wrong number of hashes read, want %d, got %d", want, have)
+	}
+	if have, want := len(ReadAllHashesInRange(db, 0, 100)), total; have != want {
+		t.Fatalf("Wrong number of hashes read, want %d, got %d", want, have)
+	}
+	if have, want := len(ReadAllHashesInRange(db, 9, 10)), 9+10; have != want {
+		t.Fatalf("Wrong number of hashes read, want %d, got %d", want, have)
+	}
+	if have, want := len(ReadAllHashes(db, 10)), 10; have != want {
+		t.Fatalf("Wrong number of hashes read, want %d, got %d", want, have)
+	}
+	if have, want := len(ReadAllHashes(db, 16)), 0; have != want {
+		t.Fatalf("Wrong number of hashes read, want %d, got %d", want, have)
+	}
+	if have, want := len(ReadAllHashes(db, 1)), 1; have != want {
+		t.Fatalf("Wrong number of hashes read, want %d, got %d", want, have)
 	}
 }
