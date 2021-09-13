@@ -419,18 +419,20 @@ func (cl *Client) eachDhtServer(f func(DhtServer)) {
 // Stops the client. All connections to peers are closed and all activity will
 // come to a halt.
 func (cl *Client) Close() {
-	var closeGroup sync.WaitGroup // WaitGroup for any concurrent cleanup to complete before returning.
-	defer closeGroup.Wait()       // defer is LIFO. We want to Wait() after cl.unlock()
-	cl.lock()
-	defer cl.unlock()
 	cl.closed.Set()
+	var closeGroup sync.WaitGroup // For concurrent cleanup to complete before returning
+	cl.lock()
+	cl.event.Broadcast()
 	for _, t := range cl.torrents {
 		t.close(&closeGroup)
 	}
+	cl.unlock()
+	closeGroup.Wait() // defer is LIFO. We want to Wait() after cl.unlock()
+	cl.lock()
 	for i := range cl.onClose {
 		cl.onClose[len(cl.onClose)-1-i]()
 	}
-	cl.event.Broadcast()
+	cl.unlock()
 }
 
 func (cl *Client) ipBlockRange(ip net.IP) (r iplist.Range, blocked bool) {
@@ -1110,6 +1112,7 @@ func (cl *Client) newTorrent(ih metainfo.Hash, specStorage storage.ClientImpl) (
 			L: cl.locker(),
 		},
 		webSeeds: make(map[string]*Peer),
+		gotMetainfoC: make(chan struct{}),
 	}
 	t.networkingEnabled.Set()
 	t._pendingPieces.NewSet = priorityBitmapStableNewSet
@@ -1258,15 +1261,13 @@ func useTorrentSource(ctx context.Context, source string, t *Torrent) (err error
 	return t.MergeSpec(TorrentSpecFromMetaInfo(&mi))
 }
 
-func (cl *Client) dropTorrent(infoHash metainfo.Hash) (err error) {
+func (cl *Client) dropTorrent(infoHash metainfo.Hash, wg *sync.WaitGroup) (err error) {
 	t, ok := cl.torrents[infoHash]
 	if !ok {
 		err = fmt.Errorf("no such torrent")
 		return
 	}
-	var wg sync.WaitGroup
-	defer wg.Wait()
-	err = t.close(&wg)
+	err = t.close(wg)
 	if err != nil {
 		panic(err)
 	}

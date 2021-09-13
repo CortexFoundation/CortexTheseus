@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/CortexFoundation/CortexTheseus"
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
@@ -31,7 +32,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
-	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/gasprice"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/event"
@@ -262,8 +262,8 @@ func (b *CortexAPIBackend) SubscribeNewTxsEvent(ch chan<- core.NewTxsEvent) even
 	return b.ctxc.TxPool().SubscribeNewTxsEvent(ch)
 }
 
-func (b *CortexAPIBackend) Downloader() *downloader.Downloader {
-	return b.ctxc.Downloader()
+func (b *CortexAPIBackend) SyncProgress() cortex.SyncProgress {
+	return b.ctxc.Downloader().Progress()
 }
 
 func (b *CortexAPIBackend) ProtocolVersion() int {

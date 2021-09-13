@@ -14,9 +14,7 @@ import (
 // Accesses Torrent data via a Client. Reads block until the data is available. Seeks and readahead
 // also drive Client behaviour.
 type Reader interface {
-	io.Reader
-	io.Seeker
-	io.Closer
+	io.ReadSeekCloser
 	missinggo.ReadContexter
 	// Configure the number of bytes ahead of a read that should also be prioritized in preparation
 	// for further reads.
@@ -32,29 +30,32 @@ type pieceRange struct {
 }
 
 type reader struct {
-	t          *Torrent
-	responsive bool
+	t   *Torrent
 	// Adjust the read/seek window to handle Readers locked to File extents and the like.
 	offset, length int64
-
-	// Required when modifying pos and readahead, or reading them without opMu.
-	mu  sync.Locker
-	pos int64
-	// Reads have been initiated since the last seek. This is used to prevent readahead occuring
-	// after a seek or with a new reader at the starting position.
-	reading   bool
-	readahead int64
+	
 	// Function to dynamically calculate readahead. If nil, readahead is static.
 	readaheadFunc func() int64
+	
+	// Required when modifying pos and readahead.
+	mu  sync.Locker
+
+	readahead, pos int64
 	// Position that reads have continued contiguously from.
 	contiguousReadStartPos int64
 	// The cached piece range this reader wants downloaded. The zero value corresponds to nothing.
 	// We cache this so that changes can be detected, and bubbled up to the Torrent only as
 	// required.
 	pieces pieceRange
+
+	// Reads have been initiated since the last seek. This is used to prevent readaheads occurring
+	// after a seek or with a new reader at the starting position.
+	reading    bool
+	responsive bool
+
 }
 
-var _ io.ReadCloser = (*reader)(nil)
+var _ io.ReadSeekCloser = (*reader)(nil)
 
 func (r *reader) SetResponsive() {
 	r.responsive = true

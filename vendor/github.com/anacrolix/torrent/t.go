@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/anacrolix/missinggo/pubsub"
+	"github.com/anacrolix/sync"
 
 	"github.com/anacrolix/torrent/metainfo"
 )
@@ -15,18 +16,20 @@ func (t *Torrent) InfoHash() metainfo.Hash {
 }
 
 // Returns a channel that is closed when the info (.Info()) for the torrent has become available.
-func (t *Torrent) GotInfo() <-chan struct{} {
+func (t *Torrent) GotInfo() (ret <-chan struct{}) {
 	// TODO: We shouldn't need to lock to take a channel here, if the event is only ever set.
-	t.cl.lock()
-	defer t.cl.unlock()
-	return t.gotMetainfo.C()
+	t.nameMu.RLock()
+	ret = t.gotMetainfoC
+	t.nameMu.RUnlock()
+	return
 }
 
 // Returns the metainfo info dictionary, or nil if it's not yet available.
-func (t *Torrent) Info() *metainfo.Info {
-	t.cl.lock()
-	defer t.cl.unlock()
-	return t.info
+func (t *Torrent) Info() (info *metainfo.Info) {
+	t.nameMu.RLock()
+	info = t.info
+	t.nameMu.RUnlock()
+	return
 }
 
 // Returns a Reader bound to the torrent's data. All read calls block until the data requested is
@@ -95,9 +98,11 @@ func (t *Torrent) PieceBytesMissing(piece int) int64 {
 // this. No data corruption can, or should occur to either the torrent's data,
 // or connected peers.
 func (t *Torrent) Drop() {
+	var wg sync.WaitGroup
+	defer wg.Wait()
 	t.cl.lock()
 	defer t.cl.unlock()
-	t.cl.dropTorrent(t.infoHash)
+	t.cl.dropTorrent(t.infoHash, &wg)
 }
 
 // Number of bytes of the entire torrent we have completed. This is the sum of
