@@ -8,7 +8,6 @@ import (
 
 	"github.com/anacrolix/chansync"
 	request_strategy "github.com/anacrolix/torrent/request-strategy"
-	"github.com/anacrolix/torrent/types"
 )
 
 func (cl *Client) requester() {
@@ -19,16 +18,19 @@ func (cl *Client) requester() {
 			cl.doRequests()
 			return cl.updateRequests.Signaled()
 		}()
+		minWait := time.After(100 * time.Millisecond)
+		maxWait := time.After(1000 * time.Millisecond)
 		select {
 		case <-cl.closed.Done():
 			return
-		case <-time.After(100 * time.Millisecond):
+		case <-minWait:
+		case <-maxWait:
 		}
 		select {
 		case <-cl.closed.Done():
 			return
 		case <-update:
-		case <-time.After(time.Second):
+		case <-maxWait:
 		}
 	}
 }
@@ -46,21 +48,17 @@ func (cl *Client) doRequests() {
 		if t.storage != nil {
 			rst.Capacity = t.storage.Capacity
 		}
+		rst.Pieces = make([]request_strategy.Piece, 0, len(t.pieces))
 		for i := range t.pieces {
 			p := &t.pieces[i]
 			rst.Pieces = append(rst.Pieces, request_strategy.Piece{
-				Request:          !t.ignorePieceForRequests(i),
-				Priority:         p.purePriority(),
-				Partial:          t.piecePartiallyDownloaded(i),
-				Availability:     p.availability,
-				Length:           int64(p.length()),
-				NumPendingChunks: int(t.pieceNumPendingChunks(i)),
-				IterPendingChunks: func(f func(types.ChunkSpec)) {
-					p.iterUndirtiedChunks(func(cs ChunkSpec) bool {
-						f(cs)
-						return true
-					})
-				},
+				Request:           !t.ignorePieceForRequests(i),
+				Priority:          p.purePriority(),
+				Partial:           t.piecePartiallyDownloaded(i),
+				Availability:      p.availability,
+				Length:            int64(p.length()),
+				NumPendingChunks:  int(t.pieceNumPendingChunks(i)),
+				IterPendingChunks: p.iterUndirtiedChunks,
 			})
 		}
 		t.iterPeers(func(p *Peer) {

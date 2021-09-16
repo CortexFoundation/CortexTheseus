@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/anacrolix/multiless"
+	"github.com/anacrolix/torrent/storage"
 
 	pp "github.com/anacrolix/torrent/peer_protocol"
 	"github.com/anacrolix/torrent/types"
@@ -96,8 +97,8 @@ func getRequestablePieces(input Input) (ret []requestablePiece) {
 	pieces := make([]filterPiece, 0, maxPieces)
 	ret = make([]requestablePiece, 0, maxPieces)
 	// Storage capacity left for this run, keyed by the storage capacity pointer on the storage
-	// TorrentImpl.
-	storageLeft := make(map[*func() *int64]*int64)
+	// TorrentImpl. A nil value means no capacity limit.
+	storageLeft := make(map[storage.TorrentCapacity]*int64)
 	for _t := range input.Torrents {
 		// TODO: We could do metainfo requests here.
 		t := &filterTorrent{
@@ -107,7 +108,12 @@ func getRequestablePieces(input Input) (ret []requestablePiece) {
 		key := t.Capacity
 		if key != nil {
 			if _, ok := storageLeft[key]; !ok {
-				storageLeft[key] = (*key)()
+				capacity, ok := (*key)()
+				if ok {
+					storageLeft[key] = &capacity
+				} else {
+					storageLeft[key] = nil
+				}
 			}
 			t.storageLeft = storageLeft[key]
 		}
@@ -200,7 +206,7 @@ func Run(input Input) map[PeerId]PeerNextRequestState {
 }
 
 // Checks that a sorted peersForPiece slice makes sense.
-func ensureValidSortedPeersForPieceRequests(peers peersForPieceSorter) {
+func ensureValidSortedPeersForPieceRequests(peers *peersForPieceSorter) {
 	if !sort.IsSorted(peers) {
 		panic("not sorted")
 	}
@@ -229,19 +235,19 @@ type peersForPieceSorter struct {
 	p             requestablePiece
 }
 
-func (me peersForPieceSorter) Len() int {
+func (me *peersForPieceSorter) Len() int {
 	return len(me.peersForPiece)
 }
 
-func (me peersForPieceSorter) Swap(i, j int) {
+func (me *peersForPieceSorter) Swap(i, j int) {
 	me.peersForPiece[i], me.peersForPiece[j] = me.peersForPiece[j], me.peersForPiece[i]
 }
 
-func (me peersForPieceSorter) Less(_i, _j int) bool {
+func (me *peersForPieceSorter) Less(_i, _j int) bool {
 	i := me.peersForPiece[_i]
 	j := me.peersForPiece[_j]
 	req := me.req
-	p := me.p
+	p := &me.p
 	byHasRequest := func() multiless.Computation {
 		ml := multiless.New()
 		if req != nil {
@@ -275,6 +281,9 @@ func (me peersForPieceSorter) Less(_i, _j int) bool {
 		j.DownloadRate,
 		i.DownloadRate,
 	)
+	if ml.Ok() {
+		return ml.Less()
+	}
 	ml = ml.AndThen(byHasRequest)
 	return ml.Int64(
 		int64(j.Age), int64(i.Age),
@@ -288,6 +297,13 @@ func (me peersForPieceSorter) Less(_i, _j int) bool {
 func allocatePendingChunks(p requestablePiece, peers []*requestsPeer) {
 	peersForPiece := makePeersForPiece(len(peers))
 	for _, peer := range peers {
+		if !peer.canRequestPiece(p.index) {
+			continue
+		}
+		if !peer.canFitRequest() {
+			peer.requestablePiecesRemaining--
+			continue
+		}
 		peersForPiece = append(peersForPiece, &peersForPieceRequests{
 			requestsInPiece: 0,
 			requestsPeer:    peer,
@@ -308,7 +324,7 @@ func allocatePendingChunks(p requestablePiece, peers []*requestsPeer) {
 	sortPeersForPiece := func(req *Request) {
 		peersForPieceSorter.req = req
 		sort.Sort(&peersForPieceSorter)
-		//ensureValidSortedPeersForPieceRequests(peersForPieceSorter)
+		//ensureValidSortedPeersForPieceRequests(&peersForPieceSorter)
 	}
 	// Chunks can be preassigned several times, if peers haven't been able to update their "actual"
 	// with "next" request state before another request strategy run occurs.
