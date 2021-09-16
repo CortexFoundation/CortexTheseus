@@ -40,7 +40,7 @@ mine: cortex_mine
 submodule:
 	build/env.sh
 
-clean-miner:
+clean-miner: submodule
 	rm -fr plugins/*_helper_for_node.so
 
 cortex_cpu: clean-miner clib_cpu
