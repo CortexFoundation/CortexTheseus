@@ -158,6 +158,11 @@ func setModelMeta(statedb *state.StateDB) (err error) {
 func startSynapse() (err error) {
 	fsCfg := torrentfs.DefaultConfig
 	fsCfg.DataDir = "tf_data"
+	// automatically load and verify local files
+	fsCfg.LoadLocalFiles = true
+	fsCfg.LocalFileIhSize = make(map[string]int64)
+	fsCfg.LocalFileIhSize["0000000000000000000000000000000000001013"] = 0
+	fsCfg.LocalFileIhSize["0000000000000000000000000000000000002013"] = 0
 	storagefs, fsErr := torrentfs.New(&fsCfg, true, false, true)
 	if fsErr != nil {
 		return fsErr

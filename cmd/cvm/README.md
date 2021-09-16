@@ -20,7 +20,7 @@ tf_data
     '-- data
 ```
 
-3. modify torrentfs instance(fs.go) to read files with dataDir, infoHash and subPath
+3. modify torrentfs instance(fs.go) to read files with dataDir, infoHash and subPath (when using torrentfs/localfile, no need to modify instance, just set several config lines)
 ``` go
 func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSize uint64, subpath string) ([]byte, error) {
     return fs.GetFile(ctx, infohash, subpath)
@@ -49,4 +49,5 @@ or run with default tracer with detailed debug msg:
 ## Transition Tool::
 1. alloc.json allocates accounts(better with secretKey), account gen by Generate
 2. txs.json puts transactions, may not be signed with secretKey of Sender Account
+3. run demo script: "./testdata/test.sh"
 
