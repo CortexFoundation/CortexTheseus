@@ -23,6 +23,7 @@ build/_vendor/pkg
 .settings
 
 # cvm-runtime
+cvm-runtime
 /cvm-runtime/build/*
 /cvm-runtime/build/CMakeCache.txt
 /cvm-runtime/build/Makefile
