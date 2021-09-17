@@ -133,12 +133,12 @@ lint: ## Run linters.
 
 clean: clean-clib
 	./build/clean_go_build_cache.sh
-	rm -fr build/_workspace/pkg/ $(GOBIN)/* plugins/* build/_workspace/src/ solution/*.a solution/*.o
+	rm -fr build/_workspace/pkg/ $(GOBIN)/* plugins/* build/_workspace/src/ #solution/*.a solution/*.o
 	# rm -rf inference/synapse/kernel
 	# ln -sf ../../cvm-runtime/kernel inference/synapse/kernel
 
 clean-clib:
-	#$(MAKE) -C $(LIB_MINER_DIR) clean
+	$(MAKE) -C $(LIB_MINER_DIR) clean
 	$(MAKE) -C $(INFER_NET_DIR) clean
 	
 .PHONY: clean-all
