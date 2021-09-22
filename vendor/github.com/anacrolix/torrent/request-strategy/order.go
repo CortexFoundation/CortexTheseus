@@ -1,18 +1,21 @@
 package request_strategy
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 	"sync"
 
 	"github.com/anacrolix/multiless"
+	"github.com/anacrolix/torrent/metainfo"
 	"github.com/anacrolix/torrent/storage"
 
-	pp "github.com/anacrolix/torrent/peer_protocol"
 	"github.com/anacrolix/torrent/types"
 )
 
 type (
+	RequestIndex  = uint32
+	ChunkIndex    = uint32
 	Request       = types.Request
 	pieceIndex    = types.PieceIndex
 	piecePriority = types.PiecePriority
@@ -41,9 +44,12 @@ func sortFilterPieces(pieces []filterPiece) {
 			i.Availability, j.Availability,
 		).Int(
 			i.index, j.index,
-		).Uintptr(
-			i.t.StableId, j.t.StableId,
-		).MustLess()
+		).Lazy(func() multiless.Computation {
+			return multiless.New().Cmp(bytes.Compare(
+				i.t.InfoHash[:],
+				j.t.InfoHash[:],
+			))
+		}).MustLess()
 	})
 }
 
@@ -54,15 +60,13 @@ type requestsPeer struct {
 }
 
 func (rp *requestsPeer) canFitRequest() bool {
-	return len(rp.nextState.Requests) < rp.MaxRequests
+	return int(rp.nextState.Requests.GetCardinality()) < rp.MaxRequests
 }
 
-func (rp *requestsPeer) addNextRequest(r Request) {
-	_, ok := rp.nextState.Requests[r]
-	if ok {
+func (rp *requestsPeer) addNextRequest(r RequestIndex) {
+	if !rp.nextState.Requests.CheckedAdd(r) {
 		panic("should only add once")
 	}
-	rp.nextState.Requests[r] = struct{}{}
 }
 
 type peersForPieceRequests struct {
@@ -70,7 +74,7 @@ type peersForPieceRequests struct {
 	*requestsPeer
 }
 
-func (me *peersForPieceRequests) addNextRequest(r Request) {
+func (me *peersForPieceRequests) addNextRequest(r RequestIndex) {
 	me.requestsPeer.addNextRequest(r)
 	me.requestsInPiece++
 }
@@ -83,19 +87,23 @@ type requestablePiece struct {
 	IterPendingChunks ChunksIter
 }
 
+func (p *requestablePiece) chunkIndexToRequestIndex(c ChunkIndex) RequestIndex {
+	return RequestIndex(p.t.ChunksPerPiece*p.index) + RequestIndex(c)
+}
+
 type filterPiece struct {
 	t     *filterTorrent
 	index pieceIndex
 	*Piece
 }
 
-func getRequestablePieces(input Input) (ret []requestablePiece) {
+// Calls f with requestable pieces in order.
+func GetRequestablePieces(input Input, f func(t *Torrent, p *Piece, pieceIndex int)) {
 	maxPieces := 0
 	for i := range input.Torrents {
 		maxPieces += len(input.Torrents[i].Pieces)
 	}
 	pieces := make([]filterPiece, 0, maxPieces)
-	ret = make([]requestablePiece, 0, maxPieces)
 	// Storage capacity left for this run, keyed by the storage capacity pointer on the storage
 	// TorrentImpl. A nil value means no capacity limit.
 	storageLeft := make(map[storage.TorrentCapacity]*int64)
@@ -147,13 +155,7 @@ func getRequestablePieces(input Input) (ret []requestablePiece) {
 		}
 		piece.t.unverifiedBytes += piece.Length
 		allTorrentsUnverifiedBytes += piece.Length
-		ret = append(ret, requestablePiece{
-			index:             piece.index,
-			t:                 piece.t.Torrent,
-			NumPendingChunks:  piece.NumPendingChunks,
-			IterPendingChunks: piece.iterPendingChunksWrapper,
-			alwaysReallocate:  piece.Priority >= types.PiecePriorityNext,
-		})
+		f(piece.t.Torrent, piece.Piece, piece.index)
 	}
 	return
 }
@@ -165,30 +167,36 @@ type Input struct {
 
 // TODO: We could do metainfo requests here.
 func Run(input Input) map[PeerId]PeerNextRequestState {
-	requestPieces := getRequestablePieces(input)
+	var requestPieces []requestablePiece
+	GetRequestablePieces(input, func(t *Torrent, piece *Piece, pieceIndex int) {
+		requestPieces = append(requestPieces, requestablePiece{
+			index:             pieceIndex,
+			t:                 t,
+			NumPendingChunks:  piece.NumPendingChunks,
+			IterPendingChunks: piece.iterPendingChunksWrapper,
+			alwaysReallocate:  piece.Priority >= types.PiecePriorityNext,
+		})
+	})
 	torrents := input.Torrents
-	allPeers := make(map[uintptr][]*requestsPeer, len(torrents))
+	allPeers := make(map[metainfo.Hash][]*requestsPeer, len(torrents))
 	for _, t := range torrents {
 		peers := make([]*requestsPeer, 0, len(t.Peers))
 		for _, p := range t.Peers {
 			peers = append(peers, &requestsPeer{
 				Peer: p,
-				nextState: PeerNextRequestState{
-					Requests: make(map[Request]struct{}, p.MaxRequests),
-				},
 			})
 		}
-		allPeers[t.StableId] = peers
+		allPeers[t.InfoHash] = peers
 	}
 	for _, piece := range requestPieces {
-		for _, peer := range allPeers[piece.t.StableId] {
+		for _, peer := range allPeers[piece.t.InfoHash] {
 			if peer.canRequestPiece(piece.index) {
 				peer.requestablePiecesRemaining++
 			}
 		}
 	}
 	for _, piece := range requestPieces {
-		allocatePendingChunks(piece, allPeers[piece.t.StableId])
+		allocatePendingChunks(piece, allPeers[piece.t.InfoHash])
 	}
 	ret := make(map[PeerId]PeerNextRequestState)
 	for _, peers := range allPeers {
@@ -231,7 +239,7 @@ func makePeersForPiece(cap int) []*peersForPieceRequests {
 
 type peersForPieceSorter struct {
 	peersForPiece []*peersForPieceRequests
-	req           *Request
+	req           *RequestIndex
 	p             requestablePiece
 }
 
@@ -251,8 +259,8 @@ func (me *peersForPieceSorter) Less(_i, _j int) bool {
 	byHasRequest := func() multiless.Computation {
 		ml := multiless.New()
 		if req != nil {
-			_, iHas := i.nextState.Requests[*req]
-			_, jHas := j.nextState.Requests[*req]
+			iHas := i.nextState.Requests.Contains(*req)
+			jHas := j.nextState.Requests.Contains(*req)
 			ml = ml.Bool(jHas, iHas)
 		}
 		return ml
@@ -311,9 +319,7 @@ func allocatePendingChunks(p requestablePiece, peers []*requestsPeer) {
 	}
 	defer func() {
 		for _, peer := range peersForPiece {
-			if peer.canRequestPiece(p.index) {
-				peer.requestablePiecesRemaining--
-			}
+			peer.requestablePiecesRemaining--
 		}
 		peersForPiecesPool.Put(peersForPiece)
 	}()
@@ -321,16 +327,16 @@ func allocatePendingChunks(p requestablePiece, peers []*requestsPeer) {
 		peersForPiece: peersForPiece,
 		p:             p,
 	}
-	sortPeersForPiece := func(req *Request) {
+	sortPeersForPiece := func(req *RequestIndex) {
 		peersForPieceSorter.req = req
 		sort.Sort(&peersForPieceSorter)
 		//ensureValidSortedPeersForPieceRequests(&peersForPieceSorter)
 	}
 	// Chunks can be preassigned several times, if peers haven't been able to update their "actual"
 	// with "next" request state before another request strategy run occurs.
-	preallocated := make(map[ChunkSpec][]*peersForPieceRequests, p.NumPendingChunks)
-	p.IterPendingChunks(func(spec ChunkSpec) {
-		req := Request{pp.Integer(p.index), spec}
+	preallocated := make([][]*peersForPieceRequests, p.t.ChunksPerPiece)
+	p.IterPendingChunks(func(spec ChunkIndex) {
+		req := p.chunkIndexToRequestIndex(spec)
 		for _, peer := range peersForPiece {
 			if h := peer.HasExistingRequest; h == nil || !h(req) {
 				continue
@@ -338,26 +344,20 @@ func allocatePendingChunks(p requestablePiece, peers []*requestsPeer) {
 			if !peer.canFitRequest() {
 				continue
 			}
-			if !peer.canRequestPiece(p.index) {
-				continue
-			}
 			preallocated[spec] = append(preallocated[spec], peer)
 			peer.addNextRequest(req)
 		}
 	})
 	pendingChunksRemaining := int(p.NumPendingChunks)
-	p.IterPendingChunks(func(chunk types.ChunkSpec) {
-		if _, ok := preallocated[chunk]; ok {
+	p.IterPendingChunks(func(chunk ChunkIndex) {
+		if len(preallocated[chunk]) != 0 {
 			return
 		}
-		req := Request{pp.Integer(p.index), chunk}
+		req := p.chunkIndexToRequestIndex(chunk)
 		defer func() { pendingChunksRemaining-- }()
 		sortPeersForPiece(nil)
 		for _, peer := range peersForPiece {
 			if !peer.canFitRequest() {
-				continue
-			}
-			if !peer.HasPiece(p.index) {
 				continue
 			}
 			if !peer.pieceAllowedFastOrDefault(p.index) {
@@ -373,20 +373,20 @@ func allocatePendingChunks(p requestablePiece, peers []*requestsPeer) {
 	})
 chunk:
 	for chunk, prePeers := range preallocated {
+		if len(prePeers) == 0 {
+			continue
+		}
 		pendingChunksRemaining--
-		req := Request{pp.Integer(p.index), chunk}
+		req := p.chunkIndexToRequestIndex(ChunkIndex(chunk))
 		for _, pp := range prePeers {
 			pp.requestsInPiece--
 		}
 		sortPeersForPiece(&req)
 		for _, pp := range prePeers {
-			delete(pp.nextState.Requests, req)
+			pp.nextState.Requests.Remove(req)
 		}
 		for _, peer := range peersForPiece {
 			if !peer.canFitRequest() {
-				continue
-			}
-			if !peer.HasPiece(p.index) {
 				continue
 			}
 			if !peer.pieceAllowedFastOrDefault(p.index) {
