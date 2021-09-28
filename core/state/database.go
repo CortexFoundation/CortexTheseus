@@ -22,6 +22,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/trie"
 	"github.com/VictoriaMetrics/fastcache"
@@ -69,6 +70,9 @@ type Trie interface {
 	// not be modified by the caller. If a node was not found in the database, a
 	// trie.MissingNodeError is returned.
 	TryGet(key []byte) ([]byte, error)
+
+	// TryUpdateAccount abstract an account write in the trie.
+	TryUpdateAccount(key []byte, account *types.StateAccount) error
 
 	// TryUpdate associates key with value in the trie. If value has length zero, any
 	// existing value is deleted from the trie. The value bytes must not be modified
