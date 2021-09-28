@@ -18,6 +18,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -92,11 +93,9 @@ func timedExec(execFunc func() ([]byte, uint64, error)) (output []byte, gasLeft 
 }
 
 // set address of AI input
-func setInputMeta(statedb *state.StateDB) (err error) {
-	inputAddress := [20]byte{}
-	inputAddress[18] = 0x20
-	inputAddress[19] = 0x13
-	inputAddress = common.Address(inputAddress)
+func setInputMeta(statedb *state.StateDB, ih common.Address) (err error) {
+	//inputAddress := common.HexToAddress("e296ecd28970e38411cdc3c2a045107c4bd53ebb")
+	inputAddress := ih
 
 	inputMeta := torrentfsType.InputMeta{
 		Hash:     inputAddress,
@@ -123,11 +122,9 @@ func setInputMeta(statedb *state.StateDB) (err error) {
 }
 
 // set address of AI model
-func setModelMeta(statedb *state.StateDB) (err error) {
-	modelAddress := [20]byte{}
-	modelAddress[18] = 0x10
-	modelAddress[19] = 0x13
-	modelAddress = common.Address(modelAddress)
+func setModelMeta(statedb *state.StateDB, ih common.Address) (err error) {
+	//modelAddress := common.HexToAddress("5a4a06ac80e44e2239977e309884c654b223a3b8")
+	modelAddress := ih
 
 	modelMeta := torrentfsType.ModelMeta{
 		Hash:        modelAddress,
@@ -155,17 +152,38 @@ func setModelMeta(statedb *state.StateDB) (err error) {
 }
 
 // prepare cvm-runtime engine for running Infer!
-func startSynapse() (err error) {
+func startSynapse(statedb *state.StateDB) (err error) {
 	fsCfg := torrentfs.DefaultConfig
 	fsCfg.DataDir = "tf_data"
-	// automatically load and verify local files
-	fsCfg.LoadLocalFiles = true
-	fsCfg.LocalFileIhSize = make(map[string]int64)
-	fsCfg.LocalFileIhSize["0000000000000000000000000000000000001013"] = 0
-	fsCfg.LocalFileIhSize["0000000000000000000000000000000000002013"] = 0
+	// automatically verify, seeding, and load local files
 	storagefs, fsErr := torrentfs.New(&fsCfg, true, false, true)
 	if fsErr != nil {
 		return fsErr
+	}
+	modelInfoHash, err := storagefs.SeedingLocal(context.Background(), "./tf_data/0000000000000000000000000000000000001013", true)
+	if err != nil && !os.IsExist(err) {
+		log.Error(fmt.Sprintf("could not seeding model: %v", err))
+		os.Exit(1)
+	}
+
+	inputInfoHash, err := storagefs.SeedingLocal(context.Background(), "./tf_data/0000000000000000000000000000000000002013", true)
+	if err != nil && !os.IsExist(err) {
+		log.Error(fmt.Sprintf("could not seeding input: %v", err))
+		os.Exit(1)
+	}
+
+	// set address of AI model
+	err = setModelMeta(statedb, modelInfoHash)
+	if err != nil {
+		log.Error(fmt.Sprintf("could not decode model: %v", err))
+		os.Exit(1)
+	}
+
+	// set address of AI input
+	err = setInputMeta(statedb, inputInfoHash)
+	if err != nil {
+		log.Error(fmt.Sprintf("could not decode input: %v", err))
+		os.Exit(1)
 	}
 
 	synapse.New(&synapse.Config{
@@ -177,6 +195,9 @@ func startSynapse() (err error) {
 		InferURI:       "",
 		Storagefs:      storagefs,
 	})
+
+	// Cause it's asynchronous, sleep here for torrentfs to activate
+	time.Sleep(time.Second * 1)
 
 	return nil
 }
@@ -332,22 +353,8 @@ func runCmd(ctx *cli.Context) error {
 		}
 	}
 
-	// set address of AI model
-	err := setModelMeta(statedb)
-	if err != nil {
-		log.Error(fmt.Sprintf("could not decode model: %v", err))
-		os.Exit(1)
-	}
-
-	// set address of AI input
-	err = setInputMeta(statedb)
-	if err != nil {
-		log.Error(fmt.Sprintf("could not decode input: %v", err))
-		os.Exit(1)
-	}
-
 	// prepare cvm-runtime engine for running Infer!
-	err = startSynapse()
+	err := startSynapse(statedb)
 	if err != nil {
 		log.Error(fmt.Sprintf("New torrentfs err: %v", err))
 		os.Exit(1)
