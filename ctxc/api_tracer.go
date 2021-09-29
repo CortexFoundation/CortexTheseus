@@ -217,8 +217,12 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 			}
 		}()
 	}
-	// Start a goroutine to feed all the blocks into the tracers
-	begin := time.Now()
+	var (
+		// Start a goroutine to feed all the blocks into the tracers
+		begin     = time.Now()
+		derefTodo []common.Hash // list of hashes to dereference from the db
+		derefsMu  sync.Mutex    // mutex for the derefs
+	)
 
 	go func() {
 		var (
@@ -251,6 +255,13 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 				return
 			default:
 			}
+			// clean out any derefs
+			derefsMu.Lock()
+			for _, h := range derefTodo {
+				statedb.Database().TrieDB().Dereference(h)
+			}
+			derefTodo = derefTodo[:0]
+			derefsMu.Unlock()
 			// Print progress logs if long enough time elapsed
 			if time.Since(logged) > 8*time.Second {
 				if number > origin {
@@ -324,9 +335,9 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 				Traces: res.results,
 			}
 			done[uint64(result.Block)] = result
-
-			// Dereference any paret tries held in memory by this task
-			database.TrieDB().Dereference(res.rootref)
+			derefsMu.Lock()
+			derefTodo = append(derefTodo, res.rootref)
+			derefsMu.Unlock()
 
 			// Stream completed traces to the user, aborting on the first error
 			for result, ok := done[next]; ok; result, ok = done[next] {
@@ -525,7 +536,8 @@ func (api *PrivateDebugAPI) computeStateDB(block *types.Block, reexec uint64) (*
 		// Finalize the state so any modifications are written to the trie
 		root, err := statedb.Commit(api.ctxc.blockchain.Config().IsEIP158(block.Number()))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("stateAtBlock commit failed, number %d root %v: %w",
+				block.NumberU64(), block.Root().Hex(), err)
 		}
 		statedb, err = state.New(root, database, nil)
 		if err != nil {
