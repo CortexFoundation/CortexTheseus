@@ -9,8 +9,8 @@ contract AIContract {
   
   constructor() {
       input_data = new uint256[]((1 * 28 * 28 + 31) >> 5);
-      Infer(address(0x0000000000000000000000000000000000001013),address(0x0000000000000000000000000000000000002013));
-      InferArray(address(0x0000000000000000000000000000000000001013));
+      Infer(address(0x5A4A06AC80E44E2239977E309884c654B223a3B8),address(0xe296Ecd28970e38411cdC3C2a045107c4Bd53eBB));
+      InferArray(address(0x5A4A06AC80E44E2239977E309884c654B223a3B8));
   }
   
   function Infer(address model, address input) public view returns (uint256) {
