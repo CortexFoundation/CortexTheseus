@@ -20,6 +20,7 @@ package miner
 import (
 	"fmt"
 	"math/big"
+	"sync"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -67,6 +68,8 @@ type Miner struct {
 	exitCh   chan struct{}
 	startCh  chan common.Address
 	stopCh   chan struct{}
+
+	wg sync.WaitGroup
 }
 
 //New create an instance of Miner
@@ -80,8 +83,8 @@ func New(ctxc Backend, config *Config, chainConfig *params.ChainConfig, mux *eve
 		startCh: make(chan common.Address),
 		stopCh:  make(chan struct{}),
 	}
+	miner.wg.Add(1)
 	go miner.update()
-
 	return miner
 }
 
@@ -90,6 +93,8 @@ func New(ctxc Backend, config *Config, chainConfig *params.ChainConfig, mux *eve
 // the loop is exited. This to prevent a major security vuln where external parties can DOS you with blocks
 // and halt your mining operation for as long as the DOS continues.
 func (miner *Miner) update() {
+	defer miner.wg.Done()
+
 	events := miner.mux.Subscribe(downloader.StartEvent{}, downloader.DoneEvent{}, downloader.FailedEvent{})
 	defer func() {
 		if !events.Closed() {
@@ -157,6 +162,7 @@ func (miner *Miner) Stop() {
 
 func (miner *Miner) Close() {
 	close(miner.exitCh)
+	miner.wg.Wait()
 }
 
 func (miner *Miner) Mining() bool {
