@@ -1,13 +1,16 @@
 package torrent
 
 import (
+	"encoding/gob"
+	"reflect"
 	"time"
 	"unsafe"
 
 	"github.com/RoaringBitmap/roaring"
+	"github.com/anacrolix/chansync/events"
+	"github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo/v2/bitmap"
 
-	"github.com/anacrolix/chansync"
 	request_strategy "github.com/anacrolix/torrent/request-strategy"
 )
 
@@ -16,7 +19,7 @@ const peerRequesting = false
 
 func (cl *Client) requester() {
 	for {
-		update := func() chansync.Signaled {
+		update := func() events.Signaled {
 			cl.lock()
 			defer cl.unlock()
 			cl.doRequests()
@@ -69,7 +72,7 @@ func (cl *Client) getRequestStrategyInput() request_strategy.Input {
 				Availability:      p.availability,
 				Length:            int64(p.length()),
 				NumPendingChunks:  int(t.pieceNumPendingChunks(i)),
-				IterPendingChunks: p.iterUndirtiedChunks,
+				IterPendingChunks: p.undirtiedChunksIter(),
 			})
 		}
 		t.iterPeers(func(p *Peer) {
@@ -81,17 +84,13 @@ func (cl *Client) getRequestStrategyInput() request_strategy.Input {
 			}
 			p.piecesReceivedSinceLastRequestUpdate = 0
 			rst.Peers = append(rst.Peers, request_strategy.Peer{
-				HasPiece:    p.peerHasPiece,
-				MaxRequests: p.nominalMaxRequests(),
-				HasExistingRequest: func(r RequestIndex) bool {
-					return p.actualRequestState.Requests.Contains(r)
-				},
-				Choking: p.peerChoking,
-				PieceAllowedFast: func(i pieceIndex) bool {
-					return p.peerAllowedFast.Contains(bitmap.BitIndex(i))
-				},
-				DownloadRate: p.downloadRate(),
-				Age:          time.Since(p.completedHandshake),
+				Pieces:           *p.newPeerPieces(),
+				MaxRequests:      p.nominalMaxRequests(),
+				ExistingRequests: p.actualRequestState.Requests,
+				Choking:          p.peerChoking,
+				PieceAllowedFast: p.peerAllowedFast,
+				DownloadRate:     p.downloadRate(),
+				Age:              time.Since(p.completedHandshake),
 				Id: peerId{
 					Peer: p,
 					ptr:  uintptr(unsafe.Pointer(p)),
@@ -107,10 +106,15 @@ func (cl *Client) getRequestStrategyInput() request_strategy.Input {
 }
 
 func (cl *Client) doRequests() {
-	nextPeerStates := request_strategy.Run(cl.getRequestStrategyInput())
+	input := cl.getRequestStrategyInput()
+	nextPeerStates := request_strategy.Run(input)
 	for p, state := range nextPeerStates {
 		setPeerNextRequestState(p, state)
 	}
+}
+
+func init() {
+	gob.Register(peerId{})
 }
 
 type peerId struct {
@@ -120,6 +124,31 @@ type peerId struct {
 
 func (p peerId) Uintptr() uintptr {
 	return p.ptr
+}
+
+func (p peerId) GobEncode() (b []byte, _ error) {
+	*(*reflect.SliceHeader)(unsafe.Pointer(&b)) = reflect.SliceHeader{
+		Data: uintptr(unsafe.Pointer(&p.ptr)),
+		Len:  int(unsafe.Sizeof(p.ptr)),
+		Cap:  int(unsafe.Sizeof(p.ptr)),
+	}
+	return
+}
+
+func (p *peerId) GobDecode(b []byte) error {
+	if uintptr(len(b)) != unsafe.Sizeof(p.ptr) {
+		panic(len(b))
+	}
+	ptr := unsafe.Pointer(&b[0])
+	p.ptr = *(*uintptr)(ptr)
+	log.Printf("%p", ptr)
+	dst := reflect.SliceHeader{
+		Data: uintptr(unsafe.Pointer(&p.Peer)),
+		Len:  int(unsafe.Sizeof(p.Peer)),
+		Cap:  int(unsafe.Sizeof(p.Peer)),
+	}
+	copy(*(*[]byte)(unsafe.Pointer(&dst)), b)
+	return nil
 }
 
 func setPeerNextRequestState(_p request_strategy.PeerId, rp request_strategy.PeerNextRequestState) {

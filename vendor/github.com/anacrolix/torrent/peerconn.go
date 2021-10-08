@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/RoaringBitmap/roaring"
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo/iter"
 	"github.com/anacrolix/missinggo/v2/bitmap"
@@ -110,7 +111,7 @@ type Peer struct {
 	PeerPrefersEncryption bool // as indicated by 'e' field in extension handshake
 	PeerListenPort        int
 	// The pieces the peer has claimed to have.
-	_peerPieces bitmap.Bitmap
+	_peerPieces roaring.Bitmap
 	// The peer has everything. This can occur due to a special message, when
 	// we may not even know the number of pieces in the torrent yet.
 	peerSentHaveAll bool
@@ -120,7 +121,7 @@ type Peer struct {
 	peerMinPieces pieceIndex
 	// Pieces we've accepted chunks for from the peer.
 	peerTouchedPieces map[pieceIndex]struct{}
-	peerAllowedFast   bitmap.Bitmap
+	peerAllowedFast   roaring.Bitmap
 
 	PeerMaxRequests  maxRequests // Maximum pending requests the peer allows.
 	PeerExtensionIDs map[pp.ExtensionName]pp.ExtensionNumber
@@ -181,16 +182,19 @@ func (cn *Peer) expectingChunks() bool {
 	if !cn.actualRequestState.Interested {
 		return false
 	}
-	if cn.peerAllowedFast.IterTyped(func(i int) bool {
-		return roaringBitmapRangeCardinality(
-			&cn.actualRequestState.Requests,
-			cn.t.pieceRequestIndexOffset(i),
-			cn.t.pieceRequestIndexOffset(i+1),
-		) == 0
-	}) {
+	if !cn.peerChoking {
 		return true
 	}
-	return !cn.peerChoking
+	haveAllowedFastRequests := false
+	cn.peerAllowedFast.Iterate(func(i uint32) bool {
+		haveAllowedFastRequests = roaringBitmapRangeCardinality(
+			&cn.actualRequestState.Requests,
+			cn.t.pieceRequestIndexOffset(pieceIndex(i)),
+			cn.t.pieceRequestIndexOffset(pieceIndex(i+1)),
+		) == 0
+		return !haveAllowedFastRequests
+	})
+	return haveAllowedFastRequests
 }
 
 func (cn *Peer) remoteChokingPiece(piece pieceIndex) bool {
@@ -238,7 +242,7 @@ func (cn *Peer) peerHasAllPieces() (all bool, known bool) {
 	if !cn.t.haveInfo() {
 		return false, false
 	}
-	return bitmap.Flip(cn._peerPieces, 0, bitmap.BitRange(cn.t.numPieces())).IsEmpty(), true
+	return roaring.Flip(&cn._peerPieces, 0, bitmap.BitRange(cn.t.numPieces())).IsEmpty(), true
 }
 
 func (cn *PeerConn) locker() *lockWithDeferreds {
@@ -259,7 +263,7 @@ func (cn *Peer) bestPeerNumPieces() pieceIndex {
 }
 
 func (cn *Peer) completedString() string {
-	have := pieceIndex(cn._peerPieces.Len())
+	have := pieceIndex(cn._peerPieces.GetCardinality())
 	if cn.peerSentHaveAll {
 		have = cn.bestPeerNumPieces()
 	}
@@ -758,7 +762,7 @@ func (cn *PeerConn) peerSentHave(piece pieceIndex) error {
 	if !cn.peerHasPiece(piece) {
 		cn.t.incPieceAvailability(piece)
 	}
-	cn._peerPieces.Set(bitmap.BitIndex(piece), true)
+	cn._peerPieces.Add(uint32(piece))
 	cn.t.maybeDropMutuallyCompletePeer(&cn.Peer)
 	if cn.updatePiecePriority(piece) {
 		cn.updateRequests()
@@ -789,7 +793,11 @@ func (cn *PeerConn) peerSentBitfield(bf []bool) error {
 				cn.t.decPieceAvailability(i)
 			}
 		}
-		cn._peerPieces.Set(bitmap.BitIndex(i), have)
+		if have {
+			cn._peerPieces.Add(uint32(i))
+		} else {
+			cn._peerPieces.Remove(uint32(i))
+		}
 	}
 	cn.peerPiecesChanged()
 	return nil
@@ -1107,7 +1115,7 @@ func (c *PeerConn) mainReadLoop() (err error) {
 				t.chunkPool.Put(&msg.Piece)
 			}
 			if err != nil {
-				err = fmt.Errorf("receiving chunk: %s", err)
+				err = fmt.Errorf("receiving chunk: %w", err)
 			}
 		case pp.Cancel:
 			req := newRequestFromMessage(&msg)
@@ -1271,7 +1279,7 @@ func (c *Peer) receiveChunk(msg *pp.Message) error {
 	}
 	c.decExpectedChunkReceive(req)
 
-	if c.peerChoking && c.peerAllowedFast.Get(bitmap.BitIndex(ppReq.Index)) {
+	if c.peerChoking && c.peerAllowedFast.Contains(bitmap.BitIndex(ppReq.Index)) {
 		chunksReceived.Add("due to allowed fast", 1)
 	}
 
@@ -1596,15 +1604,16 @@ func (l connectionTrust) Less(r connectionTrust) bool {
 
 // Returns the pieces the peer could have based on their claims. If we don't know how many pieces
 // are in the torrent, it could be a very large range the peer has sent HaveAll.
-func (cn *PeerConn) PeerPieces() bitmap.Bitmap {
+func (cn *PeerConn) PeerPieces() *roaring.Bitmap {
 	cn.locker().RLock()
 	defer cn.locker().RUnlock()
 	return cn.newPeerPieces()
 }
 
 // Returns a new Bitmap that includes bits for all pieces the peer could have based on their claims.
-func (cn *Peer) newPeerPieces() bitmap.Bitmap {
-	ret := cn._peerPieces.Copy()
+func (cn *Peer) newPeerPieces() *roaring.Bitmap {
+	// TODO: Can we use copy on write?
+	ret := cn._peerPieces.Clone()
 	if cn.peerSentHaveAll {
 		if cn.t.haveInfo() {
 			ret.AddRange(0, bitmap.BitRange(cn.t.numPieces()))
