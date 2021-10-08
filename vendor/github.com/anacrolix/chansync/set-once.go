@@ -3,6 +3,8 @@ package chansync
 import (
 	"sync"
 	"sync/atomic"
+
+	"github.com/anacrolix/chansync/events"
 )
 
 // SetOnce is a boolean value that can only be flipped from false to true.
@@ -15,7 +17,7 @@ type SetOnce struct {
 }
 
 // Returns a channel that is closed when the event is flagged.
-func (me *SetOnce) Done() Done {
+func (me *SetOnce) Done() events.Done {
 	me.init()
 	return me.ch
 }

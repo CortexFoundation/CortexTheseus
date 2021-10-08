@@ -19,6 +19,7 @@ import (
 
 	"github.com/RoaringBitmap/roaring"
 	"github.com/anacrolix/chansync"
+	"github.com/anacrolix/chansync/events"
 	"github.com/anacrolix/dht/v2"
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo/perf"
@@ -148,6 +149,9 @@ type Torrent struct {
 	dirtyChunks roaring.Bitmap
 
 	pex pexState
+
+	// Is On when all pieces are complete.
+	Complete chansync.Flag
 }
 
 func (t *Torrent) pieceAvailabilityFromPeers(i pieceIndex) (count int) {
@@ -195,7 +199,7 @@ func (t *Torrent) pendingPieces() *prioritybitmap.PriorityBitmap {
 }
 
 // Returns a channel that is closed when the Torrent is closed.
-func (t *Torrent) Closed() chansync.Done {
+func (t *Torrent) Closed() events.Done {
 	return t.closed.Done()
 }
 
@@ -412,6 +416,7 @@ func (t *Torrent) setInfo(info *metainfo.Info) error {
 	t.nameMu.Lock()
 	t.info = info
 	t.nameMu.Unlock()
+	t.updateComplete()
 	t.fileIndex = segments.NewIndex(common.LengthIterFromUpvertedFiles(info.UpvertedFiles()))
 	t.displayName = "" // Save a few bytes lol.
 	t.initFiles()
@@ -1149,9 +1154,9 @@ func (t *Torrent) byteRegionPieces(off, size int64) (begin, end pieceIndex) {
 	return
 }
 
-// Returns true if all iterations complete without breaking. Returns the read
-// regions for all readers. The reader regions should not be merged as some
-// callers depend on this method to enumerate readers.
+// Returns true if all iterations complete without breaking. Returns the read regions for all
+// readers. The reader regions should not be merged as some callers depend on this method to
+// enumerate readers.
 func (t *Torrent) forReaderOffsetPieces(f func(begin, end pieceIndex) (more bool)) (all bool) {
 	for r := range t.readers {
 		p := r.pieces
@@ -1263,6 +1268,7 @@ func (t *Torrent) updatePieceCompletion(piece pieceIndex) bool {
 	} else {
 		t._completedPieces.Remove(x)
 	}
+	t.updateComplete()
 	if complete && len(p.dirtiers) != 0 {
 		t.logger.Printf("marked piece %v complete but still has dirtiers", piece)
 	}
@@ -1408,8 +1414,8 @@ func (t *Torrent) decPeerPieceAvailability(p *Peer) {
 	if !t.haveInfo() {
 		return
 	}
-	p.newPeerPieces().IterTyped(func(i int) bool {
-		p.t.decPieceAvailability(i)
+	p.newPeerPieces().Iterate(func(i uint32) bool {
+		p.t.decPieceAvailability(pieceIndex(i))
 		return true
 	})
 }
@@ -1754,6 +1760,7 @@ func (t *Torrent) statsLocked() (ret TorrentStats) {
 		}
 	}
 	ret.ConnStats = t.stats.Copy()
+	ret.PiecesComplete = t.numPiecesCompleted()
 	return
 }
 
@@ -2287,4 +2294,8 @@ func (t *Torrent) numChunks() RequestIndex {
 
 func (t *Torrent) pieceRequestIndexOffset(piece pieceIndex) RequestIndex {
 	return RequestIndex(piece) * t.chunksPerRegularPiece()
+}
+
+func (t *Torrent) updateComplete() {
+	t.Complete.SetBool(t.haveAllPieces())
 }

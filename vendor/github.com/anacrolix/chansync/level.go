@@ -2,6 +2,8 @@ package chansync
 
 import (
 	"sync"
+
+	"github.com/anacrolix/chansync/events"
 )
 
 type LevelTrigger struct {
@@ -9,12 +11,12 @@ type LevelTrigger struct {
 	initOnce sync.Once
 }
 
-func (me *LevelTrigger) Signal() chan<- struct{} {
+func (me *LevelTrigger) Signal() events.Signal {
 	me.init()
 	return me.ch
 }
 
-func (me *LevelTrigger) Active() Active {
+func (me *LevelTrigger) Active() events.Active {
 	me.init()
 	return me.ch
 }
