@@ -1,7 +1,28 @@
+// Copyright 2019 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
+//
+// The CortexTheseus library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The CortexTheseus library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
+
 package bind_test
 
 import (
 	"context"
+	"math/big"
+	"reflect"
+	"strings"
+	"testing"
+
 	cortex "github.com/CortexFoundation/CortexTheseus"
 	"github.com/CortexFoundation/CortexTheseus/accounts/abi"
 	"github.com/CortexFoundation/CortexTheseus/accounts/abi/bind"
@@ -10,10 +31,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
-	"math/big"
-	"reflect"
-	"strings"
-	"testing"
 )
 
 type mockCaller struct {
@@ -54,11 +71,10 @@ func TestPassingBlockNumber(t *testing.T) {
 			},
 		},
 	}, mc, nil, nil)
-	var ret string
 
 	blockNumber := big.NewInt(42)
 
-	bc.Call(&bind.CallOpts{BlockNumber: blockNumber}, &ret, "something")
+	bc.Call(&bind.CallOpts{BlockNumber: blockNumber}, nil, "something")
 
 	if mc.callContractBlockNumber != blockNumber {
 		t.Fatalf("CallContract() was not passed the block number")
@@ -68,7 +84,7 @@ func TestPassingBlockNumber(t *testing.T) {
 		t.Fatalf("CodeAt() was not passed the block number")
 	}
 
-	bc.Call(&bind.CallOpts{}, &ret, "something")
+	bc.Call(&bind.CallOpts{}, nil, "something")
 
 	if mc.callContractBlockNumber != nil {
 		t.Fatalf("CallContract() was passed a block number when it should not have been")
@@ -78,7 +94,7 @@ func TestPassingBlockNumber(t *testing.T) {
 		t.Fatalf("CodeAt() was passed a block number when it should not have been")
 	}
 
-	bc.Call(&bind.CallOpts{BlockNumber: blockNumber, Pending: true}, &ret, "something")
+	bc.Call(&bind.CallOpts{BlockNumber: blockNumber, Pending: true}, nil, "something")
 
 	if !mc.pendingCallContractCalled {
 		t.Fatalf("CallContract() was not passed the block number")
@@ -94,7 +110,7 @@ const hexData = "0x000000000000000000000000376c47978271565f56deb45495afa69e59c16
 func TestUnpackIndexedStringTyLogIntoMap(t *testing.T) {
 	hash := crypto.Keccak256Hash([]byte("testName"))
 	topics := []common.Hash{
-		common.HexToHash("0x0"),
+		crypto.Keccak256Hash([]byte("received(string,address,uint256,bytes)")),
 		hash,
 	}
 	mockLog := newMockLog(topics, common.HexToHash("0x0"))
@@ -119,7 +135,7 @@ func TestUnpackIndexedSliceTyLogIntoMap(t *testing.T) {
 	}
 	hash := crypto.Keccak256Hash(sliceBytes)
 	topics := []common.Hash{
-		common.HexToHash("0x0"),
+		crypto.Keccak256Hash([]byte("received(string[],address,uint256,bytes)")),
 		hash,
 	}
 	mockLog := newMockLog(topics, common.HexToHash("0x0"))
@@ -144,7 +160,7 @@ func TestUnpackIndexedArrayTyLogIntoMap(t *testing.T) {
 	}
 	hash := crypto.Keccak256Hash(arrBytes)
 	topics := []common.Hash{
-		common.HexToHash("0x0"),
+		crypto.Keccak256Hash([]byte("received(address[2],address,uint256,bytes)")),
 		hash,
 	}
 	mockLog := newMockLog(topics, common.HexToHash("0x0"))
@@ -171,7 +187,7 @@ func TestUnpackIndexedFuncTyLogIntoMap(t *testing.T) {
 	var functionTy [24]byte
 	copy(functionTy[:], functionTyBytes[0:24])
 	topics := []common.Hash{
-		common.HexToHash("0x99b5620489b6ef926d4518936cfec15d305452712b88bd59da2d9c10fb0953e8"),
+		crypto.Keccak256Hash([]byte("received(function,address,uint256,bytes)")),
 		common.BytesToHash(functionTyBytes),
 	}
 	mockLog := newMockLog(topics, common.HexToHash("0x5c698f13940a2153440c6d19660878bc90219d9298fdcf37365aa8d88d40fc42"))
@@ -192,7 +208,7 @@ func TestUnpackIndexedBytesTyLogIntoMap(t *testing.T) {
 	bytes := []byte{1, 2, 3, 4, 5}
 	hash := crypto.Keccak256Hash(bytes)
 	topics := []common.Hash{
-		common.HexToHash("0x99b5620489b6ef926d4518936cfec15d305452712b88bd59da2d9c10fb0953e8"),
+		crypto.Keccak256Hash([]byte("received(bytes,address,uint256,bytes)")),
 		hash,
 	}
 	mockLog := newMockLog(topics, common.HexToHash("0x5c698f13940a2153440c6d19660878bc90219d9298fdcf37365aa8d88d40fc42"))
