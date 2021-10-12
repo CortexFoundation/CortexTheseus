@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"math/rand"
 	"os"
@@ -256,7 +255,7 @@ func TestFreezerConcurrentModifyTruncate(t *testing.T) {
 func newFreezerForTesting(t *testing.T, tables map[string]bool) (*freezer, string) {
 	t.Helper()
 
-	dir, err := ioutil.TempDir("", "freezer")
+	dir, err := os.MkdirTemp("", "freezer")
 	if err != nil {
 		t.Fatal(err)
 	}

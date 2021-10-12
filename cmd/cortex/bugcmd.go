@@ -20,8 +20,8 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/url"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -30,7 +30,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
-	cli "gopkg.in/urfave/cli.v1"
+	"gopkg.in/urfave/cli.v1"
 )
 
 var bugCommand = cli.Command{
@@ -76,7 +76,7 @@ func printOSDetails(w io.Writer) {
 	case "openbsd", "netbsd", "freebsd", "dragonfly":
 		printCmdOut(w, "uname -v: ", "uname", "-v")
 	case "solaris":
-		out, err := ioutil.ReadFile("/etc/release")
+		out, err := os.ReadFile("/etc/release")
 		if err == nil {
 			fmt.Fprintf(w, "/etc/release: %s\n", out)
 		} else {

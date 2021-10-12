@@ -21,8 +21,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"reflect"
 
 	"github.com/CortexFoundation/CortexTheseus/accounts"
@@ -444,7 +444,7 @@ func (api *SignerAPI) Export(ctx context.Context, addr common.Address) (json.Raw
 	if wallet.URL().Scheme != keystore.KeyStoreScheme {
 		return nil, fmt.Errorf("Account is not a keystore-account")
 	}
-	return ioutil.ReadFile(wallet.URL().Path)
+	return os.ReadFile(wallet.URL().Path)
 }
 
 // Import tries to import the given keyJSON in the local keystore. The keyJSON data is expected to be

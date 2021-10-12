@@ -2,10 +2,11 @@ package cuckoo
 
 import (
 	"encoding/binary"
-	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"math/big"
 	"math/rand"
 	"testing"
+
+	"github.com/CortexFoundation/CortexTheseus/core/types"
 )
 
 func TestReward(t *testing.T) {

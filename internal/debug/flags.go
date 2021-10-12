@@ -28,7 +28,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/metrics/exp"
 	"github.com/fjl/memsize/memsizeui"
-	colorable "github.com/mattn/go-colorable"
+	"github.com/mattn/go-colorable"
 	"github.com/mattn/go-isatty"
 	"gopkg.in/urfave/cli.v1"
 )

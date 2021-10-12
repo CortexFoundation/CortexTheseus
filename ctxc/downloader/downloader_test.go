@@ -19,6 +19,13 @@ package downloader
 import (
 	"errors"
 	"fmt"
+	"math/big"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"testing"
+	"time"
+
 	cortex "github.com/CortexFoundation/CortexTheseus"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
@@ -26,12 +33,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/trie"
-	"math/big"
-	"strings"
-	"sync"
-	"sync/atomic"
-	"testing"
-	"time"
 )
 
 // Reduce some of the parameters to make the tester faster.

@@ -18,6 +18,9 @@ package core
 
 import (
 	"fmt"
+	"math/big"
+	"testing"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
@@ -28,8 +31,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/CortexFoundation/CortexTheseus/trie"
-	"math/big"
-	"testing"
 )
 
 type CuckooFakeForTest struct {

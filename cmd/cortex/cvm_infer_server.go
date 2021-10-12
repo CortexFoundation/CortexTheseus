@@ -1,12 +1,12 @@
 package main
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
-	//"sync"
+	// "sync"
 
 	"github.com/CortexFoundation/inference"
-	//"github.com/CortexFoundation/CortexTheseus/rpc"
+	// "github.com/CortexFoundation/CortexTheseus/rpc"
 )
 
 //var rpcClient *rpc.Client
@@ -18,7 +18,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body, rerr := ioutil.ReadAll(r.Body)
+	body, rerr := io.ReadAll(r.Body)
 	if rerr != nil {
 		RespErrorText(w, ErrRequestBodyRead)
 		return

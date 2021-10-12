@@ -17,9 +17,10 @@
 package rpc
 
 import (
-	"github.com/CortexFoundation/CortexTheseus/log"
 	"net"
 	"strings"
+
+	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
 // StartIPCEndpoint starts an IPC endpoint.

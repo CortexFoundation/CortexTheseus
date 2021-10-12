@@ -17,13 +17,14 @@
 package rawdb
 
 import (
-	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"math/big"
 	"reflect"
 	"sort"
 	"sync"
 	"testing"
+
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
 )
 
 func TestChainIterator(t *testing.T) {

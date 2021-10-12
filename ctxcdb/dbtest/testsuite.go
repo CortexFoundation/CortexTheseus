@@ -2,10 +2,11 @@ package dbtest
 
 import (
 	"bytes"
-	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"reflect"
 	"sort"
 	"testing"
+
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 )
 
 // TestDatabaseSuite runs a suite of tests against a KeyValueStore database

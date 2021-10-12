@@ -18,9 +18,10 @@ package abi
 
 import (
 	"bytes"
-	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"math/big"
 	"testing"
+
+	"github.com/CortexFoundation/CortexTheseus/common/math"
 )
 
 func TestNumberTypes(t *testing.T) {

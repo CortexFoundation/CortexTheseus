@@ -18,6 +18,7 @@ package clique
 
 import (
 	"encoding/json"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/consensus"

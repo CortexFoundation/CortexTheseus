@@ -20,13 +20,13 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"math/big"
 	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 )
 

@@ -17,6 +17,7 @@
 package rawdb
 
 import (
+	"hash"
 	"math/big"
 	"testing"
 
@@ -24,7 +25,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
-	"hash"
 
 	"golang.org/x/crypto/sha3"
 )

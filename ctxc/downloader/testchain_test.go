@@ -18,6 +18,9 @@ package downloader
 
 import (
 	"fmt"
+	"math/big"
+	"sync"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
 	"github.com/CortexFoundation/CortexTheseus/core"
@@ -25,8 +28,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"math/big"
-	"sync"
 )
 
 // Test chain parameters.

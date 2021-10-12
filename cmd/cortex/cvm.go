@@ -17,9 +17,12 @@
 package main
 
 import (
-	gopsutil "github.com/shirou/gopsutil/mem"
+	"errors"
 	"math"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
+	"os/signal"
 	"os/user"
 	"path/filepath"
 	"runtime"
@@ -30,16 +33,13 @@ import (
 	"syscall"
 	"time"
 
-	"errors"
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/inference/synapse"
 	"github.com/CortexFoundation/torrentfs"
+	gopsutil "github.com/shirou/gopsutil/mem"
 	"gopkg.in/urfave/cli.v1"
-	"net/http"
-	_ "net/http/pprof"
-	"os/signal"
 )
 
 func homeDir() string {

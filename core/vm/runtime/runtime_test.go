@@ -20,6 +20,7 @@ import (
 	"math/big"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/accounts/abi"
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -30,7 +31,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"time"
 )
 
 func TestDefaults(t *testing.T) {

@@ -21,7 +21,6 @@ package main
 import (
 	"io"
 	"sort"
-
 	"strings"
 
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"

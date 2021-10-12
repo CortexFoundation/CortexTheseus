@@ -17,10 +17,10 @@
 package params
 
 import (
+	"encoding/binary"
 	"fmt"
 	"math/big"
 
-	"encoding/binary"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"golang.org/x/crypto/sha3"
 )

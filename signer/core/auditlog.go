@@ -18,7 +18,6 @@ package core
 
 import (
 	"context"
-
 	"encoding/json"
 
 	"github.com/CortexFoundation/CortexTheseus/accounts"

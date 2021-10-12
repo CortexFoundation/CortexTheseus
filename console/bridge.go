@@ -19,16 +19,15 @@ package console
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
-
-	"github.com/dop251/goja"
 	"io"
 	"reflect"
 	"strings"
 	"time"
 
+	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/internal/jsre"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
+	"github.com/dop251/goja"
 )
 
 // bridge is a collection of JavaScript utility methods to bride the .js runtime

@@ -2,14 +2,15 @@ package types
 
 import (
 	"bytes"
-	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/crypto"
-	"github.com/CortexFoundation/CortexTheseus/params"
-	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"math"
 	"math/big"
 	"reflect"
 	"testing"
+
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/crypto"
+	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/CortexTheseus/rlp"
 )
 
 func TestLegacyReceiptDecoding(t *testing.T) {

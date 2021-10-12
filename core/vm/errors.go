@@ -18,6 +18,7 @@ package vm
 
 import (
 	"errors"
+
 	"github.com/CortexFoundation/inference/synapse"
 )
 

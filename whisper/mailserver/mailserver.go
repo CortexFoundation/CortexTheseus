@@ -20,7 +20,6 @@ package mailserver
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/syndtr/goleveldb/leveldb/errors"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
@@ -28,6 +27,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	whisper "github.com/CortexFoundation/CortexTheseus/whisper/whisperv6"
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
 )

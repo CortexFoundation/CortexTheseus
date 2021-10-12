@@ -20,15 +20,14 @@
 package signify
 
 import (
+	"crypto/ed25519"
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
 	"time"
-
-	"crypto/ed25519"
 )
 
 var (
@@ -77,7 +76,7 @@ func SignifySignFile(input string, output string, key string, unTrustedComment s
 		return err
 	}
 
-	filedata, err := ioutil.ReadAll(in)
+	filedata, err := io.ReadAll(in)
 	if err != nil {
 		return err
 	}

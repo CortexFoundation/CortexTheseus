@@ -20,6 +20,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+
 	"github.com/CortexFoundation/CortexTheseus/log"
 
 	"github.com/CortexFoundation/CortexTheseus/common"

@@ -16,9 +16,10 @@
 package miner
 
 import (
+	"testing"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
-	"testing"
 )
 
 // noopChainRetriever is an implementation of headerRetriever that always

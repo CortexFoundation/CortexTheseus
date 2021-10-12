@@ -19,6 +19,13 @@ package main
 
 import (
 	"fmt"
+	"math/big"
+	"os"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/accounts/keystore"
 	"github.com/CortexFoundation/CortexTheseus/client"
@@ -31,13 +38,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/node"
 	_ "github.com/CortexFoundation/statik"
 	"github.com/arsham/figurine/figurine"
-	cli "gopkg.in/urfave/cli.v1"
-	"math/big"
-	"os"
-	"sort"
-	"strconv"
-	"strings"
-	"time"
+	"gopkg.in/urfave/cli.v1"
 )
 
 const (

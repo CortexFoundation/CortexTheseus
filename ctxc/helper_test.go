@@ -22,6 +22,11 @@ package ctxc
 import (
 	"crypto/ecdsa"
 	"crypto/rand"
+	"math/big"
+	"sort"
+	"sync"
+	"testing"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
 	"github.com/CortexFoundation/CortexTheseus/core"
@@ -37,10 +42,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"math/big"
-	"sort"
-	"sync"
-	"testing"
 )
 
 var (

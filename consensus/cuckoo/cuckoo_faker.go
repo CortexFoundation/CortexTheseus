@@ -1,14 +1,15 @@
 package cuckoo
 
 import (
+	"math/big"
+	"time"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
 	"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/CortexFoundation/CortexTheseus/trie"
-	"math/big"
-	"time"
 )
 
 func NewFaker() *Cuckoo {

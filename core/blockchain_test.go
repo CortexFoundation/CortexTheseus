@@ -17,6 +17,9 @@
 package core
 
 import (
+	"math/big"
+	"testing"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
@@ -26,8 +29,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"math/big"
-	"testing"
 )
 
 // So we can deterministically seed different blockchains

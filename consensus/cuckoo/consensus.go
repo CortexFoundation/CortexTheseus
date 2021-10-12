@@ -18,13 +18,15 @@ package cuckoo
 
 import (
 	"encoding/binary"
-	//"encoding/hex"
-	//"bytes"
+	// "encoding/hex"
+	// "bytes"
 	"errors"
 	"fmt"
 	"math/big"
 	"runtime"
-	//"strconv"
+	"time"
+
+	// "strconv"
 	// "strings"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/math"
@@ -40,7 +42,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/trie"
 	mapset "github.com/ucwong/golang-set"
 	"golang.org/x/crypto/sha3"
-	"time"
 	//	"github.com/CortexFoundation/CortexTheseus/solution/miner/libcuckoo"
 )
 

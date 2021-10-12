@@ -18,11 +18,11 @@ package vm
 
 import (
 	_ "encoding/hex"
+	"fmt"
 	"math/big"
 	"sync/atomic"
 	"time"
 
-	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"

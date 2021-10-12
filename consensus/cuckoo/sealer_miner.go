@@ -4,10 +4,11 @@
 package cuckoo
 
 import (
-	//"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo/plugins"
+	"math/big"
+
+	// "github.com/CortexFoundation/CortexTheseus/consensus/cuckoo/plugins"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"math/big"
 )
 
 func (cuckoo *Cuckoo) Mine(block *types.Block, id int, seed uint64, abort chan struct{}, found chan *types.Block) (err error) {
