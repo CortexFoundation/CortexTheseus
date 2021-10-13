@@ -18,6 +18,8 @@ package core
 
 import (
 	"fmt"
+	"math/big"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
 	"github.com/CortexFoundation/CortexTheseus/core/state"
@@ -25,7 +27,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"math/big"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning

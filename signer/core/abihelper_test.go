@@ -17,11 +17,10 @@
 package core
 
 import (
-	"strings"
-	"testing"
-
 	"math/big"
 	"reflect"
+	"strings"
+	"testing"
 
 	"github.com/CortexFoundation/CortexTheseus/accounts/abi"
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -210,7 +209,7 @@ func TestCalldataDecoding(t *testing.T) {
 //}
 //
 //func TestCustomABI(t *testing.T) {
-//	d, err := ioutil.TempDir("", "signer-4byte-test")
+//	d, err := os.MkdirTemp("", "signer-4byte-test")
 //	if err != nil {
 //		t.Fatal(err)
 //	}

@@ -19,7 +19,6 @@ package node
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -468,7 +467,7 @@ func makeAccountManager(conf *Config) (*accounts.Manager, string, error) {
 	var ephemeral string
 	if keydir == "" {
 		// There is no datadir.
-		keydir, err = ioutil.TempDir("", "CortexTheseus-keystore")
+		keydir, err = os.MkdirTemp("", "CortexTheseus-keystore")
 		ephemeral = keydir
 	}
 

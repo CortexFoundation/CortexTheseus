@@ -1,11 +1,12 @@
 package abi
 
 import (
-	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"math/big"
 	"reflect"
 	"testing"
+
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/crypto"
 )
 
 func TestMakeTopics(t *testing.T) {

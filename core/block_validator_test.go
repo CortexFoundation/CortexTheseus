@@ -18,14 +18,15 @@ package core
 
 import (
 	_ "fmt"
+	"runtime"
+	"testing"
+	"time"
+
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"runtime"
-	"testing"
-	"time"
 )
 
 // Tests that simple header verification works, for both good and bad blocks.

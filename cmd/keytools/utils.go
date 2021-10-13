@@ -19,7 +19,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
@@ -56,7 +56,7 @@ func getPassphrase(ctx *cli.Context) string {
 	// Look for the --passwordfile flag.
 	passphraseFile := ctx.String(passphraseFlag.Name)
 	if passphraseFile != "" {
-		content, err := ioutil.ReadFile(passphraseFile)
+		content, err := os.ReadFile(passphraseFile)
 		if err != nil {
 			utils.Fatalf("Failed to read passphrase file '%s': %v",
 				passphraseFile, err)

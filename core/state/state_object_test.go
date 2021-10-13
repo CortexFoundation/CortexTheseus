@@ -2,8 +2,9 @@ package state
 
 import (
 	"bytes"
-	"github.com/CortexFoundation/CortexTheseus/common"
 	"testing"
+
+	"github.com/CortexFoundation/CortexTheseus/common"
 )
 
 func BenchmarkCutOriginal(b *testing.B) {

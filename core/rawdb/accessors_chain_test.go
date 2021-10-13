@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"reflect"
@@ -364,7 +363,7 @@ func checkReceiptsRLP(have, want types.Receipts) error {
 
 func TestAncientStorage(t *testing.T) {
 	// Freezer style fast import the chain.
-	frdir, err := ioutil.TempDir("", "")
+	frdir, err := os.MkdirTemp("", "")
 	if err != nil {
 		t.Fatalf("failed to create temp freezer dir: %v", err)
 	}

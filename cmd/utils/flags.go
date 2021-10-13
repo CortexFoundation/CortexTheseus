@@ -20,12 +20,10 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
-	gopsutil "github.com/shirou/gopsutil/mem"
-	"io/ioutil"
-	"os"
-
 	"math"
 	"math/big"
+	"net/url"
+	"os"
 	"path/filepath"
 	"runtime"
 	godebug "runtime/debug"
@@ -42,7 +40,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
 	"github.com/CortexFoundation/CortexTheseus/core"
 	whisper "github.com/CortexFoundation/CortexTheseus/whisper/whisperv6"
-	//"github.com/CortexFoundation/CortexTheseus/core/state"
+	gopsutil "github.com/shirou/gopsutil/mem"
+	// "github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/ctxc"
@@ -63,7 +62,6 @@ import (
 	"github.com/CortexFoundation/inference/synapse"
 	"github.com/CortexFoundation/torrentfs"
 	"gopkg.in/urfave/cli.v1"
-	"net/url"
 )
 
 var (
@@ -1099,7 +1097,7 @@ func MakePasswordList(ctx *cli.Context) []string {
 	if path == "" {
 		return nil
 	}
-	text, err := ioutil.ReadFile(path)
+	text, err := os.ReadFile(path)
 	if err != nil {
 		Fatalf("Failed to read password file: %v", err)
 	}

@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"hash"
 	"math/big"
+	"sync/atomic"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/math"
@@ -27,7 +28,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/inference/synapse"
 	torrentfs "github.com/CortexFoundation/torrentfs/types"
-	"sync/atomic"
 )
 
 var (

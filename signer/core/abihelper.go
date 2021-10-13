@@ -17,17 +17,15 @@
 package core
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
+	"regexp"
 	"strings"
 
 	"github.com/CortexFoundation/CortexTheseus/accounts/abi"
 	"github.com/CortexFoundation/CortexTheseus/common"
-
-	"bytes"
-	"os"
-	"regexp"
 )
 
 type decodedArgument struct {
@@ -170,7 +168,7 @@ func NewEmptyAbiDB() (*AbiDb, error) {
 // NewAbiDBFromFile loads signature database from file, and
 // errors if the file is not valid json. Does no other validation of contents
 func NewAbiDBFromFile(path string) (*AbiDb, error) {
-	raw, err := ioutil.ReadFile(path)
+	raw, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -189,14 +187,14 @@ func NewAbiDBFromFiles(standard, custom string) (*AbiDb, error) {
 	db := &AbiDb{make(map[string]string), make(map[string]string), custom}
 	db.customdbPath = custom
 
-	raw, err := ioutil.ReadFile(standard)
+	raw, err := os.ReadFile(standard)
 	if err != nil {
 		return nil, err
 	}
 	json.Unmarshal(raw, &db.db)
 	// Custom file may not exist. Will be created during save, if needed
 	if _, err := os.Stat(custom); err == nil {
-		raw, err = ioutil.ReadFile(custom)
+		raw, err = os.ReadFile(custom)
 		if err != nil {
 			return nil, err
 		}
@@ -235,7 +233,7 @@ func (db *AbiDb) saveCustomAbi(selector, signature string) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(db.customdbPath, d, 0600)
+	err = os.WriteFile(db.customdbPath, d, 0600)
 	return err
 }
 

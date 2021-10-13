@@ -17,11 +17,12 @@
 package leveldb
 
 import (
+	"testing"
+
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb/dbtest"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/storage"
-	"testing"
 )
 
 func TestLevelDB(t *testing.T) {

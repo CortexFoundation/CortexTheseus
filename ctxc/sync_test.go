@@ -17,13 +17,13 @@
 package ctxc
 
 import (
-	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
+	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 )
 
 //func TestFastSyncDisabling63(t *testing.T) { testFastSyncDisabling(t, 63) }

@@ -22,6 +22,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math/big"
+	"sort"
+	"time"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/state/snapshot"
@@ -31,9 +35,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/trie"
-	"math/big"
-	"sort"
-	"time"
 )
 
 type revision struct {

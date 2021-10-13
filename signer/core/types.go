@@ -18,9 +18,8 @@ package core
 
 import (
 	"encoding/json"
-	"strings"
-
 	"math/big"
+	"strings"
 
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/common"

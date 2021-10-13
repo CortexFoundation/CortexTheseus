@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"math"
 	"math/big"
 	"math/rand"
@@ -29,10 +28,10 @@ import (
 	"testing"
 	"testing/quick"
 
-	check "gopkg.in/check.v1"
-
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"gopkg.in/check.v1"
 )
 
 // Tests that updating a state trie does not leak any database writes prior to

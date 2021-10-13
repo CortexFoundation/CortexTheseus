@@ -18,11 +18,11 @@ package state
 
 import (
 	"bytes"
-	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"math/big"
 	"testing"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	checker "gopkg.in/check.v1"

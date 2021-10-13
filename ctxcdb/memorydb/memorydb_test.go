@@ -17,9 +17,10 @@
 package memorydb
 
 import (
+	"testing"
+
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb/dbtest"
-	"testing"
 )
 
 func TestMemoryDB(t *testing.T) {

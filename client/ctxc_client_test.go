@@ -19,6 +19,11 @@ package ctxcclient
 import (
 	"context"
 	"errors"
+	"math/big"
+	"reflect"
+	"testing"
+	"time"
+
 	"github.com/CortexFoundation/CortexTheseus"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
@@ -29,10 +34,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/ctxc"
 	"github.com/CortexFoundation/CortexTheseus/node"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"math/big"
-	"reflect"
-	"testing"
-	"time"
 )
 
 // Verify that Client implements the cortex interfaces.

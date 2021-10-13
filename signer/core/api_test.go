@@ -19,7 +19,6 @@ package core
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -105,7 +104,7 @@ func (ui *HeadlessUI) ShowInfo(message string) {
 }
 
 func tmpDirName(t *testing.T) string {
-	d, err := ioutil.TempDir("", "ctxc-keystore-test")
+	d, err := os.MkdirTemp("", "ctxc-keystore-test")
 	if err != nil {
 		t.Fatal(err)
 	}

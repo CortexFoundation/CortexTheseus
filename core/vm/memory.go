@@ -19,6 +19,7 @@ package vm
 import (
 	"errors"
 	"fmt"
+
 	"github.com/holiman/uint256"
 )
 
