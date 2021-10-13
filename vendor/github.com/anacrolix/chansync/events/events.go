@@ -1,4 +1,4 @@
-package chansync
+package events
 
 // Here we'll strongly-type channels to assist correct usage, if possible.
 

@@ -1,6 +1,7 @@
 package chansync
 
 import (
+	"github.com/anacrolix/chansync/events"
 	"github.com/anacrolix/sync"
 )
 
@@ -23,7 +24,7 @@ func (me *BroadcastCond) Broadcast() {
 
 // Should be called before releasing locks on resources that might trigger subsequent Broadcasts.
 // The channel is closed when the condition changes.
-func (me *BroadcastCond) Signaled() Signaled {
+func (me *BroadcastCond) Signaled() events.Signaled {
 	me.mu.Lock()
 	defer me.mu.Unlock()
 	if me.ch == nil {

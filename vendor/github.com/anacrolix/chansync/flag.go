@@ -2,6 +2,8 @@ package chansync
 
 import (
 	"sync"
+
+	"github.com/anacrolix/chansync/events"
 )
 
 // Flag wraps a boolean value that starts as false (off). You can wait for it to be on or off, and
@@ -20,14 +22,14 @@ func (me *Flag) Bool() bool {
 	return me.state
 }
 
-func (me *Flag) On() Active {
+func (me *Flag) On() events.Active {
 	me.mu.Lock()
 	defer me.mu.Unlock()
 	me.init()
 	return me.on
 }
 
-func (me *Flag) Off() Active {
+func (me *Flag) Off() events.Active {
 	me.mu.Lock()
 	defer me.mu.Unlock()
 	me.init()

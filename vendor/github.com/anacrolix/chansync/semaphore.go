@@ -1,5 +1,9 @@
 package chansync
 
+import (
+	"github.com/anacrolix/chansync/events"
+)
+
 // Channel semaphore, as is popular for controlling access to limited resources. Should not be used
 // zero-initialized.
 type Semaphore struct {
@@ -12,11 +16,11 @@ func NewSemaphore(n int) Semaphore {
 }
 
 // Returns a channel for acquiring a slot.
-func (me Semaphore) Acquire() Acquire {
+func (me Semaphore) Acquire() events.Acquire {
 	return me.ch
 }
 
 // Returns a channel for releasing a slot.
-func (me Semaphore) Release() Release {
+func (me Semaphore) Release() events.Release {
 	return me.ch
 }
