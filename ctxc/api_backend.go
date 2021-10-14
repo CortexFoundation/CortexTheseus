@@ -219,10 +219,7 @@ func (b *CortexAPIBackend) SendTx(ctx context.Context, signedTx *types.Transacti
 }
 
 func (b *CortexAPIBackend) GetPoolTransactions() (types.Transactions, error) {
-	pending, err := b.ctxc.txPool.Pending()
-	if err != nil {
-		return nil, err
-	}
+	pending := b.ctxc.txPool.Pending(false)
 	var txs types.Transactions
 	for _, batch := range pending {
 		txs = append(txs, batch...)

@@ -22,10 +22,8 @@ import (
 	"math/big"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/forkid"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
-	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 )
 
@@ -100,27 +98,6 @@ var errorToString = map[int]string{
 	ErrForkIDRejected:          "Fork ID rejected",
 	ErrNoStatusMsg:             "No status message",
 	ErrExtraStatusMsg:          "Extra status message",
-}
-
-type txPool interface {
-	// Has returns an indicator whether txpool has a transaction
-	// cached with the given hash.
-	Has(hash common.Hash) bool
-
-	// Get retrieves the transaction from local txpool with given
-	// tx hash.
-	Get(hash common.Hash) *types.Transaction
-
-	// AddRemotes should add the given transactions to the pool.
-	AddRemotes([]*types.Transaction) []error
-
-	// Pending should return pending transactions.
-	// The slice should be modifiable by the caller.
-	Pending() (map[common.Address]types.Transactions, error)
-
-	// SubscribeNewTxsEvent should return an event subscription of
-	// NewTxsEvent and send events to the given channel.
-	SubscribeNewTxsEvent(chan<- core.NewTxsEvent) event.Subscription
 }
 
 // statusData63 is the network packet for the status message for eth/63.

@@ -531,7 +531,7 @@ func (pool *TxPool) ContentFrom(addr common.Address) (types.Transactions, types.
 // Pending retrieves all currently processable transactions, grouped by origin
 // account and sorted by nonce. The returned transaction set is a copy and can be
 // freely modified by calling code.
-func (pool *TxPool) Pending() (map[common.Address]types.Transactions, error) {
+func (pool *TxPool) Pending(enforceTips bool) map[common.Address]types.Transactions {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
@@ -539,7 +539,7 @@ func (pool *TxPool) Pending() (map[common.Address]types.Transactions, error) {
 	for addr, list := range pool.pending {
 		pending[addr] = list.Flatten()
 	}
-	return pending, nil
+	return pending
 }
 
 // Locals retrieves the accounts currently considered local by the pool.
