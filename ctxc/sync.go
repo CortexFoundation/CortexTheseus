@@ -53,7 +53,7 @@ func (pm *ProtocolManager) syncTransactions(p *peer) {
 	//
 	// TODO(karalabe): Figure out if we could get away with random order somehow
 	var txs types.Transactions
-	pending, _ := pm.txpool.Pending()
+	pending := pm.txpool.Pending(false)
 	for _, batch := range pending {
 		txs = append(txs, batch...)
 	}

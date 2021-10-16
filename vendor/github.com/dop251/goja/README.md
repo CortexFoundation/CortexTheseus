@@ -10,14 +10,49 @@ performance.
 
 This project was largely inspired by [otto](https://github.com/robertkrimen/otto).
 
+Minimum required Go version is 1.14.
+
 Features
 --------
 
- * Full ECMAScript 5.1 support (yes, including regex and strict mode).
- * Passes nearly all [tc39 tests](https://github.com/tc39/test262) tagged with es5id. The goal is to pass all of them. Note, the last working commit is https://github.com/tc39/test262/commit/1ba3a7c4a93fc93b3d0d7e4146f59934a896837d. The next commit made use of template strings which goja does not support.
- * Capable of running Babel (up to v7), Typescript compiler and pretty much anything written in ES5.
+ * Full ECMAScript 5.1 support (including regex and strict mode).
+ * Passes nearly all [tc39 tests](https://github.com/tc39/test262) tagged with es5id. The goal is to pass all of them.
+   Note, the current working commit is https://github.com/tc39/test262/commit/ddfe24afe3043388827aa220ef623b8540958bbd.
+   The next commit removed most of the es5id tags which made it impossible to distinguish which tests to run.
+ * Capable of running Babel, Typescript compiler and pretty much anything written in ES5.
  * Sourcemaps.
+ * Some ES6 functionality, still work in progress, see https://github.com/dop251/goja/milestone/1?closed=1
  
+Known incompatibilities and caveats
+-----------------------------------
+
+### WeakMap
+WeakMap is implemented by embedding references to the values into the keys. This means that as long
+as the key is reachable all values associated with it in any weak maps also remain reachable and therefore
+cannot be garbage collected even if they are not otherwise referenced, even after the WeakMap is gone.
+The reference to the value is dropped either when the key is explicitly removed from the WeakMap or when the
+key becomes unreachable.
+
+To illustrate this:
+
+```javascript
+var m = new WeakMap();
+var key = {};
+var value = {/* a very large object */};
+m.set(key, value);
+value = undefined;
+m = undefined; // The value does NOT become garbage-collectable at this point
+key = undefined; // Now it does
+// m.delete(key); // This would work too
+```
+
+The reason for it is the limitation of the Go runtime. At the time of writing (version 1.15) having a finalizer
+set on an object which is part of a reference cycle makes the whole cycle non-garbage-collectable. The solution
+above is the only reasonable way I can think of without involving finalizers. This is the third attempt
+(see https://github.com/dop251/goja/issues/250 and https://github.com/dop251/goja/issues/199 for more details).
+
+Note, this does not have any effect on the application logic, but may cause a higher-than-expected memory usage.
+
 FAQ
 ---
 
@@ -33,11 +68,11 @@ You can find some benchmarks [here](https://github.com/dop251/goja/issues/2).
 It greatly depends on your usage scenario. If most of the work is done in javascript
 (for example crypto or any other heavy calculations) you are definitely better off with V8.
 
-If you need a scripting language that drives an engine written in Go so
+If you need a scripting language that drives an engine written in Go so that
 you need to make frequent calls between Go and javascript passing complex data structures
 then the cgo overhead may outweigh the benefits of having a faster javascript engine.
 
-Because it's written in pure Go there are no external dependencies, it's very easy to build and it
+Because it's written in pure Go there are no cgo dependencies, it's very easy to build and it
 should run on any platform supported by Go.
 
 It gives you a much better control over execution environment so can be useful for research.
@@ -52,19 +87,19 @@ it's not possible to pass object values between runtimes.
 
 setTimeout() assumes concurrent execution of code which requires an execution
 environment, for example an event loop similar to nodejs or a browser.
-There is a [separate project](https://github.com/dop251/goja_nodejs) aimed at providing some of the NodeJS functionality
+There is a [separate project](https://github.com/dop251/goja_nodejs) aimed at providing some NodeJS functionality,
 and it includes an event loop.
 
 ### Can you implement (feature X from ES6 or higher)?
 
-There is now an es6 branch. This is work in progress and all new ES6 features will go there. Every commit
-in this branch represents a relatively stable state (i.e. it compiles and passes all enabled tc39 tests),
-however because the version of tc39 tests I use is quite old, it may be not as well tested as the ES5.1
-functionality. Because ES6 is a superset of ES5.1 it should not break your existing code.
+I will be adding features in their dependency order and as quickly as time permits. Please do not ask
+for ETAs. Features that are open in the [milestone](https://github.com/dop251/goja/milestone/1) are either in progress
+or will be worked on next.
 
-I will be adding features in their dependency order and as quickly as my time allows. Please do not ask
-for ETA. Eventually it will be merged into master. If you wish to implement a new feature please contact
-me first and read the section below.
+The ongoing work is done in separate feature branches which are merged into master when appropriate.
+Every commit in these branches represents a relatively stable state (i.e. it compiles and passes all enabled tc39 tests),
+however because the version of tc39 tests I use is quite old, it may be not as well tested as the ES5.1 functionality. Because there are (usually) no major breaking changes between ECMAScript revisions
+it should not break your existing code. You are encouraged to give it a try and report any bugs found. Please do not submit fixes though without discussing it first, as the code could be changed in the meantime.
 
 ### How do I contribute?
 
@@ -78,12 +113,13 @@ do not just base it on a couple of examples that work fine.
 Current Status
 --------------
 
- * API is still work in progress and is subject to change.
+ * There should be no breaking changes in the API, however it may be extended.
  * Some of the AnnexB functionality is missing.
- * No typed arrays yet.
 
 Basic Example
 -------------
+
+Run JavaScript and get the result value.
 
 ```go
 vm := goja.New()
@@ -98,51 +134,76 @@ if num := v.Export().(int64); num != 4 {
 
 Passing Values to JS
 --------------------
-
-Any Go value can be passed to JS using Runtime.ToValue() method. Primitive types (ints and uints, floats, string, bool)
-are converted to the corresponding JavaScript primitives.
-
-*func(FunctionCall) Value* is treated as a native JavaScript function.
-
-*func(ConstructorCall) \*Object* is treated as a JavaScript constructor (see Native Constructors).
-
-*map[string]interface{}* is converted into a host object that largely behaves like a JavaScript Object.
-
-*[]interface{}* is converted into a host object that behaves largely like a JavaScript Array, however it's not extensible
-because extending it can change the pointer so it becomes detached from the original.
-
-**[]interface{}* is same as above, but the array becomes extensible.
-
-A function is wrapped within a native JavaScript function. When called the arguments are automatically converted to
-the appropriate Go types. If conversion is not possible, a TypeError is thrown.
-
-A slice type is converted into a generic reflect based host object that behaves similar to an unexpandable Array.
-
-A map type with numeric or string keys and no methods is converted into a host object where properties are map keys.
-
-A map type with methods is converted into a host object where properties are method names,
-the map values are not accessible. This is to avoid ambiguity between m\["Property"\] and m.Property.
-
-Any other type is converted to a generic reflect based host object. Depending on the underlying type it behaves similar
-to a Number, String, Boolean or Object. This includes pointers to primitive types (*string, *int, etc...).
-Internally they remain pointers, so changes to the pointed values will be reflected in JS.
-
-Note that these conversions wrap the original value which means any changes made inside JS
-are reflected on the value and calling Export() returns the original value. This applies to all
-reflect based types.
+Any Go value can be passed to JS using Runtime.ToValue() method. See the method's [documentation](https://godoc.org/github.com/dop251/goja#Runtime.ToValue) for more details.
 
 Exporting Values from JS
 ------------------------
-
 A JS value can be exported into its default Go representation using Value.Export() method.
 
-Alternatively it can be exported into a specific Go variable using Runtime.ExportTo() method.
+Alternatively it can be exported into a specific Go variable using [Runtime.ExportTo()](https://godoc.org/github.com/dop251/goja#Runtime.ExportTo) method.
+
+Within a single export operation the same Object will be represented by the same Go value (either the same map, slice or
+a pointer to the same struct). This includes circular objects and makes it possible to export them.
+
+Calling JS functions from Go
+----------------------------
+There are 2 approaches:
+
+- Using [AssertFunction()](https://godoc.org/github.com/dop251/goja#AssertFunction):
+```go
+vm := New()
+_, err := vm.RunString(`
+function sum(a, b) {
+    return a+b;
+}
+`)
+if err != nil {
+    panic(err)
+}
+sum, ok := AssertFunction(vm.Get("sum"))
+if !ok {
+    panic("Not a function")
+}
+
+res, err := sum(Undefined(), vm.ToValue(40), vm.ToValue(2))
+if err != nil {
+    panic(err)
+}
+fmt.Println(res)
+// Output: 42
+```
+- Using [Runtime.ExportTo()](https://godoc.org/github.com/dop251/goja#Runtime.ExportTo):
+```go
+const SCRIPT = `
+function f(param) {
+    return +param + 2;
+}
+`
+
+vm := New()
+_, err := vm.RunString(SCRIPT)
+if err != nil {
+    panic(err)
+}
+
+var fn func(string) string
+err = vm.ExportTo(vm.Get("f"), &fn)
+if err != nil {
+    panic(err)
+}
+
+fmt.Println(fn("40")) // note, _this_ value in the function will be undefined.
+// Output: 42
+```
+
+The first one is more low level and allows specifying _this_ value, whereas the second one makes the function look like
+a normal Go function.
 
 Mapping struct field and method names
 -------------------------------------
 By default, the names are passed through as is which means they are capitalised. This does not match
 the standard JavaScript naming convention, so if you need to make your JS code look more natural or if you are
-dealing with a 3rd party library, you can use a FieldNameMapper:
+dealing with a 3rd party library, you can use a [FieldNameMapper](https://godoc.org/github.com/dop251/goja#FieldNameMapper):
 
 ```go
 vm := New()
@@ -156,39 +217,14 @@ fmt.Println(res.Export())
 // Output: 42
 ```
 
-There are two standard mappers: `TagFieldNameMapper` and `UncapFieldNameMapper`, or you can use your own implementation.
+There are two standard mappers: [TagFieldNameMapper](https://godoc.org/github.com/dop251/goja#TagFieldNameMapper) and
+[UncapFieldNameMapper](https://godoc.org/github.com/dop251/goja#UncapFieldNameMapper), or you can use your own implementation.
 
 Native Constructors
 -------------------
 
-In order to implement a constructor function in Go:
-```go
-func MyObject(call goja.ConstructorCall) *Object {
-    // call.This contains the newly created object as per http://www.ecma-international.org/ecma-262/5.1/index.html#sec-13.2.2
-    // call.Arguments contain arguments passed to the function
-
-    call.This.Set("method", method)
-
-    //...
-
-    // If return value is a non-nil *Object, it will be used instead of call.This
-    // This way it is possible to return a Go struct or a map converted
-    // into goja.Value using runtime.ToValue(), however in this case
-    // instanceof will not work as expected.
-    return nil
-}
-
-runtime.Set("MyObject", MyObject)
-
-```
-
-Then it can be used in JS as follows:
-
-```js
-var o = new MyObject(arg);
-var o1 = MyObject(arg); // same thing
-o instanceof MyObject && o1 instanceof MyObject; // true
-```
+In order to implement a constructor function in Go use `func (goja.ConstructorCall) *goja.Object`.
+See [Runtime.ToValue()](https://godoc.org/github.com/dop251/goja#Runtime.ToValue) documentation for more details.
 
 Regular Expressions
 -------------------

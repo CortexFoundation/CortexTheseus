@@ -61,6 +61,43 @@ func errResp(code errCode, format string, v ...interface{}) error {
 	return fmt.Errorf("%v - %v", code, fmt.Sprintf(format, v...))
 }
 
+// txPool defines the methods needed from a transaction pool implementation to
+// support all the operations needed by the Cortex chain protocols.
+type txPool interface {
+	// Has returns an indicator whether txpool has a transaction
+	// cached with the given hash.
+	Has(hash common.Hash) bool
+
+	// Get retrieves the transaction from local txpool with given
+	// tx hash.
+	Get(hash common.Hash) *types.Transaction
+
+	// AddRemotes should add the given transactions to the pool.
+	AddRemotes([]*types.Transaction) []error
+
+	// Pending should return pending transactions.
+	// The slice should be modifiable by the caller.
+	Pending(enforceTips bool) map[common.Address]types.Transactions
+
+	// SubscribeNewTxsEvent should return an event subscription of
+	// NewTxsEvent and send events to the given channel.
+	SubscribeNewTxsEvent(chan<- core.NewTxsEvent) event.Subscription
+}
+
+// handlerConfig is the collection of initialization parameters to create a full
+// node network handler.
+type handlerConfig struct {
+	Database   ctxcdb.Database           // Database for direct sync insertions
+	Chain      *core.BlockChain          // Blockchain to serve data from
+	TxPool     txPool                    // Transaction pool to propagate from
+	Network    uint64                    // Network identifier to adfvertise
+	Sync       downloader.SyncMode       // Whether to fast or full sync
+	BloomCache uint64                    // Megabytes to alloc for fast sync bloom
+	EventMux   *event.TypeMux            // Legacy event mux, deprecate for `feed`
+	Checkpoint *params.TrustedCheckpoint // Hard coded checkpoint for sync challenges
+	Whitelist  map[uint64]common.Hash    // Hard coded whitelist for sync challenged
+}
+
 type ProtocolManager struct {
 	networkID  uint64
 	forkFilter forkid.Filter // Fork ID filter, constant across the lifetime of the node

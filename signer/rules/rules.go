@@ -24,9 +24,9 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/internal/ctxcapi"
+	"github.com/CortexFoundation/CortexTheseus/internal/jsre/deps"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/signer/core"
-	"github.com/CortexFoundation/CortexTheseus/signer/rules/deps"
 	"github.com/CortexFoundation/CortexTheseus/signer/storage"
 	"github.com/dop251/goja"
 )
