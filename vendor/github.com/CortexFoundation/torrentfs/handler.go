@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"os"
 	"path/filepath"
@@ -1090,7 +1089,7 @@ func (tm *TorrentManager) getFile(infohash, subpath string) ([]byte, uint64, err
 		tm.fileLock.Lock()
 		defer tm.fileLock.Unlock()
 		diskReadMeter.Mark(1)
-		data, err := ioutil.ReadFile(filepath.Join(tm.DataDir, key))
+		data, err := os.ReadFile(filepath.Join(tm.DataDir, key))
 
 		//data final verification
 		for _, file := range torrent.Files() {
