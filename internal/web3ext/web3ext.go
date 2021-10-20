@@ -693,10 +693,6 @@ web3._extend({
 	property: 'fs',
 	methods: [],
 	properties: [
-		new web3._extend.Property({
-			name: 'name',
-			getter: 'fs_name'
-		}),
         new web3._extend.Method({
 			name: 'seedingLocal',
 			call: 'fs_seedingLocal',
