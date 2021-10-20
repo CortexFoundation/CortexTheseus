@@ -60,6 +60,10 @@ func (b *CortexAPIBackend) SetHead(number uint64) {
 	b.ctxc.blockchain.SetHead(number)
 }
 
+func (b *CortexAPIBackend) SeedingLocal(filePath string, isLinkMode bool) (string, error) {
+	return b.ctxc.synapse.SeedingLocal(filePath, isLinkMode)
+}
+
 func (b *CortexAPIBackend) HeaderByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*types.Header, error) {
 	// Pending block is only known by the miner
 	if blockNr == rpc.PendingBlockNumber {

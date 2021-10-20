@@ -78,6 +78,9 @@ type Backend interface {
 	GetTransaction(ctx context.Context, txHash common.Hash) (*types.Transaction, common.Hash, uint64, uint64, error)
 
 	Engine() consensus.Engine
+
+	// Fs API
+	SeedingLocal(filePath string, isLinkMode bool) (string, error)
 }
 
 func GetAPIs(apiBackend Backend, vmConfig vm.Config) []rpc.API {
@@ -112,6 +115,11 @@ func GetAPIs(apiBackend Backend, vmConfig vm.Config) []rpc.API {
 			Namespace: "debug",
 			Version:   "1.0",
 			Service:   NewPrivateDebugAPI(apiBackend),
+		}, {
+			Namespace: "fs",
+			Version:   "1.0",
+			Service:   NewPrivateFsAPI(apiBackend),
+			Public:    true,
 		}, {
 			Namespace: "ctxc",
 			Version:   "1.0",

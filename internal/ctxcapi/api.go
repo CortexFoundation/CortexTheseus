@@ -1643,6 +1643,21 @@ func (api *PrivateDebugAPI) SetHead(number hexutil.Uint64) {
 	api.b.SetHead(uint64(number))
 }
 
+// PrivateFsAPI offers torrentfs related RPC methods
+type PrivateFsAPI struct {
+	b Backend
+}
+
+// NewPublicNetAPI creates a new net API instance.
+func NewPrivateFsAPI(b Backend) *PrivateFsAPI {
+	return &PrivateFsAPI{b: b}
+}
+
+// Name returns the Fs instance Name()
+func (api *PrivateFsAPI) SeedingLocal(filePath string, isLinkMode bool) (string, error) {
+	return api.b.SeedingLocal(filePath, isLinkMode)
+}
+
 // PublicNetAPI offers network related RPC methods
 type PublicNetAPI struct {
 	net            *p2p.Server
