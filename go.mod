@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 	github.com/CortexFoundation/inference v0.0.0-20210706060454-ada520ff9946
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.23-0.20211018030640-b1b9ca82a80e
+	github.com/CortexFoundation/torrentfs v1.0.23-0.20211019033535-590c6d206586
 	github.com/VictoriaMetrics/fastcache v1.7.0
 	github.com/arsham/figurine v1.0.1
 	github.com/aws/aws-sdk-go-v2 v1.3.0
@@ -85,7 +85,7 @@ require (
 	github.com/anacrolix/multiless v0.1.1-0.20210529082330-de2f6cf29619 // indirect
 	github.com/anacrolix/stm v0.3.0 // indirect
 	github.com/anacrolix/sync v0.4.0 // indirect
-	github.com/anacrolix/torrent v1.33.1-0.20211011003340-637045c19a5b // indirect
+	github.com/anacrolix/torrent v1.33.1-0.20211019030748-3ef8cfba27af // indirect
 	github.com/anacrolix/upnp v0.1.2-0.20200416075019-5e9378ed1425 // indirect
 	github.com/anacrolix/utp v0.1.0 // indirect
 	github.com/arsham/rainbow v1.0.0 // indirect
