@@ -119,7 +119,7 @@ func GetAPIs(apiBackend Backend, vmConfig vm.Config) []rpc.API {
 			Namespace: "fs",
 			Version:   "1.0",
 			Service:   NewPrivateFsAPI(apiBackend),
-			Public:    true,
+			Public:    false,
 		}, {
 			Namespace: "ctxc",
 			Version:   "1.0",
