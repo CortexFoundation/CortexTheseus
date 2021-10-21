@@ -299,7 +299,7 @@ func (m *Monitor) rpcBatchBlockByNumber(from, to uint64) (result []*types.Block,
 
 	m.rpcWg.Wait()
 
-	return result, err
+	return
 }
 
 func (m *Monitor) getRemainingSize(address string) (uint64, error) {
@@ -322,9 +322,9 @@ func (m *Monitor) getReceipt(tx string) (receipt types.Receipt, err error) {
 	rpcReceiptMeter.Mark(1)
 	if err = m.cl.Call(&receipt, "ctxc_getTransactionReceipt", tx); err != nil {
 		log.Warn("R is nil", "R", tx, "err", err)
-		return receipt, err
 	}
-	return receipt, nil
+
+	return
 }
 
 func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta, b *types.Block) error {

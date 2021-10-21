@@ -29,6 +29,7 @@ var Modules = map[string]string{
 	"rpc":        RPC_JS,
 	"shh":        Shh_JS,
 	"txpool":     TxPool_JS,
+	"fs":         Fs_JS,
 }
 
 const Chequebook_JS = `
@@ -682,6 +683,20 @@ web3._extend({
 			name: 'contentFrom',
 			call: 'txpool_contentFrom',
 			params: 1,
+		}),
+	]
+});
+`
+
+const Fs_JS = `
+web3._extend({
+	property: 'fs',
+	methods: [],
+	properties: [
+        new web3._extend.Method({
+			name: 'seedingLocal',
+			call: 'fs_seedingLocal',
+			params: 2,
 		}),
 	]
 });

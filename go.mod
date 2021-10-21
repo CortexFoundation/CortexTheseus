@@ -4,9 +4,9 @@ go 1.17
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
-	github.com/CortexFoundation/inference v0.0.0-20210706060454-ada520ff9946
+	github.com/CortexFoundation/inference v1.0.2-0.20211021072419-330ffe5ad803
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.23-0.20211019033535-590c6d206586
+	github.com/CortexFoundation/torrentfs v1.0.24-0.20211021071129-9c3774c7f89d
 	github.com/VictoriaMetrics/fastcache v1.7.0
 	github.com/arsham/figurine v1.0.1
 	github.com/aws/aws-sdk-go-v2 v1.3.0
@@ -116,6 +116,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
+	github.com/otiai10/copy v1.6.0 // indirect
 	github.com/pion/datachannel v1.4.21 // indirect
 	github.com/pion/dtls/v2 v2.0.9 // indirect
 	github.com/pion/ice/v2 v2.1.12 // indirect

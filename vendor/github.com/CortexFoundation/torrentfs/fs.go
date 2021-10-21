@@ -20,13 +20,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
+	"github.com/CortexFoundation/torrentfs/params"
+	"github.com/anacrolix/torrent/bencode"
+	"github.com/anacrolix/torrent/metainfo"
 	lru "github.com/hashicorp/golang-lru"
-	"sync"
+	Copy "github.com/otiai10/copy"
 	//"time"
 )
 
@@ -317,6 +325,106 @@ func (fs *TorrentFS) GetFile(ctx context.Context, infohash, subpath string) ([]b
 	}
 
 	return ret, err
+}
+
+// Seeding Local File, validate folder, seeding and
+// load files, default mode is copyMode, linkMode
+// will limit user's operations for original files
+func (fs *TorrentFS) SeedingLocal(ctx context.Context, filePath string, isLinkMode bool) (infoHash string, err error) {
+	// 1. check folder exist
+	if _, err = os.Stat(filePath); err != nil {
+		return
+	}
+
+	// 2. check subfile data exist and not empty:
+	// recursively iterate until meet file not empty
+	var iterateForValidFile func(basePath string, dataInfo os.FileInfo) bool
+	iterateForValidFile = func(basePath string, dataInfo os.FileInfo) bool {
+		filePath := filepath.Join(basePath, dataInfo.Name())
+		if dataInfo.IsDir() {
+			dirFp, _ := os.Open(filePath)
+			if fInfos, err := dirFp.Readdir(0); err != nil {
+				return false
+			} else {
+				for _, v := range fInfos {
+					// return as soon as possible if meet 'true', else continue
+					if iterateForValidFile(filePath, v) {
+						return true
+					}
+				}
+			}
+		} else if dataInfo.Size() > 0 {
+			return true
+		}
+		return false
+	}
+
+	dataPath := filepath.Join(filePath, "data")
+	if dataInfo, err1 := os.Stat(dataPath); err1 != nil {
+		err = err1
+		return
+	} else {
+		validFlag := iterateForValidFile(filePath, dataInfo)
+		if !validFlag {
+			err = errors.New("SeedingLocal: Empty Seeding Data!")
+			log.Error("SeedingLocal", "check", err.Error())
+			return
+		}
+	}
+
+	// 3. generate torrent file, rewrite if exists
+	mi := metainfo.MetaInfo{
+		AnnounceList: [][]string{params.MainnetTrackers},
+	}
+	mi.SetDefaults()
+	info := metainfo.Info{PieceLength: 256 * 1024}
+	if err = info.BuildFromFilePath(dataPath); err != nil {
+		return
+	}
+	if mi.InfoBytes, err = bencode.Marshal(info); err != nil {
+		return
+	}
+	fileTorrent, err := os.OpenFile(filepath.Join(filePath, "torrent"), os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return
+	}
+	if err = mi.Write(fileTorrent); err != nil {
+		return
+	}
+
+	// 4. copy or link, will not cover if dst exist!
+	ih := common.Address(mi.HashInfoBytes())
+	log.Info("SeedingLocal", "Generate infoHash", ih.Hex(), "From dataPath", dataPath)
+	linkDst := strings.TrimPrefix(strings.ToLower(ih.Hex()), common.Prefix)
+	linkDst = filepath.Join(fs.storage().TmpDataDir, linkDst)
+	if !isLinkMode {
+		err = Copy.Copy(filePath, linkDst)
+	} else {
+
+		// check if symbol link exist
+		if _, err = os.Stat(linkDst); err == nil {
+			// choice-1: original symbol link exists, cover it. (passed)
+
+			// choice-2: original symbol link exists, return error
+			err = os.ErrExist
+		} else {
+			// create symbol link
+			if absOriFilePath, err1 := filepath.Abs(filePath); err1 != nil {
+				err = err1
+			} else {
+				err = os.Symlink(absOriFilePath, linkDst)
+			}
+		}
+	}
+
+	// 5. seeding
+	if err == nil || err == os.ErrExist {
+		log.Debug("SeedingLocal", "dest", linkDst, "err", err)
+		err = fs.storage().Search(context.Background(), ih.Hex(), 0, nil)
+	}
+
+	infoHash = ih.Hex()
+	return
 }
 
 //Download is used to download file with request
