@@ -178,3 +178,11 @@ func (s *Synapse) Download(info common.StorageEntry) error {
 	}
 	return s.download(info.Hash, info.Size)
 }
+
+// SeedingLocal is used to control the torrentfs, not for remote invoked now
+func (s *Synapse) SeedingLocal(filePath string, isLinkMode bool) (ih string, err error) {
+	if s.config.IsRemoteInfer {
+		return
+	}
+	return s.seedingLocal(filePath, isLinkMode)
+}

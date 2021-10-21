@@ -186,39 +186,30 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 	//v, _ := s.modelLock.LoadOrStore(modelHash, sync.Mutex{})
 	//mutex := v.(sync.Mutex)
 
-	tmp, ok := s.caches[s.config.DeviceId].Get(modelHash)
-	if !ok {
+	model_tmp, has_model := s.caches[s.config.DeviceId].Get(modelHash)
+	if !has_model {
 		modelJson, modelJson_err := s.config.Storagefs.GetFileWithSize(ctx, modelHash, modelSize, SYMBOL_PATH)
 		if modelJson_err != nil || modelJson == nil {
-			log.Debug("Searching symbol", "ih", modelHash, "error", modelJson_err, "size", modelSize)
+			log.Debug("Searching symbol", "ih", modelHash, "error", modelJson_err)
 			return nil, KERNEL_RUNTIME_ERROR
 		}
-
 		modelParams, modelParams_err := s.config.Storagefs.GetFileWithSize(ctx, modelHash, modelSize, PARAM_PATH)
 		if modelParams_err != nil || modelParams == nil {
-			log.Debug("Searching params", "ih", modelHash, "error", modelParams_err, "size", modelSize)
+			log.Debug("Searching params", "ih", modelHash, "error", modelParams_err)
 			return nil, KERNEL_RUNTIME_ERROR
 		}
-
 		var deviceType = 0
 		if s.config.DeviceType == "cuda" {
 			deviceType = 1
 		}
-
-		// model import
 		model, status = kernel.New(s.lib, modelJson, modelParams, deviceType, s.config.DeviceId)
 		if _, err := getReturnByStatusCode(model, status); err != nil {
 			return nil, KERNEL_RUNTIME_ERROR
 		}
-
 		log.Info("AI memory used", "size", common.StorageSize(int64(model.Size())))
 		s.caches[s.config.DeviceId].Add(modelHash, model, int64(model.Size()))
 	} else {
-		model = tmp.(*kernel.Model)
-	}
-
-	if model == nil {
-		return nil, KERNEL_RUNTIME_ERROR
+		model = model_tmp.(*kernel.Model)
 	}
 
 	result, status = model.Predict(inputContent, cvmVersion)
@@ -272,4 +263,16 @@ func (s *Synapse) download(infohash string, request uint64) error {
 	}
 
 	return nil
+}
+
+func (s *Synapse) seedingLocal(filePath string, isLinkMode bool) (ih string, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	ih, err = s.config.Storagefs.SeedingLocal(ctx, filePath, isLinkMode)
+	if err != nil {
+		log.Error("SeedingLocal", "synapse", err.Error())
+		return ih, KERNEL_RUNTIME_ERROR
+	}
+
+	return
 }
