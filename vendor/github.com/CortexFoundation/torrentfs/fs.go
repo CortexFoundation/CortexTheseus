@@ -359,9 +359,9 @@ func (fs *TorrentFS) SeedingLocal(ctx context.Context, filePath string, isLinkMo
 		return false
 	}
 
+	var dataInfo os.FileInfo
 	dataPath := filepath.Join(filePath, "data")
-	if dataInfo, err1 := os.Stat(dataPath); err1 != nil {
-		err = err1
+	if dataInfo, err = os.Stat(dataPath); err != nil {
 		return
 	} else {
 		validFlag := iterateForValidFile(filePath, dataInfo)
@@ -384,7 +384,9 @@ func (fs *TorrentFS) SeedingLocal(ctx context.Context, filePath string, isLinkMo
 	if mi.InfoBytes, err = bencode.Marshal(info); err != nil {
 		return
 	}
-	fileTorrent, err := os.OpenFile(filepath.Join(filePath, "torrent"), os.O_CREATE|os.O_WRONLY, 0644)
+
+	var fileTorrent *os.File
+	fileTorrent, err = os.OpenFile(filepath.Join(filePath, "torrent"), os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return
 	}
@@ -394,7 +396,7 @@ func (fs *TorrentFS) SeedingLocal(ctx context.Context, filePath string, isLinkMo
 
 	// 4. copy or link, will not cover if dst exist!
 	ih := common.Address(mi.HashInfoBytes())
-	log.Info("SeedingLocal", "Generate infoHash", ih.Hex(), "From dataPath", dataPath)
+	log.Info("Local file Seeding", "ih", ih.Hex(), "path", dataPath)
 	linkDst := strings.TrimPrefix(strings.ToLower(ih.Hex()), common.Prefix)
 	linkDst = filepath.Join(fs.storage().TmpDataDir, linkDst)
 	if !isLinkMode {
@@ -409,9 +411,8 @@ func (fs *TorrentFS) SeedingLocal(ctx context.Context, filePath string, isLinkMo
 			err = os.ErrExist
 		} else {
 			// create symbol link
-			if absOriFilePath, err1 := filepath.Abs(filePath); err1 != nil {
-				err = err1
-			} else {
+			var absOriFilePath string
+			if absOriFilePath, err = filepath.Abs(filePath); err == nil {
 				err = os.Symlink(absOriFilePath, linkDst)
 			}
 		}
