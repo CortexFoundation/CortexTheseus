@@ -17,6 +17,10 @@ var (
 	}}
 )
 
+func Levelf(level Level, format string, a ...interface{}) {
+	Default.Log(Fmsg(format, a...).Skip(1).SetLevel(level))
+}
+
 func Printf(format string, a ...interface{}) {
 	Default.Log(Fmsg(format, a...).Skip(1))
 }

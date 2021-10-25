@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 	github.com/CortexFoundation/inference v1.0.2-0.20211021072419-330ffe5ad803
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.24-0.20211022091603-0e4bce2a9dc8
+	github.com/CortexFoundation/torrentfs v1.0.24-0.20211025052717-f8fa4749ae9f
 	github.com/VictoriaMetrics/fastcache v1.7.0
 	github.com/arsham/figurine v1.0.1
 	github.com/aws/aws-sdk-go-v2 v1.3.0
@@ -19,7 +19,7 @@ require (
 	github.com/cloudflare/cloudflare-go v0.11.7
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/docker v1.13.1
-	github.com/dop251/goja v0.0.0-20211011172007-d99e4b8cbf48
+	github.com/dop251/goja v0.0.0-20211022113120-dc8c55024d06
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 	github.com/fogleman/ease v0.0.0-20170301025033-8da417bf1776
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
@@ -71,13 +71,13 @@ require (
 	github.com/CortexFoundation/merkletree v0.0.0-20210226031755-94f6423532ee // indirect
 	github.com/RoaringBitmap/roaring v0.9.4 // indirect
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
-	github.com/allegro/bigcache/v3 v3.0.0 // indirect
+	github.com/allegro/bigcache/v3 v3.0.1 // indirect
 	github.com/anacrolix/chansync v0.3.0-0.0.20211007004133-3f72684c4a93 // indirect
 	github.com/anacrolix/confluence v1.8.0 // indirect
 	github.com/anacrolix/dht/v2 v2.10.6-0.20211007004332-99263ec9c1c8 // indirect
 	github.com/anacrolix/envpprof v1.1.1 // indirect
 	github.com/anacrolix/go-libutp v1.0.4 // indirect
-	github.com/anacrolix/log v0.9.0 // indirect
+	github.com/anacrolix/log v0.10.0 // indirect
 	github.com/anacrolix/missinggo v1.3.0 // indirect
 	github.com/anacrolix/missinggo/perf v1.0.0 // indirect
 	github.com/anacrolix/missinggo/v2 v2.5.2 // indirect
@@ -146,7 +146,7 @@ require (
 	github.com/tklauser/numcpus v0.2.2 // indirect
 	github.com/willf/bitset v1.1.11 // indirect
 	github.com/willf/bloom v2.0.3+incompatible // indirect
-	go.etcd.io/bbolt v1.3.6 // indirect
+	go.etcd.io/bbolt v1.3.7-0.20210702075620-b18879eb6c41 // indirect
 	golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d // indirect
 	golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
