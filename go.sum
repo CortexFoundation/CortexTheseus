@@ -74,6 +74,8 @@ github.com/CortexFoundation/torrentfs v1.0.23-0.20211019033535-590c6d206586/go.m
 github.com/CortexFoundation/torrentfs v1.0.24-0.20211021071129-9c3774c7f89d/go.mod h1:lc9BMUYa9EPz5nPNnkfDPsk0RQU3QoIVhoRGN9ji6GE=
 github.com/CortexFoundation/torrentfs v1.0.24-0.20211022091603-0e4bce2a9dc8 h1:YKYGFnVAYqiKhOOLeLaua/oS+tkAbLFcsSGAdRo0Bpw=
 github.com/CortexFoundation/torrentfs v1.0.24-0.20211022091603-0e4bce2a9dc8/go.mod h1:lc9BMUYa9EPz5nPNnkfDPsk0RQU3QoIVhoRGN9ji6GE=
+github.com/CortexFoundation/torrentfs v1.0.24-0.20211025052717-f8fa4749ae9f h1:O/w3lqLZFzXHTXTJOYbtmvtrZ6gH7IzFpGVUC5Za0L8=
+github.com/CortexFoundation/torrentfs v1.0.24-0.20211025052717-f8fa4749ae9f/go.mod h1:2S0+PTFdasNpFYUj+eGN0rsWtAeq/1ve6wRkIGSOwfE=
 github.com/DATA-DOG/go-sqlmock v1.3.3/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
 github.com/Julusian/godocdown v0.0.0-20170816220326-6d19f8ff2df8/go.mod h1:INZr5t32rG59/5xeltqoCJoNY7e5x/3xoY9WSWVWg74=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
@@ -122,6 +124,8 @@ github.com/allegro/bigcache/v3 v3.0.0-20210608115912-ce711ba7ece5/go.mod h1:aPyh
 github.com/allegro/bigcache/v3 v3.0.0-20210909062657-c2b72fe951a1/go.mod h1:aPyh7jEvrog9zAwx5N7+JUQX5dZTSGpxF1LAR4dr35I=
 github.com/allegro/bigcache/v3 v3.0.0 h1:5Hxq+GTy8gHEeQccCZZDCfZRTydUfErdUf0iVDcMAFg=
 github.com/allegro/bigcache/v3 v3.0.0/go.mod h1:t5TAJn1B9qvf/VlJrSM1r6NlFAYoFDubYUsCuIO9nUQ=
+github.com/allegro/bigcache/v3 v3.0.1 h1:Q4Xl3chywXuJNOw7NV+MeySd3zGQDj4KCpkCg0te8mc=
+github.com/allegro/bigcache/v3 v3.0.1/go.mod h1:aPyh7jEvrog9zAwx5N7+JUQX5dZTSGpxF1LAR4dr35I=
 github.com/anacrolix/args v0.1.1-0.20210917054839-725094dd33fe/go.mod h1:RCPBt2vU1GJn4gG9rL+fuYu7ivnE9tmK2pHm63t3yO0=
 github.com/anacrolix/chansync v0.0.0-20210524073341-a336ebc2de92/go.mod h1:DZsatdsdXxD0WiwcGl0nJVwyjCKMDv+knl1q2iBjA2k=
 github.com/anacrolix/chansync v0.3.0-0.0.20211007004133-3f72684c4a93 h1:sQ8igc3anitrtKPEHRK+RBvuNZP0+DRAa6jskKlq4+k=
@@ -171,6 +175,8 @@ github.com/anacrolix/log v0.7.1-0.20200604014615-c244de44fd2d/go.mod h1:s5yBP/j0
 github.com/anacrolix/log v0.8.0/go.mod h1:s5yBP/j046fm9odtUTbHOfDUq/zh1W8OkPpJtnX0oQI=
 github.com/anacrolix/log v0.9.0 h1:HD1Ml3WV/6lRbITKqi5EIS3e9rVOGHej5V9UaQA4cvY=
 github.com/anacrolix/log v0.9.0/go.mod h1:s5yBP/j046fm9odtUTbHOfDUq/zh1W8OkPpJtnX0oQI=
+github.com/anacrolix/log v0.10.0 h1:uz9XDnmsw8ZEO/TTRU03lL7I74PlgVRFszYqPZ39WNY=
+github.com/anacrolix/log v0.10.0/go.mod h1:s5yBP/j046fm9odtUTbHOfDUq/zh1W8OkPpJtnX0oQI=
 github.com/anacrolix/missinggo v0.0.0-20180522035225-b4a5853e62ff/go.mod h1:b0p+7cn+rWMIphK1gDH2hrDuwGOcbB6V4VXeSsEfHVk=
 github.com/anacrolix/missinggo v0.0.0-20180725070939-60ef2fbf63df/go.mod h1:kwGiTUTZ0+p4vAz3VbAI5a30t2YbvemcmspjKwrAz5s=
 github.com/anacrolix/missinggo v0.2.1-0.20190310234110-9fbdc9f242a8/go.mod h1:MBJu3Sk/k3ZfGYcS7z18gwfu72Ey/xopPFJJbTi5yIo=
@@ -383,8 +389,9 @@ github.com/docker/docker v1.13.1 h1:IkZjBSIc8hBjLpqeAbeE5mca5mNgeatLHBy3GO78BWo=
 github.com/docker/docker v1.13.1/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815/go.mod h1:WwZ+bS3ebgob9U8Nd0kOddGdZWjyMGR8Wziv+TBNwSE=
 github.com/dop251/goja v0.0.0-20200721192441-a695b0cdd498/go.mod h1:Mw6PkjjMXWbTj+nnj4s3QPXq1jaT0s5pC0iFD4+BOAA=
-github.com/dop251/goja v0.0.0-20211011172007-d99e4b8cbf48 h1:iZOop7pqsg+56twTopWgwCGxdB5SI2yDO8Ti7eTRliQ=
 github.com/dop251/goja v0.0.0-20211011172007-d99e4b8cbf48/go.mod h1:R9ET47fwRVRPZnOGvHxxhuZcbrMCuiqOz3Rlrh4KSnk=
+github.com/dop251/goja v0.0.0-20211022113120-dc8c55024d06 h1:XqC5eocqw7r3+HOhKYqaYH07XBiBDp9WE3NQK8XHSn4=
+github.com/dop251/goja v0.0.0-20211022113120-dc8c55024d06/go.mod h1:R9ET47fwRVRPZnOGvHxxhuZcbrMCuiqOz3Rlrh4KSnk=
 github.com/dop251/goja_nodejs v0.0.0-20210225215109-d91c329300e7/go.mod h1:hn7BA7c8pLvoGndExHudxTDKZ84Pyvv+90pbBjbTz0Y=
 github.com/dustin/go-humanize v0.0.0-20171111073723-bb3d318650d4/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
 github.com/dustin/go-humanize v0.0.0-20180421182945-02af3965c54e/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
@@ -1160,6 +1167,8 @@ go.etcd.io/bbolt v1.3.6-0.20200807205753-f6be82302843/go.mod h1:G5EMThwa9y8QZGBC
 go.etcd.io/bbolt v1.3.6-0.20210304170446-8f715c091730/go.mod h1:G5EMThwa9y8QZGBClrRx5EY+Yw9kAhnjy3bSjsnlVTQ=
 go.etcd.io/bbolt v1.3.6 h1:/ecaJf0sk1l4l6V4awd65v2C3ILy7MSj+s/x1ADCIMU=
 go.etcd.io/bbolt v1.3.6/go.mod h1:qXsaaIqmgQH0T+OPdb99Bf+PKfBBQVAdyD6TY9G8XM4=
+go.etcd.io/bbolt v1.3.7-0.20210702075620-b18879eb6c41 h1:v6yC/8VoH+KB1KqLqpCjjFQfsuHSjwTyK0SL4gGmyBc=
+go.etcd.io/bbolt v1.3.7-0.20210702075620-b18879eb6c41/go.mod h1:qXsaaIqmgQH0T+OPdb99Bf+PKfBBQVAdyD6TY9G8XM4=
 go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738/go.mod h1:dnLIgRNXwCJa5e+c6mIZCrds/GIG4ncV9HhK5PX7jPg=
 go.opencensus.io v0.18.0/go.mod h1:vKdFvxhtzZ9onBp9VKHK8z/sRpBMnKAsufL7wlDrCOA=
 go.opencensus.io v0.20.1/go.mod h1:6WKK9ahsWS3RSO+PY9ZHZUfv2irvY6gN279GOPZjmmk=
