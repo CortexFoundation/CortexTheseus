@@ -109,6 +109,8 @@ func New(config *Config, cache, compress, listen bool) (*TorrentFS, error) {
 				"version": ProtocolVersion,
 				"status": map[string]interface{}{
 					"dht":            !config.DisableDHT,
+					"tcp":            !config.DisableTCP,
+					"utp":            !config.DisableUTP,
 					"port":           inst.LocalPort(),
 					"root":           inst.chain().Root().Hex(),
 					"files":          inst.Congress(),
