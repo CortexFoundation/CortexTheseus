@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"sort"
@@ -138,11 +137,6 @@ type Torrent struct {
 	piecesQueuedForHash       bitmap.Bitmap
 	activePieceHashes         int
 	initialPieceCheckDisabled bool
-
-	// A pool of piece priorities []int for assignment to new connections.
-	// These "inclinations" are used to give connections preference for
-	// different pieces.
-	connPieceInclinationPool sync.Pool
 
 	// Count of each request across active connections.
 	pendingRequests pendingRequests
@@ -1222,21 +1216,6 @@ func (t *Torrent) openNewConns() (initiated int) {
 	return
 }
 
-func (t *Torrent) getConnPieceInclination() []int {
-	_ret := t.connPieceInclinationPool.Get()
-	if _ret == nil {
-		pieceInclinationsNew.Add(1)
-		return rand.Perm(int(t.numPieces()))
-	}
-	pieceInclinationsReused.Add(1)
-	return *_ret.(*[]int)
-}
-
-func (t *Torrent) putPieceInclination(pi []int) {
-	t.connPieceInclinationPool.Put(&pi)
-	pieceInclinationsPut.Add(1)
-}
-
 func (t *Torrent) updatePieceCompletion(piece pieceIndex) bool {
 	p := t.piece(piece)
 	uncached := t.pieceCompleteUncached(piece)
@@ -1398,13 +1377,6 @@ func (t *Torrent) decPeerPieceAvailability(p *Peer) {
 		p.t.decPieceAvailability(pieceIndex(i))
 		return true
 	})
-}
-
-func (t *Torrent) numActivePeers() (num int) {
-	t.iterPeers(func(*Peer) {
-		num++
-	})
-	return
 }
 
 func (t *Torrent) assertPendingRequests() {
@@ -1577,8 +1549,9 @@ func (t *Torrent) startScrapingTracker(_url string) {
 			}
 		}
 		newAnnouncer := &trackerScraper{
-			u: *u,
-			t: t,
+			u:               *u,
+			t:               t,
+			lookupTrackerIp: t.cl.config.LookupTrackerIp,
 		}
 		go newAnnouncer.Run()
 		return newAnnouncer
