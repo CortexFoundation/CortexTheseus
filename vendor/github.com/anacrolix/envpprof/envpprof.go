@@ -45,18 +45,32 @@ func Stop() {
 	}
 }
 
-func startHTTP() {
+func startHTTP(value string) {
 	var l net.Listener
-	for port := uint16(6061); port != 6060; port++ {
-		var err error
-		l, err = net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
-		if err == nil {
-			break
+	if value == "" {
+		for port := uint16(6061); port != 6060; port++ {
+			var err error
+			l, err = net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+			if err == nil {
+				break
+			}
 		}
-	}
-	if l == nil {
-		log.Print("unable to create envpprof listener for http")
-		return
+		if l == nil {
+			log.Print("unable to create envpprof listener for http")
+			return
+		}
+	} else {
+		var addr string
+		_, _, err := net.SplitHostPort(value)
+		if err == nil {
+			addr = value
+		} else {
+			addr = "localhost:"+value
+		}
+		l, err = net.Listen("tcp", addr)
+		if err != nil {
+			panic(err)
+		}
 	}
 	log.Printf("(pid=%d) envpprof serving http://%s", os.Getpid(), l.Addr())
 	go func() {
@@ -80,12 +94,9 @@ func init() {
 			key = item[:equalsPos]
 			value = item[equalsPos+1:]
 		}
-		if value != "" {
-			log.Printf("values not yet supported")
-		}
 		switch key {
 		case "http":
-			startHTTP()
+			startHTTP(value)
 		case "cpu":
 			os.Mkdir(pprofDir, 0750)
 			f, err := ioutil.TempFile(pprofDir, "cpu")
