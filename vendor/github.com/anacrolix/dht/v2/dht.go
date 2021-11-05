@@ -9,18 +9,18 @@ import (
 	"net"
 	"time"
 
+	"github.com/anacrolix/dht/v2/bep44"
+	"github.com/anacrolix/dht/v2/krpc"
 	peer_store "github.com/anacrolix/dht/v2/peer-store"
-
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo/v2"
 	"github.com/anacrolix/torrent/iplist"
 	"github.com/anacrolix/torrent/metainfo"
-
-	"github.com/anacrolix/dht/v2/krpc"
 )
 
 func defaultQueryResendDelay() time.Duration {
-	return jitterDuration(5*time.Second, time.Second)
+	// This should be the highest reasonable UDP latency an end-user might have.
+	return 2 * time.Second
 }
 
 // Uniquely identifies a transaction to us.
@@ -31,15 +31,18 @@ type transactionKey struct {
 
 type StartingNodesGetter func() ([]Addr, error)
 
-// ServerConfig allows to set up a  configuration of the `Server` instance
-// to be created with NewServer
+// ServerConfig allows setting up a  configuration of the `Server` instance to be created with
+// NewServer.
 type ServerConfig struct {
 	// Set NodeId Manually. Caller must ensure that if NodeId does not conform
 	// to DHT Security Extensions, that NoSecurity is also set.
 	NodeId krpc.ID
 	Conn   net.PacketConn
 	// Don't respond to queries from other nodes.
-	Passive       bool
+	Passive bool
+	// Whether to wait for rate limiting to allow us to reply.
+	WaitToReply bool
+
 	StartingNodes StartingNodesGetter
 	// Disable the DHT security extension: http://www.libtorrent.org/dht_sec.html.
 	NoSecurity bool
@@ -59,6 +62,11 @@ type ServerConfig struct {
 	QueryResendDelay func() time.Duration
 	// TODO: Expose Peers, to return NodeInfo for received get_peers queries.
 	PeerStore peer_store.Interface
+	// BEP-44: Storing arbitrary data in the DHT. If not store provided, a default in-memory
+	// implementation will be used.
+	Store bep44.Store
+	//BEP-44: expiration time with non-announced items. Two hours by default
+	Exp time.Duration
 
 	// If no Logger is provided, log.Default is used and log.Debug messages are filtered out. Note
 	// that all messages without a log.Level, have log.Debug added to them before being passed to
@@ -90,16 +98,20 @@ func jitterDuration(average time.Duration, plusMinus time.Duration) time.Duratio
 
 type Peer = krpc.NodeAddr
 
+var DefaultGlobalBootstrapHostPorts = []string{
+	"router.utorrent.com:6881",
+	"router.bittorrent.com:6881",
+	"dht.transmissionbt.com:6881",
+	"dht.aelitis.com:6881",     // Vuze
+	"router.silotis.us:6881",   // IPv6
+	"dht.libtorrent.org:25401", // @arvidn's
+	"dht.anacrolix.link:42069",
+	"router.bittorrent.cloud:42069",
+}
+
 func GlobalBootstrapAddrs(network string) (addrs []Addr, err error) {
 	initDnsResolver()
-	for _, s := range []string{
-		"router.utorrent.com:6881",
-		"router.bittorrent.com:6881",
-		"dht.transmissionbt.com:6881",
-		"dht.aelitis.com:6881",     // Vuze
-		"router.silotis.us:6881",   // IPv6
-		"dht.libtorrent.org:25401", // @arvidn's
-	} {
+	for _, s := range DefaultGlobalBootstrapHostPorts {
 		host, port, err := net.SplitHostPort(s)
 		if err != nil {
 			panic(err)
