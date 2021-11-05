@@ -148,7 +148,7 @@ var (
 		ConstantinopleBlock: big.NewInt(0),
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
-		NeoBlock:            nil,
+		NeoBlock:            big.NewInt(5_000_000),
 		Clique: &CliqueConfig{
 			Period: 3,
 			Epoch:  30000,
@@ -169,7 +169,7 @@ var (
 		ConstantinopleBlock: big.NewInt(0),
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
-		NeoBlock:            nil,
+		NeoBlock:            big.NewInt(5_000_000),
 		Cuckoo:              new(CuckooConfig),
 	}
 
@@ -187,7 +187,7 @@ var (
 		ConstantinopleBlock: big.NewInt(0),
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
-		NeoBlock:            nil,
+		NeoBlock:            big.NewInt(0),
 		Clique: &CliqueConfig{
 			Period: 15,
 			Epoch:  30000,
