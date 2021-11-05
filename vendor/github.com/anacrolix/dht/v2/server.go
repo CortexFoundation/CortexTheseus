@@ -24,6 +24,7 @@ import (
 
 	"github.com/anacrolix/torrent/bencode"
 
+	"github.com/anacrolix/dht/v2/bep44"
 	"github.com/anacrolix/dht/v2/int160"
 	"github.com/anacrolix/dht/v2/krpc"
 	peer_store "github.com/anacrolix/dht/v2/peer-store"
@@ -56,6 +57,8 @@ type Server struct {
 
 	lastBootstrap    time.Time
 	bootstrappingNow bool
+
+	store *bep44.Wrapper
 }
 
 func (s *Server) numGoodNodes() (num int) {
@@ -156,6 +159,8 @@ func NewDefaultServerConfig() *ServerConfig {
 		NoSecurity:    true,
 		StartingNodes: func() ([]Addr, error) { return GlobalBootstrapAddrs("udp") },
 		DefaultWant:   []krpc.Want{krpc.WantNodes, krpc.WantNodes6},
+		Store:         bep44.NewMemory(),
+		Exp:           2 * time.Hour,
 	}
 }
 
@@ -203,6 +208,8 @@ func NewServer(c *ServerConfig) (s *Server, err error) {
 			k: 8,
 		},
 		sendLimit: defaultSendLimiter,
+
+		store: bep44.NewWrapper(c.Store, c.Exp),
 	}
 	rand.Read(s.tokenServer.secret)
 	s.socket = c.Conn
@@ -245,6 +252,7 @@ func (s *Server) IPBlocklist() iplist.Ranger {
 }
 
 func (s *Server) processPacket(b []byte, addr Addr) {
+	//log.Printf("got packet %q", b)
 	if len(b) < 2 || b[0] != 'd' {
 		// KRPC messages are bencoded dicts.
 		readNotKRPCDict.Add(1)
@@ -257,6 +265,7 @@ func (s *Server) processPacket(b []byte, addr Addr) {
 		expvars.Add("processed packets with trailing bytes", 1)
 	} else if err != nil {
 		readUnmarshalError.Add(1)
+		//log.Printf("%s: received bad krpc message from %s: %s: %+q", s, addr, err, b)
 		func() {
 			if se, ok := err.(*bencode.SyntaxError); ok {
 				// The message was truncated.
@@ -273,7 +282,7 @@ func (s *Server) processPacket(b []byte, addr Addr) {
 				}
 			}
 			// if missinggo.CryHeard() {
-			// 	log.Printf("%s: received bad krpc message from %s: %s: %+q", s, addr, err, b)
+			log.Printf("%s: received bad krpc message from %s: %s: %+q", s, addr, err, b)
 			// }
 		}()
 		return
@@ -526,6 +535,76 @@ func (s *Server) handleQuery(source Addr, m krpc.Msg) {
 		}
 
 		s.reply(source, m.T, krpc.Return{})
+	case "put":
+		if !s.validToken(args.Token, source) {
+			expvars.Add("received put with invalid token", 1)
+			return
+		}
+		expvars.Add("received put with valid token", 1)
+
+		i := &bep44.Item{
+			V:    args.V,
+			K:    args.K,
+			Salt: args.Salt,
+			Sig:  args.Sig,
+			Cas:  args.Cas,
+			Seq:  *args.Seq,
+		}
+
+		if err := s.store.Put(i); err != nil {
+			kerr, ok := err.(krpc.Error)
+			if !ok {
+				s.sendError(source, m.T, krpc.ErrorMethodUnknown)
+			}
+
+			s.sendError(source, m.T, kerr)
+			break
+		}
+
+		s.reply(source, m.T, krpc.Return{
+			ID: s.ID(),
+		})
+	case "get":
+		var r krpc.Return
+		if err := s.setReturnNodes(&r, m, source); err != nil {
+			s.sendError(source, m.T, *err)
+			break
+		}
+
+		t := s.createToken(source)
+		r.Token = &t
+
+		item, err := s.store.Get(bep44.Target(args.Target))
+		if err == bep44.ErrItemNotFound {
+			s.reply(source, m.T, r)
+			break
+		}
+
+		if kerr, ok := err.(krpc.Error); ok {
+			s.sendError(source, m.T, kerr)
+			break
+		}
+
+		if err != nil {
+			s.sendError(source, m.T, krpc.Error{
+				Code: krpc.ErrorCodeGenericError,
+				Msg:  err.Error(),
+			})
+			break
+		}
+
+		r.Seq = &item.Seq
+
+		if args.Seq != nil && item.Seq <= *args.Seq {
+			s.reply(source, m.T, r)
+			break
+		}
+
+		r.V = item.V
+		r.K = item.K
+		r.Sig = item.Sig
+
+		s.reply(source, m.T, r)
 	//case "sample_infohashes":
 	//// Nodes supporting this extension should always include the samples field in the response,
 	//// even when it is zero-length. This lets indexing nodes to distinguish nodes supporting this
@@ -554,25 +633,24 @@ func (s *Server) sendError(addr Addr, t string, e krpc.Error) {
 }
 
 func (s *Server) reply(addr Addr, t string, r krpc.Return) {
-	r.ID = s.id.AsByteArray()
-	m := krpc.Msg{
-		T:  t,
-		Y:  "r",
-		R:  &r,
-		IP: addr.KRPC(),
-	}
-	b, err := bencode.Marshal(m)
-	if err != nil {
-		panic(err)
-	}
-	log.Fmsg("replying to %q", addr).Log(s.logger())
-	wrote, err := s.writeToNode(context.Background(), b, addr, false, true)
-	if err != nil {
-		s.config.Logger.Printf("error replying to %s: %s", addr, err)
-	}
-	if wrote {
-		expvars.Add("replied to peer", 1)
-	}
+	go func() {
+		r.ID = s.id.AsByteArray()
+		m := krpc.Msg{
+			T:  t,
+			Y:  "r",
+			R:  &r,
+			IP: addr.KRPC(),
+		}
+		b := bencode.MustMarshal(m)
+		log.Fmsg("replying to %q", addr).Log(s.logger())
+		wrote, err := s.writeToNode(context.Background(), b, addr, s.config.WaitToReply, true)
+		if err != nil {
+			s.config.Logger.Printf("error replying to %s: %s", addr, err)
+		}
+		if wrote {
+			expvars.Add("replied to peer", 1)
+		}
+	}()
 }
 
 // Adds a node if appropriate.
@@ -877,6 +955,7 @@ func (s *Server) transactionQuerySender(
 	rateLimiting QueryRateLimiting,
 	numTries int,
 ) error {
+	//log.Printf("sending %q", b)
 	err := transactionSender(
 		sendCtx,
 		func() error {
@@ -916,6 +995,30 @@ func (s *Server) Ping(node *net.UDPAddr) QueryResult {
 		}
 	}
 	return res
+}
+
+// Put adds a new item to node. You need to call Get first for a write token.
+func (s *Server) Put(ctx context.Context, node Addr, i bep44.Put, token string, rl QueryRateLimiting) QueryResult {
+	if err := s.store.Put(i.ToItem()); err != nil {
+		return QueryResult{
+			Err: err,
+		}
+	}
+	qi := QueryInput{
+		MsgArgs: krpc.MsgArgs{
+			Cas:   i.Cas,
+			ID:    s.ID(),
+			Salt:  i.Salt,
+			Seq:   &i.Seq,
+			Sig:   i.Sig,
+			Token: token,
+			V:     i.V,
+		},
+	}
+	if i.K != nil {
+		qi.MsgArgs.K = *i.K
+	}
+	return s.Query(ctx, node, "put", qi)
 }
 
 func (s *Server) announcePeer(node Addr, infoHash int160.T, port int, token string, impliedPort bool, rl QueryRateLimiting) (ret QueryResult) {
@@ -1019,6 +1122,21 @@ func (s *Server) GetPeers(ctx context.Context, addr Addr, infoHash int160.T, scr
 		}
 	}
 	return
+}
+
+// Get gets item information from a specific target ID. If seq is set to a specific value,
+// only items with seq bigger than the one provided will return a V, K and Sig, if any.
+// Get must be used to get a Put write token, when you want to write an item instead of read it.
+func (s *Server) Get(ctx context.Context, addr Addr, target bep44.Target, seq *int64, rl QueryRateLimiting) QueryResult {
+	return s.Query(ctx, addr, "get", QueryInput{
+		MsgArgs: krpc.MsgArgs{
+			ID:     s.ID(),
+			Target: target,
+			Seq:    seq,
+			Want:   []krpc.Want{krpc.WantNodes, krpc.WantNodes6},
+		},
+		RateLimiting: rl,
+	})
 }
 
 func (s *Server) closestGoodNodeInfos(
