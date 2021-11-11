@@ -698,6 +698,20 @@ web3._extend({
 			call: 'fs_seedingLocal',
 			params: 2,
 		}),
+        new web3._extend.Method({
+			name: 'pauseLocalSeed',
+			call: 'fs_pauseLocalSeed',
+			params: 1,
+		}),
+        new web3._extend.Method({
+			name: 'resumeLocalSeed',
+			call: 'fs_resumeLocalSeed',
+			params: 1,
+		}),
+        new web3._extend.Method({
+			name: 'listAllTorrents',
+			call: 'fs_listAllTorrents',
+		}),
 	]
 });
 `
