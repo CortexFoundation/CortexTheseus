@@ -175,7 +175,7 @@ func (b *CortexAPIBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*
 	if number == nil {
 		return nil, errors.New("failed to get block number from hash")
 	}
-	logs := rawdb.ReadLogs(db, hash, *number)
+	logs := rawdb.ReadLogs(db, hash, *number, b.ctxc.blockchain.Config())
 	if logs == nil {
 		return nil, errors.New("failed to get logs for block")
 	}
