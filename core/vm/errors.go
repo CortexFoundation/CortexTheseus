@@ -52,4 +52,6 @@ var (
 	ErrLogic                 = synapse.KERNEL_LOGIC_ERROR
 	ErrReturnDataOutOfBounds = errors.New("return data out of bounds")
 	ErrExecutionReverted     = errors.New("execution reverted")
+
+	ErrNonceUintOverflow = errors.New("nonce uint64 overflow")
 )
