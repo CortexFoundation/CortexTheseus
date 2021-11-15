@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"net/url"
 	"sort"
 	"strings"
@@ -2180,12 +2179,6 @@ func (t *Torrent) callbacks() *Callbacks {
 	return &t.cl.config.Callbacks
 }
 
-var WebseedHttpClient = &http.Client{
-	Transport: &http.Transport{
-		MaxConnsPerHost: 10,
-	},
-}
-
 func (t *Torrent) addWebSeed(url string) {
 	if t.cl.config.DisableWebseeds {
 		return
@@ -2193,21 +2186,26 @@ func (t *Torrent) addWebSeed(url string) {
 	if _, ok := t.webSeeds[url]; ok {
 		return
 	}
-	const maxRequests = 10
+	// I don't think Go http supports pipelining requests. However we can have more ready to go
+	// right away. This value should be some multiple of the number of connections to a host. I
+	// would expect that double maxRequests plus a bit would be appropriate.
+	const maxRequests = 32
 	ws := webseedPeer{
 		peer: Peer{
 			t:                        t,
 			outgoing:                 true,
 			Network:                  "http",
 			reconciledHandshakeStats: true,
-			// TODO: Raise this limit, and instead limit concurrent fetches.
-			PeerMaxRequests: 32,
+			// This should affect how often we have to recompute requests for this peer. Note that
+			// because we can request more than 1 thing at a time over HTTP, we will hit the low
+			// requests mark more often, so recomputation is probably sooner than with regular peer
+			// conns. ~4x maxRequests would be about right.
+			PeerMaxRequests: 128,
 			RemoteAddr:      remoteAddrFromUrl(url),
 			callbacks:       t.callbacks(),
 		},
 		client: webseed.Client{
-			// Consider a MaxConnsPerHost in the transport for this, possibly in a global Client.
-			HttpClient: WebseedHttpClient,
+			HttpClient: t.cl.webseedHttpClient,
 			Url:        url,
 		},
 		activeRequests: make(map[Request]webseed.Request, maxRequests),
@@ -2227,7 +2225,6 @@ func (t *Torrent) addWebSeed(url string) {
 		ws.onGotInfo(t.info)
 	}
 	t.webSeeds[url] = &ws.peer
-	ws.peer.onPeerHasAllPieces()
 }
 
 func (t *Torrent) peerIsActive(p *Peer) (active bool) {

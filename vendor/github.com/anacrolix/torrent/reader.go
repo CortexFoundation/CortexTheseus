@@ -17,8 +17,12 @@ type Reader interface {
 	io.ReadSeekCloser
 	missinggo.ReadContexter
 	// Configure the number of bytes ahead of a read that should also be prioritized in preparation
-	// for further reads.
+	// for further reads. Overridden by non-nil readahead func, see SetReadaheadFunc.
 	SetReadahead(int64)
+	// If non-nil, the provided function is called when the implementation needs to know the
+	// readahead for the current reader. Calls occur during Reads and Seeks, and while the Client is
+	// locked.
+	SetReadaheadFunc(ReadaheadFunc)
 	// Don't wait for pieces to complete and be verified. Read calls return as soon as they can when
 	// the underlying chunks become available.
 	SetResponsive()
@@ -29,13 +33,21 @@ type pieceRange struct {
 	begin, end pieceIndex
 }
 
+type ReadaheadContext struct {
+	ContiguousReadStartPos int64
+	CurrentPos             int64
+}
+
+// Returns the desired readahead for a Reader.
+type ReadaheadFunc func(ReadaheadContext) int64
+
 type reader struct {
 	t *Torrent
 	// Adjust the read/seek window to handle Readers locked to File extents and the like.
 	offset, length int64
 
 	// Function to dynamically calculate readahead. If nil, readahead is static.
-	readaheadFunc func() int64
+	readaheadFunc ReadaheadFunc
 
 	// Required when modifying pos and readahead.
 	mu sync.Locker
@@ -75,6 +87,13 @@ func (r *reader) SetReadahead(readahead int64) {
 	r.mu.Unlock()
 }
 
+func (r *reader) SetReadaheadFunc(f ReadaheadFunc) {
+	r.mu.Lock()
+	r.readaheadFunc = f
+	r.posChanged()
+	r.mu.Unlock()
+}
+
 // How many bytes are available to read. Max is the most we could require.
 func (r *reader) available(off, max int64) (ret int64) {
 	off += r.offset
@@ -105,7 +124,10 @@ func (r *reader) available(off, max int64) (ret int64) {
 func (r *reader) piecesUncached() (ret pieceRange) {
 	ra := r.readahead
 	if r.readaheadFunc != nil {
-		ra = r.readaheadFunc()
+		ra = r.readaheadFunc(ReadaheadContext{
+			ContiguousReadStartPos: r.contiguousReadStartPos,
+			CurrentPos:             r.pos,
+		})
 	}
 	if ra < 1 {
 		// Needs to be at least 1, because [x, x) means we don't want
@@ -292,6 +314,6 @@ func (r *reader) log(m log.Msg) {
 }
 
 // Implementation inspired by https://news.ycombinator.com/item?id=27019613.
-func (r *reader) defaultReadaheadFunc() int64 {
-	return r.pos - r.contiguousReadStartPos
+func defaultReadaheadFunc(r ReadaheadContext) int64 {
+	return r.CurrentPos - r.ContiguousReadStartPos
 }
