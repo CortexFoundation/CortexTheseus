@@ -292,21 +292,13 @@ func (tm *TorrentManager) commit(ctx context.Context, hex string, request uint64
 	return nil
 }
 
-func (tm *TorrentManager) buildUdpTrackers(trackers []string) (array [][]string) {
+/*func (tm *TorrentManager) buildUdpTrackers(trackers []string) (array [][]string) {
 	array = make([][]string, 1)
 	for _, tracker := range trackers {
 		array[0] = append(array[0], "udp"+tracker)
 	}
 	return array
-}
-
-func (tm *TorrentManager) setTrackers(trackers []string) {
-	//tm.lock.Lock()
-	//defer tm.lock.Unlock()
-	//tm.trackers = tm.buildUdpTrackers(trackers)
-	tm.trackers = [][]string{trackers}
-	log.Info("Boot trackers", "t", tm.trackers)
-}
+}*/
 
 func mmapFile(name string) (mm mmap.MMap, err error) {
 	f, err := os.Open(name)
@@ -634,8 +626,7 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 
 	if len(config.DefaultTrackers) > 0 {
 		log.Debug("Tracker list", "trackers", config.DefaultTrackers)
-		torrentManager.setTrackers(config.DefaultTrackers)
-		//torrentManager.trackers = config.DefaultTrackers
+		torrentManager.trackers = [][]string{config.DefaultTrackers}
 	}
 	log.Debug("Fs client initialized", "config", config)
 
