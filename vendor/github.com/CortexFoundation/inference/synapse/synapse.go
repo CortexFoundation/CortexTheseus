@@ -186,3 +186,15 @@ func (s *Synapse) SeedingLocal(filePath string, isLinkMode bool) (ih string, err
 	}
 	return s.seedingLocal(filePath, isLinkMode)
 }
+
+func (s *Synapse) PauseLocalSeed(ih string) (err error) {
+	return s.pauseLocalSeedFile(ih)
+}
+
+func (s *Synapse) ResumeLocalSeed(ih string) (err error) {
+	return s.resumeLocalSeedFile(ih)
+}
+
+func (s *Synapse) ListAllTorrents() map[string]map[string]int {
+	return s.listAllTorrents()
+}
