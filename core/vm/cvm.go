@@ -427,6 +427,9 @@ func (cvm *CVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 		return nil, common.Address{}, gas, nil, ErrInsufficientBalance
 	}
 	nonce := cvm.StateDB.GetNonce(caller.Address())
+	if nonce+1 < nonce {
+		return nil, common.Address{}, gas, nil, ErrNonceUintOverflow
+	}
 	cvm.StateDB.SetNonce(caller.Address(), nonce+1)
 
 	// Ensure there's no existing contract already at the designated address
