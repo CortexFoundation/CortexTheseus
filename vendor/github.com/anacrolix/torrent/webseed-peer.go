@@ -4,15 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
-	"strings"
 	"sync"
 
+	"github.com/RoaringBitmap/roaring"
 	"github.com/anacrolix/log"
-	"github.com/anacrolix/torrent/common"
 	"github.com/anacrolix/torrent/metainfo"
 	pp "github.com/anacrolix/torrent/peer_protocol"
-	"github.com/anacrolix/torrent/segments"
 	"github.com/anacrolix/torrent/webseed"
 )
 
@@ -36,8 +33,13 @@ func (ws *webseedPeer) String() string {
 }
 
 func (ws *webseedPeer) onGotInfo(info *metainfo.Info) {
-	ws.client.FileIndex = segments.NewIndex(common.LengthIterFromUpvertedFiles(info.UpvertedFiles()))
-	ws.client.Info = info
+	ws.client.SetInfo(info)
+	// There should be probably be a callback in Client instead, so it can remove pieces at its whim
+	// too.
+	ws.client.Pieces.Iterate(func(x uint32) bool {
+		ws.peer.t.incPieceAvailability(pieceIndex(x))
+		return true
+	})
 }
 
 func (ws *webseedPeer) writeInterested(interested bool) bool {
@@ -114,6 +116,7 @@ func (ws *webseedPeer) handleUpdateRequests() {
 
 func (ws *webseedPeer) onClose() {
 	ws.peer.logger.WithLevel(log.Debug).Print("closing")
+	ws.peer.deleteAllRequests()
 	for _, r := range ws.activeRequests {
 		r.Cancel()
 	}
@@ -130,25 +133,15 @@ func (ws *webseedPeer) requestResultHandler(r Request, webseedRequest webseed.Re
 	ws.peer.t.cl.lock()
 	defer ws.peer.t.cl.unlock()
 	if result.Err != nil {
-		if !errors.Is(result.Err, context.Canceled) {
+		if !errors.Is(result.Err, context.Canceled) && !ws.peer.closed.IsSet() {
 			ws.peer.logger.Printf("Request %v rejected: %v", r, result.Err)
-		}
-		// We need to filter out temporary errors, but this is a nightmare in Go. Currently a bad
-		// webseed URL can starve out the good ones due to the chunk selection algorithm.
-		const closeOnAllErrors = false
-		if closeOnAllErrors ||
-			strings.Contains(result.Err.Error(), "unsupported protocol scheme") ||
-			func() bool {
-				var err webseed.ErrBadResponse
-				if !errors.As(result.Err, &err) {
-					return false
-				}
-				return err.Response.StatusCode == http.StatusNotFound
-			}() {
+			// cfg := spew.NewDefaultConfig()
+			// cfg.DisableMethods = true
+			// cfg.Dump(result.Err)
+			log.Printf("closing %v", ws)
 			ws.peer.close()
-		} else {
-			ws.peer.remoteRejectedRequest(ws.peer.t.requestIndexFromRequest(r))
 		}
+		ws.peer.remoteRejectedRequest(ws.peer.t.requestIndexFromRequest(r))
 	} else {
 		err := ws.peer.receiveChunk(&pp.Message{
 			Type:  pp.Piece,
@@ -164,4 +157,15 @@ func (ws *webseedPeer) requestResultHandler(r Request, webseedRequest webseed.Re
 
 func (me *webseedPeer) isLowOnRequests() bool {
 	return me.peer.actualRequestState.Requests.GetCardinality() < uint64(me.maxRequests)
+}
+
+func (me *webseedPeer) peerPieces() *roaring.Bitmap {
+	return &me.client.Pieces
+}
+
+func (cn *webseedPeer) peerHasAllPieces() (all, known bool) {
+	if !cn.peer.t.haveInfo() {
+		return true, false
+	}
+	return cn.client.Pieces.GetCardinality() == uint64(cn.peer.t.numPieces()), true
 }
