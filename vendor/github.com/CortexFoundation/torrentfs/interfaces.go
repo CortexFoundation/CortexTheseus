@@ -28,6 +28,9 @@ type CortexStorage interface {
 
 	Download(ctx context.Context, ih string, request uint64) error
 	SeedingLocal(ctx context.Context, filePath string, isLinkMode bool) (string, error)
+	PauseLocalSeed(ctx context.Context, ih string) error
+	ResumeLocalSeed(ctx context.Context, ih string) error
+	ListAllTorrents(ctx context.Context) map[string]map[string]int
 
 	//0 finish, 1 pending, 2 downloading, 3 none
 	Status(ctx context.Context, ih string) (int, error)

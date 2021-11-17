@@ -4,9 +4,9 @@ go 1.17
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
-	github.com/CortexFoundation/inference v1.0.2-0.20211021072419-330ffe5ad803
+	github.com/CortexFoundation/inference v1.0.2-0.20211117014616-5b8483b4ff71
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.24-0.20211115024500-a9684c53cee1
+	github.com/CortexFoundation/torrentfs v1.0.25-0.20211117014958-9997f52494c9
 	github.com/VictoriaMetrics/fastcache v1.7.0
 	github.com/arsham/figurine v1.0.1
 	github.com/aws/aws-sdk-go-v2 v1.3.0
@@ -74,7 +74,7 @@ require (
 	github.com/allegro/bigcache/v3 v3.0.1 // indirect
 	github.com/anacrolix/chansync v0.3.0 // indirect
 	github.com/anacrolix/confluence v1.9.0 // indirect
-	github.com/anacrolix/dht/v2 v2.12.1-0.20211112041319-5a641e1d6918 // indirect
+	github.com/anacrolix/dht/v2 v2.13.0 // indirect
 	github.com/anacrolix/envpprof v1.1.2-0.20210622065137-4accee5b7ac4 // indirect
 	github.com/anacrolix/go-libutp v1.0.4 // indirect
 	github.com/anacrolix/log v0.10.0 // indirect
@@ -85,7 +85,7 @@ require (
 	github.com/anacrolix/multiless v0.2.0 // indirect
 	github.com/anacrolix/stm v0.3.0 // indirect
 	github.com/anacrolix/sync v0.4.0 // indirect
-	github.com/anacrolix/torrent v1.37.1-0.20211114135342-c442a22ac2bb // indirect
+	github.com/anacrolix/torrent v1.38.0 // indirect
 	github.com/anacrolix/upnp v0.1.2-0.20200416075019-5e9378ed1425 // indirect
 	github.com/anacrolix/utp v0.1.0 // indirect
 	github.com/arsham/rainbow v1.0.0 // indirect
@@ -141,12 +141,9 @@ require (
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	github.com/rs/dnscache v0.0.0-20210201191234-295bba877686 // indirect
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
-	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
 	github.com/tklauser/go-sysconf v0.3.5 // indirect
 	github.com/tklauser/numcpus v0.2.2 // indirect
-	github.com/willf/bitset v1.1.11 // indirect
-	github.com/willf/bloom v2.0.3+incompatible // indirect
 	go.etcd.io/bbolt v1.3.7-0.20210702075620-b18879eb6c41 // indirect
 	go.opencensus.io v0.22.4 // indirect
 	golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d // indirect
