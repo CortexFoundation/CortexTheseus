@@ -64,6 +64,18 @@ func (b *CortexAPIBackend) SeedingLocal(filePath string, isLinkMode bool) (strin
 	return b.ctxc.synapse.SeedingLocal(filePath, isLinkMode)
 }
 
+func (b *CortexAPIBackend) PauseLocalSeed(ih string) error {
+	return b.ctxc.synapse.PauseLocalSeed(ih)
+}
+
+func (b *CortexAPIBackend) ResumeLocalSeed(ih string) error {
+	return b.ctxc.synapse.ResumeLocalSeed(ih)
+}
+
+func (b *CortexAPIBackend) ListAllTorrents() map[string]map[string]int {
+	return b.ctxc.synapse.ListAllTorrents()
+}
+
 func (b *CortexAPIBackend) HeaderByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*types.Header, error) {
 	// Pending block is only known by the miner
 	if blockNr == rpc.PendingBlockNumber {

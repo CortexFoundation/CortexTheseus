@@ -1653,9 +1653,24 @@ func NewPrivateFsAPI(b Backend) *PrivateFsAPI {
 	return &PrivateFsAPI{b: b}
 }
 
-// Name returns the Fs instance Name()
+// Seed Local File In TorrentFs Instance
 func (api *PrivateFsAPI) SeedingLocal(filePath string, isLinkMode bool) (string, error) {
 	return api.b.SeedingLocal(filePath, isLinkMode)
+}
+
+// Pause Local Seed From TorrentFs Instance
+func (api *PrivateFsAPI) PauseLocalSeed(ih string) error {
+	return api.b.PauseLocalSeed(ih)
+}
+
+// Resume Local Seed From TorrentFs Instance
+func (api *PrivateFsAPI) ResumeLocalSeed(ih string) error {
+	return api.b.ResumeLocalSeed(ih)
+}
+
+// List All Torrents In TorrentFs Instance
+func (api *PrivateFsAPI) ListAllTorrents() map[string]map[string]int {
+	return api.b.ListAllTorrents()
 }
 
 // PublicNetAPI offers network related RPC methods

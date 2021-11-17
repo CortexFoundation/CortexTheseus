@@ -81,6 +81,9 @@ type Backend interface {
 
 	// Fs API
 	SeedingLocal(filePath string, isLinkMode bool) (string, error)
+	PauseLocalSeed(ih string) error
+	ResumeLocalSeed(ih string) error
+	ListAllTorrents() map[string]map[string]int
 }
 
 func GetAPIs(apiBackend Backend, vmConfig vm.Config) []rpc.API {
