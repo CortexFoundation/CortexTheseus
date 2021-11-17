@@ -4,6 +4,7 @@ package utp
 #include "utp.h"
 */
 import "C"
+
 import (
 	"bytes"
 	"context"
@@ -237,6 +238,7 @@ func (c *Conn) SetDeadline(t time.Time) error {
 	c.cond.Broadcast()
 	return nil
 }
+
 func (c *Conn) SetReadDeadline(t time.Time) error {
 	mu.Lock()
 	defer mu.Unlock()
@@ -250,6 +252,7 @@ func (c *Conn) SetReadDeadline(t time.Time) error {
 	c.cond.Broadcast()
 	return nil
 }
+
 func (c *Conn) SetWriteDeadline(t time.Time) error {
 	mu.Lock()
 	defer mu.Unlock()

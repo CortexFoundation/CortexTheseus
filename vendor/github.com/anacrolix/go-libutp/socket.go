@@ -29,15 +29,15 @@ void process_received_messages(utp_context *ctx, struct utp_process_udp_args *ar
 }
 */
 import "C"
+
 import (
 	"context"
 	"errors"
 	"math"
 	"net"
+	"syscall"
 	"time"
 	"unsafe"
-
-	"syscall"
 
 	"github.com/anacrolix/missinggo"
 	"github.com/anacrolix/missinggo/inproc"
@@ -59,8 +59,6 @@ type Socket struct {
 	writeDeadline    time.Time
 	readDeadline     time.Time
 	firewallCallback FirewallCallback
-	// Whether the next accept is to be blocked.
-	block bool
 
 	acksScheduled bool
 	ackTimer      *time.Timer
@@ -68,6 +66,10 @@ type Socket struct {
 	utpTimeoutChecker *time.Timer
 }
 
+// A firewall callback returns true if an incoming connection request should be ignored. This is
+// better than just accepting and closing, as it means no acknowledgement packet is sent. It is
+// called with the package-wide mutex held. Any locks acquired by the callback should not also be
+// held by code that might use this package.
 type FirewallCallback func(net.Addr) bool
 
 var (
@@ -285,15 +287,6 @@ func (s *Socket) utpProcessUdp(b []byte, addr net.Addr) (utp bool) {
 	if missinggo.AddrPort(addr) == 0 {
 		return false
 	}
-	mu.Unlock()
-	block := func() bool {
-		if s.firewallCallback == nil {
-			return false
-		}
-		return s.firewallCallback(addr)
-	}()
-	mu.Lock()
-	s.block = block
 	if s.closed {
 		return false
 	}
