@@ -64,6 +64,9 @@ const (
 
 	block = int64(params.PER_UPLOAD_BYTES)
 	loops = 30
+
+	torrentTypeOnChain = 0
+	torrentTypeLocal   = 1
 )
 
 var (
@@ -115,6 +118,101 @@ type TorrentManager struct {
 	Updates time.Duration
 
 	hotCache *lru.Cache
+
+	// For manage torrents Seeding by SeedingLocal(), true/false means seeding/pause
+	localSeedLock  sync.RWMutex
+	localSeedFiles map[string]bool
+}
+
+// can only call by fs.go: 'SeedingLocal()'
+func (tm *TorrentManager) addLocalSeedFile(ih string) bool {
+	if !common.IsHexAddress(ih) {
+		return false
+	}
+	ih = strings.TrimPrefix(strings.ToLower(ih), common.Prefix)
+
+	if _, ok := GoodFiles[ih]; ok {
+		return false
+	}
+
+	tm.localSeedLock.Lock()
+	defer tm.localSeedLock.Unlock()
+	tm.localSeedFiles[ih] = true
+	return true
+}
+
+// only files in map:localSeedFile can be paused!
+func (tm *TorrentManager) pauseLocalSeedFile(ih string) error {
+	if !common.IsHexAddress(ih) {
+		return errors.New("invalid infohash format")
+	}
+	ih = strings.TrimPrefix(strings.ToLower(ih), common.Prefix)
+
+	tm.localSeedLock.Lock()
+	defer tm.localSeedLock.Unlock()
+	if valid, ok := tm.localSeedFiles[ih]; !ok {
+		return errors.New(fmt.Sprintf("Not Local Seeding File<%s>", ih))
+	} else if _, ok := GoodFiles[ih]; ok {
+		return errors.New(fmt.Sprintf("Cannot Pause On-Chain GoodFile<%s>", ih))
+	} else if !valid {
+		return errors.New(fmt.Sprintf("Local Seeding File Is Not Seeding<%s>", ih))
+	}
+
+	if t := tm.getTorrent(ih); t != nil {
+		log.Debug("TorrentFS", "from seed to pause", "ok")
+		t.Pause()
+		tm.localSeedFiles[ih] = !t.Paused()
+	}
+
+	return nil
+}
+
+// only files in map:localSeedFile can be resumed!
+func (tm *TorrentManager) resumeLocalSeedFile(ih string) error {
+	if !common.IsHexAddress(ih) {
+		return errors.New("invalid infohash format")
+	}
+	ih = strings.TrimPrefix(strings.ToLower(ih), common.Prefix)
+
+	tm.localSeedLock.Lock()
+	defer tm.localSeedLock.Unlock()
+	if valid, ok := tm.localSeedFiles[ih]; !ok {
+		return errors.New(fmt.Sprintf("Not Local Seeding File<%s>", ih))
+	} else if _, ok := GoodFiles[ih]; ok {
+		return errors.New(fmt.Sprintf("Cannot Operate On-Chain GoodFile<%s>", ih))
+	} else if valid {
+		return errors.New(fmt.Sprintf("Local Seeding File Is Already Seeding<%s>", ih))
+	}
+
+	if t := tm.getTorrent(ih); t != nil {
+		resumeFlag := t.Seed()
+		log.Debug("TorrentFS", "from pause to seed", resumeFlag)
+		tm.localSeedFiles[ih] = resumeFlag
+	}
+
+	return nil
+}
+
+// divide localSeed/on-chain Files
+// return status of torrents
+func (tm *TorrentManager) listAllTorrents() map[string]map[string]int {
+	tm.lock.RLock()
+	tm.localSeedLock.RLock()
+	defer tm.lock.RUnlock()
+	defer tm.localSeedLock.RUnlock()
+
+	tts := make(map[string]map[string]int)
+	for ih, tt := range tm.torrents {
+		tType := torrentTypeOnChain
+		if _, ok := tm.localSeedFiles[ih]; ok {
+			tType = torrentTypeLocal
+		}
+		tts[ih] = map[string]int{
+			"status": tt.status,
+			"type":   tType,
+		}
+	}
+	return tts
 }
 
 func (tm *TorrentManager) getLimitation(value int64) int64 {
@@ -496,6 +594,7 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 		boost:               config.Boost,
 		id:                  fsid,
 		slot:                int(fsid % bucket),
+		localSeedFiles:      make(map[string]bool),
 	}
 
 	if cache {

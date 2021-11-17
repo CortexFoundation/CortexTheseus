@@ -270,9 +270,39 @@ func (s *Synapse) seedingLocal(filePath string, isLinkMode bool) (ih string, err
 	defer cancel()
 	ih, err = s.config.Storagefs.SeedingLocal(ctx, filePath, isLinkMode)
 	if err != nil {
-		log.Error("SeedingLocal", "synapse", err.Error())
+		log.Error("synapse", "SeedingLocal", err.Error())
 		return ih, KERNEL_RUNTIME_ERROR
 	}
 
 	return
+}
+
+func (s *Synapse) pauseLocalSeedFile(ih string) (err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	err = s.config.Storagefs.PauseLocalSeed(ctx, ih)
+	if err != nil {
+		log.Error("synapse", "PauseLocalSeed", err.Error())
+		return KERNEL_RUNTIME_ERROR
+	}
+
+	return
+}
+
+func (s *Synapse) resumeLocalSeedFile(ih string) (err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	err = s.config.Storagefs.ResumeLocalSeed(ctx, ih)
+	if err != nil {
+		log.Error("synapse", "ResumeLocalSeed", err.Error())
+		return KERNEL_RUNTIME_ERROR
+	}
+
+	return
+}
+
+func (s *Synapse) listAllTorrents() map[string]map[string]int {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	return s.config.Storagefs.ListAllTorrents(ctx)
 }
