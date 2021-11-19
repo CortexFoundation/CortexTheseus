@@ -136,8 +136,9 @@ func (tm *TorrentManager) addLocalSeedFile(ih string) bool {
 	}
 
 	tm.localSeedLock.Lock()
-	defer tm.localSeedLock.Unlock()
 	tm.localSeedFiles[ih] = true
+	tm.localSeedLock.Unlock()
+
 	return true
 }
 
@@ -247,8 +248,8 @@ func (tm *TorrentManager) getTorrent(ih string) *Torrent {
 
 func (tm *TorrentManager) setTorrent(ih string, t *Torrent) {
 	tm.lock.Lock()
-	defer tm.lock.Unlock()
 	tm.torrents[ih] = t
+	tm.lock.Unlock()
 }
 
 func (tm *TorrentManager) Close() error {
