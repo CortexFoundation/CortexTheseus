@@ -84,6 +84,8 @@ type Backend interface {
 	PauseLocalSeed(ih string) error
 	ResumeLocalSeed(ih string) error
 	ListAllTorrents() map[string]map[string]int
+
+	Download(ih string) error
 }
 
 func GetAPIs(apiBackend Backend, vmConfig vm.Config) []rpc.API {

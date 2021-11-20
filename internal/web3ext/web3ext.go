@@ -712,6 +712,11 @@ web3._extend({
 			name: 'listAllTorrents',
 			call: 'fs_listAllTorrents',
 		}),
+	new web3._extend.Method({
+                        name: 'download',
+                        call: 'fs_download',
+                        params: 1,
+                }),
 	]
 });
 `

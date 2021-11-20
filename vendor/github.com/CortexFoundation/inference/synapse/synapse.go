@@ -171,6 +171,13 @@ func (s *Synapse) GetGasByInfoHashWithSize(model common.StorageEntry, cvmNetwork
 //	return s.available(entry.Hash, entry.Size, cvmNetworkID)
 //}
 
+func (s *Synapse) DownloadSeed(ih string) error {
+	if s.config.IsRemoteInfer {
+		return nil
+	}
+	return s.download(ih, 0)
+}
+
 // Download is used to control the torrentfs, not for remote invoked now
 func (s *Synapse) Download(info common.StorageEntry) error {
 	if s.config.IsRemoteInfer {
