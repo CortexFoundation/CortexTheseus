@@ -197,12 +197,12 @@ func (tm *TorrentManager) resumeLocalSeedFile(ih string) error {
 
 // divide localSeed/on-chain Files
 // return status of torrents
-func (tm *TorrentManager) listAllTorrents() (tts map[string]map[string]int) {
+func (tm *TorrentManager) listAllTorrents() map[string]map[string]int {
 	tm.lock.RLock()
 	tm.localSeedLock.RLock()
 	defer tm.lock.RUnlock()
 	defer tm.localSeedLock.RUnlock()
-
+	tts := make(map[string]map[string]int)
 	for ih, tt := range tm.torrents {
 		tType := torrentTypeOnChain
 		if _, ok := tm.localSeedFiles[ih]; ok {
@@ -214,7 +214,7 @@ func (tm *TorrentManager) listAllTorrents() (tts map[string]map[string]int) {
 		}
 	}
 
-	return
+	return tts
 }
 
 func (tm *TorrentManager) getLimitation(value int64) int64 {
