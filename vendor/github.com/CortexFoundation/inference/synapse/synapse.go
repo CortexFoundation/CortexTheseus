@@ -194,14 +194,23 @@ func (s *Synapse) SeedingLocal(filePath string, isLinkMode bool) (ih string, err
 	return s.seedingLocal(filePath, isLinkMode)
 }
 
-func (s *Synapse) PauseLocalSeed(ih string) (err error) {
+func (s *Synapse) PauseLocalSeed(ih string) error {
+	if s.config.IsRemoteInfer {
+		return nil
+	}
 	return s.pauseLocalSeedFile(ih)
 }
 
-func (s *Synapse) ResumeLocalSeed(ih string) (err error) {
+func (s *Synapse) ResumeLocalSeed(ih string) error {
+	if s.config.IsRemoteInfer {
+		return nil
+	}
 	return s.resumeLocalSeedFile(ih)
 }
 
 func (s *Synapse) ListAllTorrents() map[string]map[string]int {
+	if s.config.IsRemoteInfer {
+		return nil
+	}
 	return s.listAllTorrents()
 }

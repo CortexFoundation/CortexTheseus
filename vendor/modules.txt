@@ -12,7 +12,7 @@ github.com/Azure/azure-storage-blob-go/azblob
 # github.com/CortexFoundation/cvm-runtime v0.0.0-20210119064759-82917ece736a
 ## explicit; go 1.14
 github.com/CortexFoundation/cvm-runtime/kernel
-# github.com/CortexFoundation/inference v1.0.2-0.20211120100921-2def60c6e6be
+# github.com/CortexFoundation/inference v1.0.2-0.20211122032106-7614551ac311
 ## explicit; go 1.17
 github.com/CortexFoundation/inference
 github.com/CortexFoundation/inference/synapse
