@@ -72,6 +72,10 @@ func (b *CortexAPIBackend) ResumeLocalSeed(ih string) error {
 	return b.ctxc.synapse.ResumeLocalSeed(ih)
 }
 
+func (b *CortexAPIBackend) Download(ih string) error {
+	return b.ctxc.synapse.DownloadSeed(ih)
+}
+
 func (b *CortexAPIBackend) ListAllTorrents() map[string]map[string]int {
 	return b.ctxc.synapse.ListAllTorrents()
 }

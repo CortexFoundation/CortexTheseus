@@ -1668,6 +1668,10 @@ func (api *PrivateFsAPI) ResumeLocalSeed(ih string) error {
 	return api.b.ResumeLocalSeed(ih)
 }
 
+func (api *PrivateFsAPI) Download(ih string) error {
+	return api.b.Download(ih)
+}
+
 // List All Torrents In TorrentFs Instance
 func (api *PrivateFsAPI) ListAllTorrents() map[string]map[string]int {
 	return api.b.ListAllTorrents()
