@@ -498,7 +498,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.I
 		}
 		// Rewind the ancient store and blockchain if reorg happens.
 		if origin+1 < frozen {
-			if err := d.blockchain.SetHead(origin + 1); err != nil {
+			if err := d.blockchain.SetHead(origin); err != nil {
 				return err
 			}
 		}
