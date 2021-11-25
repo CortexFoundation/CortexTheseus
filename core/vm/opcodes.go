@@ -201,13 +201,6 @@ const (
 	LOG4
 )
 
-// unofficial opcodes used for parsing.
-const (
-	PUSH OpCode = 0xb0 + iota
-	DUP
-	SWAP
-)
-
 const (
 	INFER      OpCode = 0xc0
 	INFERARRAY        = 0xc1
@@ -395,10 +388,6 @@ var opCodeToString = map[OpCode]string{
 	STATICCALL:   "STATICCALL",
 	REVERT:       "REVERT",
 	SELFDESTRUCT: "SELFDESTRUCT",
-
-	PUSH: "PUSH",
-	DUP:  "DUP",
-	SWAP: "SWAP",
 }
 
 func (op OpCode) String() string {
