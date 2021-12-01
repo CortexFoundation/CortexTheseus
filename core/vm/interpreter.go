@@ -143,7 +143,7 @@ func NewCVMInterpreter(cvm *CVM, cfg Config) *CVMInterpreter {
 }
 
 func (in *CVMInterpreter) enforceRestrictions(op OpCode, operation *operation, stack *Stack) error {
-	if in.cvm.chainRules.IsByzantium {
+	/*if in.cvm.chainRules.IsByzantium {
 		if in.readOnly {
 			// If the interpreter is operating in readonly mode, make sure no
 			// state-modifying operation is performed. The 3rd stack item
@@ -155,7 +155,7 @@ func (in *CVMInterpreter) enforceRestrictions(op OpCode, operation *operation, s
 				return errWriteProtection
 			}
 		}
-	}
+	}*/
 	return nil
 }
 

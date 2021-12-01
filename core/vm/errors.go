@@ -40,6 +40,7 @@ var (
 
 	ErrGasUintOverflow     = errors.New("gas uint64 overflow")
 	ErrInvalidJump         = errors.New("invalid jump destination")
+	ErrWriteProtection     = errors.New("write protection")
 	ErrInvalidRetsub       = errors.New("invalid retsub")
 	ErrReturnStackExceeded = errors.New("return stack limit reached")
 

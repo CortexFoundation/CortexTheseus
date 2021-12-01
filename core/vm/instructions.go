@@ -533,10 +533,12 @@ func opSload(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]b
 }
 
 func opSstore(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
+	if interpreter.readOnly {
+		return nil, ErrWriteProtection
+	}
 	loc := callContext.stack.pop()
 	val := callContext.stack.pop()
-	interpreter.cvm.StateDB.SetState(callContext.contract.Address(),
-		loc.Bytes32(), val.Bytes32())
+	interpreter.cvm.StateDB.SetState(callContext.contract.Address(), loc.Bytes32(), val.Bytes32())
 	return nil, nil
 }
 
@@ -759,6 +761,9 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx)
 }
 
 func opCreate(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
+	if interpreter.readOnly {
+		return nil, ErrWriteProtection
+	}
 	var (
 		value        = callContext.stack.pop()
 		offset, size = callContext.stack.pop(), callContext.stack.pop()
@@ -809,6 +814,9 @@ func opCreate(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]
 }
 
 func opCreate2(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
+	if interpreter.readOnly {
+		return nil, ErrWriteProtection
+	}
 	var (
 		endowment    = callContext.stack.pop()
 		offset, size = callContext.stack.pop(), callContext.stack.pop()
@@ -865,6 +873,9 @@ func opCall(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]by
 	// Get the arguments from the memory.
 	args := callContext.memory.GetPtr(int64(inOffset.Uint64()), int64(inSize.Uint64()))
 
+	if interpreter.readOnly && !value.IsZero() {
+		return nil, ErrWriteProtection
+	}
 	var bigVal = big0
 	//TODO: use uint256.Int instead of converting with toBig()
 	// By using big0 here, we save an alloc for the most common case (non-ether-transferring contract calls),
@@ -1040,6 +1051,9 @@ func opStop(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]by
 }
 
 func opSuicide(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
+	if interpreter.readOnly {
+		return nil, ErrWriteProtection
+	}
 	beneficiary := callContext.stack.pop()
 	balance := interpreter.cvm.StateDB.GetBalance(callContext.contract.Address())
 	interpreter.cvm.StateDB.AddBalance(beneficiary.Bytes20(), balance)
@@ -1050,6 +1064,9 @@ func opSuicide(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([
 // make log instruction function
 func makeLog(size int) executionFunc {
 	return func(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
+		if interpreter.readOnly {
+			return nil, ErrWriteProtection
+		}
 		topics := make([]common.Hash, size)
 		stack := callContext.stack
 		mStart, mSize := stack.pop(), stack.pop()
