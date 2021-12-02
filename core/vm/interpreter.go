@@ -58,7 +58,8 @@ type Config struct {
 	DebugInferVM bool
 	StorageDir   string
 	// Storagefs    torrentfs.CVMStorage
-	JumpTable [256]*operation // CVM instruction table, automatically populated if unset
+	//JumpTable [256]*operation // CVM instruction table, automatically populated if unset
+	JumpTable *JumpTable // EVM instruction table, automatically populated if unset
 
 	ExtraEips []int // Additional EIPS that are to be enabled
 }
@@ -103,37 +104,35 @@ type CVMInterpreter struct {
 
 // NewCVMInterpreter returns a new instance of the Interpreter.
 func NewCVMInterpreter(cvm *CVM, cfg Config) *CVMInterpreter {
-	// We use the STOP instruction whether to see
-	// the jump table was initialised. If it was not
-	// we'll set the default jump table.
-	if cfg.JumpTable[STOP] == nil {
-		var jt JumpTable
+	// If jump table was not initialised we set the default one.
+	if cfg.JumpTable == nil {
 		switch {
 		case cvm.chainRules.IsNeo:
-			jt = neoInstructionSet
+			cfg.JumpTable = &neoInstructionSet
 		case cvm.chainRules.IsIstanbul:
-			jt = istanbulInstructionSet
+			cfg.JumpTable = &istanbulInstructionSet
 		case cvm.chainRules.IsConstantinople:
-			jt = constantinopleInstructionSet
+			cfg.JumpTable = &constantinopleInstructionSet
 		case cvm.chainRules.IsByzantium:
-			jt = byzantiumInstructionSet
+			cfg.JumpTable = &byzantiumInstructionSet
 		case cvm.chainRules.IsEIP158:
-			jt = spuriousDragonInstructionSet
+			cfg.JumpTable = &spuriousDragonInstructionSet
 		case cvm.chainRules.IsEIP150:
-			jt = tangerineWhistleInstructionSet
+			cfg.JumpTable = &tangerineWhistleInstructionSet
 		case cvm.chainRules.IsHomestead:
-			jt = homesteadInstructionSet
+			cfg.JumpTable = &homesteadInstructionSet
 		default:
-			jt = frontierInstructionSet
+			cfg.JumpTable = &frontierInstructionSet
 		}
 		for i, eip := range cfg.ExtraEips {
-			if err := EnableEIP(eip, &jt); err != nil {
+			copy := *cfg.JumpTable
+			if err := EnableEIP(eip, &copy); err != nil {
 				// Disable it, so caller can check if it's activated or not
 				cfg.ExtraEips = append(cfg.ExtraEips[:i], cfg.ExtraEips[i+1:]...)
 				log.Error("EIP activation failed", "eip", eip, "error", err)
 			}
+			cfg.JumpTable = &copy
 		}
-		cfg.JumpTable = jt
 	}
 
 	return &CVMInterpreter{
