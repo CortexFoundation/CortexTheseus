@@ -39,11 +39,7 @@ type operation struct {
 	// memorySize returns the memory size required for the operation
 	memorySize memorySizeFunc
 
-	halts   bool // indicates whether the operation should halt further execution
-	jumps   bool // indicates whether the program counter should not increment
-	writes  bool // determines whether this a state modifying operation
-	reverts bool // determines whether the operation reverts state (implicitly halts)
-	returns bool // determines whether the operations sets the return data content
+	writes bool // determines whether this a state modifying operation
 }
 
 var (
@@ -109,7 +105,6 @@ func newConstantinopleInstructionSet() JumpTable {
 		validateStack: makeStackFunc(4, 1),
 		memorySize:    memoryCreate2,
 		writes:        true,
-		returns:       true,
 	}
 	return instructionSet
 }
@@ -124,7 +119,6 @@ func newByzantiumInstructionSet() JumpTable {
 		gasCost:       gasStaticCall,
 		validateStack: makeStackFunc(6, 1),
 		memorySize:    memoryStaticCall,
-		returns:       true,
 	}
 	instructionSet[RETURNDATASIZE] = &operation{
 		execute:       opReturnDataSize,
@@ -142,8 +136,6 @@ func newByzantiumInstructionSet() JumpTable {
 		gasCost:       gasRevert,
 		validateStack: makeStackFunc(2, 0),
 		memorySize:    memoryRevert,
-		reverts:       true,
-		returns:       true,
 	}
 
 	return instructionSet
@@ -159,14 +151,12 @@ func newSpuriousDragonInstructionSet() JumpTable {
 		gasCost:       gasInfer,
 		validateStack: makeStackFunc(2, 1),
 		writes:        true,
-		returns:       true,
 	}
 	instructionSet[INFERARRAY] = &operation{
 		execute:       opInferArray,
 		gasCost:       gasInferArray,
 		validateStack: makeStackFunc(2, 1),
 		writes:        true,
-		returns:       true,
 	}
 	return instructionSet
 
@@ -194,7 +184,6 @@ func newHomesteadInstructionSet() JumpTable {
 		gasCost:       gasDelegateCall,
 		validateStack: makeStackFunc(6, 1),
 		memorySize:    memoryDelegateCall,
-		returns:       true,
 	}
 	return instructionSet
 }
@@ -207,7 +196,6 @@ func newFrontierInstructionSet() JumpTable {
 			execute:       opStop,
 			gasCost:       constGasFunc(0),
 			validateStack: makeStackFunc(0, 0),
-			halts:         true,
 		},
 		ADD: {
 			execute:       opAdd,
@@ -461,13 +449,11 @@ func newFrontierInstructionSet() JumpTable {
 			execute:       opJump,
 			gasCost:       constGasFunc(GasMidStep),
 			validateStack: makeStackFunc(1, 0),
-			jumps:         true,
 		},
 		JUMPI: {
 			execute:       opJumpi,
 			gasCost:       constGasFunc(GasSlowStep),
 			validateStack: makeStackFunc(2, 0),
-			jumps:         true,
 		},
 		PC: {
 			execute:       opPc,
@@ -850,34 +836,29 @@ func newFrontierInstructionSet() JumpTable {
 			validateStack: makeStackFunc(3, 1),
 			memorySize:    memoryCreate,
 			writes:        true,
-			returns:       true,
 		},
 		CALL: {
 			execute:       opCall,
 			gasCost:       gasCall,
 			validateStack: makeStackFunc(7, 1),
 			memorySize:    memoryCall,
-			returns:       true,
 		},
 		CALLCODE: {
 			execute:       opCallCode,
 			gasCost:       gasCallCode,
 			validateStack: makeStackFunc(7, 1),
 			memorySize:    memoryCall,
-			returns:       true,
 		},
 		RETURN: {
 			execute:       opReturn,
 			gasCost:       gasReturn,
 			validateStack: makeStackFunc(2, 0),
 			memorySize:    memoryReturn,
-			halts:         true,
 		},
 		SELFDESTRUCT: {
 			execute:       opSuicide,
 			gasCost:       gasSuicide,
 			validateStack: makeStackFunc(1, 0),
-			halts:         true,
 			writes:        true,
 		},
 	}

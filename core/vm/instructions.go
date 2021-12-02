@@ -545,7 +545,7 @@ func opJump(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]by
 	if !callContext.contract.validJumpdest(&pos) {
 		return nil, ErrInvalidJump
 	}
-	*pc = pos.Uint64()
+	*pc = pos.Uint64() - 1 // pc will be increased by the interpreter loop
 	return nil, nil
 }
 
@@ -555,9 +555,7 @@ func opJumpi(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]b
 		if !callContext.contract.validJumpdest(&pos) {
 			return nil, ErrInvalidJump
 		}
-		*pc = pos.Uint64()
-	} else {
-		*pc++
+		*pc = pos.Uint64() - 1 // pc will be increased by the interpreter loop
 	}
 	return nil, nil
 }
@@ -780,7 +778,7 @@ func opCreate(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]
 		bigVal = value.ToBig()
 	}
 
-	res, addr, returnGas, modelGas, suberr := interpreter.cvm.Create(callContext.contract, input, gas, bigVal)
+	ret, addr, returnGas, modelGas, suberr := interpreter.cvm.Create(callContext.contract, input, gas, bigVal)
 	// Push item on the stack based on the returned error. If the ruleset is
 	// homestead we must check for CodeStoreOutOfGasError (homestead only
 	// rule) and treat as an error, if the ruleset is frontier we must
@@ -799,8 +797,14 @@ func opCreate(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]
 		callContext.contract.ModelGas[addr] += mGas
 	}
 	if suberr == ErrExecutionReverted {
-		return res, nil
+		if interpreter.cvm.chainRules.IsNeo {
+			interpreter.returnData = ret // set REVERT data to return data buffer
+		} else {
+			interpreter.returnData = common.CopyBytes(ret)
+		}
+		return ret, nil
 	}
+	interpreter.returnData = nil // clear dirty return data buffer
 	return nil, nil
 }
 
@@ -823,7 +827,7 @@ func opCreate2(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([
 	if !endowment.IsZero() {
 		bigEndowment = endowment.ToBig()
 	}
-	res, addr, returnGas, modelGas, suberr := interpreter.cvm.Create2(callContext.contract, input, gas, bigEndowment, &salt)
+	ret, addr, returnGas, modelGas, suberr := interpreter.cvm.Create2(callContext.contract, input, gas, bigEndowment, &salt)
 	// Push item on the stack based on the returned error.
 	if suberr != nil {
 		stackvalue.Clear()
@@ -838,8 +842,14 @@ func opCreate2(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([
 	}
 
 	if suberr == ErrExecutionReverted {
-		return res, nil
+		if interpreter.cvm.chainRules.IsNeo {
+			interpreter.returnData = ret // set REVERT data to return data buffer
+		} else {
+			interpreter.returnData = common.CopyBytes(ret)
+		}
+		return ret, nil
 	}
+	interpreter.returnData = nil // clear dirty return data buffer
 	return nil, nil
 }
 
@@ -880,6 +890,11 @@ func opCall(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]by
 	for addr, mGas := range modelGas {
 		callContext.contract.ModelGas[addr] += mGas
 	}
+	if interpreter.cvm.chainRules.IsNeo {
+		interpreter.returnData = ret
+	} else {
+		interpreter.returnData = common.CopyBytes(ret)
+	}
 	return ret, nil
 }
 
@@ -918,6 +933,11 @@ func opCallCode(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) (
 	for addr, mGas := range modelGas {
 		callContext.contract.ModelGas[addr] += mGas
 	}
+	if interpreter.cvm.chainRules.IsNeo {
+		interpreter.returnData = ret // set REVERT data to return data buffer
+	} else {
+		interpreter.returnData = common.CopyBytes(ret)
+	}
 	return ret, nil
 }
 
@@ -949,6 +969,12 @@ func opDelegateCall(pc *uint64, interpreter *CVMInterpreter, callContext *callCt
 	callContext.contract.Gas += returnGas
 	for addr, mGas := range modelGas {
 		callContext.contract.ModelGas[addr] += mGas
+	}
+
+	if interpreter.cvm.chainRules.IsNeo {
+		interpreter.returnData = ret // set REVERT data to return data buffer
+	} else {
+		interpreter.returnData = common.CopyBytes(ret)
 	}
 	return ret, nil
 }
@@ -982,6 +1008,11 @@ func opStaticCall(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx)
 	for addr, mGas := range modelGas {
 		callContext.contract.ModelGas[addr] += mGas
 	}
+	if interpreter.cvm.chainRules.IsNeo {
+		interpreter.returnData = ret // set REVERT data to return data buffer
+	} else {
+		interpreter.returnData = common.CopyBytes(ret)
+	}
 	return ret, nil
 }
 
@@ -989,18 +1020,23 @@ func opReturn(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]
 	offset, size := callContext.stack.pop(), callContext.stack.pop()
 	ret := callContext.memory.GetPtr(int64(offset.Uint64()), int64(size.Uint64()))
 
-	return ret, nil
+	return ret, errStopToken
 }
 
 func opRevert(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
 	offset, size := callContext.stack.pop(), callContext.stack.pop()
 	ret := callContext.memory.GetPtr(int64(offset.Uint64()), int64(size.Uint64()))
 
-	return ret, nil
+	if interpreter.cvm.chainRules.IsNeo {
+		interpreter.returnData = ret // set REVERT data to return data buffer
+	} else {
+		interpreter.returnData = common.CopyBytes(ret)
+	}
+	return ret, ErrExecutionReverted
 }
 
 func opStop(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
-	return nil, nil
+	return nil, errStopToken
 }
 
 func opSuicide(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
@@ -1008,7 +1044,7 @@ func opSuicide(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([
 	balance := interpreter.cvm.StateDB.GetBalance(callContext.contract.Address())
 	interpreter.cvm.StateDB.AddBalance(beneficiary.Bytes20(), balance)
 	interpreter.cvm.StateDB.Suicide(callContext.contract.Address())
-	return nil, nil
+	return nil, errStopToken
 }
 
 // make log instruction function

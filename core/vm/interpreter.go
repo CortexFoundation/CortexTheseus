@@ -461,25 +461,13 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			res = ret
 		}
 
-		// if the operation clears the return data (e.g. it has returning data)
-		// set the last return to the result of the operation.
-		if operation.returns {
-			if in.cvm.chainRules.IsNeo {
-				in.returnData = res
-			} else {
-				in.returnData = common.CopyBytes(res)
-			}
+		if err != nil {
+			break
 		}
-		switch {
-		case err != nil:
-			return nil, err
-		case operation.reverts:
-			return res, ErrExecutionReverted
-		case operation.halts:
-			return res, nil
-		case !operation.jumps:
-			pc++
-		}
+		pc++
 	}
-	return nil, nil
+	if err == errStopToken {
+		err = nil // clear stop token error
+	}
+	return res, err
 }

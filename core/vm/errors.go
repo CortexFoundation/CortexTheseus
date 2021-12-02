@@ -54,4 +54,6 @@ var (
 	ErrExecutionReverted     = errors.New("execution reverted")
 
 	ErrNonceUintOverflow = errors.New("nonce uint64 overflow")
+
+	errStopToken = errors.New("stop token")
 )
