@@ -38,8 +38,6 @@ type operation struct {
 	validateStack stackValidationFunc
 	// memorySize returns the memory size required for the operation
 	memorySize memorySizeFunc
-
-	writes bool // determines whether this a state modifying operation
 }
 
 var (
@@ -104,7 +102,6 @@ func newConstantinopleInstructionSet() JumpTable {
 		gasCost:       gasCreate2,
 		validateStack: makeStackFunc(4, 1),
 		memorySize:    memoryCreate2,
-		writes:        true,
 	}
 	return instructionSet
 }
@@ -150,13 +147,11 @@ func newSpuriousDragonInstructionSet() JumpTable {
 		execute:       opInfer,
 		gasCost:       gasInfer,
 		validateStack: makeStackFunc(2, 1),
-		writes:        true,
 	}
 	instructionSet[INFERARRAY] = &operation{
 		execute:       opInferArray,
 		gasCost:       gasInferArray,
 		validateStack: makeStackFunc(2, 1),
-		writes:        true,
 	}
 	return instructionSet
 
@@ -443,7 +438,6 @@ func newFrontierInstructionSet() JumpTable {
 			execute:       opSstore,
 			gasCost:       gasSStore,
 			validateStack: makeStackFunc(2, 0),
-			writes:        true,
 		},
 		JUMP: {
 			execute:       opJump,
@@ -800,42 +794,36 @@ func newFrontierInstructionSet() JumpTable {
 			gasCost:       makeGasLog(0),
 			validateStack: makeStackFunc(2, 0),
 			memorySize:    memoryLog,
-			writes:        true,
 		},
 		LOG1: {
 			execute:       makeLog(1),
 			gasCost:       makeGasLog(1),
 			validateStack: makeStackFunc(3, 0),
 			memorySize:    memoryLog,
-			writes:        true,
 		},
 		LOG2: {
 			execute:       makeLog(2),
 			gasCost:       makeGasLog(2),
 			validateStack: makeStackFunc(4, 0),
 			memorySize:    memoryLog,
-			writes:        true,
 		},
 		LOG3: {
 			execute:       makeLog(3),
 			gasCost:       makeGasLog(3),
 			validateStack: makeStackFunc(5, 0),
 			memorySize:    memoryLog,
-			writes:        true,
 		},
 		LOG4: {
 			execute:       makeLog(4),
 			gasCost:       makeGasLog(4),
 			validateStack: makeStackFunc(6, 0),
 			memorySize:    memoryLog,
-			writes:        true,
 		},
 		CREATE: {
 			execute:       opCreate,
 			gasCost:       gasCreate,
 			validateStack: makeStackFunc(3, 1),
 			memorySize:    memoryCreate,
-			writes:        true,
 		},
 		CALL: {
 			execute:       opCall,
@@ -859,7 +847,6 @@ func newFrontierInstructionSet() JumpTable {
 			execute:       opSuicide,
 			gasCost:       gasSuicide,
 			validateStack: makeStackFunc(1, 0),
-			writes:        true,
 		},
 	}
 }
