@@ -1,38 +1,49 @@
-// Copyright 2014 The go-ethereum Authors
-// This file is part of go-ethereum.
+// Copyright 2021 The CortexTheseus Authors
+// This file is part of CortexTheseus.
 //
-// go-ethereum is free software: you can redistribute it and/or modify
+// CortexTheseus is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// go-ethereum is distributed in the hope that it will be useful,
+// CortexTheseus is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
+// along with CortexTheseus. If not, see <http://www.gnu.org/licenses/>.
 
-// evm executes EVM code snippets.
+// cvm executes CVM code snippets.
 package main
 
 import (
 	"fmt"
 	"math/big"
 	"os"
+	"path/filepath"
 
-	"github.com/ethereum/go-ethereum/cmd/evm/internal/t8ntool"
-	"github.com/ethereum/go-ethereum/cmd/utils"
-	"github.com/ethereum/go-ethereum/internal/flags"
+	"github.com/CortexFoundation/CortexTheseus/cmd/cvm/t8ntool"
+	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
+	"github.com/CortexFoundation/CortexTheseus/params"
 	"gopkg.in/urfave/cli.v1"
 )
 
 var gitCommit = "" // Git SHA1 commit hash of the release (set via linker flags)
 var gitDate = ""
 
+func NewApp(gitCommit, gitDate, usage string) *cli.App {
+	app := cli.NewApp()
+	app.Author = ""
+	app.Email = ""
+	app.Name = filepath.Base(os.Args[0])
+	app.Version = params.VersionWithCommit(gitCommit, gitDate)
+	app.Usage = usage
+	return app
+}
+
 var (
-	app = flags.NewApp(gitCommit, gitDate, "the evm command line interface")
+	app = NewApp(gitCommit, gitDate, "the cvm command line interface")
 
 	DebugFlag = cli.BoolFlag{
 		Name:  "debug",
@@ -52,25 +63,25 @@ var (
 	}
 	CodeFlag = cli.StringFlag{
 		Name:  "code",
-		Usage: "EVM code",
+		Usage: "CVM code",
 	}
 	CodeFileFlag = cli.StringFlag{
 		Name:  "codefile",
-		Usage: "File containing EVM code. If '-' is specified, code is read from stdin ",
+		Usage: "File containing CVM code. If '-' is specified, code is read from stdin ",
 	}
 	GasFlag = cli.Uint64Flag{
 		Name:  "gas",
-		Usage: "gas limit for the evm",
+		Usage: "gas limit for the cvm",
 		Value: 10000000000,
 	}
 	PriceFlag = utils.BigFlag{
 		Name:  "price",
-		Usage: "price set for the evm",
+		Usage: "price set for the cvm",
 		Value: new(big.Int),
 	}
 	ValueFlag = utils.BigFlag{
 		Name:  "value",
-		Usage: "value set for the evm",
+		Usage: "value set for the cvm",
 		Value: new(big.Int),
 	}
 	DumpFlag = cli.BoolFlag{
@@ -79,11 +90,11 @@ var (
 	}
 	InputFlag = cli.StringFlag{
 		Name:  "input",
-		Usage: "input for the EVM",
+		Usage: "input for the CVM",
 	}
 	InputFileFlag = cli.StringFlag{
 		Name:  "inputfile",
-		Usage: "file containing input for the EVM",
+		Usage: "file containing input for the CVM",
 	}
 	VerbosityFlag = cli.IntFlag{
 		Name:  "verbosity",
@@ -218,12 +229,12 @@ func init() {
 		compileCommand,
 		disasmCommand,
 		runCommand,
-		stateTestCommand,
+		//stateTestCommand,
 		stateTransitionCommand,
 		transactionCommand,
 		blockBuilderCommand,
 	}
-	cli.CommandHelpTemplate = flags.OriginCommandHelpTemplate
+	cli.CommandHelpTemplate = utils.OriginCommandHelpTemplate
 }
 
 func main() {

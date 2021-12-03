@@ -1,18 +1,18 @@
-// Copyright 2021 The go-ethereum Authors
-// This file is part of go-ethereum.
+// Copyright 2021 The CortexTheseus Authors
+// This file is part of CortexTheseus.
 //
-// go-ethereum is free software: you can redistribute it and/or modify
+// CortexTheseus is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// go-ethereum is distributed in the hope that it will be useful,
+// CortexTheseus is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
+// along with CortexTheseus. If not, see <http://www.gnu.org/licenses/>.
 
 package t8ntool
 
@@ -24,15 +24,15 @@ import (
 	"math/big"
 	"os"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/consensus/clique"
-	"github.com/ethereum/go-ethereum/consensus/ethash"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
+	"github.com/CortexFoundation/CortexTheseus/common/math"
+	"github.com/CortexFoundation/CortexTheseus/consensus/clique"
+	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/crypto"
+	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -74,7 +74,7 @@ type bbInput struct {
 
 	Ethash    bool                 `json:"-"`
 	EthashDir string               `json:"-"`
-	PowMode   ethash.Mode          `json:"-"`
+	PowMode   cuckoo.Mode          `json:"-"`
 	Txs       []*types.Transaction `json:"-"`
 	Ommers    []*types.Header      `json:"-"`
 }
@@ -128,7 +128,8 @@ func (i *bbInput) ToBlock() *types.Block {
 		Time:        i.Header.Time,
 		Extra:       i.Header.Extra,
 		MixDigest:   i.Header.MixDigest,
-		BaseFee:     i.Header.BaseFee,
+		// @lfj: Struct Without BaseFee
+		//BaseFee:     i.Header.BaseFee,
 	}
 
 	// Fill optional values.
@@ -168,12 +169,12 @@ func (i *bbInput) SealBlock(block *types.Block) (*types.Block, error) {
 	}
 }
 
-// sealEthash seals the given block using ethash.
+// sealEthash seals the given block using cuckoo.
 func (i *bbInput) sealEthash(block *types.Block) (*types.Block, error) {
 	if i.Header.Nonce != nil {
-		return nil, NewError(ErrorConfig, fmt.Errorf("sealing with ethash will overwrite provided nonce"))
+		return nil, NewError(ErrorConfig, fmt.Errorf("sealing with cuckoo will overwrite provided nonce"))
 	}
-	ethashConfig := ethash.Config{
+	cuckooConfig := cuckoo.Config{
 		PowMode:        i.PowMode,
 		DatasetDir:     i.EthashDir,
 		CacheDir:       i.EthashDir,
@@ -182,7 +183,7 @@ func (i *bbInput) sealEthash(block *types.Block) (*types.Block, error) {
 		CachesInMem:    2,
 		CachesOnDisk:   3,
 	}
-	engine := ethash.New(ethashConfig, nil, true)
+	engine := cuckoo.New(cuckooConfig)
 	defer engine.Close()
 	// Use a buffered chan for results.
 	// If the testmode is used, the sealer will return quickly, and complain
@@ -236,7 +237,7 @@ func (i *bbInput) sealClique(block *types.Block) (*types.Block, error) {
 
 // BuildBlock constructs a block from the given inputs.
 func BuildBlock(ctx *cli.Context) error {
-	// Configure the go-ethereum logger
+	// Configure the CortexTheseus logger
 	glogger := log.NewGlogHandler(log.StreamHandler(os.Stderr, log.TerminalFormat(false)))
 	glogger.Verbosity(log.Lvl(ctx.Int(VerbosityFlag.Name)))
 	log.Root().SetHandler(glogger)
@@ -263,26 +264,26 @@ func readInput(ctx *cli.Context) (*bbInput, error) {
 		ommersStr  = ctx.String(InputOmmersFlag.Name)
 		txsStr     = ctx.String(InputTxsRlpFlag.Name)
 		cliqueStr  = ctx.String(SealCliqueFlag.Name)
-		ethashOn   = ctx.Bool(SealEthashFlag.Name)
-		ethashDir  = ctx.String(SealEthashDirFlag.Name)
-		ethashMode = ctx.String(SealEthashModeFlag.Name)
+		cuckooOn   = ctx.Bool(SealEthashFlag.Name)
+		cuckooDir  = ctx.String(SealEthashDirFlag.Name)
+		cuckooMode = ctx.String(SealEthashModeFlag.Name)
 		inputData  = &bbInput{}
 	)
-	if ethashOn && cliqueStr != "" {
-		return nil, NewError(ErrorConfig, fmt.Errorf("both ethash and clique sealing specified, only one may be chosen"))
+	if cuckooOn && cliqueStr != "" {
+		return nil, NewError(ErrorConfig, fmt.Errorf("both cuckoo and clique sealing specified, only one may be chosen"))
 	}
-	if ethashOn {
-		inputData.Ethash = ethashOn
-		inputData.EthashDir = ethashDir
-		switch ethashMode {
+	if cuckooOn {
+		inputData.Ethash = cuckooOn
+		inputData.EthashDir = cuckooDir
+		switch cuckooMode {
 		case "normal":
-			inputData.PowMode = ethash.ModeNormal
+			inputData.PowMode = cuckoo.ModeNormal
 		case "test":
-			inputData.PowMode = ethash.ModeTest
+			inputData.PowMode = cuckoo.ModeTest
 		case "fake":
-			inputData.PowMode = ethash.ModeFake
+			inputData.PowMode = cuckoo.ModeFake
 		default:
-			return nil, NewError(ErrorConfig, fmt.Errorf("unknown pow mode: %s, supported modes: test, fake, normal", ethashMode))
+			return nil, NewError(ErrorConfig, fmt.Errorf("unknown pow mode: %s, supported modes: test, fake, normal", cuckooMode))
 		}
 	}
 	if headerStr == stdinSelector || ommersStr == stdinSelector || txsStr == stdinSelector || cliqueStr == stdinSelector {

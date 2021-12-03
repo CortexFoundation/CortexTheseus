@@ -1,18 +1,18 @@
-// Copyright 2017 The go-ethereum Authors
-// This file is part of go-ethereum.
+// Copyright 2021 The CortexTheseus Authors
+// This file is part of CortexTheseus.
 //
-// go-ethereum is free software: you can redistribute it and/or modify
+// CortexTheseus is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// go-ethereum is distributed in the hope that it will be useful,
+// CortexTheseus is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
+// along with CortexTheseus. If not, see <http://www.gnu.org/licenses/>.
 
 package main
 
@@ -28,26 +28,25 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/cmd/evm/internal/compiler"
-	"github.com/ethereum/go-ethereum/cmd/utils"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/core/vm/runtime"
-	"github.com/ethereum/go-ethereum/eth/tracers/logger"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/CortexFoundation/CortexTheseus/cmd/cvm/compiler"
+	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/core"
+	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
+	"github.com/CortexFoundation/CortexTheseus/core/state"
+	"github.com/CortexFoundation/CortexTheseus/core/vm"
+	"github.com/CortexFoundation/CortexTheseus/core/vm/runtime"
+	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/params"
 	"gopkg.in/urfave/cli.v1"
 )
 
 var runCommand = cli.Command{
 	Action:      runCmd,
 	Name:        "run",
-	Usage:       "run arbitrary evm binary",
+	Usage:       "run arbitrary cvm binary",
 	ArgsUsage:   "<code>",
-	Description: `The run command runs arbitrary EVM code.`,
+	Description: `The run command runs arbitrary CVM code.`,
 }
 
 // readGenesis will read the given JSON format genesis file and return
@@ -108,31 +107,36 @@ func runCmd(ctx *cli.Context) error {
 	glogger := log.NewGlogHandler(log.StreamHandler(os.Stderr, log.TerminalFormat(false)))
 	glogger.Verbosity(log.Lvl(ctx.GlobalInt(VerbosityFlag.Name)))
 	log.Root().SetHandler(glogger)
-	logconfig := &logger.Config{
-		EnableMemory:     !ctx.GlobalBool(DisableMemoryFlag.Name),
-		DisableStack:     ctx.GlobalBool(DisableStackFlag.Name),
-		DisableStorage:   ctx.GlobalBool(DisableStorageFlag.Name),
-		EnableReturnData: !ctx.GlobalBool(DisableReturnDataFlag.Name),
-		Debug:            ctx.GlobalBool(DebugFlag.Name),
+	logconfig := &vm.LogConfig{
+		DisableMemory:     ctx.GlobalBool(DisableMemoryFlag.Name),
+		DisableStack:      ctx.GlobalBool(DisableStackFlag.Name),
+		DisableStorage:    ctx.GlobalBool(DisableStorageFlag.Name),
+		DisableReturnData: ctx.GlobalBool(DisableReturnDataFlag.Name),
+		Debug:             ctx.GlobalBool(DebugFlag.Name),
 	}
 
 	var (
-		tracer        vm.EVMLogger
-		debugLogger   *logger.StructLogger
+		tracer        vm.Tracer
+		debugLogger   *vm.StructLogger
 		statedb       *state.StateDB
 		chainConfig   *params.ChainConfig
 		sender        = common.BytesToAddress([]byte("sender"))
 		receiver      = common.BytesToAddress([]byte("receiver"))
 		genesisConfig *core.Genesis
 	)
+
 	if ctx.GlobalBool(MachineFlag.Name) {
-		tracer = logger.NewJSONLogger(logconfig, os.Stdout)
+		// @lfj: JSONLogger Definition Lack Method
+		//tracer = vm.NewJSONLogger(logconfig, os.Stdout)
+		log.Warn("CVM Runner", "JsonLogger Is not supported!")
+		tracer = vm.NewStructLogger(logconfig)
 	} else if ctx.GlobalBool(DebugFlag.Name) {
-		debugLogger = logger.NewStructLogger(logconfig)
+		debugLogger = vm.NewStructLogger(logconfig)
 		tracer = debugLogger
 	} else {
-		debugLogger = logger.NewStructLogger(logconfig)
+		debugLogger = vm.NewStructLogger(logconfig)
 	}
+
 	if ctx.GlobalString(GenesisFlag.Name) != "" {
 		gen := readGenesis(ctx.GlobalString(GenesisFlag.Name))
 		genesisConfig = gen
@@ -211,7 +215,7 @@ func runCmd(ctx *cli.Context) error {
 		Time:        new(big.Int).SetUint64(genesisConfig.Timestamp),
 		Coinbase:    genesisConfig.Coinbase,
 		BlockNumber: new(big.Int).SetUint64(genesisConfig.Number),
-		EVMConfig: vm.Config{
+		CVMConfig: vm.Config{
 			Tracer: tracer,
 			Debug:  ctx.GlobalBool(DebugFlag.Name) || ctx.GlobalBool(MachineFlag.Name),
 		},
@@ -233,7 +237,8 @@ func runCmd(ctx *cli.Context) error {
 	if chainConfig != nil {
 		runtimeConfig.ChainConfig = chainConfig
 	} else {
-		runtimeConfig.ChainConfig = params.AllEthashProtocolChanges
+		// @lfj: is it OK to set MainnetChainConfig as default config?
+		runtimeConfig.ChainConfig = params.MainnetChainConfig
 	}
 
 	var hexInput []byte
@@ -270,7 +275,7 @@ func runCmd(ctx *cli.Context) error {
 	if ctx.GlobalBool(DumpFlag.Name) {
 		statedb.Commit(true)
 		statedb.IntermediateRoot(true)
-		fmt.Println(string(statedb.Dump(nil)))
+		fmt.Println(string(statedb.Dump(false, false, true)))
 	}
 
 	if memProfilePath := ctx.GlobalString(MemProfileFlag.Name); memProfilePath != "" {
@@ -289,14 +294,14 @@ func runCmd(ctx *cli.Context) error {
 	if ctx.GlobalBool(DebugFlag.Name) {
 		if debugLogger != nil {
 			fmt.Fprintln(os.Stderr, "#### TRACE ####")
-			logger.WriteTrace(os.Stderr, debugLogger.StructLogs())
+			vm.WriteTrace(os.Stderr, debugLogger.StructLogs())
 		}
 		fmt.Fprintln(os.Stderr, "#### LOGS ####")
-		logger.WriteLogs(os.Stderr, statedb.Logs())
+		vm.WriteLogs(os.Stderr, statedb.Logs())
 	}
 
 	if bench || ctx.GlobalBool(StatDumpFlag.Name) {
-		fmt.Fprintf(os.Stderr, `EVM gas used:    %d
+		fmt.Fprintf(os.Stderr, `CVM gas used:    %d
 execution time:  %v
 allocations:     %d
 allocated bytes: %d

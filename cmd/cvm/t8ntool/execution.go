@@ -1,18 +1,18 @@
-// Copyright 2020 The go-ethereum Authors
-// This file is part of the go-ethereum library.
+// Copyright 2021 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The go-ethereum library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-ethereum library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package t8ntool
 
@@ -21,21 +21,21 @@ import (
 	"math/big"
 	"os"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/consensus/ethash"
-	"github.com/ethereum/go-ethereum/consensus/misc"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/trie"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/common/math"
+	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
+	_ "github.com/CortexFoundation/CortexTheseus/consensus/misc"
+	"github.com/CortexFoundation/CortexTheseus/core"
+	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
+	"github.com/CortexFoundation/CortexTheseus/core/state"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/core/vm"
+	"github.com/CortexFoundation/CortexTheseus/crypto"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
+	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/CortexTheseus/rlp"
+	"github.com/CortexFoundation/CortexTheseus/trie"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -97,7 +97,7 @@ type rejectedTx struct {
 // Apply applies a set of transactions to a pre-state
 func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 	txs types.Transactions, miningReward int64,
-	getTracerFn func(txIndex int, txHash common.Hash) (tracer vm.EVMLogger, err error)) (*state.StateDB, *ExecutionResult, error) {
+	getTracerFn func(txIndex int, txHash common.Hash) (tracer vm.Tracer, err error)) (*state.StateDB, *ExecutionResult, error) {
 
 	// Capture errors for BLOCKHASH operation, if we haven't been supplied the
 	// required blockhashes
@@ -114,9 +114,11 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 		return h
 	}
 	var (
-		statedb     = MakePreState(rawdb.NewMemoryDatabase(), pre.Pre)
-		signer      = types.MakeSigner(chainConfig, new(big.Int).SetUint64(pre.Env.Number))
-		gaspool     = new(core.GasPool)
+		statedb = MakePreState(rawdb.NewMemoryDatabase(), pre.Pre)
+		signer  = types.MakeSigner(chainConfig, new(big.Int).SetUint64(pre.Env.Number))
+		gaspool = new(core.GasPool)
+		// @lfj: cortex add quotapool
+		quotapool   = new(core.QuotaPool).AddQuota(math.MaxUint64)
 		blockHash   = common.Hash{0x13, 0x37}
 		rejectedTxs []*rejectedTx
 		includedTxs types.Transactions
@@ -135,20 +137,24 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 		GasLimit:    pre.Env.GasLimit,
 		GetHash:     getHash,
 	}
+
+	// @lfj: Not Support BaseFee, Not Support DAOForkSupport
 	// If currentBaseFee is defined, add it to the vmContext.
 	if pre.Env.BaseFee != nil {
-		vmContext.BaseFee = new(big.Int).Set(pre.Env.BaseFee)
+		//vmContext.BaseFee = new(big.Int).Set(pre.Env.BaseFee)
 	}
 	// If DAO is supported/enabled, we need to handle it here. In geth 'proper', it's
 	// done in StateProcessor.Process(block, ...), right before transactions are applied.
 	if chainConfig.DAOForkSupport &&
 		chainConfig.DAOForkBlock != nil &&
 		chainConfig.DAOForkBlock.Cmp(new(big.Int).SetUint64(pre.Env.Number)) == 0 {
-		misc.ApplyDAOHardFork(statedb)
+		//misc.ApplyDAOHardFork(statedb)
 	}
 
 	for i, tx := range txs {
-		msg, err := tx.AsMessage(signer, pre.Env.BaseFee)
+
+		// @lfj: Not Support BaseFee
+		msg, err := tx.AsMessage(signer) //, pre.Env.BaseFee)
 		if err != nil {
 			log.Warn("rejected tx", "index", i, "hash", tx.Hash(), "error", err)
 			rejectedTxs = append(rejectedTxs, &rejectedTx{i, err.Error()})
@@ -161,12 +167,12 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 		vmConfig.Tracer = tracer
 		vmConfig.Debug = (tracer != nil)
 		statedb.Prepare(tx.Hash(), txIndex)
-		txContext := core.NewEVMTxContext(msg)
+		txContext := core.NewCVMTxContext(msg)
 		snapshot := statedb.Snapshot()
-		evm := vm.NewEVM(vmContext, txContext, statedb, chainConfig, vmConfig)
+		cvm := vm.NewCVM(vmContext, txContext, statedb, chainConfig, vmConfig)
 
 		// (ret []byte, usedGas uint64, failed bool, err error)
-		msgResult, err := core.ApplyMessage(evm, msg, gaspool)
+		_, UsedGas, _, Failed, err := core.ApplyMessage(cvm, msg, gaspool, quotapool)
 		if err != nil {
 			statedb.RevertToSnapshot(snapshot)
 			log.Info("rejected tx", "index", i, "hash", tx.Hash(), "from", msg.From(), "error", err)
@@ -177,7 +183,7 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 		if hashError != nil {
 			return nil, nil, NewError(ErrorMissingBlockhash, hashError)
 		}
-		gasUsed += msgResult.UsedGas
+		gasUsed += UsedGas
 
 		// Receipt:
 		{
@@ -190,18 +196,19 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 
 			// Create a new receipt for the transaction, storing the intermediate root and
 			// gas used by the tx.
-			receipt := &types.Receipt{Type: tx.Type(), PostState: root, CumulativeGasUsed: gasUsed}
-			if msgResult.Failed() {
+			// @lfj: No Receipt Type
+			receipt := &types.Receipt{PostState: root, CumulativeGasUsed: gasUsed}
+			if Failed {
 				receipt.Status = types.ReceiptStatusFailed
 			} else {
 				receipt.Status = types.ReceiptStatusSuccessful
 			}
 			receipt.TxHash = tx.Hash()
-			receipt.GasUsed = msgResult.UsedGas
+			receipt.GasUsed = UsedGas
 
 			// If the transaction created a contract, store the creation address in the receipt.
 			if msg.To() == nil {
-				receipt.ContractAddress = crypto.CreateAddress(evm.TxContext.Origin, tx.Nonce())
+				receipt.ContractAddress = crypto.CreateAddress(cvm.TxContext.Origin, tx.Nonce())
 			}
 
 			// Set the receipt logs and create the bloom filter.
@@ -245,7 +252,7 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 	root, err := statedb.Commit(chainConfig.IsEIP158(vmContext.BlockNumber))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Could not commit state: %v", err)
-		return nil, nil, NewError(ErrorEVM, fmt.Errorf("could not commit state: %v", err))
+		return nil, nil, NewError(ErrorCVM, fmt.Errorf("could not commit state: %v", err))
 	}
 	execRs := &ExecutionResult{
 		StateRoot:   root,
@@ -261,7 +268,7 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 	return statedb, execRs, nil
 }
 
-func MakePreState(db ethdb.Database, accounts core.GenesisAlloc) *state.StateDB {
+func MakePreState(db ctxcdb.Database, accounts core.GenesisAlloc) *state.StateDB {
 	sdb := state.NewDatabase(db)
 	statedb, _ := state.New(common.Hash{}, sdb, nil)
 	for addr, a := range accounts {
@@ -285,10 +292,10 @@ func rlpHash(x interface{}) (h common.Hash) {
 	return h
 }
 
-// calcDifficulty is based on ethash.CalcDifficulty. This method is used in case
+// calcDifficulty is based on cuckoo.CalcDifficulty. This method is used in case
 // the caller does not provide an explicit difficulty, but instead provides only
 // parent timestamp + difficulty.
-// Note: this method only works for ethash engine.
+// Note: this method only works for cuckoo engine.
 func calcDifficulty(config *params.ChainConfig, number, currentTime, parentTime uint64,
 	parentDifficulty *big.Int, parentUncleHash common.Hash) *big.Int {
 	uncleHash := parentUncleHash
@@ -302,5 +309,5 @@ func calcDifficulty(config *params.ChainConfig, number, currentTime, parentTime 
 		Number:     new(big.Int).SetUint64(number - 1),
 		Time:       parentTime,
 	}
-	return ethash.CalcDifficulty(config, currentTime, parent)
+	return cuckoo.CalcDifficulty(config, currentTime, parent)
 }

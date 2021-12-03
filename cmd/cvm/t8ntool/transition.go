@@ -1,18 +1,18 @@
-// Copyright 2020 The go-ethereum Authors
-// This file is part of go-ethereum.
+// Copyright 2021 The CortexTheseus Authors
+// This file is part of CortexTheseus.
 //
-// go-ethereum is free software: you can redistribute it and/or modify
+// CortexTheseus is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// go-ethereum is distributed in the hope that it will be useful,
+// CortexTheseus is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
+// along with CortexTheseus. If not, see <http://www.gnu.org/licenses/>.
 
 package t8ntool
 
@@ -27,23 +27,22 @@ import (
 	"path"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/eth/tracers/logger"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/tests"
+	"github.com/CortexFoundation/CortexTheseus/cmd/cvm/t8ntool/test_utils"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
+	"github.com/CortexFoundation/CortexTheseus/core"
+	"github.com/CortexFoundation/CortexTheseus/core/state"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/core/vm"
+	"github.com/CortexFoundation/CortexTheseus/crypto"
+	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"gopkg.in/urfave/cli.v1"
 )
 
 const (
-	ErrorEVM              = 2
+	ErrorCVM              = 2
 	ErrorConfig           = 3
 	ErrorMissingBlockhash = 4
 
@@ -84,16 +83,16 @@ type input struct {
 }
 
 func Transition(ctx *cli.Context) error {
-	// Configure the go-ethereum logger
+	// Configure the CortexTheseus logger
 	glogger := log.NewGlogHandler(log.StreamHandler(os.Stderr, log.TerminalFormat(false)))
 	glogger.Verbosity(log.Lvl(ctx.Int(VerbosityFlag.Name)))
 	log.Root().SetHandler(glogger)
 
 	var (
 		err    error
-		tracer vm.EVMLogger
+		tracer vm.Tracer
 	)
-	var getTracer func(txIndex int, txHash common.Hash) (vm.EVMLogger, error)
+	var getTracer func(txIndex int, txHash common.Hash) (vm.Tracer, error)
 
 	baseDir, err := createBasedir(ctx)
 	if err != nil {
@@ -113,11 +112,11 @@ func Transition(ctx *cli.Context) error {
 			log.Warn(fmt.Sprintf("--%s has been deprecated in favour of --%s", TraceDisableReturnDataFlag.Name, TraceEnableReturnDataFlag.Name))
 		}
 		// Configure the EVM logger
-		logConfig := &logger.Config{
-			DisableStack:     ctx.Bool(TraceDisableStackFlag.Name),
-			EnableMemory:     !ctx.Bool(TraceDisableMemoryFlag.Name) || ctx.Bool(TraceEnableMemoryFlag.Name),
-			EnableReturnData: !ctx.Bool(TraceDisableReturnDataFlag.Name) || ctx.Bool(TraceEnableReturnDataFlag.Name),
-			Debug:            true,
+		logConfig := &vm.LogConfig{
+			DisableStack:      ctx.Bool(TraceDisableStackFlag.Name),
+			DisableMemory:     ctx.Bool(TraceDisableMemoryFlag.Name) || ctx.Bool(TraceEnableMemoryFlag.Name),
+			DisableReturnData: ctx.Bool(TraceDisableReturnDataFlag.Name) || ctx.Bool(TraceEnableReturnDataFlag.Name),
+			Debug:             true,
 		}
 		var prevFile *os.File
 		// This one closes the last file
@@ -126,7 +125,7 @@ func Transition(ctx *cli.Context) error {
 				prevFile.Close()
 			}
 		}()
-		getTracer = func(txIndex int, txHash common.Hash) (vm.EVMLogger, error) {
+		getTracer = func(txIndex int, txHash common.Hash) (vm.Tracer, error) {
 			if prevFile != nil {
 				prevFile.Close()
 			}
@@ -135,10 +134,12 @@ func Transition(ctx *cli.Context) error {
 				return nil, NewError(ErrorIO, fmt.Errorf("failed creating trace-file: %v", err))
 			}
 			prevFile = traceFile
-			return logger.NewJSONLogger(logConfig, traceFile), nil
+			// @lfj: no JSON Logger
+			//return logger.NewJSONLogger(logConfig, traceFile), nil
+			return vm.NewStructLogger(logConfig), nil
 		}
 	} else {
-		getTracer = func(txIndex int, txHash common.Hash) (tracer vm.EVMLogger, err error) {
+		getTracer = func(txIndex int, txHash common.Hash) (tracer vm.Tracer, err error) {
 			return nil, nil
 		}
 	}
@@ -184,7 +185,7 @@ func Transition(ctx *cli.Context) error {
 	}
 	// Construct the chainconfig
 	var chainConfig *params.ChainConfig
-	if cConf, extraEips, err := tests.GetChainConfig(ctx.String(ForknameFlag.Name)); err != nil {
+	if cConf, extraEips, err := test_utils.GetChainConfig(ctx.String(ForknameFlag.Name)); err != nil {
 		return NewError(ErrorConfig, fmt.Errorf("failed constructing chain configuration: %v", err))
 	} else {
 		chainConfig = cConf
@@ -246,12 +247,13 @@ func Transition(ctx *cli.Context) error {
 	if txs, err = signUnsignedTransactions(txsWithKeys, signer); err != nil {
 		return NewError(ErrorJson, fmt.Errorf("failed signing transactions: %v", err))
 	}
+	// @lfj: No London Chain!
 	// Sanity check, to not `panic` in state_transition
-	if chainConfig.IsLondon(big.NewInt(int64(prestate.Env.Number))) {
-		if prestate.Env.BaseFee == nil {
-			return NewError(ErrorConfig, errors.New("EIP-1559 config but missing 'currentBaseFee' in env section"))
-		}
-	}
+	//if chainConfig.IsLondon(big.NewInt(int64(prestate.Env.Number))) {
+	//  if prestate.Env.BaseFee == nil {
+	//      return NewError(ErrorConfig, errors.New("EIP-1559 config but missing 'currentBaseFee' in env section"))
+	//  }
+	//}
 	if env := prestate.Env; env.Difficulty == nil {
 		// If difficulty was not provided by caller, we need to calculate it.
 		switch {
@@ -274,7 +276,11 @@ func Transition(ctx *cli.Context) error {
 	body, _ := rlp.EncodeToBytes(txs)
 	// Dump the excution result
 	collector := make(Alloc)
-	s.DumpToCollector(collector, nil)
+	// TODO:
+	// @lfj: DumpToCollector is important! Add Result Dumping for StateDB!
+	// But May Cause Master Branch Merge Conflicts.
+	//s.DumpToCollector(collector, nil)
+	s.GetRefund() // TODO: @lfj: just for use s, will be deleted in the future
 	return dispatchOutput(ctx, baseDir, result, collector, body)
 }
 
@@ -372,7 +378,7 @@ func (g Alloc) OnAccount(addr common.Address, dumpAccount state.DumpAccount) {
 		}
 	}
 	genesisAccount := core.GenesisAccount{
-		Code:    dumpAccount.Code,
+		Code:    []byte(dumpAccount.Code),
 		Storage: storage,
 		Balance: balance,
 		Nonce:   dumpAccount.Nonce,

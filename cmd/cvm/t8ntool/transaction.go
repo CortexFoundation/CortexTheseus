@@ -1,18 +1,18 @@
-// Copyright 2021 The go-ethereum Authors
-// This file is part of go-ethereum.
+// Copyright 2021 The CortexTheseus Authors
+// This file is part of CortexTheseus.
 //
-// go-ethereum is free software: you can redistribute it and/or modify
+// CortexTheseus is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// go-ethereum is distributed in the hope that it will be useful,
+// CortexTheseus is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
+// along with CortexTheseus. If not, see <http://www.gnu.org/licenses/>.
 
 package t8ntool
 
@@ -24,14 +24,14 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/tests"
+	"github.com/CortexFoundation/CortexTheseus/cmd/cvm/t8ntool/test_utils"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
+	"github.com/CortexFoundation/CortexTheseus/core"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -65,7 +65,7 @@ func (r *result) MarshalJSON() ([]byte, error) {
 }
 
 func Transaction(ctx *cli.Context) error {
-	// Configure the go-ethereum logger
+	// Configure the CortexTheseus logger
 	glogger := log.NewGlogHandler(log.StreamHandler(os.Stderr, log.TerminalFormat(false)))
 	glogger.Verbosity(log.Lvl(ctx.Int(VerbosityFlag.Name)))
 	log.Root().SetHandler(glogger)
@@ -81,7 +81,7 @@ func Transaction(ctx *cli.Context) error {
 		chainConfig *params.ChainConfig
 	)
 	// Construct the chainconfig
-	if cConf, _, err := tests.GetChainConfig(ctx.String(ForknameFlag.Name)); err != nil {
+	if cConf, _, err := test_utils.GetChainConfig(ctx.String(ForknameFlag.Name)); err != nil {
 		return NewError(ErrorConfig, fmt.Errorf("failed constructing chain configuration: %v", err))
 	} else {
 		chainConfig = cConf
@@ -139,7 +139,8 @@ func Transaction(ctx *cli.Context) error {
 			r.Address = sender
 		}
 		// Check intrinsic gas
-		if gas, err := core.IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil,
+		// @lfj: set upload as false
+		if gas, err := core.IntrinsicGas(tx.Data(), tx.To() == nil, false,
 			chainConfig.IsHomestead(new(big.Int)), chainConfig.IsIstanbul(new(big.Int))); err != nil {
 			r.Error = err
 			results = append(results, r)
@@ -160,16 +161,8 @@ func Transaction(ctx *cli.Context) error {
 			r.Error = errors.New("value exceeds 256 bits")
 		case tx.GasPrice().BitLen() > 256:
 			r.Error = errors.New("gasPrice exceeds 256 bits")
-		case tx.GasTipCap().BitLen() > 256:
-			r.Error = errors.New("maxPriorityFeePerGas exceeds 256 bits")
-		case tx.GasFeeCap().BitLen() > 256:
-			r.Error = errors.New("maxFeePerGas exceeds 256 bits")
-		case tx.GasFeeCap().Cmp(tx.GasTipCap()) < 0:
-			r.Error = errors.New("maxFeePerGas < maxPriorityFeePerGas")
 		case new(big.Int).Mul(tx.GasPrice(), new(big.Int).SetUint64(tx.Gas())).BitLen() > 256:
 			r.Error = errors.New("gas * gasPrice exceeds 256 bits")
-		case new(big.Int).Mul(tx.GasFeeCap(), new(big.Int).SetUint64(tx.Gas())).BitLen() > 256:
-			r.Error = errors.New("gas * maxFeePerGas exceeds 256 bits")
 		}
 		results = append(results, r)
 	}
