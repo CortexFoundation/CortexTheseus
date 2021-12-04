@@ -381,9 +381,9 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		// enough stack items available to perform the operation.
 		op = contract.GetOp(pc)
 		operation := in.cfg.JumpTable[op]
-		if operation == nil {
-			return nil, fmt.Errorf("invalid opcode 0x%x", int(op))
-		}
+		//if operation == nil {
+		//	return nil, fmt.Errorf("invalid opcode 0x%x", int(op))
+		//}
 		if err := operation.validateStack(stack); err != nil {
 			return nil, err
 		}
