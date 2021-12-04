@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"hash"
 	"math/big"
-	"sync/atomic"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/math"
@@ -371,7 +370,8 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		contract.Code = contract.Code[2:]
 	}
 	cgas := uint64(0)
-	for atomic.LoadInt32(&in.cvm.abort) == 0 {
+	//for atomic.LoadInt32(&in.cvm.abort) == 0 {
+	for {
 		if in.cfg.Debug {
 			// Capture pre-execution values for tracing.
 			logged, pcCopy, gasCopy = false, pc, contract.Gas
