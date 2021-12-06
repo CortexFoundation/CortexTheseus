@@ -44,7 +44,7 @@ type Config struct {
 	Tracer Tracer
 	// NoRecursion disabled Interpreter call, callcode,
 	// delegate call and create.
-	NoRecursion bool
+	//NoRecursion bool
 	// Enable recording of SHA3/keccak preimages
 	EnablePreimageRecording bool
 	// uri for remote infer service
