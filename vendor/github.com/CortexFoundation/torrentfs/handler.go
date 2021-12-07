@@ -125,6 +125,7 @@ type TorrentManager struct {
 
 	initCh   chan struct{}
 	simulate bool
+	good     int
 }
 
 // can only call by fs.go: 'SeedingLocal()'
@@ -676,7 +677,7 @@ func (tm *TorrentManager) seedingLoop() {
 				}()
 			}
 
-			if len(tm.seedingTorrents) == len(GoodFiles) && !tm.simulate {
+			if len(tm.seedingTorrents) == tm.good && !tm.simulate {
 				//TODO sync initialize
 				close(tm.initCh)
 			}
@@ -710,6 +711,7 @@ func (tm *TorrentManager) init() {
 		//if tm.mode != LAZY || ok {
 		if ok {
 			tm.Search(context.Background(), k, 0, nil)
+			tm.good++
 		}
 	}
 
