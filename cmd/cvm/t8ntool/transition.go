@@ -276,11 +276,26 @@ func Transition(ctx *cli.Context) error {
 	body, _ := rlp.EncodeToBytes(txs)
 	// Dump the excution result
 	collector := make(Alloc)
-	// TODO:
 	// @lfj: DumpToCollector is important! Add Result Dumping for StateDB!
 	// But May Cause Master Branch Merge Conflicts.
-	//s.DumpToCollector(collector, nil)
-	s.GetRefund() // TODO: @lfj: just for use s, will be deleted in the future
+	dump := s.RawDump(false, false, false)
+	for addr, dumpAccount := range dump.Accounts {
+		balance, _ := new(big.Int).SetString(dumpAccount.Balance, 10)
+		var storage map[common.Hash]common.Hash
+		if dumpAccount.Storage != nil {
+			storage = make(map[common.Hash]common.Hash)
+			for k, v := range dumpAccount.Storage {
+				storage[k] = common.HexToHash(v)
+			}
+		}
+		genesisAccount := core.GenesisAccount{
+			Code:    []byte(dumpAccount.Code),
+			Storage: storage,
+			Balance: balance,
+			Nonce:   dumpAccount.Nonce,
+		}
+		collector[addr] = genesisAccount
+	}
 	return dispatchOutput(ctx, baseDir, result, collector, body)
 }
 
