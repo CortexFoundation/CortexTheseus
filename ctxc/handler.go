@@ -461,7 +461,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// Gather headers until the fetch or network limits is reached
 		var (
 			bytes   common.StorageSize
-			headers []*types.Header
+			headers []rlp.RawValue
 			unknown bool
 		)
 		for !unknown && len(headers) < int(query.Amount) && bytes < softResponseLimit && len(headers) < downloader.MaxHeaderFetch {
@@ -483,8 +483,13 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			if origin == nil {
 				break
 			}
-			headers = append(headers, origin)
-			bytes += estHeaderRlpSize
+
+			if rlpData, err := rlp.EncodeToBytes(origin); err != nil {
+				log.Crit("Unable to decode our own headers", "err", err)
+			} else {
+				headers = append(headers, rlp.RawValue(rlpData))
+				bytes += common.StorageSize(len(rlpData))
+			}
 
 			// Advance to the next header of the query
 			switch {
