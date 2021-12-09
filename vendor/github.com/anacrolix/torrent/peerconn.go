@@ -1107,7 +1107,9 @@ func (c *PeerConn) mainReadLoop() (err error) {
 			c.peerChoking = true
 			// We can now reset our interest. I think we do this after setting the flag in case the
 			// peerImpl updates synchronously (webseeds?).
-			c.updateRequests("choked")
+			if !c.actualRequestState.Requests.IsEmpty() {
+				c.updateRequests("choked")
+			}
 			c.updateExpectingChunks()
 		case pp.Unchoke:
 			if !c.peerChoking {
@@ -1133,7 +1135,9 @@ func (c *PeerConn) mainReadLoop() (err error) {
 					c.fastEnabled())
 				torrent.Add("requestsPreservedThroughChoking", int64(preservedCount))
 			}
-			c.updateRequests("unchoked")
+			if !c.t._pendingPieces.IsEmpty() {
+				c.updateRequests("unchoked")
+			}
 			c.updateExpectingChunks()
 		case pp.Interested:
 			c.peerInterested = true
@@ -1525,7 +1529,7 @@ func (cn *Peer) netGoodPiecesDirtied() int64 {
 
 func (c *Peer) peerHasWantedPieces() bool {
 	if all, _ := c.peerHasAllPieces(); all {
-		return !c.t.haveAllPieces()
+		return !c.t.haveAllPieces() && !c.t._pendingPieces.IsEmpty()
 	}
 	if !c.t.haveInfo() {
 		return !c.peerPieces().IsEmpty()

@@ -251,12 +251,17 @@ func (tfs *TorrentFS) Version() uint {
 
 // Start starts the data collection thread and the listening server of the dashboard.
 // Implements the node.Service interface.
-func (tfs *TorrentFS) Start(server *p2p.Server) error {
-	log.Info("Started nas v.1.0", "config", tfs, "mode", tfs.config.Mode)
+func (tfs *TorrentFS) Start(server *p2p.Server) (err error) {
+	log.Info("Started nas v.2.0", "config", tfs, "mode", tfs.config.Mode)
 	if tfs == nil || tfs.monitor == nil {
-		return nil
+		return
 	}
-	return tfs.monitor.Start()
+	err = tfs.monitor.Start()
+	if err != nil {
+		return
+	}
+	//TODO
+	return
 }
 
 // Stop stops the data collection thread and the connection listener of the dashboard.

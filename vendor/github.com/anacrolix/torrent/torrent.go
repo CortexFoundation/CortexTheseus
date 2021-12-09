@@ -28,7 +28,6 @@ import (
 	"github.com/anacrolix/multiless"
 	"github.com/anacrolix/sync"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/google/go-cmp/cmp"
 	"github.com/pion/datachannel"
 
 	"github.com/anacrolix/torrent/bencode"
@@ -258,8 +257,14 @@ func (t *Torrent) addrActive(addr string) bool {
 }
 
 func (t *Torrent) appendUnclosedConns(ret []*PeerConn) []*PeerConn {
+	return t.appendConns(ret, func(conn *PeerConn) bool {
+		return !conn.closed.IsSet()
+	})
+}
+
+func (t *Torrent) appendConns(ret []*PeerConn, f func(*PeerConn) bool) []*PeerConn {
 	for c := range t.conns {
-		if !c.closed.IsSet() {
+		if f(c) {
 			ret = append(ret, c)
 		}
 	}
@@ -909,7 +914,7 @@ func (t *Torrent) hashPiece(piece pieceIndex) (ret metainfo.Hash, err error) {
 }
 
 func (t *Torrent) haveAnyPieces() bool {
-	return t._completedPieces.GetCardinality() != 0
+	return !t._completedPieces.IsEmpty()
 }
 
 func (t *Torrent) haveAllPieces() bool {
@@ -970,21 +975,23 @@ func (t *Torrent) wantPieceIndex(index pieceIndex) bool {
 // conns (which is a map).
 var peerConnSlices sync.Pool
 
+func getPeerConnSlice(cap int) []*PeerConn {
+	getInterface := peerConnSlices.Get()
+	if getInterface == nil {
+		return make([]*PeerConn, 0, cap)
+	} else {
+		return getInterface.([]*PeerConn)[:0]
+	}
+}
+
 // The worst connection is one that hasn't been sent, or sent anything useful for the longest. A bad
 // connection is one that usually sends us unwanted pieces, or has been in the worse half of the
 // established connections for more than a minute. This is O(n log n). If there was a way to not
 // consider the position of a conn relative to the total number, it could be reduced to O(n).
 func (t *Torrent) worstBadConn() (ret *PeerConn) {
-	var sl []*PeerConn
-	getInterface := peerConnSlices.Get()
-	if getInterface == nil {
-		sl = make([]*PeerConn, 0, len(t.conns))
-	} else {
-		sl = getInterface.([]*PeerConn)[:0]
-	}
-	sl = t.appendUnclosedConns(sl)
-	defer peerConnSlices.Put(sl)
-	wcs := worseConnSlice{sl}
+	wcs := worseConnSlice{conns: t.appendUnclosedConns(getPeerConnSlice(len(t.conns)))}
+	defer peerConnSlices.Put(wcs.conns)
+	wcs.initKeys()
 	heap.Init(&wcs)
 	for wcs.Len() != 0 {
 		c := heap.Pop(&wcs).(*PeerConn)
@@ -1224,6 +1231,7 @@ func (t *Torrent) updatePieceCompletion(piece pieceIndex) bool {
 	x := uint32(piece)
 	if complete {
 		t._completedPieces.Add(x)
+		t.openNewConns()
 	} else {
 		t._completedPieces.Remove(x)
 	}
@@ -1381,20 +1389,20 @@ func (t *Torrent) assertPendingRequests() {
 	if !check {
 		return
 	}
-	var actual pendingRequests
-	if t.haveInfo() {
-		actual.m = make([]int, t.numRequests())
-	}
-	t.iterPeers(func(p *Peer) {
-		p.actualRequestState.Requests.Iterate(func(x uint32) bool {
-			actual.Inc(x)
-			return true
-		})
-	})
-	diff := cmp.Diff(actual.m, t.pendingRequests.m)
-	if diff != "" {
-		panic(diff)
-	}
+	// var actual pendingRequests
+	// if t.haveInfo() {
+	// 	actual.m = make([]int, t.numRequests())
+	// }
+	// t.iterPeers(func(p *Peer) {
+	// 	p.actualRequestState.Requests.Iterate(func(x uint32) bool {
+	// 		actual.Inc(x)
+	// 		return true
+	// 	})
+	// })
+	// diff := cmp.Diff(actual.m, t.pendingRequests.m)
+	// if diff != "" {
+	// 	panic(diff)
+	// }
 }
 
 func (t *Torrent) dropConnection(c *PeerConn) {
@@ -1405,6 +1413,7 @@ func (t *Torrent) dropConnection(c *PeerConn) {
 	}
 }
 
+// Peers as in contact information for dialing out.
 func (t *Torrent) wantPeers() bool {
 	if t.closed.IsSet() {
 		return false
@@ -1412,7 +1421,7 @@ func (t *Torrent) wantPeers() bool {
 	if t.peers.Len() > t.cl.config.TorrentPeersLowWater {
 		return false
 	}
-	return t.needData() || t.seeding()
+	return t.wantConns()
 }
 
 func (t *Torrent) updateWantPeersEvent() {
@@ -1670,7 +1679,10 @@ func (t *Torrent) dhtAnnouncer(s DhtServer) {
 			if t.closed.IsSet() {
 				return
 			}
-			if !t.wantPeers() {
+			// We're also announcing ourselves as a listener, so we don't just want peer addresses.
+			// TODO: We can include the announce_peer step depending on whether we can receive
+			// inbound connections. We should probably only announce once every 15 mins too.
+			if !t.wantConns() {
 				goto wait
 			}
 			// TODO: Determine if there's a listener on the port we're announcing.
@@ -1812,13 +1824,10 @@ func (t *Torrent) wantConns() bool {
 	if t.closed.IsSet() {
 		return false
 	}
-	if !t.seeding() && !t.needData() {
+	if !t.needData() && (!t.seeding() || !t.haveAnyPieces()) {
 		return false
 	}
-	if len(t.conns) < t.maxEstablishedConns {
-		return true
-	}
-	return t.worstBadConn() != nil
+	return len(t.conns) < t.maxEstablishedConns || t.worstBadConn() != nil
 }
 
 func (t *Torrent) SetMaxEstablishedConns(max int) (oldMax int) {
@@ -1826,11 +1835,15 @@ func (t *Torrent) SetMaxEstablishedConns(max int) (oldMax int) {
 	defer t.cl.unlock()
 	oldMax = t.maxEstablishedConns
 	t.maxEstablishedConns = max
-	wcs := slices.HeapInterface(slices.FromMapKeys(t.conns), func(l, r *PeerConn) bool {
-		return worseConn(&l.Peer, &r.Peer)
-	})
+	wcs := worseConnSlice{
+		conns: t.appendConns(nil, func(*PeerConn) bool {
+			return true
+		}),
+	}
+	wcs.initKeys()
+	heap.Init(&wcs)
 	for len(t.conns) > t.maxEstablishedConns && wcs.Len() > 0 {
-		t.dropConnection(wcs.Pop().(*PeerConn))
+		t.dropConnection(heap.Pop(&wcs).(*PeerConn))
 	}
 	t.openNewConns()
 	return oldMax
