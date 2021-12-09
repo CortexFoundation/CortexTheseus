@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 	github.com/CortexFoundation/inference v1.0.2-0.20211122032106-7614551ac311
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.25-0.20211126025014-705f97df1556
+	github.com/CortexFoundation/torrentfs v1.0.25-0.20211206063441-9b6933ce8681
 	github.com/VictoriaMetrics/fastcache v1.7.0
 	github.com/arsham/figurine v1.0.1
 	github.com/aws/aws-sdk-go-v2 v1.3.0
@@ -84,7 +84,7 @@ require (
 	github.com/anacrolix/multiless v0.2.0 // indirect
 	github.com/anacrolix/stm v0.3.0 // indirect
 	github.com/anacrolix/sync v0.4.0 // indirect
-	github.com/anacrolix/torrent v1.38.1-0.20211122071047-8555ab7f2142 // indirect
+	github.com/anacrolix/torrent v1.38.1-0.20211203093650-a9373fc8fda5 // indirect
 	github.com/anacrolix/upnp v0.1.2-0.20200416075019-5e9378ed1425 // indirect
 	github.com/anacrolix/utp v0.1.0 // indirect
 	github.com/arsham/rainbow v1.0.0 // indirect
@@ -108,7 +108,6 @@ require (
 	github.com/go-resty/resty/v2 v2.3.1-0.20201101194733-0de0d7e3240b // indirect
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
 	github.com/google/btree v1.0.1 // indirect
-	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
@@ -153,9 +152,9 @@ require (
 	google.golang.org/genproto v0.0.0-20200825200019-8632dd797987 // indirect
 	google.golang.org/grpc v1.31.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c // indirect
-	modernc.org/libc v1.11.3 // indirect
+	modernc.org/libc v1.11.82 // indirect
 	modernc.org/mathutil v1.4.1 // indirect
 	modernc.org/memory v1.0.5 // indirect
-	modernc.org/sqlite v1.13.0 // indirect
+	modernc.org/sqlite v1.14.2-0.20211125151325-d4ed92c0a70f // indirect
 	zombiezen.com/go/sqlite v0.8.0 // indirect
 )
