@@ -18,7 +18,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -175,13 +174,24 @@ func startSynapse(statedb *state.StateDB) (err error) {
 	if fsErr != nil {
 		return fsErr
 	}
-	modelInfoHash, err := storagefs.SeedingLocal(context.Background(), "runner_test/model_input/0000000000000000000000000000000000001013", false)
+
+	synapse.New(&synapse.Config{
+		IsNotCache:     false,
+		DeviceType:     "cpu",
+		DeviceId:       0,
+		MaxMemoryUsage: synapse.DefaultConfig.MaxMemoryUsage,
+		IsRemoteInfer:  false,
+		InferURI:       "",
+		Storagefs:      storagefs,
+	})
+
+	modelInfoHash, err := synapse.Engine().SeedingLocal("./runner_test/model_input/0000000000000000000000000000000000001013", false)
 	if err != nil && !os.IsExist(err) {
 		log.Error(fmt.Sprintf("could not seeding model: %v", err))
 		os.Exit(1)
 	}
 
-	inputInfoHash, err := storagefs.SeedingLocal(context.Background(), "./runner_test/model_input/0000000000000000000000000000000000002013", false)
+	inputInfoHash, err := synapse.Engine().SeedingLocal("./runner_test/model_input/0000000000000000000000000000000000002013", false)
 	if err != nil && !os.IsExist(err) {
 		log.Error(fmt.Sprintf("could not seeding input: %v", err))
 		os.Exit(1)
@@ -201,15 +211,8 @@ func startSynapse(statedb *state.StateDB) (err error) {
 		os.Exit(1)
 	}
 
-	synapse.New(&synapse.Config{
-		IsNotCache:     false,
-		DeviceType:     "cpu",
-		DeviceId:       0,
-		MaxMemoryUsage: synapse.DefaultConfig.MaxMemoryUsage,
-		IsRemoteInfer:  false,
-		InferURI:       "",
-		Storagefs:      storagefs,
-	})
+	// waiting for torrent to be available(activate)
+	time.Sleep(time.Second)
 
 	return nil
 }
