@@ -325,7 +325,7 @@ func runCmd(ctx *cli.Context) error {
 		Difficulty:  genesisConfig.Difficulty,
 		Time:        new(big.Int).SetUint64(genesisConfig.Timestamp),
 		Coinbase:    genesisConfig.Coinbase,
-		BlockNumber: new(big.Int).SetUint64(genesisConfig.Number),
+		BlockNumber: new(big.Int).SetUint64(3230001), //new(big.Int).SetUint64(genesisConfig.Number),
 		CVMConfig: vm.Config{
 			Tracer: tracer,
 			Debug:  ctx.GlobalBool(DebugFlag.Name) || ctx.GlobalBool(MachineFlag.Name),
@@ -390,6 +390,7 @@ func runCmd(ctx *cli.Context) error {
 
 	bench := ctx.GlobalBool(BenchFlag.Name)
 	output, leftOverGas, stats, err := timedExec(bench, execFunc)
+	log.Info("runner_timeExec", "output", output, "leftGas", leftOverGas, "stats", stats, "err", err)
 
 	if ctx.GlobalBool(DumpFlag.Name) {
 		statedb.Commit(true)
