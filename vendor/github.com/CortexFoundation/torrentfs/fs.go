@@ -211,11 +211,16 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 				}
 				if suc := tfs.queryCache.Contains(info.Hash); !suc {
 					log.Info("Nas msg received", "ih", info.Hash, "size", common.StorageSize(float64(info.Size)))
-					if progress, e := tfs.chain().GetTorrent(info.Hash); e == nil && progress >= info.Size {
-						if err := tfs.storage().Search(context.Background(), info.Hash, info.Size, nil); err != nil {
-							log.Error("Nas 2.0 error", "err", err)
-							return err
+					if progress, e := tfs.chain().GetTorrent(info.Hash); e == nil {
+						if progress >= info.Size {
+							if err := tfs.storage().Search(context.Background(), info.Hash, info.Size, nil); err != nil {
+								log.Error("Nas 2.0 error", "err", err)
+								return err
+							}
 						}
+					} else {
+						//TODO
+						// log.Error("Local unregister file", "ih", info.Hash, "err", e)
 					}
 					tfs.nasCounter++
 					tfs.queryCache.Add(info.Hash, info.Size)
@@ -295,7 +300,8 @@ func (fs *TorrentFS) available(ctx context.Context, infohash string, rawSize uin
 					log.Debug("Torrent wake up", "ih", infohash, "progress", progress, "err", err, "available", ret, "raw", rawSize, "err", err)
 				}
 			} else {
-				log.Warn("Unregister file", "ih", infohash, "size", common.StorageSize(float64(rawSize)))
+				//TODO local fs may be not matched with block chain for some unexpected reasons
+				log.Warn("Unregister file", "ih", infohash, "size", common.StorageSize(float64(rawSize)), "err", e)
 			}
 		} else if errors.Is(err, ErrUnfinished) {
 			if suc := fs.nasCache.Contains(infohash); !suc {
