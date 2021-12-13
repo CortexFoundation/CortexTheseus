@@ -707,8 +707,11 @@ func (tm *TorrentManager) seedingLoop() {
 func (tm *TorrentManager) init() {
 	log.Debug("Chain files init", "files", len(GoodFiles))
 
+	if tm.mode == LAZY {
+		tm.Simulate()
+	}
+
 	for k, ok := range GoodFiles {
-		//if tm.mode != LAZY || ok {
 		if ok {
 			if err := tm.Search(context.Background(), k, 0, nil); err == nil {
 				tm.good++

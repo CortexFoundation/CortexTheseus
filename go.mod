@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
 	github.com/CortexFoundation/inference v1.0.2-0.20211122032106-7614551ac311
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.25-0.20211208025230-1a69419249c5
+	github.com/CortexFoundation/torrentfs v1.0.25-0.20211213034941-7a6b7ac54731
 	github.com/VictoriaMetrics/fastcache v1.7.0
 	github.com/arsham/figurine v1.0.1
 	github.com/aws/aws-sdk-go-v2 v1.3.0
@@ -73,9 +73,9 @@ require (
 	github.com/allegro/bigcache/v3 v3.0.2-0.20211118104225-16df11e2ee38 // indirect
 	github.com/anacrolix/chansync v0.3.0 // indirect
 	github.com/anacrolix/confluence v1.9.0 // indirect
-	github.com/anacrolix/dht/v2 v2.13.0 // indirect
+	github.com/anacrolix/dht/v2 v2.13.1-0.20211209181115-6ae2bd446b12 // indirect
 	github.com/anacrolix/envpprof v1.1.2-0.20210622065137-4accee5b7ac4 // indirect
-	github.com/anacrolix/go-libutp v1.0.5-0.20211117031120-2dac1c67ecc5 // indirect
+	github.com/anacrolix/go-libutp v1.1.0 // indirect
 	github.com/anacrolix/log v0.10.0 // indirect
 	github.com/anacrolix/missinggo v1.3.0 // indirect
 	github.com/anacrolix/missinggo/perf v1.0.0 // indirect
@@ -84,7 +84,7 @@ require (
 	github.com/anacrolix/multiless v0.2.0 // indirect
 	github.com/anacrolix/stm v0.3.0 // indirect
 	github.com/anacrolix/sync v0.4.0 // indirect
-	github.com/anacrolix/torrent v1.38.1-0.20211207020806-7197c5f49339 // indirect
+	github.com/anacrolix/torrent v1.39.2-0.20211213011643-8c129d6bfce9 // indirect
 	github.com/anacrolix/upnp v0.1.2-0.20200416075019-5e9378ed1425 // indirect
 	github.com/anacrolix/utp v0.1.0 // indirect
 	github.com/arsham/rainbow v1.0.0 // indirect
@@ -103,7 +103,6 @@ require (
 	github.com/dlclark/regexp2 v1.4.1-0.20201116162257-a2a8dda75c91 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/edsrzf/mmap-go v1.0.0 // indirect
-	github.com/elliotchance/orderedmap v1.4.0 // indirect
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/go-resty/resty/v2 v2.3.1-0.20201101194733-0de0d7e3240b // indirect
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
@@ -139,7 +138,6 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	github.com/rs/dnscache v0.0.0-20210201191234-295bba877686 // indirect
-	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
 	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
 	github.com/tklauser/go-sysconf v0.3.5 // indirect
 	github.com/tklauser/numcpus v0.2.2 // indirect

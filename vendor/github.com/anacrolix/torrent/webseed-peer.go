@@ -49,17 +49,13 @@ func (ws *webseedPeer) writeInterested(interested bool) bool {
 }
 
 func (ws *webseedPeer) _cancel(r RequestIndex) bool {
-	active, ok := ws.activeRequests[ws.peer.t.requestIndexToRequest(r)]
-	if ok {
+	if active, ok := ws.activeRequests[ws.peer.t.requestIndexToRequest(r)]; ok {
 		active.Cancel()
+		// The requester is running and will handle the result.
+		return true
 	}
-	if !ws.peer.deleteRequest(r) {
-		panic("cancelled webseed request should exist")
-	}
-	if ws.peer.isLowOnRequests() {
-		ws.peer.updateRequests("webseedPeer._cancel")
-	}
-	return true
+	// There should be no requester handling this, so no further events will occur.
+	return false
 }
 
 func (ws *webseedPeer) intoSpec(r Request) webseed.RequestSpec {
@@ -89,14 +85,14 @@ func (ws *webseedPeer) requester(i int) {
 start:
 	for !ws.peer.closed.IsSet() {
 		restart := false
-		ws.peer.actualRequestState.Requests.Iterate(func(x uint32) bool {
+		ws.peer.requestState.Requests.Iterate(func(x uint32) bool {
 			r := ws.peer.t.requestIndexToRequest(x)
 			if _, ok := ws.activeRequests[r]; ok {
 				return true
 			}
 			err := ws.doRequest(r)
 			ws.requesterCond.L.Unlock()
-			if err != nil {
+			if err != nil && !errors.Is(err, context.Canceled) {
 				log.Printf("requester %v: error doing webseed request %v: %v", i, r, err)
 			}
 			restart = true
@@ -124,15 +120,22 @@ func (ws *webseedPeer) drop() {}
 func (ws *webseedPeer) handleUpdateRequests() {
 	// Because this is synchronous, webseed peers seem to get first dibs on newly prioritized
 	// pieces.
-	ws.peer.maybeUpdateActualRequestState()
+	go func() {
+		ws.peer.t.cl.lock()
+		defer ws.peer.t.cl.unlock()
+		ws.peer.maybeUpdateActualRequestState()
+	}()
 }
 
 func (ws *webseedPeer) onClose() {
 	ws.peer.logger.WithLevel(log.Debug).Print("closing")
-	ws.peer.deleteAllRequests()
-	for _, r := range ws.activeRequests {
-		r.Cancel()
-	}
+	// Just deleting them means we would have to manually cancel active requests.
+	ws.peer.cancelAllRequests()
+	ws.peer.t.iterPeers(func(p *Peer) {
+		if p.isLowOnRequests() {
+			p.updateRequests("webseedPeer.onClose")
+		}
+	})
 	ws.requesterCond.Broadcast()
 }
 
@@ -167,7 +170,9 @@ func (ws *webseedPeer) requestResultHandler(r Request, webseedRequest webseed.Re
 			log.Printf("closing %v", ws)
 			ws.peer.close()
 		}
-		ws.peer.remoteRejectedRequest(ws.peer.t.requestIndexFromRequest(r))
+		if !ws.peer.remoteRejectedRequest(ws.peer.t.requestIndexFromRequest(r)) {
+			panic("invalid reject")
+		}
 		return err
 	}
 	err = ws.peer.receiveChunk(&pp.Message{
@@ -183,7 +188,7 @@ func (ws *webseedPeer) requestResultHandler(r Request, webseedRequest webseed.Re
 }
 
 func (me *webseedPeer) isLowOnRequests() bool {
-	return me.peer.actualRequestState.Requests.GetCardinality() < uint64(me.maxRequests)
+	return me.peer.requestState.Requests.GetCardinality() < uint64(me.maxRequests)
 }
 
 func (me *webseedPeer) peerPieces() *roaring.Bitmap {

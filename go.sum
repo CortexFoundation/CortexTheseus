@@ -89,8 +89,8 @@ github.com/CortexFoundation/torrentfs v1.0.23-0.20210312032424-2ec30f482b4f/go.m
 github.com/CortexFoundation/torrentfs v1.0.23-0.20210702063150-4523491e0ae7/go.mod h1:4sLT6ms8kUyqRA+4a5XbF5r5ifzjwsqfD/OOGQ5/zbs=
 github.com/CortexFoundation/torrentfs v1.0.23-0.20211019033535-590c6d206586/go.mod h1:jDpfe9wIsUvNNw10sMGa913sZPkyGlC2Ff6rem+HIrY=
 github.com/CortexFoundation/torrentfs v1.0.24-0.20211115144512-a3c43a917a54/go.mod h1:jU/AvEwZaKm31VDB2HYMHGizcIfSSet78Enov4N59cA=
-github.com/CortexFoundation/torrentfs v1.0.25-0.20211208025230-1a69419249c5 h1:hFgBXFQE6t/q0ui7imMGw40jowK2GRV1sPRv6QdqSC0=
-github.com/CortexFoundation/torrentfs v1.0.25-0.20211208025230-1a69419249c5/go.mod h1:aCAbRT+TlqWf2R8v4ly43Q4aQvzRTV6rUoGbQMwfKJw=
+github.com/CortexFoundation/torrentfs v1.0.25-0.20211213034941-7a6b7ac54731 h1:Tau+vS2XEViwb0VDYAbfiar3bk0XryM7uP6cnVBz3W8=
+github.com/CortexFoundation/torrentfs v1.0.25-0.20211213034941-7a6b7ac54731/go.mod h1:+bwrs2yMkw/tiDGcOJi7GaaOi84QlxZ7d/KOkA3lpc4=
 github.com/DATA-DOG/go-sqlmock v1.3.3/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
 github.com/Julusian/godocdown v0.0.0-20170816220326-6d19f8ff2df8/go.mod h1:INZr5t32rG59/5xeltqoCJoNY7e5x/3xoY9WSWVWg74=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
@@ -172,8 +172,8 @@ github.com/anacrolix/dht/v2 v2.9.1/go.mod h1:ZyYcIQinN/TE3oKONCchQOLjhYR786Jaxz3
 github.com/anacrolix/dht/v2 v2.10.0/go.mod h1:KC51tqylRYBu82RM5pEYf+g1n7db+F0tOJqSbCjjZWc=
 github.com/anacrolix/dht/v2 v2.10.5-0.20210902001729-06cc4fe90e53/go.mod h1:zHjijcebN+L7JbzxW0mOraHis+I81EIgsJAAtiw8bQ8=
 github.com/anacrolix/dht/v2 v2.10.6-0.20211007004332-99263ec9c1c8/go.mod h1:WID4DexLrucfnwzv1OV8REzgoCpyVDwEczxIOrUeFrY=
-github.com/anacrolix/dht/v2 v2.13.0 h1:nhEXbbwVL2fFEDqWJby+lSD0LEB06CW/Tgj74O5Ty9g=
-github.com/anacrolix/dht/v2 v2.13.0/go.mod h1:zJgaiAU2yhzmchZE2mY8WyZ64LK/F/D9MAeN0ct73qQ=
+github.com/anacrolix/dht/v2 v2.13.1-0.20211209181115-6ae2bd446b12 h1:W0gso1vLz1b1G9HjxsSFAWZjLZwwlPZQD20BGhwz5YU=
+github.com/anacrolix/dht/v2 v2.13.1-0.20211209181115-6ae2bd446b12/go.mod h1:zJgaiAU2yhzmchZE2mY8WyZ64LK/F/D9MAeN0ct73qQ=
 github.com/anacrolix/envpprof v0.0.0-20180404065416-323002cec2fa/go.mod h1:KgHhUaQMc8cC0+cEflSgCFNFbKwi5h54gqtVn8yhP7c=
 github.com/anacrolix/envpprof v1.0.0/go.mod h1:KgHhUaQMc8cC0+cEflSgCFNFbKwi5h54gqtVn8yhP7c=
 github.com/anacrolix/envpprof v1.0.1/go.mod h1:My7T5oSqVfEn4MD4Meczkw/f5lSIndGAKu/0SM/rkf4=
@@ -186,8 +186,8 @@ github.com/anacrolix/go-libutp v0.0.0-20180522111405-6baeb806518d/go.mod h1:beQS
 github.com/anacrolix/go-libutp v1.0.2/go.mod h1:uIH0A72V++j0D1nnmTjjZUiH/ujPkFxYWkxQ02+7S0U=
 github.com/anacrolix/go-libutp v1.0.3/go.mod h1:8vSGX5g0b4eebsDBNVQHUXSCwYaN18Lnkse0hUW8/5w=
 github.com/anacrolix/go-libutp v1.0.4/go.mod h1:8vSGX5g0b4eebsDBNVQHUXSCwYaN18Lnkse0hUW8/5w=
-github.com/anacrolix/go-libutp v1.0.5-0.20211117031120-2dac1c67ecc5 h1:VIMEtC+qYhEEBZHMvtOQKiKy+SI+u+Su/MXY8K2nOKY=
-github.com/anacrolix/go-libutp v1.0.5-0.20211117031120-2dac1c67ecc5/go.mod h1:8vSGX5g0b4eebsDBNVQHUXSCwYaN18Lnkse0hUW8/5w=
+github.com/anacrolix/go-libutp v1.1.0 h1:89XK+0NBTaKgSoG/v5OfDK0yoyrt2HInfg46I1BaT2E=
+github.com/anacrolix/go-libutp v1.1.0/go.mod h1:so9zroOUhFPGnIkddyflaCCl+xdTsRSq97/AOQ2/Hjk=
 github.com/anacrolix/log v0.0.0-20180412014343-2323884b361d/go.mod h1:sf/7c2aTldL6sRQj/4UKyjgVZBu2+M2z9wf7MmwPiew=
 github.com/anacrolix/log v0.3.0/go.mod h1:lWvLTqzAnCWPJA08T2HCstZi0L1y2Wyvm3FJgwU9jwU=
 github.com/anacrolix/log v0.3.1-0.20190913000754-831e4ffe0174/go.mod h1:lWvLTqzAnCWPJA08T2HCstZi0L1y2Wyvm3FJgwU9jwU=
@@ -202,6 +202,8 @@ github.com/anacrolix/log v0.8.0/go.mod h1:s5yBP/j046fm9odtUTbHOfDUq/zh1W8OkPpJtn
 github.com/anacrolix/log v0.9.0/go.mod h1:s5yBP/j046fm9odtUTbHOfDUq/zh1W8OkPpJtnX0oQI=
 github.com/anacrolix/log v0.10.0 h1:uz9XDnmsw8ZEO/TTRU03lL7I74PlgVRFszYqPZ39WNY=
 github.com/anacrolix/log v0.10.0/go.mod h1:s5yBP/j046fm9odtUTbHOfDUq/zh1W8OkPpJtnX0oQI=
+github.com/anacrolix/lsan v0.0.0-20211126052245-807000409a62 h1:P04VG6Td13FHMgS5ZBcJX23NPC/fiC4cp9bXwYujdYM=
+github.com/anacrolix/lsan v0.0.0-20211126052245-807000409a62/go.mod h1:66cFKPCO7Sl4vbFnAaSq7e4OXtdMhRSBagJGWgmpJbM=
 github.com/anacrolix/missinggo v0.0.0-20180522035225-b4a5853e62ff/go.mod h1:b0p+7cn+rWMIphK1gDH2hrDuwGOcbB6V4VXeSsEfHVk=
 github.com/anacrolix/missinggo v0.0.0-20180725070939-60ef2fbf63df/go.mod h1:kwGiTUTZ0+p4vAz3VbAI5a30t2YbvemcmspjKwrAz5s=
 github.com/anacrolix/missinggo v0.2.1-0.20190310234110-9fbdc9f242a8/go.mod h1:MBJu3Sk/k3ZfGYcS7z18gwfu72Ey/xopPFJJbTi5yIo=
@@ -287,8 +289,8 @@ github.com/anacrolix/torrent v1.31.1-0.20210910222643-d957502528e0/go.mod h1:akZ
 github.com/anacrolix/torrent v1.33.1-0.20211019030748-3ef8cfba27af/go.mod h1:FJmog1E+IG1H069AxGX8C3r7amUUL0MpHKutpnzeJRc=
 github.com/anacrolix/torrent v1.34.1-0.20211029005757-c2ed60f9f2d1/go.mod h1:eNmTGUF2tnLB4adDjYgx2+hAZhCYW8r8vjF6ZITO2pU=
 github.com/anacrolix/torrent v1.35.1-0.20211104090255-eaeb38b18c6a/go.mod h1:97nxJW8NIeUyGdBvMOAl9cmcxi8xPez3nlE0RwSZcL0=
-github.com/anacrolix/torrent v1.38.1-0.20211207020806-7197c5f49339 h1:a4SGBcCMPAEgCLdKmUROZ1hHR4yHInf//kEne2XHThs=
-github.com/anacrolix/torrent v1.38.1-0.20211207020806-7197c5f49339/go.mod h1:KQQOyrURmJPGUKbLBHBgWFZUZgB6Uo7zZ68nP5ftgYk=
+github.com/anacrolix/torrent v1.39.2-0.20211213011643-8c129d6bfce9 h1:b9KkEiogD3DF33FB8mikn7V+Z1pbig3ABvZymDAizhE=
+github.com/anacrolix/torrent v1.39.2-0.20211213011643-8c129d6bfce9/go.mod h1:7T9UIQylz+ZAqRgkrKmqfhHdgs6jC8WBseUICGgu6l8=
 github.com/anacrolix/upnp v0.1.1/go.mod h1:LXsbsp5h+WGN7YR+0A7iVXm5BL1LYryDev1zuJMWYQo=
 github.com/anacrolix/upnp v0.1.2-0.20200416075019-5e9378ed1425 h1:/Wi6l2ONI1FUFWN4cBwHOO90V4ylp4ud/eov6GUcVFk=
 github.com/anacrolix/upnp v0.1.2-0.20200416075019-5e9378ed1425/go.mod h1:Pz94W3kl8rf+wxH3IbCa9Sq+DTJr8OSbV2Q3/y51vYs=
@@ -447,7 +449,6 @@ github.com/elazarl/go-bindata-assetfs v1.0.0/go.mod h1:v+YaWX3bdea5J/mo8dSETolEo
 github.com/elliotchance/orderedmap v1.2.0/go.mod h1:8hdSl6jmveQw8ScByd3AaNHNk51RhbTazdqtTty+NFw=
 github.com/elliotchance/orderedmap v1.2.2/go.mod h1:8hdSl6jmveQw8ScByd3AaNHNk51RhbTazdqtTty+NFw=
 github.com/elliotchance/orderedmap v1.3.0/go.mod h1:8hdSl6jmveQw8ScByd3AaNHNk51RhbTazdqtTty+NFw=
-github.com/elliotchance/orderedmap v1.4.0 h1:wZtfeEONCbx6in1CZyE6bELEt/vFayMvsxqI5SgsR+A=
 github.com/elliotchance/orderedmap v1.4.0/go.mod h1:wsDwEaX5jEoyhbs7x93zk2H/qv0zwuhg4inXhDkYqys=
 github.com/envoyproxy/go-control-plane v0.6.9/go.mod h1:SBwIajubJHhxtWwsL9s8ss4safvEdbitLhGGK48rN6g=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
