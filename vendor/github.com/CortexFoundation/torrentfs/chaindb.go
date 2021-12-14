@@ -117,7 +117,7 @@ func NewChainDB(config *Config) (*ChainDB, error) {
 
 	//fs.history()
 
-	log.Info("Storage ID generated", "id", fs.id)
+	log.Info("Storage ID generated", "id", fs.id, "version", fs.version)
 
 	return fs, nil
 }
