@@ -168,6 +168,8 @@ func setModelMeta(statedb *state.StateDB, ih common.Address) (err error) {
 // prepare cvm-runtime engine for running Infer!
 func startSynapse(statedb *state.StateDB) (err error) {
 	fsCfg := torrentfs.DefaultConfig
+	// set mode to 'lazy' for fast init
+	fsCfg.Mode = torrentfs.LAZY
 	fsCfg.DataDir = "runner_test/tf_data"
 	// automatically verify, seeding, and load local files
 	storagefs, fsErr := torrentfs.New(&fsCfg, true, false, true)
