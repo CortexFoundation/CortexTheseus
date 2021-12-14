@@ -24,6 +24,7 @@ import (
 	"github.com/CortexFoundation/merkletree"
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
+	"strings"
 	"sync"
 	//lru "github.com/hashicorp/golang-lru"
 	"fmt"
@@ -116,7 +117,7 @@ func NewChainDB(config *Config) (*ChainDB, error) {
 
 	//fs.history()
 
-	log.Info("Storage ID generated", "id", fs.id)
+	log.Info("Storage ID generated", "id", fs.id, "version", fs.version)
 
 	return fs, nil
 }
@@ -716,6 +717,9 @@ func (fs *ChainDB) SetTorrent(ih string, size uint64) (bool, uint64, error) {
 	fs.lock.Lock()
 	defer fs.lock.Unlock()
 
+	//TODO
+	ih = strings.ToLower(ih)
+
 	if s, ok := fs.torrents[ih]; ok {
 		if s >= size {
 			return false, s, nil
@@ -749,6 +753,8 @@ func (fs *ChainDB) SetTorrent(ih string, size uint64) (bool, uint64, error) {
 
 	fs.torrents[ih] = size
 
+	log.Info("Torrent status has been changed", "ih", ih, "size", size, "count", len(fs.torrents))
+
 	return true, size, nil
 }
 
@@ -756,6 +762,9 @@ func (fs *ChainDB) SetTorrent(ih string, size uint64) (bool, uint64, error) {
 func (fs *ChainDB) GetTorrent(ih string) (progress uint64, err error) {
 	fs.lock.RLock()
 	defer fs.lock.RUnlock()
+
+	//TODO
+	ih = strings.ToLower(ih)
 
 	if s, ok := fs.torrents[ih]; ok {
 		return s, nil

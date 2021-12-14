@@ -148,7 +148,6 @@ func acceptCallback(a *C.utp_callback_arguments) C.uint64 {
 	s := getSocketForLibContext(a.context)
 	c := s.newConn(a.socket)
 	c.setRemoteAddr()
-	c.inited = true
 	s.pushBacklog(c)
 	return 0
 }
@@ -170,12 +169,14 @@ func getReadBufferSizeCallback(a *C.utp_callback_arguments) (ret C.uint64) {
 //export firewallCallback
 func firewallCallback(a *C.utp_callback_arguments) C.uint64 {
 	s := getSocketForLibContext(a.context)
-	if s.firewallCallback != nil {
+	if s.syncFirewallCallback != nil {
 		var addr net.UDPAddr
 		structSockaddrToUDPAddr(a.address(), &addr)
-		if s.firewallCallback(&addr) {
+		if s.syncFirewallCallback(&addr) {
 			return 1
 		}
+	} else if s.asyncBlock {
+		return 1
 	}
 	return 0
 }

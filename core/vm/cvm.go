@@ -199,9 +199,9 @@ func (cvm *CVM) Config() Config {
 // the necessary steps to create accounts and reverses the state in case of an
 // execution error or failed value transfer.
 func (cvm *CVM) Call(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
-	if cvm.vmConfig.NoRecursion && cvm.depth > 0 {
-		return nil, gas, nil, nil
-	}
+	//if cvm.vmConfig.NoRecursion && cvm.depth > 0 {
+	//	return nil, gas, nil, nil
+	//}
 
 	// Fail if we're trying to execute above the call depth limit
 	if cvm.depth > int(params.CallCreateDepth) {
@@ -280,9 +280,9 @@ func (cvm *CVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 // CallCode differs from Call in the sense that it executes the given address'
 // code with the caller as context.
 func (cvm *CVM) CallCode(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
-	if cvm.vmConfig.NoRecursion && cvm.depth > 0 {
-		return nil, gas, nil, nil
-	}
+	//if cvm.vmConfig.NoRecursion && cvm.depth > 0 {
+	//	return nil, gas, nil, nil
+	//}
 
 	// Fail if we're trying to execute above the call depth limit
 	if cvm.depth > int(params.CallCreateDepth) {
@@ -322,9 +322,9 @@ func (cvm *CVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 // DelegateCall differs from CallCode in the sense that it executes the given address'
 // code with the caller as context and the caller is set to the caller of the caller.
 func (cvm *CVM) DelegateCall(caller ContractRef, addr common.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
-	if cvm.vmConfig.NoRecursion && cvm.depth > 0 {
-		return nil, gas, nil, nil
-	}
+	//if cvm.vmConfig.NoRecursion && cvm.depth > 0 {
+	//	return nil, gas, nil, nil
+	//}
 	// Fail if we're trying to execute above the call depth limit
 	if cvm.depth > int(params.CallCreateDepth) {
 		return nil, gas, nil, ErrDepth
@@ -357,9 +357,9 @@ func (cvm *CVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 // Opcodes that attempt to perform such modifications will result in exceptions
 // instead of performing the modifications.
 func (cvm *CVM) StaticCall(caller ContractRef, addr common.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
-	if cvm.vmConfig.NoRecursion && cvm.depth > 0 {
-		return nil, gas, nil, nil
-	}
+	//if cvm.vmConfig.NoRecursion && cvm.depth > 0 {
+	//	return nil, gas, nil, nil
+	//}
 	// Fail if we're trying to execute above the call depth limit
 	if cvm.depth > int(params.CallCreateDepth) {
 		return nil, gas, nil, ErrDepth
@@ -450,9 +450,9 @@ func (cvm *CVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	contract := NewContract(caller, AccountRef(address), value, gas)
 	contract.SetCodeOptionalHash(&address, codeAndHash)
 
-	if cvm.vmConfig.NoRecursion && cvm.depth > 0 {
-		return nil, address, gas, nil, nil
-	}
+	//if cvm.vmConfig.NoRecursion && cvm.depth > 0 {
+	//	return nil, address, gas, nil, nil
+	//}
 
 	if cvm.vmConfig.Debug && cvm.depth == 0 {
 		cvm.vmConfig.Tracer.CaptureStart(caller.Address(), address, true, codeAndHash.code, gas, value)

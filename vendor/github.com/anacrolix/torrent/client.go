@@ -27,6 +27,7 @@ import (
 	"github.com/anacrolix/missinggo/v2/bitmap"
 	"github.com/anacrolix/missinggo/v2/pproffd"
 	"github.com/anacrolix/sync"
+	request_strategy "github.com/anacrolix/torrent/request-strategy"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/dustin/go-humanize"
 	"github.com/google/btree"
@@ -74,6 +75,7 @@ type Client struct {
 	dopplegangerAddrs map[string]struct{}
 	badPeerIPs        map[string]struct{}
 	torrents          map[InfoHash]*Torrent
+	pieceRequestOrder map[interface{}]*request_strategy.PieceRequestOrder
 
 	acceptLimiter   map[ipStr]int
 	dialRateLimiter *rate.Limiter
@@ -422,26 +424,23 @@ func (cl *Client) eachDhtServer(f func(DhtServer)) {
 	}
 }
 
-// Stops the client. All connections to peers are closed and all activity will
-// come to a halt.
+// Stops the client. All connections to peers are closed and all activity will come to a halt.
 func (cl *Client) Close() (errs []error) {
-	cl.closed.Set()
 	var closeGroup sync.WaitGroup // For concurrent cleanup to complete before returning
 	cl.lock()
-	cl.event.Broadcast()
 	for _, t := range cl.torrents {
 		err := t.close(&closeGroup)
 		if err != nil {
 			errs = append(errs, err)
 		}
 	}
-	cl.unlock()
-	closeGroup.Wait() // defer is LIFO. We want to Wait() after cl.unlock()
-	cl.lock()
 	for i := range cl.onClose {
 		cl.onClose[len(cl.onClose)-1-i]()
 	}
+	cl.closed.Set()
 	cl.unlock()
+	cl.event.Broadcast()
+	closeGroup.Wait() // defer is LIFO. We want to Wait() after cl.unlock()
 	return
 }
 
@@ -503,7 +502,7 @@ func (cl *Client) acceptConnections(l Listener) {
 		cl.rLock()
 		closed := cl.closed.IsSet()
 		var reject error
-		if conn != nil {
+		if !closed && conn != nil {
 			reject = cl.rejectAccepted(conn)
 		}
 		cl.rUnlock()

@@ -125,6 +125,7 @@ type TorrentManager struct {
 
 	initCh   chan struct{}
 	simulate bool
+	good     int
 }
 
 // can only call by fs.go: 'SeedingLocal()'
@@ -676,7 +677,7 @@ func (tm *TorrentManager) seedingLoop() {
 				}()
 			}
 
-			if len(tm.seedingTorrents) == len(GoodFiles) && !tm.simulate {
+			if len(tm.seedingTorrents) == tm.good && !tm.simulate {
 				//TODO sync initialize
 				close(tm.initCh)
 			}
@@ -706,10 +707,15 @@ func (tm *TorrentManager) seedingLoop() {
 func (tm *TorrentManager) init() {
 	log.Debug("Chain files init", "files", len(GoodFiles))
 
+	if tm.mode == LAZY {
+		tm.Simulate()
+	}
+
 	for k, ok := range GoodFiles {
-		//if tm.mode != LAZY || ok {
 		if ok {
-			tm.Search(context.Background(), k, 0, nil)
+			if err := tm.Search(context.Background(), k, 0, nil); err == nil {
+				tm.good++
+			}
 		}
 	}
 
@@ -1125,17 +1131,17 @@ func (tm *TorrentManager) graceSeeding(slot int) error {
 	return nil
 }
 
-func (tm *TorrentManager) available(infohash string, rawSize uint64) (bool, uint64, mclock.AbsTime, error) {
+func (tm *TorrentManager) available(ih string, rawSize uint64) (bool, uint64, mclock.AbsTime, error) {
 	availableMeter.Mark(1)
 	if rawSize <= 0 {
 		return false, 0, 0, errors.New("raw size is zero or negative")
 	}
 
-	if !common.IsHexAddress(infohash) {
+	if !common.IsHexAddress(ih) {
 		return false, 0, 0, errors.New("invalid infohash format")
 	}
 
-	ih := strings.TrimPrefix(strings.ToLower(infohash), common.Prefix)
+	ih = strings.TrimPrefix(strings.ToLower(ih), common.Prefix)
 	if t := tm.getTorrent(ih); t == nil {
 		return false, 0, 0, ErrInactiveTorrent
 	} else {
@@ -1171,9 +1177,9 @@ func (tm *TorrentManager) getFile(infohash, subpath string) ([]byte, uint64, err
 	if !common.IsHexAddress(infohash) {
 		return nil, 0, errors.New("invalid infohash format")
 	}
-	ih := strings.TrimPrefix(strings.ToLower(infohash), common.Prefix)
+	infohash = strings.TrimPrefix(strings.ToLower(infohash), common.Prefix)
 
-	if torrent := tm.getTorrent(ih); torrent == nil {
+	if torrent := tm.getTorrent(infohash); torrent == nil {
 		return nil, 0, ErrInactiveTorrent
 	} else {
 
@@ -1185,11 +1191,11 @@ func (tm *TorrentManager) getFile(infohash, subpath string) ([]byte, uint64, err
 			return nil, uint64(torrent.BytesCompleted()), ErrUnfinished
 		}
 
-		tm.hotCache.Add(ih, true)
+		tm.hotCache.Add(infohash, true)
 		if torrent.currentConns < tm.maxEstablishedConns {
 			torrent.currentConns = tm.maxEstablishedConns
 			torrent.SetMaxEstablishedConns(torrent.currentConns)
-			log.Debug("Torrent active", "ih", ih, "peers", torrent.currentConns)
+			log.Debug("Torrent active", "ih", infohash, "peers", torrent.currentConns)
 		}
 
 		var key = filepath.Join(infohash, subpath)
