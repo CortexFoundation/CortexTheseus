@@ -731,7 +731,7 @@ func ReadLogs(db ctxcdb.Reader, hash common.Hash, number uint64, config *params.
 		if logs := readLegacyLogs(db, hash, number, config); logs != nil {
 			return logs
 		}
-		log.Error("Invalid receipt array RLP", "hash", "err", err)
+		log.Error("Invalid receipt array RLP", "hash", hash, "err", err)
 		return nil
 	}
 
