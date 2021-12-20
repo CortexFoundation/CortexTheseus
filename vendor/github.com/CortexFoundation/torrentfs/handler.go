@@ -126,6 +126,8 @@ type TorrentManager struct {
 	initCh   chan struct{}
 	simulate bool
 	good     int
+
+	startOnce sync.Once
 }
 
 // can only call by fs.go: 'SeedingLocal()'
@@ -227,14 +229,25 @@ func (tm *TorrentManager) getLimitation(value int64) int64 {
 
 func (tm *TorrentManager) register(t *torrent.Torrent, requested int64, status int, ih string, ch chan bool) *Torrent {
 	tt := &Torrent{
-		t,
-		tm.maxEstablishedConns, 5, tm.maxEstablishedConns,
-		requested,
-		tm.getLimitation(requested),
-		0, 0, status,
-		ih,
-		filepath.Join(tm.TmpDataDir, ih),
-		0, 1, 0, 0, false, true, 0, ch,
+		Torrent:             t,
+		maxEstablishedConns: tm.maxEstablishedConns,
+		minEstablishedConns: 5,
+		currentConns:        tm.maxEstablishedConns,
+		bytesRequested:      requested,
+		bytesLimitation:     tm.getLimitation(requested),
+		bytesCompleted:      0,
+		bytesMissing:        0,
+		status:              status,
+		infohash:            ih,
+		filepath:            filepath.Join(tm.TmpDataDir, ih),
+		cited:               0,
+		weight:              1,
+		loop:                0,
+		maxPieces:           0,
+		isBoosting:          false,
+		fast:                true,
+		start:               0,
+		ch:                  ch,
 	}
 	tm.setTorrent(ih, tt)
 
@@ -642,20 +655,19 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 }
 
 func (tm *TorrentManager) Start() error {
-	tm.wg.Add(1)
-	go tm.seedingLoop()
-	tm.wg.Add(1)
-	go tm.activeLoop()
-	tm.wg.Add(1)
-	go tm.pendingLoop()
+	tm.startOnce.Do(func() {
+		tm.wg.Add(1)
+		go tm.seedingLoop()
+		tm.wg.Add(1)
+		go tm.activeLoop()
+		tm.wg.Add(1)
+		go tm.pendingLoop()
 
-	tm.wg.Add(1)
-	go tm.mainLoop()
-	//if tm.mode != LAZY {
-	tm.init()
-	//}
+		tm.wg.Add(1)
+		go tm.mainLoop()
+	})
 
-	return nil
+	return tm.init()
 }
 
 func (tm *TorrentManager) prepare() bool {
@@ -677,9 +689,10 @@ func (tm *TorrentManager) seedingLoop() {
 				}()
 			}
 
-			if len(tm.seedingTorrents) == tm.good && !tm.simulate {
-				//TODO sync initialize
-				close(tm.initCh)
+			if !tm.simulate {
+				if len(tm.seedingTorrents) == tm.good {
+					close(tm.initCh)
+				}
 			}
 
 			if s {
@@ -704,7 +717,7 @@ func (tm *TorrentManager) seedingLoop() {
 	}
 }
 
-func (tm *TorrentManager) init() {
+func (tm *TorrentManager) init() error {
 	log.Debug("Chain files init", "files", len(GoodFiles))
 
 	if tm.mode == LAZY {
@@ -715,26 +728,33 @@ func (tm *TorrentManager) init() {
 		if ok {
 			if err := tm.Search(context.Background(), k, 0, nil); err == nil {
 				tm.good++
+			} else {
+				log.Info("Fs init failed", "err", err)
+				return err
 			}
 		}
 	}
 
 	if !tm.simulate {
-		//TODO sync initialize
 		select {
 		case <-tm.initCh:
-			log.Info("Chain files sync init OK !!!", "seeding", len(tm.seedingTorrents), "pending", len(tm.pendingTorrents), "active", len(tm.activeTorrents), "good", len(GoodFiles))
+			log.Info("Chain files sync init OK !!!", "seeding", len(tm.seedingTorrents), "pending", len(tm.pendingTorrents), "active", len(tm.activeTorrents), "good", len(GoodFiles), "active", tm.good)
 		case <-tm.closeAll:
 			log.Info("Init files closed")
-			return
 		}
 	}
 
 	log.Debug("Chain files OK !!!")
+	return nil
 }
 
 func (tm *TorrentManager) Simulate() {
-	tm.simulate = true
+	tm.lock.Lock()
+	defer tm.lock.Unlock()
+
+	if !tm.simulate {
+		tm.simulate = true
+	}
 }
 
 //Search and donwload files from torrent
@@ -794,11 +814,13 @@ func (tm *TorrentManager) mainLoop() {
 			} else {
 				//if bytes > 0 {
 				//	tm.updateInfoHash(t, bytes)
+				t.lock.Lock()
 				if t.currentConns <= 1 {
-					t.currentConns = tm.maxEstablishedConns
+					t.setCurrentConns(tm.maxEstablishedConns)
 					t.Torrent.SetMaxEstablishedConns(tm.maxEstablishedConns)
 					log.Warn("Active torrent", "ih", meta.InfoHash, "bytes", bytes)
 				}
+				t.lock.Unlock()
 				//}
 			}
 			//time.Sleep(time.Second)
@@ -837,7 +859,7 @@ func (tm *TorrentManager) pendingLoop() {
 						t.AddTrackers(tm.trackers)
 						t.start = mclock.Now()
 					}
-
+					t.lock.Lock()
 					if err := t.WriteTorrent(); err == nil {
 						if len(tm.activeChan) < cap(tm.activeChan) {
 							delete(tm.pendingTorrents, ih)
@@ -845,43 +867,44 @@ func (tm *TorrentManager) pendingLoop() {
 							tm.activeChan <- t
 						}
 					}
+					t.lock.Unlock()
 					/*} else if tm.boost && (t.loop > torrentWaitingTime/queryTimeInterval || (t.start == 0 && t.bytesRequested > 0)) {
-					if !t.isBoosting {
-						log.Info("Boost download seed", "ih", ih)
-						t.loop = 0
-						t.isBoosting = true
-						if data, err := tm.boostFetcher.FetchTorrent(ih.String()); err == nil {
-							if t.Torrent.Info() != nil {
+						if !t.isBoosting {
+							log.Info("Boost download seed", "ih", ih)
+							t.loop = 0
+							t.isBoosting = true
+							if data, err := tm.boostFetcher.FetchTorrent(ih.String()); err == nil {
+								if t.Torrent.Info() != nil {
+									t.BoostOff()
+									continue
+								}
+								if err := t.ReloadTorrent(data, tm); err == nil {
+									tm.setTorrent(ih, t)
+								} else {
+									t.BoostOff()
+								}
+
+							} else {
+								log.Debug("Boost failed", "ih", ih.String(), "err", err)
+								if t.start == 0 && (t.bytesRequested > 0 || tm.mode == FULL || t.loop > 600) { //|| len(tm.pendingTorrents) == 1) {
+									t.AddTrackers(tm.trackers)
+									t.start = mclock.Now()
+								}
 								t.BoostOff()
+							}
+						}
+					} else if tm.boost && (t.loop > 60 || (t.start == 0 && t.bytesRequested > 0)) {
+						log.Trace("Boost seed", "ih", ih, "loop", t.loop, "request", t.bytesRequested, "start", t.start)
+						t.loop = 0
+						t.start = mclock.Now()
+						if data, err := tm.boostFetcher.FetchTorrent(ih); err == nil {
+							if t.Torrent.Info() != nil {
 								continue
 							}
 							if err := t.ReloadTorrent(data, tm); err == nil {
 								tm.setTorrent(ih, t)
-							} else {
-								t.BoostOff()
 							}
-
-						} else {
-							log.Debug("Boost failed", "ih", ih.String(), "err", err)
-							if t.start == 0 && (t.bytesRequested > 0 || tm.mode == FULL || t.loop > 600) { //|| len(tm.pendingTorrents) == 1) {
-								t.AddTrackers(tm.trackers)
-								t.start = mclock.Now()
-							}
-							t.BoostOff()
-						}
-					}*/
-				} else if tm.boost && (t.loop > 60 || (t.start == 0 && t.bytesRequested > 0)) {
-					log.Trace("Boost seed", "ih", ih, "loop", t.loop, "request", t.bytesRequested, "start", t.start)
-					t.loop = 0
-					t.start = mclock.Now()
-					if data, err := tm.boostFetcher.FetchTorrent(ih); err == nil {
-						if t.Torrent.Info() != nil {
-							continue
-						}
-						if err := t.ReloadTorrent(data, tm); err == nil {
-							tm.setTorrent(ih, t)
-						}
-					}
+						}*/
 				} else {
 					if _, ok := GoodFiles[t.InfoHash()]; t.start == 0 && (ok || t.bytesRequested > 0 || tm.mode == FULL || t.loop > 600) {
 						if ok {
@@ -889,6 +912,10 @@ func (tm *TorrentManager) pendingLoop() {
 						}
 						t.AddTrackers(tm.trackers)
 						t.start = mclock.Now()
+					} else {
+						if t.loop > 600 {
+							//TODO
+						}
 					}
 				}
 			}
@@ -1092,10 +1119,10 @@ func (tm *TorrentManager) dropSeeding(slot int) error {
 			}
 
 			if tm.mode == LAZY {
-				t.currentConns = 1
+				t.setCurrentConns(1)
 				log.Debug("Lazy mode dropped", "ih", ih, "seeding", len(tm.seedingTorrents), "torrents", len(tm.torrents), "max", tm.maxSeedTask, "peers", t.currentConns, "cited", t.cited)
 			} else {
-				t.currentConns = 2
+				t.setCurrentConns(2)
 			}
 			t.Torrent.SetMaxEstablishedConns(t.currentConns)
 			log.Debug("Drop seeding invoke", "ih", ih, "index", i, "group", s, "slot", slot, "len", len(tm.seedingTorrents), "max", tm.maxSeedTask, "peers", t.currentConns, "cited", t.cited)
@@ -1119,9 +1146,9 @@ func (tm *TorrentManager) graceSeeding(slot int) error {
 				continue
 			}
 			if tm.mode == LAZY {
-				t.currentConns = 1
+				t.setCurrentConns(1)
 			} else {
-				t.currentConns = t.minEstablishedConns
+				t.setCurrentConns(t.minEstablishedConns)
 			}
 			t.Torrent.SetMaxEstablishedConns(t.currentConns)
 			log.Debug("Grace seeding invoke", "ih", ih, "index", i, "group", s, "slot", slot, "len", len(tm.seedingTorrents), "max", tm.maxSeedTask, "peers", t.currentConns, "cited", t.cited)
@@ -1179,23 +1206,23 @@ func (tm *TorrentManager) getFile(infohash, subpath string) ([]byte, uint64, err
 	}
 	infohash = strings.TrimPrefix(strings.ToLower(infohash), common.Prefix)
 
-	if torrent := tm.getTorrent(infohash); torrent == nil {
+	if t := tm.getTorrent(infohash); t == nil {
 		return nil, 0, ErrInactiveTorrent
 	} else {
 
 		subpath = strings.TrimPrefix(subpath, "/")
 		subpath = strings.TrimSuffix(subpath, "/")
 
-		if !torrent.Ready() {
+		if !t.Ready() {
 			log.Error("Read unavailable file", "hash", infohash, "subpath", subpath)
-			return nil, uint64(torrent.BytesCompleted()), ErrUnfinished
+			return nil, uint64(t.BytesCompleted()), ErrUnfinished
 		}
 
 		tm.hotCache.Add(infohash, true)
-		if torrent.currentConns < tm.maxEstablishedConns {
-			torrent.currentConns = tm.maxEstablishedConns
-			torrent.SetMaxEstablishedConns(torrent.currentConns)
-			log.Debug("Torrent active", "ih", infohash, "peers", torrent.currentConns)
+		if t.currentConns < tm.maxEstablishedConns {
+			t.setCurrentConns(tm.maxEstablishedConns)
+			t.Torrent.SetMaxEstablishedConns(t.currentConns)
+			log.Debug("Torrent active", "ih", infohash, "peers", t.currentConns)
 		}
 
 		var key = filepath.Join(infohash, subpath)
@@ -1209,7 +1236,7 @@ func (tm *TorrentManager) getFile(infohash, subpath string) ([]byte, uint64, err
 					if tm.compress {
 						log.Info("File cache", "hash", infohash, "path", subpath, "size", tm.fileCache.Len(), "compress", len(cache), "origin", len(c), "compress", tm.compress)
 					}
-					return c, uint64(torrent.BytesCompleted()), nil
+					return c, uint64(t.BytesCompleted()), nil
 				}
 			}
 		}
@@ -1220,7 +1247,7 @@ func (tm *TorrentManager) getFile(infohash, subpath string) ([]byte, uint64, err
 		data, err := os.ReadFile(filepath.Join(tm.DataDir, key))
 
 		//data final verification
-		for _, file := range torrent.Files() {
+		for _, file := range t.Files() {
 			if file.Path() == subpath {
 				log.Debug("File location info", "ih", infohash, "path", file.Path(), "key", key)
 				if int64(len(data)) != file.Length() {
@@ -1242,7 +1269,7 @@ func (tm *TorrentManager) getFile(infohash, subpath string) ([]byte, uint64, err
 			}
 		}
 
-		return data, uint64(torrent.BytesCompleted()), err
+		return data, uint64(t.BytesCompleted()), err
 	}
 }
 
