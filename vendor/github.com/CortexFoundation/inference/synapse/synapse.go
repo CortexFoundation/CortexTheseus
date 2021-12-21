@@ -175,7 +175,7 @@ func (s *Synapse) DownloadSeed(ih string) error {
 	if s.config.IsRemoteInfer {
 		return nil
 	}
-	return s.download(ih, 0)
+	return s.download(ih, 0x7fffffffffffffff)
 }
 
 // Download is used to control the torrentfs, not for remote invoked now
