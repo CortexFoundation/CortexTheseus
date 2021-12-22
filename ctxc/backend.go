@@ -42,6 +42,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/internal/ctxcapi"
+	"github.com/CortexFoundation/CortexTheseus/internal/shutdowncheck"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/miner"
 	"github.com/CortexFoundation/CortexTheseus/node"
@@ -92,6 +93,8 @@ type Cortex struct {
 	netRPCService *ctxcapi.PublicNetAPI
 
 	lock sync.RWMutex // Protects the variadic fields (e.g. gas price and coinbase)
+
+	shutdownTracker *shutdowncheck.ShutdownTracker // Tracks if and when the node has shutdown ungracefully
 }
 
 // New creates a new Cortex object (including the
@@ -140,6 +143,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		coinbase:          config.Coinbase,
 		bloomRequests:     make(chan chan *bloombits.Retrieval),
 		bloomIndexer:      NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
+		shutdownTracker:   shutdowncheck.NewShutdownTracker(chainDb),
 	}
 
 	bcVersion := rawdb.ReadDatabaseVersion(chainDb)
@@ -232,18 +236,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 	}
 
 	// Check for unclean shutdown
-	if uncleanShutdowns, discards, err := rawdb.PushUncleanShutdownMarker(chainDb); err != nil {
-		log.Error("Could not update unclean-shutdown-marker list", "error", err)
-	} else {
-		if discards > 0 {
-			log.Warn("Old unclean shutdowns found", "count", discards)
-		}
-		for _, tstamp := range uncleanShutdowns {
-			t := time.Unix(int64(tstamp), 0)
-			log.Warn("Unclean shutdown detected", "booted", t,
-				"age", common.PrettyAge(t))
-		}
-	}
+	ctxc.shutdownTracker.MarkStartup()
 
 	return ctxc, nil
 }
@@ -560,6 +553,9 @@ func (s *Cortex) Start(srvr *p2p.Server) error {
 	// Start the bloom bits servicing goroutines
 	s.startBloomHandlers(params.BloomBitsBlocks)
 
+	// Regularly update shutdown marker
+	s.shutdownTracker.Start()
+
 	// Start the RPC service
 	s.netRPCService = ctxcapi.NewPublicNetAPI(srvr, s.NetVersion())
 
@@ -584,7 +580,10 @@ func (s *Cortex) Stop() error {
 	s.miner.Close()
 	s.blockchain.Stop()
 	s.engine.Close()
-	rawdb.PopUncleanShutdownMarker(s.chainDb)
+
+	// Clean shutdown marker as the last thing before closing db
+	s.shutdownTracker.Stop()
+
 	s.chainDb.Close()
 	s.eventMux.Stop()
 	return nil
