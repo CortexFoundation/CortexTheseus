@@ -293,6 +293,10 @@ type txWithKey struct {
 	protected bool
 }
 
+// TODO: Modification
+type txsUnsigned struct {
+}
+
 func (t *txWithKey) UnmarshalJSON(input []byte) error {
 	// Read the metadata, if present
 	type txMetadata struct {
