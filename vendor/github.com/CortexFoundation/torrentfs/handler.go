@@ -533,8 +533,8 @@ func (tm *TorrentManager) addInfoHash(ih string, BytesRequested int64, ch chan b
 }
 
 func (tm *TorrentManager) updateInfoHash(t *Torrent, BytesRequested int64) {
-	tm.lock.Lock()
-	defer tm.lock.Unlock()
+	t.lock.Lock()
+	defer t.lock.Unlock()
 	if t.bytesRequested < BytesRequested {
 		t.bytesRequested = BytesRequested
 		t.bytesLimitation = tm.getLimitation(BytesRequested)
@@ -946,23 +946,23 @@ func (tm *TorrentManager) activeLoop() {
 				//BytesRequested := int64(0)
 				//if _, ok := GoodFiles[t.InfoHash()]; ok {
 				if IsGood(t.InfoHash()) {
-					tm.lock.Lock()
+					t.lock.Lock()
 					t.bytesRequested = t.Length()
 					t.bytesLimitation = tm.getLimitation(t.bytesRequested)
-					tm.lock.Unlock()
 					t.fast = true
+					t.lock.Unlock()
 				} else {
 					if tm.mode == FULL {
 						if t.bytesRequested >= t.Length() {
 							t.fast = true
 						} else {
+							t.lock.Lock()
 							if t.bytesRequested <= t.BytesCompleted()+block/2 {
-								tm.lock.Lock()
 								t.bytesRequested = int64(math.Min(float64(t.Length()), float64(t.bytesRequested+block)))
 								t.bytesLimitation = tm.getLimitation(t.bytesRequested)
-								tm.lock.Unlock()
 								t.fast = false
 							}
+							t.lock.Unlock()
 						}
 					} else {
 						if t.bytesRequested >= t.Length() {
@@ -990,6 +990,7 @@ func (tm *TorrentManager) activeLoop() {
 					actual_counter++
 				}
 
+				//TODO
 				t.bytesCompleted = t.BytesCompleted()
 				t.bytesMissing = t.BytesMissing()
 
