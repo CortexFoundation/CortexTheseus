@@ -17,6 +17,8 @@
 package vm
 
 import (
+	"fmt"
+
 	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
@@ -54,10 +56,19 @@ var (
 // JumpTable contains the CVM opcodes supported at a given fork.
 type JumpTable [256]*operation
 
+func validate(jt JumpTable) JumpTable {
+	for i, op := range jt {
+		if op == nil {
+			panic(fmt.Sprintf("op 0x%x is not set", i))
+		}
+	}
+	return jt
+}
+
 func newNeoInstructionSet() JumpTable {
 	instructionSet := newIstanbulInstructionSet()
 
-	return instructionSet
+	return validate(instructionSet)
 }
 
 // newIstanbulInstructionSet returns the frontier, homestead
@@ -69,7 +80,7 @@ func newIstanbulInstructionSet() JumpTable {
 	enable1884(&instructionSet)
 	enable2200(&instructionSet)
 
-	return instructionSet
+	return validate(instructionSet)
 }
 
 // NewConstantinopleInstructionSet returns the frontier, homestead
@@ -103,7 +114,7 @@ func newConstantinopleInstructionSet() JumpTable {
 		validateStack: makeStackFunc(4, 1),
 		memorySize:    memoryCreate2,
 	}
-	return instructionSet
+	return validate(instructionSet)
 }
 
 // NewByzantiumInstructionSet returns the frontier, homestead and
@@ -135,7 +146,7 @@ func newByzantiumInstructionSet() JumpTable {
 		memorySize:    memoryRevert,
 	}
 
-	return instructionSet
+	return validate(instructionSet)
 }
 
 // EIP 158 a.k.a Spurious Dragon
@@ -153,7 +164,7 @@ func newSpuriousDragonInstructionSet() JumpTable {
 		gasCost:       gasInferArray,
 		validateStack: makeStackFunc(2, 1),
 	}
-	return instructionSet
+	return validate(instructionSet)
 
 }
 
@@ -167,7 +178,7 @@ func newTangerineWhistleInstructionSet() JumpTable {
 	instructionSet[CALL].gasCost = constGasFunc(params.CallGasEIP150)
 	instructionSet[CALLCODE].gasCost = constGasFunc(params.CallGasEIP150)
 	instructionSet[DELEGATECALL].gasCost = constGasFunc(params.CallGasEIP150)*/
-	return instructionSet
+	return validate(instructionSet)
 }
 
 // NewHomesteadInstructionSet returns the frontier and homestead
@@ -180,7 +191,7 @@ func newHomesteadInstructionSet() JumpTable {
 		validateStack: makeStackFunc(6, 1),
 		memorySize:    memoryDelegateCall,
 	}
-	return instructionSet
+	return validate(instructionSet)
 }
 
 // NewFrontierInstructionSet returns the frontier instructions
