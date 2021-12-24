@@ -34,8 +34,8 @@ import (
 	//"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
-	"github.com/syndtr/goleveldb/leveldb/errors"
 	mapset "github.com/deckarep/golang-set"
+	"github.com/syndtr/goleveldb/leveldb/errors"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/sync/syncmap"
 )
