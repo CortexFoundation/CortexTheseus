@@ -29,7 +29,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/gorilla/websocket"
-	mapset "github.com/ucwong/golang-set"
+	mapset "github.com/deckarep/golang-set"
 )
 
 const (

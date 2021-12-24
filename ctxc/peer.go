@@ -29,7 +29,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/ctxc/protocols/ctxc"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
-	mapset "github.com/ucwong/golang-set"
+	mapset "github.com/deckarep/golang-set"
 )
 
 var (

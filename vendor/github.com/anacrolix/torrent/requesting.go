@@ -4,6 +4,7 @@ import (
 	"container/heap"
 	"context"
 	"encoding/gob"
+	"fmt"
 	"reflect"
 	"runtime/pprof"
 	"time"
@@ -19,7 +20,7 @@ func (t *Torrent) requestStrategyPieceOrderState(i int) request_strategy.PieceRe
 	return request_strategy.PieceRequestOrderState{
 		Priority:     t.piece(i).purePriority(),
 		Partial:      t.piecePartiallyDownloaded(i),
-		Availability: t.piece(i).availability,
+		Availability: t.piece(i).availability(),
 	}
 }
 
@@ -91,6 +92,17 @@ func (p *peerRequests) Less(i, j int) bool {
 			!p.peer.peerAllowedFast.Contains(rightPieceIndex),
 		)
 	}
+	leftPiece := t.piece(int(leftPieceIndex))
+	rightPiece := t.piece(int(rightPieceIndex))
+	// Putting this first means we can steal requests from lesser-performing peers for our first few
+	// new requests.
+	ml = ml.Int(
+		// Technically we would be happy with the cached priority here, except we don't actually
+		// cache it anymore, and Torrent.piecePriority just does another lookup of *Piece to resolve
+		// the priority through Piece.purePriority, which is probably slower.
+		-int(leftPiece.purePriority()),
+		-int(rightPiece.purePriority()),
+	)
 	leftPeer := t.pendingRequests[leftRequest]
 	rightPeer := t.pendingRequests[rightRequest]
 	ml = ml.Bool(rightPeer == p.peer, leftPeer == p.peer)
@@ -115,18 +127,9 @@ func (p *peerRequests) Less(i, j int) bool {
 		// it will be served and therefore is the best candidate to cancel.
 		ml = ml.CmpInt64(rightLast.Sub(leftLast).Nanoseconds())
 	}
-	leftPiece := t.piece(int(leftPieceIndex))
-	rightPiece := t.piece(int(rightPieceIndex))
 	ml = ml.Int(
-		// Technically we would be happy with the cached priority here, except we don't actually
-		// cache it anymore, and Torrent.piecePriority just does another lookup of *Piece to resolve
-		// the priority through Piece.purePriority, which is probably slower.
-		-int(leftPiece.purePriority()),
-		-int(rightPiece.purePriority()),
-	)
-	ml = ml.Int(
-		int(leftPiece.availability),
-		int(rightPiece.availability))
+		int(leftPiece.relativeAvailability),
+		int(rightPiece.relativeAvailability))
 	return ml.Less()
 }
 
@@ -152,6 +155,9 @@ type desiredRequestState struct {
 
 func (p *Peer) getDesiredRequestState() (desired desiredRequestState) {
 	if !p.t.haveInfo() {
+		return
+	}
+	if p.t.closed.IsSet() {
 		return
 	}
 	input := p.t.getRequestStrategyInput()
@@ -198,33 +204,48 @@ func (p *Peer) getDesiredRequestState() (desired desiredRequestState) {
 	return
 }
 
-func (p *Peer) maybeUpdateActualRequestState() bool {
-	if p.needRequestUpdate == "" {
-		return true
+func (p *Peer) maybeUpdateActualRequestState() {
+	if p.closed.IsSet() {
+		return
 	}
-	var more bool
+	if p.needRequestUpdate == "" {
+		return
+	}
+	if p.needRequestUpdate == peerUpdateRequestsTimerReason {
+		since := time.Since(p.lastRequestUpdate)
+		if since < updateRequestsTimerDuration {
+			panic(since)
+		}
+	}
 	pprof.Do(
 		context.Background(),
 		pprof.Labels("update request", p.needRequestUpdate),
 		func(_ context.Context) {
 			next := p.getDesiredRequestState()
-			more = p.applyRequestState(next)
+			p.applyRequestState(next)
 		},
 	)
-	return more
 }
 
 // Transmit/action the request state to the peer.
-func (p *Peer) applyRequestState(next desiredRequestState) bool {
+func (p *Peer) applyRequestState(next desiredRequestState) {
 	current := &p.requestState
 	if !p.setInterested(next.Interested) {
-		return false
+		panic("insufficient write buffer")
 	}
 	more := true
 	requestHeap := &next.Requests
 	t := p.t
+	originalRequestCount := current.Requests.GetCardinality()
+	// We're either here on a timer, or because we ran out of requests. Both are valid reasons to
+	// alter peakRequests.
+	if originalRequestCount != 0 && p.needRequestUpdate != peerUpdateRequestsTimerReason {
+		panic(fmt.Sprintf(
+			"expected zero existing requests (%v) for update reason %q",
+			originalRequestCount, p.needRequestUpdate))
+	}
 	heap.Init(requestHeap)
-	for requestHeap.Len() != 0 && maxRequests(current.Requests.GetCardinality()) < p.nominalMaxRequests() {
+	for requestHeap.Len() != 0 && maxRequests(current.Requests.GetCardinality()+current.Cancelled.GetCardinality()) < p.nominalMaxRequests() {
 		req := heap.Pop(requestHeap).(RequestIndex)
 		existing := t.requestingPeer(req)
 		if existing != nil && existing != p {
@@ -242,14 +263,24 @@ func (p *Peer) applyRequestState(next desiredRequestState) bool {
 			break
 		}
 	}
-	// TODO: This may need to change, we might want to update even if there were no requests due to
-	// filtering them for being recently requested already.
-	p.updateRequestsTimer.Stop()
-	if more {
-		p.needRequestUpdate = ""
-		if current.Interested {
-			p.updateRequestsTimer.Reset(3 * time.Second)
-		}
+	if !more {
+		// This might fail if we incorrectly determine that we can fit up to the maximum allowed
+		// requests into the available write buffer space. We don't want that to happen because it
+		// makes our peak requests dependent on how much was already in the buffer.
+		panic(fmt.Sprintf(
+			"couldn't fill apply entire request state [newRequests=%v]",
+			current.Requests.GetCardinality()-originalRequestCount))
 	}
-	return more
+	newPeakRequests := maxRequests(current.Requests.GetCardinality() - originalRequestCount)
+	// log.Printf(
+	// 	"requests %v->%v (peak %v->%v) reason %q (peer %v)",
+	// 	originalRequestCount, current.Requests.GetCardinality(), p.peakRequests, newPeakRequests, p.needRequestUpdate, p)
+	p.peakRequests = newPeakRequests
+	p.needRequestUpdate = ""
+	p.lastRequestUpdate = time.Now()
+	p.updateRequestsTimer.Reset(updateRequestsTimerDuration)
 }
+
+// This could be set to 10s to match the unchoke/request update interval recommended by some
+// specifications. I've set it shorter to trigger it more often for testing for now.
+const updateRequestsTimerDuration = 3 * time.Second

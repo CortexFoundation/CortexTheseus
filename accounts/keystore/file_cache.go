@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/log"
-	mapset "github.com/ucwong/golang-set"
+	mapset "github.com/deckarep/golang-set"
 )
 
 // fileCache is a cache of files seen during scan of keystore.

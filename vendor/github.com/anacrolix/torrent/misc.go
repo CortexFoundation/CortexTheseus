@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net"
 
+	"github.com/RoaringBitmap/roaring"
 	"github.com/anacrolix/missinggo/v2"
 	"github.com/anacrolix/torrent/types"
 	"golang.org/x/time/rate"
@@ -43,7 +44,7 @@ func newRequestFromMessage(msg *pp.Message) Request {
 }
 
 // The size in bytes of a metadata extension piece.
-func metadataPieceSize(totalSize int, piece int) int {
+func metadataPieceSize(totalSize, piece int) int {
 	ret := totalSize - piece*(1<<14)
 	if ret > 1<<14 {
 		ret = 1 << 14
@@ -99,7 +100,7 @@ func validateInfo(info *metainfo.Info) error {
 	return nil
 }
 
-func chunkIndexSpec(index pp.Integer, pieceLength, chunkSize pp.Integer) ChunkSpec {
+func chunkIndexSpec(index, pieceLength, chunkSize pp.Integer) ChunkSpec {
 	ret := ChunkSpec{pp.Integer(index) * chunkSize, chunkSize}
 	if ret.Begin+ret.Length > pieceLength {
 		ret.Length = pieceLength - ret.Begin
@@ -142,6 +143,16 @@ func max(as ...int64) int64 {
 	return ret
 }
 
+func maxInt(as ...int) int {
+	ret := as[0]
+	for _, a := range as[1:] {
+		if a > ret {
+			ret = a
+		}
+	}
+	return ret
+}
+
 func min(as ...int64) int64 {
 	ret := as[0]
 	for _, a := range as[1:] {
@@ -169,3 +180,12 @@ type (
 	InfoHash   = metainfo.Hash
 	IpPort     = missinggo.IpPort
 )
+
+func boolSliceToBitmap(slice []bool) (rb roaring.Bitmap) {
+	for i, b := range slice {
+		if b {
+			rb.AddInt(i)
+		}
+	}
+	return
+}

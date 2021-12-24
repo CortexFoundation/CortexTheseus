@@ -619,10 +619,10 @@ func (s *Server) handleQuery(source Addr, m krpc.Msg) {
 		r.Sig = item.Sig
 
 		s.reply(source, m.T, r)
-	//case "sample_infohashes":
-	//// Nodes supporting this extension should always include the samples field in the response,
-	//// even when it is zero-length. This lets indexing nodes to distinguish nodes supporting this
-	//// extension from those that respond to unknown query types which contain a target field [2].
+	// case "sample_infohashes":
+	// // Nodes supporting this extension should always include the samples field in the response,
+	// // even when it is zero-length. This lets indexing nodes to distinguish nodes supporting this
+	// // extension from those that respond to unknown query types which contain a target field [2].
 	default:
 		// TODO: http://libtorrent.org/dht_extensions.html#forward-compatibility
 		s.sendError(source, m.T, krpc.ErrorMethodUnknown)
@@ -909,8 +909,10 @@ type QueryRateLimiting struct {
 	// Don't rate-limit any sends for a query. Note that there's still built-in waits before retries.
 	NotAny        bool
 	WaitOnRetries bool
+	NoWaitFirst   bool
 }
 
+// The zero value for this uses reasonable/traditional defaults on Server methods.
 type QueryInput struct {
 	MsgArgs      krpc.MsgArgs
 	RateLimiting QueryRateLimiting
@@ -994,8 +996,23 @@ func (s *Server) transactionQuerySender(
 			wrote, err := s.writeToNode(sendCtx, b, addr,
 				// We only wait for the first write by default if rate-limiting is enabled for this
 				// query.
-				*writes == 0 || rateLimiting.WaitOnRetries,
-				!rateLimiting.NotAny && !(rateLimiting.NotFirst && *writes == 0))
+				func() bool {
+					if *writes == 0 {
+						return !rateLimiting.NoWaitFirst
+					} else {
+						return rateLimiting.WaitOnRetries
+					}
+				}(),
+				func() bool {
+					if rateLimiting.NotAny {
+						return false
+					}
+					if *writes == 0 {
+						return !rateLimiting.NotFirst
+					}
+					return true
+				}(),
+			)
 			if wrote {
 				*writes++
 			}
@@ -1017,9 +1034,9 @@ func (s *Server) transactionQuerySender(
 }
 
 // Sends a ping query to the address given.
-func (s *Server) Ping(node *net.UDPAddr) QueryResult {
+func (s *Server) PingQueryInput(node *net.UDPAddr, qi QueryInput) QueryResult {
 	addr := NewAddr(node)
-	res := s.Query(context.TODO(), addr, "ping", QueryInput{})
+	res := s.Query(context.TODO(), addr, "ping", qi)
 	if res.Err == nil {
 		id := res.Reply.SenderID()
 		if id != nil {
@@ -1027,6 +1044,11 @@ func (s *Server) Ping(node *net.UDPAddr) QueryResult {
 		}
 	}
 	return res
+}
+
+// Sends a ping query to the address given.
+func (s *Server) Ping(node *net.UDPAddr) QueryResult {
+	return s.PingQueryInput(node, QueryInput{})
 }
 
 // Put adds a new item to node. You need to call Get first for a write token.
@@ -1353,9 +1375,9 @@ func (s *Server) TableMaintainer() {
 		s.mu.RLock()
 		for i := range s.table.buckets {
 			s.pingQuestionableNodesInBucket(i)
-			//if time.Since(b.lastChanged) < 15*time.Minute {
+			// if time.Since(b.lastChanged) < 15*time.Minute {
 			//	continue
-			//}
+			// }
 			if s.shouldStopRefreshingBucket(i) {
 				continue
 			}
@@ -1426,6 +1448,6 @@ func validNodeAddr(addr net.Addr) bool {
 	return true
 }
 
-//func (s *Server) refreshBucket(bucketIndex int) {
+// func (s *Server) refreshBucket(bucketIndex int) {
 //	targetId := s.table.randomIdForBucket(bucketIndex)
-//}
+// }
