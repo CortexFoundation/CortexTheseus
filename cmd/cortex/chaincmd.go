@@ -423,7 +423,7 @@ func removeDB(ctx *cli.Context) error {
 	if common.FileExist(path) {
 		confirmAndRemoveDB(path, "full node file storage")
 	} else {
-		log.Info("Full node file torage missing", "path", path)
+		log.Info("Full node file storage missing", "path", path)
 	}
 	return nil
 }

@@ -40,7 +40,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/trie"
-	mapset "github.com/ucwong/golang-set"
+	mapset "github.com/deckarep/golang-set"
 	"golang.org/x/crypto/sha3"
 	//	"github.com/CortexFoundation/CortexTheseus/solution/miner/libcuckoo"
 )
