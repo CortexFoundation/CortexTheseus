@@ -119,7 +119,8 @@ func New(config *Config, cache, compress, listen bool) (*TorrentFS, error) {
 					"number":         monitor.currentNumber,
 					"maxMessageSize": inst.MaxMessageSize(),
 					//					"listen":         monitor.listen,
-					"metrics": inst.NasCounter(),
+					"metrics":    inst.NasCounter(),
+					"neighbours": len(inst.peers),
 				},
 			}
 		},
