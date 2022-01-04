@@ -28,8 +28,8 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/log"
+	mapset "github.com/deckarep/golang-set"
 	"github.com/gorilla/websocket"
-	mapset "github.com/ucwong/golang-set"
 )
 
 const (

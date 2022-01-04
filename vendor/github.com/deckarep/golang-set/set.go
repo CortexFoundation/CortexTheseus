@@ -141,9 +141,6 @@ type Set interface {
 	// Remove a single element from the set.
 	Remove(i interface{})
 
-	// RemoveAll removes multiple elements from the set.
-	RemoveAll(i ...interface{})
-
 	// Provides a convenient string representation
 	// of the current state of the set.
 	String() string
@@ -181,17 +178,10 @@ type Set interface {
 // NewSet creates and returns a reference to an empty set.  Operations
 // on the resulting set are thread-safe.
 func NewSet(s ...interface{}) Set {
-	set := newThreadSafeSetWithSize(len(s))
+	set := newThreadSafeSet()
 	for _, item := range s {
 		set.Add(item)
 	}
-	return &set
-}
-
-// NewSetWithSize creates and returns a reference to an empty set with a specified
-// capacity. Operations on the resulting set are thread-safe.
-func NewSetWithSize(cardinality int) Set {
-	set := newThreadSafeSetWithSize(cardinality)
 	return &set
 }
 
@@ -212,13 +202,6 @@ func NewSetFromSlice(s []interface{}) Set {
 // Operations on the resulting set are not thread-safe.
 func NewThreadUnsafeSet() Set {
 	set := newThreadUnsafeSet()
-	return &set
-}
-
-// NewThreadUnsafeSetWithSize creates and returns a reference to an empty set with
-// a specified capacity. Operations on the resulting set are not thread-safe.
-func NewThreadUnsafeSetWithSize(cardinality int) Set {
-	set := newThreadUnsafeSetWithSize(cardinality)
 	return &set
 }
 

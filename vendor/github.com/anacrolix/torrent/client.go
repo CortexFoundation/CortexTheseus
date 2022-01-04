@@ -583,7 +583,7 @@ func countDialResult(err error) {
 	}
 }
 
-func reducedDialTimeout(minDialTimeout, max time.Duration, halfOpenLimit int, pendingPeers int) (ret time.Duration) {
+func reducedDialTimeout(minDialTimeout, max time.Duration, halfOpenLimit, pendingPeers int) (ret time.Duration) {
 	ret = max / time.Duration((pendingPeers+halfOpenLimit)/halfOpenLimit)
 	if ret < minDialTimeout {
 		ret = minDialTimeout
@@ -985,8 +985,9 @@ func (p *Peer) initUpdateRequestsTimer() {
 		}
 	}
 	p.updateRequestsTimer = time.AfterFunc(math.MaxInt64, p.updateRequestsTimerFunc)
-	p.updateRequestsTimer.Stop()
 }
+
+const peerUpdateRequestsTimerReason = "updateRequestsTimer"
 
 func (c *Peer) updateRequestsTimerFunc() {
 	c.locker().Lock()
@@ -994,14 +995,17 @@ func (c *Peer) updateRequestsTimerFunc() {
 	if c.closed.IsSet() {
 		return
 	}
-	if c.needRequestUpdate != "" {
-		return
-	}
 	if c.isLowOnRequests() {
 		// If there are no outstanding requests, then a request update should have already run.
 		return
 	}
-	c.updateRequests("updateRequestsTimer")
+	if d := time.Since(c.lastRequestUpdate); d < updateRequestsTimerDuration {
+		// These should be benign, Timer.Stop doesn't guarantee that its function won't run if it's
+		// already been fired.
+		torrent.Add("spurious timer requests updates", 1)
+		return
+	}
+	c.updateRequests(peerUpdateRequestsTimerReason)
 }
 
 // Maximum pending requests we allow peers to send us. If peer requests are buffered on read, this

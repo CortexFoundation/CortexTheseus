@@ -67,7 +67,6 @@ func (t *Torrent) InfoHash() string {
 }
 
 func (t *Torrent) ReloadFile(files []string, datas [][]byte, tm *TorrentManager) {
-
 	if len(files) > 1 {
 		err := os.MkdirAll(filepath.Dir(filepath.Join(t.filepath, "data")), 0600) //os.ModePerm)
 		if err != nil {
@@ -205,7 +204,6 @@ func (t *Torrent) IsSeeding() bool {
 }
 
 func (t *Torrent) Pause() {
-
 	if t.currentConns > t.minEstablishedConns {
 		t.setCurrentConns(t.minEstablishedConns)
 		t.Torrent.SetMaxEstablishedConns(t.minEstablishedConns)

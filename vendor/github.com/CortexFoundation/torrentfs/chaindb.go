@@ -39,6 +39,15 @@ import (
 	"time"
 )
 
+const (
+	FILES_         = "files_"
+	BLOCKS_        = "blocks_"
+	ID_            = "id_"
+	VERSION_       = "version_"
+	TORRENT_       = "torrent_"
+	CUR_BLOCK_NUM_ = "currentBlockNumber_"
+)
+
 type ChainDB struct {
 	filesContractAddr map[common.Address]*types.FileInfo
 	files             []*types.FileInfo //only storage init files from local storage
@@ -299,7 +308,7 @@ func (fs *ChainDB) GetBlockByNumber(blockNum uint64) *types.Block {
 	var block types.Block
 
 	cb := func(tx *bolt.Tx) error {
-		buk := tx.Bucket([]byte("blocks_" + fs.version))
+		buk := tx.Bucket([]byte(BLOCKS_ + fs.version))
 		if buk == nil {
 			return ErrReadDataFromBoltDB
 		}
@@ -326,7 +335,7 @@ func (fs *ChainDB) GetBlockByNumber(blockNum uint64) *types.Block {
 func (fs *ChainDB) progress(f *types.FileInfo, init bool) (bool, error) {
 	update := false
 	err := fs.db.Update(func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("files_" + fs.version))
+		buk, err := tx.CreateBucketIfNotExists([]byte(FILES_ + fs.version))
 		if err != nil {
 			log.Error("Progress bucket failed", "err", err)
 			return err
@@ -415,7 +424,7 @@ func (fs *ChainDB) AddBlock(b *types.Block) error {
 	}
 
 	if err := fs.db.Update(func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("blocks_" + fs.version))
+		buk, err := tx.CreateBucketIfNotExists([]byte(BLOCKS_ + fs.version))
 		if err != nil {
 			return err
 		}
@@ -453,7 +462,7 @@ func (fs *ChainDB) Version() string {
 
 func (fs *ChainDB) initBlocks() error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
-		if buk, err := tx.CreateBucketIfNotExists([]byte("blocks_" + fs.version)); err != nil {
+		if buk, err := tx.CreateBucketIfNotExists([]byte(BLOCKS_ + fs.version)); err != nil {
 			return err
 		} else {
 			c := buk.Cursor()
@@ -479,7 +488,7 @@ func (fs *ChainDB) initBlocks() error {
 
 func (fs *ChainDB) history() error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
-		if buk, err := tx.CreateBucketIfNotExists([]byte("version_" + fs.version)); err != nil {
+		if buk, err := tx.CreateBucketIfNotExists([]byte(VERSION_ + fs.version)); err != nil {
 			return err
 		} else {
 			c := buk.Cursor()
@@ -494,7 +503,7 @@ func (fs *ChainDB) history() error {
 
 func (fs *ChainDB) initFiles() error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
-		if buk, err := tx.CreateBucketIfNotExists([]byte("files_" + fs.version)); buk == nil || err != nil {
+		if buk, err := tx.CreateBucketIfNotExists([]byte(FILES_ + fs.version)); buk == nil || err != nil {
 			return err
 		} else {
 			c := buk.Cursor()
@@ -531,7 +540,7 @@ func (fs *ChainDB) ID() uint64 {
 
 func (fs *ChainDB) initID() error {
 	if err := fs.db.View(func(tx *bolt.Tx) error {
-		buk := tx.Bucket([]byte("id_" + fs.version))
+		buk := tx.Bucket([]byte(ID_ + fs.version))
 		if buk == nil {
 			return ErrReadDataFromBoltDB
 		}
@@ -554,7 +563,7 @@ func (fs *ChainDB) initID() error {
 	}
 
 	return fs.db.Update(func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("id_" + fs.version))
+		buk, err := tx.CreateBucketIfNotExists([]byte(ID_ + fs.version))
 		if err != nil {
 			return err
 		}
@@ -598,7 +607,7 @@ func (fs *ChainDB) initID() error {
 
 func (fs *ChainDB) initBlockNumber() error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("currentBlockNumber_" + fs.version))
+		buk, err := tx.CreateBucketIfNotExists([]byte(CUR_BLOCK_NUM_ + fs.version))
 		if err != nil {
 			return err
 		}
@@ -637,7 +646,7 @@ func (fs *ChainDB) initBlockNumber() error {
 func (fs *ChainDB) writeRoot(number uint64, root []byte) error {
 	//fs.rootCache.Add(number, root)
 	return fs.db.Update(func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("version_" + fs.version))
+		buk, err := tx.CreateBucketIfNotExists([]byte(VERSION_ + fs.version))
 		if err != nil {
 			return err
 		}
@@ -656,7 +665,7 @@ func (fs *ChainDB) GetRoot(number uint64) (root []byte) {
 	//	return root.([]byte)
 	//}
 	cb := func(tx *bolt.Tx) error {
-		buk := tx.Bucket([]byte("version_" + fs.version))
+		buk := tx.Bucket([]byte(VERSION_ + fs.version))
 		if buk == nil {
 			return errors.New("root bucket not exist")
 		}
@@ -678,7 +687,7 @@ func (fs *ChainDB) GetRoot(number uint64) (root []byte) {
 
 func (fs *ChainDB) Flush() error {
 	return fs.db.Update(func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("currentBlockNumber_" + fs.version))
+		buk, err := tx.CreateBucketIfNotExists([]byte(CUR_BLOCK_NUM_ + fs.version))
 		if err != nil {
 			return err
 		}
@@ -726,7 +735,7 @@ func (fs *ChainDB) SetTorrent(ih string, size uint64) (bool, uint64, error) {
 		}
 	}
 	if err := fs.db.Update(func(tx *bolt.Tx) error {
-		buk, err := tx.CreateBucketIfNotExists([]byte("torrent_" + fs.version))
+		buk, err := tx.CreateBucketIfNotExists([]byte(TORRENT_ + fs.version))
 		if err != nil {
 			return err
 		}
@@ -770,7 +779,7 @@ func (fs *ChainDB) GetTorrent(ih string) (progress uint64, err error) {
 		return s, nil
 	}
 	cb := func(tx *bolt.Tx) error {
-		buk := tx.Bucket([]byte("torrent_" + fs.version))
+		buk := tx.Bucket([]byte(TORRENT_ + fs.version))
 		if buk == nil {
 			return errors.New("root bucket not exist")
 		}
@@ -802,7 +811,7 @@ func (fs *ChainDB) GetTorrent(ih string) (progress uint64, err error) {
 func (fs *ChainDB) initTorrents() (map[string]uint64, error) {
 	//torrents := make(map[string]uint64)
 	err := fs.db.Update(func(tx *bolt.Tx) error {
-		if buk, err := tx.CreateBucketIfNotExists([]byte("torrent_" + fs.version)); err != nil {
+		if buk, err := tx.CreateBucketIfNotExists([]byte(TORRENT_ + fs.version)); err != nil {
 			return err
 		} else {
 			c := buk.Cursor()

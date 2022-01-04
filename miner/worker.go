@@ -23,7 +23,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	mapset "github.com/ucwong/golang-set"
+	mapset "github.com/deckarep/golang-set"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus"

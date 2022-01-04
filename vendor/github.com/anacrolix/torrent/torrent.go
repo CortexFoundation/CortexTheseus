@@ -85,7 +85,6 @@ type Torrent struct {
 	files     *[]*File
 
 	webSeeds map[string]*Peer
-
 	// Active peer connections, running message stream loops. TODO: Make this
 	// open (not-closed) connections only.
 	conns               map[*PeerConn]struct{}
@@ -137,6 +136,7 @@ type Torrent struct {
 	activePieceHashes         int
 	initialPieceCheckDisabled bool
 
+	connsWithAllPieces map[*Peer]struct{}
 	// Count of each request across active connections.
 	pendingRequests map[RequestIndex]*Peer
 	lastRequested   map[RequestIndex]time.Time
@@ -149,8 +149,12 @@ type Torrent struct {
 	Complete chansync.Flag
 }
 
-func (t *Torrent) pieceAvailabilityFromPeers(i pieceIndex) (count int) {
+func (t *Torrent) selectivePieceAvailabilityFromPeers(i pieceIndex) (count int) {
+	// This could be done with roaring.BitSliceIndexing.
 	t.iterPeers(func(peer *Peer) {
+		if _, ok := t.connsWithAllPieces[peer]; ok {
+			return
+		}
 		if peer.peerHasPiece(i) {
 			count++
 		}
@@ -163,10 +167,10 @@ func (t *Torrent) decPieceAvailability(i pieceIndex) {
 		return
 	}
 	p := t.piece(i)
-	if p.availability <= 0 {
-		panic(p.availability)
+	if p.relativeAvailability <= 0 {
+		panic(p.relativeAvailability)
 	}
-	p.availability--
+	p.relativeAvailability--
 	t.updatePieceRequestOrder(i)
 }
 
@@ -174,7 +178,7 @@ func (t *Torrent) incPieceAvailability(i pieceIndex) {
 	// If we don't the info, this should be reconciled when we do.
 	if t.haveInfo() {
 		p := t.piece(i)
-		p.availability++
+		p.relativeAvailability++
 		t.updatePieceRequestOrder(i)
 	}
 }
@@ -443,12 +447,12 @@ func (t *Torrent) onSetInfo() {
 	t.initPieceRequestOrder()
 	for i := range t.pieces {
 		p := &t.pieces[i]
-		// Need to add availability before updating piece completion, as that may result in conns
+		// Need to add relativeAvailability before updating piece completion, as that may result in conns
 		// being dropped.
-		if p.availability != 0 {
-			panic(p.availability)
+		if p.relativeAvailability != 0 {
+			panic(p.relativeAvailability)
 		}
-		p.availability = int64(t.pieceAvailabilityFromPeers(i))
+		p.relativeAvailability = t.selectivePieceAvailabilityFromPeers(i)
 		t.addRequestOrderPiece(i)
 		t.updatePieceCompletion(pieceIndex(i))
 		if !t.initialPieceCheckDisabled && !p.storageCompletionOk {
@@ -570,22 +574,30 @@ func (t *Torrent) newMetadataExtensionMessage(c *PeerConn, msgType pp.ExtendedMe
 }
 
 type pieceAvailabilityRun struct {
-	count        pieceIndex
-	availability int64
+	Count        pieceIndex
+	Availability int
 }
 
 func (me pieceAvailabilityRun) String() string {
-	return fmt.Sprintf("%v(%v)", me.count, me.availability)
+	return fmt.Sprintf("%v(%v)", me.Count, me.Availability)
 }
 
 func (t *Torrent) pieceAvailabilityRuns() (ret []pieceAvailabilityRun) {
 	rle := missinggo.NewRunLengthEncoder(func(el interface{}, count uint64) {
-		ret = append(ret, pieceAvailabilityRun{availability: el.(int64), count: int(count)})
+		ret = append(ret, pieceAvailabilityRun{Availability: el.(int), Count: int(count)})
 	})
 	for i := range t.pieces {
-		rle.Append(t.pieces[i].availability, 1)
+		rle.Append(t.pieces[i].availability(), 1)
 	}
 	rle.Flush()
+	return
+}
+
+func (t *Torrent) pieceAvailabilityFrequencies() (freqs []int) {
+	freqs = make([]int, t.numActivePeers()+1)
+	for i := range t.pieces {
+		freqs[t.piece(i).availability()]++
+	}
 	return
 }
 
@@ -673,12 +685,27 @@ func (t *Torrent) writeStatus(w io.Writer) {
 	if t.info != nil {
 		fmt.Fprintf(w, "Num Pieces: %d (%d completed)\n", t.numPieces(), t.numPiecesCompleted())
 		fmt.Fprintf(w, "Piece States: %s\n", t.pieceStateRuns())
-		fmt.Fprintf(w, "Piece availability: %v\n", strings.Join(func() (ret []string) {
-			for _, run := range t.pieceAvailabilityRuns() {
-				ret = append(ret, run.String())
-			}
-			return
-		}(), " "))
+		// Generates a huge, unhelpful listing when piece availability is very scattered. Prefer
+		// availability frequencies instead.
+		if false {
+			fmt.Fprintf(w, "Piece availability: %v\n", strings.Join(func() (ret []string) {
+				for _, run := range t.pieceAvailabilityRuns() {
+					ret = append(ret, run.String())
+				}
+				return
+			}(), " "))
+		}
+		fmt.Fprintf(w, "Piece availability frequency: %v\n", strings.Join(
+			func() (ret []string) {
+				for avail, freq := range t.pieceAvailabilityFrequencies() {
+					if freq == 0 {
+						continue
+					}
+					ret = append(ret, fmt.Sprintf("%v: %v", avail, freq))
+				}
+				return
+			}(),
+			", "))
 	}
 	fmt.Fprintf(w, "Reader Pieces:")
 	t.forReaderOffsetPieces(func(begin, end pieceIndex) (again bool) {
@@ -835,6 +862,12 @@ func (t *Torrent) close(wg *sync.WaitGroup) (err error) {
 	})
 	if t.storage != nil {
 		t.deletePieceRequestOrder()
+	}
+	for i := range t.pieces {
+		p := t.piece(i)
+		if p.relativeAvailability != 0 {
+			panic(fmt.Sprintf("piece %v has relative availability %v", i, p.relativeAvailability))
+		}
 	}
 	t.pex.Reset()
 	t.cl.event.Broadcast()
@@ -1407,14 +1440,20 @@ func (t *Torrent) deletePeerConn(c *PeerConn) (ret bool) {
 		})
 	}
 	t.assertPendingRequests()
+	if t.numActivePeers() == 0 && len(t.connsWithAllPieces) != 0 {
+		panic(t.connsWithAllPieces)
+	}
 	return
 }
 
 func (t *Torrent) decPeerPieceAvailability(p *Peer) {
+	if t.deleteConnWithAllPieces(p) {
+		return
+	}
 	if !t.haveInfo() {
 		return
 	}
-	p.newPeerPieces().Iterate(func(i uint32) bool {
+	p.peerPieces().Iterate(func(i uint32) bool {
 		p.t.decPieceAvailability(pieceIndex(i))
 		return true
 	})
@@ -1979,9 +2018,8 @@ func (t *Torrent) pieceHashed(piece pieceIndex, passed bool, hashIoErr error) {
 }
 
 func (t *Torrent) cancelRequestsForPiece(piece pieceIndex) {
-	// TODO: Make faster
-	for cn := range t.conns {
-		cn.tickleWriter()
+	for ri := t.pieceRequestIndexOffset(piece); ri < t.pieceRequestIndexOffset(piece+1); ri++ {
+		t.cancelRequest(ri)
 	}
 }
 
@@ -2203,6 +2241,7 @@ func (t *Torrent) DisallowDataUpload() {
 	defer t.cl.unlock()
 	t.dataUploadDisallowed = true
 	for c := range t.conns {
+		// TODO: This doesn't look right. Shouldn't we tickle writers to choke peers or something instead?
 		c.updateRequests("disallow data upload")
 	}
 }
@@ -2258,6 +2297,12 @@ func (t *Torrent) addWebSeed(url string) {
 		client: webseed.Client{
 			HttpClient: t.cl.webseedHttpClient,
 			Url:        url,
+			ResponseBodyWrapper: func(r io.Reader) io.Reader {
+				return &rateLimitedReader{
+					l: t.cl.config.DownloadRateLimiter,
+					r: r,
+				}
+			},
 		},
 		activeRequests: make(map[Request]webseed.Request, maxRequests),
 		maxRequests:    maxRequests,
@@ -2318,4 +2363,30 @@ func (t *Torrent) cancelRequest(r RequestIndex) *Peer {
 
 func (t *Torrent) requestingPeer(r RequestIndex) *Peer {
 	return t.pendingRequests[r]
+}
+
+func (t *Torrent) addConnWithAllPieces(p *Peer) {
+	if t.connsWithAllPieces == nil {
+		t.connsWithAllPieces = make(map[*Peer]struct{}, t.maxEstablishedConns)
+	}
+	t.connsWithAllPieces[p] = struct{}{}
+}
+
+func (t *Torrent) deleteConnWithAllPieces(p *Peer) bool {
+	_, ok := t.connsWithAllPieces[p]
+	delete(t.connsWithAllPieces, p)
+	return ok
+}
+
+func (t *Torrent) numActivePeers() int {
+	return len(t.conns) + len(t.webSeeds)
+}
+
+func (t *Torrent) hasStorageCap() bool {
+	f := t.storage.Capacity
+	if f == nil {
+		return false
+	}
+	_, ok := (*f)()
+	return ok
 }
