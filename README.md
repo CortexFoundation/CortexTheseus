@@ -107,7 +107,7 @@ sudo ln -sf /opt/cmake-3.11/bin/*  /usr/bin/
  ```
 - go 1.17.+
 ```
-wget https://dl.google.com/go/go1.16.linux-amd64.tar.gz
+wget https://go.dev/dl/go1.17.5.linux-amd64.tar.gz
 sudo tar -C /usr/local -xzf go1.16.linux-amd64.tar.gz
 echo 'export PATH="$PATH:/usr/local/go/bin"' >> ~/.bashrc
 source ~/.bashrc
