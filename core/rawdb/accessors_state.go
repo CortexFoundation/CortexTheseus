@@ -61,11 +61,25 @@ func ReadCodeWithPrefix(db ctxcdb.KeyValueReader, hash common.Hash) []byte {
 	return data
 }
 
+// HasCodeWithPrefix checks if the contract code corresponding to the
+// provided code hash is present in the db. This function will only check
+// presence using the prefix-scheme.
+func HasCodeWithPrefix(db ctxcdb.KeyValueReader, hash common.Hash) bool {
+	ok, _ := db.Has(codeKey(hash))
+	return ok
+}
+
 // WriteCode writes the provided contract code database.
 func WriteCode(db ctxcdb.KeyValueWriter, hash common.Hash, code []byte) {
 	if err := db.Put(codeKey(hash), code); err != nil {
 		log.Crit("Failed to store contract code", "err", err)
 	}
+}
+
+// HasTrieNode checks if the trie node with the provided hash is present in db.
+func HasTrieNode(db ctxcdb.KeyValueReader, hash common.Hash) bool {
+	ok, _ := db.Has(hash.Bytes())
+	return ok
 }
 
 // DeleteCode deletes the specified contract code from the database.
