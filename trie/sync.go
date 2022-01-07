@@ -159,8 +159,7 @@ func (s *Sync) AddSubTrie(root common.Hash, path []byte, parent common.Hash, cal
 		// Bloom filter says this might be a duplicate, double check.
 		// If database says yes, then at least the trie node is present
 		// and we hold the assumption that it's NOT legacy contract code.
-		blob := rawdb.ReadTrieNode(s.database, root)
-		if len(blob) > 0 {
+		if rawdb.HasTrieNode(s.database, root) {
 			return
 		}
 		// False positive, bump fault meter
@@ -202,7 +201,7 @@ func (s *Sync) AddCodeEntry(hash common.Hash, path []byte, parent common.Hash) {
 		// sync is expected to run with a fresh new node. Even there
 		// exists the code with legacy format, fetch and store with
 		// new scheme anyway.
-		if blob := rawdb.ReadCodeWithPrefix(s.database, hash); len(blob) > 0 {
+		if rawdb.HasCodeWithPrefix(s.database, hash) {
 			return
 		}
 		// False positive, bump fault meter
@@ -410,7 +409,7 @@ func (s *Sync) children(req *request, object node) ([]*request, error) {
 				// Bloom filter says this might be a duplicate, double check.
 				// If database says yes, then at least the trie node is present
 				// and we hold the assumption that it's NOT legacy contract code.
-				if blob := rawdb.ReadTrieNode(s.database, common.BytesToHash(node)); len(blob) > 0 {
+				if rawdb.HasTrieNode(s.database, hash) {
 					continue
 				}
 				// False positive, bump fault meter
