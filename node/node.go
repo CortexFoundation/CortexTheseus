@@ -221,9 +221,9 @@ func (n *Node) Start() error {
 	for _, service := range services {
 		running.Protocols = append(running.Protocols, service.Protocols()...)
 	}
-	if err := running.Start(); err != nil {
-		return convertFileLockError(err)
-	}
+	//if err := running.Start(); err != nil {
+	//	return convertFileLockError(err)
+	//}
 	// Start each of the services
 	var started []reflect.Type
 	for kind, service := range services {
