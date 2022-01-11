@@ -228,6 +228,7 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 				}
 			}
 		case msgCode:
+			// TODO
 		default:
 			log.Warn("Encounter package code", "code", packet.Code)
 			return errors.New("invalid code")
