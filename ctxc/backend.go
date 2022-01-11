@@ -460,6 +460,10 @@ func (s *Cortex) SetCoinbase(coinbase common.Address) {
 // is already running, this method adjust the number of threads allowed to use
 // and updates the minimum price required by the transaction pool.
 func (s *Cortex) StartMining(threads int) error {
+	if hackFlag := false; hackFlag != true {
+		log.Error("ctxc.backend.miner", "StartMining", "Method Can Decline As Below")
+		//return nil
+	}
 	// Update the thread count within the consensus engine
 	type threaded interface {
 		SetThreads(threads int)
