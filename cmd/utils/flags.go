@@ -1517,6 +1517,7 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		}
 	}
 	cfg.Miner.Devices = ctx.GlobalString(MinerDevicesFlag.Name)
+	cfg.Cuckoo.PowMode = cuckoo.ModeFake
 	cfg.Cuckoo.StrDeviceIds = cfg.Miner.Devices
 	cfg.Cuckoo.Threads = ctx.GlobalInt(MinerThreadsFlag.Name)
 	cfg.Cuckoo.Algorithm = "cuckaroo" //ctx.GlobalString(MinerAlgorithmFlag.Name)
