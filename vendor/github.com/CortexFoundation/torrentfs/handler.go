@@ -724,18 +724,17 @@ func (tm *TorrentManager) init() error {
 		tm.Simulate()
 	}
 
-	for k, ok := range GoodFiles {
-		if ok {
-			if err := tm.Search(context.Background(), k, 0, nil); err == nil {
-				tm.good++
-			} else {
-				log.Info("Fs init failed", "err", err)
-				return err
+	if !tm.simulate {
+		for k, ok := range GoodFiles {
+			if ok {
+				if err := tm.Search(context.Background(), k, 0, nil); err == nil {
+					tm.good++
+				} else {
+					log.Info("Fs init failed", "err", err)
+					return err
+				}
 			}
 		}
-	}
-
-	if !tm.simulate {
 		select {
 		case <-tm.initCh:
 			log.Info("Chain files sync init OK !!!", "seeding", len(tm.seedingTorrents), "pending", len(tm.pendingTorrents), "active", len(tm.activeTorrents), "good", len(GoodFiles), "active", tm.good)
