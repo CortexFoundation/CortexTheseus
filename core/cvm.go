@@ -39,11 +39,17 @@ type ChainContext interface {
 // NewCVMContext creates a new context for use in the CVM.
 func NewCVMBlockContext(header *types.Header, chain ChainContext, author *common.Address) vm.BlockContext {
 	// If we don't have an explicit author (i.e. not mining), extract from the header
-	var beneficiary common.Address
+	var (
+		beneficiary common.Address
+		random      *common.Hash
+	)
 	if author == nil {
 		beneficiary, _ = chain.Engine().Author(header) // Ignore error, we're past header validation
 	} else {
 		beneficiary = *author
+	}
+	if header.Difficulty.Cmp(common.Big0) == 0 {
+		random = &header.MixDigest
 	}
 	return vm.BlockContext{
 		CanTransfer: CanTransfer,
@@ -54,6 +60,7 @@ func NewCVMBlockContext(header *types.Header, chain ChainContext, author *common
 		Time:        new(big.Int).SetUint64(header.Time),
 		Difficulty:  new(big.Int).Set(header.Difficulty),
 		GasLimit:    header.GasLimit,
+		Random:      random,
 	}
 }
 
