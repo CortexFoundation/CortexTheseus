@@ -72,13 +72,13 @@ type ChainDB struct {
 }
 
 func NewChainDB(config *Config) (*ChainDB, error) {
-	if err := os.MkdirAll(config.DataDir, 0600); err != nil {
+	if err := os.MkdirAll(config.DataDir, 0777); err != nil {
 		log.Error("Make data dir failed", "err", err, "dir", config.DataDir)
 		return nil, err
 	}
 
 	db, dbErr := bolt.Open(filepath.Join(config.DataDir,
-		".file.bolt.db"), 0600, &bolt.Options{
+		".file.bolt.db"), 0777, &bolt.Options{
 		Timeout: time.Second,
 	})
 	if dbErr != nil {
