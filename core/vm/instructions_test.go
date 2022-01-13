@@ -572,7 +572,7 @@ func BenchmarkOpSHA3(bench *testing.B) {
 	bench.ResetTimer()
 	for i := 0; i < bench.N; i++ {
 		stack.pushN(*uint256.NewInt(32), *start)
-		opSha3(&pc, cvmInterpreter, &callCtx{mem, stack, nil})
+		opKeccak256(&pc, cvmInterpreter, &callCtx{mem, stack, nil})
 	}
 }
 

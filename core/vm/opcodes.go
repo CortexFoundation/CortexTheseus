@@ -37,68 +37,68 @@ func (op OpCode) IsInfer() bool {
 }
 
 const (
-	STOP OpCode = iota
-	ADD
-	MUL
-	SUB
-	DIV
-	SDIV
-	MOD
-	SMOD
-	ADDMOD
-	MULMOD
-	EXP
-	SIGNEXTEND
+	STOP       OpCode = 0x0
+	ADD        OpCode = 0x1
+	MUL        OpCode = 0x2
+	SUB        OpCode = 0x3
+	DIV        OpCode = 0x4
+	SDIV       OpCode = 0x5
+	MOD        OpCode = 0x6
+	SMOD       OpCode = 0x7
+	ADDMOD     OpCode = 0x8
+	MULMOD     OpCode = 0x9
+	EXP        OpCode = 0xa
+	SIGNEXTEND OpCode = 0xb
 )
 
 // 0x10 range - comparison ops.
 const (
-	LT OpCode = iota + 0x10
-	GT
-	SLT
-	SGT
-	EQ
-	ISZERO
-	AND
-	OR
-	XOR
-	NOT
-	BYTE
-	SHL
-	SHR
-	SAR
-
-	SHA3 = 0x20
+	LT        OpCode = 0x10
+	GT        OpCode = 0x11
+	SLT       OpCode = 0x12
+	SGT       OpCode = 0x13
+	EQ        OpCode = 0x14
+	ISZERO    OpCode = 0x15
+	AND       OpCode = 0x16
+	OR        OpCode = 0x17
+	XOR       OpCode = 0x18
+	NOT       OpCode = 0x19
+	BYTE      OpCode = 0x1a
+	SHL       OpCode = 0x1b
+	SHR       OpCode = 0x1c
+	SAR       OpCode = 0x1d
+	KECCAK256 OpCode = 0x20
 )
 
 // 0x30 range - closure state.
 const (
-	ADDRESS OpCode = 0x30 + iota
-	BALANCE
-	ORIGIN
-	CALLER
-	CALLVALUE
-	CALLDATALOAD
-	CALLDATASIZE
-	CALLDATACOPY
-	CODESIZE
-	CODECOPY
-	GASPRICE
-	EXTCODESIZE
-	EXTCODECOPY
-	RETURNDATASIZE
-	RETURNDATACOPY
-	EXTCODEHASH
+	ADDRESS        OpCode = 0x30
+	BALANCE        OpCode = 0x31
+	ORIGIN         OpCode = 0x32
+	CALLER         OpCode = 0x33
+	CALLVALUE      OpCode = 0x34
+	CALLDATALOAD   OpCode = 0x35
+	CALLDATASIZE   OpCode = 0x36
+	CALLDATACOPY   OpCode = 0x37
+	CODESIZE       OpCode = 0x38
+	CODECOPY       OpCode = 0x39
+	GASPRICE       OpCode = 0x3a
+	EXTCODESIZE    OpCode = 0x3b
+	EXTCODECOPY    OpCode = 0x3c
+	RETURNDATASIZE OpCode = 0x3d
+	RETURNDATACOPY OpCode = 0x3e
+	EXTCODEHASH    OpCode = 0x3f
 )
 
 // 0x40 range - block operations.
 const (
-	BLOCKHASH OpCode = 0x40 + iota
-	COINBASE
-	TIMESTAMP
-	NUMBER
-	DIFFICULTY
-	GASLIMIT
+	BLOCKHASH   OpCode = 0x40 + iota
+	COINBASE    OpCode = 0x41
+	TIMESTAMP   OpCode = 0x42
+	NUMBER      OpCode = 0x43
+	DIFFICULTY  OpCode = 0x44
+	RANDOM      OpCode = 0x44 // Same as DIFFICULTY
+	GASLIMIT    OpCode = 0x45
 	CHAINID     OpCode = 0x46
 	SELFBALANCE OpCode = 0x47
 )
@@ -249,7 +249,7 @@ var opCodeToString = map[OpCode]string{
 	MULMOD: "MULMOD",
 
 	// 0x20 range - crypto.
-	SHA3: "SHA3",
+	KECCAK256: "KECCAK256",
 
 	// 0x30 range - closure state.
 	ADDRESS:        "ADDRESS",
@@ -421,7 +421,7 @@ var stringToOp = map[string]OpCode{
 	"SAR":            SAR,
 	"ADDMOD":         ADDMOD,
 	"MULMOD":         MULMOD,
-	"SHA3":           SHA3,
+	"KECCAK256":      KECCAK256,
 	"ADDRESS":        ADDRESS,
 	"BALANCE":        BALANCE,
 	"ORIGIN":         ORIGIN,

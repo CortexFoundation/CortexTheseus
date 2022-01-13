@@ -98,6 +98,7 @@ type BlockContext struct {
 	BlockNumber *big.Int       // Provides information for NUMBER
 	Time        *big.Int       // Provides information for TIME
 	Difficulty  *big.Int       // Provides information for DIFFICULTY
+	Random      *common.Hash   // Provides information for RANDOM
 }
 
 // TxContext provides the CVM with information about a transaction.
@@ -159,7 +160,7 @@ func NewCVM(blockCtx BlockContext, txCtx TxContext, statedb StateDB, chainConfig
 		vmConfig:    vmConfig,
 		chainConfig: chainConfig,
 		category:    Category{},
-		chainRules:  chainConfig.Rules(blockCtx.BlockNumber),
+		chainRules:  chainConfig.Rules(blockCtx.BlockNumber, blockCtx.Random != nil),
 		//Fs:           fileFs,
 	}
 
