@@ -49,7 +49,8 @@ func (ctxc *Cortex) startCtxcEntryUpdate(ln *enode.LocalNode) {
 		for {
 			select {
 			case <-newHead:
-				ln.Set(ctxc.currentCtxcEntry())
+				//ln.Set(ctxc.currentCtxcEntry())
+				log.Warn("ctxc.discovery", "ln", ln, "since 'ln' is <nil> for p2p not started", "not set for ln here")
 			case err := <-sub.Err():
 				// Would be nice to sync with ctxc.Stop, but there is no
 				// good way to do that.
