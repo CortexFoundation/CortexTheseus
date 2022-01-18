@@ -221,12 +221,12 @@ func (cn *PeerConn) isPreferredDirection() bool {
 // Returns whether the left connection should be preferred over the right one,
 // considering only their networking properties. If ok is false, we can't
 // decide.
-func (l *PeerConn) hasPreferredNetworkOver(r *PeerConn) (left, ok bool) {
-	var ml multiLess
-	ml.NextBool(l.isPreferredDirection(), r.isPreferredDirection())
-	ml.NextBool(!l.utp(), !r.utp())
-	ml.NextBool(l.ipv6(), r.ipv6())
-	return ml.FinalOk()
+func (l *PeerConn) hasPreferredNetworkOver(r *PeerConn) bool {
+	var ml multiless.Computation
+	ml = ml.Bool(r.isPreferredDirection(), l.isPreferredDirection())
+	ml = ml.Bool(l.utp(), r.utp())
+	ml = ml.Bool(r.ipv6(), l.ipv6())
+	return ml.Less()
 }
 
 func (cn *Peer) cumInterest() time.Duration {
