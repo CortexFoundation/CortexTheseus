@@ -222,6 +222,9 @@ func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus
 	worker.chainHeadSub = ctxc.BlockChain().SubscribeChainHeadEvent(worker.chainHeadCh)
 	worker.chainSideSub = ctxc.BlockChain().SubscribeChainSideEvent(worker.chainSideCh)
 
+	// disablePreseal for fake mining
+	worker.disablePreseal()
+
 	// Sanitize recommit interval if the user-specified one is too short.
 	recommit := worker.config.Recommit
 	if recommit < minRecommitInterval {
