@@ -497,7 +497,7 @@ func (tm *TorrentManager) addInfoHash(ih string, BytesRequested int64, ch chan b
 
 		//if _, err := os.Stat(filepath.Join(tmpDataPath, ".torrent.db")); err != nil {
 		if _, err := os.Stat(tmpDataPath); err != nil {
-			if err := os.MkdirAll(tmpDataPath, 0600); err != nil {
+			if err := os.MkdirAll(tmpDataPath, 0777); err != nil {
 				log.Warn("torrent path create failed", "err", err)
 				return nil
 			}
@@ -585,7 +585,7 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 	tmpFilePath := filepath.Join(config.DataDir, defaultTmpPath)
 
 	if _, err := os.Stat(tmpFilePath); err != nil {
-		err = os.MkdirAll(filepath.Dir(tmpFilePath), 0600) //os.FileMode(os.ModePerm))
+		err = os.MkdirAll(filepath.Dir(tmpFilePath), 0777) //os.FileMode(os.ModePerm))
 		if err != nil {
 			log.Error("Mkdir failed", "path", tmpFilePath)
 			return nil, err
@@ -724,18 +724,17 @@ func (tm *TorrentManager) init() error {
 		tm.Simulate()
 	}
 
-	for k, ok := range GoodFiles {
-		if ok {
-			if err := tm.Search(context.Background(), k, 0, nil); err == nil {
-				tm.good++
-			} else {
-				log.Info("Fs init failed", "err", err)
-				return err
+	if !tm.simulate {
+		for k, ok := range GoodFiles {
+			if ok {
+				if err := tm.Search(context.Background(), k, 0, nil); err == nil {
+					tm.good++
+				} else {
+					log.Info("Fs init failed", "err", err)
+					return err
+				}
 			}
 		}
-	}
-
-	if !tm.simulate {
 		select {
 		case <-tm.initCh:
 			log.Info("Chain files sync init OK !!!", "seeding", len(tm.seedingTorrents), "pending", len(tm.pendingTorrents), "active", len(tm.activeTorrents), "good", len(GoodFiles), "active", tm.good)

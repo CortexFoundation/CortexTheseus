@@ -249,7 +249,7 @@ func opSAR(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byt
 	return nil, nil
 }
 
-func opSha3(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
+func opKeccak256(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
 	offset, size := callContext.stack.pop(), callContext.stack.peek()
 	data := callContext.memory.GetPtr(int64(offset.Uint64()), int64(size.Uint64()))
 
@@ -490,6 +490,12 @@ func opNumber(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]
 
 func opDifficulty(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
 	v, _ := uint256.FromBig(interpreter.cvm.Context.Difficulty)
+	callContext.stack.push(v)
+	return nil, nil
+}
+
+func opRandom(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
+	v := new(uint256.Int).SetBytes((interpreter.cvm.Context.Random.Bytes()))
 	callContext.stack.push(v)
 	return nil, nil
 }

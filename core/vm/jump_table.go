@@ -51,6 +51,8 @@ var (
 	constantinopleInstructionSet   = newConstantinopleInstructionSet()
 	istanbulInstructionSet         = newIstanbulInstructionSet()
 	neoInstructionSet              = newNeoInstructionSet()
+
+	mergeInstructionSet = newMergeInstructionSet()
 )
 
 // JumpTable contains the CVM opcodes supported at a given fork.
@@ -63,6 +65,16 @@ func validate(jt JumpTable) JumpTable {
 		}
 	}
 	return jt
+}
+
+func newMergeInstructionSet() JumpTable {
+	instructionSet := newNeoInstructionSet()
+	instructionSet[RANDOM] = &operation{
+		execute:       opRandom,
+		gasCost:       constGasFunc(GasQuickStep),
+		validateStack: makeStackFunc(0, 1),
+	}
+	return validate(instructionSet)
 }
 
 func newNeoInstructionSet() JumpTable {
@@ -313,11 +325,11 @@ func newFrontierInstructionSet() JumpTable {
 			gasCost:       constGasFunc(GasFastestStep),
 			validateStack: makeStackFunc(2, 1),
 		},
-		SHA3: {
-			execute:       opSha3,
-			gasCost:       gasSha3,
+		KECCAK256: {
+			execute:       opKeccak256,
+			gasCost:       gasKeccak256,
 			validateStack: makeStackFunc(2, 1),
-			memorySize:    memorySha3,
+			memorySize:    memoryKeccak256,
 		},
 		ADDRESS: {
 			execute:       opAddress,

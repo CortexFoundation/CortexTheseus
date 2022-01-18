@@ -105,9 +105,9 @@ tar zxvf cmake-3.11.0-rc4-Linux-x86_64.tar.gz
 sudo mv cmake-3.11.0-rc4-Linux-x86_64  /opt/cmake-3.11
 sudo ln -sf /opt/cmake-3.11/bin/*  /usr/bin/
  ```
-- go 1.16+
+- go 1.17.+
 ```
-wget https://dl.google.com/go/go1.16.linux-amd64.tar.gz
+wget https://go.dev/dl/go1.17.5.linux-amd64.tar.gz
 sudo tar -C /usr/local -xzf go1.16.linux-amd64.tar.gz
 echo 'export PATH="$PATH:/usr/local/go/bin"' >> ~/.bashrc
 source ~/.bashrc
@@ -130,7 +130,7 @@ Recommend:
 ```
 yum install cmake3
 ```
-- go 1.15.5+
+- go 1.17.+
 - gcc/g++ 5.4+ reference: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#system-requirements
 ```
 sudo yum install centos-release-scl

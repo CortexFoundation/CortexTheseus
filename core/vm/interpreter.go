@@ -106,6 +106,8 @@ func NewCVMInterpreter(cvm *CVM, cfg Config) *CVMInterpreter {
 	// If jump table was not initialised we set the default one.
 	if cfg.JumpTable == nil {
 		switch {
+		case cvm.chainRules.IsMerge:
+			cfg.JumpTable = &mergeInstructionSet
 		case cvm.chainRules.IsNeo:
 			cfg.JumpTable = &neoInstructionSet
 		case cvm.chainRules.IsIstanbul:
