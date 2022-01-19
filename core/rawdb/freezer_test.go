@@ -254,10 +254,7 @@ func TestFreezerConcurrentModifyTruncate(t *testing.T) {
 
 func TestFreezerReadonlyValidate(t *testing.T) {
 	tables := map[string]bool{"a": true, "b": true}
-	dir, err := ioutil.TempDir("", "freezer")
-	if err != nil {
-		t.Fatal(err)
-	}
+	dir := os.TempDir()
 	defer os.RemoveAll(dir)
 	// Open non-readonly freezer and fill individual tables
 	// with different amount of data.
