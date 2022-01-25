@@ -459,6 +459,8 @@ func (w *worker) mainLoop() {
 		select {
 		case req := <-w.newWorkCh:
 			w.commitNewWork(req.interrupt, req.noempty, req.timestamp)
+			// add sleep incaseof fake cuckoo generate too fast
+			time.Sleep(maxRecommitInterval)
 
 		case ev := <-w.chainSideCh:
 			// Short circuit for duplicate side blocks
@@ -1026,7 +1028,7 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 			log.Info("Commit new mining work", "number", block.Number(), "sealhash", w.engine.SealHash(block.Header()),
 				"uncles", len(uncles), "txs", w.current.tcount,
 				"gas", block.GasUsed(), "fees", totalFees(block, receipts),
-				"elapsed", common.PrettyDuration(time.Since(start)), "diff", block.Difficulty())
+				"elapsed", common.PrettyDuration(time.Since(start)), "diff", block.Difficulty(), "chain", w.chain.CurrentBlock().Hash())
 
 		case <-w.exitCh:
 			log.Info("Worker has exited")
