@@ -437,10 +437,10 @@ func (api *PrivateDebugAPI) traceBlock(ctx context.Context, block *types.Block, 
 	if threads > len(txs) {
 		threads = len(txs)
 	}
-	blockCtx := core.NewCVMBlockContext(block.Header(), api.ctxc.blockchain, nil)
 	for th := 0; th < threads; th++ {
 		pend.Add(1)
 		go func() {
+			blockCtx := core.NewCVMBlockContext(block.Header(), api.ctxc.blockchain, nil)
 			defer pend.Done()
 
 			// Fetch and execute the next transaction trace tasks
@@ -457,6 +457,7 @@ func (api *PrivateDebugAPI) traceBlock(ctx context.Context, block *types.Block, 
 	}
 	// Feed the transactions into the tracers and return
 	var failed error
+	blockCtx := core.NewCVMBlockContext(block.Header(), api.ctxc.blockchain, nil)
 	for i, tx := range txs {
 		// Send the trace task over for execution
 		jobs <- &txTraceTask{statedb: statedb.Copy(), index: i}
