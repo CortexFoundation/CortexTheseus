@@ -1532,15 +1532,23 @@ func (t *Torrent) onWebRtcConn(
 	dcc webtorrent.DataChannelContext,
 ) {
 	defer c.Close()
+	netConn := webrtcNetConn{
+		ReadWriteCloser:    c,
+		DataChannelContext: dcc,
+	}
+	peerRemoteAddr := netConn.RemoteAddr()
+	if t.cl.badPeerAddr(peerRemoteAddr) {
+		return
+	}
 	pc, err := t.cl.initiateProtocolHandshakes(
 		context.Background(),
-		webrtcNetConn{c, dcc},
+		netConn,
 		t,
 		dcc.LocalOffered,
 		false,
-		webrtcNetAddr{dcc.Remote},
+		netConn.RemoteAddr(),
 		webrtcNetwork,
-		fmt.Sprintf("webrtc offer_id %x", dcc.OfferId),
+		fmt.Sprintf("webrtc offer_id %x: %v", dcc.OfferId, regularNetConnPeerConnConnString(netConn)),
 	)
 	if err != nil {
 		t.logger.WithDefaultLevel(log.Error).Printf("error in handshaking webrtc connection: %v", err)
