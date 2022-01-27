@@ -52,6 +52,9 @@ type TorrentFS struct {
 	nasCache   *lru.Cache
 	queryCache *lru.Cache
 	nasCounter uint64
+
+	received uint64
+	sent     uint64
 }
 
 func (t *TorrentFS) storage() *TorrentManager {
@@ -121,6 +124,8 @@ func New(config *Config, cache, compress, listen bool) (*TorrentFS, error) {
 					//					"listen":         monitor.listen,
 					"metrics":    inst.NasCounter(),
 					"neighbours": len(inst.peers),
+					"received":   inst.received,
+					"sent":       inst.sent,
 				},
 			}
 		},
@@ -194,6 +199,7 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 		}
 
 		log.Debug("Nas package", "size", packet.Size)
+		tfs.received++
 
 		switch packet.Code {
 		case statusCode:

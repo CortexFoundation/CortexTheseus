@@ -157,6 +157,7 @@ func (peer *Peer) broadcast() error {
 				if err := p2p.Send(peer.ws, queryCode, &query); err != nil {
 					return err
 				}
+				peer.host.sent++
 				peer.mark(k.(string))
 			}
 		}
