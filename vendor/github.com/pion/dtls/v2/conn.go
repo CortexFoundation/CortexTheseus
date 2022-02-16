@@ -26,6 +26,7 @@ import (
 const (
 	initialTickerInterval = time.Second
 	cookieLength          = 20
+	sessionLength         = 32
 	defaultNamedCurve     = elliptic.X25519
 	inboundBufferSize     = 8192
 	// Default replay protection window is specified by RFC 6347 Section 4.1.2.6
@@ -147,16 +148,10 @@ func createConn(ctx context.Context, nextConn net.Conn, config *Config, isClient
 	c.setLocalEpoch(0)
 
 	serverName := config.ServerName
-	// Use host from conn address when serverName is not provided
-	if isClient && serverName == "" && nextConn.RemoteAddr() != nil {
-		remoteAddr := nextConn.RemoteAddr().String()
-		var host string
-		host, _, err = net.SplitHostPort(remoteAddr)
-		if err != nil {
-			serverName = remoteAddr
-		} else {
-			serverName = host
-		}
+	// Do not allow the use of an IP address literal as an SNI value.
+	// See RFC 6066, Section 3.
+	if net.ParseIP(serverName) != nil {
+		serverName = ""
 	}
 
 	hsCfg := &handshakeConfig{
@@ -167,6 +162,7 @@ func createConn(ctx context.Context, nextConn net.Conn, config *Config, isClient
 		extendedMasterSecret:        config.ExtendedMasterSecret,
 		localSRTPProtectionProfiles: config.SRTPProtectionProfiles,
 		serverName:                  serverName,
+		supportedProtocols:          config.SupportedProtocols,
 		clientAuth:                  config.ClientAuth,
 		localCertificates:           config.Certificates,
 		insecureSkipVerify:          config.InsecureSkipVerify,
@@ -178,7 +174,14 @@ func createConn(ctx context.Context, nextConn net.Conn, config *Config, isClient
 		log:                         logger,
 		initialEpoch:                0,
 		keyLogWriter:                config.KeyLogWriter,
+		sessionStore:                config.SessionStore,
 	}
+
+	cert, err := hsCfg.getCertificate(serverName)
+	if err != nil && !errors.Is(err, errNoCertificates) {
+		return nil, err
+	}
+	hsCfg.localCipherSuites = filterCipherSuitesForCertificate(cert, cipherSuites)
 
 	var initialFlight flightVal
 	var initialFSMState handshakeState
@@ -568,7 +571,7 @@ func (c *Conn) readAndBuffer(ctx context.Context) error {
 
 	var hasHandshake bool
 	for _, p := range pkts {
-		hs, alert, err := c.handleIncomingPacket(p, true)
+		hs, alert, err := c.handleIncomingPacket(ctx, p, true)
 		if alert != nil {
 			if alertErr := c.notify(ctx, alert.Level, alert.Description); alertErr != nil {
 				if err == nil {
@@ -607,7 +610,7 @@ func (c *Conn) handleQueuedPackets(ctx context.Context) error {
 	c.encryptedPackets = nil
 
 	for _, p := range pkts {
-		_, alert, err := c.handleIncomingPacket(p, false) // don't re-enqueue
+		_, alert, err := c.handleIncomingPacket(ctx, p, false) // don't re-enqueue
 		if alert != nil {
 			if alertErr := c.notify(ctx, alert.Level, alert.Description); alertErr != nil {
 				if err == nil {
@@ -628,7 +631,7 @@ func (c *Conn) handleQueuedPackets(ctx context.Context) error {
 	return nil
 }
 
-func (c *Conn) handleIncomingPacket(buf []byte, enqueue bool) (bool, *alert.Alert, error) { //nolint:gocognit
+func (c *Conn) handleIncomingPacket(ctx context.Context, buf []byte, enqueue bool) (bool, *alert.Alert, error) { //nolint:gocognit
 	h := &recordlayer.Header{}
 	if err := h.Unmarshal(buf); err != nil {
 		// Decode error must be silently discarded
@@ -747,6 +750,7 @@ func (c *Conn) handleIncomingPacket(buf []byte, enqueue bool) (bool, *alert.Aler
 		select {
 		case c.decrypted <- content.Data:
 		case <-c.closed.Done():
+		case <-ctx.Done():
 		}
 
 	default:
@@ -760,6 +764,16 @@ func (c *Conn) recvHandshake() <-chan chan struct{} {
 }
 
 func (c *Conn) notify(ctx context.Context, level alert.Level, desc alert.Description) error {
+	if level == alert.Fatal && len(c.state.SessionID) > 0 {
+		// According to the RFC, we need to delete the stored session.
+		// https://datatracker.ietf.org/doc/html/rfc5246#section-7.2
+		if ss := c.fsm.cfg.sessionStore; ss != nil {
+			c.log.Tracef("clean invalid session: %s", c.state.SessionID)
+			if err := ss.Del(c.sessionKey()); err != nil {
+				return err
+			}
+		}
+	}
 	return c.writePackets(ctx, []*packet{
 		{
 			record: &recordlayer.RecordLayer{
@@ -838,6 +852,7 @@ func (c *Conn) handshake(ctx context.Context, cfg *handshakeConfig, initialFligh
 							select {
 							case c.decrypted <- err:
 							case <-c.closed.Done():
+							case <-ctxRead.Done():
 							}
 						}
 						continue // non-fatal alert must not stop read loop
@@ -851,6 +866,7 @@ func (c *Conn) handshake(ctx context.Context, cfg *handshakeConfig, initialFligh
 							select {
 							case c.decrypted <- err:
 							case <-c.closed.Done():
+							case <-ctxRead.Done():
 							}
 							continue // non-fatal alert must not stop read loop
 						}
@@ -954,6 +970,16 @@ func (c *Conn) LocalAddr() net.Addr {
 // RemoteAddr implements net.Conn.RemoteAddr
 func (c *Conn) RemoteAddr() net.Addr {
 	return c.nextConn.RemoteAddr()
+}
+
+func (c *Conn) sessionKey() []byte {
+	if c.state.isClient {
+		// As ServerName can be like 0.example.com, it's better to add
+		// delimiter character which is not allowed to be in
+		// neither address or domain name.
+		return []byte(c.nextConn.RemoteAddr().String() + "_" + c.fsm.cfg.serverName)
+	}
+	return c.state.SessionID
 }
 
 // SetDeadline implements net.Conn.SetDeadline

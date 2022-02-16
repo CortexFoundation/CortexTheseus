@@ -7,18 +7,25 @@ import (
 )
 
 var (
-	Default = Logger{StreamLogger{
+	DefaultHandler = StreamHandler{
 		W:   os.Stderr,
 		Fmt: LineFormatter,
-	}}
-	Discard = Logger{StreamLogger{
+	}
+	Default = Logger{
+		nonZero:     true,
+		filterLevel: Error,
+		Handlers:    []Handler{DefaultHandler},
+	}
+	DiscardHandler = StreamHandler{
 		W:   ioutil.Discard,
-		Fmt: func(Msg) []byte { return nil },
-	}}
+		Fmt: func(Record) []byte { return nil },
+	}
 )
 
 func Levelf(level Level, format string, a ...interface{}) {
-	Default.Log(Fmsg(format, a...).Skip(1).SetLevel(level))
+	Default.LazyLog(level, func() Msg {
+		return Fmsg(format, a...).Skip(1)
+	})
 }
 
 func Printf(format string, a ...interface{}) {

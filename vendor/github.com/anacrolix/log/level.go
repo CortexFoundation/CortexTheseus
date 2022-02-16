@@ -1,5 +1,9 @@
 package log
 
+import (
+	"strconv"
+)
+
 type Level struct {
 	rank   int
 	logStr string
@@ -8,6 +12,7 @@ type Level struct {
 var levelKey = new(struct{})
 
 var (
+	NotSet   = Level{0, "UNSET"}
 	Debug    = Level{1, "DEBUG"}
 	Info     = Level{2, "INFO"}
 	Warning  = Level{3, "WARN"}
@@ -18,9 +23,29 @@ var (
 )
 
 func (l Level) LogString() string {
-	return l.logStr
+	switch l.rank {
+	case NotSet.rank:
+		return "unset"
+	case Debug.rank:
+		return "debug"
+	case Info.rank:
+		return "info"
+	case Warning.rank:
+		return "warn"
+	case Error.rank:
+		return "error"
+	case Critical.rank:
+		return "crit"
+	case Fatal.rank:
+		return "fatal"
+	default:
+		return strconv.FormatInt(int64(l.rank), 10)
+	}
 }
 
 func (l Level) LessThan(r Level) bool {
+	if l.rank == NotSet.rank {
+		return false
+	}
 	return l.rank < r.rank
 }

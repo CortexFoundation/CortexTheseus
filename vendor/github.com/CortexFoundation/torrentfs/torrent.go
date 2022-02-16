@@ -124,6 +124,8 @@ func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) error {
 }
 
 func (t *Torrent) Ready() bool {
+	t.lock.Lock()
+	defer t.lock.Unlock()
 	if _, ok := BadFiles[t.InfoHash()]; ok {
 		return false
 	}

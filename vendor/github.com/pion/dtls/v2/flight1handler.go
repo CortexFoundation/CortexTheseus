@@ -90,6 +90,22 @@ func flight1Generate(c flightConn, state *State, cache *handshakeCache, cfg *han
 		extensions = append(extensions, &extension.ServerName{ServerName: cfg.serverName})
 	}
 
+	if len(cfg.supportedProtocols) > 0 {
+		extensions = append(extensions, &extension.ALPN{ProtocolNameList: cfg.supportedProtocols})
+	}
+
+	if cfg.sessionStore != nil {
+		cfg.log.Tracef("[handshake] try to resume session")
+		if s, err := cfg.sessionStore.Get(c.sessionKey()); err != nil {
+			return nil, &alert.Alert{Level: alert.Fatal, Description: alert.InternalError}, err
+		} else if s.ID != nil {
+			cfg.log.Tracef("[handshake] get saved session: %x", s.ID)
+
+			state.SessionID = s.ID
+			state.masterSecret = s.Secret
+		}
+	}
+
 	return []*packet{
 		{
 			record: &recordlayer.RecordLayer{
@@ -99,6 +115,7 @@ func flight1Generate(c flightConn, state *State, cache *handshakeCache, cfg *han
 				Content: &handshake.Handshake{
 					Message: &handshake.MessageClientHello{
 						Version:            protocol.Version1_2,
+						SessionID:          state.SessionID,
 						Cookie:             state.cookie,
 						Random:             state.localRandom,
 						CipherSuiteIDs:     cipherSuiteIDs(cfg.localCipherSuites),

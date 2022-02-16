@@ -28,17 +28,19 @@ by anyone. With the following tenets in mind.
 * Empower learning. This code base should be useful to read and learn even if you aren't using Pion.
 
 #### Current Interceptors
-* NACK Generator/Responder
+* [NACK Generator/Responder](https://github.com/pion/interceptor/tree/master/pkg/nack)
+* [Sender and Receiver Reports](https://github.com/pion/interceptor/tree/master/pkg/report)
+* [Transport Wide Congestion Control Feedback](https://github.com/pion/interceptor/tree/master/pkg/twcc)
+* [Packet Dump](https://github.com/pion/interceptor/tree/master/pkg/packetdump)
 
 #### Planned Interceptors
-* [Sender and Receiver Reports](https://tools.ietf.org/html/rfc3550#section-6.4)
-  - Bandwidth Estimation from Receiver Reports
-* [Transport Wide Congestion Control Feedback](https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01)
+* Bandwidth Estimation
   - [NADA](https://tools.ietf.org/html/rfc8698)
   - [Google Congestion Control](https://tools.ietf.org/html/draft-ietf-rmcat-gcc-02)
 * JitterBuffer, re-order packets and wait for arrival
 * [FlexFec](https://tools.ietf.org/html/draft-ietf-payload-flexible-fec-scheme-20)
 * [webrtc-stats](https://www.w3.org/TR/webrtc-stats/) compliant statistics generation
+* [RTCP Feedback for Congestion Control](https://datatracker.ietf.org/doc/html/rfc8888) the standardized alternative to TWCC.
 
 ### Interceptor Public API
 The public interface is defined in [interceptor.go](https://github.com/pion/interceptor/blob/master/interceptor.go).
@@ -71,12 +73,6 @@ If you need commercial support or don't want to use public methods you can conta
 
 ### Contributing
 Check out the **[contributing wiki](https://github.com/pion/webrtc/wiki/Contributing)** to join the group of amazing people making this project possible:
-
-* [Adam Kiss](https://github.com/masterada) - *Original Author*
-* [Sean DuBois](https://github.com/sean-der) - *Original Author*
-* [Atsushi Watanabe](https://github.com/at-wat)
-* [Alessandro Ros](https://github.com/aler9)
-* [Mathis Engelbart](https://github.com/mengelbart)
 
 ### License
 MIT License - see [LICENSE](LICENSE) for full text

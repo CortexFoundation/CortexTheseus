@@ -55,6 +55,9 @@ type TorrentFS struct {
 
 	received uint64
 	sent     uint64
+
+	// global file hash & score
+	scoreTable map[string]int
 }
 
 func (t *TorrentFS) storage() *TorrentManager {
@@ -102,6 +105,8 @@ func New(config *Config, cache, compress, listen bool) (*TorrentFS, error) {
 	inst.nasCache, _ = lru.New(25)
 	inst.queryCache, _ = lru.New(25)
 
+	inst.scoreTable = make(map[string]int)
+
 	inst.protocol = p2p.Protocol{
 		Name:    ProtocolName,
 		Version: uint(ProtocolVersion),
@@ -127,6 +132,7 @@ func New(config *Config, cache, compress, listen bool) (*TorrentFS, error) {
 					"received":   inst.received,
 					"sent":       inst.sent,
 				},
+				"score": inst.scoreTable,
 			}
 		},
 		PeerInfo: func(id enode.ID) interface{} {
@@ -210,7 +216,7 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 			}
 			p.peerInfo = info
 		case queryCode:
-			if ProtocolVersion > 1 && tfs.config.Mode == LAZY {
+			if ProtocolVersion >= 3 {
 				var info *Query
 				if err := packet.Decode(&info); err != nil {
 					log.Warn("failed to decode msg, peer will be disconnected", "peer", p.peer.ID(), "err", err)
@@ -218,23 +224,43 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 				}
 				if suc := tfs.queryCache.Contains(info.Hash); !suc {
 					log.Info("Nas msg received", "ih", info.Hash, "size", common.StorageSize(float64(info.Size)))
-					if progress, e := tfs.chain().GetTorrent(info.Hash); e == nil {
-						if progress >= info.Size {
-							if err := tfs.storage().Search(context.Background(), info.Hash, info.Size, nil); err != nil {
-								log.Error("Nas 2.0 error", "err", err)
-								return err
+
+					if info.Size > 0 && tfs.config.Mode == LAZY { // if local nas is lazy, wake up
+						if progress, e := tfs.chain().GetTorrent(info.Hash); e == nil {
+							if progress >= info.Size {
+								if err := tfs.storage().Search(context.Background(), info.Hash, info.Size, nil); err != nil {
+									log.Error("Nas 2.0 error", "err", err)
+									return err
+								}
 							}
+						} else {
+							//TODO
+							// log.Error("Local unregister file", "ih", info.Hash, "err", e)
 						}
-					} else {
-						//TODO
-						// log.Error("Local unregister file", "ih", info.Hash, "err", e)
+						tfs.nasCounter++
+						tfs.queryCache.Add(info.Hash, info.Size)
 					}
-					tfs.nasCounter++
-					tfs.queryCache.Add(info.Hash, info.Size)
+
+					if info.Size == 0 {
+						// TODO check
+						// TODO score
+						if _, ok := tfs.scoreTable[info.Hash]; !ok {
+							tfs.scoreTable[info.Hash] = 1
+						} else {
+							tfs.scoreTable[info.Hash]++
+						}
+					}
 				}
 			}
 		case msgCode:
-			// TODO
+			if ProtocolVersion >= 3 {
+				var info *MsgInfo
+				if err := packet.Decode(&info); err != nil {
+					log.Warn("failed to decode msg, peer will be disconnected", "peer", p.peer.ID(), "err", err)
+					return errors.New("invalid msg")
+				}
+				log.Warn("Nas 3 testing", "msgCode", msgCode, "package", info.Desc)
+			}
 		default:
 			log.Warn("Encounter package code", "code", packet.Code)
 			return errors.New("invalid code")
@@ -335,10 +361,25 @@ func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSi
 		return nil, err
 	}
 
-	ret, f, err := fs.storage().getFile(infohash, subpath)
+	ret, progress, err := fs.storage().getFile(infohash, subpath)
 
 	if err != nil {
-		log.Warn("Not avaialble err in getFile", "err", err, "ret", ret, "ih", infohash, "progress", f)
+		log.Warn("Not avaialble err in getFile", "err", err, "ret", ret, "ih", infohash, "progress", progress)
+		// TODO
+		if progress > 0 {
+			// TODO downloading
+		} else if progress == 0 {
+			// TODO not boot
+		}
+	} else {
+		// TODO zero means complete locally, score msg broadcast
+		fs.nasCache.Add(infohash, uint64(0))
+
+		//if _, ok := fs.scoreTable[infohash]; !ok {
+		//	fs.scoreTable[infohash] = 1
+		//} else {
+		//	fs.scoreTable[infohash]++
+		//}
 	}
 
 	return ret, err
@@ -476,6 +517,12 @@ func (fs *TorrentFS) Download(ctx context.Context, ih string, request uint64) er
 		}
 	}
 
+	//if _, ok := fs.scoreTable[ih]; !ok {
+	//	fs.scoreTable[ih] = 1
+	//} else {
+	//	fs.scoreTable[ih]++
+	//}
+
 	//for k, _ := range GoodFiles {
 	//	status, _ := fs.Status(ctx, k)
 	//	log.Info("Torrent status", "ih", k, "status", status)
@@ -508,10 +555,18 @@ func (fs *TorrentFS) Congress() int {
 	return fs.storage().Congress()
 }
 
+func (fs *TorrentFS) FullSeed() map[string]*Torrent {
+	return fs.storage().FullSeed()
+}
+
 func (fs *TorrentFS) Candidate() int {
 	return fs.storage().Candidate()
 }
 
 func (fs *TorrentFS) NasCounter() uint64 {
 	return fs.nasCounter
+}
+
+func (fs *TorrentFS) ScoreTabler() map[string]int {
+	return fs.scoreTable
 }

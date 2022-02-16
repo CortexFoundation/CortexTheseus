@@ -44,7 +44,7 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	"golang.org/x/time/rate"
 
-	xlog "github.com/anacrolix/log"
+	//xlog "github.com/anacrolix/log"
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/anacrolix/torrent/mmap_span"
@@ -568,7 +568,7 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 
 	cfg.ListenPort = config.Port
 	if config.Quiet {
-		cfg.Logger = xlog.Discard
+		//cfg.Logger = xlog.Discard
 	}
 	//cfg.Debug = true
 	cfg.DropDuplicatePeerIds = true
@@ -709,6 +709,8 @@ func (tm *TorrentManager) seedingLoop() {
 					tm.maxSeedTask++
 					tm.graceSeeding(tm.slot)
 				}
+
+				// TODO notify neighbors
 			}
 		case <-tm.closeAll:
 			log.Info("Seeding loop closed")
@@ -1125,6 +1127,8 @@ func (tm *TorrentManager) dropSeeding(slot int) error {
 			}
 			t.Torrent.SetMaxEstablishedConns(t.currentConns)
 			log.Debug("Drop seeding invoke", "ih", ih, "index", i, "group", s, "slot", slot, "len", len(tm.seedingTorrents), "max", tm.maxSeedTask, "peers", t.currentConns, "cited", t.cited)
+			//t.Drop()
+			//delete(tm.seedingTorrents, ih)
 		}
 		i++
 	}
@@ -1151,6 +1155,8 @@ func (tm *TorrentManager) graceSeeding(slot int) error {
 			}
 			t.Torrent.SetMaxEstablishedConns(t.currentConns)
 			log.Debug("Grace seeding invoke", "ih", ih, "index", i, "group", s, "slot", slot, "len", len(tm.seedingTorrents), "max", tm.maxSeedTask, "peers", t.currentConns, "cited", t.cited)
+			//t.Drop()
+			//delete(tm.seedingTorrents, ih)
 		}
 		i++
 	}
@@ -1296,6 +1302,10 @@ func (tm *TorrentManager) LocalPort() int {
 
 func (tm *TorrentManager) Congress() int {
 	return len(tm.seedingTorrents)
+}
+
+func (tm *TorrentManager) FullSeed() map[string]*Torrent {
+	return tm.seedingTorrents
 }
 
 func (tm *TorrentManager) Candidate() int {
