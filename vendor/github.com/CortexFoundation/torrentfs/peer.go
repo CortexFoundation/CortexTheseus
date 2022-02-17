@@ -38,6 +38,8 @@ type Peer struct {
 	wg       sync.WaitGroup
 	version  uint64
 	peerInfo *PeerInfo
+
+	msgChan chan interface{}
 }
 
 type PeerInfo struct {
@@ -45,6 +47,10 @@ type PeerInfo struct {
 	Root   common.Hash `json:"root"` // SHA3 hash of the peer's best owned block
 	Files  uint64      `json:"files"`
 	Leafs  uint64      `json:"leafs"`
+}
+
+type MsgInfo struct {
+	Desc string `json:"desc"`
 }
 
 func newPeer(id string, host *TorrentFS, remote *p2p.Peer, rw p2p.MsgReadWriter) *Peer {
@@ -56,6 +62,7 @@ func newPeer(id string, host *TorrentFS, remote *p2p.Peer, rw p2p.MsgReadWriter)
 		known:   mapset.NewSet(),
 		trusted: false,
 		quit:    make(chan struct{}),
+		msgChan: make(chan interface{}, 10),
 	}
 	return &p
 }
@@ -67,6 +74,8 @@ func (peer *Peer) Info() *PeerInfo {
 func (peer *Peer) start() error {
 	peer.wg.Add(1)
 	go peer.update()
+	peer.wg.Add(1)
+	go peer.calling()
 	return nil
 }
 
@@ -104,12 +113,12 @@ func (peer *Peer) update() {
 		//case query := <-peer.host.queryChan:
 		case <-transmit.C:
 			if err := peer.broadcast(); err != nil {
-				log.Trace("broadcast failed", "reason", err, "peer", peer.ID())
+				log.Trace("transmit broadcast failed", "reason", err, "peer", peer.ID())
 				return
 			}
 		case <-stateTicker.C:
 			if err := peer.state(); err != nil {
-				log.Trace("broadcast failed", "reason", err, "peer", peer.ID())
+				log.Trace("state broadcast failed", "reason", err, "peer", peer.ID())
 				return
 			}
 
@@ -163,7 +172,31 @@ func (peer *Peer) broadcast() error {
 		}
 	}
 
+	//for k, _ := range peer.host.FullSeed() {
+	// TODO
+	//}
+
 	return nil
+}
+
+func (peer *Peer) call(msg interface{}) {
+	peer.msgChan <- msg
+}
+
+func (peer *Peer) calling() {
+	defer peer.wg.Done()
+	for {
+		select {
+		case msg := <-peer.msgChan:
+			if err := p2p.Send(peer.ws, msgCode, &msg); err != nil {
+				log.Warn("Msg sending failed", "msg", msg, "id", peer.id, "err", err)
+				return
+			}
+			log.Info("Msg sending", "msg", msg, "id", peer.id)
+		case <-peer.quit:
+			return
+		}
+	}
 }
 
 func (peer *Peer) handshake() error {

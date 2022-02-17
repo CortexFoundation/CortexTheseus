@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	inboundMTU = 1500
+	defaultInboundMTU = 1600
 )
 
 // Server is an instance of the Pion TURN Server
@@ -25,8 +25,11 @@ type Server struct {
 	channelBindTimeout time.Duration
 	nonces             *sync.Map
 
-	packetConnConfigs []PacketConnConfig
-	listenerConfigs   []ListenerConfig
+	packetConnConfigs  []PacketConnConfig
+	listenerConfigs    []ListenerConfig
+	allocationManagers []*allocation.Manager
+
+	inboundMTU int
 }
 
 // NewServer creates the Pion TURN server
@@ -40,6 +43,11 @@ func NewServer(config ServerConfig) (*Server, error) {
 		loggerFactory = logging.NewDefaultLoggerFactory()
 	}
 
+	mtu := defaultInboundMTU
+	if config.InboundMTU != 0 {
+		mtu = config.InboundMTU
+	}
+
 	s := &Server{
 		log:                loggerFactory.NewLogger("turn"),
 		authHandler:        config.AuthHandler,
@@ -47,7 +55,9 @@ func NewServer(config ServerConfig) (*Server, error) {
 		channelBindTimeout: config.ChannelBindTimeout,
 		packetConnConfigs:  config.PacketConnConfigs,
 		listenerConfigs:    config.ListenerConfigs,
+		allocationManagers: make([]*allocation.Manager, len(config.PacketConnConfigs)+len(config.ListenerConfigs)),
 		nonces:             &sync.Map{},
+		inboundMTU:         mtu,
 	}
 
 	if s.channelBindTimeout == 0 {
@@ -55,7 +65,7 @@ func NewServer(config ServerConfig) (*Server, error) {
 	}
 
 	for i := range s.packetConnConfigs {
-		go func(p PacketConnConfig) {
+		go func(i int, p PacketConnConfig) {
 			allocationManager, err := allocation.NewManager(allocation.ManagerConfig{
 				AllocatePacketConn: p.RelayAddressGenerator.AllocatePacketConn,
 				AllocateConn:       p.RelayAddressGenerator.AllocateConn,
@@ -65,6 +75,7 @@ func NewServer(config ServerConfig) (*Server, error) {
 				s.log.Errorf("exit read loop on error: %s", err.Error())
 				return
 			}
+			s.allocationManagers[i] = allocationManager
 			defer func() {
 				if err := allocationManager.Close(); err != nil {
 					s.log.Errorf("Failed to close AllocationManager: %s", err.Error())
@@ -72,11 +83,11 @@ func NewServer(config ServerConfig) (*Server, error) {
 			}()
 
 			s.readLoop(p.PacketConn, allocationManager)
-		}(s.packetConnConfigs[i])
+		}(i, s.packetConnConfigs[i])
 	}
 
-	for _, listener := range s.listenerConfigs {
-		go func(l ListenerConfig) {
+	for i, listener := range s.listenerConfigs {
+		go func(i int, l ListenerConfig) {
 			allocationManager, err := allocation.NewManager(allocation.ManagerConfig{
 				AllocatePacketConn: l.RelayAddressGenerator.AllocatePacketConn,
 				AllocateConn:       l.RelayAddressGenerator.AllocateConn,
@@ -86,6 +97,7 @@ func NewServer(config ServerConfig) (*Server, error) {
 				s.log.Errorf("exit read loop on error: %s", err.Error())
 				return
 			}
+			s.allocationManagers[i] = allocationManager
 			defer func() {
 				if err := allocationManager.Close(); err != nil {
 					s.log.Errorf("Failed to close AllocationManager: %s", err.Error())
@@ -101,10 +113,21 @@ func NewServer(config ServerConfig) (*Server, error) {
 
 				go s.readLoop(NewSTUNConn(conn), allocationManager)
 			}
-		}(listener)
+		}(i+len(s.packetConnConfigs), listener)
 	}
 
 	return s, nil
+}
+
+// AllocationCount returns the number of active allocations. It can be used to drain the server before closing
+func (s *Server) AllocationCount() int {
+	allocations := 0
+	for _, manager := range s.allocationManagers {
+		if manager != nil {
+			allocations += manager.AllocationCount()
+		}
+	}
+	return allocations
 }
 
 // Close stops the TURN Server. It cleans up any associated state and closes all connections it is managing
@@ -136,12 +159,15 @@ func (s *Server) Close() error {
 }
 
 func (s *Server) readLoop(p net.PacketConn, allocationManager *allocation.Manager) {
-	buf := make([]byte, inboundMTU)
+	buf := make([]byte, s.inboundMTU)
 	for {
 		n, addr, err := p.ReadFrom(buf)
-		if err != nil {
+		switch {
+		case err != nil:
 			s.log.Debugf("exit read loop on error: %s", err.Error())
 			return
+		case n >= s.inboundMTU:
+			s.log.Debugf("Read bytes exceeded MTU, packet is possibly truncated")
 		}
 
 		if err := server.HandleRequest(server.Request{

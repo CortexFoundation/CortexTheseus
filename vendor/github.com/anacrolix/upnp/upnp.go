@@ -127,7 +127,7 @@ nextResult:
 		results = append(results, result)
 		seenResults[result.ID()] = true
 
-		log.Infof("UPnP discovery result %s", result.ID())
+		log.Debugf("UPnP discovery result %s", result.ID())
 	}
 
 	return results

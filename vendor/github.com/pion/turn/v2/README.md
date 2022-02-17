@@ -64,33 +64,7 @@ Pion has an active community on the [Golang Slack](https://pion.ly/slack). Sign 
 We are always looking to support **your projects**. Please reach out if you have something to build!
 
 ### Contributing
-Check out the [CONTRIBUTING.md](CONTRIBUTING.md) to join the group of amazing people making this project possible:
-
-* [Michiel De Backker](https://github.com/backkem) - *Documentation*
-* [Ingmar Wittkau](https://github.com/iwittkau) - *STUN client*
-* [John Bradley](https://github.com/kc5nra) - *Original Author*
-* [jose nazario](https://github.com/paralax) - *Documentation*
-* [Mészáros Mihály](https://github.com/misi) - *Documentation*
-* [Mike Santry](https://github.com/santrym) - *Mascot*
-* [Sean DuBois](https://github.com/Sean-Der) - *Original Author*
-* [winds2016](https://github.com/winds2016) - *Windows platform testing*
-* [songjiayang](https://github.com/songjiayang) - *SongJiaYang*
-* [Yutaka Takeda](https://github.com/enobufs) - *vnet*
-* [namreg](https://github.com/namreg) - *Igor German*
-* [Aleksandr Razumov](https://github.com/ernado) - *protocol*
-* [Robert Eperjesi](https://github.com/epes)
-* [Lukas Rezek](https://github.com/lrezek)
-* [Hugo Arregui](https://github.com/hugoArregui)
-* [Aaron France](https://github.com/AeroNotix)
-* [Atsushi Watanabe](https://github.com/at-wat)
-* [Tom Clift](https://github.com/tclift)
-* [lllf](https://github.com/LittleLightLittleFire)
-* nindolabs (Marouane)
-* [Onwuka Gideon](https://github.com/dongido001)
-* [Herman Banken](https://github.com/hermanbanken)
-* [Jannis Mattheis](https://github.com/jmattheis)
+Check out the **[contributing wiki](https://github.com/pion/webrtc/wiki/Contributing)** to join the group of amazing people making this project possible:
 
 ### License
 MIT License - see [LICENSE.md](LICENSE.md) for full text
-
-

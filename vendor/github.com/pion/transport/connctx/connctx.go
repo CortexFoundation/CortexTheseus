@@ -118,6 +118,7 @@ func (c *connCtx) WriteContext(ctx context.Context, b []byte) (int, error) {
 	var errSetDeadline atomic.Value
 	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		select {
 		case <-ctx.Done():
 			// context canceled
@@ -131,7 +132,6 @@ func (c *connCtx) WriteContext(ctx context.Context, b []byte) (int, error) {
 			}
 		case <-done:
 		}
-		wg.Done()
 	}()
 
 	n, err := c.nextConn.Write(b)

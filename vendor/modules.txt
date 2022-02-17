@@ -17,7 +17,7 @@ github.com/CortexFoundation/merkletree
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit; go 1.16
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.25-0.20220127061542-4eee5e4e7416
+# github.com/CortexFoundation/torrentfs v1.0.25-0.20220216084414-01c521aec58d
 ## explicit; go 1.17
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -34,7 +34,7 @@ github.com/StackExchange/wmi
 # github.com/VictoriaMetrics/fastcache v1.7.0
 ## explicit; go 1.13
 github.com/VictoriaMetrics/fastcache
-# github.com/allegro/bigcache/v3 v3.0.2-0.20211118104225-16df11e2ee38
+# github.com/allegro/bigcache/v3 v3.0.2-0.20211203094859-77bbae442c22
 ## explicit; go 1.16
 github.com/allegro/bigcache/v3
 github.com/allegro/bigcache/v3/queue
@@ -45,7 +45,7 @@ github.com/anacrolix/chansync/events
 # github.com/anacrolix/confluence v1.9.0
 ## explicit; go 1.17
 github.com/anacrolix/confluence/debug-writer
-# github.com/anacrolix/dht/v2 v2.14.1-0.20211220010335-4062f7927abf
+# github.com/anacrolix/dht/v2 v2.15.2-0.20220123034220-0538803801cb
 ## explicit; go 1.17
 github.com/anacrolix/dht/v2
 github.com/anacrolix/dht/v2/bep44
@@ -59,10 +59,10 @@ github.com/anacrolix/dht/v2/types
 # github.com/anacrolix/envpprof v1.1.2-0.20210622065137-4accee5b7ac4
 ## explicit; go 1.12
 github.com/anacrolix/envpprof
-# github.com/anacrolix/go-libutp v1.1.0
+# github.com/anacrolix/go-libutp v1.2.0
 ## explicit; go 1.14
 github.com/anacrolix/go-libutp
-# github.com/anacrolix/log v0.10.0
+# github.com/anacrolix/log v0.10.1-0.20220123034749-3920702c17f8
 ## explicit; go 1.12
 github.com/anacrolix/log
 # github.com/anacrolix/missinggo v1.3.0
@@ -100,7 +100,7 @@ github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.4.0
 ## explicit; go 1.13
 github.com/anacrolix/sync
-# github.com/anacrolix/torrent v1.40.1-0.20220127042448-68e47c4bea86
+# github.com/anacrolix/torrent v1.40.2-0.20220215051832-7d41b9b21cee
 ## explicit; go 1.16
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
@@ -124,7 +124,7 @@ github.com/anacrolix/torrent/types
 github.com/anacrolix/torrent/version
 github.com/anacrolix/torrent/webseed
 github.com/anacrolix/torrent/webtorrent
-# github.com/anacrolix/upnp v0.1.2-0.20200416075019-5e9378ed1425
+# github.com/anacrolix/upnp v0.1.3-0.20220123035249-922794e51c96
 ## explicit; go 1.12
 github.com/anacrolix/upnp
 # github.com/anacrolix/utp v0.1.0
@@ -386,10 +386,10 @@ github.com/otiai10/copy
 # github.com/peterh/liner v1.2.0
 ## explicit
 github.com/peterh/liner
-# github.com/pion/datachannel v1.4.21
+# github.com/pion/datachannel v1.5.2
 ## explicit; go 1.13
 github.com/pion/datachannel
-# github.com/pion/dtls/v2 v2.0.9
+# github.com/pion/dtls/v2 v2.1.2
 ## explicit; go 1.13
 github.com/pion/dtls/v2
 github.com/pion/dtls/v2/internal/ciphersuite
@@ -409,14 +409,15 @@ github.com/pion/dtls/v2/pkg/protocol/alert
 github.com/pion/dtls/v2/pkg/protocol/extension
 github.com/pion/dtls/v2/pkg/protocol/handshake
 github.com/pion/dtls/v2/pkg/protocol/recordlayer
-# github.com/pion/ice/v2 v2.1.12
+# github.com/pion/ice/v2 v2.1.20
 ## explicit; go 1.13
 github.com/pion/ice/v2
-# github.com/pion/interceptor v0.0.15
+# github.com/pion/interceptor v0.1.7
 ## explicit; go 1.15
 github.com/pion/interceptor
 github.com/pion/interceptor/pkg/nack
 github.com/pion/interceptor/pkg/report
+github.com/pion/interceptor/pkg/twcc
 # github.com/pion/logging v0.2.2
 ## explicit; go 1.12
 github.com/pion/logging
@@ -426,14 +427,14 @@ github.com/pion/mdns
 # github.com/pion/randutil v0.1.0
 ## explicit; go 1.14
 github.com/pion/randutil
-# github.com/pion/rtcp v1.2.6
+# github.com/pion/rtcp v1.2.9
 ## explicit; go 1.13
 github.com/pion/rtcp
-# github.com/pion/rtp v1.7.2
+# github.com/pion/rtp v1.7.4
 ## explicit; go 1.13
 github.com/pion/rtp
 github.com/pion/rtp/codecs
-# github.com/pion/sctp v1.7.12
+# github.com/pion/sctp v1.8.2
 ## explicit; go 1.13
 github.com/pion/sctp
 # github.com/pion/sdp/v3 v3.0.4
@@ -446,14 +447,14 @@ github.com/pion/srtp/v2
 ## explicit; go 1.12
 github.com/pion/stun
 github.com/pion/stun/internal/hmac
-# github.com/pion/transport v0.12.3
+# github.com/pion/transport v0.13.0
 ## explicit; go 1.12
 github.com/pion/transport/connctx
 github.com/pion/transport/deadline
 github.com/pion/transport/packetio
 github.com/pion/transport/replaydetector
 github.com/pion/transport/vnet
-# github.com/pion/turn/v2 v2.0.5
+# github.com/pion/turn/v2 v2.0.6
 ## explicit; go 1.13
 github.com/pion/turn/v2
 github.com/pion/turn/v2/internal/allocation
@@ -464,9 +465,10 @@ github.com/pion/turn/v2/internal/server
 # github.com/pion/udp v0.1.1
 ## explicit; go 1.14
 github.com/pion/udp
-# github.com/pion/webrtc/v3 v3.0.32
+# github.com/pion/webrtc/v3 v3.1.24-0.20220208053747-94262c1b2b38
 ## explicit; go 1.13
 github.com/pion/webrtc/v3
+github.com/pion/webrtc/v3/internal/fmtp
 github.com/pion/webrtc/v3/internal/mux
 github.com/pion/webrtc/v3/internal/util
 github.com/pion/webrtc/v3/pkg/media
@@ -539,10 +541,10 @@ github.com/ucwong/color
 # github.com/ucwong/tsdb v0.10.4-0.20200518132041-df9cb51f3a80
 ## explicit; go 1.14
 github.com/ucwong/tsdb/fileutil
-# go.etcd.io/bbolt v1.3.7-0.20210702075620-b18879eb6c41
-## explicit; go 1.12
+# go.etcd.io/bbolt v1.3.7-0.20220130032806-d5db64bdbfde
+## explicit; go 1.17
 go.etcd.io/bbolt
-# golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
+# golang.org/x/crypto v0.0.0-20220131195533-30dcbda58838
 ## explicit; go 1.17
 golang.org/x/crypto/cast5
 golang.org/x/crypto/cryptobyte
@@ -563,7 +565,7 @@ golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d
+# golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd
 ## explicit; go 1.17
 golang.org/x/net/bpf
 golang.org/x/net/dns/dnsmessage
@@ -580,7 +582,7 @@ golang.org/x/net/publicsuffix
 golang.org/x/sync/errgroup
 golang.org/x/sync/singleflight
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.0.0-20211023085530-d6a326fbbf70
+# golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e
 ## explicit; go 1.17
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
@@ -588,8 +590,8 @@ golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
-# golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
-## explicit; go 1.11
+# golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
+## explicit; go 1.17
 golang.org/x/term
 # golang.org/x/text v0.3.7
 ## explicit; go 1.17
