@@ -128,6 +128,14 @@ func (db *Database) NewBatch() ctxcdb.Batch {
 		db: db,
 	}
 }
+
+// NewBatchWithSize creates a write-only database batch with pre-allocated buffer.
+func (db *Database) NewBatchWithSize(size int) ctxcdb.Batch {
+	return &batch{
+		db: db,
+	}
+}
+
 func (db *Database) NewIterator(prefix []byte, start []byte) ctxcdb.Iterator {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
