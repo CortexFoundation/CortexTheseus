@@ -105,8 +105,9 @@ func (s *BlockSolution) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
+//go:generate go run github.com/fjl/gencodec@latest -type Header -field-override headerMarshaling -out gen_header_json.go
+
 // Header represents a block header in the Cortex blockchain.
-//go:generate gencodec -type Header -field-override headerMarshaling -out gen_header_json.go
 type Header struct {
 	ParentHash  common.Hash    `json:"parentHash"       gencodec:"required"`
 	UncleHash   common.Hash    `json:"sha3Uncles"       gencodec:"required"`
