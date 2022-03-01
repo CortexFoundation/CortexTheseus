@@ -20,4 +20,5 @@ const (
 	FULL    = "full"
 	DEFAULT = "default"
 	LAZY    = "lazy"
+	DEV     = "dev"
 )

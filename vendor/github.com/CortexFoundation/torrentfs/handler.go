@@ -127,7 +127,8 @@ type TorrentManager struct {
 	simulate bool
 	good     int
 
-	startOnce sync.Once
+	startOnce     sync.Once
+	seedingNotify chan string
 }
 
 // can only call by fs.go: 'SeedingLocal()'
@@ -542,7 +543,7 @@ func (tm *TorrentManager) updateInfoHash(t *Torrent, BytesRequested int64) {
 	updateMeter.Mark(1)
 }
 
-func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*TorrentManager, error) {
+func NewTorrentManager(config *Config, fsid uint64, cache, compress bool, notify chan string) (*TorrentManager, error) {
 	cfg := torrent.NewDefaultClientConfig()
 	cfg.DisableUTP = config.DisableUTP
 	cfg.NoDHT = config.DisableDHT
@@ -616,6 +617,7 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool) (*Torr
 		id:                  fsid,
 		slot:                int(fsid % bucket),
 		localSeedFiles:      make(map[string]bool),
+		seedingNotify:       notify,
 	}
 
 	if cache {
@@ -711,6 +713,11 @@ func (tm *TorrentManager) seedingLoop() {
 				}
 
 				// TODO notify neighbors
+				if tm.seedingNotify != nil {
+					go func() {
+						tm.seedingNotify <- t.InfoHash()
+					}()
+				}
 			}
 		case <-tm.closeAll:
 			log.Info("Seeding loop closed")
@@ -722,7 +729,7 @@ func (tm *TorrentManager) seedingLoop() {
 func (tm *TorrentManager) init() error {
 	log.Debug("Chain files init", "files", len(GoodFiles))
 
-	if tm.mode == LAZY {
+	if tm.mode == LAZY || tm.mode == DEV {
 		tm.Simulate()
 	}
 
