@@ -31,6 +31,8 @@ type InferMeta interface {
 }
 
 //go:generate gencodec -type Meta -out gen_meta_json.go
+//go:generate go run ../rlp/rlpgen -type Meta -out gen_meta_rlp.go
+
 type Meta struct {
 	Comment  string         `json:"comment"`
 	Hash     common.Address `json:"hash"`
@@ -40,6 +42,7 @@ type Meta struct {
 }
 
 //go:generate gencodec -type ModelMeta -out gen_model_json.go
+//go:generate go run ../rlp/rlpgen -type ModelMeta -out gen_model_rlp.go
 
 type ModelMeta struct {
 	Comment       string         `json:"comment"`
@@ -55,6 +58,8 @@ type ModelMeta struct {
 }
 
 //go:generate gencodec -type InputMeta -out gen_input_json.go
+//go:generate go run ../rlp/rlpgen -type InputMeta -out gen_input_rlp.go
+
 type InputMeta struct {
 	Comment string         `json:"comment"`
 	Hash    common.Address `json:"hash"`

@@ -96,3 +96,4 @@ coverage.txt
 main
 *.torrent
 *.swp
+.torrent.db
