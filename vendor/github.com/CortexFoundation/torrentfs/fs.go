@@ -366,17 +366,15 @@ func (tfs *TorrentFS) Start(server *p2p.Server) (err error) {
 // Stop stops the data collection thread and the connection listener of the dashboard.
 // Implements the node.Service interface.
 func (tfs *TorrentFS) Stop() error {
+	if tfs == nil || tfs.monitor == nil {
+		return nil
+	}
 	tfs.once.Do(func() {
-		if tfs.closeAll != nil {
-			close(tfs.closeAll)
-		}
+		close(tfs.closeAll)
 	})
 
 	tfs.wg.Wait()
 
-	if tfs == nil || tfs.monitor == nil {
-		return nil
-	}
 	// Wait until every goroutine terminates.
 	tfs.monitor.stop()
 
