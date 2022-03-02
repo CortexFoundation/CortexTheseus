@@ -1,3 +1,4 @@
+//go:build !js
 // +build !js
 
 package webrtc
@@ -26,6 +27,7 @@ type RTPSender struct {
 	transport *DTLSTransport
 
 	payloadType PayloadType
+	kind        RTPCodecType
 	ssrc        SSRC
 
 	// nolint:godox
@@ -38,7 +40,7 @@ type RTPSender struct {
 	api *API
 	id  string
 
-	tr *RTPTransceiver
+	rtpTransceiver *RTPTransceiver
 
 	mu                     sync.RWMutex
 	sendCalled, stopCalled chan struct{}
@@ -66,6 +68,7 @@ func (api *API) NewRTPSender(track TrackLocal, transport *DTLSTransport) (*RTPSe
 		ssrc:       SSRC(randutil.NewMathRandomGenerator().Uint32()),
 		id:         id,
 		srtpStream: &srtpWriterFuture{},
+		kind:       track.Kind(),
 	}
 
 	r.srtpStream.rtpSender = r
@@ -90,10 +93,10 @@ func (r *RTPSender) setNegotiated() {
 	r.negotiated = true
 }
 
-func (r *RTPSender) setRTPTransceiver(tr *RTPTransceiver) {
+func (r *RTPSender) setRTPTransceiver(rtpTransceiver *RTPTransceiver) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.tr = tr
+	r.rtpTransceiver = rtpTransceiver
 }
 
 // Transport returns the currently-configured *DTLSTransport or nil
@@ -105,21 +108,30 @@ func (r *RTPSender) Transport() *DTLSTransport {
 }
 
 func (r *RTPSender) getParameters() RTPSendParameters {
+	var rid string
+	if r.track != nil {
+		rid = r.track.RID()
+	}
 	sendParameters := RTPSendParameters{
 		RTPParameters: r.api.mediaEngine.getRTPParametersByKind(
-			r.track.Kind(),
+			r.kind,
 			[]RTPTransceiverDirection{RTPTransceiverDirectionSendonly},
 		),
 		Encodings: []RTPEncodingParameters{
 			{
 				RTPCodingParameters: RTPCodingParameters{
+					RID:         rid,
 					SSRC:        r.ssrc,
 					PayloadType: r.payloadType,
 				},
 			},
 		},
 	}
-	sendParameters.Codecs = r.tr.getCodecs()
+	if r.rtpTransceiver != nil {
+		sendParameters.Codecs = r.rtpTransceiver.getCodecs()
+	} else {
+		sendParameters.Codecs = r.api.mediaEngine.getCodecsByKind(r.kind)
+	}
 	return sendParameters
 }
 
@@ -145,7 +157,7 @@ func (r *RTPSender) ReplaceTrack(track TrackLocal) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if track != nil && r.tr.kind != track.Kind() {
+	if track != nil && r.kind != track.Kind() {
 		return ErrRTPSenderNewTrackHasIncorrectKind
 	}
 
@@ -189,8 +201,11 @@ func (r *RTPSender) Send(parameters RTPSendParameters) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if r.hasSent() {
+	switch {
+	case r.hasSent():
 		return errRTPSenderSendAlreadyCalled
+	case r.track == nil:
+		return errRTPSenderTrackRemoved
 	}
 
 	writeStream := &interceptorToTrackLocalWriter{}
@@ -207,7 +222,7 @@ func (r *RTPSender) Send(parameters RTPSendParameters) error {
 	}
 	r.context.params.Codecs = []RTPCodecParameters{codec}
 
-	r.streamInfo = createStreamInfo(r.id, parameters.Encodings[0].SSRC, codec.PayloadType, codec.RTPCodecCapability, parameters.HeaderExtensions)
+	r.streamInfo = *createStreamInfo(r.id, parameters.Encodings[0].SSRC, codec.PayloadType, codec.RTPCodecCapability, parameters.HeaderExtensions)
 	rtpInterceptor := r.api.interceptor.BindLocalStream(&r.streamInfo, interceptor.RTPWriterFunc(func(header *rtp.Header, payload []byte, attributes interceptor.Attributes) (int, error) {
 		return r.srtpStream.WriteRTP(header, payload)
 	}))
@@ -254,7 +269,7 @@ func (r *RTPSender) Read(b []byte) (n int, a interceptor.Attributes, err error) 
 
 // ReadRTCP is a convenience method that wraps Read and unmarshals for you.
 func (r *RTPSender) ReadRTCP() ([]rtcp.Packet, interceptor.Attributes, error) {
-	b := make([]byte, receiveMTU)
+	b := make([]byte, r.api.settingEngine.getReceiveMTU())
 	i, attributes, err := r.Read(b)
 	if err != nil {
 		return nil, nil, err

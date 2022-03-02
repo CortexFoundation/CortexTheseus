@@ -470,6 +470,10 @@ func (l *loggingDb) NewBatch() ctxcdb.Batch {
 	return l.backend.NewBatch()
 }
 
+func (l *loggingDb) NewBatchWithSize(size int) ctxcdb.Batch {
+	return l.backend.NewBatchWithSize(size)
+}
+
 func (l *loggingDb) NewIterator(prefix []byte, start []byte) ctxcdb.Iterator {
 	fmt.Printf("NewIterator\n")
 	return l.backend.NewIterator(prefix, start)

@@ -5,13 +5,21 @@ import (
 )
 
 type chunkQueue struct {
-	chunks  []Chunk
-	maxSize int // 0 or negative value: unlimited
-	mutex   sync.RWMutex
+	chunks       []Chunk
+	maxSize      int // 0 or negative value: unlimited
+	maxBytes     int // 0 or negative value: unlimited
+	currentBytes int
+	mutex        sync.RWMutex
 }
 
-func newChunkQueue(maxSize int) *chunkQueue {
-	return &chunkQueue{maxSize: maxSize}
+func newChunkQueue(maxSize int, maxBytes int) *chunkQueue {
+	return &chunkQueue{
+		chunks:       []Chunk{},
+		maxSize:      maxSize,
+		maxBytes:     maxBytes,
+		currentBytes: 0,
+		mutex:        sync.RWMutex{},
+	}
 }
 
 func (q *chunkQueue) push(c Chunk) bool {
@@ -21,7 +29,11 @@ func (q *chunkQueue) push(c Chunk) bool {
 	if q.maxSize > 0 && len(q.chunks) >= q.maxSize {
 		return false // dropped
 	}
+	if q.maxBytes > 0 && q.currentBytes+len(c.UserData()) >= q.maxBytes {
+		return false
+	}
 
+	q.currentBytes += len(c.UserData())
 	q.chunks = append(q.chunks, c)
 	return true
 }
@@ -36,6 +48,7 @@ func (q *chunkQueue) pop() (Chunk, bool) {
 
 	c := q.chunks[0]
 	q.chunks = q.chunks[1:]
+	q.currentBytes -= len(c.UserData())
 
 	return c, true
 }

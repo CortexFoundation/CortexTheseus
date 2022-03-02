@@ -1,9 +1,11 @@
+//go:build !js
 // +build !js
 
 package webrtc
 
 import (
 	"io"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -17,6 +19,8 @@ type srtpWriterFuture struct {
 	rtpSender      *RTPSender
 	rtcpReadStream atomic.Value // *srtp.ReadStreamSRTCP
 	rtpWriteStream atomic.Value // *srtp.WriteStreamSRTP
+	mu             sync.Mutex
+	closed         bool
 }
 
 func (s *srtpWriterFuture) init(returnWhenNoSRTP bool) error {
@@ -34,6 +38,13 @@ func (s *srtpWriterFuture) init(returnWhenNoSRTP bool) error {
 			return io.ErrClosedPipe
 		case <-s.rtpSender.transport.srtpReady:
 		}
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.closed {
+		return io.ErrClosedPipe
 	}
 
 	srtcpSession, err := s.rtpSender.transport.getSRTCPSession()
@@ -62,6 +73,14 @@ func (s *srtpWriterFuture) init(returnWhenNoSRTP bool) error {
 }
 
 func (s *srtpWriterFuture) Close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.closed {
+		return nil
+	}
+	s.closed = true
+
 	if value := s.rtcpReadStream.Load(); value != nil {
 		return value.(*srtp.ReadStreamSRTCP).Close()
 	}

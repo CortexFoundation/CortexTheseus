@@ -2,7 +2,6 @@ package log
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/anacrolix/missinggo/iter"
 )
@@ -52,6 +51,11 @@ func (m Msg) Log(l Logger) Msg {
 	return m
 }
 
+func (m Msg) LogLevel(level Level, l Logger) Msg {
+	l.LogLevel(level, m.Skip(1))
+	return m
+}
+
 type msgWithValues struct {
 	MsgImpl
 	values []interface{}
@@ -84,28 +88,28 @@ func (m Msg) Add(key, value interface{}) Msg {
 	return m.With(key, value)
 }
 
-func (m Msg) SetLevel(level Level) Msg {
-	return m.With(levelKey, level)
-}
+//func (m Msg) SetLevel(level Level) Msg {
+//	return m.With(levelKey, level)
+//}
 
-func (m Msg) GetByKey(key interface{}) (value interface{}, ok bool) {
-	m.Values(func(i interface{}) bool {
-		if keyValue, isKeyValue := i.(item); isKeyValue && keyValue.key == key {
-			value = keyValue.value
-			ok = true
-		}
-		return !ok
-	})
-	return
-}
+//func (m Msg) GetByKey(key interface{}) (value interface{}, ok bool) {
+//	m.Values(func(i interface{}) bool {
+//		if keyValue, isKeyValue := i.(item); isKeyValue && keyValue.key == key {
+//			value = keyValue.value
+//			ok = true
+//		}
+//		return !ok
+//	})
+//	return
+//}
 
-func (m Msg) GetLevel() (l Level, ok bool) {
-	v, ok := m.GetByKey(levelKey)
-	if ok {
-		l = v.(Level)
-	}
-	return
-}
+//func (m Msg) GetLevel() (l Level, ok bool) {
+//	v, ok := m.GetByKey(levelKey)
+//	if ok {
+//		l = v.(Level)
+//	}
+//	return
+//}
 
 func (m Msg) HasValue(v interface{}) (has bool) {
 	m.Values(func(i interface{}) bool {
@@ -121,18 +125,18 @@ func (m Msg) AddValue(v interface{}) Msg {
 	return m.AddValues(v)
 }
 
-func (m Msg) GetValueByType(p interface{}) bool {
-	pve := reflect.ValueOf(p).Elem()
-	t := pve.Type()
-	return !iter.All(func(i interface{}) bool {
-		iv := reflect.ValueOf(i)
-		if iv.Type() == t {
-			pve.Set(iv)
-			return false
-		}
-		return true
-	}, m.Values)
-}
+//func (m Msg) GetValueByType(p interface{}) bool {
+//	pve := reflect.ValueOf(p).Elem()
+//	t := pve.Type()
+//	return !iter.All(func(i interface{}) bool {
+//		iv := reflect.ValueOf(i)
+//		if iv.Type() == t {
+//			pve.Set(iv)
+//			return false
+//		}
+//		return true
+//	}, m.Values)
+//}
 
 func (m Msg) WithText(f func(Msg) string) Msg {
 	return Msg{msgWithText{

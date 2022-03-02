@@ -1302,7 +1302,7 @@ func (t *Torrent) updatePieceCompletion(piece pieceIndex) bool {
 		t.logger.Printf("marked piece %v complete but still has dirtiers", piece)
 	}
 	if changed {
-		log.Fstr("piece %d completion changed: %+v -> %+v", piece, cached, uncached).SetLevel(log.Debug).Log(t.logger)
+		log.Fstr("piece %d completion changed: %+v -> %+v", piece, cached, uncached).LogLevel(log.Debug, t.logger)
 		t.pieceCompletionChanged(piece, "Torrent.updatePieceCompletion")
 	}
 	return changed
@@ -1532,15 +1532,23 @@ func (t *Torrent) onWebRtcConn(
 	dcc webtorrent.DataChannelContext,
 ) {
 	defer c.Close()
+	netConn := webrtcNetConn{
+		ReadWriteCloser:    c,
+		DataChannelContext: dcc,
+	}
+	peerRemoteAddr := netConn.RemoteAddr()
+	if t.cl.badPeerAddr(peerRemoteAddr) {
+		return
+	}
 	pc, err := t.cl.initiateProtocolHandshakes(
 		context.Background(),
-		webrtcNetConn{c, dcc},
+		netConn,
 		t,
 		dcc.LocalOffered,
 		false,
-		webrtcNetAddr{dcc.Remote},
+		netConn.RemoteAddr(),
 		webrtcNetwork,
-		fmt.Sprintf("webrtc offer_id %x", dcc.OfferId),
+		fmt.Sprintf("webrtc offer_id %x: %v", dcc.OfferId, regularNetConnPeerConnConnString(netConn)),
 	)
 	if err != nil {
 		t.logger.WithDefaultLevel(log.Error).Printf("error in handshaking webrtc connection: %v", err)
@@ -1866,7 +1874,7 @@ func (t *Torrent) addPeerConn(c *PeerConn) (err error) {
 		if !t.cl.config.DropDuplicatePeerIds {
 			continue
 		}
-		if left, ok := c.hasPreferredNetworkOver(c0); ok && left {
+		if c.hasPreferredNetworkOver(c0) {
 			c0.close()
 			t.deletePeerConn(c0)
 		} else {
@@ -1924,7 +1932,9 @@ func (t *Torrent) SetMaxEstablishedConns(max int) (oldMax int) {
 }
 
 func (t *Torrent) pieceHashed(piece pieceIndex, passed bool, hashIoErr error) {
-	t.logger.Log(log.Fstr("hashed piece %d (passed=%t)", piece, passed).SetLevel(log.Debug))
+	t.logger.LazyLog(log.Debug, func() log.Msg {
+		return log.Fstr("hashed piece %d (passed=%t)", piece, passed)
+	})
 	p := t.piece(piece)
 	p.numVerifies++
 	t.cl.event.Broadcast()
@@ -1939,7 +1949,10 @@ func (t *Torrent) pieceHashed(piece pieceIndex, passed bool, hashIoErr error) {
 		} else {
 			log.Fmsg(
 				"piece %d failed hash: %d connections contributed", piece, len(p.dirtiers),
-			).AddValues(t, p).SetLevel(log.Debug).Log(t.logger)
+			).AddValues(t, p).LogLevel(
+
+				log.Debug, t.logger)
+
 			pieceHashedNotCorrect.Add(1)
 		}
 	}

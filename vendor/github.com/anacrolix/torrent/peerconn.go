@@ -221,12 +221,12 @@ func (cn *PeerConn) isPreferredDirection() bool {
 // Returns whether the left connection should be preferred over the right one,
 // considering only their networking properties. If ok is false, we can't
 // decide.
-func (l *PeerConn) hasPreferredNetworkOver(r *PeerConn) (left, ok bool) {
-	var ml multiLess
-	ml.NextBool(l.isPreferredDirection(), r.isPreferredDirection())
-	ml.NextBool(!l.utp(), !r.utp())
-	ml.NextBool(l.ipv6(), r.ipv6())
-	return ml.FinalOk()
+func (l *PeerConn) hasPreferredNetworkOver(r *PeerConn) bool {
+	var ml multiless.Computation
+	ml = ml.Bool(r.isPreferredDirection(), l.isPreferredDirection())
+	ml = ml.Bool(l.utp(), r.utp())
+	ml = ml.Bool(r.ipv6(), l.ipv6())
+	return ml.Less()
 }
 
 func (cn *Peer) cumInterest() time.Duration {
@@ -1096,9 +1096,9 @@ func runSafeExtraneous(f func()) {
 }
 
 func (c *PeerConn) logProtocolBehaviour(level log.Level, format string, arg ...interface{}) {
-	c.logger.WithLevel(level).WithContextText(fmt.Sprintf(
+	c.logger.WithContextText(fmt.Sprintf(
 		"peer id %q, ext v %q", c.PeerID, c.PeerClientName.Load(),
-	)).SkipCallers(1).Printf(format, arg...)
+	)).SkipCallers(1).Levelf(level, format, arg...)
 }
 
 // Processes incoming BitTorrent wire-protocol messages. The client lock is held upon entry and
@@ -1186,10 +1186,11 @@ func (c *PeerConn) mainReadLoop() (err error) {
 			if preservedCount != 0 {
 				// TODO: Yes this is a debug log but I'm not happy with the state of the logging lib
 				// right now.
-				c.logger.WithLevel(log.Debug).Printf(
+				c.logger.Levelf(log.Debug,
 					"%v requests were preserved while being choked (fast=%v)",
 					preservedCount,
 					c.fastEnabled())
+
 				torrent.Add("requestsPreservedThroughChoking", int64(preservedCount))
 			}
 			if !c.t._pendingPieces.IsEmpty() {
@@ -1240,7 +1241,7 @@ func (c *PeerConn) mainReadLoop() (err error) {
 			})
 		case pp.Suggest:
 			torrent.Add("suggests received", 1)
-			log.Fmsg("peer suggested piece %d", msg.Index).AddValues(c, msg.Index).SetLevel(log.Debug).Log(c.t.logger)
+			log.Fmsg("peer suggested piece %d", msg.Index).AddValues(c, msg.Index).LogLevel(log.Debug, c.t.logger)
 			c.updateRequests("suggested")
 		case pp.HaveAll:
 			err = c.onPeerSentHaveAll()
@@ -1254,7 +1255,7 @@ func (c *PeerConn) mainReadLoop() (err error) {
 			}
 		case pp.AllowedFast:
 			torrent.Add("allowed fasts received", 1)
-			log.Fmsg("peer allowed fast: %d", msg.Index).AddValues(c).SetLevel(log.Debug).Log(c.t.logger)
+			log.Fmsg("peer allowed fast: %d", msg.Index).AddValues(c).LogLevel(log.Debug, c.t.logger)
 			c.updateRequests("PeerConn.mainReadLoop allowed fast")
 		case pp.Extended:
 			err = c.onReadExtendedMsg(msg.ExtendedID, msg.ExtendedPayload)

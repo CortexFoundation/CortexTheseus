@@ -10,14 +10,32 @@ import (
 	"github.com/pion/rtp"
 )
 
-func ntpTime(t time.Time) uint64 {
-	// seconds since 1st January 1900
-	s := (float64(t.UnixNano()) / 1000000000) + 2208988800
+// SenderInterceptorFactory is a interceptor.Factory for a SenderInterceptor
+type SenderInterceptorFactory struct {
+	opts []SenderOption
+}
 
-	// higher 32 bits are the integer part, lower 32 bits are the fractional part
-	integerPart := uint32(s)
-	fractionalPart := uint32((s - float64(integerPart)) * 0xFFFFFFFF)
-	return uint64(integerPart)<<32 | uint64(fractionalPart)
+// NewInterceptor constructs a new SenderInterceptor
+func (s *SenderInterceptorFactory) NewInterceptor(id string) (interceptor.Interceptor, error) {
+	i := &SenderInterceptor{
+		interval: 1 * time.Second,
+		now:      time.Now,
+		log:      logging.NewDefaultLoggerFactory().NewLogger("sender_interceptor"),
+		close:    make(chan struct{}),
+	}
+
+	for _, opt := range s.opts {
+		if err := opt(i); err != nil {
+			return nil, err
+		}
+	}
+
+	return i, nil
+}
+
+// NewSenderInterceptor returns a new SenderInterceptorFactory
+func NewSenderInterceptor(opts ...SenderOption) (*SenderInterceptorFactory, error) {
+	return &SenderInterceptorFactory{opts}, nil
 }
 
 // SenderInterceptor interceptor generates sender reports.
@@ -30,24 +48,6 @@ type SenderInterceptor struct {
 	m        sync.Mutex
 	wg       sync.WaitGroup
 	close    chan struct{}
-}
-
-// NewSenderInterceptor returns a new SenderInterceptor interceptor.
-func NewSenderInterceptor(opts ...SenderOption) (*SenderInterceptor, error) {
-	s := &SenderInterceptor{
-		interval: 1 * time.Second,
-		now:      time.Now,
-		log:      logging.NewDefaultLoggerFactory().NewLogger("sender_interceptor"),
-		close:    make(chan struct{}),
-	}
-
-	for _, opt := range opts {
-		if err := opt(s); err != nil {
-			return nil, err
-		}
-	}
-
-	return s, nil
 }
 
 func (s *SenderInterceptor) isClosed() bool {
@@ -137,4 +137,14 @@ func (s *SenderInterceptor) BindLocalStream(info *interceptor.StreamInfo, writer
 
 		return writer.Write(header, payload, a)
 	})
+}
+
+func ntpTime(t time.Time) uint64 {
+	// seconds since 1st January 1900
+	s := (float64(t.UnixNano()) / 1000000000) + 2208988800
+
+	// higher 32 bits are the integer part, lower 32 bits are the fractional part
+	integerPart := uint32(s)
+	fractionalPart := uint32((s - float64(integerPart)) * 0xFFFFFFFF)
+	return uint64(integerPart)<<32 | uint64(fractionalPart)
 }
