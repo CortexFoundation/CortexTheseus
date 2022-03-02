@@ -367,7 +367,9 @@ func (tfs *TorrentFS) Start(server *p2p.Server) (err error) {
 // Implements the node.Service interface.
 func (tfs *TorrentFS) Stop() error {
 	tfs.once.Do(func() {
-		close(tfs.closeAll)
+		if tfs.closeAll != nil {
+			close(tfs.closeAll)
+		}
 	})
 
 	tfs.wg.Wait()
