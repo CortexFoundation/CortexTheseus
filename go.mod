@@ -4,9 +4,9 @@ go 1.17
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.8.1-0.20191213204130-762620a866ba
-	github.com/CortexFoundation/inference v1.0.2-0.20211224025558-e31231645ed3
+	github.com/CortexFoundation/inference v1.0.2-0.20220302034424-558a744e6fa7
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.25-0.20220219075702-94591353fb4d
+	github.com/CortexFoundation/torrentfs v1.0.25-0.20220302055127-61d61ad627d8
 	github.com/VictoriaMetrics/fastcache v1.7.0
 	github.com/arsham/figurine v1.0.1
 	github.com/aws/aws-sdk-go-v2 v1.3.0
@@ -85,7 +85,7 @@ require (
 	github.com/anacrolix/multiless v0.2.0 // indirect
 	github.com/anacrolix/stm v0.3.0 // indirect
 	github.com/anacrolix/sync v0.4.0 // indirect
-	github.com/anacrolix/torrent v1.40.2-0.20220215051832-7d41b9b21cee // indirect
+	github.com/anacrolix/torrent v1.41.1-0.20220301235119-a450bbe6b2cb // indirect
 	github.com/anacrolix/upnp v0.1.3-0.20220123035249-922794e51c96 // indirect
 	github.com/anacrolix/utp v0.1.0 // indirect
 	github.com/arsham/rainbow v1.0.0 // indirect
@@ -142,7 +142,7 @@ require (
 	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
 	github.com/tklauser/go-sysconf v0.3.5 // indirect
 	github.com/tklauser/numcpus v0.2.2 // indirect
-	go.etcd.io/bbolt v1.3.7-0.20220130032806-d5db64bdbfde // indirect
+	go.etcd.io/bbolt v1.3.7-0.20220226045046-fd5535f71f48 // indirect
 	golang.org/x/mod v0.3.0 // indirect
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
