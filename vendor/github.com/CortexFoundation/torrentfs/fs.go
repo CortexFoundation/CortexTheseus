@@ -38,6 +38,10 @@ import (
 	//"time"
 )
 
+const (
+	SEED_SIG uint64 = 0
+)
+
 // TorrentFS contains the torrent file system internals.
 type TorrentFS struct {
 	protocol p2p.Protocol // Protocol description and parameters
@@ -193,7 +197,8 @@ func (tfs *TorrentFS) listen() {
 	for {
 		select {
 		case s := <-tfs.seedingNotify:
-			tfs.nasCache.Add(s, uint64(0))
+			//tfs.nasCache.Add(s, uint64(0))
+			tfs.notify(s)
 		case <-tfs.closeAll:
 			return
 		}
@@ -274,6 +279,10 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 					return errors.New("invalid msg")
 				}
 
+				if !common.IsHexAddress(info.Hash) {
+					return errors.New("invalid address")
+				}
+
 				if suc := tfs.queryCache.Contains(info.Hash); !suc {
 					log.Debug("Nas msg received", "ih", info.Hash, "size", common.StorageSize(float64(info.Size)))
 
@@ -286,34 +295,39 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 								}
 								// TODO
 
-								tfs.nasCache.Add(info.Hash, uint64(0))
+								//tfs.nasCache.Add(info.Hash, uint64(0))
+								tfs.notify(info.Hash)
 							}
 						}
 						tfs.nasCounter++
 						tfs.queryCache.Add(info.Hash, info.Size)
 					}
+
 					if info.Size > 0 && tfs.config.Mode == DEV {
 						if ok, err := tfs.available(context.Background(), info.Hash, info.Size); ok && err == nil {
-							tfs.nasCache.Add(info.Hash, uint64(0))
+							//tfs.nasCache.Add(info.Hash, uint64(0))
+							tfs.notify(info.Hash)
 						}
 					}
 
 					if info.Size == 0 {
 						// TODO check
 						// TODO score
-						if _, ok := tfs.scoreTable[info.Hash]; !ok {
-							tfs.scoreTable[info.Hash] = 1
-						} else {
-							tfs.scoreTable[info.Hash]++
-						}
+						//if _, ok := tfs.scoreTable[info.Hash]; !ok {
+						//	tfs.scoreTable[info.Hash] = 1
+						//} else {
+						//	tfs.scoreTable[info.Hash]++
+						//}
+						if ok := tfs.score(info.Hash); ok {
 
-						// TODO peer seed update
-						p.seen(info.Hash)
+							// TODO peer seed update
+							p.seen(info.Hash)
+						}
 					}
 				}
 			}
 		case msgCode:
-			if ProtocolVersion >= 3 {
+			if ProtocolVersion >= 4 {
 				var info *MsgInfo
 				if err := packet.Decode(&info); err != nil {
 					log.Warn("failed to decode msg, peer will be disconnected", "peer", p.peer.ID(), "err", err)
@@ -327,6 +341,20 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 		}
 		packet.Discard()
 	}
+}
+
+func (tfs *TorrentFS) score(ih string) bool {
+	if !common.IsHexAddress(ih) {
+		return false
+	}
+
+	if _, ok := tfs.scoreTable[ih]; !ok {
+		tfs.scoreTable[ih] = 1
+	} else {
+		tfs.scoreTable[ih]++
+	}
+
+	return true
 }
 
 // Protocols implements the node.Service interface.
@@ -355,6 +383,7 @@ func (tfs *TorrentFS) Start(server *p2p.Server) (err error) {
 	if tfs == nil || tfs.monitor == nil {
 		return
 	}
+
 	err = tfs.monitor.Start()
 	if err != nil {
 		return
@@ -369,6 +398,7 @@ func (tfs *TorrentFS) Stop() error {
 	if tfs == nil || tfs.monitor == nil {
 		return nil
 	}
+
 	tfs.once.Do(func() {
 		close(tfs.closeAll)
 	})
@@ -386,6 +416,26 @@ func (tfs *TorrentFS) Stop() error {
 		tfs.queryCache.Purge()
 	}
 	return nil
+}
+
+func (fs *TorrentFS) query(infohash string, rawSize uint64) bool {
+	if !common.IsHexAddress(infohash) {
+		return false
+	}
+
+	fs.nasCache.Add(infohash, rawSize)
+
+	return true
+}
+
+func (fs *TorrentFS) notify(infohash string) bool {
+	if !common.IsHexAddress(infohash) {
+		return false
+	}
+
+	fs.nasCache.Add(infohash, SEED_SIG)
+
+	return true
 }
 
 // Available is used to check the file status
@@ -412,7 +462,8 @@ func (fs *TorrentFS) available(ctx context.Context, infohash string, rawSize uin
 						speed = float64(f) / t
 					}
 					log.Info("Nas 2.0 query", "ih", infohash, "raw", common.StorageSize(float64(rawSize)), "finish", f, "cost", common.PrettyDuration(cost), "speed", common.StorageSize(speed), "peers", len(fs.peers), "cache", fs.nasCache.Len(), "err", err)
-					fs.nasCache.Add(infohash, rawSize)
+					//fs.nasCache.Add(infohash, rawSize)
+					fs.query(infohash, rawSize)
 				}
 			}
 
