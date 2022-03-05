@@ -287,9 +287,9 @@ func (s *Server) processPacket(b []byte, addr Addr) {
 					return
 				}
 			}
-			// if missinggo.CryHeard() {
-			log.Printf("%s: received bad krpc message from %s: %s: %+q", s, addr, err, b)
-			// }
+			 //if missinggo.CryHeard() {
+			//log.Printf("%s: received bad krpc message from %s: %s: %+q", s, addr, err, b)
+			 //}
 		}()
 		return
 	}
