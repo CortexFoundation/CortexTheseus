@@ -91,6 +91,7 @@ var (
 		utils.CacheNoPrefetchFlag,
 		utils.CachePreimagesFlag,
 		utils.TrieCacheGenFlag,
+		utils.FDLimitFlag,
 		utils.ListenPortFlag,
 		utils.MaxPeersFlag,
 		utils.MaxPendingPeersFlag,

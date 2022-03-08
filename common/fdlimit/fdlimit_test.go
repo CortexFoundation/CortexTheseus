@@ -1,18 +1,18 @@
-// Copyright 2018 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2016 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package fdlimit
 
@@ -36,7 +36,7 @@ func TestFileDescriptorLimits(t *testing.T) {
 	if limit, err := Current(); err != nil || limit <= 0 {
 		t.Fatalf("failed to retrieve file descriptor limit (%d): %v", limit, err)
 	}
-	if err := Raise(uint64(target)); err != nil {
+	if _, err := Raise(uint64(target)); err != nil {
 		t.Fatalf("failed to raise file allowance")
 	}
 	if limit, err := Current(); err != nil || limit < target {
