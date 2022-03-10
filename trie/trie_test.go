@@ -676,6 +676,7 @@ func (s *spongeDb) Get(key []byte) ([]byte, error)           { return nil, error
 func (s *spongeDb) Delete(key []byte) error                  { panic("implement me") }
 func (s *spongeDb) NewBatch() ctxcdb.Batch                   { return &spongeBatch{s} }
 func (s *spongeDb) NewBatchWithSize(size int) ctxcdb.Batch   { return &spongeBatch{s} }
+func (s *spongeDb) NewSnapshot() (ctxcdb.Snapshot, error)    { panic("implement me") }
 func (s *spongeDb) Stat(property string) (string, error)     { panic("implement me") }
 func (s *spongeDb) Compact(start []byte, limit []byte) error { panic("implement me") }
 func (s *spongeDb) Close() error                             { return nil }
