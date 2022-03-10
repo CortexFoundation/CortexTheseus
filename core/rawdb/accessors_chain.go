@@ -82,8 +82,8 @@ type NumberHash struct {
 	Hash   common.Hash
 }
 
-// ReadAllHashes retrieves all the hashes assigned to blocks at a certain heights,
-// both canonical and reorged forks included.
+// ReadAllHashesInRange retrieves all the hashes assigned to blocks at certain
+// heights, both canonical and reorged forks included.
 // This method considers both limits to be _inclusive_.
 func ReadAllHashesInRange(db ctxcdb.Iteratee, first, last uint64) []*NumberHash {
 	var (
