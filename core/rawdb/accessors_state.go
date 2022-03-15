@@ -46,11 +46,12 @@ func ReadCode(db ctxcdb.KeyValueReader, hash common.Hash) []byte {
 	//
 	// todo(rjl493456442) change the order when we forcibly upgrade the code
 	// scheme with snapshot.
-	data, _ := db.Get(hash[:])
+	data := ReadCodeWithPrefix(db, hash)
 	if len(data) != 0 {
 		return data
 	}
-	return ReadCodeWithPrefix(db, hash)
+	data, _ = db.Get(hash.Bytes())
+	return data
 }
 
 // ReadCodeWithPrefix retrieves the contract code of the provided code hash.
@@ -93,6 +94,18 @@ func DeleteCode(db ctxcdb.KeyValueWriter, hash common.Hash) {
 func ReadTrieNode(db ctxcdb.KeyValueReader, hash common.Hash) []byte {
 	data, _ := db.Get(hash.Bytes())
 	return data
+}
+
+// HasCode checks if the contract code corresponding to the
+// provided code hash is present in the db.
+func HasCode(db ctxcdb.KeyValueReader, hash common.Hash) bool {
+	// Try with the prefixed code scheme first, if not then try with legacy
+	// scheme.
+	if ok := HasCodeWithPrefix(db, hash); ok {
+		return true
+	}
+	ok, _ := db.Has(hash.Bytes())
+	return ok
 }
 
 // WriteTrieNode writes the provided trie node database.
