@@ -13,7 +13,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.1.3
 	github.com/aws/aws-sdk-go-v2/credentials v1.1.3
 	github.com/aws/aws-sdk-go-v2/service/route53 v1.2.0
-	github.com/btcsuite/btcd v0.20.1-beta
+	github.com/btcsuite/btcd/btcec/v2 v2.1.3
 	github.com/cespare/cp v1.1.1
 	github.com/charmbracelet/bubbletea v0.12.1
 	github.com/cloudflare/cloudflare-go v0.11.7
@@ -103,6 +103,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/common-nighthawk/go-figure v0.0.0-20190529165535-67e0ed34491a // indirect
 	github.com/containerd/console v1.0.1 // indirect
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
 	github.com/dlclark/regexp2 v1.4.1-0.20201116162257-a2a8dda75c91 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/edsrzf/mmap-go v1.0.0 // indirect
@@ -143,7 +144,7 @@ require (
 	github.com/tklauser/go-sysconf v0.3.5 // indirect
 	github.com/tklauser/numcpus v0.2.2 // indirect
 	go.etcd.io/bbolt v1.3.7-0.20220226045046-fd5535f71f48 // indirect
-	golang.org/x/mod v0.3.0 // indirect
+	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
