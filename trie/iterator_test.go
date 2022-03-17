@@ -492,7 +492,7 @@ func (l *loggingDb) NewIterator(prefix []byte, start []byte) ctxcdb.Iterator {
 	return l.backend.NewIterator(prefix, start)
 }
 
-func (l *loggingDb) NewSnapshot() (ethdb.Snapshot, error) {
+func (l *loggingDb) NewSnapshot() (ctxcdb.Snapshot, error) {
 	return l.backend.NewSnapshot()
 }
 
