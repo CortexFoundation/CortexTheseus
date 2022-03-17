@@ -4,33 +4,29 @@ import (
 	"sync"
 )
 
-type PubSub struct {
+type PubSub[T any] struct {
 	mu     sync.Mutex
-	next   chan item
+	next   chan item[T]
 	closed bool
 }
 
-type item struct {
-	value interface{}
-	next  chan item
+type item[T any] struct {
+	value T
+	next  chan item[T]
 }
 
-type Subscription struct {
-	next   chan item
-	Values chan interface{}
+type Subscription[T any] struct {
+	next   chan item[T]
+	Values chan T
 	mu     sync.Mutex
 	closed chan struct{}
 }
 
-func NewPubSub() (ret *PubSub) {
-	return new(PubSub)
+func (me *PubSub[T]) init() {
+	me.next = make(chan item[T], 1)
 }
 
-func (me *PubSub) init() {
-	me.next = make(chan item, 1)
-}
-
-func (me *PubSub) lazyInit() {
+func (me *PubSub[T]) lazyInit() {
 	me.mu.Lock()
 	defer me.mu.Unlock()
 	if me.closed {
@@ -41,10 +37,10 @@ func (me *PubSub) lazyInit() {
 	}
 }
 
-func (me *PubSub) Publish(v interface{}) {
+func (me *PubSub[T]) Publish(v T) {
 	me.lazyInit()
-	next := make(chan item, 1)
-	i := item{v, next}
+	next := make(chan item[T], 1)
+	i := item[T]{v, next}
 	me.mu.Lock()
 	if !me.closed {
 		me.next <- i
@@ -53,7 +49,7 @@ func (me *PubSub) Publish(v interface{}) {
 	me.mu.Unlock()
 }
 
-func (me *Subscription) Close() {
+func (me *Subscription[T]) Close() {
 	me.mu.Lock()
 	defer me.mu.Unlock()
 	select {
@@ -63,7 +59,7 @@ func (me *Subscription) Close() {
 	}
 }
 
-func (me *Subscription) runner() {
+func (me *Subscription[T]) runner() {
 	defer close(me.Values)
 	for {
 		select {
@@ -91,11 +87,11 @@ func (me *Subscription) runner() {
 	}
 }
 
-func (me *PubSub) Subscribe() (ret *Subscription) {
+func (me *PubSub[T]) Subscribe() (ret *Subscription[T]) {
 	me.lazyInit()
-	ret = &Subscription{
+	ret = &Subscription[T]{
 		closed: make(chan struct{}),
-		Values: make(chan interface{}),
+		Values: make(chan T),
 	}
 	me.mu.Lock()
 	ret.next = me.next
@@ -104,7 +100,7 @@ func (me *PubSub) Subscribe() (ret *Subscription) {
 	return
 }
 
-func (me *PubSub) Close() {
+func (me *PubSub[T]) Close() {
 	me.mu.Lock()
 	defer me.mu.Unlock()
 	if me.closed {
