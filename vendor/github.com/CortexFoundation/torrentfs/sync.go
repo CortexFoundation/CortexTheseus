@@ -83,8 +83,8 @@ type Monitor struct {
 // Once Ipcpath is settle, this method prefers to build socket connection in order to
 // get higher communicating performance.
 // IpcPath is unavailable on windows.
-func NewMonitor(flag *Config, cache, compress, listen bool) (*Monitor, error) {
-	fs, fsErr := NewChainDB(flag)
+func NewMonitor(flag *Config, cache, compress, listen bool, fs *ChainDB, tMana *TorrentManager) (*Monitor, error) {
+	/*fs, fsErr := NewChainDB(flag)
 	if fsErr != nil {
 		log.Error("file storage failed", "err", fsErr)
 		return nil, fsErr
@@ -96,7 +96,7 @@ func NewMonitor(flag *Config, cache, compress, listen bool) (*Monitor, error) {
 		log.Error("fs manager failed")
 		return nil, errors.New("fs download manager initialise failed")
 	}
-	log.Info("Fs manager initialized")
+	log.Info("Fs manager initialized")*/
 
 	m := &Monitor{
 		config:        flag,

@@ -38,6 +38,36 @@ func ProgressBar(x, y int64, desc string) string {
 	return "[ " + progress + " ] " + f + "% " + desc
 }
 
+const (
+	ScaleBarLen = 10
+)
+
+func ScaleBar(from, to, sum int) string {
+	if sum < ScaleBarLen {
+		from = from * ScaleBarLen / sum
+		to = to * ScaleBarLen / sum
+		sum = ScaleBarLen
+	}
+
+	per := sum / ScaleBarLen
+
+	f := from / per
+	t := to / per
+
+	bar := ""
+	for i := 0; i < ScaleBarLen; i++ {
+		if i > t {
+			bar = bar + " "
+		} else if i < f {
+			bar = bar + " "
+		} else {
+			bar = bar + "."
+		}
+	}
+
+	return "[ " + bar + " ]"
+}
+
 func max(as ...int64) int64 {
 	ret := as[0]
 	for _, a := range as[1:] {

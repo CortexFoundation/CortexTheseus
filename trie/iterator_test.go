@@ -478,6 +478,11 @@ func (l *loggingDb) NewIterator(prefix []byte, start []byte) ctxcdb.Iterator {
 	fmt.Printf("NewIterator\n")
 	return l.backend.NewIterator(prefix, start)
 }
+
+func (l *loggingDb) NewSnapshot() (ctxcdb.Snapshot, error) {
+	return l.backend.NewSnapshot()
+}
+
 func (l *loggingDb) Stat(property string) (string, error) {
 	return l.backend.Stat(property)
 }

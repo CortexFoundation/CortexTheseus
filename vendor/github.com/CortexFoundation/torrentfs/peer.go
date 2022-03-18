@@ -40,6 +40,7 @@ type Peer struct {
 	peerInfo *PeerInfo
 
 	msgChan chan interface{}
+	seeding mapset.Set
 }
 
 type PeerInfo struct {
@@ -63,6 +64,7 @@ func newPeer(id string, host *TorrentFS, remote *p2p.Peer, rw p2p.MsgReadWriter)
 		trusted: false,
 		quit:    make(chan struct{}),
 		msgChan: make(chan interface{}, 10),
+		seeding: mapset.NewSet(),
 	}
 	return &p
 }
@@ -144,6 +146,12 @@ func (peer *Peer) state() error {
 type Query struct {
 	Hash string `json:"hash"`
 	Size uint64 `json:"size"`
+}
+
+func (peer *Peer) seen(hash string) {
+	if !peer.seeding.Contains(hash) {
+		peer.seeding.Add(hash)
+	}
 }
 
 func (peer *Peer) mark(hash string) {

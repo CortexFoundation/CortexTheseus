@@ -104,6 +104,8 @@ wget https://cmake.org/files/v3.11/cmake-3.11.0-rc4-Linux-x86_64.tar.gz
 tar zxvf cmake-3.11.0-rc4-Linux-x86_64.tar.gz
 sudo mv cmake-3.11.0-rc4-Linux-x86_64  /opt/cmake-3.11
 sudo ln -sf /opt/cmake-3.11/bin/*  /usr/bin/
+
+sudo apt-get install make
  ```
 - go 1.17.+
 ```
