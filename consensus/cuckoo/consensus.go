@@ -1027,3 +1027,15 @@ func (cuckoo *Cuckoo) Sha3Solution(sol *types.BlockSolution) []byte {
 func (cuckoo *Cuckoo) CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.BlockSolution, targetDiff *big.Int) bool {
 	return plugins.CuckooVerify_cuckaroo(&hash[0], nonce, *sol, cuckoo.Sha3Solution(sol), targetDiff)
 }
+
+// Simple sha3 solution Verify, Replace CuckooVerifyHeader()
+func (cuckoo *Cuckoo) CuckooVerifyHeader_SHA3(hash []byte, nonce uint64, sol *types.BlockSolution, targetDiff *big.Int) bool {
+	result_sha3 := cuckoo.Sha3Solution(sol)
+	sha3hash := common.BytesToHash(result_sha3)
+	if sha3hash.Big().Cmp(targetDiff) <= 0 {
+		// verify Proof: nonce, hash, result
+		result_verify := 1
+		return (result_verify == 1)
+	}
+	return false
+}
