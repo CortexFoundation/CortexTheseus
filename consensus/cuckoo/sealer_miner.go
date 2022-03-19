@@ -50,6 +50,9 @@ search:
 			}
 			r, res := m.(func([]byte, uint64) (uint32, [][]uint32))(hash, nonce)
 
+			// TODO: To Finish function
+			//r, res := GenSha3Solution()
+
 			//r, res := plugins.CuckooFindSolutions(hash, nonce)
 			if r == 0 {
 				nonce++

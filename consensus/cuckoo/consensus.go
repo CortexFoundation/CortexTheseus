@@ -1028,6 +1028,11 @@ func (cuckoo *Cuckoo) CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.B
 	return plugins.CuckooVerify_cuckaroo(&hash[0], nonce, *sol, cuckoo.Sha3Solution(sol), targetDiff)
 }
 
+// Simple sha3 solution, Relace seal_miner "Gen Solution"
+func (cuckoo *Cuckoo) GenSha3Solution(hash []byte, nonce uint64) (r uint32, res [][]uint32) {
+	return
+}
+
 // Simple sha3 solution Verify, Replace CuckooVerifyHeader()
 func (cuckoo *Cuckoo) CuckooVerifyHeader_SHA3(hash []byte, nonce uint64, sol *types.BlockSolution, targetDiff *big.Int) bool {
 	result_sha3 := cuckoo.Sha3Solution(sol)
