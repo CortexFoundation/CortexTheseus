@@ -1537,23 +1537,25 @@ func (d *Downloader) processHeaders(origin uint64, td *big.Int) error {
 					if chunk[len(chunk)-1].Number.Uint64()+uint64(fsHeaderForceVerify) > pivot {
 						frequency = 1
 					}
-					if n, err := d.blockchain.InsertHeaderChain(chunk, frequency); err != nil {
-						rollbackErr = err
+					if len(chunk) > 0 {
+						if n, err := d.blockchain.InsertHeaderChain(chunk, frequency); err != nil {
+							rollbackErr = err
 
-						// If some headers were inserted, track them as uncertain
-						if (mode == FastSync || frequency > 1) && n > 0 && rollback == 0 {
-							rollback = chunk[0].Number.Uint64()
+							// If some headers were inserted, track them as uncertain
+							if (mode == FastSync || frequency > 1) && n > 0 && rollback == 0 {
+								rollback = chunk[0].Number.Uint64()
+							}
+							log.Warn("Invalid header encountered", "number", chunk[n].Number, "hash", chunk[n].Hash(), "parent", chunk[n].ParentHash, "err", err)
+							return fmt.Errorf("%w: %v", errInvalidChain, err)
 						}
-						log.Warn("Invalid header encountered", "number", chunk[n].Number, "hash", chunk[n].Hash(), "parent", chunk[n].ParentHash, "err", err)
-						return fmt.Errorf("%w: %v", errInvalidChain, err)
-					}
-					// All verifications passed, track all headers within the alloted limits
-					if mode == FastSync {
-						head := chunk[len(chunk)-1].Number.Uint64()
-						if head-rollback > uint64(fsHeaderSafetyNet) {
-							rollback = head - uint64(fsHeaderSafetyNet)
-						} else {
-							rollback = 1
+						// All verifications passed, track all headers within the alloted limits
+						if mode == FastSync {
+							head := chunk[len(chunk)-1].Number.Uint64()
+							if head-rollback > uint64(fsHeaderSafetyNet) {
+								rollback = head - uint64(fsHeaderSafetyNet)
+							} else {
+								rollback = 1
+							}
 						}
 					}
 				}
