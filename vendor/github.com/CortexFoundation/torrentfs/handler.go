@@ -686,7 +686,9 @@ func (tm *TorrentManager) seedingLoop() {
 			s := t.Seed()
 			if t.ch != nil {
 				log.Warn("Torrent seeding ready for lazy", "ih", t.InfoHash())
+				tm.wg.Add(1)
 				go func() {
+					defer tm.wg.Done()
 					t.ch <- s
 				}()
 			}
@@ -714,7 +716,9 @@ func (tm *TorrentManager) seedingLoop() {
 
 				// TODO notify neighbors
 				if tm.seedingNotify != nil {
+					tm.wg.Add(1)
 					go func() {
+						defer tm.wg.Done()
 						tm.seedingNotify <- t.InfoHash()
 					}()
 				}
@@ -1085,7 +1089,11 @@ func (tm *TorrentManager) activeLoop() {
 				}
 
 				if t.bytesCompleted < t.bytesLimitation && !t.isBoosting {
-					go t.Run(tm.slot)
+					tm.wg.Add(1)
+					go func() {
+						defer tm.wg.Done()
+						t.Run(tm.slot)
+					}()
 					active_running++
 				}
 			}
