@@ -1015,6 +1015,7 @@ func toCoin(wei *big.Int) *big.Float {
 	return new(big.Float).Quo(new(big.Float).SetInt(wei), new(big.Float).SetInt(big.NewInt(params.Cortex)))
 }
 
+// uint32 to byte, and then hash
 func (cuckoo *Cuckoo) Sha3Solution(sol *types.BlockSolution) []byte {
 	buf := make([]byte, 42*4)
 	for i, s := range sol {
@@ -1024,12 +1025,27 @@ func (cuckoo *Cuckoo) Sha3Solution(sol *types.BlockSolution) []byte {
 	return ret
 }
 
+// 202203: Change to new interface
 func (cuckoo *Cuckoo) CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.BlockSolution, targetDiff *big.Int) bool {
-	return plugins.CuckooVerify_cuckaroo(&hash[0], nonce, *sol, cuckoo.Sha3Solution(sol), targetDiff)
+	return cuckoo.CuckooVerifyHeader_SHA3(hash, nonce, sol, targetDiff)
+	//return plugins.CuckooVerify_cuckaroo(&hash[0], nonce, *sol, cuckoo.Sha3Solution(sol), targetDiff)
 }
 
 // Simple sha3 solution, Relace seal_miner "Gen Solution"
-func (cuckoo *Cuckoo) GenSha3Solution(hash []byte, nonce uint64) (r uint32, res [][]uint32) {
+// header_hash len is 32*u8, nonce len is 2*u32
+func (cuckoo *Cuckoo) GenSha3Solution(hash []byte, nonce uint64) (r uint32, sols [][]uint32) {
+	// r: solutions number, only gen 1 now
+	r = 1
+	sols = make([][]uint32, 1)
+	// result: n * [32]u32
+	buf := make([]byte, 32+8)
+	// TODO: gen buf
+	data := crypto.Keccak256(buf)
+	sol := make([]uint32, len(data)/4)
+	for i := 0; i < len(data); i += 4 {
+		sol = append(sol, binary.BigEndian.Uint32(data[i:i+4]))
+	}
+	sols = append(sols, sol)
 	return
 }
 
@@ -1037,6 +1053,7 @@ func (cuckoo *Cuckoo) GenSha3Solution(hash []byte, nonce uint64) (r uint32, res 
 func (cuckoo *Cuckoo) CuckooVerifyHeader_SHA3(hash []byte, nonce uint64, sol *types.BlockSolution, targetDiff *big.Int) bool {
 	result_sha3 := cuckoo.Sha3Solution(sol)
 	sha3hash := common.BytesToHash(result_sha3)
+	// if targetDiff is met, say solution valid
 	if sha3hash.Big().Cmp(targetDiff) <= 0 {
 		// verify Proof: nonce, hash, result
 		result_verify := 1

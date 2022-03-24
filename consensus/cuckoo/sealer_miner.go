@@ -44,14 +44,14 @@ search:
 				attempts = 0
 			}
 			//Gen solution
-			m, err := cuckoo.minerPlugin.Lookup("CuckooFindSolutions")
-			if err != nil {
-				panic(err)
-			}
-			r, res := m.(func([]byte, uint64) (uint32, [][]uint32))(hash, nonce)
+			//m, err := cuckoo.minerPlugin.Lookup("CuckooFindSolutions")
+			//if err != nil {
+			//panic(err)
+			//}
+			//r, res := m.(func([]byte, uint64) (uint32, [][]uint32))(hash, nonce)
 
 			// TODO: To Finish function
-			//r, res := GenSha3Solution()
+			r, res := cuckoo.GenSha3Solution(hash, nonce)
 
 			//r, res := plugins.CuckooFindSolutions(hash, nonce)
 			if r == 0 {
