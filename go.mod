@@ -1,12 +1,12 @@
 module github.com/CortexFoundation/CortexTheseus
 
-go 1.17
+go 1.18
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.3.0
 	github.com/CortexFoundation/inference v1.0.2-0.20220302034424-558a744e6fa7
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.25-0.20220315134405-3c057ce06e12
+	github.com/CortexFoundation/torrentfs v1.0.25-0.20220317094235-e465cf32b7e4
 	github.com/VictoriaMetrics/fastcache v1.7.0
 	github.com/arsham/figurine v1.0.1
 	github.com/aws/aws-sdk-go-v2 v1.3.0
@@ -31,7 +31,7 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
 	github.com/holiman/uint256 v1.2.1-0.20211207130952-e702bdad3b42
-	github.com/huin/goupnp v1.0.3-0.20220313090229-ca81a64b4204
+	github.com/huin/goupnp v1.0.3
 	github.com/influxdata/influxdb v1.8.0
 	github.com/jackpal/go-nat-pmp v1.0.2
 	github.com/jedisct1/go-minisign v0.0.0-20190909160543-45766022959e
@@ -73,21 +73,22 @@ require (
 	github.com/CortexFoundation/merkletree v0.0.0-20210226031755-94f6423532ee // indirect
 	github.com/RoaringBitmap/roaring v0.9.4 // indirect
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
+	github.com/ajwerner/btree v0.0.0-20211201061316-91c8b66ad617 // indirect
 	github.com/allegro/bigcache/v3 v3.0.2-0.20211203094859-77bbae442c22 // indirect
 	github.com/anacrolix/chansync v0.3.0 // indirect
-	github.com/anacrolix/confluence v1.9.0 // indirect
-	github.com/anacrolix/dht/v2 v2.15.2-0.20220123034220-0538803801cb // indirect
+	github.com/anacrolix/dht/v2 v2.16.2-0.20220311024416-dd658f18fd51 // indirect
 	github.com/anacrolix/envpprof v1.1.2-0.20210622065137-4accee5b7ac4 // indirect
+	github.com/anacrolix/generics v0.0.0-20220217222028-44932cf46edd // indirect
 	github.com/anacrolix/go-libutp v1.2.0 // indirect
 	github.com/anacrolix/log v0.13.1 // indirect
 	github.com/anacrolix/missinggo v1.3.0 // indirect
 	github.com/anacrolix/missinggo/perf v1.0.0 // indirect
-	github.com/anacrolix/missinggo/v2 v2.5.2 // indirect
+	github.com/anacrolix/missinggo/v2 v2.5.4-0.20220317032254-8c5ea4947a0b // indirect
 	github.com/anacrolix/mmsg v1.0.0 // indirect
-	github.com/anacrolix/multiless v0.2.0 // indirect
+	github.com/anacrolix/multiless v0.2.1-0.20211218050420-533661eef5dc // indirect
 	github.com/anacrolix/stm v0.3.0 // indirect
 	github.com/anacrolix/sync v0.4.0 // indirect
-	github.com/anacrolix/torrent v1.41.1-0.20220315024234-5a61d8f6ac93 // indirect
+	github.com/anacrolix/torrent v1.41.1-0.20220317050800-aa4a831c7869 // indirect
 	github.com/anacrolix/upnp v0.1.3-0.20220123035249-922794e51c96 // indirect
 	github.com/anacrolix/utp v0.1.0 // indirect
 	github.com/arsham/rainbow v1.0.0 // indirect
@@ -100,6 +101,7 @@ require (
 	github.com/benbjohnson/immutable v0.3.0 // indirect
 	github.com/bits-and-blooms/bitset v1.2.0 // indirect
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8 // indirect
+	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.2-0.20220316175102-8d5c75c28923 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/common-nighthawk/go-figure v0.0.0-20190529165535-67e0ed34491a // indirect
 	github.com/containerd/console v1.0.1 // indirect
@@ -141,6 +143,7 @@ require (
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	github.com/rs/dnscache v0.0.0-20210201191234-295bba877686 // indirect
 	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
+	github.com/tidwall/btree v0.7.2-0.20211211132910-4215444137fc // indirect
 	github.com/tklauser/go-sysconf v0.3.5 // indirect
 	github.com/tklauser/numcpus v0.2.2 // indirect
 	go.etcd.io/bbolt v1.3.7-0.20220226045046-fd5535f71f48 // indirect
