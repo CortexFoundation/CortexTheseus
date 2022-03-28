@@ -31,7 +31,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
-	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo/plugins"
+	_ "github.com/CortexFoundation/CortexTheseus/consensus/cuckoo/plugins"
 	"github.com/CortexFoundation/CortexTheseus/consensus/misc"
 	"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
@@ -1036,10 +1036,12 @@ func (cuckoo *Cuckoo) CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.B
 func (cuckoo *Cuckoo) GenSha3Solution(hash []byte, nonce uint64) (r uint32, sols [][]uint32) {
 	// r: solutions number, only gen 1 now
 	r = 1
-	sols = make([][]uint32, 1)
 	// result: n * [32]u32
 	buf := make([]byte, 32+8)
 	// TODO: gen buf
+	buf = append(buf, hash...)
+	binary.BigEndian.PutUint64(buf, nonce)
+	// do 256
 	data := crypto.Keccak256(buf)
 	sol := make([]uint32, len(data)/4)
 	for i := 0; i < len(data); i += 4 {
@@ -1054,6 +1056,7 @@ func (cuckoo *Cuckoo) CuckooVerifyHeader_SHA3(hash []byte, nonce uint64, sol *ty
 	result_sha3 := cuckoo.Sha3Solution(sol)
 	sha3hash := common.BytesToHash(result_sha3)
 	// if targetDiff is met, say solution valid
+	fmt.Println("sha3hash big is:", sha3hash.Big().Uint64(), "targetDiff is:", targetDiff.Uint64())
 	if sha3hash.Big().Cmp(targetDiff) <= 0 {
 		// verify Proof: nonce, hash, result
 		result_verify := 1
