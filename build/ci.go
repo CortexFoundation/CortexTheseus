@@ -359,10 +359,10 @@ func downloadLinter(cachedir string) string {
 	arch := runtime.GOARCH
 	ext := ".tar.gz"
 
-        if runtime.GOOS == "windows" {
-	        ext = ".zip"
-        }
-        if arch == "arm" {
+	if runtime.GOOS == "windows" {
+		ext = ".zip"
+	}
+	if arch == "arm" {
 		arch += "v" + os.Getenv("GOARM")
 	}
 	base := fmt.Sprintf("golangci-lint-%s-%s-%s", version, runtime.GOOS, arch)
