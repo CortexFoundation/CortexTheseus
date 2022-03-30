@@ -508,6 +508,11 @@ func udivrem(quot, u []uint64, d *Int) (rem Int) {
 		}
 	}
 
+	if uLen < dLen {
+		copy(rem[:], u)
+		return rem
+	}
+
 	var unStorage [9]uint64
 	un := unStorage[:uLen+1]
 	un[uLen] = u[uLen-1] >> (64 - shift)
@@ -583,8 +588,20 @@ func (z *Int) Mod(x, y *Int) *Int {
 	}
 
 	var quot Int
-	rem := udivrem(quot[:], x[:], y)
-	return z.Set(&rem)
+	*z = udivrem(quot[:], x[:], y)
+	return z
+}
+
+// DivMod sets z to the quotient x div y and m to the modulus x mod y and returns the pair (z, m) for y != 0.
+// If y == 0, both z and m are set to 0 (OBS: differs from the big.Int)
+func (z *Int) DivMod(x, y, m *Int) (*Int, *Int) {
+	if y.IsZero() {
+		return z.Clear(), m.Clear()
+	}
+	var quot Int
+	*m = udivrem(quot[:], x[:], y)
+	*z = quot
+	return z, m
 }
 
 // SMod interprets x and y as two's complement signed integers,
@@ -671,6 +688,22 @@ func (z *Int) MulMod(x, y, m *Int) *Int {
 	var quot [8]uint64
 	rem := udivrem(quot[:], p[:], m)
 	return z.Set(&rem)
+}
+
+// MulDivOverflow calculates (x*y)/d with full precision, returns z and whether overflow occurred in multiply process (result does not fit to 256-bit).
+// computes 512-bit multiplication and 512 by 256 division.
+func (z *Int) MulDivOverflow(x, y, d *Int) (*Int, bool) {
+	if x.IsZero() || y.IsZero() || d.IsZero() {
+		return z.Clear(), false
+	}
+	p := umul(x, y)
+
+	var quot [8]uint64
+	udivrem(quot[:], p[:], d)
+
+	copy(z[:], quot[:4])
+
+	return z, (quot[4] | quot[5] | quot[6] | quot[7]) != 0
 }
 
 // Abs interprets x as a two's complement signed number,
