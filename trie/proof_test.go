@@ -769,31 +769,19 @@ func TestEmptyRangeProof(t *testing.T) {
 		if err := trie.Prove(first, 0, proof); err != nil {
 			t.Fatalf("Failed to prove the first node %v", err)
 		}
-		db, tr, not, _, err := VerifyRangeProof(trie.Hash(), first, nil, nil, nil, proof)
+		_, _, _, _, err := VerifyRangeProof(trie.Hash(), first, nil, nil, nil, proof)
 		if c.err && err == nil {
 			t.Fatalf("Expected error, got nil")
 		}
 		if !c.err && err != nil {
 			t.Fatalf("Expected no error, got %v", err)
 		}
-		// If no error was returned, ensure the returned trie and database contains
-		// the entire proof, since there's no value
-		if !c.err {
-			if err := tr.Prove(first, 0, memorydb.New()); err != nil {
-				t.Errorf("returned trie doesn't contain original proof: %v", err)
-			}
-			if memdb := db.(*memorydb.Database); memdb.Len() != proof.Len() {
-				t.Errorf("database entry count mismatch: have %d, want %d", memdb.Len(), proof.Len())
-			}
-			if not == nil {
-				t.Errorf("missing notary")
-			}
-		}
 	}
 }
 
 // TestBloatedProof tests a malicious proof, where the proof is more or less the
-// whole trie.
+// whole trie. Previously we didn't accept such packets, but the new APIs do, so
+// lets leave this test as a bit weird, but present.
 func TestBloatedProof(t *testing.T) {
 	// Use a small trie
 	trie, kvs := nonRandomTrie(100)
@@ -806,6 +794,8 @@ func TestBloatedProof(t *testing.T) {
 	var vals [][]byte
 
 	proof := memorydb.New()
+	// In the 'malicious' case, we add proofs for every single item
+	// (but only one key/value pair used as leaf)
 	for i, entry := range entries {
 		trie.Prove(entry.k, 0, proof)
 		if i == 50 {
@@ -813,13 +803,14 @@ func TestBloatedProof(t *testing.T) {
 			vals = append(vals, entry.v)
 		}
 	}
+	// For reference, we use the same function, but _only_ prove the first
+	// and last element
 	want := memorydb.New()
 	trie.Prove(keys[0], 0, want)
 	trie.Prove(keys[len(keys)-1], 0, want)
 
-	_, _, notary, _, _ := VerifyRangeProof(trie.Hash(), keys[0], keys[len(keys)-1], keys, vals, proof)
-	if used := notary.Accessed().(*memorydb.Database); used.Len() != want.Len() {
-		t.Fatalf("notary proof size mismatch: have %d, want %d", used.Len(), want.Len())
+	if _, _, _, _, err := VerifyRangeProof(trie.Hash(), keys[0], keys[len(keys)-1], keys, vals, proof); err != nil {
+		t.Fatalf("expected bloated proof to succeed, got %v", err)
 	}
 }
 
@@ -1005,6 +996,33 @@ func benchmarkVerifyRangeProof(b *testing.B, size int) {
 		_, _, _, _, err := VerifyRangeProof(trie.Hash(), keys[0], keys[len(keys)-1], keys, values, proof)
 		if err != nil {
 			b.Fatalf("Case %d(%d->%d) expect no error, got %v", i, start, end-1, err)
+		}
+	}
+}
+
+func BenchmarkVerifyRangeNoProof10(b *testing.B)   { benchmarkVerifyRangeNoProof(b, 100) }
+func BenchmarkVerifyRangeNoProof500(b *testing.B)  { benchmarkVerifyRangeNoProof(b, 500) }
+func BenchmarkVerifyRangeNoProof1000(b *testing.B) { benchmarkVerifyRangeNoProof(b, 1000) }
+
+func benchmarkVerifyRangeNoProof(b *testing.B, size int) {
+	trie, vals := randomTrie(size)
+	var entries entrySlice
+	for _, kv := range vals {
+		entries = append(entries, kv)
+	}
+	sort.Sort(entries)
+
+	var keys [][]byte
+	var values [][]byte
+	for _, entry := range entries {
+		keys = append(keys, entry.k)
+		values = append(values, entry.v)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _, _, _, err := VerifyRangeProof(trie.Hash(), keys[0], keys[len(keys)-1], keys, values, nil)
+		if err != nil {
+			b.Fatalf("Expected no error, got %v", err)
 		}
 	}
 }

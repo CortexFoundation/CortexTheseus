@@ -40,7 +40,8 @@ var (
 // LeafCallback is a callback type invoked when a trie operation reaches a leaf
 // node. It's used by state sync and commit to allow handling external references
 // between account and storage tries.
-type LeafCallback func(path []byte, leaf []byte, parent common.Hash) error
+//type LeafCallback func(path []byte, leaf []byte, parent common.Hash) error
+type LeafCallback func(paths [][]byte, hexpath []byte, leaf []byte, parent common.Hash) error
 
 // Trie is a Merkle Patricia Trie.
 // The zero value is an empty trie with no database.
@@ -540,6 +541,15 @@ func (t *Trie) resolveHash(n hashNode, prefix []byte) (node, error) {
 	hash := common.BytesToHash(n)
 	if node := t.db.node(hash); node != nil {
 		return node, nil
+	}
+	return nil, &MissingNodeError{NodeHash: hash, Path: prefix}
+}
+
+func (t *Trie) resolveBlob(n hashNode, prefix []byte) ([]byte, error) {
+	hash := common.BytesToHash(n)
+	blob, _ := t.db.Node(hash)
+	if len(blob) != 0 {
+		return blob, nil
 	}
 	return nil, &MissingNodeError{NodeHash: hash, Path: prefix}
 }

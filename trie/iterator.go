@@ -22,6 +22,7 @@ import (
 	"errors"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 )
 
 // Iterator is a key-value trie iterator that traverses a Trie.
@@ -83,6 +84,9 @@ type NodeIterator interface {
 	// Callers must not retain references to the return value after calling Next.
 	// For leaf nodes, the last element of the path is the 'terminator symbol' 0x10.
 	Path() []byte
+	// NodeBlob returns the rlp-encoded value of the current iterated node.
+	// If the node is an embedded node in its parent, nil is returned then.
+	NodeBlob() []byte
 
 	// Leaf returns true iff the current node is a leaf node.
 	Leaf() bool
@@ -118,6 +122,8 @@ type nodeIterator struct {
 	stack []*nodeIteratorState // Hierarchy of trie nodes persisting the iteration state
 	path  []byte               // Path to the current node
 	err   error                // Failure set in case of an internal error in the iterator
+
+	resolver ctxcdb.KeyValueReader // Optional intermediate resolver above the disk layer
 }
 
 // errIteratorEnd is stored in nodeIterator.err when iteration is done.
@@ -331,6 +337,27 @@ func (it *nodeIterator) peekSeek(seekKey []byte) (*nodeIteratorState, *int, []by
 	return nil, nil, nil, errIteratorEnd
 }
 
+func (it *nodeIterator) resolveHash(hash hashNode, path []byte) (node, error) {
+	if it.resolver != nil {
+		if blob, err := it.resolver.Get(hash); err == nil && len(blob) > 0 {
+			if resolved, err := decodeNode(hash, blob); err == nil {
+				return resolved, nil
+			}
+		}
+	}
+	resolved, err := it.trie.resolveHash(hash, path)
+	return resolved, err
+}
+
+func (it *nodeIterator) resolveBlob(hash hashNode, path []byte) ([]byte, error) {
+	if it.resolver != nil {
+		if blob, err := it.resolver.Get(hash); err == nil && len(blob) > 0 {
+			return blob, nil
+		}
+	}
+	return it.trie.resolveBlob(hash, path)
+}
+
 func (st *nodeIteratorState) resolve(tr *Trie, path []byte) error {
 	if hash, ok := st.node.(hashNode); ok {
 		resolved, err := tr.resolveHash(hash, path)
@@ -519,6 +546,22 @@ func (it *differenceIterator) Path() []byte {
 	return it.b.Path()
 }
 
+func (it *differenceIterator) NodeBlob() []byte {
+	return it.b.NodeBlob()
+}
+
+func (it *nodeIterator) NodeBlob() []byte {
+	if it.Hash() == (common.Hash{}) {
+		return nil // skip the non-standalone node
+	}
+	blob, err := it.resolveBlob(it.Hash().Bytes(), it.Path())
+	if err != nil {
+		it.err = err
+		return nil
+	}
+	return blob
+}
+
 func (it *differenceIterator) Next(bool) bool {
 	// Invariants:
 	// - We always advance at least one element in b.
@@ -624,6 +667,13 @@ func (it *unionIterator) LeafProof() [][]byte {
 
 func (it *unionIterator) Path() []byte {
 	return (*it.items)[0].Path()
+}
+func (it *unionIterator) NodeBlob() []byte {
+	return (*it.items)[0].NodeBlob()
+}
+
+func (it *unionIterator) AddResolver(resolver ctxcdb.KeyValueReader) {
+	panic("not implemented")
 }
 
 // Next returns the next node in the union of tries being iterated over.
