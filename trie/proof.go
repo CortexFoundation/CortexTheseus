@@ -578,13 +578,13 @@ func VerifyRangeProof(rootHash common.Hash, firstKey []byte, lastKey []byte, key
 	if err != nil {
 		return nil, nil, nil, false, err
 	}
-	// Rebuild the trie with the leaf stream, the shape of trie
-	// should be same with the original one.
 	var (
 		diskdb = memorydb.New()
-		triedb = NewDatabase(diskdb)
+		//triedb = NewDatabase(diskdb)
 	)
-	tr := &Trie{root: root, db: triedb}
+	// Rebuild the trie with the leaf stream, the shape of trie
+	// should be same with the original one.
+	tr := newWithRootNode(root)
 	if empty {
 		tr.root = nil
 	}
@@ -595,13 +595,13 @@ func VerifyRangeProof(rootHash common.Hash, firstKey []byte, lastKey []byte, key
 		return nil, nil, nil, false, fmt.Errorf("invalid proof, want hash %x, got %x", rootHash, tr.Hash())
 	}
 	// Proof seems valid, serialize all the nodes into the database
-	if _, err := tr.Commit(nil); err != nil {
+	/*if _, err := tr.Commit(nil); err != nil {
 		return nil, nil, nil, false, err
 	}
 	if err := triedb.Commit(rootHash, false, nil); err != nil {
 		return nil, nil, nil, false, err
-	}
-	return diskdb, tr, notary, hasRightElement(root, keys[len(keys)-1]), nil
+	}*/
+	return diskdb, tr, notary, hasRightElement(tr.root, keys[len(keys)-1]), nil
 }
 
 // get returns the child of the given node. Return nil if the
