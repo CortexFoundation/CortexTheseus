@@ -52,7 +52,7 @@ github.com/RoaringBitmap/roaring/internal
 # github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d
 ## explicit
 github.com/StackExchange/wmi
-# github.com/VictoriaMetrics/fastcache v1.7.0
+# github.com/VictoriaMetrics/fastcache v1.10.0
 ## explicit; go 1.13
 github.com/VictoriaMetrics/fastcache
 # github.com/ajwerner/btree v0.0.0-20211201061316-91c8b66ad617
@@ -615,7 +615,7 @@ golang.org/x/net/publicsuffix
 golang.org/x/sync/errgroup
 golang.org/x/sync/singleflight
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e
+# golang.org/x/sys v0.0.0-20220405052023-b1e9470b6e64
 ## explicit; go 1.17
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
