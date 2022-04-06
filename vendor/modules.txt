@@ -343,13 +343,13 @@ github.com/gorilla/websocket
 ## explicit; go 1.12
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
-# github.com/holiman/uint256 v1.2.1-0.20211207130952-e702bdad3b42
+# github.com/holiman/uint256 v1.2.1-0.20220325085528-78905e8fd24f
 ## explicit; go 1.13
 github.com/holiman/uint256
 # github.com/huandu/xstrings v1.3.2
 ## explicit; go 1.12
 github.com/huandu/xstrings
-# github.com/huin/goupnp v1.0.3
+# github.com/huin/goupnp v1.0.4-0.20220329063618-5d0813cf5531
 ## explicit; go 1.14
 github.com/huin/goupnp
 github.com/huin/goupnp/dcps/internetgateway1
