@@ -28,6 +28,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/console"
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
@@ -482,13 +483,34 @@ func dump(ctx *cli.Context) error {
 }
 
 func inspect(ctx *cli.Context) error {
-	node, _ := makeConfigNode(ctx)
-	defer node.Close()
+	var (
+		prefix []byte
+		start  []byte
+	)
+	if ctx.NArg() > 2 {
+		return fmt.Errorf("Max 2 arguments: %v", ctx.Command.ArgsUsage)
+	}
+	if ctx.NArg() >= 1 {
+		if d, err := hexutil.Decode(ctx.Args().Get(0)); err != nil {
+			return fmt.Errorf("failed to hex-decode 'prefix': %v", err)
+		} else {
+			prefix = d
+		}
+	}
+	if ctx.NArg() >= 2 {
+		if d, err := hexutil.Decode(ctx.Args().Get(1)); err != nil {
+			return fmt.Errorf("failed to hex-decode 'start': %v", err)
+		} else {
+			start = d
+		}
+	}
+	stack, _ := makeConfigNode(ctx)
+	defer stack.Close()
 
-	_, chainDb := utils.MakeChain(ctx, node, true)
-	defer chainDb.Close()
+	db := utils.MakeChainDatabase(ctx, stack, true)
+	defer db.Close()
 
-	return rawdb.InspectDatabase(chainDb)
+	return rawdb.InspectDatabase(db, prefix, start)
 }
 
 // hashish returns true for strings that look like hashes.

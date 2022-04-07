@@ -24,10 +24,30 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
+// ReadSnapshotDisabled retrieves if the snapshot maintenance is disabled.
+func ReadSnapshotDisabled(db ctxcdb.KeyValueReader) bool {
+	disabled, _ := db.Has(snapshotDisabledKey)
+	return disabled
+}
+
+// WriteSnapshotDisabled stores the snapshot pause flag.
+func WriteSnapshotDisabled(db ctxcdb.KeyValueWriter) {
+	if err := db.Put(snapshotDisabledKey, []byte("42")); err != nil {
+		log.Crit("Failed to store snapshot disabled flag", "err", err)
+	}
+}
+
+// DeleteSnapshotDisabled deletes the flag keeping the snapshot maintenance disabled.
+func DeleteSnapshotDisabled(db ctxcdb.KeyValueWriter) {
+	if err := db.Delete(snapshotDisabledKey); err != nil {
+		log.Crit("Failed to remove snapshot disabled flag", "err", err)
+	}
+}
+
 // ReadSnapshotRoot retrieves the root of the block whose state is contained in
 // the persisted snapshot.
 func ReadSnapshotRoot(db ctxcdb.KeyValueReader) common.Hash {
-	data, _ := db.Get(snapshotRootKey)
+	data, _ := db.Get(SnapshotRootKey)
 	if len(data) != common.HashLength {
 		return common.Hash{}
 	}
@@ -37,7 +57,7 @@ func ReadSnapshotRoot(db ctxcdb.KeyValueReader) common.Hash {
 // WriteSnapshotRoot stores the root of the block whose state is contained in
 // the persisted snapshot.
 func WriteSnapshotRoot(db ctxcdb.KeyValueWriter, root common.Hash) {
-	if err := db.Put(snapshotRootKey, root[:]); err != nil {
+	if err := db.Put(SnapshotRootKey, root[:]); err != nil {
 		log.Crit("Failed to store snapshot root", "err", err)
 	}
 }
@@ -47,7 +67,7 @@ func WriteSnapshotRoot(db ctxcdb.KeyValueWriter, root common.Hash) {
 // be used during updates, so a crash or failure will mark the entire snapshot
 // invalid.
 func DeleteSnapshotRoot(db ctxcdb.KeyValueWriter) {
-	if err := db.Delete(snapshotRootKey); err != nil {
+	if err := db.Delete(SnapshotRootKey); err != nil {
 		log.Crit("Failed to remove snapshot root", "err", err)
 	}
 }
@@ -186,13 +206,5 @@ func ReadSnapshotSyncStatus(db ctxcdb.KeyValueReader) []byte {
 func WriteSnapshotSyncStatus(db ctxcdb.KeyValueWriter, status []byte) {
 	if err := db.Put(snapshotSyncStatusKey, status); err != nil {
 		log.Crit("Failed to store snapshot sync status", "err", err)
-	}
-}
-
-// DeleteSnapshotSyncStatus deletes the serialized sync status saved at the last
-// shutdown
-func DeleteSnapshotSyncStatus(db ctxcdb.KeyValueWriter) {
-	if err := db.Delete(snapshotSyncStatusKey); err != nil {
-		log.Crit("Failed to remove snapshot sync status", "err", err)
 	}
 }

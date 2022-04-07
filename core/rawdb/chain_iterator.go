@@ -54,7 +54,6 @@ func InitDatabaseFromFreezer(db ctxcdb.Database) {
 		if err != nil {
 			log.Crit("Failed to init database from freezer", "err", err)
 		}
-
 		for j, h := range data {
 			number := i + uint64(j)
 			hash = common.BytesToHash(h)
@@ -132,7 +131,7 @@ func iterateTransactions(db ctxcdb.Database, from uint64, to uint64, reverse boo
 			}
 		}
 	}
-	// process runs in parallell
+	// process runs in parallel
 	nThreadsAlive := int32(threads)
 	process := func() {
 		defer func() {
@@ -218,8 +217,7 @@ func indexTransactions(db ctxcdb.Database, from uint64, to uint64, interrupt cha
 			txs += len(delivery.hashes)
 			// If enough data was accumulated in memory or we're at the last block, dump to disk
 			if batch.ValueSize() > ctxcdb.IdealBatchSize {
-				// Also write the tail there
-				WriteTxIndexTail(batch, lastNum)
+				WriteTxIndexTail(batch, lastNum) // Also write the tail here
 				if err := batch.Write(); err != nil {
 					log.Crit("Failed writing batch to db", "error", err)
 					return

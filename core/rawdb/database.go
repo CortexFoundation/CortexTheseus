@@ -57,7 +57,10 @@ func (frdb *freezerdb) Close() error {
 // Freeze is a helper method used for external testing to trigger and block until
 // a freeze cycle completes, without having to sleep for a minute to trigger the
 // automatic background run.
-func (frdb *freezerdb) Freeze(threshold uint64) {
+func (frdb *freezerdb) Freeze(threshold uint64) error {
+	if frdb.AncientStore.(*freezer).readonly {
+		return errReadOnly
+	}
 	// Set the freezer threshold to a temporary value
 	defer func(old uint64) {
 		atomic.StoreUint64(&frdb.AncientStore.(*freezer).threshold, old)
@@ -68,6 +71,7 @@ func (frdb *freezerdb) Freeze(threshold uint64) {
 	trigger := make(chan struct{}, 1)
 	frdb.AncientStore.(*freezer).trigger <- trigger
 	<-trigger
+	return nil
 }
 
 // nofreezedb is a database wrapper that disables freezer data retrievals.
@@ -227,12 +231,13 @@ func NewDatabaseWithFreezer(db ctxcdb.KeyValueStore, freezer string, namespace s
 		}
 	}
 	// Freezer is consistent with the key-value database, permit combining the two
-	frdb.wg.Add(1)
-	go func() {
-		frdb.freeze(db)
-		frdb.wg.Done()
-	}()
-
+	if !frdb.readonly {
+		frdb.wg.Add(1)
+		go func() {
+			frdb.freeze(db)
+			frdb.wg.Done()
+		}()
+	}
 	return &freezerdb{
 		KeyValueStore: db,
 		AncientStore:  frdb,
@@ -254,8 +259,8 @@ func NewMemoryDatabaseWithCap(size int) ctxcdb.Database {
 
 // NewLevelDBDatabase creates a persistent key-value database without a freezer
 // moving immutable chain segments into cold storage.
-func NewLevelDBDatabase(file string, cache int, handles int, namespace string) (ctxcdb.Database, error) {
-	db, err := leveldb.New(file, cache, handles, namespace)
+func NewLevelDBDatabase(file string, cache int, handles int, namespace string, readonly bool) (ctxcdb.Database, error) {
+	db, err := leveldb.New(file, cache, handles, namespace, readonly)
 	if err != nil {
 		return nil, err
 	}
@@ -265,7 +270,7 @@ func NewLevelDBDatabase(file string, cache int, handles int, namespace string) (
 // NewLevelDBDatabaseWithFreezer creates a persistent key-value database with a
 // freezer moving immutable chain segments into cold storage.
 func NewLevelDBDatabaseWithFreezer(file string, cache int, handles int, freezer string, namespace string, readonly bool) (ctxcdb.Database, error) {
-	kvdb, err := leveldb.New(file, cache, handles, namespace)
+	kvdb, err := leveldb.New(file, cache, handles, namespace, readonly)
 	if err != nil {
 		return nil, err
 	}
@@ -309,8 +314,8 @@ func (s *stat) Count() string {
 
 // InspectDatabase traverses the entire database and checks the size
 // of all different categories of data.
-func InspectDatabase(db ctxcdb.Database) error {
-	it := db.NewIterator(nil, nil)
+func InspectDatabase(db ctxcdb.Database, keyPrefix, keyStart []byte) error {
+	it := db.NewIterator(keyPrefix, keyStart)
 	defer it.Release()
 
 	var (
@@ -332,6 +337,7 @@ func InspectDatabase(db ctxcdb.Database) error {
 		storageSnaps    stat
 		preimages       stat
 		bloomBits       stat
+		beaconHeaders   stat
 		cliqueSnaps     stat
 
 		// Ancient store statistics
@@ -374,7 +380,7 @@ func InspectDatabase(db ctxcdb.Database) error {
 			hashNumPairings.Add(size)
 		case len(key) == common.HashLength:
 			tries.Add(size)
-		case bytes.HasPrefix(key, codePrefix) && len(key) == len(codePrefix)+common.HashLength:
+		case bytes.HasPrefix(key, CodePrefix) && len(key) == len(CodePrefix)+common.HashLength:
 			codes.Add(size)
 		case bytes.HasPrefix(key, txLookupPrefix) && len(key) == (len(txLookupPrefix)+common.HashLength):
 			txLookups.Add(size)
@@ -382,21 +388,36 @@ func InspectDatabase(db ctxcdb.Database) error {
 			accountSnaps.Add(size)
 		case bytes.HasPrefix(key, SnapshotStoragePrefix) && len(key) == (len(SnapshotStoragePrefix)+2*common.HashLength):
 			storageSnaps.Add(size)
-		case bytes.HasPrefix(key, preimagePrefix) && len(key) == (len(preimagePrefix)+common.HashLength):
+		case bytes.HasPrefix(key, PreimagePrefix) && len(key) == (len(PreimagePrefix)+common.HashLength):
 			preimages.Add(size)
 		case bytes.HasPrefix(key, configPrefix) && len(key) == (len(configPrefix)+common.HashLength):
 			metadata.Add(size)
+		case bytes.HasPrefix(key, genesisPrefix) && len(key) == (len(genesisPrefix)+common.HashLength):
+			metadata.Add(size)
 		case bytes.HasPrefix(key, bloomBitsPrefix) && len(key) == (len(bloomBitsPrefix)+10+common.HashLength):
 			bloomBits.Add(size)
+		case bytes.HasPrefix(key, BloomBitsIndexPrefix):
+			bloomBits.Add(size)
+		case bytes.HasPrefix(key, skeletonHeaderPrefix) && len(key) == (len(skeletonHeaderPrefix)+8):
+			beaconHeaders.Add(size)
 		case bytes.HasPrefix(key, []byte("clique-")) && len(key) == 7+common.HashLength:
 			cliqueSnaps.Add(size)
-		case bytes.HasPrefix(key, []byte("cht-")) && len(key) == 4+common.HashLength:
+		case bytes.HasPrefix(key, []byte("cht-")) ||
+			bytes.HasPrefix(key, []byte("chtIndexV2-")) ||
+			bytes.HasPrefix(key, []byte("chtRootV2-")): // Canonical hash trie
 			chtTrieNodes.Add(size)
-		case bytes.HasPrefix(key, []byte("blt-")) && len(key) == 4+common.HashLength:
+		case bytes.HasPrefix(key, []byte("blt-")) ||
+			bytes.HasPrefix(key, []byte("bltIndex-")) ||
+			bytes.HasPrefix(key, []byte("bltRoot-")): // Bloomtrie sub
 			bloomTrieNodes.Add(size)
 		default:
 			var accounted bool
-			for _, meta := range [][]byte{databaseVersionKey, headHeaderKey, headBlockKey, headFastBlockKey, fastTrieProgressKey, uncleanShutdownKey} {
+			for _, meta := range [][]byte{
+				databaseVersionKey, headHeaderKey, headBlockKey, headFastBlockKey, lastPivotKey,
+				fastTrieProgressKey, snapshotDisabledKey, SnapshotRootKey, snapshotJournalKey,
+				snapshotGeneratorKey, snapshotRecoveryKey, txIndexTailKey, fastTxLookupLimitKey,
+				uncleanShutdownKey, badBlockKey, transitionStatusKey, skeletonSyncStatusKey,
+			} {
 				if bytes.Equal(key, meta) {
 					metadata.Add(size)
 					accounted = true
@@ -441,6 +462,7 @@ func InspectDatabase(db ctxcdb.Database) error {
 		{"Key-Value store", "Trie preimages", preimages.Size(), preimages.Count()},
 		{"Key-Value store", "Account snapshot", accountSnaps.Size(), accountSnaps.Count()},
 		{"Key-Value store", "Storage snapshot", storageSnaps.Size(), storageSnaps.Count()},
+		{"Key-Value store", "Beacon sync headers", beaconHeaders.Size(), beaconHeaders.Count()},
 		{"Key-Value store", "Clique snapshots", cliqueSnaps.Size(), cliqueSnaps.Count()},
 		{"Key-Value store", "Singleton metadata", metadata.Size(), metadata.Count()},
 		{"Ancient store", "Headers", ancientHeadersSize.String(), ancients.String()},
