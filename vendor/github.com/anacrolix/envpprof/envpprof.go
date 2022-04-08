@@ -65,7 +65,7 @@ func startHTTP(value string) {
 		if err == nil {
 			addr = value
 		} else {
-			addr = "localhost:"+value
+			addr = "localhost:" + value
 		}
 		l, err = net.Listen("tcp", addr)
 		if err != nil {
@@ -111,11 +111,15 @@ func init() {
 			}
 			log.Printf("cpu profiling to file %q", f.Name())
 		case "block":
-			runtime.SetBlockProfileRate(1)
+			// Taken from Safe Rate at
+			// https://github.com/DataDog/go-profiler-notes/blob/main/guide/README.md#go-profilers.
+			runtime.SetBlockProfileRate(10000)
 		case "heap":
 			heap = true
 		case "mutex":
-			runtime.SetMutexProfileFraction(1)
+			// Taken from Safe Rate at
+			// https://github.com/DataDog/go-profiler-notes/blob/main/guide/README.md#go-profilers.
+			runtime.SetMutexProfileFraction(100)
 		default:
 			log.Printf("unexpected GOPPROF key %q", key)
 		}
