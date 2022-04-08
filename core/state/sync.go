@@ -29,7 +29,7 @@ import (
 // NewStateSync create a new state trie download scheduler.
 func NewStateSync(root common.Hash, database ctxcdb.KeyValueReader, bloom *trie.SyncBloom) *trie.Sync {
 	var syncer *trie.Sync
-	callback := func(path []byte, leaf []byte, parent common.Hash) error {
+	callback := func(paths [][]byte, path []byte, leaf []byte, parent common.Hash) error {
 		var obj types.StateAccount
 		if err := rlp.Decode(bytes.NewReader(leaf), &obj); err != nil {
 			return err
