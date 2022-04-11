@@ -7,7 +7,7 @@ require (
 	github.com/CortexFoundation/inference v1.0.2-0.20220302034424-558a744e6fa7
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 	github.com/CortexFoundation/torrentfs v1.0.25-0.20220331064411-2536eaaa32b8
-	github.com/VictoriaMetrics/fastcache v1.7.0
+	github.com/VictoriaMetrics/fastcache v1.10.0
 	github.com/arsham/figurine v1.0.1
 	github.com/aws/aws-sdk-go-v2 v1.3.0
 	github.com/aws/aws-sdk-go-v2/config v1.1.3
@@ -55,7 +55,7 @@ require (
 	github.com/ucwong/tsdb v0.10.4-0.20200518132041-df9cb51f3a80
 	golang.org/x/crypto v0.0.0-20220131195533-30dcbda58838
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e
+	golang.org/x/sys v0.0.0-20220405052023-b1e9470b6e64
 	golang.org/x/text v0.3.7
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac
 	golang.org/x/tools v0.1.0
