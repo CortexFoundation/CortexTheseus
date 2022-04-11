@@ -28,7 +28,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
-	"github.com/steakknife/bloomfilter"
+	bloomfilter "github.com/holiman/bloomfilter/v2"
 )
 
 var (
