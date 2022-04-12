@@ -14,27 +14,4 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
-package leveldb
-
-import (
-	"testing"
-
-	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
-	"github.com/CortexFoundation/CortexTheseus/ctxcdb/dbtest"
-	"github.com/syndtr/goleveldb/leveldb"
-	"github.com/syndtr/goleveldb/leveldb/storage"
-)
-
-func TestLevelDB(t *testing.T) {
-	t.Run("DatabaseSuite", func(t *testing.T) {
-		dbtest.TestDatabaseSuite(t, func() ctxcdb.KeyValueStore {
-			db, err := leveldb.Open(storage.NewMemStorage(), nil)
-			if err != nil {
-				t.Fatal(err)
-			}
-			return &Database{
-				db: db,
-			}
-		})
-	})
-}
+package rawdb

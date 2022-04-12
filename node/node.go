@@ -641,7 +641,7 @@ func (n *Node) OpenDatabase(name string, cache, handles int, namespace string) (
 	if n.config.DataDir == "" {
 		return rawdb.NewMemoryDatabase(), nil
 	}
-	return rawdb.NewLevelDBDatabase(n.config.ResolvePath(name), cache, handles, namespace)
+	return rawdb.NewLevelDBDatabase(n.config.ResolvePath(name), cache, handles, namespace, false)
 }
 
 // OpenDatabaseWithFreezer opens an existing database with the given name (or

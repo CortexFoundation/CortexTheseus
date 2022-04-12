@@ -45,7 +45,7 @@ func (ctx *ServiceContext) OpenDatabase(name string, cache int, handles int, nam
 	if ctx.Config.DataDir == "" {
 		return rawdb.NewMemoryDatabase(), nil
 	}
-	return rawdb.NewLevelDBDatabase(ctx.Config.ResolvePath(name), cache, handles, namespace)
+	return rawdb.NewLevelDBDatabase(ctx.Config.ResolvePath(name), cache, handles, namespace, false)
 }
 
 // OpenDatabaseWithFreezer opens an existing database with the given name (or

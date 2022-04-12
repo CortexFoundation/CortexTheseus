@@ -77,7 +77,7 @@ type AncientReader interface {
 	// Ancient retrieves an ancient binary blob from the append-only immutable files.
 	Ancient(kind string, number uint64) ([]byte, error)
 
-	// ReadAncients retrieves multiple items in sequence, starting from the index 'start'.
+	// AncientRange retrieves multiple items in sequence, starting from the index 'start'.
 	// It will return
 	//  - at most 'count' items,
 	//  - at least 1 item (even if exceeding the maxBytes), but will otherwise

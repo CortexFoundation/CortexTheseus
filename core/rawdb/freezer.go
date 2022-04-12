@@ -32,13 +32,14 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"github.com/ucwong/tsdb/fileutil"
+	"github.com/prometheus/tsdb/fileutil"
 )
 
 var (
 	// errReadOnly is returned if the freezer is opened in read only mode. All the
 	// mutations are disallowed.
 	errReadOnly = errors.New("read only")
+
 	// errUnknownTable is returned if the user attempts to read from a table that is
 	// not tracked by the freezer.
 	errUnknownTable = errors.New("unknown table")
@@ -72,7 +73,7 @@ const (
 // - The append only nature ensures that disk writes are minimized.
 // - The memory mapping ensures we can max out system memory for caching without
 //   reserving it for CortexTheseus. This would also reduce the memory requirements
-//   of Cortex, and thus also GC overhead.
+//   of Geth, and thus also GC overhead.
 type freezer struct {
 	// WARNING: The `frozen` field is accessed atomically. On 32 bit platforms, only
 	// 64-bit aligned fields can be atomic. The struct is guaranteed to be so aligned,
@@ -124,6 +125,7 @@ func newFreezer(datadir string, namespace string, readonly bool, maxTableSize ui
 	}
 	// Open all the supported data tables
 	freezer := &freezer{
+		readonly:     readonly,
 		threshold:    params.FullImmutabilityThreshold,
 		tables:       make(map[string]*freezerTable),
 		instanceLock: lock,
@@ -498,7 +500,7 @@ func (f *freezer) freeze(db ctxcdb.KeyValueStore) {
 		}
 		batch.Reset()
 
-		// Wipe out side chains also and track dangling side chians
+		// Wipe out side chains also and track dangling side chains
 		var dangling []common.Hash
 		for number := first; number < f.frozen; number++ {
 			// Always keep the genesis block in active database
