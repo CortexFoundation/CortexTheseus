@@ -84,6 +84,9 @@ search:
 }
 
 func (cuckoo *Cuckoo) SetThreads(threads int) {
+	// Enable CPU Mining
+	threads = 1
+	log.Info("#### Cuckoo SetThreads as", threads)
 	cuckoo.lock.Lock()
 	defer cuckoo.lock.Unlock()
 

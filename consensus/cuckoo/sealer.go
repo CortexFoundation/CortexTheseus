@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/big"
 	"math/rand"
+
 	//"runtime"
 	"sync"
 	"time"
@@ -72,6 +73,7 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainHeaderReader, block *types.Block
 	//}
 
 	var pend sync.WaitGroup
+	log.Info("#### Before Mine, Thread is", cuckoo.threads)
 	for i := 0; i < cuckoo.threads; i++ {
 		pend.Add(1)
 		var err error
