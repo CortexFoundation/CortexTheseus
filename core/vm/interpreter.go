@@ -58,7 +58,7 @@ type Config struct {
 	StorageDir   string
 	// Storagefs    torrentfs.CVMStorage
 	//JumpTable [256]*operation // CVM instruction table, automatically populated if unset
-	JumpTable *JumpTable // EVM instruction table, automatically populated if unset
+	JumpTable *JumpTable // CVM instruction table, automatically populated if unset
 
 	ExtraEips []int // Additional EIPS that are to be enabled
 }

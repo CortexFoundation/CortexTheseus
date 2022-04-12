@@ -371,7 +371,7 @@ func downloadLinter(cachedir string) string {
 	if err := csdb.DownloadFile(url, archivePath); err != nil {
 		log.Fatal(err)
 	}
-	if err := build.ExtractTarballArchive(archivePath, cachedir); err != nil {
+	if err := build.ExtractArchive(archivePath, cachedir); err != nil {
 		log.Fatal(err)
 	}
 	return filepath.Join(cachedir, base, "golangci-lint")
@@ -529,7 +529,7 @@ func doDebianSource(cmdline []string) {
 			pkgdir := stageDebianSource(*workdir, meta)
 
 			// Add Go source code
-			if err := build.ExtractTarballArchive(gobundle, pkgdir); err != nil {
+			if err := build.ExtractArchive(gobundle, pkgdir); err != nil {
 				log.Fatalf("Failed to extract Go sources: %v", err)
 			}
 			if err := os.Rename(filepath.Join(pkgdir, "go"), filepath.Join(pkgdir, ".go")); err != nil {
@@ -973,6 +973,10 @@ func doXCodeFramework(cmdline []string) {
 	)
 	flag.CommandLine.Parse(cmdline)
 	env := build.Env()
+	tc := new(build.GoToolchain)
+
+	// Build gomobile.
+	build.MustRun(tc.Install(GOBIN, "golang.org/x/mobile/cmd/gomobile", "golang.org/x/mobile/cmd/gobind"))
 
 	// Build the iOS XCode framework
 	build.MustRun(goTool("get", "golang.org/x/mobile/cmd/gomobile", "golang.org/x/mobile/cmd/gobind"))
