@@ -158,6 +158,7 @@ func (tm *TorrentManager) pauseLocalSeedFile(ih string) error {
 
 	tm.localSeedLock.Lock()
 	defer tm.localSeedLock.Unlock()
+
 	if valid, ok := tm.localSeedFiles[ih]; !ok {
 		return errors.New(fmt.Sprintf("Not Local Seeding File<%s>", ih))
 	} else if _, ok := GoodFiles[ih]; ok {
@@ -209,6 +210,7 @@ func (tm *TorrentManager) listAllTorrents() map[string]map[string]int {
 	tm.localSeedLock.RLock()
 	defer tm.lock.RUnlock()
 	defer tm.localSeedLock.RUnlock()
+
 	tts := make(map[string]map[string]int)
 	for ih, tt := range tm.torrents {
 		tType := torrentTypeOnChain
