@@ -81,7 +81,7 @@ func init() {
 	}
 }
 
-//go:generate gencodec -type Config -formats toml -out gen_config.go
+//go:generate go run github.com/fjl/gencodec@latest -type Config -formats toml -out gen_config.go
 type Config struct {
 	// The genesis block, which is inserted if the database is empty.
 	// If nil, the Cortex main net block is used.
