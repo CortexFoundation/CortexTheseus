@@ -33,7 +33,6 @@ Available commands are:
    nsis                                                                                        -- creates a Windows NSIS installer
    aar        [ -local ] [ -sign key-id ] [-deploy repo] [ -upload dest ]                      -- creates an Android archive
    xcode      [ -local ] [ -sign key-id ] [-deploy repo] [ -upload dest ]                      -- creates an iOS XCode framework
-   xgo        [ -alltools ] [ options ]                                                        -- cross builds according to options
    purge      [ -store blobstore ] [ -days threshold ]                                         -- purges old archives from the blobstore
 
 For all commands, -n prevents execution of external programs (dry run mode).
@@ -47,18 +46,19 @@ import (
 	"encoding/base64"
 	"flag"
 	"fmt"
-	"go/parser"
-	"go/token"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
-	signifyPkg "github.com/CortexFoundation/CortexTheseus/crypto/signify"
+	"github.com/CortexFoundation/CortexTheseus/crypto/signify"
 	"github.com/CortexFoundation/CortexTheseus/internal/build"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/cespare/cp"
@@ -78,8 +78,8 @@ var (
 		executablePath("bootnode"),
 		executablePath("cvm"),
 		executablePath("cortex"),
-		executablePath("rlpdump"),
 		executablePath("wnode"),
+		executablePath("rlpdump"),
 		executablePath("clef"),
 	}
 
@@ -102,12 +102,12 @@ var (
 			Description: "Cortex CLI client.",
 		},
 		{
-			BinaryName:  "rlpdump",
-			Description: "Developer utility tool that prints RLP structures.",
+			BinaryName:  "wnode",
+			Description: "Cortex whisper node.",
 		},
 		{
-			BinaryName:  "wnode",
-			Description: "Cortex Whisper diagnostic tool",
+			BinaryName:  "rlpdump",
+			Description: "Developer utility tool that prints RLP structures.",
 		},
 		{
 			BinaryName:  "clef",
@@ -116,7 +116,6 @@ var (
 	}
 
 	// A debian package is created for all executables listed here.
-
 	debCortex = debPackage{
 		Name:        "cortex",
 		Version:     params.Version,
@@ -130,24 +129,20 @@ var (
 
 	// Distros for which packages are created.
 	// Note: vivid is unsupported because there is no golang-1.6 package for it.
-	// Note: wily is unsupported because it was officially deprecated on Launchpad.
-	// Note: yakkety is unsupported because it was officially deprecated on Launchpad.
-	// Note: zesty is unsupported because it was officially deprecated on Launchpad.
-	// Note: artful is unsupported because it was officially deprecated on Launchpad.
-	// Note: cosmic is unsupported because it was officially deprecated on Launchpad.
+	// Note: the following Ubuntu releases have been officially deprecated on Launchpad:
+	//   wily, yakkety, zesty, artful, cosmic, disco, eoan, groovy, hirsuite
 	debDistroGoBoots = map[string]string{
-		"trusty":  "golang-1.15",
-		"xenial":  "golang-go",
-		"bionic":  "golang-go",
-		"eoan":    "golang-go",
-		"focal":   "golang-go",
-		"groovy":  "golang-go",
-		"hirsute": "golang-go",
+		"trusty": "golang-1.18.1", // EOL: 04/2024
+		"xenial": "golang-go",     // EOL: 04/2026
+		"bionic": "golang-go",     // EOL: 04/2028
+		"focal":  "golang-go",     // EOL: 04/2030
+		"impish": "golang-go",     // EOL: 07/2022
+		// "jammy": "golang-go",   // EOL: 04/2027
 	}
 
 	debGoBootPaths = map[string]string{
-		"golang-1.15": "/usr/lib/go-1.15",
-		"golang-go":   "/usr/lib/go",
+		"golang-1.18.1": "/usr/lib/go-1.18.1",
+		"golang-go":     "/usr/lib/go",
 	}
 
 	// This is the version of go that will be downloaded by
@@ -183,6 +178,8 @@ func main() {
 		doLint(os.Args[2:])
 	case "archive":
 		doArchive(os.Args[2:])
+	case "docker":
+		doDocker(os.Args[2:])
 	case "debsrc":
 		doDebianSource(os.Args[2:])
 	case "nsis":
@@ -191,8 +188,6 @@ func main() {
 		doAndroidArchive(os.Args[2:])
 	case "xcode":
 		doXCodeFramework(os.Args[2:])
-	case "xgo":
-		doXgo(os.Args[2:])
 	case "purge":
 		doPurge(os.Args[2:])
 	default:
@@ -204,108 +199,74 @@ func main() {
 
 func doInstall(cmdline []string) {
 	var (
+		dlgo = flag.Bool("dlgo", false, "Download Go and build with it")
 		arch = flag.String("arch", "", "Architecture to cross build for")
 		cc   = flag.String("cc", "", "C compiler to cross build with")
 	)
 	flag.CommandLine.Parse(cmdline)
+
+	// Configure the toolchain.
+	tc := build.GoToolchain{GOARCH: *arch, CC: *cc}
+	if *dlgo {
+		csdb := build.MustLoadChecksums("build/checksums.txt")
+		tc.Root = build.DownloadGo(csdb, dlgoVersion)
+	}
+
+	// Configure the build.
 	env := build.Env()
+	gobuild := tc.Go("build", buildFlags(env)...)
 
-	// Check Go version. People regularly open issues about compilation
-	// failure with outdated Go. This should save them the trouble.
-	if !strings.Contains(runtime.Version(), "devel") {
-		// Figure out the minor version number since we can't textually compare (1.10 < 1.9)
-		var minor int
-		fmt.Sscanf(strings.TrimPrefix(runtime.Version(), "go1."), "%d", &minor)
-
-		if minor < 14 {
-			log.Println("You have Go version", runtime.Version())
-			log.Println("CortexTheseus requires at least Go version 1.15 and cannot")
-			log.Println("be compiled with an earlier version. Please upgrade your Go installation.")
-			os.Exit(1)
-		}
-	}
-	// Compile packages given as arguments, or everything if there are no arguments.
-	packages := []string{"./..."}
-	if flag.NArg() > 0 {
-		packages = flag.Args()
+	// arm64 CI builders are memory-constrained and can't handle concurrent builds,
+	// better disable it. This check isn't the best, it should probably
+	// check for something in env instead.
+	if env.CI && runtime.GOARCH == "arm64" {
+		gobuild.Args = append(gobuild.Args, "-p", "1")
 	}
 
-	if *arch == "" || *arch == runtime.GOARCH {
-		goinstall := goTool("install", buildFlags(env)...)
-		if runtime.GOARCH == "arm64" {
-			goinstall.Args = append(goinstall.Args, "-p", "1")
-		}
-		goinstall.Args = append(goinstall.Args, "-v")
-		goinstall.Args = append(goinstall.Args, packages...)
-		build.MustRun(goinstall)
-		return
+	// We use -trimpath to avoid leaking local paths into the built executables.
+	gobuild.Args = append(gobuild.Args, "-trimpath")
+
+	// Show packages during build.
+	gobuild.Args = append(gobuild.Args, "-v")
+
+	// Now we choose what we're even building.
+	// Default: collect all 'main' packages in cmd/ and build those.
+	packages := flag.Args()
+	if len(packages) == 0 {
+		packages = build.FindMainPackages("./cmd")
 	}
 
-	// Seems we are cross compiling, work around forbidden GOBIN
-	goinstall := goToolArch(*arch, *cc, "install", buildFlags(env)...)
-	goinstall.Args = append(goinstall.Args, "-v")
-	goinstall.Args = append(goinstall.Args, []string{"-buildmode", "archive"}...)
-	goinstall.Args = append(goinstall.Args, packages...)
-	build.MustRun(goinstall)
-
-	if cmds, err := os.ReadDir("cmd"); err == nil {
-		for _, cmd := range cmds {
-			pkgs, err := parser.ParseDir(token.NewFileSet(), filepath.Join(".", "cmd", cmd.Name()), nil, parser.PackageClauseOnly)
-			if err != nil {
-				log.Fatal(err)
-			}
-			for name := range pkgs {
-				if name == "main" {
-					gobuild := goToolArch(*arch, *cc, "build", buildFlags(env)...)
-					gobuild.Args = append(gobuild.Args, "-v")
-					gobuild.Args = append(gobuild.Args, []string{"-o", executablePath(cmd.Name())}...)
-					gobuild.Args = append(gobuild.Args, "."+string(filepath.Separator)+filepath.Join("cmd", cmd.Name()))
-					build.MustRun(gobuild)
-					break
-				}
-			}
-		}
+	// Do the build!
+	for _, pkg := range packages {
+		args := make([]string, len(gobuild.Args))
+		copy(args, gobuild.Args)
+		args = append(args, "-o", executablePath(path.Base(pkg)))
+		args = append(args, pkg)
+		build.MustRun(&exec.Cmd{Path: gobuild.Path, Args: args, Env: gobuild.Env})
 	}
 }
 
+// buildFlags returns the go tool flags for building.
 func buildFlags(env build.Environment) (flags []string) {
 	var ld []string
 	if env.Commit != "" {
 		ld = append(ld, "-X", "main.gitCommit="+env.Commit)
 		ld = append(ld, "-X", "main.gitDate="+env.Date)
 	}
+	// Strip DWARF on darwin. This used to be required for certain things,
+	// and there is no downside to this, so we just keep doing it.
 	if runtime.GOOS == "darwin" {
 		ld = append(ld, "-s")
 	}
-
+	// Enforce the stacksize to 8M, which is the case on most platforms apart from
+	// alpine Linux.
+	if runtime.GOOS == "linux" {
+		ld = append(ld, "-extldflags", "-Wl,-z,stack-size=0x800000")
+	}
 	if len(ld) > 0 {
 		flags = append(flags, "-ldflags", strings.Join(ld, " "))
 	}
 	return flags
-}
-
-func goTool(subcmd string, args ...string) *exec.Cmd {
-	return goToolArch(runtime.GOARCH, os.Getenv("CC"), subcmd, args...)
-}
-
-func goToolArch(arch string, cc string, subcmd string, args ...string) *exec.Cmd {
-	cmd := build.GoTool(subcmd, args...)
-	if arch == "" || arch == runtime.GOARCH {
-		cmd.Env = append(cmd.Env, "GOBIN="+GOBIN)
-	} else {
-		cmd.Env = append(cmd.Env, "CGO_ENABLED=1")
-		cmd.Env = append(cmd.Env, "GOARCH="+arch)
-	}
-	if cc != "" {
-		cmd.Env = append(cmd.Env, "CC="+cc)
-	}
-	for _, e := range os.Environ() {
-		if strings.HasPrefix(e, "GOBIN=") {
-			continue
-		}
-		cmd.Env = append(cmd.Env, e)
-	}
-	return cmd
 }
 
 // Running The Tests
@@ -313,20 +274,26 @@ func goToolArch(arch string, cc string, subcmd string, args ...string) *exec.Cmd
 // "tests" also includes static analysis tools such as vet.
 
 func doTest(cmdline []string) {
-	coverage := flag.Bool("coverage", false, "Whether to record code coverage")
-	verbose := flag.Bool("v", false, "Whether to log verbosely")
+	var (
+		dlgo     = flag.Bool("dlgo", false, "Download Go and build with it")
+		arch     = flag.String("arch", "", "Run tests for given architecture")
+		cc       = flag.String("cc", "", "Sets C compiler binary")
+		coverage = flag.Bool("coverage", false, "Whether to record code coverage")
+		verbose  = flag.Bool("v", false, "Whether to log verbosely")
+		race     = flag.Bool("race", false, "Execute the race detector")
+	)
 	flag.CommandLine.Parse(cmdline)
-	env := build.Env()
 
-	packages := []string{"./..."}
-	if len(flag.CommandLine.Args()) > 0 {
-		packages = flag.CommandLine.Args()
+	// Configure the toolchain.
+	tc := build.GoToolchain{GOARCH: *arch, CC: *cc}
+	if *dlgo {
+		csdb := build.MustLoadChecksums("build/checksums.txt")
+		tc.Root = build.DownloadGo(csdb, dlgoVersion)
 	}
+	gotest := tc.Go("test")
 
-	// Run the actual tests.
 	// Test a single package at a time. CI builders are slow
 	// and some tests run into timeouts under load.
-	gotest := goTool("test", buildFlags(env)...)
 	gotest.Args = append(gotest.Args, "-p", "1")
 	if *coverage {
 		gotest.Args = append(gotest.Args, "-covermode=atomic", "-cover")
@@ -334,7 +301,14 @@ func doTest(cmdline []string) {
 	if *verbose {
 		gotest.Args = append(gotest.Args, "-v")
 	}
+	if *race {
+		gotest.Args = append(gotest.Args, "-race")
+	}
 
+	packages := []string{"./..."}
+	if len(flag.CommandLine.Args()) > 0 {
+		packages = flag.CommandLine.Args()
+	}
 	gotest.Args = append(gotest.Args, packages...)
 	build.MustRun(gotest)
 }
@@ -389,7 +363,7 @@ func doArchive(cmdline []string) {
 		atype   = flag.String("type", "zip", "Type of archive to write (zip|tar)")
 		signer  = flag.String("signer", "", `Environment variable holding the signing key (e.g. LINUX_SIGNING_KEY)`)
 		signify = flag.String("signify", "", `Environment variable holding the signify key (e.g. LINUX_SIGNIFY_KEY)`)
-		upload  = flag.String("upload", "", `Destination to upload the archives (usually "gethstore/builds")`)
+		upload  = flag.String("upload", "", `Destination to upload the archives (usually "cortexstore/builds")`)
 		ext     string
 	)
 	flag.CommandLine.Parse(cmdline)
@@ -403,8 +377,7 @@ func doArchive(cmdline []string) {
 	}
 
 	var (
-		env = build.Env()
-
+		env        = build.Env()
 		basecortex = archiveBasename(*arch, params.ArchiveVersion(env.Commit))
 		cortex     = "cortex-" + basecortex + ext
 		alltools   = "cortex-alltools-" + basecortex + ext
@@ -437,7 +410,7 @@ func archiveBasename(arch string, archiveVersion string) string {
 	return platform + "-" + archiveVersion
 }
 
-func archiveUpload(archive string, blobstore string, signer string, signify string) error {
+func archiveUpload(archive string, blobstore string, signer string, signifyVar string) error {
 	// If signing was requested, generate the signature files
 	if signer != "" {
 		key := getenvBase64(signer)
@@ -445,9 +418,11 @@ func archiveUpload(archive string, blobstore string, signer string, signify stri
 			return err
 		}
 	}
-	if signify != "" {
-		key := getenvBase64(string(signify))
-		if err := signifyPkg.SignifySignFile(archive, archive+".sig", string(key), "verify with geth.pub", fmt.Sprintf("%d", time.Now().UTC().Unix())); err != nil {
+	if signifyVar != "" {
+		key := os.Getenv(signifyVar)
+		untrustedComment := "verify with cortex-release.pub"
+		trustedComment := fmt.Sprintf("%s (%s)", archive, time.Now().UTC().Format(time.RFC1123))
+		if err := signify.SignFile(archive, archive+".sig", key, untrustedComment, trustedComment); err != nil {
 			return err
 		}
 	}
@@ -466,7 +441,7 @@ func archiveUpload(archive string, blobstore string, signer string, signify stri
 				return err
 			}
 		}
-		if signify != "" {
+		if signifyVar != "" {
 			if err := build.AzureBlobstoreUpload(archive+".sig", filepath.Base(archive+".sig"), auth); err != nil {
 				return err
 			}
@@ -478,33 +453,199 @@ func archiveUpload(archive string, blobstore string, signer string, signify stri
 // skips archiving for some build configurations.
 func maybeSkipArchive(env build.Environment) {
 	if env.IsPullRequest {
-		log.Printf("skipping because this is a PR build")
+		log.Printf("skipping archive creation because this is a PR build")
 		os.Exit(0)
 	}
 	if env.IsCronJob {
-		log.Printf("skipping because this is a cron job")
+		log.Printf("skipping archive creation because this is a cron job")
 		os.Exit(0)
 	}
 	if env.Branch != "master" && !strings.HasPrefix(env.Tag, "v1.") {
-		log.Printf("skipping because branch %q, tag %q is not on the whitelist", env.Branch, env.Tag)
+		log.Printf("skipping archive creation because branch %q, tag %q is not on the inclusion list", env.Branch, env.Tag)
 		os.Exit(0)
+	}
+}
+
+// Builds the docker images and optionally uploads them to Docker Hub.
+func doDocker(cmdline []string) {
+	var (
+		image    = flag.Bool("image", false, `Whether to build and push an arch specific docker image`)
+		manifest = flag.String("manifest", "", `Push a multi-arch docker image for the specified architectures (usually "amd64,arm64")`)
+		upload   = flag.String("upload", "", `Where to upload the docker image (usually "cortex/client-go")`)
+	)
+	flag.CommandLine.Parse(cmdline)
+
+	// Skip building and pushing docker images for PR builds
+	env := build.Env()
+	maybeSkipArchive(env)
+
+	// Retrieve the upload credentials and authenticate
+	user := getenvBase64("DOCKER_HUB_USERNAME")
+	pass := getenvBase64("DOCKER_HUB_PASSWORD")
+
+	if len(user) > 0 && len(pass) > 0 {
+		auther := exec.Command("docker", "login", "-u", string(user), "--password-stdin")
+		auther.Stdin = bytes.NewReader(pass)
+		build.MustRun(auther)
+	}
+	// Retrieve the version infos to build and push to the following paths:
+	//  - cortex/client-go:latest                            - Pushes to the master branch, Geth only
+	//  - cortex/client-go:stable                            - Version tag publish on GitHub, Geth only
+	//  - cortex/client-go:alltools-latest                   - Pushes to the master branch, Geth & tools
+	//  - cortex/client-go:alltools-stable                   - Version tag publish on GitHub, Geth & tools
+	//  - cortex/client-go:release-<major>.<minor>           - Version tag publish on GitHub, Geth only
+	//  - cortex/client-go:alltools-release-<major>.<minor>  - Version tag publish on GitHub, Geth & tools
+	//  - cortex/client-go:v<major>.<minor>.<patch>          - Version tag publish on GitHub, Geth only
+	//  - cortex/client-go:alltools-v<major>.<minor>.<patch> - Version tag publish on GitHub, Geth & tools
+	var tags []string
+
+	switch {
+	case env.Branch == "master":
+		tags = []string{"latest"}
+	case strings.HasPrefix(env.Tag, "v1."):
+		tags = []string{"stable", fmt.Sprintf("release-1.%d", params.VersionMinor), "v" + params.Version}
+	}
+	// If architecture specific image builds are requested, build and push them
+	if *image {
+		build.MustRunCommand("docker", "build", "--build-arg", "COMMIT="+env.Commit, "--build-arg", "VERSION="+params.VersionWithMeta, "--build-arg", "BUILDNUM="+env.Buildnum, "--tag", fmt.Sprintf("%s:TAG", *upload), ".")
+		build.MustRunCommand("docker", "build", "--build-arg", "COMMIT="+env.Commit, "--build-arg", "VERSION="+params.VersionWithMeta, "--build-arg", "BUILDNUM="+env.Buildnum, "--tag", fmt.Sprintf("%s:alltools-TAG", *upload), "-f", "Dockerfile.alltools", ".")
+
+		// Tag and upload the images to Docker Hub
+		for _, tag := range tags {
+			cortexImage := fmt.Sprintf("%s:%s-%s", *upload, tag, runtime.GOARCH)
+			toolImage := fmt.Sprintf("%s:alltools-%s-%s", *upload, tag, runtime.GOARCH)
+
+			// If the image already exists (non version tag), check the build
+			// number to prevent overwriting a newer commit if concurrent builds
+			// are running. This is still a tiny bit racey if two published are
+			// done at the same time, but that's extremely unlikely even on the
+			// master branch.
+			for _, img := range []string{cortexImage, toolImage} {
+				if exec.Command("docker", "pull", img).Run() != nil {
+					continue // Generally the only failure is a missing image, which is good
+				}
+				buildnum, err := exec.Command("docker", "inspect", "--format", "{{index .Config.Labels \"buildnum\"}}", img).CombinedOutput()
+				if err != nil {
+					log.Fatalf("Failed to inspect container: %v\nOutput: %s", err, string(buildnum))
+				}
+				buildnum = bytes.TrimSpace(buildnum)
+
+				if len(buildnum) > 0 && len(env.Buildnum) > 0 {
+					oldnum, err := strconv.Atoi(string(buildnum))
+					if err != nil {
+						log.Fatalf("Failed to parse old image build number: %v", err)
+					}
+					newnum, err := strconv.Atoi(env.Buildnum)
+					if err != nil {
+						log.Fatalf("Failed to parse current build number: %v", err)
+					}
+					if oldnum > newnum {
+						log.Fatalf("Current build number %d not newer than existing %d", newnum, oldnum)
+					} else {
+						log.Printf("Updating %s from build %d to %d", img, oldnum, newnum)
+					}
+				}
+			}
+			build.MustRunCommand("docker", "image", "tag", fmt.Sprintf("%s:TAG", *upload), cortexImage)
+			build.MustRunCommand("docker", "image", "tag", fmt.Sprintf("%s:alltools-TAG", *upload), toolImage)
+			build.MustRunCommand("docker", "push", cortexImage)
+			build.MustRunCommand("docker", "push", toolImage)
+		}
+	}
+	// If multi-arch image manifest push is requested, assemble it
+	if len(*manifest) != 0 {
+		// Since different architectures are pushed by different builders, wait
+		// until all required images are updated.
+		var mismatch bool
+		for i := 0; i < 2; i++ { // 2 attempts, second is race check
+			mismatch = false // hope there's no mismatch now
+
+			for _, tag := range tags {
+				for _, arch := range strings.Split(*manifest, ",") {
+					cortexImage := fmt.Sprintf("%s:%s-%s", *upload, tag, arch)
+					toolImage := fmt.Sprintf("%s:alltools-%s-%s", *upload, tag, arch)
+
+					for _, img := range []string{cortexImage, toolImage} {
+						if out, err := exec.Command("docker", "pull", img).CombinedOutput(); err != nil {
+							log.Printf("Required image %s unavailable: %v\nOutput: %s", img, err, out)
+							mismatch = true
+							break
+						}
+						buildnum, err := exec.Command("docker", "inspect", "--format", "{{index .Config.Labels \"buildnum\"}}", img).CombinedOutput()
+						if err != nil {
+							log.Fatalf("Failed to inspect container: %v\nOutput: %s", err, string(buildnum))
+						}
+						buildnum = bytes.TrimSpace(buildnum)
+
+						if string(buildnum) != env.Buildnum {
+							log.Printf("Build number mismatch on %s: want %s, have %s", img, env.Buildnum, buildnum)
+							mismatch = true
+							break
+						}
+					}
+					if mismatch {
+						break
+					}
+				}
+				if mismatch {
+					break
+				}
+			}
+			if mismatch {
+				// Build numbers mismatching, retry in a short time to
+				// avoid concurrent failes in both publisher images. If
+				// however the retry failed too, it means the concurrent
+				// builder is still crunching, let that do the publish.
+				if i == 0 {
+					time.Sleep(30 * time.Second)
+				}
+				continue
+			}
+			break
+		}
+		if mismatch {
+			log.Println("Relinquishing publish to other builder")
+			return
+		}
+		// Assemble and push the Geth manifest image
+		for _, tag := range tags {
+			cortexImage := fmt.Sprintf("%s:%s", *upload, tag)
+
+			var cortexSubImages []string
+			for _, arch := range strings.Split(*manifest, ",") {
+				cortexSubImages = append(cortexSubImages, cortexImage+"-"+arch)
+			}
+			build.MustRunCommand("docker", append([]string{"manifest", "create", cortexImage}, cortexSubImages...)...)
+			build.MustRunCommand("docker", "manifest", "push", cortexImage)
+		}
+		// Assemble and push the alltools manifest image
+		for _, tag := range tags {
+			toolImage := fmt.Sprintf("%s:alltools-%s", *upload, tag)
+
+			var toolSubImages []string
+			for _, arch := range strings.Split(*manifest, ",") {
+				toolSubImages = append(toolSubImages, toolImage+"-"+arch)
+			}
+			build.MustRunCommand("docker", append([]string{"manifest", "create", toolImage}, toolSubImages...)...)
+			build.MustRunCommand("docker", "manifest", "push", toolImage)
+		}
 	}
 }
 
 // Debian Packaging
 func doDebianSource(cmdline []string) {
 	var (
-		goversion = flag.String("goversion", "", `Go version to build with (will be included in the source package)`)
-		cachedir  = flag.String("cachedir", "./build/cache", `Filesystem path to cache the downloaded Go bundles at`)
-		signer    = flag.String("signer", "", `Signing key name, also used as package author`)
-		upload    = flag.String("upload", "", `Where to upload the source package (usually "cortex/cortex")`)
-		sshUser   = flag.String("sftp-user", "", `Username for SFTP upload (usually "cortex-ci")`)
-		workdir   = flag.String("workdir", "", `Output directory for packages (uses temp dir if unset)`)
-		now       = time.Now()
+		cachedir = flag.String("cachedir", "./build/cache", `Filesystem path to cache the downloaded Go bundles at`)
+		signer   = flag.String("signer", "", `Signing key name, also used as package author`)
+		upload   = flag.String("upload", "", `Where to upload the source package (usually "cortex/cortex")`)
+		sshUser  = flag.String("sftp-user", "", `Username for SFTP upload (usually "cortex-ci")`)
+		workdir  = flag.String("workdir", "", `Output directory for packages (uses temp dir if unset)`)
+		now      = time.Now()
 	)
 	flag.CommandLine.Parse(cmdline)
 	*workdir = makeWorkdir(*workdir)
 	env := build.Env()
+	tc := new(build.GoToolchain)
 	maybeSkipArchive(env)
 
 	// Import the signing key.
@@ -515,15 +656,15 @@ func doDebianSource(cmdline []string) {
 	}
 
 	// Download and verify the Go source package.
-	gobundle := downloadGoSources(*goversion, *cachedir)
+	gobundle := downloadGoSources(*cachedir)
 
 	// Download all the dependencies needed to build the sources and run the ci script
-	srcdepfetch := goTool("install", "-n", "./...")
-	srcdepfetch.Env = append(os.Environ(), "GOPATH="+filepath.Join(*workdir, "modgopath"))
+	srcdepfetch := tc.Go("mod", "download")
+	srcdepfetch.Env = append(srcdepfetch.Env, "GOPATH="+filepath.Join(*workdir, "modgopath"))
 	build.MustRun(srcdepfetch)
 
-	cidepfetch := goTool("run", "./build/ci.go")
-	cidepfetch.Env = append(os.Environ(), "GOPATH="+filepath.Join(*workdir, "modgopath"))
+	cidepfetch := tc.Go("run", "./build/ci.go")
+	cidepfetch.Env = append(cidepfetch.Env, "GOPATH="+filepath.Join(*workdir, "modgopath"))
 	cidepfetch.Run() // Command fails, don't care, we only need the deps to start it
 
 	// Create Debian packages and upload them.
@@ -567,9 +708,10 @@ func doDebianSource(cmdline []string) {
 	}
 }
 
-func downloadGoSources(version string, cachedir string) string {
+// downloadGoSources downloads the Go source tarball.
+func downloadGoSources(cachedir string) string {
 	csdb := build.MustLoadChecksums("build/checksums.txt")
-	file := fmt.Sprintf("go%s.src.tar.gz", version)
+	file := fmt.Sprintf("go%s.src.tar.gz", dlgoVersion)
 	url := "https://dl.google.com/go/" + file
 	dst := filepath.Join(cachedir, file)
 	if err := csdb.DownloadFile(url, dst); err != nil {
@@ -592,7 +734,7 @@ func ppaUpload(workdir, ppa, sshUser string, files []string) {
 	if sshkey := getenvBase64("PPA_SSH_KEY"); len(sshkey) > 0 {
 		idfile = filepath.Join(workdir, "sshkey")
 		if _, err := os.Stat(idfile); os.IsNotExist(err) {
-			os.WriteFile(idfile, sshkey, 0600)
+			ioutil.WriteFile(idfile, sshkey, 0600)
 		}
 	}
 	// Upload
@@ -615,7 +757,7 @@ func makeWorkdir(wdflag string) string {
 	if wdflag != "" {
 		err = os.MkdirAll(wdflag, 0744)
 	} else {
-		wdflag, err = os.MkdirTemp("", "cortex-build-")
+		wdflag, err = ioutil.TempDir("", "cortex-build-")
 	}
 	if err != nil {
 		log.Fatal(err)
@@ -671,7 +813,7 @@ func (d debExecutable) Package() string {
 func newDebMetadata(distro, goboot, author string, env build.Environment, t time.Time, name string, version string, exes []debExecutable) debMetadata {
 	if author == "" {
 		// No signing key, use default author.
-		author = "Cortex"
+		author = "Cortex Builds <fjl@cortex.org>"
 	}
 	return debMetadata{
 		GoBootPackage: goboot,
@@ -774,7 +916,7 @@ func doWindowsInstaller(cmdline []string) {
 		arch    = flag.String("arch", runtime.GOARCH, "Architecture for cross build packaging")
 		signer  = flag.String("signer", "", `Environment variable holding the signing key (e.g. WINDOWS_SIGNING_KEY)`)
 		signify = flag.String("signify key", "", `Environment variable holding the signify signing key (e.g. WINDOWS_SIGNIFY_KEY)`)
-		upload  = flag.String("upload", "", `Destination to upload the archives (usually "gethstore/builds")`)
+		upload  = flag.String("upload", "", `Destination to upload the archives (usually "cortexstore/builds")`)
 		workdir = flag.String("workdir", "", `Output directory for packages (uses temp dir if unset)`)
 	)
 	flag.CommandLine.Parse(cmdline)
@@ -804,7 +946,7 @@ func doWindowsInstaller(cmdline []string) {
 	// first section contains the cortex binary, second section holds the dev tools.
 	templateData := map[string]interface{}{
 		"License":  "COPYING",
-		"Cortex":   cortexTool,
+		"Geth":     cortexTool,
 		"DevTools": devTools,
 	}
 	build.Render("build/nsis.cortex.nsi", filepath.Join(*workdir, "cortex.nsi"), 0644, nil)
@@ -848,17 +990,27 @@ func doAndroidArchive(cmdline []string) {
 		signer  = flag.String("signer", "", `Environment variable holding the signing key (e.g. ANDROID_SIGNING_KEY)`)
 		signify = flag.String("signify", "", `Environment variable holding the signify signing key (e.g. ANDROID_SIGNIFY_KEY)`)
 		deploy  = flag.String("deploy", "", `Destination to deploy the archive (usually "https://oss.sonatype.org")`)
-		upload  = flag.String("upload", "", `Destination to upload the archive (usually "gethstore/builds")`)
+		upload  = flag.String("upload", "", `Destination to upload the archive (usually "cortexstore/builds")`)
 	)
 	flag.CommandLine.Parse(cmdline)
 	env := build.Env()
+	tc := new(build.GoToolchain)
 
 	// Sanity check that the SDK and NDK are installed and set
 	if os.Getenv("ANDROID_HOME") == "" {
 		log.Fatal("Please ensure ANDROID_HOME points to your Android SDK")
 	}
+
+	// Build gomobile.
+	install := tc.Install(GOBIN, "golang.org/x/mobile/cmd/gomobile@latest", "golang.org/x/mobile/cmd/gobind@latest")
+	install.Env = append(install.Env)
+	build.MustRun(install)
+
+	// Ensure all dependencies are available. This is required to make
+	// gomobile bind work because it expects go.sum to contain all checksums.
+	build.MustRun(tc.Go("mod", "download"))
+
 	// Build the Android archive and Maven resources
-	build.MustRun(goTool("get", "golang.org/x/mobile/cmd/gomobile", "golang.org/x/mobile/cmd/gobind"))
 	build.MustRun(gomobileTool("bind", "-ldflags", "-s -w", "--target", "android", "--javapkg", "org.cortex", "-v", "github.com/CortexFoundation/CortexTheseus/mobile"))
 
 	if *local {
@@ -974,7 +1126,7 @@ func doXCodeFramework(cmdline []string) {
 		signer  = flag.String("signer", "", `Environment variable holding the signing key (e.g. IOS_SIGNING_KEY)`)
 		signify = flag.String("signify", "", `Environment variable holding the signify signing key (e.g. IOS_SIGNIFY_KEY)`)
 		deploy  = flag.String("deploy", "", `Destination to deploy the archive (usually "trunk")`)
-		upload  = flag.String("upload", "", `Destination to upload the archives (usually "gethstore/builds")`)
+		upload  = flag.String("upload", "", `Destination to upload the archives (usually "cortexstore/builds")`)
 	)
 	flag.CommandLine.Parse(cmdline)
 	env := build.Env()
@@ -984,12 +1136,6 @@ func doXCodeFramework(cmdline []string) {
 	build.MustRun(tc.Install(GOBIN, "golang.org/x/mobile/cmd/gomobile", "golang.org/x/mobile/cmd/gobind"))
 
 	// Build the iOS XCode framework
-	build.MustRun(goTool("get", "golang.org/x/mobile/cmd/gomobile", "golang.org/x/mobile/cmd/gobind"))
-	build.MustRun(gomobileTool("init"))
-	// Ensure all dependencies are available. This is required to make
-	// gomobile bind work because it expects go.sum to contain all checksums.
-	build.MustRun(tc.Go("mod", "download"))
-
 	bind := gomobileTool("bind", "-ldflags", "-s -w", "--target", "ios", "-v", "github.com/CortexFoundation/CortexTheseus/mobile")
 
 	if *local {
@@ -998,16 +1144,16 @@ func doXCodeFramework(cmdline []string) {
 		build.MustRun(bind)
 		return
 	}
+
+	// Create the archive.
+	maybeSkipArchive(env)
 	archive := "cortex-" + archiveBasename("ios", params.ArchiveVersion(env.Commit))
-	if err := os.Mkdir(archive, os.ModePerm); err != nil {
+	if err := os.MkdirAll(archive, 0755); err != nil {
 		log.Fatal(err)
 	}
 	bind.Dir, _ = filepath.Abs(archive)
 	build.MustRun(bind)
 	build.MustRunCommand("tar", "-zcvf", archive+".tar.gz", archive)
-
-	// Skip CocoaPods deploy and Azure upload for PR builds
-	maybeSkipArchive(env)
 
 	// Sign and upload the framework to Azure
 	if err := archiveUpload(archive+".tar.gz", *upload, *signer, *signify); err != nil {
@@ -1016,8 +1162,8 @@ func doXCodeFramework(cmdline []string) {
 	// Prepare and upload a PodSpec to CocoaPods
 	if *deploy != "" {
 		meta := newPodMetadata(env, archive)
-		build.Render("build/pod.podspec", "Cortex.podspec", 0755, meta)
-		build.MustRunCommand("pod", *deploy, "push", "Cortex.podspec", "--allow-warnings")
+		build.Render("build/pod.podspec", "Geth.podspec", 0755, meta)
+		build.MustRunCommand("pod", *deploy, "push", "Geth.podspec", "--allow-warnings")
 	}
 }
 
@@ -1064,52 +1210,6 @@ func newPodMetadata(env build.Environment, archive string) podMetadata {
 		Commit:       env.Commit,
 		Contributors: contribs,
 	}
-}
-
-// Cross compilation
-
-func doXgo(cmdline []string) {
-	var (
-		alltools = flag.Bool("alltools", false, `Flag whether we're building all known tools, or only on in particular`)
-	)
-	flag.CommandLine.Parse(cmdline)
-	env := build.Env()
-
-	// Make sure xgo is available for cross compilation
-	gogetxgo := goTool("get", "src.techknowlogick.com/xgo")
-	build.MustRun(gogetxgo)
-
-	// If all tools building is requested, build everything the builder wants
-	args := append(buildFlags(env), flag.Args()...)
-
-	if *alltools {
-		args = append(args, []string{"--dest", GOBIN}...)
-		for _, res := range allToolsArchiveFiles {
-			if strings.HasPrefix(res, GOBIN) {
-				// Binary tool found, cross build it explicitly
-				args = append(args, "./"+filepath.Join("cmd", filepath.Base(res)))
-				xgo := xgoTool(args)
-				build.MustRun(xgo)
-				args = args[:len(args)-1]
-			}
-		}
-		return
-	}
-	// Otherwise xxecute the explicit cross compilation
-	path := args[len(args)-1]
-	args = append(args[:len(args)-1], []string{"--dest", GOBIN, path}...)
-
-	xgo := xgoTool(args)
-	build.MustRun(xgo)
-}
-
-func xgoTool(args []string) *exec.Cmd {
-	cmd := exec.Command(filepath.Join(GOBIN, "xgo"), args...)
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, []string{
-		"GOBIN=" + GOBIN,
-	}...)
-	return cmd
 }
 
 // Binary distribution cleanups
