@@ -66,8 +66,8 @@ github.com/CortexFoundation/torrentfs v1.0.14-0.20200703071639-3fcabcabf274/go.m
 github.com/CortexFoundation/torrentfs v1.0.20-0.20200810031954-d36d26f82fcc/go.mod h1:N5BsicP5ynjXIi/Npl/SRzlJ630n1PJV2sRj0Z0t2HA=
 github.com/CortexFoundation/torrentfs v1.0.22-0.20201126093427-f455d2481b9b/go.mod h1:lcAYtGEoWAeIhWH/JpXno34eNA17xslgwg6UBBd769U=
 github.com/CortexFoundation/torrentfs v1.0.23-0.20210119015245-ae2a4c2c966c/go.mod h1:iyTtPicpVt2NTVGDyhQ1LurDZFB/uR0R2dK22Pv3M1g=
-github.com/CortexFoundation/torrentfs v1.0.25-0.20220412125819-8f6fc47a1d50 h1:VTMsVG8OzEZfWsmcNzQT4/AbksM0O3rwiNZugtzr9MQ=
-github.com/CortexFoundation/torrentfs v1.0.25-0.20220412125819-8f6fc47a1d50/go.mod h1:F2rym8HTqLVV8LOwX+nGWIwVZcYPrvmL6u2yQxs5BDE=
+github.com/CortexFoundation/torrentfs v1.0.25-0.20220415110227-e71a243ff643 h1:A0AI6TD0lEqBofqX5MmqOjmVjq/jl6ynjCOKJWP4NRg=
+github.com/CortexFoundation/torrentfs v1.0.25-0.20220415110227-e71a243ff643/go.mod h1:44WPzEQ2jXMAAuN789lNOl0mQdLCnaVWc8mKvbl3CjU=
 github.com/DATA-DOG/go-sqlmock v1.3.3/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
 github.com/Julusian/godocdown v0.0.0-20170816220326-6d19f8ff2df8/go.mod h1:INZr5t32rG59/5xeltqoCJoNY7e5x/3xoY9WSWVWg74=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
@@ -211,8 +211,8 @@ github.com/anacrolix/torrent v1.15.1-0.20200619022403-dd51e99b88cc/go.mod h1:wuo
 github.com/anacrolix/torrent v1.15.1-0.20200715061614-dd906f8fa72e/go.mod h1:XWo/fJN1oKgcjgxM+pUZpvalHfqHDs27BY5mBZjIQWo=
 github.com/anacrolix/torrent v1.18.1-0.20201121024423-388e6899a15b/go.mod h1:nhOLTTTOcr5WnvNKJzHGKzyz5D8mujPIgdbRU2818v8=
 github.com/anacrolix/torrent v1.21.0/go.mod h1:3/BQux1sn5l887GdTw7AYSAmaZn+e7AXAZWFCsqh1bA=
-github.com/anacrolix/torrent v1.42.0 h1:UEEflYoIyuYIU4h0PNp7KZgepK7bu4pHTJMdXRwWqOE=
-github.com/anacrolix/torrent v1.42.0/go.mod h1:QsFkVp////43Z+HqBfmwsxnsI9IXqGtRqNb2XoS0DgY=
+github.com/anacrolix/torrent v1.42.1-0.20220414090245-529d97b5eb65 h1:X7V/BwYS/c7PmAbkflGuXxHee8mv+9ZF2fP/jS2iR7I=
+github.com/anacrolix/torrent v1.42.1-0.20220414090245-529d97b5eb65/go.mod h1:QsFkVp////43Z+HqBfmwsxnsI9IXqGtRqNb2XoS0DgY=
 github.com/anacrolix/upnp v0.1.1/go.mod h1:LXsbsp5h+WGN7YR+0A7iVXm5BL1LYryDev1zuJMWYQo=
 github.com/anacrolix/upnp v0.1.2-0.20200416075019-5e9378ed1425/go.mod h1:Pz94W3kl8rf+wxH3IbCa9Sq+DTJr8OSbV2Q3/y51vYs=
 github.com/anacrolix/upnp v0.1.3-0.20220123035249-922794e51c96 h1:QAVZ3pN/J4/UziniAhJR2OZ9Ox5kOY2053tBbbqUPYA=
