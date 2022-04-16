@@ -33,7 +33,7 @@ const (
 	opNoInput     = 3
 )
 
-//go:generate gencodec -type FileInfo -out gen_fileinfo_json.go
+//go:generate go run github.com/fjl/gencodec@latest -type FileInfo -out gen_fileinfo_json.go
 //go:generate go run ../rlp/rlpgen -type FileInfo -out gen_fileinfo_rlp.go
 
 type FileInfo struct {
@@ -46,7 +46,7 @@ type FileInfo struct {
 	Relate       []common.Address
 }
 
-//go:generate gencodec -type Transaction -field-override transactionMarshaling -out gen_tx_json.go
+//go:generate go run github.com/fjl/gencodec@latest -type Transaction -field-override transactionMarshaling -out gen_tx_json.go
 //go:generate go run ../rlp/rlpgen -type Transaction -out gen_tx_rlp.go
 
 type Transaction struct {
@@ -127,7 +127,7 @@ type transactionMarshaling struct {
 	Payload  hexutil.Bytes
 }
 
-//go:generate gencodec -type Block -field-override blockMarshaling -out gen_block_json.go
+//go:generate go run github.com/fjl/gencodec@latest -type Block -field-override blockMarshaling -out gen_block_json.go
 //go:generate go run ../rlp/rlpgen -type Block -out gen_block_rlp.go
 
 type Block struct {
@@ -141,7 +141,7 @@ type blockMarshaling struct {
 	Number hexutil.Uint64
 }
 
-//go:generate gencodec -type Receipt -field-override receiptMarshaling -out gen_receipt_json.go
+//go:generate go run github.com/fjl/gencodec@latest -type Receipt -field-override receiptMarshaling -out gen_receipt_json.go
 //go:generate go run ../rlp/rlpgen -type Receipt -out gen_receipt_rlp.go
 type Receipt struct {
 	// Contract Address
@@ -158,7 +158,7 @@ type receiptMarshaling struct {
 	GasUsed hexutil.Uint64
 }
 
-//go:generate gencodec -type FileMeta -out gen_filemeta_json.go
+//go:generate go run github.com/fjl/gencodec@latest -type FileMeta -out gen_filemeta_json.go
 //go:generate go run ../rlp/rlpgen -type FileMeta -out gen_filemeta_rlp.go
 type FileMeta struct {
 	InfoHash string `json:"infoHash"         gencodec:"required"`
