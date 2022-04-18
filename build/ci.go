@@ -149,6 +149,11 @@ var (
 		"golang-1.15": "/usr/lib/go-1.15",
 		"golang-go":   "/usr/lib/go",
 	}
+
+	// This is the version of go that will be downloaded by
+	//
+	//     go run ci.go install -dlgo
+	dlgoVersion = "1.18.1"
 )
 
 var GOBIN, _ = filepath.Abs(filepath.Join("build", "bin"))
