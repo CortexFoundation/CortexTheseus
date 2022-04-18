@@ -13,7 +13,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.1.3
 	github.com/aws/aws-sdk-go-v2/credentials v1.1.3
 	github.com/aws/aws-sdk-go-v2/service/route53 v1.2.0
-	github.com/btcsuite/btcd/btcec/v2 v2.1.3
+	github.com/btcsuite/btcd/btcec/v2 v2.1.4-0.20220413172512-bf64c8bdbbbf
 	github.com/cespare/cp v1.1.1
 	github.com/charmbracelet/bubbletea v0.12.1
 	github.com/cloudflare/cloudflare-go v0.11.7
@@ -107,7 +107,7 @@ require (
 	github.com/benbjohnson/immutable v0.3.0 // indirect
 	github.com/bits-and-blooms/bitset v1.2.0 // indirect
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8 // indirect
-	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.2-0.20220316175102-8d5c75c28923 // indirect
+	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.2-0.20220413172512-bf64c8bdbbbf // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/common-nighthawk/go-figure v0.0.0-20190529165535-67e0ed34491a // indirect
 	github.com/containerd/console v1.0.1 // indirect
