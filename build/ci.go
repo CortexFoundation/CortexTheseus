@@ -986,6 +986,10 @@ func doXCodeFramework(cmdline []string) {
 	// Build the iOS XCode framework
 	build.MustRun(goTool("get", "golang.org/x/mobile/cmd/gomobile", "golang.org/x/mobile/cmd/gobind"))
 	build.MustRun(gomobileTool("init"))
+	// Ensure all dependencies are available. This is required to make
+	// gomobile bind work because it expects go.sum to contain all checksums.
+	build.MustRun(tc.Go("mod", "download"))
+
 	bind := gomobileTool("bind", "-ldflags", "-s -w", "--target", "ios", "-v", "github.com/CortexFoundation/CortexTheseus/mobile")
 
 	if *local {
