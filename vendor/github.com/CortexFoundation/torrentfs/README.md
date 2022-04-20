@@ -1,3 +1,6 @@
+# Independent HTTP Service for file seeding
+https://github.com/CortexFoundation/torrentfs/pull/216
+
 # P2P file system of cortex full node
 ![image](https://user-images.githubusercontent.com/22344498/118778205-6ef75f00-b8bc-11eb-880e-17b5bea66814.png)
 
