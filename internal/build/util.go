@@ -21,13 +21,15 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"go/parser"
+	"go/token"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"text/template"
 	"time"
@@ -75,7 +77,7 @@ func RunGit(args ...string) string {
 
 // readGitFile returns content of file in .git directory.
 func readGitFile(file string) string {
-	content, err := os.ReadFile(path.Join(".git", file))
+	content, err := ioutil.ReadFile(path.Join(".git", file))
 	if err != nil {
 		return ""
 	}
@@ -108,19 +110,6 @@ func render(tpl *template.Template, outputFile string, outputPerm os.FileMode, x
 	if err := out.Close(); err != nil {
 		log.Fatal(err)
 	}
-}
-
-// GoTool returns the command that runs a go tool. This uses go from GOROOT instead of PATH
-// so that go commands executed by build use the same version of Go as the 'host' that runs
-// build code. e.g.
-//
-//     /usr/lib/go-1.12.1/bin/go run build/ci.go ...
-//
-// runs using go 1.12.1 and invokes go 1.12.1 tools from the same GOROOT. This is also important
-// because runtime.Version checks on the host should match the tools that are run.
-func GoTool(tool string, args ...string) *exec.Cmd {
-	args = append([]string{tool}, args...)
-	return exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), args...)
 }
 
 // UploadSFTP uploads files to a remote host using the sftp command line tool.
@@ -182,4 +171,29 @@ func UploadSFTP(identityFile, host, dir string, files []string) error {
 		return nil
 	}
 	return err
+}
+
+// FindMainPackages finds all 'main' packages in the given directory and returns their
+// package paths.
+func FindMainPackages(dir string) []string {
+	var commands []string
+	cmds, err := ioutil.ReadDir(dir)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, cmd := range cmds {
+		pkgdir := filepath.Join(dir, cmd.Name())
+		pkgs, err := parser.ParseDir(token.NewFileSet(), pkgdir, nil, parser.PackageClauseOnly)
+		if err != nil {
+			log.Fatal(err)
+		}
+		for name := range pkgs {
+			if name == "main" {
+				path := "./" + filepath.ToSlash(pkgdir)
+				commands = append(commands, path)
+				break
+			}
+		}
+	}
+	return commands
 }
