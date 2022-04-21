@@ -344,7 +344,9 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainHeaderReader, header, pa
 // the difficulty that a new block should have when created at time
 // given the parent block's time and difficulty.
 func (cuckoo *Cuckoo) CalcDifficulty(chain consensus.ChainHeaderReader, time uint64, parent *types.Header) *big.Int {
-	return CalcDifficulty(chain.Config(), time, parent)
+	diffe := CalcDifficulty(chain.Config(), time, parent)
+	log.Info("CalcDifficulty", "diffe", diffe.Int64())
+	return diffe
 }
 
 // CalcDifficulty is the difficulty adjustment algorithm. It returns
@@ -417,7 +419,75 @@ func calcDifficultyConstantinople(time uint64, parent *types.Header, neo bool) *
 }
 
 func calcDifficultyNeo(time uint64, parent *types.Header, neo bool) *big.Int {
-	return calcDifficultyIstanbul(time, parent, neo)
+	return calcDifficultySHA256(time, parent, neo)
+	//return calcDifficultyIstanbul(time, parent, neo)
+}
+
+// calcDifficultySHA256 the difficulty adjustment algorithm. It returns
+// the difficulty that a new block should have when created at time given the
+// parent block's time and difficulty. The calculation uses the Byzantium rules,
+// tuning x growing faster when difficulty growing positively
+func calcDifficultySHA256(time uint64, parent *types.Header, neo bool) *big.Int {
+
+	bigTime := new(big.Int).SetUint64(time)
+	bigParentTime := new(big.Int).SetUint64(parent.Time)
+
+	// holds intermediate values to make the algo easier to read & audit
+	x := new(big.Int)
+	y := new(big.Int)
+
+	// (2 if len(parent_uncles) else 1) - (block_timestamp - parent_timestamp) // 9
+	x.Sub(bigTime, bigParentTime)
+	x.Div(x, big9)
+	if parent.UncleHash == types.EmptyUncleHash {
+		x.Sub(big1, x)
+	} else {
+		x.Sub(big2, x)
+	}
+	// max((2 if len(parent_uncles) else 1) - (block_timestamp - parent_timestamp) // 9, -99)
+	if bigParentTime.Cmp(big0) > 0 {
+		if x.Cmp(bigMinus99) < 0 {
+			x.Set(bigMinus99)
+		}
+	} else {
+		x.Set(big0)
+	}
+
+	if parent.Difficulty.Cmp(params.MeanDifficultyBoundDivisor) >= 0 && parent.Difficulty.Cmp(params.HighDifficultyBoundDivisor) < 0 {
+		y.Div(parent.Difficulty, params.MeanDifficultyBoundDivisor)
+	} else if parent.Difficulty.Cmp(params.HighDifficultyBoundDivisor) >= 0 {
+		y.Div(parent.Difficulty, params.HighDifficultyBoundDivisor)
+	} else {
+		if neo {
+			y = params.MinimumDifficulty // delta 2
+		} else {
+			y.Div(parent.Difficulty, params.DifficultyBoundDivisor_2)
+		}
+
+		if x.Cmp(big0) > 0 {
+			x.Set(big1)
+		}
+
+		if x.Cmp(big0) < 0 {
+			x.Set(bigMinus1)
+		}
+	}
+
+	// tuning x growing faster when difficulty growing positively
+	if x.Cmp(big0) > 0 {
+		x.Mul(x, big128)
+	}
+	log.Info("diff", "x is", x.Int64(), "y is", y)
+	x.Mul(y, x)
+	x.Add(parent.Difficulty, x)
+
+	//log.Info("cal diff", "x", x, "parent.Difficulty", parent.Difficulty, "y", y)
+
+	// minimum difficulty can ever be (before exponential factor)
+	if x.Cmp(params.MinimumDifficulty) < 0 {
+		x.Set(params.MinimumDifficulty)
+	}
+	return x
 }
 
 // calcDifficultyByzantium is the difficulty adjustment algorithm. It returns
