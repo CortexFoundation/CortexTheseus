@@ -17,6 +17,7 @@ all:
 	go build -v -o $(GOBIN)/torrent-create cmd/torrent-create/*.go
 	go build -v -o $(GOBIN)/torrent-magnet cmd/torrent-magnet/*.go
 	go build -v -o $(GOBIN)/seeding cmd/seeding/*.go
+	go build -v -o $(GOBIN)/server cmd/server/*.go
 clean:
 	go clean -cache
 	rm -rf $(GOBIN)/*

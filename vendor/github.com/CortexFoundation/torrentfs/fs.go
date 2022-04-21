@@ -379,10 +379,11 @@ func (tfs *TorrentFS) Version() uint {
 // Start starts the data collection thread and the listening server of the dashboard.
 // Implements the node.Service interface.
 func (tfs *TorrentFS) Start(server *p2p.Server) (err error) {
-	log.Info("Started nas", "config", tfs, "mode", tfs.config.Mode, "version", ProtocolVersion)
 	if tfs == nil || tfs.monitor == nil {
+		log.Warn("Storage fs init failed", "fs", tfs)
 		return
 	}
+	log.Info("Started nas", "config", tfs, "mode", tfs.config.Mode, "version", ProtocolVersion)
 
 	err = tfs.monitor.Start()
 	if err != nil {
@@ -396,6 +397,7 @@ func (tfs *TorrentFS) Start(server *p2p.Server) (err error) {
 // Implements the node.Service interface.
 func (tfs *TorrentFS) Stop() error {
 	if tfs == nil || tfs.monitor == nil {
+		log.Info("Cortex fs engine is already stopped")
 		return nil
 	}
 
@@ -415,6 +417,7 @@ func (tfs *TorrentFS) Stop() error {
 	if tfs.queryCache != nil {
 		tfs.queryCache.Purge()
 	}
+	log.Info("Cortex fs engine stopped")
 	return nil
 }
 
@@ -676,6 +679,10 @@ func (fs *TorrentFS) Status(ctx context.Context, ih string) (int, error) {
 
 func (fs *TorrentFS) LocalPort() int {
 	return fs.storage().LocalPort()
+}
+
+func (fs *TorrentFS) Simulate() {
+	fs.storage().Simulate()
 }
 
 func (fs *TorrentFS) Congress() int {
