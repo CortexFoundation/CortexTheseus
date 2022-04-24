@@ -19,7 +19,6 @@ package rawdb
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"os"
 	"path/filepath"
@@ -713,7 +712,7 @@ func (f *freezer) MigrateTable(kind string, convert convertLegacyFn) error {
 	if err := newTable.Close(); err != nil {
 		return err
 	}
-	files, err := ioutil.ReadDir(migrationPath)
+	files, err := os.ReadDir(migrationPath)
 	if err != nil {
 		return err
 	}
