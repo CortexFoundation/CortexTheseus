@@ -39,7 +39,6 @@ require (
 	github.com/jackpal/go-nat-pmp v1.0.2
 	github.com/jedisct1/go-minisign v0.0.0-20190909160543-45766022959e
 	github.com/julienschmidt/httprouter v1.3.0
-	github.com/kevinburke/go-bindata v3.23.0+incompatible
 	github.com/lucasb-eyer/go-colorful v1.0.3
 	github.com/mattn/go-colorable v0.1.7
 	github.com/mattn/go-isatty v0.0.13-0.20200128103942-cb30d6282491
