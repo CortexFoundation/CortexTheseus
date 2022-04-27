@@ -5,3 +5,7 @@
 [submodule "solution"]
 	path = solution
 	url = https://github.com/CortexFoundation/solution.git
+[submodule "XCortex"]
+	path = XCortex
+	url = https://github.com/CortexFoundation/XCortex.git
+    branch = sha256 
