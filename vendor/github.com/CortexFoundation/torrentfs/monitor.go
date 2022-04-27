@@ -123,7 +123,7 @@ func NewMonitor(flag *Config, cache, compress, listen bool, fs *ChainDB, tMana *
 	m.mode = flag.Mode
 
 	torrents, _ := fs.initTorrents()
-	if m.mode != LAZY {
+	if m.mode != params.LAZY {
 		for k, v := range torrents {
 			if err := tMana.Search(context.Background(), k, v, nil); err != nil {
 				return nil, err
@@ -194,7 +194,7 @@ func (m *Monitor) indexInit() error {
 		capcity += bytesRequested
 		log.Debug("File storage info", "addr", file.ContractAddr, "ih", file.Meta.InfoHash, "remain", common.StorageSize(file.LeftSize), "raw", common.StorageSize(file.Meta.RawSize), "request", common.StorageSize(bytesRequested))
 		if u, p, err := m.fs.SetTorrent(file.Meta.InfoHash, bytesRequested); u && err == nil {
-			if m.mode != LAZY {
+			if m.mode != params.LAZY {
 				log.Debug("Search in sync parse download", "ih", file.Meta.InfoHash, "request", p)
 				m.dl.Search(context.Background(), file.Meta.InfoHash, p, nil)
 			}
@@ -363,7 +363,7 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta, b *
 		log.Debug("Create new file", "ih", meta.InfoHash, "op", op)
 
 		if u, p, err := m.fs.SetTorrent(meta.InfoHash, 0); u && err == nil {
-			if m.mode != LAZY {
+			if m.mode != params.LAZY {
 				log.Debug("Search in sync parse create", "ih", meta.InfoHash, "request", p)
 				m.dl.Search(context.Background(), meta.InfoHash, p, nil)
 			}
@@ -429,7 +429,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 							log.Debug("Data processing ...", "ih", file.Meta.InfoHash, "addr", (*tx.Recipient).String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
 						}
 						if u, p, err := m.fs.SetTorrent(file.Meta.InfoHash, bytesRequested); u && err == nil {
-							if m.mode != LAZY {
+							if m.mode != params.LAZY {
 								log.Debug("Search in sync parse download", "ih", file.Meta.InfoHash, "request", p)
 								m.dl.Search(context.Background(), file.Meta.InfoHash, p, nil)
 							}
