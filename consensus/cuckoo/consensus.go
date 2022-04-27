@@ -475,7 +475,7 @@ func calcDifficultySHA256(time uint64, parent *types.Header, neo bool) *big.Int 
 
 	// tuning x growing faster when difficulty growing positively
 	if x.Cmp(big0) > 0 {
-		x.Mul(x, big128)
+		x.Mul(x, big32)
 	}
 	log.Info("diff", "x is", x.Int64(), "y is", y)
 	x.Mul(y, x)
