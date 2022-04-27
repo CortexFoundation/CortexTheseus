@@ -7,5 +7,5 @@
 	url = https://github.com/CortexFoundation/solution.git
 [submodule "XCortex"]
 	path = XCortex
-	url = https://github.com/CortexFoundation/XCortex.git
+	url = https://github.com/CortexFoundation/XCortex
     branch = sha256 
