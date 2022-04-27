@@ -14,8 +14,10 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
 
-//go:generate go-bindata -nometadata -o assets.go -pkg tracers -ignore ((tracers)|(assets)).go ./...
-//go:generate gofmt -s -w assets.go
-
 // Package tracers contains the actual JavaScript tracer assets.
 package tracers
+
+import "embed"
+
+//go:embed *.js
+var FS embed.FS
