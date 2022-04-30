@@ -735,7 +735,7 @@ func (tm *TorrentManager) seedingLoop() {
 func (tm *TorrentManager) init() error {
 	log.Debug("Chain files init", "files", len(GoodFiles))
 
-	if tm.mode == LAZY || tm.mode == DEV {
+	if tm.mode == params.LAZY || tm.mode == params.DEV {
 		tm.Simulate()
 	}
 
@@ -789,7 +789,7 @@ func (tm *TorrentManager) Search(ctx context.Context, hex string, request uint64
 		// GoodFiles[hex] = false
 	}
 
-	//if tm.mode == FULL {
+	//if tm.mode == params.FULL {
 	//if request == 0 {
 	//	log.Warn("Prepare mode", "ih", hex)
 	//	request = uint64(block)
@@ -900,7 +900,7 @@ func (tm *TorrentManager) pendingLoop() {
 
 							} else {
 								log.Debug("Boost failed", "ih", ih.String(), "err", err)
-								if t.start == 0 && (t.bytesRequested > 0 || tm.mode == FULL || t.loop > 600) { //|| len(tm.pendingTorrents) == 1) {
+								if t.start == 0 && (t.bytesRequested > 0 || tm.mode == params.FULL || t.loop > 600) { //|| len(tm.pendingTorrents) == 1) {
 									t.AddTrackers(tm.trackers)
 									t.start = mclock.Now()
 								}
@@ -920,7 +920,7 @@ func (tm *TorrentManager) pendingLoop() {
 							}
 						}*/
 				} else {
-					if _, ok := GoodFiles[t.InfoHash()]; t.start == 0 && (ok || t.bytesRequested > 0 || tm.mode == FULL || t.loop > 600) {
+					if _, ok := GoodFiles[t.InfoHash()]; t.start == 0 && (ok || t.bytesRequested > 0 || tm.mode == params.FULL || t.loop > 600) {
 						if ok {
 							log.Debug("Good file found in pending", "ih", common.HexToHash(ih))
 						}
@@ -967,7 +967,7 @@ func (tm *TorrentManager) activeLoop() {
 					t.fast = true
 					t.lock.Unlock()
 				} else {
-					if tm.mode == FULL {
+					if tm.mode == params.FULL {
 						if t.bytesRequested >= t.Length() {
 							t.fast = true
 						} else {
@@ -1102,7 +1102,7 @@ func (tm *TorrentManager) activeLoop() {
 			}
 
 			if counter >= 5*loops {
-				//if len(tm.seedingTorrents) < len(GoodFiles) && tm.mode != LAZY {
+				//if len(tm.seedingTorrents) < len(GoodFiles) && tm.mode != params.LAZY {
 				//log.Warn(ProgressBar(int64(len(tm.seedingTorrents)), int64(len(GoodFiles)), "Network scanning"), "mode", tm.mode, "ports", "40401,5008,40404", "seeding", len(tm.seedingTorrents), "expected", len(GoodFiles))
 				//} else {
 				if tm.cache {
@@ -1137,7 +1137,7 @@ func (tm *TorrentManager) dropSeeding(slot int) error {
 				continue
 			}
 
-			if tm.mode == LAZY {
+			if tm.mode == params.LAZY {
 				t.setCurrentConns(1)
 				log.Debug("Lazy mode dropped", "ih", ih, "seeding", len(tm.seedingTorrents), "torrents", len(tm.torrents), "max", tm.maxSeedTask, "peers", t.currentConns, "cited", t.cited)
 			} else {
@@ -1166,7 +1166,7 @@ func (tm *TorrentManager) graceSeeding(slot int) error {
 				log.Debug("Encounter active torrent", "ih", ih, "index", i, "group", s, "slot", slot, "len", len(tm.seedingTorrents), "max", tm.maxSeedTask, "peers", t.currentConns, "cited", t.cited)
 				continue
 			}
-			if tm.mode == LAZY {
+			if tm.mode == params.LAZY {
 				t.setCurrentConns(1)
 			} else {
 				t.setCurrentConns(t.minEstablishedConns)
