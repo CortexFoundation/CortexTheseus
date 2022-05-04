@@ -408,10 +408,15 @@ web3._extend({
 			inputFormatter: [null, null],
 		}),
 		new web3._extend.Method({
-			name: 'getModifiedAccountsByHash',
-			call: 'debug_getModifiedAccountsByHash',
-			params: 2,
-			inputFormatter:[null, null],
+                        name: 'getModifiedAccountsByHash',
+                        call: 'debug_getModifiedAccountsByHash',
+                        params: 2,
+                        inputFormatter: [null, null],
+                }),
+		new web3._extend.Method({
+			name: 'dbGet',
+			call: 'debug_dbGet',
+			params: 1
 		}),
 	],
 	properties: []

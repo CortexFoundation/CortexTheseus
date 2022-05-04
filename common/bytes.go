@@ -20,6 +20,9 @@ package common
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
+
+	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 )
 
 // ToHex returns the hex representation of b, prefixed with '0x'.
@@ -116,6 +119,15 @@ func Hex2BytesFixed(str string, flen int) []byte {
 	hh := make([]byte, flen)
 	copy(hh[flen-len(h):flen], h)
 	return hh
+}
+
+// ParseHexOrString tries to hexdecode b, but if the prefix is missing, it instead just returns the raw bytes
+func ParseHexOrString(str string) ([]byte, error) {
+	b, err := hexutil.Decode(str)
+	if errors.Is(err, hexutil.ErrMissingPrefix) {
+		return []byte(str), nil
+	}
+	return b, err
 }
 
 // RightPadBytes zero-pads slice to the right up to length l.
