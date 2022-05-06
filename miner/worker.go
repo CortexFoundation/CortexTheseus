@@ -76,6 +76,11 @@ const (
 	staleThreshold = 7
 )
 
+var (
+	errBlockInterruptedByNewHead  = errors.New("new head arrived while building block")
+	errBlockInterruptedByRecommit = errors.New("recommit interrupt while building block")
+)
+
 // environment is the worker's current environment and holds all of the current state information.
 type environment struct {
 	signer types.Signer
@@ -91,6 +96,16 @@ type environment struct {
 	header   *types.Header
 	txs      []*types.Transaction
 	receipts []*types.Receipt
+}
+
+// discard terminates the background prefetcher go-routine. It should
+// always be called for all created environment instances otherwise
+// the go-routine leak can happen.
+func (env *environment) discard() {
+	if env.state == nil {
+		return
+	}
+	env.state.StopPrefetcher()
 }
 
 // task contains all information for consensus engine sealing and result submitting.
@@ -775,10 +790,10 @@ func (w *worker) commitTransaction(tx *types.Transaction, coinbase common.Addres
 	return receipt.Logs, nil
 }
 
-func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coinbase common.Address, interrupt *int32) bool {
+func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coinbase common.Address, interrupt *int32) error {
 	// Short circuit if current is nil
 	if w.current == nil {
-		return true
+		return nil
 	}
 
 	if w.current.gasPool == nil {
@@ -789,7 +804,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 		w.current.quotaPool = core.NewQuotaPool(w.current.header.Quota)
 		if err := w.current.quotaPool.SubQuota(w.current.header.QuotaUsed); err != nil {
 			log.Warn("Quota pool create error", "err", err)
-			return true
+			return nil
 		}
 	}
 
@@ -813,8 +828,9 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 					ratio: ratio,
 					inc:   true,
 				}
+				return errBlockInterruptedByRecommit
 			}
-			return atomic.LoadInt32(interrupt) == commitInterruptNewHead
+			return errBlockInterruptedByNewHead
 		}
 		// If we don't have enough gas for any further transactions then we're done
 		if w.current.gasPool.Gas() < params.TxGas {
@@ -893,7 +909,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 	if interrupt != nil {
 		w.resubmitAdjustCh <- &intervalAdjust{inc: false}
 	}
-	return false
+	return nil
 }
 
 // commitNewWork generates several new sealing tasks based on the parent block
@@ -970,16 +986,24 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		w.commit(uncles, nil, false, tstart)
 	}
 
-	// Fill the block with all available pending transactions.
-	pending := w.ctxc.TxPool().Pending(true)
-	// Short circuit if there is no available pending transactions.
-	// But if we disable empty precommit already, ignore it. Since
-	// empty block is necessary to keep the liveness of the network.
-	if len(pending) == 0 && atomic.LoadUint32(&w.noempty) == 0 {
-		w.updateSnapshot()
+	// Fill pending transactions from the txpool
+	err = w.fillTransactions(interrupt, env)
+	if errors.Is(err, errBlockInterruptedByNewHead) {
+		env.discard()
 		return
 	}
+
+	// Fill the block with all available pending transactions.
+	w.commit(uncles, w.fullTaskHook, true, tstart)
+}
+
+// fillTransactions retrieves the pending transactions from the txpool and fills them
+// into the given sealing block. The transaction selection and ordering strategy can
+// be customized with the plugin in the future.
+func (w *worker) fillTransactions(interrupt *int32, env *environment) error {
 	// Split the pending transactions into locals and remotes
+	// Fill the block with all available pending transactions.
+	pending := w.ctxc.TxPool().Pending(true)
 	localTxs, remoteTxs := make(map[common.Address]types.Transactions), pending
 	for _, account := range w.ctxc.TxPool().Locals() {
 		if txs := remoteTxs[account]; len(txs) > 0 {
@@ -988,18 +1012,18 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		}
 	}
 	if len(localTxs) > 0 {
-		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
-		if w.commitTransactions(txs, w.coinbase, interrupt) {
-			return
+		txs := types.NewTransactionsByPriceAndNonce(env.signer, localTxs)
+		if err := w.commitTransactions(txs, env.header.Coinbase, interrupt); err != nil {
+			return err
 		}
 	}
 	if len(remoteTxs) > 0 {
-		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, remoteTxs)
-		if w.commitTransactions(txs, w.coinbase, interrupt) {
-			return
+		txs := types.NewTransactionsByPriceAndNonce(env.signer, remoteTxs)
+		if err := w.commitTransactions(txs, env.header.Coinbase, interrupt); err != nil {
+			return err
 		}
 	}
-	w.commit(uncles, w.fullTaskHook, true, tstart)
+	return nil
 }
 
 // commit runs any post-transaction state modifications, assembles the final block
