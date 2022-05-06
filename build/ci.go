@@ -57,10 +57,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/crypto/signify"
 	"github.com/CortexFoundation/CortexTheseus/internal/build"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/cespare/cp"
 )
 
