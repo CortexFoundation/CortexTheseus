@@ -106,11 +106,16 @@ plugins/libcvm_runtime.so: submodule
 	@mkdir -p plugins
 	ln -sf ${INFER_NET_DIR}/build/libcvm_runtime.so $@
 
+xcortex: submodule
+	cd $(BASE)/XCortex && git submodule update --init && cd ..
+	ln -sf ${INFER_NET_DIR}/build/libcvm_runtime.so $(BASE)/XCortex/
+	$(MAKE) -C $(BASE)/XCortex miner -j8
+
 clib_cpu: plugins/cpu_helper_for_node.so plugins/libcvm_runtime.so
 
 clib: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/libcvm_runtime.so
 
-clib_mine: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/libcvm_runtime.so
+clib_mine: plugins/cuda_helper_for_node.so plugins/cpu_helper_for_node.so plugins/libcvm_runtime.so xcortex
 
 #inferServer: clib
 #	build/env.sh go run build/ci.go install ./cmd/infer_server
