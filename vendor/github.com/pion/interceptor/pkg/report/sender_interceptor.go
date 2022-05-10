@@ -99,21 +99,9 @@ func (s *SenderInterceptor) loop(rtcpWriter interceptor.RTCPWriter) {
 		case <-ticker.C:
 			now := s.now()
 			s.streams.Range(func(key, value interface{}) bool {
-				ssrc := key.(uint32)
-				stream := value.(*senderStream)
-
-				stream.m.Lock()
-				defer stream.m.Unlock()
-
-				sr := &rtcp.SenderReport{
-					SSRC:        ssrc,
-					NTPTime:     ntpTime(now),
-					RTPTime:     stream.lastRTPTimeRTP + uint32(now.Sub(stream.lastRTPTimeTime).Seconds()*stream.clockRate),
-					PacketCount: stream.packetCount,
-					OctetCount:  stream.octetCount,
-				}
-
-				if _, err := rtcpWriter.Write([]rtcp.Packet{sr}, interceptor.Attributes{}); err != nil {
+				if stream, ok := value.(*senderStream); !ok {
+					s.log.Warnf("failed to cast SenderInterceptor stream")
+				} else if _, err := rtcpWriter.Write([]rtcp.Packet{stream.generateReport(now)}, interceptor.Attributes{}); err != nil {
 					s.log.Warnf("failed sending: %+v", err)
 				}
 
@@ -129,7 +117,7 @@ func (s *SenderInterceptor) loop(rtcpWriter interceptor.RTCPWriter) {
 // BindLocalStream lets you modify any outgoing RTP packets. It is called once for per LocalStream. The returned method
 // will be called once per rtp packet.
 func (s *SenderInterceptor) BindLocalStream(info *interceptor.StreamInfo, writer interceptor.RTPWriter) interceptor.RTPWriter {
-	stream := newSenderStream(info.ClockRate)
+	stream := newSenderStream(info.SSRC, info.ClockRate)
 	s.streams.Store(info.SSRC, stream)
 
 	return interceptor.RTPWriterFunc(func(header *rtp.Header, payload []byte, a interceptor.Attributes) (int, error) {

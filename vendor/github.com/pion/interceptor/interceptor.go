@@ -17,7 +17,6 @@ type Factory interface {
 // Interceptor can be used to add functionality to you PeerConnections by modifying any incoming/outgoing rtp/rtcp
 // packets, or sending your own packets as needed.
 type Interceptor interface {
-
 	// BindRTCPReader lets you modify any incoming RTCP packets. It is called once per sender/receiver, however this might
 	// change in the future. The returned method will be called once per packet batch.
 	BindRTCPReader(reader RTCPReader) RTCPReader

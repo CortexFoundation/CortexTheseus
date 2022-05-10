@@ -41,6 +41,9 @@ type srtcpSSRCState struct {
 // Context represents a SRTP cryptographic context.
 // Context can only be used for one-way operations.
 // it must either used ONLY for encryption or ONLY for decryption.
+// Note that Context does not provide any concurrency protection:
+// access to a Context from multiple goroutines requires external
+// synchronization.
 type Context struct {
 	cipher srtpCipher
 
@@ -83,9 +86,9 @@ func CreateContext(masterKey, masterSalt []byte, profile ProtectionProfile, opts
 
 	switch profile {
 	case ProtectionProfileAeadAes128Gcm:
-		c.cipher, err = newSrtpCipherAeadAesGcm(masterKey, masterSalt)
-	case ProtectionProfileAes128CmHmacSha1_80:
-		c.cipher, err = newSrtpCipherAesCmHmacSha1(masterKey, masterSalt)
+		c.cipher, err = newSrtpCipherAeadAesGcm(profile, masterKey, masterSalt)
+	case ProtectionProfileAes128CmHmacSha1_32, ProtectionProfileAes128CmHmacSha1_80:
+		c.cipher, err = newSrtpCipherAesCmHmacSha1(profile, masterKey, masterSalt)
 	default:
 		return nil, fmt.Errorf("%w: %#v", errNoSuchSRTPProfile, profile)
 	}
@@ -109,13 +112,13 @@ func CreateContext(masterKey, masterSalt []byte, profile ProtectionProfile, opts
 }
 
 // https://tools.ietf.org/html/rfc3550#appendix-A.1
-func (s *srtpSSRCState) nextRolloverCount(sequenceNumber uint16) (uint32, func()) {
+func (s *srtpSSRCState) nextRolloverCount(sequenceNumber uint16) (uint32, int32) {
 	seq := int32(sequenceNumber)
 	localRoc := uint32(s.index >> 16)
 	localSeq := int32(s.index & (seqNumMax - 1))
 
 	guessRoc := localRoc
-	var difference int32 = 0
+	var difference int32
 
 	if s.rolloverHasProcessed {
 		// When localROC is equal to 0, and entering seq-localSeq > seqNumMedian
@@ -144,15 +147,17 @@ func (s *srtpSSRCState) nextRolloverCount(sequenceNumber uint16) (uint32, func()
 		}
 	}
 
-	return guessRoc, func() {
-		if !s.rolloverHasProcessed {
-			s.index |= uint64(sequenceNumber)
-			s.rolloverHasProcessed = true
-			return
-		}
-		if difference > 0 {
-			s.index += uint64(difference)
-		}
+	return guessRoc, difference
+}
+
+func (s *srtpSSRCState) updateRolloverCount(sequenceNumber uint16, difference int32) {
+	if !s.rolloverHasProcessed {
+		s.index |= uint64(sequenceNumber)
+		s.rolloverHasProcessed = true
+		return
+	}
+	if difference > 0 {
+		s.index += uint64(difference)
 	}
 }
 

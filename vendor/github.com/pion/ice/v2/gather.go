@@ -71,6 +71,7 @@ func (a *Agent) GatherCandidates() error {
 		a.gatherCandidateCancel() // Cancel previous gathering routine
 		ctx, cancel := context.WithCancel(ctx)
 		a.gatherCandidateCancel = cancel
+		a.gatherCandidateDone = make(chan struct{})
 
 		go a.gatherCandidates(ctx)
 	}); runErr != nil {
@@ -80,6 +81,7 @@ func (a *Agent) GatherCandidates() error {
 }
 
 func (a *Agent) gatherCandidates(ctx context.Context) {
+	defer close(a.gatherCandidateDone)
 	if err := a.setGatheringState(GatheringStateGathering); err != nil {
 		a.log.Warnf("failed to set gatheringState to GatheringStateGathering: %v", err)
 		return
@@ -97,7 +99,11 @@ func (a *Agent) gatherCandidates(ctx context.Context) {
 		case CandidateTypeServerReflexive:
 			wg.Add(1)
 			go func() {
-				a.gatherCandidatesSrflx(ctx, a.urls, a.networkTypes)
+				if a.udpMuxSrflx != nil {
+					a.gatherCandidatesSrflxUDPMux(ctx, a.urls, a.networkTypes)
+				} else {
+					a.gatherCandidatesSrflx(ctx, a.urls, a.networkTypes)
+				}
 				wg.Done()
 			}()
 			if a.extIPMapper != nil && a.extIPMapper.candidateType == CandidateTypeServerReflexive {
@@ -116,6 +122,7 @@ func (a *Agent) gatherCandidates(ctx context.Context) {
 		case CandidateTypePeerReflexive, CandidateTypeUnspecified:
 		}
 	}
+
 	// Block until all STUN and TURN URLs have been gathered (or timed out)
 	wg.Wait()
 
@@ -173,7 +180,7 @@ func (a *Agent) gatherCandidatesLocal(ctx context.Context, networkTypes []Networ
 			case tcp:
 				// Handle ICE TCP passive mode
 				a.log.Debugf("GetConn by ufrag: %s\n", a.localUfrag)
-				conn, err = a.tcpMux.GetConnByUfrag(a.localUfrag)
+				conn, err = a.tcpMux.GetConnByUfrag(a.localUfrag, mappedIP.To4() == nil)
 				if err != nil {
 					if !errors.Is(err, ErrTCPMuxNotInitialized) {
 						a.log.Warnf("error getting tcp conn by ufrag: %s %s %s\n", network, ip, a.localUfrag)
@@ -229,7 +236,7 @@ func (a *Agent) gatherCandidatesLocalUDPMux(ctx context.Context) error {
 		return errUDPMuxDisabled
 	}
 
-	localIPs, err := localInterfaces(a.net, a.interfaceFilter, []NetworkType{NetworkTypeUDP4})
+	localIPs, err := localInterfaces(a.net, a.interfaceFilter, a.networkTypes)
 	switch {
 	case err != nil:
 		return err
@@ -247,7 +254,7 @@ func (a *Agent) gatherCandidatesLocalUDPMux(ctx context.Context) error {
 			}
 		}
 
-		conn, err := a.udpMux.GetConn(a.localUfrag)
+		conn, err := a.udpMux.GetConn(a.localUfrag, candidateIP.To4() == nil)
 		if err != nil {
 			return err
 		}
@@ -333,7 +340,69 @@ func (a *Agent) gatherCandidatesSrflxMapped(ctx context.Context, networkTypes []
 	}
 }
 
-func (a *Agent) gatherCandidatesSrflx(ctx context.Context, urls []*URL, networkTypes []NetworkType) {
+func (a *Agent) gatherCandidatesSrflxUDPMux(ctx context.Context, urls []*URL, networkTypes []NetworkType) {
+	var wg sync.WaitGroup
+	defer wg.Wait()
+
+	for _, networkType := range networkTypes {
+		if networkType.IsTCP() {
+			continue
+		}
+
+		for i := range urls {
+			wg.Add(1)
+			go func(url URL, network string, isIPv6 bool) {
+				defer wg.Done()
+
+				hostPort := fmt.Sprintf("%s:%d", url.Host, url.Port)
+				serverAddr, err := a.net.ResolveUDPAddr(network, hostPort)
+				if err != nil {
+					a.log.Warnf("failed to resolve stun host: %s: %v", hostPort, err)
+					return
+				}
+
+				xoraddr, err := a.udpMuxSrflx.GetXORMappedAddr(serverAddr, stunGatherTimeout)
+				if err != nil {
+					a.log.Warnf("could not get server reflexive address %s %s: %v\n", network, url, err)
+					return
+				}
+
+				conn, err := a.udpMuxSrflx.GetConnForURL(a.localUfrag, url.String(), isIPv6)
+				if err != nil {
+					a.log.Warnf("could not find connection in UDPMuxSrflx %s %s: %v\n", network, url, err)
+					return
+				}
+
+				ip := xoraddr.IP
+				port := xoraddr.Port
+
+				laddr := conn.LocalAddr().(*net.UDPAddr)
+				srflxConfig := CandidateServerReflexiveConfig{
+					Network:   network,
+					Address:   ip.String(),
+					Port:      port,
+					Component: ComponentRTP,
+					RelAddr:   laddr.IP.String(),
+					RelPort:   laddr.Port,
+				}
+				c, err := NewCandidateServerReflexive(&srflxConfig)
+				if err != nil {
+					closeConnAndLog(conn, a.log, fmt.Sprintf("Failed to create server reflexive candidate: %s %s %d: %v\n", network, ip, port, err))
+					return
+				}
+
+				if err := a.addCandidate(ctx, c, conn); err != nil {
+					if closeErr := c.close(); closeErr != nil {
+						a.log.Warnf("Failed to close candidate: %v", closeErr)
+					}
+					a.log.Warnf("Failed to append to localCandidates and run onCandidateHdlr: %v\n", err)
+				}
+			}(*urls[i], networkType.String(), networkType.IsIPv6())
+		}
+	}
+}
+
+func (a *Agent) gatherCandidatesSrflx(ctx context.Context, urls []*URL, networkTypes []NetworkType) { //nolint:gocognit
 	var wg sync.WaitGroup
 	defer wg.Wait()
 
@@ -359,6 +428,18 @@ func (a *Agent) gatherCandidatesSrflx(ctx context.Context, urls []*URL, networkT
 					closeConnAndLog(conn, a.log, fmt.Sprintf("Failed to listen for %s: %v\n", serverAddr.String(), err))
 					return
 				}
+				// If the agent closes midway through the connection
+				// we end it early to prevent close delay.
+				cancelCtx, cancelFunc := context.WithCancel(ctx)
+				defer cancelFunc()
+				go func() {
+					select {
+					case <-cancelCtx.Done():
+						return
+					case <-a.done:
+						_ = conn.Close()
+					}
+				}()
 
 				xoraddr, err := getXORMappedAddr(conn, serverAddr, stunGatherTimeout)
 				if err != nil {

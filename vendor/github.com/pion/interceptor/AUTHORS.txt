@@ -3,8 +3,10 @@
 #
 # This file is auto generated, using git to list all individuals contributors.
 # see `.github/generate-authors.sh` for the scripting
+Aaron Boushley <boushley@gmail.com>
 Adam Kiss <masterada@gmail.com>
 adamroach <adam@nostrum.com>
+Aditya Kumar <k.aditya00@gmail.com>
 aler9 <46489434+aler9@users.noreply.github.com>
 Antoine Baché <antoine@tenten.app>
 Atsushi Watanabe <atsushi.w@ieee.org>

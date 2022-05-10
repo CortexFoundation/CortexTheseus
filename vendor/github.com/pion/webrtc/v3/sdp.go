@@ -340,7 +340,60 @@ func populateLocalCandidates(sessionDescription *SessionDescription, i *ICEGathe
 	}
 }
 
-func addTransceiverSDP(d *sdp.SessionDescription, isPlanB, shouldAddCandidates bool, dtlsFingerprints []DTLSFingerprint, mediaEngine *MediaEngine, midValue string, iceParams ICEParameters, candidates []ICECandidate, dtlsRole sdp.ConnectionRole, iceGatheringState ICEGatheringState, mediaSection mediaSection) (bool, error) {
+func addSenderSDP(
+	mediaSection mediaSection,
+	isPlanB bool,
+	media *sdp.MediaDescription,
+) {
+	for _, mt := range mediaSection.transceivers {
+		sender := mt.Sender()
+		if sender == nil {
+			continue
+		}
+
+		track := sender.Track()
+		if track == nil {
+			continue
+		}
+
+		sendParameters := sender.GetParameters()
+		for _, encoding := range sendParameters.Encodings {
+			media = media.WithMediaSource(uint32(encoding.SSRC), track.StreamID() /* cname */, track.StreamID() /* streamLabel */, track.ID())
+			if !isPlanB {
+				media = media.WithPropertyAttribute("msid:" + track.StreamID() + " " + track.ID())
+			}
+		}
+
+		if len(sendParameters.Encodings) > 1 {
+			sendRids := make([]string, 0, len(sendParameters.Encodings))
+
+			for _, encoding := range sendParameters.Encodings {
+				media.WithValueAttribute(sdpAttributeRid, encoding.RID+" send")
+				sendRids = append(sendRids, encoding.RID)
+			}
+			// Simulcast
+			media.WithValueAttribute("simulcast", "send "+strings.Join(sendRids, ";"))
+		}
+
+		if !isPlanB {
+			break
+		}
+	}
+}
+
+func addTransceiverSDP(
+	d *sdp.SessionDescription,
+	isPlanB bool,
+	shouldAddCandidates bool,
+	dtlsFingerprints []DTLSFingerprint,
+	mediaEngine *MediaEngine,
+	midValue string,
+	iceParams ICEParameters,
+	candidates []ICECandidate,
+	dtlsRole sdp.ConnectionRole,
+	iceGatheringState ICEGatheringState,
+	mediaSection mediaSection,
+) (bool, error) {
 	transceivers := mediaSection.transceivers
 	if len(transceivers) < 1 {
 		return false, errSDPZeroTransceivers
@@ -371,12 +424,23 @@ func addTransceiverSDP(d *sdp.SessionDescription, isPlanB, shouldAddCandidates b
 		}
 
 		// Explicitly reject track if we don't have the codec
+		// We need to include connection information even if we're rejecting a track, otherwise Firefox will fail to
+		// parse the SDP with an error like:
+		// SIPCC Failed to parse SDP: SDP Parse Error on line 50:  c= connection line not specified for every media level, validation failed.
+		// In addition this makes our SDP compliant with RFC 4566 Section 5.7: https://datatracker.ietf.org/doc/html/rfc4566#section-5.7
 		d.WithMedia(&sdp.MediaDescription{
 			MediaName: sdp.MediaName{
 				Media:   t.kind.String(),
 				Port:    sdp.RangedPort{Value: 0},
 				Protos:  []string{"UDP", "TLS", "RTP", "SAVPF"},
 				Formats: []string{"0"},
+			},
+			ConnectionInformation: &sdp.ConnectionInformation{
+				NetworkType: "IN",
+				AddressType: "IP4",
+				Address: &sdp.Address{
+					Address: "0.0.0.0",
+				},
 			},
 		})
 		return false, nil
@@ -410,16 +474,7 @@ func addTransceiverSDP(d *sdp.SessionDescription, isPlanB, shouldAddCandidates b
 		media.WithValueAttribute("simulcast", "recv "+strings.Join(recvRids, ";"))
 	}
 
-	for _, mt := range transceivers {
-		if sender := mt.Sender(); sender != nil && sender.Track() != nil {
-			track := sender.Track()
-			media = media.WithMediaSource(uint32(sender.ssrc), track.StreamID() /* cname */, track.StreamID() /* streamLabel */, track.ID())
-			if !isPlanB {
-				media = media.WithPropertyAttribute("msid:" + track.StreamID() + " " + track.ID())
-				break
-			}
-		}
-	}
+	addSenderSDP(mediaSection, isPlanB, media)
 
 	media = media.WithPropertyAttribute(t.Direction().String())
 
@@ -494,7 +549,7 @@ func populateSDP(d *sdp.SessionDescription, isPlanB bool, dtlsFingerprints []DTL
 
 	if isICELite {
 		// RFC 5245 S15.3
-		d = d.WithValueAttribute(sdp.AttrKeyICELite, sdp.AttrKeyICELite)
+		d = d.WithValueAttribute(sdp.AttrKeyICELite, "")
 	}
 
 	return d.WithValueAttribute(sdp.AttrKeyGroup, bundleValue), nil

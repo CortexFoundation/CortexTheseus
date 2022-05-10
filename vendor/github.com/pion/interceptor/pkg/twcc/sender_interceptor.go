@@ -166,6 +166,13 @@ func (s *SenderInterceptor) isClosed() bool {
 func (s *SenderInterceptor) loop(w interceptor.RTCPWriter) {
 	defer s.wg.Done()
 
+	select {
+	case <-s.close:
+		return
+	case p := <-s.packetChan:
+		s.recorder.Record(p.ssrc, p.sequenceNumber, p.arrivalTime)
+	}
+
 	ticker := time.NewTicker(s.interval)
 	for {
 		select {

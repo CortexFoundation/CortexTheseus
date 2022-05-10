@@ -21,3 +21,12 @@ func ResponderLog(log logging.LeveledLogger) ResponderOption {
 		return nil
 	}
 }
+
+// DisableCopy bypasses copy of underlying packets. It should be used when
+// you are not re-using underlying buffers of packets that have been written
+func DisableCopy() ResponderOption {
+	return func(s *ResponderInterceptor) error {
+		s.packetFactory = &noOpPacketFactory{}
+		return nil
+	}
+}

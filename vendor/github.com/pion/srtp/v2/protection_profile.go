@@ -6,16 +6,16 @@ import "fmt"
 type ProtectionProfile uint16
 
 // Supported protection profiles
+// See https://www.iana.org/assignments/srtp-protection/srtp-protection.xhtml
 const (
 	ProtectionProfileAes128CmHmacSha1_80 ProtectionProfile = 0x0001
+	ProtectionProfileAes128CmHmacSha1_32 ProtectionProfile = 0x0002
 	ProtectionProfileAeadAes128Gcm       ProtectionProfile = 0x0007
 )
 
 func (p ProtectionProfile) keyLen() (int, error) {
 	switch p {
-	case ProtectionProfileAes128CmHmacSha1_80:
-		fallthrough
-	case ProtectionProfileAeadAes128Gcm:
+	case ProtectionProfileAes128CmHmacSha1_32, ProtectionProfileAes128CmHmacSha1_80, ProtectionProfileAeadAes128Gcm:
 		return 16, nil
 	default:
 		return 0, fmt.Errorf("%w: %#v", errNoSuchSRTPProfile, p)
@@ -24,7 +24,7 @@ func (p ProtectionProfile) keyLen() (int, error) {
 
 func (p ProtectionProfile) saltLen() (int, error) {
 	switch p {
-	case ProtectionProfileAes128CmHmacSha1_80:
+	case ProtectionProfileAes128CmHmacSha1_32, ProtectionProfileAes128CmHmacSha1_80:
 		return 14, nil
 	case ProtectionProfileAeadAes128Gcm:
 		return 12, nil
@@ -33,12 +33,25 @@ func (p ProtectionProfile) saltLen() (int, error) {
 	}
 }
 
-func (p ProtectionProfile) authTagLen() (int, error) {
+func (p ProtectionProfile) rtpAuthTagLen() (int, error) {
 	switch p {
 	case ProtectionProfileAes128CmHmacSha1_80:
-		return (&srtpCipherAesCmHmacSha1{}).authTagLen(), nil
+		return 10, nil
+	case ProtectionProfileAes128CmHmacSha1_32:
+		return 4, nil
 	case ProtectionProfileAeadAes128Gcm:
-		return (&srtpCipherAeadAesGcm{}).authTagLen(), nil
+		return 0, nil
+	default:
+		return 0, fmt.Errorf("%w: %#v", errNoSuchSRTPProfile, p)
+	}
+}
+
+func (p ProtectionProfile) rtcpAuthTagLen() (int, error) {
+	switch p {
+	case ProtectionProfileAes128CmHmacSha1_32, ProtectionProfileAes128CmHmacSha1_80:
+		return 10, nil
+	case ProtectionProfileAeadAes128Gcm:
+		return 0, nil
 	default:
 		return 0, fmt.Errorf("%w: %#v", errNoSuchSRTPProfile, p)
 	}
@@ -46,10 +59,10 @@ func (p ProtectionProfile) authTagLen() (int, error) {
 
 func (p ProtectionProfile) aeadAuthTagLen() (int, error) {
 	switch p {
-	case ProtectionProfileAes128CmHmacSha1_80:
-		return (&srtpCipherAesCmHmacSha1{}).aeadAuthTagLen(), nil
+	case ProtectionProfileAes128CmHmacSha1_32, ProtectionProfileAes128CmHmacSha1_80:
+		return 0, nil
 	case ProtectionProfileAeadAes128Gcm:
-		return (&srtpCipherAeadAesGcm{}).aeadAuthTagLen(), nil
+		return 16, nil
 	default:
 		return 0, fmt.Errorf("%w: %#v", errNoSuchSRTPProfile, p)
 	}
@@ -57,7 +70,7 @@ func (p ProtectionProfile) aeadAuthTagLen() (int, error) {
 
 func (p ProtectionProfile) authKeyLen() (int, error) {
 	switch p {
-	case ProtectionProfileAes128CmHmacSha1_80:
+	case ProtectionProfileAes128CmHmacSha1_32, ProtectionProfileAes128CmHmacSha1_80:
 		return 20, nil
 	case ProtectionProfileAeadAes128Gcm:
 		return 0, nil

@@ -134,7 +134,7 @@ var rtpPacketPool = sync.Pool{
 // PeerConnections so you can remove them
 func (s *TrackLocalStaticRTP) WriteRTP(p *rtp.Packet) error {
 	ipacket := rtpPacketPool.Get()
-	packet := ipacket.(*rtp.Packet)
+	packet := ipacket.(*rtp.Packet) //nolint:forcetypeassert
 	defer func() {
 		*packet = rtp.Packet{}
 		rtpPacketPool.Put(ipacket)
@@ -167,7 +167,7 @@ func (s *TrackLocalStaticRTP) writeRTP(p *rtp.Packet) error {
 // PeerConnections so you can remove them
 func (s *TrackLocalStaticRTP) Write(b []byte) (n int, err error) {
 	ipacket := rtpPacketPool.Get()
-	packet := ipacket.(*rtp.Packet)
+	packet := ipacket.(*rtp.Packet) //nolint:forcetypeassert
 	defer func() {
 		*packet = rtp.Packet{}
 		rtpPacketPool.Put(ipacket)
@@ -282,9 +282,9 @@ func (s *TrackLocalStaticSample) WriteSample(sample media.Sample) error {
 
 	samples := uint32(sample.Duration.Seconds() * clockRate)
 	if sample.PrevDroppedPackets > 0 {
-		p.(rtp.Packetizer).SkipSamples(samples * uint32(sample.PrevDroppedPackets))
+		p.SkipSamples(samples * uint32(sample.PrevDroppedPackets))
 	}
-	packets := p.(rtp.Packetizer).Packetize(sample.Data, samples)
+	packets := p.Packetize(sample.Data, samples)
 
 	writeErrs := []error{}
 	for _, p := range packets {

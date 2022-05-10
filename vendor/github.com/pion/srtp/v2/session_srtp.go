@@ -111,9 +111,8 @@ func (s *SessionSRTP) Close() error {
 func (s *SessionSRTP) write(b []byte) (int, error) {
 	packet := &rtp.Packet{}
 
-	err := packet.Unmarshal(b)
-	if err != nil {
-		return 0, nil
+	if err := packet.Unmarshal(b); err != nil {
+		return 0, err
 	}
 
 	return s.writeRTP(&packet.Header, packet.Payload)
