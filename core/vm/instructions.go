@@ -494,9 +494,9 @@ func opDifficulty(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx)
 	return nil, nil
 }
 
-func opRandom(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
-	v := new(uint256.Int).SetBytes((interpreter.cvm.Context.Random.Bytes()))
-	callContext.stack.push(v)
+func opRandom(pc *uint64, interpreter *CVMInterpreter, scope *callCtx) ([]byte, error) {
+	v := new(uint256.Int).SetBytes(interpreter.cvm.Context.Random.Bytes())
+	scope.stack.push(v)
 	return nil, nil
 }
 
