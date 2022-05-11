@@ -23,6 +23,13 @@ import (
 	"github.com/holiman/uint256"
 )
 
+var activators = map[int]func(*JumpTable){
+	3855: enable3855,
+	2200: enable2200,
+	1884: enable1884,
+	1344: enable1344,
+}
+
 // EnableEIP enables the given EIP on the config.
 // This operation writes in-place, and callers need to ensure that the globally
 // defined jump tables are not polluted.
@@ -88,4 +95,20 @@ func opChainID(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([
 func enable2200(jt *JumpTable) {
 	jt[SLOAD].gasCost = constGasFunc(params.SloadGasEIP2200)
 	jt[SSTORE].gasCost = gasSStoreEIP2200
+}
+
+// enable3855 applies EIP-3855 (PUSH0 opcode)
+func enable3855(jt *JumpTable) {
+	// New opcode
+	jt[PUSH0] = &operation{
+		execute:       opPush0,
+		gasCost:       constGasFunc(GasQuickStep),
+		validateStack: makeStackFunc(0, 1),
+	}
+}
+
+// opPush0 implements the PUSH0 opcode
+func opPush0(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
+	callContext.stack.push(new(uint256.Int))
+	return nil, nil
 }
