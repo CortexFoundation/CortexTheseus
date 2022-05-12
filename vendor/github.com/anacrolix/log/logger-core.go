@@ -76,7 +76,9 @@ func (l loggerCore) handle(level Level, m Msg) {
 	r := Record{
 		Msg:   m.Skip(1),
 		Level: level,
-		Names: l.names,
+		// Add an extra slot for pcNames
+		Names: append(make([]string, 0, len(l.names)+1), l.names...),
+		//Names: l.names,
 	}
 	if !l.nonZero {
 		panic(fmt.Sprintf("Logger uninitialized. names=%q", l.names))

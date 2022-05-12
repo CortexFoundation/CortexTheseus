@@ -32,11 +32,11 @@ by anyone. With the following tenets in mind.
 * [Sender and Receiver Reports](https://github.com/pion/interceptor/tree/master/pkg/report)
 * [Transport Wide Congestion Control Feedback](https://github.com/pion/interceptor/tree/master/pkg/twcc)
 * [Packet Dump](https://github.com/pion/interceptor/tree/master/pkg/packetdump)
+* [Google Congestion Control](https://github.com/pion/interceptor/tree/master/pkg/gcc)
 
 #### Planned Interceptors
 * Bandwidth Estimation
   - [NADA](https://tools.ietf.org/html/rfc8698)
-  - [Google Congestion Control](https://tools.ietf.org/html/draft-ietf-rmcat-gcc-02)
 * JitterBuffer, re-order packets and wait for arrival
 * [FlexFec](https://tools.ietf.org/html/draft-ietf-payload-flexible-fec-scheme-20)
 * [webrtc-stats](https://www.w3.org/TR/webrtc-stats/) compliant statistics generation

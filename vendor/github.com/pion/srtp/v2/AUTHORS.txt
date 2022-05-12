@@ -3,6 +3,8 @@
 #
 # This file is auto generated, using git to list all individuals contributors.
 # see `.github/generate-authors.sh` for the scripting
+adamroach <adam@nostrum.com>
+Agniva De Sarker <agnivade@yahoo.co.in>
 Atsushi Watanabe <atsushi.w@ieee.org>
 backkem <mail@backkem.me>
 chenkaiC4 <chenkaic4@gmail.com>

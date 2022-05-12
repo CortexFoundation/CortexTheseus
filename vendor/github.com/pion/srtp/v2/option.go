@@ -8,7 +8,7 @@ import (
 type ContextOption func(*Context) error
 
 // SRTPReplayProtection sets SRTP replay protection window size.
-func SRTPReplayProtection(windowSize uint) ContextOption { // nolint:golint
+func SRTPReplayProtection(windowSize uint) ContextOption { // nolint:revive
 	return func(c *Context) error {
 		c.newSRTPReplayDetector = func() replaydetector.ReplayDetector {
 			return replaydetector.WithWrap(windowSize, maxSequenceNumber)
@@ -28,7 +28,7 @@ func SRTCPReplayProtection(windowSize uint) ContextOption {
 }
 
 // SRTPNoReplayProtection disables SRTP replay protection.
-func SRTPNoReplayProtection() ContextOption { // nolint:golint
+func SRTPNoReplayProtection() ContextOption { // nolint:revive
 	return func(c *Context) error {
 		c.newSRTPReplayDetector = func() replaydetector.ReplayDetector {
 			return &nopReplayDetector{}

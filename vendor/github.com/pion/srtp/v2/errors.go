@@ -18,6 +18,7 @@ var (
 	errTooShortRTCP                  = errors.New("packet is too short to be rtcp packet")
 	errPayloadDiffers                = errors.New("payload differs")
 	errStartedChannelUsedIncorrectly = errors.New("started channel used incorrectly, should only be closed")
+	errBadIVLength                   = errors.New("bad iv length in xorBytesCTR")
 
 	errStreamNotInited     = errors.New("stream has not been inited, unable to close")
 	errStreamAlreadyClosed = errors.New("stream is already closed")
@@ -25,16 +26,16 @@ var (
 	errFailedTypeAssertion = errors.New("failed to cast child")
 )
 
-type errorDuplicated struct {
+type duplicatedError struct {
 	Proto string // srtp or srtcp
 	SSRC  uint32
 	Index uint32 // sequence number or index
 }
 
-func (e *errorDuplicated) Error() string {
+func (e *duplicatedError) Error() string {
 	return fmt.Sprintf("%s ssrc=%d index=%d: %v", e.Proto, e.SSRC, e.Index, errDuplicated)
 }
 
-func (e *errorDuplicated) Unwrap() error {
+func (e *duplicatedError) Unwrap() error {
 	return errDuplicated
 }

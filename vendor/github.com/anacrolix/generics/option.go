@@ -16,6 +16,13 @@ func (me *Option[V]) Value() V {
 	return me.value
 }
 
+func (me Option[V]) AndThen(f func(V) Option[V]) Option[V] {
+	if me.Ok() {
+		return f(me.value)
+	}
+	return me
+}
+
 func Some[V any](value V) Option[V] {
 	return Option[V]{ok: true, value: value}
 }

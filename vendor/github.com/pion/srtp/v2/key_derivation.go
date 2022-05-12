@@ -48,8 +48,8 @@ func aesCmKeyDerivation(label byte, masterKey, masterSalt []byte, indexOverKdr i
 // -       passing through 65,535
 // i = 2^16 * ROC + SEQ
 // IV = (salt*2 ^ 16) | (ssrc*2 ^ 64) | (i*2 ^ 16)
-func generateCounter(sequenceNumber uint16, rolloverCounter uint32, ssrc uint32, sessionSalt []byte) []byte {
-	counter := make([]byte, 16)
+func generateCounter(sequenceNumber uint16, rolloverCounter uint32, ssrc uint32, sessionSalt []byte) [16]byte {
+	var counter [16]byte
 
 	binary.BigEndian.PutUint32(counter[4:], ssrc)
 	binary.BigEndian.PutUint32(counter[8:], rolloverCounter)

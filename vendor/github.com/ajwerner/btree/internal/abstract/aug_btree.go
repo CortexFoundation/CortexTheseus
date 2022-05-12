@@ -23,7 +23,7 @@ import (
 // compile-time constant.
 
 const (
-	Degree     = 16
+	Degree     = 64
 	MaxEntries = 2*Degree - 1
 	MinEntries = Degree - 1
 )

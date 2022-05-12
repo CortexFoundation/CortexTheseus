@@ -4,6 +4,7 @@
 # This file is auto generated, using git to list all individuals contributors.
 # see `.github/generate-authors.sh` for the scripting
 a-wing <1@233.email>
+Aaron Boushley <boushley@pretzelaux.com>
 Aaron France <aaron.l.france@gmail.com>
 Adam Kiss <masterada@gmail.com>
 adwpc <adwpc@hotmail.com>
@@ -46,6 +47,7 @@ cnderrauber <zengjie9004@gmail.com>
 cyannuk <cyannuk@issart.com>
 David Hamilton <davidhamiltron@gmail.com>
 David Zhao <david@davidzhao.com>
+david.s <david.s@hpcnt.com>
 Dean Sheather <dean@coder.com>
 decanus <7621705+decanus@users.noreply.github.com>
 Denis <Hixon10@yandex.ru>
@@ -76,6 +78,7 @@ Jerko Steiner <jerko.steiner@gmail.com>
 jinleileiking <jinleileiking@gmail.com>
 John Berthels <john.berthels@gmail.com>
 John Bradley <jrb@turrettech.com>
+John Selbie <jselbie@gmail.com>
 JooYoung <qkdlql@naver.com>
 Jorropo <jorropo.pgm@gmail.com>
 juberti <juberti@alphaexplorationco.com>
@@ -90,6 +93,7 @@ krishna chiatanya <kittuov@gmail.com>
 Kuzmin Vladimir <vova-kyzmin@yandex.ru>
 lawl <github@dumbinter.net>
 Len <len@hpcnt.com>
+Leslie Wang <wqyuwss@gmail.com>
 Lukas Herman <lherman.cs@gmail.com>
 Luke <luke@street.dev>
 Luke Curley <kixelated@gmail.com>
@@ -131,6 +135,7 @@ rahulnakre <rahulnakre@gmail.com>
 Raphael Randschau <nicolai86@me.com>
 Raphael Randschau <nicolai86@users.noreply.github.com>
 Reese <3253971+figadore@users.noreply.github.com>
+rob <me@iamcalledrob.com>
 rob-deutsch <robzyb+altgithub@gmail.com>
 Robert Eperjesi <eperjesi@uber.com>
 Robin Raymond <robin-raymond@users.noreply.github.com>

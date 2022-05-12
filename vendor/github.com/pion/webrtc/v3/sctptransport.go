@@ -4,6 +4,7 @@
 package webrtc
 
 import (
+	"errors"
 	"io"
 	"math"
 	"sync"
@@ -103,8 +104,9 @@ func (r *SCTPTransport) Start(remoteCaps SCTPCapabilities) error {
 	}
 
 	sctpAssociation, err := sctp.Client(sctp.Config{
-		NetConn:       dtlsTransport.conn,
-		LoggerFactory: r.api.settingEngine.LoggerFactory,
+		NetConn:              dtlsTransport.conn,
+		MaxReceiveBufferSize: r.api.settingEngine.sctp.maxReceiveBufferSize,
+		LoggerFactory:        r.api.settingEngine.LoggerFactory,
 	})
 	if err != nil {
 		return err
@@ -174,7 +176,7 @@ ACCEPT:
 			LoggerFactory: r.api.settingEngine.LoggerFactory,
 		}, dataChannels...)
 		if err != nil {
-			if err != io.EOF {
+			if errors.Is(err, io.EOF) {
 				r.log.Errorf("Failed to accept data channel: %v", err)
 				r.onError(err)
 			}

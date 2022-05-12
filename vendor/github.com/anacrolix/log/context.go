@@ -11,5 +11,9 @@ func ContextWithLogger(ctx context.Context, logger Logger) context.Context {
 }
 
 func ContextLogger(ctx context.Context) Logger {
-	return ctx.Value(loggerContextKey).(Logger)
+	value := ctx.Value(loggerContextKey)
+	if value == nil {
+		return Default
+	}
+	return value.(Logger)
 }

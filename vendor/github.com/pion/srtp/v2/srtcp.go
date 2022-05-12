@@ -11,7 +11,12 @@ const maxSRTCPIndex = 0x7FFFFFFF
 
 func (c *Context) decryptRTCP(dst, encrypted []byte) ([]byte, error) {
 	out := allocateIfMismatch(dst, encrypted)
-	tailOffset := len(encrypted) - (c.cipher.authTagLen() + srtcpIndexSize)
+
+	authTagLen, err := c.cipher.rtcpAuthTagLen()
+	if err != nil {
+		return nil, err
+	}
+	tailOffset := len(encrypted) - (authTagLen + srtcpIndexSize)
 
 	if tailOffset < 0 {
 		return nil, fmt.Errorf("%w: %d", errTooShortRTCP, len(encrypted))
@@ -25,10 +30,10 @@ func (c *Context) decryptRTCP(dst, encrypted []byte) ([]byte, error) {
 	s := c.getSRTCPSSRCState(ssrc)
 	markAsValid, ok := s.replayDetector.Check(uint64(index))
 	if !ok {
-		return nil, &errorDuplicated{Proto: "srtcp", SSRC: ssrc, Index: index}
+		return nil, &duplicatedError{Proto: "srtcp", SSRC: ssrc, Index: index}
 	}
 
-	out, err := c.cipher.decryptRTCP(out, encrypted, index, ssrc)
+	out, err = c.cipher.decryptRTCP(out, encrypted, index, ssrc)
 	if err != nil {
 		return nil, err
 	}

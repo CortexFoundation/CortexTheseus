@@ -57,8 +57,6 @@ func (m *Mux) NewEndpoint(f MatchFunc) *Endpoint {
 	}
 
 	// Set a maximum size of the buffer in bytes.
-	// NOTE: We actually won't get anywhere close to this limit.
-	// SRTP will constantly read from the endpoint and drop packets if it's full.
 	e.buffer.SetLimitSize(maxBufferSize)
 
 	m.lock.Lock()
@@ -79,8 +77,8 @@ func (m *Mux) RemoveEndpoint(e *Endpoint) {
 func (m *Mux) Close() error {
 	m.lock.Lock()
 	for e := range m.endpoints {
-		err := e.close()
-		if err != nil {
+		if err := e.close(); err != nil {
+			m.lock.Unlock()
 			return err
 		}
 
@@ -147,9 +145,12 @@ func (m *Mux) dispatch(buf []byte) error {
 	}
 
 	_, err := endpoint.buffer.Write(buf)
-	if err != nil {
-		return err
+
+	// Expected when bytes are received faster than the endpoint can process them (#2152, #2180)
+	if errors.Is(err, packetio.ErrFull) {
+		m.log.Infof("mux: endpoint buffer is full, dropping packet")
+		return nil
 	}
 
-	return nil
+	return err
 }

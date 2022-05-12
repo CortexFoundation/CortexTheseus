@@ -114,6 +114,7 @@ type Agent struct {
 	err          atomicError
 
 	gatherCandidateCancel func()
+	gatherCandidateDone   chan struct{}
 
 	chanCandidate     chan Candidate
 	chanCandidatePair chan *CandidatePair
@@ -122,9 +123,10 @@ type Agent struct {
 	loggerFactory logging.LoggerFactory
 	log           logging.LeveledLogger
 
-	net    *vnet.Net
-	tcpMux TCPMux
-	udpMux UDPMux
+	net         *vnet.Net
+	tcpMux      TCPMux
+	udpMux      UDPMux
+	udpMuxSrflx UniversalUDPMux
 
 	interfaceFilter func(string) bool
 
@@ -319,6 +321,7 @@ func NewAgent(config *AgentConfig) (*Agent, error) { //nolint:gocognit
 		a.tcpMux = newInvalidTCPMux()
 	}
 	a.udpMux = config.UDPMux
+	a.udpMuxSrflx = config.UDPMuxSrflx
 
 	if a.net == nil {
 		a.net = vnet.NewNet(nil)
@@ -892,6 +895,9 @@ func (a *Agent) removeUfragFromMux() {
 	if a.udpMux != nil {
 		a.udpMux.RemoveConnByUfrag(a.localUfrag)
 	}
+	if a.udpMuxSrflx != nil {
+		a.udpMuxSrflx.RemoveConnByUfrag(a.localUfrag)
+	}
 }
 
 // Close cleans up the Agent
@@ -902,6 +908,9 @@ func (a *Agent) Close() error {
 
 	a.afterRun(func(context.Context) {
 		a.gatherCandidateCancel()
+		if a.gatherCandidateDone != nil {
+			<-a.gatherCandidateDone
+		}
 	})
 	a.err.Store(ErrClosed)
 
