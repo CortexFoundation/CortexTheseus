@@ -1,5 +1,9 @@
 package generics
 
+import (
+	"golang.org/x/exp/constraints"
+)
+
 // Pops the last element from the slice and returns it. Panics if the slice is empty, or if the
 // slice is nil.
 func SlicePop[T any](slice *[]T) T {
@@ -7,4 +11,8 @@ func SlicePop[T any](slice *[]T) T {
 	last := (*slice)[lastIndex]
 	*slice = (*slice)[:lastIndex]
 	return last
+}
+
+func MakeSliceWithLength[T any, L constraints.Integer](slice *[]T, length L) {
+	*slice = make([]T, length)
 }

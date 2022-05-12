@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.3.0
 	github.com/CortexFoundation/inference v1.0.2-0.20220421072809-9c87efb8a557
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.25-0.20220510015652-7f791f49a373
+	github.com/CortexFoundation/torrentfs v1.0.25-0.20220512041503-bebca4cd64d2
 	github.com/VictoriaMetrics/fastcache v1.10.0
 	github.com/arsham/figurine v1.0.1
 	github.com/aws/aws-sdk-go-v2 v1.3.0
@@ -76,13 +76,13 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/internal v0.8.3 // indirect
 	github.com/CortexFoundation/cvm-runtime v0.0.0-20210119064759-82917ece736a // indirect
 	github.com/CortexFoundation/merkletree v0.0.0-20220419080543-2eafbafb777b // indirect
-	github.com/RoaringBitmap/roaring v0.9.4 // indirect
+	github.com/RoaringBitmap/roaring v1.0.1-0.20220510143707-3f418c4f42a4 // indirect
 	github.com/ajwerner/btree v0.0.0-20211221152037-f427b3e689c0 // indirect
 	github.com/allegro/bigcache/v3 v3.0.3-0.20220509113442-0b306aa0178f // indirect
 	github.com/anacrolix/chansync v0.3.0 // indirect
 	github.com/anacrolix/dht/v2 v2.17.1-0.20220426014940-bf548049b40e // indirect
 	github.com/anacrolix/envpprof v1.2.1 // indirect
-	github.com/anacrolix/generics v0.0.0-20220509075520-ded83cdf4115 // indirect
+	github.com/anacrolix/generics v0.0.0-20220510042907-b50562b436ec // indirect
 	github.com/anacrolix/go-libutp v1.2.0 // indirect
 	github.com/anacrolix/log v0.13.2-0.20220427063716-a4894bb521c6 // indirect
 	github.com/anacrolix/missinggo v1.3.0 // indirect
@@ -92,7 +92,7 @@ require (
 	github.com/anacrolix/multiless v0.3.0 // indirect
 	github.com/anacrolix/stm v0.3.0 // indirect
 	github.com/anacrolix/sync v0.4.0 // indirect
-	github.com/anacrolix/torrent v1.42.1-0.20220509020512-d5d940e64367 // indirect
+	github.com/anacrolix/torrent v1.43.1-0.20220512034712-eeb021b13413 // indirect
 	github.com/anacrolix/upnp v0.1.3-0.20220123035249-922794e51c96 // indirect
 	github.com/anacrolix/utp v0.1.0 // indirect
 	github.com/arsham/rainbow v1.0.0 // indirect
@@ -102,6 +102,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.1.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.2.0 // indirect
 	github.com/aws/smithy-go v1.2.0 // indirect
+	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/benbjohnson/immutable v0.3.0 // indirect
 	github.com/bits-and-blooms/bitset v1.2.2 // indirect
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8 // indirect
@@ -121,6 +122,7 @@ require (
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
+	github.com/lispad/go-generics-tools v1.0.0 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
@@ -153,6 +155,7 @@ require (
 	github.com/tklauser/numcpus v0.4.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	go.etcd.io/bbolt v1.3.7-0.20220226045046-fd5535f71f48 // indirect
+	golang.org/x/exp v0.0.0-20220428152302-39d4317da171 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
 	golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
