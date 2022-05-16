@@ -53,20 +53,24 @@ const (
 
 // 0x10 range - comparison ops.
 const (
-	LT        OpCode = 0x10
-	GT        OpCode = 0x11
-	SLT       OpCode = 0x12
-	SGT       OpCode = 0x13
-	EQ        OpCode = 0x14
-	ISZERO    OpCode = 0x15
-	AND       OpCode = 0x16
-	OR        OpCode = 0x17
-	XOR       OpCode = 0x18
-	NOT       OpCode = 0x19
-	BYTE      OpCode = 0x1a
-	SHL       OpCode = 0x1b
-	SHR       OpCode = 0x1c
-	SAR       OpCode = 0x1d
+	LT     OpCode = 0x10
+	GT     OpCode = 0x11
+	SLT    OpCode = 0x12
+	SGT    OpCode = 0x13
+	EQ     OpCode = 0x14
+	ISZERO OpCode = 0x15
+	AND    OpCode = 0x16
+	OR     OpCode = 0x17
+	XOR    OpCode = 0x18
+	NOT    OpCode = 0x19
+	BYTE   OpCode = 0x1a
+	SHL    OpCode = 0x1b
+	SHR    OpCode = 0x1c
+	SAR    OpCode = 0x1d
+)
+
+// 0x20 range - crypto.
+const (
 	KECCAK256 OpCode = 0x20
 )
 
