@@ -38,13 +38,13 @@ github.com/CortexFoundation/merkletree
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit; go 1.16
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.25-0.20220510015652-7f791f49a373
+# github.com/CortexFoundation/torrentfs v1.0.25-0.20220516021103-fd5b9655a2dd
 ## explicit; go 1.18
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
 github.com/CortexFoundation/torrentfs/params
 github.com/CortexFoundation/torrentfs/types
-# github.com/RoaringBitmap/roaring v0.9.4
+# github.com/RoaringBitmap/roaring v1.0.1-0.20220510143707-3f418c4f42a4
 ## explicit; go 1.14
 github.com/RoaringBitmap/roaring
 github.com/RoaringBitmap/roaring/BitSliceIndexing
@@ -78,7 +78,7 @@ github.com/anacrolix/dht/v2/types
 # github.com/anacrolix/envpprof v1.2.1
 ## explicit; go 1.12
 github.com/anacrolix/envpprof
-# github.com/anacrolix/generics v0.0.0-20220509075520-ded83cdf4115
+# github.com/anacrolix/generics v0.0.0-20220510042907-b50562b436ec
 ## explicit; go 1.18
 github.com/anacrolix/generics
 # github.com/anacrolix/go-libutp v1.2.0
@@ -122,7 +122,7 @@ github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.4.0
 ## explicit; go 1.13
 github.com/anacrolix/sync
-# github.com/anacrolix/torrent v1.42.1-0.20220509020512-d5d940e64367
+# github.com/anacrolix/torrent v1.43.1
 ## explicit; go 1.18
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
@@ -143,6 +143,7 @@ github.com/anacrolix/torrent/tracker
 github.com/anacrolix/torrent/tracker/http
 github.com/anacrolix/torrent/tracker/shared
 github.com/anacrolix/torrent/tracker/udp
+github.com/anacrolix/torrent/typed-roaring
 github.com/anacrolix/torrent/types
 github.com/anacrolix/torrent/version
 github.com/anacrolix/torrent/webseed
@@ -230,6 +231,9 @@ github.com/aws/smithy-go/rand
 github.com/aws/smithy-go/time
 github.com/aws/smithy-go/transport/http
 github.com/aws/smithy-go/transport/http/internal/io
+# github.com/bahlo/generic-list-go v0.2.0
+## explicit; go 1.18
+github.com/bahlo/generic-list-go
 # github.com/benbjohnson/immutable v0.3.0
 ## explicit; go 1.12
 github.com/benbjohnson/immutable
@@ -388,6 +392,9 @@ github.com/kr/pretty
 # github.com/kr/text v0.2.0
 ## explicit
 github.com/kr/text
+# github.com/lispad/go-generics-tools v1.0.0
+## explicit; go 1.18
+github.com/lispad/go-generics-tools/binheap
 # github.com/lucasb-eyer/go-colorful v1.0.3
 ## explicit; go 1.12
 github.com/lucasb-eyer/go-colorful
@@ -611,6 +618,10 @@ golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
+# golang.org/x/exp v0.0.0-20220428152302-39d4317da171
+## explicit; go 1.18
+golang.org/x/exp/constraints
+golang.org/x/exp/slices
 # golang.org/x/mobile v0.0.0-20190719004257-d2bd2a29d028
 ## explicit; go 1.11
 golang.org/x/mobile/bind
