@@ -38,7 +38,7 @@ github.com/CortexFoundation/merkletree
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit; go 1.16
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.25-0.20220516021103-fd5b9655a2dd
+# github.com/CortexFoundation/torrentfs v1.0.25-0.20220524083152-8db0bb6b7f9e
 ## explicit; go 1.18
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -122,7 +122,7 @@ github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.4.0
 ## explicit; go 1.13
 github.com/anacrolix/sync
-# github.com/anacrolix/torrent v1.43.1
+# github.com/anacrolix/torrent v1.43.2-0.20220523004251-ed1fe91dd2d1
 ## explicit; go 1.18
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode
@@ -427,7 +427,7 @@ github.com/naoina/toml/ast
 # github.com/olekukonko/tablewriter v0.0.5-0.20200416053754-163badb3bac6
 ## explicit; go 1.12
 github.com/olekukonko/tablewriter
-# github.com/otiai10/copy v1.7.0
+# github.com/otiai10/copy v1.7.1-0.20220511062925-528e2c97a037
 ## explicit; go 1.14
 github.com/otiai10/copy
 # github.com/peterh/liner v1.2.0

@@ -28,6 +28,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -125,7 +126,7 @@ type TorrentManager struct {
 
 	initCh   chan struct{}
 	simulate bool
-	good     int
+	good     uint64
 
 	startOnce     sync.Once
 	seedingNotify chan string
@@ -658,7 +659,7 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool, notify
 	return torrentManager, nil
 }
 
-func (tm *TorrentManager) Start() error {
+func (tm *TorrentManager) Start() (err error) {
 	tm.startOnce.Do(func() {
 		tm.wg.Add(1)
 		go tm.seedingLoop()
@@ -669,9 +670,11 @@ func (tm *TorrentManager) Start() error {
 
 		tm.wg.Add(1)
 		go tm.mainLoop()
+
+		err = tm.init()
 	})
 
-	return tm.init()
+	return
 }
 
 func (tm *TorrentManager) prepare() bool {
@@ -696,9 +699,9 @@ func (tm *TorrentManager) seedingLoop() {
 			}
 
 			if !tm.simulate {
-				if len(tm.seedingTorrents) == tm.good {
+				/*if len(tm.seedingTorrents) == int(tm.good) {
 					close(tm.initCh)
-				}
+				}*/
 			}
 
 			if s {
@@ -743,19 +746,20 @@ func (tm *TorrentManager) init() error {
 		for k, ok := range GoodFiles {
 			if ok {
 				if err := tm.Search(context.Background(), k, 0, nil); err == nil {
-					tm.good++
+					//tm.good++
+					atomic.AddUint64(&tm.good, 1)
 				} else {
 					log.Info("Fs init failed", "err", err)
 					return err
 				}
 			}
 		}
-		select {
+		/*select {
 		case <-tm.initCh:
 			log.Info("Chain files sync init OK !!!", "seeding", len(tm.seedingTorrents), "pending", len(tm.pendingTorrents), "active", len(tm.activeTorrents), "good", len(GoodFiles), "active", tm.good)
 		case <-tm.closeAll:
 			log.Info("Init files closed")
-		}
+		}*/
 	}
 
 	log.Debug("Chain files OK !!!")
@@ -1267,6 +1271,9 @@ func (tm *TorrentManager) getFile(infohash, subpath string) ([]byte, uint64, err
 		tm.fileLock.Lock()
 		defer tm.fileLock.Unlock()
 		diskReadMeter.Mark(1)
+
+		log.Debug("Get File", "dir", tm.DataDir, "key", key)
+
 		data, err := os.ReadFile(filepath.Join(tm.DataDir, key))
 
 		//data final verification
