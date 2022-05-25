@@ -17,7 +17,13 @@
 package torrentfs
 
 import (
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/anacrolix/torrent/bencode"
+	"github.com/anacrolix/torrent/metainfo"
+
+	"os"
 	"strconv"
+	"strings"
 )
 
 func ProgressBar(x, y int64, desc string) string {
@@ -105,4 +111,27 @@ func minInt(as ...int) int {
 		}
 	}
 	return ret
+}
+
+func Hash(path string) (ret string, err error) {
+	info := metainfo.Info{PieceLength: 256 * 1024}
+	if err = info.BuildFromFilePath(path); err != nil {
+		return
+	}
+
+	var bytes []byte
+	if bytes, err = bencode.Marshal(info); err == nil {
+		ret = strings.ToLower(common.Address(metainfo.HashBytes(bytes)).Hex())
+	}
+
+	return
+}
+
+func IsDirectory(path string) (bool, error) {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return false, err
+	}
+
+	return fileInfo.IsDir(), err
 }

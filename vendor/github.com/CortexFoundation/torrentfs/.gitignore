@@ -99,3 +99,5 @@ main
 .torrent.db
 .data
 .storage
+torrent
+testdata
