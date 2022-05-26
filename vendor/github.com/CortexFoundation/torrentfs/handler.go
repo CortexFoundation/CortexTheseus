@@ -28,7 +28,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"sync/atomic"
+	//"sync/atomic"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -124,7 +124,7 @@ type TorrentManager struct {
 	localSeedLock  sync.RWMutex
 	localSeedFiles map[string]bool
 
-	initCh   chan struct{}
+	//initCh   chan struct{}
 	simulate bool
 	good     uint64
 
@@ -609,18 +609,18 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool, notify
 		TmpDataDir:          tmpFilePath,
 		boostFetcher:        NewBoostDataFetcher(config.BoostNodes),
 		closeAll:            make(chan struct{}),
-		initCh:              make(chan struct{}),
-		simulate:            false,
-		taskChan:            make(chan interface{}, taskChanBuffer),
-		seedingChan:         make(chan *Torrent, torrentChanSize),
-		activeChan:          make(chan *Torrent, torrentChanSize),
-		pendingChan:         make(chan *Torrent, torrentChanSize),
-		mode:                config.Mode,
-		boost:               config.Boost,
-		id:                  fsid,
-		slot:                int(fsid % bucket),
-		localSeedFiles:      make(map[string]bool),
-		seedingNotify:       notify,
+		//initCh:              make(chan struct{}),
+		simulate:       false,
+		taskChan:       make(chan interface{}, taskChanBuffer),
+		seedingChan:    make(chan *Torrent, torrentChanSize),
+		activeChan:     make(chan *Torrent, torrentChanSize),
+		pendingChan:    make(chan *Torrent, torrentChanSize),
+		mode:           config.Mode,
+		boost:          config.Boost,
+		id:             fsid,
+		slot:           int(fsid % bucket),
+		localSeedFiles: make(map[string]bool),
+		seedingNotify:  notify,
 	}
 
 	if cache {
@@ -746,8 +746,8 @@ func (tm *TorrentManager) init() error {
 		for k, ok := range GoodFiles {
 			if ok {
 				if err := tm.Search(context.Background(), k, 0, nil); err == nil {
-					//tm.good++
-					atomic.AddUint64(&tm.good, 1)
+					tm.good++
+					//atomic.AddUint64(&tm.good, 1)
 				} else {
 					log.Info("Fs init failed", "err", err)
 					return err
