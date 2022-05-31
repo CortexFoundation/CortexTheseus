@@ -20,7 +20,7 @@ func (cuckoo *Cuckoo) Mine(block *types.Block, id int, seed uint64, abort chan s
 		result types.BlockSolution
 	)
 	var (
-		attempts = int32(0)
+		attempts = int32(0x0)
 		nonce    = seed
 	)
 

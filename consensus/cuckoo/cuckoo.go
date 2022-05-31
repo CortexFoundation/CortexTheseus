@@ -40,6 +40,7 @@ const (
 	ModeTest
 	ModeFake
 	ModeFullFake
+	ModeSha3
 )
 
 // mineResult wraps the pow solution parameters for the specified block.
@@ -270,7 +271,7 @@ func (cuckoo *Cuckoo) APIs(chain consensus.ChainHeaderReader) []rpc.API {
 	return []rpc.API{
 		{
 			Namespace: "ctxc",
-			Version:   "1.0",
+			Version:   "1.3",
 			Service:   &API{cuckoo},
 			Public:    true,
 		},
