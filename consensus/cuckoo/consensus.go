@@ -419,16 +419,17 @@ func calcDifficultyConstantinople(time uint64, parent *types.Header, neo bool) *
 }
 
 func calcDifficultyNeo(time uint64, parent *types.Header, neo bool) *big.Int {
-	return calcDifficultySHA256(time, parent, neo)
+	return calcDifficultySHA3(time, parent)
 	//return calcDifficultyIstanbul(time, parent, neo)
 }
 
-// calcDifficultySHA256 the difficulty adjustment algorithm. It returns
+// calcDifficultySHA3 the difficulty adjustment algorithm. It returns
 // the difficulty that a new block should have when created at time given the
 // parent block's time and difficulty. The calculation uses the Byzantium rules,
 // tuning x growing faster when difficulty growing positively
-func calcDifficultySHA256(time uint64, parent *types.Header, neo bool) *big.Int {
+func calcDifficultySHA3(time uint64, parent *types.Header) *big.Int {
 
+	// unit is seconds
 	bigTime := new(big.Int).SetUint64(time)
 	bigParentTime := new(big.Int).SetUint64(parent.Time)
 
@@ -436,15 +437,15 @@ func calcDifficultySHA256(time uint64, parent *types.Header, neo bool) *big.Int 
 	x := new(big.Int)
 	y := new(big.Int)
 
-	// (2 if len(parent_uncles) else 1) - (block_timestamp - parent_timestamp) // 9
+	// (2 if len(parent_uncles) else 1) - (block_timestamp - parent_timestamp) // 2
 	x.Sub(bigTime, bigParentTime)
-	x.Div(x, big9)
+	x.Div(x, big2)
 	if parent.UncleHash == types.EmptyUncleHash {
 		x.Sub(big1, x)
 	} else {
 		x.Sub(big2, x)
 	}
-	// max((2 if len(parent_uncles) else 1) - (block_timestamp - parent_timestamp) // 9, -99)
+	// max((2 if len(parent_uncles) else 1) - (block_timestamp - parent_timestamp) // 2, -99)
 	if bigParentTime.Cmp(big0) > 0 {
 		if x.Cmp(bigMinus99) < 0 {
 			x.Set(bigMinus99)
@@ -458,11 +459,7 @@ func calcDifficultySHA256(time uint64, parent *types.Header, neo bool) *big.Int 
 	} else if parent.Difficulty.Cmp(params.HighDifficultyBoundDivisor) >= 0 {
 		y.Div(parent.Difficulty, params.HighDifficultyBoundDivisor)
 	} else {
-		if neo {
-			y = params.MinimumDifficulty // delta 2
-		} else {
-			y.Div(parent.Difficulty, params.DifficultyBoundDivisor_2)
-		}
+		y.Div(parent.Difficulty, params.DifficultyBoundDivisor_2)
 
 		if x.Cmp(big0) > 0 {
 			x.Set(big1)
@@ -475,7 +472,7 @@ func calcDifficultySHA256(time uint64, parent *types.Header, neo bool) *big.Int 
 
 	// tuning x growing faster when difficulty growing positively
 	if x.Cmp(big0) > 0 {
-		x.Mul(x, big32)
+		x.Mul(x, big4)
 	}
 	log.Info("diff", "x is", x.Int64(), "y is", y)
 	x.Mul(y, x)
