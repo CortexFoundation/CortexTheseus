@@ -77,6 +77,8 @@ type Monitor struct {
 
 	closeOnce sync.Once
 	mode      string
+
+	lock sync.RWMutex
 }
 
 // NewMonitor creates a new instance of monitor.
@@ -476,6 +478,8 @@ func (m *Monitor) exit() {
 }
 
 func (m *Monitor) stop() {
+	//m.lock.Lock()
+	//defer m.lock.Unlock()
 	//m.closeOnce.Do(func() {
 	if atomic.LoadInt32(&(m.terminated)) == 1 {
 		return

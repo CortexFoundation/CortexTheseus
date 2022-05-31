@@ -101,3 +101,7 @@ main
 .storage
 torrent
 testdata
+.badger
+.bolt
+.leveldb
+.golang-kv

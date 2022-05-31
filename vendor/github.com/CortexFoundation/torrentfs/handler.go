@@ -1099,7 +1099,10 @@ func (tm *TorrentManager) activeLoop() {
 					tm.wg.Add(1)
 					go func() {
 						defer tm.wg.Done()
+
+						t.lock.Lock()
 						t.Run(tm.slot)
+						t.lock.Unlock()
 					}()
 					active_running++
 				}

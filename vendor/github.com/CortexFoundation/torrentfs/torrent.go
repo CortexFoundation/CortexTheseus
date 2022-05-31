@@ -222,6 +222,9 @@ func (t *Torrent) Paused() bool {
 }
 
 func (t *Torrent) Run(slot int) {
+	//t.lock.Lock()
+	//defer t.lock.Unlock()
+
 	limitPieces := int((t.bytesRequested*int64(t.Torrent.NumPieces()) + t.Length() - 1) / t.Length())
 	if limitPieces > t.Torrent.NumPieces() {
 		limitPieces = t.Torrent.NumPieces()
