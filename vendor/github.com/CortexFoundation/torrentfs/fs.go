@@ -513,7 +513,7 @@ func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSi
 		//} else {
 		//	fs.scoreTable[infohash]++
 		//}
-		log.Info("todo")
+		log.Debug("todo")
 	}
 
 	return ret, err
