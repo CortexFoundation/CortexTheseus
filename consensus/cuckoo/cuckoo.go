@@ -80,6 +80,8 @@ type Config struct {
 
 	PowMode Mode
 
+	BlockInterval time.Duration
+
 	UseCuda bool
 	//UseOpenCL    bool
 	StrDeviceIds string

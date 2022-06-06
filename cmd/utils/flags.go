@@ -478,6 +478,11 @@ var (
 		Usage: "Time interval to recreate the block being mined",
 		Value: ctxc.DefaultConfig.Miner.Recommit,
 	}
+	CuckooBlockIntervalFlag = cli.DurationFlag{
+		Name:  "cuckoo.blockinterval",
+		Usage: "Target time interval of control CalDifficulty, estimated interval is (blockinterval * 1.5)",
+		Value: 9 * time.Second,
+	}
 	MinerNoVerfiyFlag = cli.BoolFlag{
 		Name:  "miner.noverify",
 		Usage: "Disable remote sealing verification",
@@ -1495,6 +1500,9 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	}
 	if ctx.GlobalIsSet(MinerRecommitIntervalFlag.Name) {
 		cfg.Miner.Recommit = ctx.GlobalDuration(MinerRecommitIntervalFlag.Name)
+	}
+	if ctx.GlobalIsSet(CuckooBlockIntervalFlag.Name) {
+		cfg.Cuckoo.BlockInterval = ctx.GlobalDuration(CuckooBlockIntervalFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerNoVerfiyFlag.Name) {
 		cfg.Miner.Noverify = ctx.GlobalBool(MinerNoVerfiyFlag.Name)

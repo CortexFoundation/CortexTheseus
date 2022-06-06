@@ -110,6 +110,7 @@ var (
 		utils.MinerExtraDataFlag,
 		// utils.MinerLegacyExtraDataFlag,
 		utils.MinerRecommitIntervalFlag,
+		utils.CuckooBlockIntervalFlag,
 		//utils.MinerNoVerfiyFlag,
 		utils.MinerCudaFlag,
 		//utils.MinerOpenCLFlag,
