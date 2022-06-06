@@ -344,9 +344,13 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainHeaderReader, header, pa
 // the difficulty that a new block should have when created at time
 // given the parent block's time and difficulty.
 func (cuckoo *Cuckoo) CalcDifficulty(chain consensus.ChainHeaderReader, time uint64, parent *types.Header) *big.Int {
-	diffe := CalcDifficulty(chain.Config(), time, parent)
-	log.Info("CalcDifficulty", "diffe", diffe.Int64())
-	return diffe
+	// normal calc
+	//diff := CalcDifficulty(chain.Config(), time, parent)
+
+	// SHA3 calc
+	diff := calcDifficultySHA3(time, parent, big.NewInt(int64(cuckoo.config.BlockInterval.Seconds())))
+	log.Info("Cuckoo CalcDifficulty", "diff", diff.Int64())
+	return diff
 }
 
 // CalcDifficulty is the difficulty adjustment algorithm. It returns
@@ -419,15 +423,15 @@ func calcDifficultyConstantinople(time uint64, parent *types.Header, neo bool) *
 }
 
 func calcDifficultyNeo(time uint64, parent *types.Header, neo bool) *big.Int {
-	return calcDifficultySHA3(time, parent)
-	//return calcDifficultyIstanbul(time, parent, neo)
+	return calcDifficultyIstanbul(time, parent, neo)
 }
 
 // calcDifficultySHA3 the difficulty adjustment algorithm. It returns
 // the difficulty that a new block should have when created at time given the
 // parent block's time and difficulty. The calculation uses the Byzantium rules,
 // tuning x growing faster when difficulty growing positively
-func calcDifficultySHA3(time uint64, parent *types.Header) *big.Int {
+// The estimated interval is (interval + 2*interval)/2
+func calcDifficultySHA3(time uint64, parent *types.Header, interval *big.Int) *big.Int {
 
 	// unit is seconds
 	bigTime := new(big.Int).SetUint64(time)
@@ -437,15 +441,15 @@ func calcDifficultySHA3(time uint64, parent *types.Header) *big.Int {
 	x := new(big.Int)
 	y := new(big.Int)
 
-	// (2 if len(parent_uncles) else 1) - (block_timestamp - parent_timestamp) // 2
+	// (2 if len(parent_uncles) else 1) - (block_timestamp - parent_timestamp) // interval
 	x.Sub(bigTime, bigParentTime)
-	x.Div(x, big2)
+	x.Div(x, interval)
 	if parent.UncleHash == types.EmptyUncleHash {
 		x.Sub(big1, x)
 	} else {
 		x.Sub(big2, x)
 	}
-	// max((2 if len(parent_uncles) else 1) - (block_timestamp - parent_timestamp) // 2, -99)
+	// max((2 if len(parent_uncles) else 1) - (block_timestamp - parent_timestamp) // interval, -99)
 	if bigParentTime.Cmp(big0) > 0 {
 		if x.Cmp(bigMinus99) < 0 {
 			x.Set(bigMinus99)
