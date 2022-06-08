@@ -302,7 +302,7 @@ func (t *UDPv5) lookupWorker(destNode *node, target enode.ID) ([]*node, error) {
 	)
 	var r []*enode.Node
 	r, err = t.findnode(unwrapNode(destNode), dists)
-	if err == errClosed {
+	if errors.Is(err, errClosed) {
 		return nil, err
 	}
 	for _, n := range r {
@@ -617,7 +617,7 @@ func (t *UDPv5) readLoop() {
 			continue
 		} else if err != nil {
 			// Shut down the loop for permament errors.
-			if err != io.EOF {
+			if !errors.Is(err, io.EOF) {
 				t.log.Debug("UDP read error", "err", err)
 			}
 			return
