@@ -227,6 +227,13 @@ var (
 	TestRules       = TestChainConfig.Rules(new(big.Int), false)
 )
 
+// NetworkNames are user friendly names to use in the chain spec banner.
+var NetworkNames = map[string]string{
+	MainnetChainConfig.ChainID.String(): "mainnet",
+	BernardChainConfig.ChainID.String(): "bernard",
+	DoloresChainConfig.ChainID.String(): "dolores",
+}
+
 // ChainConfig is the core config which determines the blockchain settings.
 //
 // ChainConfig is stored in the database on a per block basis. This means
