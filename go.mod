@@ -34,7 +34,7 @@ require (
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/holiman/uint256 v1.2.1-0.20220325085528-78905e8fd24f
-	github.com/huin/goupnp v1.0.4-0.20220527060009-b2bea1372045
+	github.com/huin/goupnp v1.0.4-0.20220613063114-dd6d6a16d32b
 	github.com/influxdata/influxdb v1.8.0
 	github.com/jackpal/go-nat-pmp v1.0.2
 	github.com/jedisct1/go-minisign v0.0.0-20190909160543-45766022959e
