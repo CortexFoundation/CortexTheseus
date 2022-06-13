@@ -17,6 +17,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/syndtr/goleveldb/leveldb/cache"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/journal"
@@ -397,7 +398,7 @@ func recoverTable(s *session, o *opt.Options) error {
 				tSeq = seq
 			}
 			if imin == nil {
-				imin = append([]byte{}, key...)
+				imin = append([]byte(nil), key...)
 			}
 			imax = append(imax[:0], key...)
 		}
@@ -765,7 +766,7 @@ func (db *DB) get(auxm *memdb.DB, auxt tFiles, key []byte, seq uint64, ro *opt.R
 
 	if auxm != nil {
 		if ok, mv, me := memGet(auxm, ikey, db.s.icmp); ok {
-			return append([]byte{}, mv...), me
+			return append([]byte(nil), mv...), me
 		}
 	}
 
@@ -777,7 +778,7 @@ func (db *DB) get(auxm *memdb.DB, auxt tFiles, key []byte, seq uint64, ro *opt.R
 		defer m.decref()
 
 		if ok, mv, me := memGet(m.DB, ikey, db.s.icmp); ok {
-			return append([]byte{}, mv...), me
+			return append([]byte(nil), mv...), me
 		}
 	}
 
@@ -1002,15 +1003,15 @@ func (db *DB) GetProperty(name string) (value string, err error) {
 			}
 		}
 	case p == "blockpool":
-		value = fmt.Sprintf("%v", db.s.tops.bpool)
+		value = fmt.Sprintf("%v", db.s.tops.blockBuffer)
 	case p == "cachedblock":
-		if db.s.tops.bcache != nil {
-			value = fmt.Sprintf("%d", db.s.tops.bcache.Size())
+		if db.s.tops.blockCache != nil {
+			value = fmt.Sprintf("%d", db.s.tops.blockCache.Size())
 		} else {
 			value = "<nil>"
 		}
 	case p == "openedtables":
-		value = fmt.Sprintf("%d", db.s.tops.cache.Size())
+		value = fmt.Sprintf("%d", db.s.tops.fileCache.Size())
 	case p == "alivesnaps":
 		value = fmt.Sprintf("%d", atomic.LoadInt32(&db.aliveSnaps))
 	case p == "aliveiters":
@@ -1037,6 +1038,9 @@ type DBStats struct {
 	BlockCacheSize    int
 	OpenedTablesCount int
 
+	FileCache  cache.Stats
+	BlockCache cache.Stats
+
 	LevelSizes        Sizes
 	LevelTablesCounts []int
 	LevelRead         Sizes
@@ -1062,11 +1066,18 @@ func (db *DB) Stats(s *DBStats) error {
 	s.WriteDelayDuration = time.Duration(atomic.LoadInt64(&db.cWriteDelay))
 	s.WritePaused = atomic.LoadInt32(&db.inWritePaused) == 1
 
-	s.OpenedTablesCount = db.s.tops.cache.Size()
-	if db.s.tops.bcache != nil {
-		s.BlockCacheSize = db.s.tops.bcache.Size()
+	s.OpenedTablesCount = db.s.tops.fileCache.Size()
+	if db.s.tops.blockCache != nil {
+		s.BlockCacheSize = db.s.tops.blockCache.Size()
 	} else {
 		s.BlockCacheSize = 0
+	}
+
+	s.FileCache = db.s.tops.fileCache.GetStats()
+	if db.s.tops.blockCache != nil {
+		s.BlockCache = db.s.tops.blockCache.GetStats()
+	} else {
+		s.BlockCache = cache.Stats{}
 	}
 
 	s.AliveIterators = atomic.LoadInt32(&db.aliveIters)
