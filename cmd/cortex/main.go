@@ -113,6 +113,7 @@ var (
 		utils.CuckooBlockIntervalFlag,
 		//utils.MinerNoVerfiyFlag,
 		utils.MinerCudaFlag,
+		utils.MinerCarryTxFlag,
 		//utils.MinerOpenCLFlag,
 		utils.MinerDevicesFlag,
 		//utils.MinerAlgorithmFlag,

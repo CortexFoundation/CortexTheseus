@@ -56,6 +56,8 @@ type Config struct {
 
 	Cuda    bool
 	Devices string
+
+	ShouldCarryTx bool // Commit Tasks Only When Tx not empty
 }
 
 // Miner creates blocks and searches for proof-of-work values.
