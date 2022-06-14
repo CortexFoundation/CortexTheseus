@@ -376,10 +376,14 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			atomic.StoreInt32(interrupt, s)
 		}
 		interrupt = new(int32)
-		select {
-		case w.newWorkCh <- &newWorkReq{interrupt: interrupt, noempty: noempty, timestamp: timestamp}:
-		case <-w.exitCh:
-			return
+		// not commit New Request
+
+		if (w.current != nil && len(w.current.receipts) > 0) || !w.config.ShouldCarryTx {
+			select {
+			case w.newWorkCh <- &newWorkReq{interrupt: interrupt, noempty: noempty, timestamp: timestamp}:
+			case <-w.exitCh:
+				return
+			}
 		}
 		timer.Reset(recommit)
 		atomic.StoreInt32(&w.newTxs, 0)
@@ -540,10 +544,13 @@ func (w *worker) mainLoop() {
 					w.updateSnapshot()
 				}
 			} else {
-				// Special case, if the consensus engine is 0 period clique(dev mode),
-				// submit mining work here since all empty submission will be rejected
-				// by clique. Of course the advance sealing(empty submission) is disabled.
-				if w.chainConfig.Clique != nil && w.chainConfig.Clique.Period == 0 {
+				if w.config.ShouldCarryTx {
+					log.Warn("Not using clique now!!")
+					w.commitNewWork(nil, true, time.Now().Unix())
+				} else if w.chainConfig.Clique != nil && w.chainConfig.Clique.Period == 0 {
+					// Special case, if the consensus engine is 0 period clique(dev mode),
+					// submit mining work here since all empty submission will be rejected
+					// by clique. Of course the advance sealing(empty submission) is disabled.
 					w.commitNewWork(nil, true, time.Now().Unix())
 				}
 			}
@@ -1048,7 +1055,6 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 				"uncles", len(uncles), "txs", w.current.tcount,
 				"gas", block.GasUsed(), "fees", totalFees(block, receipts),
 				"elapsed", common.PrettyDuration(time.Since(start)), "diff", block.Difficulty())
-
 		case <-w.exitCh:
 			log.Info("Worker has exited")
 		}

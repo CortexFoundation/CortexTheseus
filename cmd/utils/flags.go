@@ -491,6 +491,10 @@ var (
 		Name:  "miner.cuda",
 		Usage: "use cuda miner plugin",
 	}
+	MinerCarryTxFlag = cli.BoolFlag{
+		Name:  "miner.carrytx",
+		Usage: "miner not commit block without txs",
+	}
 	//	MinerOpenCLFlag = cli.BoolFlag{
 	//		Name:  "miner.opencl",
 	//		Usage: "use opencl miner plugin",
@@ -1521,6 +1525,11 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		cfg.Miner.Cuda = ctx.Bool(MinerCudaFlag.Name)
 		cfg.Cuckoo.UseCuda = cfg.Miner.Cuda
 	}
+
+	if ctx.GlobalIsSet(MinerCarryTxFlag.Name) {
+		cfg.Miner.ShouldCarryTx = ctx.Bool(MinerCarryTxFlag.Name)
+	}
+
 	//	if ctx.GlobalIsSet(MinerOpenCLFlag.Name) {
 	//		cfg.MinerOpenCL = ctx.Bool(MinerOpenCLFlag.Name)
 	//		cfg.Cuckoo.UseOpenCL = cfg.MinerOpenCL
