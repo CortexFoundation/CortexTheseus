@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.3.0
 	github.com/CortexFoundation/inference v1.0.2-0.20220421072809-9c87efb8a557
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.25-0.20220614064149-273597f4ff80
+	github.com/CortexFoundation/torrentfs v1.0.25-0.20220614105659-55b6af28dfd0
 	github.com/VictoriaMetrics/fastcache v1.10.0
 	github.com/arsham/figurine v1.0.1
 	github.com/aws/aws-sdk-go-v2 v1.3.0
@@ -78,7 +78,7 @@ require (
 	github.com/CortexFoundation/merkletree v0.0.0-20220419080543-2eafbafb777b // indirect
 	github.com/RoaringBitmap/roaring v1.0.1-0.20220510143707-3f418c4f42a4 // indirect
 	github.com/ajwerner/btree v0.0.0-20211221152037-f427b3e689c0 // indirect
-	github.com/allegro/bigcache/v3 v3.0.3-0.20220509113442-0b306aa0178f // indirect
+	github.com/allegro/bigcache/v3 v3.0.3-0.20220614095342-7c2932edbec2 // indirect
 	github.com/anacrolix/chansync v0.3.0 // indirect
 	github.com/anacrolix/dht/v2 v2.17.1-0.20220426014940-bf548049b40e // indirect
 	github.com/anacrolix/envpprof v1.2.1 // indirect
