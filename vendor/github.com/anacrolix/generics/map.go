@@ -13,3 +13,9 @@ func MakeMapIfNilAndSet[K comparable, V any](pm *map[K]V, k K, v V) {
 func MakeMap[K comparable, V any](pm *map[K]V) {
 	*pm = make(map[K]V)
 }
+
+func MakeMapIfNil[K comparable, V any, M ~map[K]V](pm *M) {
+	if *pm == nil {
+		*pm = make(map[K]V)
+	}
+}
