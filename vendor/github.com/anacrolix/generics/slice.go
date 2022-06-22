@@ -16,3 +16,11 @@ func SlicePop[T any](slice *[]T) T {
 func MakeSliceWithLength[T any, L constraints.Integer](slice *[]T, length L) {
 	*slice = make([]T, length)
 }
+
+func Reversed[T any](slice []T) []T {
+	reversed := make([]T, len(slice))
+	for i := range reversed {
+		reversed[i] = slice[len(slice)-1-i]
+	}
+	return reversed
+}
