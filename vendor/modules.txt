@@ -122,7 +122,7 @@ github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.4.0
 ## explicit; go 1.13
 github.com/anacrolix/sync
-# github.com/anacrolix/torrent v1.45.1-0.20220623124406-8f711b633fba
+# github.com/anacrolix/torrent v1.45.1-0.20220625131658-12279621e4e2
 ## explicit; go 1.18
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/bencode

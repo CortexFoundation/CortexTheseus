@@ -92,7 +92,7 @@ require (
 	github.com/anacrolix/multiless v0.3.0 // indirect
 	github.com/anacrolix/stm v0.3.0 // indirect
 	github.com/anacrolix/sync v0.4.0 // indirect
-	github.com/anacrolix/torrent v1.45.1-0.20220623124406-8f711b633fba // indirect
+	github.com/anacrolix/torrent v1.45.1-0.20220625131658-12279621e4e2 // indirect
 	github.com/anacrolix/upnp v0.1.3-0.20220123035249-922794e51c96 // indirect
 	github.com/anacrolix/utp v0.1.0 // indirect
 	github.com/arsham/rainbow v1.0.0 // indirect
