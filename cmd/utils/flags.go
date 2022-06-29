@@ -704,6 +704,11 @@ var (
 		Name:  "netrestrict",
 		Usage: "Restricts network communication to the given IP networks (CIDR masks)",
 	}
+	DiscoveryPortFlag = &cli.IntFlag{
+		Name:  "discovery.port",
+		Usage: "Use a custom UDP port for P2P discovery",
+		Value: 40404,
+	}
 
 	// ATM the url is left to the user and deployment to
 	JSpathFlag = DirectoryFlag{
@@ -944,6 +949,10 @@ func setListenAddress(ctx *cli.Context, cfg *p2p.Config) {
 		cfg.ListenAddr = fmt.Sprintf(":%d", 40405)
 	} else if ctx.GlobalBool(BernardFlag.Name) {
 		cfg.ListenAddr = fmt.Sprintf(":%d", 40406)
+	}
+
+	if ctx.GlobalIsSet(DiscoveryPortFlag.Name) {
+		cfg.DiscAddr = fmt.Sprintf(":%d", ctx.GlobalInt(DiscoveryPortFlag.Name))
 	}
 }
 
