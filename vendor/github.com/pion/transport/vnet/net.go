@@ -343,7 +343,7 @@ func (v *vNet) determineSourceIP(locIP, dstIP net.IP) net.IP {
 		}
 
 		for _, addr := range addrs {
-			ip := addr.(*net.IPNet).IP
+			ip := addr.(*net.IPNet).IP //nolint:forcetypeassert
 			if findIPv4 {
 				if ip.To4() != nil {
 					srcIP = ip

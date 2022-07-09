@@ -47,7 +47,7 @@ func (f *DelayFilter) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-f.push:
-			next := f.queue.peek().(timedChunk)
+			next := f.queue.peek().(timedChunk) //nolint:forcetypeassert
 			if !timer.Stop() {
 				<-timer.C
 			}

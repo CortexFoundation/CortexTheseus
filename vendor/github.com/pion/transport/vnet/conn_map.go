@@ -27,7 +27,7 @@ func (m *udpConnMap) insert(conn *UDPConn) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	udpAddr := conn.LocalAddr().(*net.UDPAddr)
+	udpAddr := conn.LocalAddr().(*net.UDPAddr) //nolint:forcetypeassert
 
 	// check if the port has a listener
 	conns, ok := m.portMap[udpAddr.Port]
@@ -37,7 +37,7 @@ func (m *udpConnMap) insert(conn *UDPConn) error {
 		}
 
 		for _, conn := range conns {
-			laddr := conn.LocalAddr().(*net.UDPAddr)
+			laddr := conn.LocalAddr().(*net.UDPAddr) //nolint:forcetypeassert
 			if laddr.IP.IsUnspecified() || laddr.IP.Equal(udpAddr.IP) {
 				return errAddressAlreadyInUse
 			}
@@ -56,7 +56,7 @@ func (m *udpConnMap) find(addr net.Addr) (*UDPConn, bool) {
 	m.mutex.Lock() // could be RLock, but we have delete() op
 	defer m.mutex.Unlock()
 
-	udpAddr := addr.(*net.UDPAddr)
+	udpAddr := addr.(*net.UDPAddr) //nolint:forcetypeassert
 
 	if conns, ok := m.portMap[udpAddr.Port]; ok {
 		if udpAddr.IP.IsUnspecified() {
@@ -70,7 +70,7 @@ func (m *udpConnMap) find(addr net.Addr) (*UDPConn, bool) {
 		}
 
 		for _, conn := range conns {
-			laddr := conn.LocalAddr().(*net.UDPAddr)
+			laddr := conn.LocalAddr().(*net.UDPAddr) //nolint:forcetypeassert
 			if laddr.IP.IsUnspecified() || laddr.IP.Equal(udpAddr.IP) {
 				return conn, ok
 			}
@@ -84,7 +84,7 @@ func (m *udpConnMap) delete(addr net.Addr) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	udpAddr := addr.(*net.UDPAddr)
+	udpAddr := addr.(*net.UDPAddr) //nolint:forcetypeassert
 
 	conns, ok := m.portMap[udpAddr.Port]
 	if !ok {
@@ -100,7 +100,7 @@ func (m *udpConnMap) delete(addr net.Addr) error {
 	newConns := []*UDPConn{}
 
 	for _, conn := range conns {
-		laddr := conn.LocalAddr().(*net.UDPAddr)
+		laddr := conn.LocalAddr().(*net.UDPAddr) //nolint:forcetypeassert
 		if laddr.IP.IsUnspecified() {
 			// This can't happen!
 			return errCannotRemoveUnspecifiedIP
