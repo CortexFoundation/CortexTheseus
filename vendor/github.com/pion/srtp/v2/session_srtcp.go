@@ -114,8 +114,11 @@ func (s *SessionSRTCP) write(buf []byte) (int, error) {
 		return 0, errStartedChannelUsedIncorrectly
 	}
 
+	ibuf := bufferpool.Get()
+	defer bufferpool.Put(ibuf)
+
 	s.session.localContextMutex.Lock()
-	encrypted, err := s.localContext.EncryptRTCP(nil, buf, nil)
+	encrypted, err := s.localContext.EncryptRTCP(ibuf.([]byte), buf, nil)
 	s.session.localContextMutex.Unlock()
 
 	if err != nil {

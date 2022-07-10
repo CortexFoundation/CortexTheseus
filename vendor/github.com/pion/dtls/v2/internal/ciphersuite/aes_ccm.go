@@ -18,7 +18,9 @@ type AesCcm struct {
 	clientCertificateType clientcertificate.Type
 	id                    ID
 	psk                   bool
+	keyExchangeAlgorithm  KeyExchangeAlgorithm
 	cryptoCCMTagLen       ciphersuite.CCMTagLen
+	ecc                   bool
 }
 
 // CertificateType returns what type of certificate this CipherSuite exchanges
@@ -33,6 +35,16 @@ func (c *AesCcm) ID() ID {
 
 func (c *AesCcm) String() string {
 	return c.id.String()
+}
+
+// ECC uses Elliptic Curve Cryptography
+func (c *AesCcm) ECC() bool {
+	return c.ecc
+}
+
+// KeyExchangeAlgorithm controls what key exchange algorithm is using during the handshake
+func (c *AesCcm) KeyExchangeAlgorithm() KeyExchangeAlgorithm {
+	return c.keyExchangeAlgorithm
 }
 
 // HashFunc returns the hashing func for this CipherSuite
@@ -79,20 +91,20 @@ func (c *AesCcm) Init(masterSecret, clientRandom, serverRandom []byte, isClient 
 
 // Encrypt encrypts a single TLS RecordLayer
 func (c *AesCcm) Encrypt(pkt *recordlayer.RecordLayer, raw []byte) ([]byte, error) {
-	ccm := c.ccm.Load()
-	if ccm == nil {
+	cipherSuite, ok := c.ccm.Load().(*ciphersuite.CCM)
+	if !ok {
 		return nil, fmt.Errorf("%w, unable to encrypt", errCipherSuiteNotInit)
 	}
 
-	return ccm.(*ciphersuite.CCM).Encrypt(pkt, raw)
+	return cipherSuite.Encrypt(pkt, raw)
 }
 
 // Decrypt decrypts a single TLS RecordLayer
 func (c *AesCcm) Decrypt(raw []byte) ([]byte, error) {
-	ccm := c.ccm.Load()
-	if ccm == nil {
+	cipherSuite, ok := c.ccm.Load().(*ciphersuite.CCM)
+	if !ok {
 		return nil, fmt.Errorf("%w, unable to decrypt", errCipherSuiteNotInit)
 	}
 
-	return ccm.(*ciphersuite.CCM).Decrypt(raw)
+	return cipherSuite.Decrypt(raw)
 }

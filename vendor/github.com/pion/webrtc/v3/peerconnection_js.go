@@ -589,9 +589,7 @@ func iceServerToValue(server ICEServer) js.Value {
 			out["credential"] = oauthCredentialToValue(t)
 		}
 	}
-	if server.CredentialType != ICECredentialType(Unknown) {
-		out["credentialType"] = stringEnumToValueOrUndefined(server.CredentialType.String())
-	}
+	out["credentialType"] = stringEnumToValueOrUndefined(server.CredentialType.String())
 	return js.ValueOf(out)
 }
 
@@ -640,18 +638,18 @@ func valueToICECredential(iceCredentialValue js.Value) interface{} {
 }
 
 func valueToICEServer(iceServerValue js.Value) ICEServer {
+	tpe, err := newICECredentialType(valueToStringOrZero(iceServerValue.Get("credentialType")))
+	if err != nil {
+		tpe = ICECredentialTypePassword
+	}
 	s := ICEServer{
 		URLs:     valueToStrings(iceServerValue.Get("urls")), // required
 		Username: valueToStringOrZero(iceServerValue.Get("username")),
 		// Note: Credential and CredentialType are not currently supported.
 		Credential:     valueToICECredential(iceServerValue.Get("credential")),
-		CredentialType: newICECredentialType(valueToStringOrZero(iceServerValue.Get("credentialType"))),
+		CredentialType: tpe,
 	}
 
-	// default to password
-	if s.CredentialType == ICECredentialType(Unknown) {
-		s.CredentialType = ICECredentialTypePassword
-	}
 	return s
 }
 

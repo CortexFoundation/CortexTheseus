@@ -16,9 +16,13 @@ func (c *Context) decryptRTCP(dst, encrypted []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	aeadAuthTagLen, err := c.cipher.aeadAuthTagLen()
+	if err != nil {
+		return nil, err
+	}
 	tailOffset := len(encrypted) - (authTagLen + srtcpIndexSize)
 
-	if tailOffset < 0 {
+	if tailOffset < aeadAuthTagLen {
 		return nil, fmt.Errorf("%w: %d", errTooShortRTCP, len(encrypted))
 	} else if isEncrypted := encrypted[tailOffset] >> 7; isEncrypted == 0 {
 		return out, nil

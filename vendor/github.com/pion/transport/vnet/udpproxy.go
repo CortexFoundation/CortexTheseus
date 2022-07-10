@@ -52,7 +52,7 @@ func NewProxy(router *Router) (*UDPProxy, error) {
 // Close the proxy, stop all workers.
 func (v *UDPProxy) Close() error {
 	v.workers.Range(func(key, value interface{}) bool {
-		_ = value.(*aUDPProxyWorker).Close()
+		_ = value.(*aUDPProxyWorker).Close() //nolint:forcetypeassert
 		return true
 	})
 	return nil
@@ -134,7 +134,7 @@ func (v *aUDPProxyWorker) Proxy(ctx context.Context, client *Net, serverAddr *ne
 		// Exists binding.
 		if value, ok := v.endpoints.Load(addr.String()); ok {
 			// Exists endpoint, reuse it.
-			return value.(*net.UDPConn), nil
+			return value.(*net.UDPConn), nil //nolint:forcetypeassert
 		}
 
 		// The real server we proxy to, for utest to mock it.

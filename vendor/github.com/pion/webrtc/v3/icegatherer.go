@@ -4,6 +4,7 @@
 package webrtc
 
 import (
+	"fmt"
 	"sync"
 	"sync/atomic"
 
@@ -144,6 +145,11 @@ func (g *ICEGatherer) Gather() error {
 	agent := g.agent
 	g.lock.Unlock()
 
+	// it is possible agent had just been closed
+	if agent == nil {
+		return fmt.Errorf("%w: unable to gather", errICEAgentNotExist)
+	}
+
 	g.setState(ICEGathererStateGathering)
 	if err := agent.OnCandidate(func(candidate ice.Candidate) {
 		onLocalCandidateHandler := func(*ICECandidate) {}
@@ -224,7 +230,7 @@ func (g *ICEGatherer) GetLocalCandidates() ([]ICECandidate, error) {
 }
 
 // OnLocalCandidate sets an event handler which fires when a new local ICE candidate is available
-// Take note that the handler is gonna be called with a nil pointer when gathering is finished.
+// Take note that the handler will be called with a nil pointer when gathering is finished.
 func (g *ICEGatherer) OnLocalCandidate(f func(*ICECandidate)) {
 	g.onLocalCandidateHandler.Store(f)
 }

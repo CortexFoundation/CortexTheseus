@@ -154,11 +154,11 @@ func (n *networkAddressTranslator) translateOutbound(from Chunk) (Chunk, error) 
 	if from.Network() == udpString {
 		if n.natType.Mode == NATModeNAT1To1 {
 			// 1:1 NAT behavior
-			srcAddr := from.SourceAddr().(*net.UDPAddr)
+			srcAddr := from.SourceAddr().(*net.UDPAddr) //nolint:forcetypeassert
 			srcIP := n.getPairedMappedIP(srcAddr.IP)
 			if srcIP == nil {
 				n.log.Debugf("[%s] drop outbound chunk %s with not route", n.name, from.String())
-				return nil, nil // silently discard
+				return nil, nil // nolint:nilnil
 			}
 			srcPort := srcAddr.Port
 			if err := to.setSourceAddr(fmt.Sprintf("%s:%d", srcIP.String(), srcPort)); err != nil {
@@ -206,16 +206,16 @@ func (n *networkAddressTranslator) translateOutbound(from Chunk) (Chunk, error) 
 
 				iKey := fmt.Sprintf("udp:%s", m.mapped)
 
-				n.log.Debugf("[%s] created a new NAT binding oKey=%s iKey=%s\n",
+				n.log.Debugf("[%s] created a new NAT binding oKey=%s iKey=%s",
 					n.name,
 					oKey,
 					iKey)
 
 				m.filters[filterKey] = struct{}{}
-				n.log.Debugf("[%s] permit access from %s to %s\n", n.name, filterKey, m.mapped)
+				n.log.Debugf("[%s] permit access from %s to %s", n.name, filterKey, m.mapped)
 				n.inboundMap[iKey] = m
 			} else if _, ok := m.filters[filterKey]; !ok {
-				n.log.Debugf("[%s] permit access from %s to %s\n", n.name, filterKey, m.mapped)
+				n.log.Debugf("[%s] permit access from %s to %s", n.name, filterKey, m.mapped)
 				m.filters[filterKey] = struct{}{}
 			}
 
@@ -241,12 +241,12 @@ func (n *networkAddressTranslator) translateInbound(from Chunk) (Chunk, error) {
 	if from.Network() == udpString {
 		if n.natType.Mode == NATModeNAT1To1 {
 			// 1:1 NAT behavior
-			dstAddr := from.DestinationAddr().(*net.UDPAddr)
+			dstAddr := from.DestinationAddr().(*net.UDPAddr) //nolint:forcetypeassert
 			dstIP := n.getPairedLocalIP(dstAddr.IP)
 			if dstIP == nil {
 				return nil, fmt.Errorf("drop %s as %w", from.String(), errNoAssociatedLocalAddress)
 			}
-			dstPort := from.DestinationAddr().(*net.UDPAddr).Port
+			dstPort := from.DestinationAddr().(*net.UDPAddr).Port //nolint:forcetypeassert
 			if err := to.setDestinationAddr(fmt.Sprintf("%s:%d", dstIP, dstPort)); err != nil {
 				return nil, err
 			}

@@ -29,11 +29,12 @@ func (v *aUDPProxyWorker) Deliver(sourceAddr, destAddr net.Addr, b []byte) (nn i
 	// nolint:godox // TODO: Support deliver packet from real server to vnet.
 	// If packet is from vnet, proxy to real server.
 	var realSocket *net.UDPConn
-	if value, ok := v.endpoints.Load(addr.String()); !ok {
+	value, ok := v.endpoints.Load(addr.String())
+	if !ok {
 		return 0, nil
-	} else { // nolint:golint
-		realSocket = value.(*net.UDPConn)
 	}
+
+	realSocket = value.(*net.UDPConn) // nolint:forcetypeassert
 
 	// Send to real server.
 	if _, err := realSocket.Write(b); err != nil {

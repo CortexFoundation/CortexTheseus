@@ -7,6 +7,8 @@ a-wing <1@233.email>
 Aaron Boushley <boushley@pretzelaux.com>
 Aaron France <aaron.l.france@gmail.com>
 Adam Kiss <masterada@gmail.com>
+Aditya Kumar <k.aditya00@gmail.com>
+Adrian Cable <adrian.cable@gmail.com>
 adwpc <adwpc@hotmail.com>
 aggresss <aggresss@163.com>
 akil <akil@everycrave.me>
@@ -45,8 +47,10 @@ Christopher Fry <chris.fry@getcruise.com>
 Clayton McCray <cpmdmccray@gmail.com>
 cnderrauber <zengjie9004@gmail.com>
 cyannuk <cyannuk@issart.com>
+Daniele Sluijters <daenney@users.noreply.github.com>
 David Hamilton <davidhamiltron@gmail.com>
 David Zhao <david@davidzhao.com>
+David Zhao <dz@livekit.io>
 david.s <david.s@hpcnt.com>
 Dean Sheather <dean@coder.com>
 decanus <7621705+decanus@users.noreply.github.com>
@@ -57,6 +61,7 @@ earle <aguilar@dm.ai>
 Egon Elbre <egonelbre@gmail.com>
 Eric Daniels <eric@erdaniels.com>
 feixiao <feixiao2020@sina.com>
+Forest Johnson <forest.n.johnson@gmail.com>
 frank <frank@huzhedeMacBook-Pro.local>
 Gareth Hayes <gareth.hayes@gmail.com>
 Guilherme <gqgs@protonmail.com>
