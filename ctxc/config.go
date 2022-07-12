@@ -24,6 +24,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
+	"github.com/CortexFoundation/CortexTheseus/consensus/sha3"
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/gasprice"
@@ -120,6 +121,7 @@ type Config struct {
 	InferMemoryUsage int64
 
 	Cuckoo cuckoo.Config
+	SHA3   sha3.Config
 
 	// Transaction pool options
 	TxPool core.TxPoolConfig

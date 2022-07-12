@@ -38,9 +38,11 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/consensus"
 	"github.com/CortexFoundation/CortexTheseus/consensus/clique"
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
+	"github.com/CortexFoundation/CortexTheseus/consensus/sha3"
 	"github.com/CortexFoundation/CortexTheseus/core"
 	whisper "github.com/CortexFoundation/CortexTheseus/whisper/whisperv6"
 	gopsutil "github.com/shirou/gopsutil/mem"
+
 	// "github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
@@ -48,6 +50,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/gasprice"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
+
 	// "github.com/CortexFoundation/CortexTheseus/stats"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
@@ -483,6 +486,12 @@ var (
 		Usage: "Target time interval of control CalDifficulty, estimated interval is (blockinterval * 1.5)",
 		Value: 9 * time.Second,
 	}
+	SHA3BlockIntervalFlag = cli.DurationFlag{
+		Name:  "sha3.blockinterval",
+		Usage: "Target time interval of control CalDifficulty, estimated interval is (blockinterval * 1.5)",
+		Value: 10 * time.Second,
+	}
+
 	MinerNoVerfiyFlag = cli.BoolFlag{
 		Name:  "miner.noverify",
 		Usage: "Disable remote sealing verification",
@@ -494,6 +503,10 @@ var (
 	MinerCarryTxFlag = cli.BoolFlag{
 		Name:  "miner.carrytx",
 		Usage: "miner not commit block without txs",
+	}
+	MinerUsingSHA3Flag = cli.BoolFlag{
+		Name:  "miner.sha3",
+		Usage: "miner using sha3 as engine instead of cuckoo",
 	}
 	//	MinerOpenCLFlag = cli.BoolFlag{
 	//		Name:  "miner.opencl",
@@ -1508,6 +1521,9 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	if ctx.GlobalIsSet(CuckooBlockIntervalFlag.Name) {
 		cfg.Cuckoo.BlockInterval = ctx.GlobalDuration(CuckooBlockIntervalFlag.Name)
 	}
+	if ctx.GlobalIsSet(SHA3BlockIntervalFlag.Name) {
+		cfg.SHA3.BlockInterval = ctx.GlobalDuration(SHA3BlockIntervalFlag.Name)
+	}
 	if ctx.GlobalIsSet(MinerNoVerfiyFlag.Name) {
 		cfg.Miner.Noverify = ctx.GlobalBool(MinerNoVerfiyFlag.Name)
 	}
@@ -1556,6 +1572,9 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 		}
 	}
 	cfg.Miner.Devices = ctx.GlobalString(MinerDevicesFlag.Name)
+	if ctx.GlobalIsSet(MinerUsingSHA3Flag.Name) {
+		cfg.SHA3.PowMode = sha3.ModeSha3
+	}
 	cfg.Cuckoo.StrDeviceIds = cfg.Miner.Devices
 	cfg.Cuckoo.Threads = ctx.GlobalInt(MinerThreadsFlag.Name)
 	cfg.Cuckoo.Algorithm = "cuckaroo" //ctx.GlobalString(MinerAlgorithmFlag.Name)

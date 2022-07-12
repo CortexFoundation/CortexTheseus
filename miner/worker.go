@@ -140,9 +140,10 @@ type intervalAdjust struct {
 type worker struct {
 	config      *Config
 	chainConfig *params.ChainConfig
-	engine      consensus.Engine
-	ctxc        Backend
-	chain       *core.BlockChain
+	// engine can be cuckoo or sha3
+	engine consensus.Engine
+	ctxc   Backend
+	chain  *core.BlockChain
 
 	// Feeds
 	pendingLogsFeed event.Feed

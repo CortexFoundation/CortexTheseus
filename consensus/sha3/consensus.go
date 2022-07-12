@@ -14,24 +14,18 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
 
-package cuckoo
+package sha3
 
 import (
 	"encoding/binary"
-	// "encoding/hex"
-	// "bytes"
 	"errors"
 	"fmt"
 	"math/big"
 	"runtime"
 	"time"
 
-	// "strconv"
-	// "strings"
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
-	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo/plugins"
 	"github.com/CortexFoundation/CortexTheseus/consensus/misc"
 	"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
@@ -41,11 +35,10 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/trie"
 	mapset "github.com/deckarep/golang-set"
-	"golang.org/x/crypto/sha3"
-	//	"github.com/CortexFoundation/CortexTheseus/solution/miner/libcuckoo"
+	sha3_ "golang.org/x/crypto/sha3"
 )
 
-// Cuckoo proof-of-work protocol constants.
+// SHAThree proof-of-work protocol constants.
 var (
 	FrontierBlockReward           *big.Int = big.NewInt(7e+18) // Block reward in wei for successfully mining a block
 	ByzantiumBlockReward          *big.Int = big.NewInt(7e+18) // Block reward in wei for successfully mining a block upward from Byzantium
@@ -56,18 +49,6 @@ var (
 		common.HexToHash("0x367e111f0f274d54f357ed3dc2d16107b39772c3a767138b857f5c02b5c30607"): true,
 		common.HexToHash("0xbde83a87b6d526ada5a02e394c5f21327acb080568f7cc6f8fff423620f0eec3"): true,
 	}
-	// calcDifficultyConstantinople is the difficulty adjustment algorithm for Constantinople.
-	// It returns the difficulty that a new block should have when created at time given the
-	// parent block's time and difficulty. The calculation uses the Byzantium rules, but with
-	// bomb offset 5M.
-	// Specification EIP-1234: https://eips.cortex.org/EIPS/eip-1234
-	//calcDifficultyConstantinople = makeDifficultyCalculator(big.NewInt(5000000))
-
-	// calcDifficultyByzantium is the difficulty adjustment algorithm. It returns
-	// the difficulty that a new block should have when created at time given the
-	// parent block's time and difficulty. The calculation uses the Byzantium rules.
-	// Specification EIP-649: https://eips.cortex.org/EIPS/eip-649
-	//calcDifficultyByzantium = makeDifficultyCalculator(big.NewInt(3000000))
 )
 
 // Various error messages to mark blocks invalid. These should be private to
@@ -87,15 +68,15 @@ var (
 
 // Author implements consensus.Engine, returning the header's coinbase as the
 // proof-of-work verified author of the block.
-func (cuckoo *Cuckoo) Author(header *types.Header) (common.Address, error) {
+func (sha3 *SHAThree) Author(header *types.Header) (common.Address, error) {
 	return header.Coinbase, nil
 }
 
 // VerifyHeader checks whether a header conforms to the consensus rules of the
-// stock Cortex cuckoo engine.
-func (cuckoo *Cuckoo) VerifyHeader(chain consensus.ChainHeaderReader, header *types.Header, seal bool) error {
+// stock Cortex sha3 engine.
+func (sha3 *SHAThree) VerifyHeader(chain consensus.ChainHeaderReader, header *types.Header, seal bool) error {
 	// If we're running a full engine faking, accept any input as valid
-	if cuckoo.config.PowMode == ModeFullFake {
+	if sha3.config.PowMode == ModeFullFake {
 		return nil
 	}
 	// Short circuit if the header is known, or it's parent not
@@ -108,15 +89,15 @@ func (cuckoo *Cuckoo) VerifyHeader(chain consensus.ChainHeaderReader, header *ty
 		return consensus.ErrUnknownAncestor
 	}
 	// Sanity checks passed, do a proper verification
-	return cuckoo.verifyHeader(chain, header, parent, false, seal, time.Now().Unix())
+	return sha3.verifyHeader(chain, header, parent, false, seal, time.Now().Unix())
 }
 
 // VerifyHeaders is similar to VerifyHeader, but verifies a batch of headers
 // concurrently. The method returns a quit channel to abort the operations and
 // a results channel to retrieve the async verifications.
-func (cuckoo *Cuckoo) VerifyHeaders(chain consensus.ChainHeaderReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
+func (sha3 *SHAThree) VerifyHeaders(chain consensus.ChainHeaderReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
 	// If we're running a full engine faking, accept any input as valid
-	if cuckoo.config.PowMode == ModeFullFake || len(headers) == 0 {
+	if sha3.config.PowMode == ModeFullFake || len(headers) == 0 {
 		abort, results := make(chan struct{}), make(chan error, len(headers))
 		for i := 0; i < len(headers); i++ {
 			results <- nil
@@ -141,7 +122,7 @@ func (cuckoo *Cuckoo) VerifyHeaders(chain consensus.ChainHeaderReader, headers [
 	for i := 0; i < workers; i++ {
 		go func() {
 			for index := range inputs {
-				errors[index] = cuckoo.verifyHeaderWorker(chain, headers, seals, index, utcNow)
+				errors[index] = sha3.verifyHeaderWorker(chain, headers, seals, index, utcNow)
 				done <- index
 			}
 		}()
@@ -177,7 +158,7 @@ func (cuckoo *Cuckoo) VerifyHeaders(chain consensus.ChainHeaderReader, headers [
 	return abort, errorsOut
 }
 
-func (cuckoo *Cuckoo) verifyHeaderWorker(chain consensus.ChainHeaderReader, headers []*types.Header, seals []bool, index int, utcNow int64) error {
+func (sha3 *SHAThree) verifyHeaderWorker(chain consensus.ChainHeaderReader, headers []*types.Header, seals []bool, index int, utcNow int64) error {
 	var parent *types.Header
 	if index == 0 {
 		parent = chain.GetHeader(headers[0].ParentHash, headers[0].Number.Uint64()-1)
@@ -187,14 +168,14 @@ func (cuckoo *Cuckoo) verifyHeaderWorker(chain consensus.ChainHeaderReader, head
 	if parent == nil {
 		return consensus.ErrUnknownAncestor
 	}
-	return cuckoo.verifyHeader(chain, headers[index], parent, false, seals[index], utcNow)
+	return sha3.verifyHeader(chain, headers[index], parent, false, seals[index], utcNow)
 }
 
 // VerifyUncles verifies that the given block's uncles conform to the consensus
-// rules of the stock Cortex cuckoo engine.
-func (cuckoo *Cuckoo) VerifyUncles(chain consensus.ChainReader, block *types.Block) error {
+// rules of the stock Cortex sha3 engine.
+func (sha3 *SHAThree) VerifyUncles(chain consensus.ChainReader, block *types.Block) error {
 	// If we're running a full engine faking, accept any input as valid
-	if cuckoo.config.PowMode == ModeFullFake {
+	if sha3.config.PowMode == ModeFullFake {
 		return nil
 	}
 	// Verify that there are at most 2 uncles included in this block
@@ -239,7 +220,7 @@ func (cuckoo *Cuckoo) VerifyUncles(chain consensus.ChainReader, block *types.Blo
 		if ancestors[uncle.ParentHash] == nil || uncle.ParentHash == block.ParentHash() {
 			return errDanglingUncle
 		}
-		if err := cuckoo.verifyHeader(chain, uncle, ancestors[uncle.ParentHash], true, true, time.Now().Unix()); err != nil {
+		if err := sha3.verifyHeader(chain, uncle, ancestors[uncle.ParentHash], true, true, time.Now().Unix()); err != nil {
 			return err
 		}
 	}
@@ -247,9 +228,9 @@ func (cuckoo *Cuckoo) VerifyUncles(chain consensus.ChainReader, block *types.Blo
 }
 
 // verifyHeader checks whether a header conforms to the consensus rules of the
-// stock Cortex cuckoo engine.
+// stock Cortex sha3 engine.
 // See YP section 4.3.4. "Block Header Validity"
-func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainHeaderReader, header, parent *types.Header, uncle, seal bool, utcNow int64) error {
+func (sha3 *SHAThree) verifyHeader(chain consensus.ChainHeaderReader, header, parent *types.Header, uncle, seal bool, utcNow int64) error {
 	// Ensure that the header's extra-data section is of a reasonable size
 	if uint64(len(header.Extra)) > params.MaximumExtraDataSize {
 		return fmt.Errorf("extra-data too long: %d > %d", len(header.Extra), params.MaximumExtraDataSize)
@@ -264,7 +245,7 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainHeaderReader, header, pa
 		return errOlderBlockTime
 	}
 	// Verify the block's difficulty based in it's timestamp and parent's difficulty
-	expected := cuckoo.CalcDifficulty(chain, header.Time, parent)
+	expected := sha3.CalcDifficulty(chain, header.Time, parent)
 
 	if expected.Cmp(header.Difficulty) != 0 {
 		return fmt.Errorf("invalid difficulty: have %v, want %v", header.Difficulty, expected)
@@ -326,7 +307,7 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainHeaderReader, header, pa
 	}
 	// Verify the engine specific seal securing the block
 	if seal {
-		if err := cuckoo.VerifySeal(chain, header); err != nil {
+		if err := sha3.VerifySeal(chain, header); err != nil {
 			return err
 		}
 	}
@@ -343,35 +324,11 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainHeaderReader, header, pa
 // CalcDifficulty is the difficulty adjustment algorithm. It returns
 // the difficulty that a new block should have when created at time
 // given the parent block's time and difficulty.
-func (cuckoo *Cuckoo) CalcDifficulty(chain consensus.ChainHeaderReader, time uint64, parent *types.Header) *big.Int {
-	// normal calc
-	//diff := CalcDifficulty(chain.Config(), time, parent)
-
+func (sha3 *SHAThree) CalcDifficulty(chain consensus.ChainHeaderReader, time uint64, parent *types.Header) *big.Int {
 	// SHA3 calc
-	diff := calcDifficultySHA3(time, parent, big.NewInt(int64(cuckoo.config.BlockInterval.Seconds())))
-	log.Info("Cuckoo CalcDifficulty", "diff", diff.Int64())
+	diff := calcDifficultySHA3(time, parent, big.NewInt(int64(sha3.config.BlockInterval.Seconds())))
+	log.Info("SHAThree CalcDifficulty", "diff", diff.Int64())
 	return diff
-}
-
-// CalcDifficulty is the difficulty adjustment algorithm. It returns
-// the difficulty that a new block should have when created at time
-// given the parent block's time and difficulty.
-func CalcDifficulty(config *params.ChainConfig, time uint64, parent *types.Header) *big.Int {
-	next := new(big.Int).Add(parent.Number, big1)
-	switch {
-	case config.IsNeo(next):
-		return calcDifficultyNeo(time, parent, true)
-	case config.IsIstanbul(next):
-		return calcDifficultyIstanbul(time, parent, false)
-	case config.IsConstantinople(next):
-		return calcDifficultyConstantinople(time, parent, false)
-	case config.IsByzantium(next):
-		return calcDifficultyByzantium(time, parent, false)
-	case config.IsHomestead(next):
-		return calcDifficultyHomestead(time, parent)
-	default:
-		return calcDifficultyFrontier(time, parent)
-	}
 }
 
 //important add gas limit to consensus
@@ -413,18 +370,6 @@ var (
 	bigMinus9     = big.NewInt(-9)
 	bigMinus99    = big.NewInt(-99)
 )
-
-func calcDifficultyIstanbul(time uint64, parent *types.Header, neo bool) *big.Int {
-	return calcDifficultyConstantinople(time, parent, neo)
-}
-
-func calcDifficultyConstantinople(time uint64, parent *types.Header, neo bool) *big.Int {
-	return calcDifficultyByzantium(time, parent, neo)
-}
-
-func calcDifficultyNeo(time uint64, parent *types.Header, neo bool) *big.Int {
-	return calcDifficultyIstanbul(time, parent, neo)
-}
 
 // calcDifficultySHA3 the difficulty adjustment algorithm. It returns
 // the difficulty that a new block should have when created at time given the
@@ -491,94 +436,6 @@ func calcDifficultySHA3(time uint64, parent *types.Header, interval *big.Int) *b
 	return x
 }
 
-// calcDifficultyByzantium is the difficulty adjustment algorithm. It returns
-// the difficulty that a new block should have when created at time given the
-// parent block's time and difficulty. The calculation uses the Byzantium rules.
-func calcDifficultyByzantium(time uint64, parent *types.Header, neo bool) *big.Int {
-	// https://github.com/cortex/EIPs/issues/100.
-	// algorithm:
-	// diff = (parent_diff +
-	//         (parent_diff / 2048 * max((2 if len(parent.uncles) else 1) - ((timestamp - parent.timestamp) // 9), -99))
-	//        ) + 2^(periodCount - 2)
-
-	bigTime := new(big.Int).SetUint64(time)
-	bigParentTime := new(big.Int).SetUint64(parent.Time)
-
-	// holds intermediate values to make the algo easier to read & audit
-	x := new(big.Int)
-	y := new(big.Int)
-
-	// (2 if len(parent_uncles) else 1) - (block_timestamp - parent_timestamp) // 9
-	x.Sub(bigTime, bigParentTime)
-	x.Div(x, big9)
-	if parent.UncleHash == types.EmptyUncleHash {
-		x.Sub(big1, x)
-	} else {
-		x.Sub(big2, x)
-	}
-	// max((2 if len(parent_uncles) else 1) - (block_timestamp - parent_timestamp) // 9, -99)
-	if bigParentTime.Cmp(big0) > 0 {
-		if x.Cmp(bigMinus99) < 0 {
-			x.Set(bigMinus99)
-		}
-	} else {
-		x.Set(big0)
-	}
-
-	if parent.Difficulty.Cmp(params.MeanDifficultyBoundDivisor) >= 0 && parent.Difficulty.Cmp(params.HighDifficultyBoundDivisor) < 0 {
-		y.Div(parent.Difficulty, params.MeanDifficultyBoundDivisor)
-	} else if parent.Difficulty.Cmp(params.HighDifficultyBoundDivisor) >= 0 {
-		y.Div(parent.Difficulty, params.HighDifficultyBoundDivisor)
-	} else {
-		if neo {
-			y = params.MinimumDifficulty // delta 2
-		} else {
-			y.Div(parent.Difficulty, params.DifficultyBoundDivisor_2)
-		}
-
-		if x.Cmp(big0) > 0 {
-			x.Set(big1)
-		}
-
-		if x.Cmp(big0) < 0 {
-			x.Set(bigMinus1)
-		}
-	}
-
-	//log.Info("cal diff", "x", x, "parent.Difficulty", parent.Difficulty, "y", y)
-
-	// parent_diff + (parent_diff / 2048 * max((2 if len(parent.uncles) else 1) - ((timestamp - parent.timestamp) // 9), -99))
-	//y.Div(parent.Difficulty, params.DifficultyBoundDivisor)
-	x.Mul(y, x)
-	x.Add(parent.Difficulty, x)
-
-	//log.Info("cal diff", "x", x, "parent.Difficulty", parent.Difficulty, "y", y)
-
-	// minimum difficulty can ever be (before exponential factor)
-	if x.Cmp(params.MinimumDifficulty) < 0 {
-		x.Set(params.MinimumDifficulty)
-	}
-	// calculate a fake block number for the ice-age delay:
-	// https://github.com/cortex/EIPs/pull/669
-	// fake_block_number = max(0, block.number - 3_000_000)
-	//fakeBlockNumber := new(big.Int)
-	//if parent.Number.Cmp(big2999999) >= 0 {
-	//	fakeBlockNumber = fakeBlockNumber.Sub(parent.Number, big2999999) // Note, parent is 1 less than the actual block number
-	//}
-	// for the exponential factor
-	//periodCount := fakeBlockNumber
-	//periodCount.Div(periodCount, expDiffPeriod)
-
-	// the exponential factor, commonly referred to as "the bomb"
-	// diff = diff + 2^(periodCount - 2)
-	//if periodCount.Cmp(big1) > 0 {
-	//	y.Sub(periodCount, big2)
-	//	y.Exp(big2, y, nil)
-	//	x.Add(x, y)
-	//}
-	return x
-}
-
 // makeDifficultyCalculator creates a difficultyCalculator with the given bomb-delay.
 // the difficulty is calculated with Byzantium rules, which differs from Homestead in
 // how uncles affect the calculation
@@ -642,102 +499,13 @@ func makeDifficultyCalculator(bombDelay *big.Int) func(time uint64, parent *type
 	}
 }
 
-// calcDifficultyHomestead is the difficulty adjustment algorithm. It returns
-// the difficulty that a new block should have when created at time given the
-// parent block's time and difficulty. The calculation uses the Homestead rules.
-func calcDifficultyHomestead(time uint64, parent *types.Header) *big.Int {
-	// https://github.com/cortex/EIPs/blob/master/EIPS/eip-2.md
-	// algorithm:
-	// diff = (parent_diff +
-	//         (parent_diff / 2048 * max(1 - (block_timestamp - parent_timestamp) // 10, -99))
-	//        ) + 2^(periodCount - 2)
-
-	bigTime := new(big.Int).SetUint64(time)
-	bigParentTime := new(big.Int).SetUint64(parent.Time)
-
-	// holds intermediate values to make the algo easier to read & audit
-	x := new(big.Int)
-	y := new(big.Int)
-
-	// 1 - (block_timestamp - parent_timestamp) // 10
-	x.Sub(bigTime, bigParentTime)
-	x.Div(x, big10)
-	x.Sub(big1, x)
-
-	// max(1 - (block_timestamp - parent_timestamp) // 10, -99)
-	if x.Cmp(bigMinus99) < 0 {
-		x.Set(bigMinus99)
-	}
-	// (parent_diff + parent_diff // 2048 * max(1 - (block_timestamp - parent_timestamp) // 10, -99))
-	if parent.Difficulty.Cmp(params.MeanDifficultyBoundDivisor) >= 0 && parent.Difficulty.Cmp(params.HighDifficultyBoundDivisor) < 0 {
-		y.Div(parent.Difficulty, params.MeanDifficultyBoundDivisor)
-	} else if parent.Difficulty.Cmp(params.HighDifficultyBoundDivisor) >= 0 {
-		y.Div(parent.Difficulty, params.HighDifficultyBoundDivisor)
-	} else {
-		y.Div(parent.Difficulty, params.DifficultyBoundDivisor_2)
-	}
-	x.Mul(y, x)
-	x.Add(parent.Difficulty, x)
-
-	// minimum difficulty can ever be (before exponential factor)
-	if x.Cmp(params.MinimumDifficulty) < 0 {
-		x.Set(params.MinimumDifficulty)
-	}
-	// for the exponential factor
-	//periodCount := new(big.Int).Add(parent.Number, big1)
-	//periodCount.Div(periodCount, expDiffPeriod)
-
-	// the exponential factor, commonly referred to as "the bomb"
-	// diff = diff + 2^(periodCount - 2)
-	//if periodCount.Cmp(big1) > 0 {
-	//	y.Sub(periodCount, big2)
-	//	y.Exp(big2, y, nil)
-	//	x.Add(x, y)
-	//}
-	return x
-}
-
-// calcDifficultyFrontier is the difficulty adjustment algorithm. It returns the
-// difficulty that a new block should have when created at time given the parent
-// block's time and difficulty. The calculation uses the Frontier rules.
-func calcDifficultyFrontier(time uint64, parent *types.Header) *big.Int {
-	diff := new(big.Int)
-	adjust := new(big.Int).Div(parent.Difficulty, params.DifficultyBoundDivisor_2)
-	bigTime := new(big.Int)
-	bigParentTime := new(big.Int)
-
-	bigTime.SetUint64(time)
-	bigParentTime.SetUint64(parent.Time)
-
-	if bigTime.Sub(bigTime, bigParentTime).Cmp(params.DurationLimit) < 0 {
-		diff.Add(parent.Difficulty, adjust)
-	} else {
-		diff.Sub(parent.Difficulty, adjust)
-	}
-	if diff.Cmp(params.MinimumDifficulty) < 0 {
-		diff.Set(params.MinimumDifficulty)
-	}
-
-	periodCount := new(big.Int).Add(parent.Number, big1)
-	periodCount.Div(periodCount, expDiffPeriod)
-	if periodCount.Cmp(big1) > 0 {
-		// diff = diff + 2^(periodCount - 2)
-		expDiff := periodCount.Sub(periodCount, big2)
-		expDiff.Exp(big2, expDiff, nil)
-		diff.Add(diff, expDiff)
-		diff = math.BigMax(diff, params.MinimumDifficulty)
-	}
-	return diff
-}
-
 // VerifySeal implements consensus.Engine, checking whether the given block satisfies
 // the PoW difficulty requirements.
-
-func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainHeaderReader, header *types.Header) error {
+func (sha3 *SHAThree) VerifySeal(chain consensus.ChainHeaderReader, header *types.Header) error {
 	// If we're running a fake PoW, accept any seal as valid
-	if cuckoo.config.PowMode == ModeFake || cuckoo.config.PowMode == ModeFullFake {
-		time.Sleep(cuckoo.fakeDelay)
-		if cuckoo.fakeFail == header.Number.Uint64() {
+	if sha3.config.PowMode == ModeFake || sha3.config.PowMode == ModeFullFake {
+		time.Sleep(sha3.fakeDelay)
+		if sha3.fakeFail == header.Number.Uint64() {
 			return errInvalidPoW
 		}
 		return nil
@@ -749,19 +517,11 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainHeaderReader, header *type
 	var (
 		result        = header.Solution
 		nonce  uint64 = uint64(header.Nonce.Uint64())
-		hash          = cuckoo.SealHash(header).Bytes()
+		hash          = sha3.SealHash(header).Bytes()
 	)
 
 	targetDiff := new(big.Int).Div(maxUint256, header.Difficulty)
-	// fmt.Println("uint8_t a[80] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(hash)), ","), "[]") + "};")
-	// fmt.Println("uint32_t nonce =  ", nonce, ";")
-	// fmt.Println("uint32_t result[42] =  {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(result)), ","), "[]") + "};")
-	// fmt.Println("uint8_t t[32] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(diff)), ","), "[]") + "};")
-	// fmt.Println("uint8_t h[32] = {" + strings.Trim(strings.Join(strings.Fields(fmt.Sprint(result_hash)), ","), "[]") + "};")
-	// r := CuckooVerify(&hash[0], len(hash), uint32(nonce), &result[0], &diff[0], &result_hash[0])
-	//fmt.Println("VerifySeal: ", result, nonce, uint32((nonce)), hash)
-	//r := cuckoo.CuckooVerifyHeader(hash, nonce, &result, header.Number.Uint64(), targetDiff)
-	r := cuckoo.CuckooVerifyHeader(hash, nonce, &result, targetDiff)
+	r := sha3.SHAThreeVerifyHeader(hash, nonce, &result, targetDiff)
 	if !r {
 		log.Trace(fmt.Sprintf("VerifySeal: %v, %v", r, targetDiff))
 		return errInvalidPoW
@@ -771,13 +531,13 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainHeaderReader, header *type
 }
 
 // Prepare implements consensus.Engine, initializing the difficulty field of a
-// header to conform to the cuckoo protocol. The changes are done inline.
-func (cuckoo *Cuckoo) Prepare(chain consensus.ChainHeaderReader, header *types.Header) error {
+// header to conform to the sha3 protocol. The changes are done inline.
+func (sha3 *SHAThree) Prepare(chain consensus.ChainHeaderReader, header *types.Header) error {
 	parent := chain.GetHeader(header.ParentHash, header.Number.Uint64()-1)
 	if parent == nil {
 		return consensus.ErrUnknownAncestor
 	}
-	header.Difficulty = cuckoo.CalcDifficulty(chain, header.Time, parent)
+	header.Difficulty = sha3.CalcDifficulty(chain, header.Time, parent)
 	header.Supply = new(big.Int).Set(parent.Supply)
 	header.Quota = parent.Quota + chain.Config().GetBlockQuota(header.Number)
 	if header.Quota < parent.Quota {
@@ -789,7 +549,7 @@ func (cuckoo *Cuckoo) Prepare(chain consensus.ChainHeaderReader, header *types.H
 
 // Finalize implements consensus.Engine, accumulating the block and uncle rewards,
 // setting the final state on the header
-func (cuckoo *Cuckoo) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header) error {
+func (sha3 *SHAThree) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header) error {
 	// Always need parent to caculate the reward of current block
 	parent := chain.GetHeader(header.ParentHash, header.Number.Uint64()-1)
 	if parent == nil {
@@ -803,10 +563,10 @@ func (cuckoo *Cuckoo) Finalize(chain consensus.ChainHeaderReader, header *types.
 
 // Finalize implements consensus.Engine, accumulating the block and uncle rewards,
 // setting the final state and assembling the block.
-func (cuckoo *Cuckoo) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
+func (sha3 *SHAThree) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
 	//log.Info(fmt.Sprintf("parent: %v, current: %v, number: %v, total: %v, epoch: %v", parent.Number, header.Hash(), header.Number, params.CTXC_TOP, params.CortexBlockRewardPeriod))
 	// Accumulate any block and uncle rewards and commit the final state root
-	err := cuckoo.Finalize(chain, header, state, txs, uncles)
+	err := sha3.Finalize(chain, header, state, txs, uncles)
 	if err != nil {
 		return nil, err
 	}
@@ -817,7 +577,7 @@ func (cuckoo *Cuckoo) FinalizeAndAssemble(chain consensus.ChainHeaderReader, hea
 
 // FinalizeAndAssemble implements consensus.Engine, accumulating the block and
 // uncle rewards, setting the final state and assembling the block.
-func (cuckoo *Cuckoo) FinalizeWithoutParent(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
+func (sha3 *SHAThree) FinalizeWithoutParent(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
 	// Accumulate any block and uncle rewards and commit the final state root
 	accumulateRewardsWithoutParent(chain.Config(), state, header, uncles)
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
@@ -827,8 +587,8 @@ func (cuckoo *Cuckoo) FinalizeWithoutParent(chain consensus.ChainHeaderReader, h
 }
 
 // SealHash returns the hash of a block prior to it being sealed.
-func (cuckoo *Cuckoo) SealHash(header *types.Header) (hash common.Hash) {
-	hasher := sha3.NewLegacyKeccak256()
+func (sha3 *SHAThree) SealHash(header *types.Header) (hash common.Hash) {
+	hasher := sha3_.NewLegacyKeccak256()
 
 	rlp.Encode(hasher, []interface{}{
 		header.ParentHash,
@@ -862,10 +622,7 @@ var (
 	big64   = big.NewInt(64)
 	big128  = big.NewInt(128)
 	big4096 = big.NewInt(4096)
-	//bigInitReward = big.NewInt(7000000000000000000)
-	bigFix = big.NewInt(6343750000000000000)
-	//bigMidReward  = big.NewInt(0).Mul(big.NewInt(13343750000), big.NewInt(1000000000))
-	//bigMaxReward  = big.NewInt(0).Mul(big.NewInt(19687500000), big.NewInt(1000000000))
+	bigFix  = big.NewInt(6343750000000000000)
 )
 
 func calculateRewardByNumber(num *big.Int, chainId uint64) *big.Int {
@@ -946,12 +703,6 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 		// Accumulate the rewards for the miner and any included uncles
 		reward := new(big.Int).Set(blockReward)
 		r := new(big.Int)
-
-		//for hash := range FixHashes {
-		//	if hash == headerInitialHash {
-		//		header.Supply.Add(header.Supply, bigFix)
-		//	}
-		//}
 
 		if len(uncles) > 0 {
 
@@ -1037,12 +788,6 @@ func accumulateRewardsWithoutParent(config *params.ChainConfig, state *state.Sta
 		reward := new(big.Int).Set(blockReward)
 		r := new(big.Int)
 
-		//for hash := range FixHashes {
-		//	if hash == headerInitialHash {
-		//		header.Supply.Add(header.Supply, bigFix)
-		//	}
-		//}
-
 		if len(uncles) > 0 {
 
 			for _, uncle := range uncles {
@@ -1087,7 +832,7 @@ func toCoin(wei *big.Int) *big.Float {
 }
 
 // uint32 to byte, and then hash
-func (cuckoo *Cuckoo) Sha3Solution(sol *types.BlockSolution) []byte {
+func (sha3 *SHAThree) Sha3Solution(sol *types.BlockSolution) []byte {
 	buf := make([]byte, 42*4)
 	for i, s := range sol {
 		binary.BigEndian.PutUint32(buf[i*4:], s)
@@ -1097,14 +842,13 @@ func (cuckoo *Cuckoo) Sha3Solution(sol *types.BlockSolution) []byte {
 }
 
 // 202203: Change to new interface
-func (cuckoo *Cuckoo) CuckooVerifyHeader(hash []byte, nonce uint64, sol *types.BlockSolution, targetDiff *big.Int) bool {
-	//return cuckoo.CuckooVerifyHeader_SHA3(hash, nonce, sol, targetDiff)
-	return plugins.CuckooVerify_cuckaroo(&hash[0], nonce, *sol, cuckoo.Sha3Solution(sol), targetDiff)
+func (sha3 *SHAThree) SHAThreeVerifyHeader(hash []byte, nonce uint64, sol *types.BlockSolution, targetDiff *big.Int) bool {
+	return sha3.SHAThreeVerifyHeader_SHA3(hash, nonce, sol, targetDiff)
 }
 
 // Simple sha3 solution, Relace seal_miner "Gen Solution"
 // header_hash len is 32*u8, nonce len is 2*u32
-func (cuckoo *Cuckoo) GenSha3Solution(hash []byte, nonce uint64) (r uint32, sols [][]uint32) {
+func (sha3 *SHAThree) GenSha3Solution(hash []byte, nonce uint64) (r uint32, sols [][]uint32) {
 	// r: solutions number, only gen 1 now
 	r = 1
 	// result: n * [32]u32
@@ -1122,9 +866,9 @@ func (cuckoo *Cuckoo) GenSha3Solution(hash []byte, nonce uint64) (r uint32, sols
 	return
 }
 
-// Simple sha3 solution Verify, Replace CuckooVerifyHeader()
-func (cuckoo *Cuckoo) CuckooVerifyHeader_SHA3(hash []byte, nonce uint64, sol *types.BlockSolution, targetDiff *big.Int) bool {
-	result_sha3 := cuckoo.Sha3Solution(sol)
+// Simple sha3 solution Verify, Replace SHAThreeVerifyHeader()
+func (sha3 *SHAThree) SHAThreeVerifyHeader_SHA3(hash []byte, nonce uint64, sol *types.BlockSolution, targetDiff *big.Int) bool {
+	result_sha3 := sha3.Sha3Solution(sol)
 	sha3hash := common.BytesToHash(result_sha3)
 	// if targetDiff is met, say solution valid
 	//fmt.Println("sha3hash big is:", sha3hash.Big().Uint64(), "targetDiff is:", targetDiff.Uint64())

@@ -32,6 +32,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/consensus"
 	"github.com/CortexFoundation/CortexTheseus/consensus/clique"
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
+	"github.com/CortexFoundation/CortexTheseus/consensus/sha3"
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/bloombits"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
@@ -144,7 +145,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		chainConfig:       chainConfig,
 		eventMux:          ctx.EventMux,
 		accountManager:    ctx.AccountManager,
-		engine:            CreateConsensusEngine(ctx, chainConfig, &config.Cuckoo, config.Miner.Notify, config.Miner.Noverify, chainDb),
+		engine:            CreateConsensusEngine(ctx, chainConfig, &config.Cuckoo, &config.SHA3, config.Miner.Notify, config.Miner.Noverify, chainDb),
 		closeBloomHandler: make(chan struct{}),
 		networkID:         config.NetworkId,
 		gasPrice:          config.Miner.GasPrice,
@@ -268,12 +269,16 @@ func makeExtraData(extra []byte) []byte {
 
 // CreateConsensusEngine creates the required type of consensus engine instance for an Cortex service
 // func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainConfig, config *cuckoo.Config, notify []string, db ctxcdb.Database) consensus.Engine {
-func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainConfig, config *cuckoo.Config, notify []string, noverify bool, db ctxcdb.Database) consensus.Engine {
+func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainConfig, config *cuckoo.Config, configSHA3 *sha3.Config, notify []string, noverify bool, db ctxcdb.Database) consensus.Engine {
 	// If proof-of-authority is requested, set it up
 	if chainConfig.Clique != nil {
 		return clique.New(chainConfig.Clique, db)
 	}
 	// Otherwise assume proof-of-work
+	if configSHA3.PowMode == sha3.ModeSha3 {
+		log.Warn("SHA3 consensus in use!")
+		return cuckoo.NewFaker()
+	}
 	switch config.PowMode {
 	case cuckoo.ModeFake:
 		log.Warn("Cuckoo used in fake mode")
