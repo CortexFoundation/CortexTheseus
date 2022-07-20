@@ -38,18 +38,52 @@ type Config struct {
 	// will prevent the SDK from modifying the HTTP client.
 	HTTPClient HTTPClient
 
-	// An endpoint resolver that can be used to provide or override an endpoint for the given
-	// service and region Please see the `aws.EndpointResolver` documentation on usage.
+	// An endpoint resolver that can be used to provide or override an endpoint
+	// for the given service and region.
+	//
+	// See the `aws.EndpointResolver` documentation for additional usage
+	// information.
+	//
+	// Deprecated: See Config.EndpointResolverWithOptions
 	EndpointResolver EndpointResolver
 
-	// Retryer is a function that provides a Retryer implementation. A Retryer guides how HTTP requests should be
-	// retried in case of recoverable failures. When nil the API client will use a default
-	// retryer.
+	// An endpoint resolver that can be used to provide or override an endpoint
+	// for the given service and region.
 	//
-	// In general, the provider function should return a new instance of a Retyer if you are attempting
-	// to provide a consistent Retryer configuration across all clients. This will ensure that each client will be
-	// provided a new instance of the Retryer implementation, and will avoid issues such as sharing the same retry token
-	// bucket across services.
+	// When EndpointResolverWithOptions is specified, it will be used by a
+	// service client rather than using EndpointResolver if also specified.
+	//
+	// See the `aws.EndpointResolverWithOptions` documentation for additional
+	// usage information.
+	EndpointResolverWithOptions EndpointResolverWithOptions
+
+	// RetryMaxAttempts specifies the maximum number attempts an API client
+	// will call an operation that fails with a retryable error.
+	//
+	// API Clients will only use this value to construct a retryer if the
+	// Config.Retryer member is not nil. This value will be ignored if
+	// Retryer is not nil.
+	RetryMaxAttempts int
+
+	// RetryMode specifies the retry model the API client will be created with.
+	//
+	// API Clients will only use this value to construct a retryer if the
+	// Config.Retryer member is not nil. This value will be ignored if
+	// Retryer is not nil.
+	RetryMode RetryMode
+
+	// Retryer is a function that provides a Retryer implementation. A Retryer
+	// guides how HTTP requests should be retried in case of recoverable
+	// failures. When nil the API client will use a default retryer.
+	//
+	// In general, the provider function should return a new instance of a
+	// Retryer if you are attempting to provide a consistent Retryer
+	// configuration across all clients. This will ensure that each client will
+	// be provided a new instance of the Retryer implementation, and will avoid
+	// issues such as sharing the same retry token bucket across services.
+	//
+	// If not nil, RetryMaxAttempts, and RetryMode will be ignored by API
+	// clients.
 	Retryer func() Retryer
 
 	// ConfigSources are the sources that were used to construct the Config.
@@ -65,13 +99,26 @@ type Config struct {
 	// standard error.
 	Logger logging.Logger
 
-	// Configures the events that will be sent to the configured logger.
-	// This can be used to configure the logging of signing, retries, request, and responses
-	// of the SDK clients.
+	// Configures the events that will be sent to the configured logger. This
+	// can be used to configure the logging of signing, retries, request, and
+	// responses of the SDK clients.
 	//
-	// See the ClientLogMode type documentation for the complete set of logging modes and available
-	// configuration.
+	// See the ClientLogMode type documentation for the complete set of logging
+	// modes and available configuration.
 	ClientLogMode ClientLogMode
+
+	// The configured DefaultsMode. If not specified, service clients will
+	// default to legacy.
+	//
+	// Supported modes are: auto, cross-region, in-region, legacy, mobile,
+	// standard
+	DefaultsMode DefaultsMode
+
+	// The RuntimeEnvironment configuration, only populated if the DefaultsMode
+	// is set to DefaultsModeAuto and is initialized by
+	// `config.LoadDefaultConfig`. You should not populate this structure
+	// programmatically, or rely on the values here within your applications.
+	RuntimeEnvironment RuntimeEnvironment
 }
 
 // NewConfig returns a new Config pointer that can be chained with builder
@@ -86,3 +133,34 @@ func (c Config) Copy() Config {
 	cp := c
 	return cp
 }
+
+// EndpointDiscoveryEnableState indicates if endpoint discovery is
+// enabled, disabled, auto or unset state.
+//
+// Default behavior (Auto or Unset) indicates operations that require endpoint
+// discovery will use Endpoint Discovery by default. Operations that
+// optionally use Endpoint Discovery will not use Endpoint Discovery
+// unless EndpointDiscovery is explicitly enabled.
+type EndpointDiscoveryEnableState uint
+
+// Enumeration values for EndpointDiscoveryEnableState
+const (
+	// EndpointDiscoveryUnset represents EndpointDiscoveryEnableState is unset.
+	// Users do not need to use this value explicitly. The behavior for unset
+	// is the same as for EndpointDiscoveryAuto.
+	EndpointDiscoveryUnset EndpointDiscoveryEnableState = iota
+
+	// EndpointDiscoveryAuto represents an AUTO state that allows endpoint
+	// discovery only when required by the api. This is the default
+	// configuration resolved by the client if endpoint discovery is neither
+	// enabled or disabled.
+	EndpointDiscoveryAuto // default state
+
+	// EndpointDiscoveryDisabled indicates client MUST not perform endpoint
+	// discovery even when required.
+	EndpointDiscoveryDisabled
+
+	// EndpointDiscoveryEnabled indicates client MUST always perform endpoint
+	// discovery if supported for the operation.
+	EndpointDiscoveryEnabled
+)

@@ -1,9 +1,16 @@
+//go:build windows
 // +build windows
 
 package tea
 
-import "os"
+import (
+	"context"
+	"os"
+)
 
 // listenForResize is not available on windows because windows does not
 // implement syscall.SIGWINCH.
-func listenForResize(output *os.File, msgs chan Msg, errs chan error) {}
+func listenForResize(ctx context.Context, output *os.File, msgs chan Msg,
+	errs chan error, done chan struct{}) {
+	close(done)
+}

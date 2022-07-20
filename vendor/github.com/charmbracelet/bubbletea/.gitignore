@@ -2,7 +2,11 @@
 .envrc
 
 examples/fullscreen/fullscreen
+examples/help/help
 examples/http/http
+examples/list-default/list-default
+examples/list-fancy/list-fancy
+examples/list-simple/list-simple
 examples/mouse/mouse
 examples/pager/pager
 examples/simple/simple
@@ -12,3 +16,5 @@ examples/textinputs/textinputs
 examples/views/views
 tutorials/basics/basics
 tutorials/commands/commands
+.idea
+coverage.txt

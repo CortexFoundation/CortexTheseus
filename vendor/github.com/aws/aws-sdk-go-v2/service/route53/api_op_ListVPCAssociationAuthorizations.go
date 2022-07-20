@@ -21,7 +21,7 @@ func (c *Client) ListVPCAssociationAuthorizations(ctx context.Context, params *L
 		params = &ListVPCAssociationAuthorizationsInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "ListVPCAssociationAuthorizations", params, optFns, addOperationListVPCAssociationAuthorizationsMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "ListVPCAssociationAuthorizations", params, optFns, c.addOperationListVPCAssociationAuthorizationsMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -52,6 +52,8 @@ type ListVPCAssociationAuthorizationsInput struct {
 	// response in the nexttoken parameter in another ListVPCAssociationAuthorizations
 	// request.
 	NextToken *string
+
+	noSmithyDocumentSerde
 }
 
 // A complex type that contains the response information for the request.
@@ -76,9 +78,11 @@ type ListVPCAssociationAuthorizationsOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationListVPCAssociationAuthorizationsMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationListVPCAssociationAuthorizationsMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpListVPCAssociationAuthorizations{}, middleware.After)
 	if err != nil {
 		return err

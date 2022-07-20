@@ -1,0 +1,84 @@
+# This file describes an image that is capable of building Flux.
+
+# "Wait," you ask. "What's going on here?" Rather than handling rustup validation
+# and verification, we can list the rust container as a prior build stage, and
+# then pull in the artifacts we need. There is an added benefit that tagged versions
+# also include minor releases, so 1.2 includes 1.2.1 and so on, for bugfix releases.
+FROM rust:1.58 as RUSTBUILD
+
+FROM golang:1.18 as PKGCONFIG
+COPY go.mod go.sum /go/src/github.com/influxdata/flux/
+RUN cd /go/src/github.com/influxdata/flux && \
+    go build -o /usr/local/bin/cgo-pkgbuild github.com/influxdata/pkg-config
+
+FROM golang:1.18
+
+# Install common packages
+RUN apt-get update && \
+    apt-get install --no-install-recommends -y \
+    openssl libtinfo5 ruby \
+    ca-certificates curl file gnupg \
+    build-essential cmake nodejs npm \
+    libxml2-dev libssl-dev libsqlite3-dev zlib1g-dev \
+    autoconf automake autotools-dev libtool xutils-dev valgrind && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install rust and rust tooling
+COPY --from=RUSTBUILD /usr/local/cargo /usr/local/cargo
+COPY --from=RUSTBUILD /usr/local/rustup /usr/local/rustup
+
+ENV RUSTUP_HOME=/usr/local/rustup \
+    CARGO_HOME=/usr/local/cargo \
+    PATH=/usr/local/cargo/bin:/usr/local/bin:/usr/local/ragel7/bin:$PATH
+RUN rustup component add rustfmt clippy && \
+    # Use sccache rustc wrapper for friendly build caching
+    cargo install sccache && \
+    cargo install wasm-pack && \
+    rustup component add rust-std --target wasm32-unknown-unknown
+# This is defined separately, so it doesn't attempt to use sccache until it is
+# actually installed.
+ENV RUSTC_WRAPPER=sccache
+
+# Install additional tooling and requirements for building flux.
+ENV COLM_VERSION=0.14.2
+ENV RAGEL7_VERSION=7.0.1
+COPY .thurston.asc thurston.asc
+RUN gpg --import thurston.asc && \
+    curl https://www.colm.net/files/colm/colm-${COLM_VERSION}.tar.gz -O && \
+    curl https://www.colm.net/files/colm/colm-${COLM_VERSION}.tar.gz.asc -O && \
+    gpg --verify colm-${COLM_VERSION}.tar.gz.asc colm-${COLM_VERSION}.tar.gz && \
+    tar -xzf colm-${COLM_VERSION}.tar.gz && \
+    cd colm-${COLM_VERSION}/ && \
+    ./configure --prefix=/usr/local/ragel7 --disable-manual && \
+    make && \
+    make install && \
+    cd .. && rm -rf colm-${COLM_VERSION}* && \
+    curl https://www.colm.net/files/ragel/ragel-${RAGEL7_VERSION}.tar.gz -O && \
+    curl https://www.colm.net/files/ragel/ragel-${RAGEL7_VERSION}.tar.gz.asc -O && \
+    gpg --verify ragel-${RAGEL7_VERSION}.tar.gz.asc ragel-${RAGEL7_VERSION}.tar.gz && \
+    tar -xzf ragel-${RAGEL7_VERSION}.tar.gz && \
+    cd ragel-${RAGEL7_VERSION}/ && \
+    ./configure --prefix=/usr/local/ragel7 --with-colm=/usr/local/ragel7 --disable-manual && \
+    make && \
+    make install && \
+    cd .. && rm -rf ragel-${RAGEL7_VERSION}*
+
+COPY ./install_flatc.sh .
+RUN ./install_flatc.sh
+
+# Install pkg-config helper
+COPY --from=PKGCONFIG /usr/local/bin/cgo-pkgbuild /usr/local/bin/cgo-pkgbuild
+
+# Add builder user
+ENV UNAME=builder
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g $GID -o $UNAME
+RUN useradd -m -u $UID -g $UNAME -s /bin/bash $UNAME
+USER $UNAME
+ENV HOME=/home/$UNAME \
+    CARGO_HOME=/home/$UNAME/.cargo \
+    GOPATH=/home/$UNAME/go \
+    PKG_CONFIG=/usr/local/bin/cgo-pkgbuild
+
+WORKDIR $HOME

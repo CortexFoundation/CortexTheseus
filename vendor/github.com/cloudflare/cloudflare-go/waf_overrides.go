@@ -1,9 +1,10 @@
 package cloudflare
 
 import (
+	"context"
 	"encoding/json"
-
-	"github.com/pkg/errors"
+	"fmt"
+	"net/http"
 )
 
 // WAFOverridesResponse represents the response form the WAF overrides endpoint.
@@ -35,21 +36,21 @@ type WAFOverride struct {
 // ListWAFOverrides returns a slice of the WAF overrides.
 //
 // API Reference: https://api.cloudflare.com/#waf-overrides-list-uri-controlled-waf-configurations
-func (api *API) ListWAFOverrides(zoneID string) ([]WAFOverride, error) {
+func (api *API) ListWAFOverrides(ctx context.Context, zoneID string) ([]WAFOverride, error) {
 	var overrides []WAFOverride
 	var res []byte
 	var err error
 
-	uri := "/zones/" + zoneID + "/firewall/waf/overrides"
-	res, err = api.makeRequest("GET", uri, nil)
+	uri := fmt.Sprintf("/zones/%s/firewall/waf/overrides", zoneID)
+	res, err = api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
-		return []WAFOverride{}, errors.Wrap(err, errMakeRequestError)
+		return []WAFOverride{}, err
 	}
 
 	var r WAFOverridesResponse
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return []WAFOverride{}, errors.Wrap(err, errUnmarshalError)
+		return []WAFOverride{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 
 	if !r.Success {
@@ -66,17 +67,17 @@ func (api *API) ListWAFOverrides(zoneID string) ([]WAFOverride, error) {
 // WAFOverride returns a WAF override from the given override ID.
 //
 // API Reference: https://api.cloudflare.com/#waf-overrides-uri-controlled-waf-configuration-details
-func (api *API) WAFOverride(zoneID, overrideID string) (WAFOverride, error) {
-	uri := "/zones/" + zoneID + "/firewall/waf/overrides/" + overrideID
-	res, err := api.makeRequest("GET", uri, nil)
+func (api *API) WAFOverride(ctx context.Context, zoneID, overrideID string) (WAFOverride, error) {
+	uri := fmt.Sprintf("/zones/%s/firewall/waf/overrides/%s", zoneID, overrideID)
+	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
-		return WAFOverride{}, errors.Wrap(err, errMakeRequestError)
+		return WAFOverride{}, err
 	}
 
 	var r WAFOverrideResponse
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return WAFOverride{}, errors.Wrap(err, errUnmarshalError)
+		return WAFOverride{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 
 	return r.Result, nil
@@ -85,15 +86,15 @@ func (api *API) WAFOverride(zoneID, overrideID string) (WAFOverride, error) {
 // CreateWAFOverride creates a new WAF override.
 //
 // API reference: https://api.cloudflare.com/#waf-overrides-create-a-uri-controlled-waf-configuration
-func (api *API) CreateWAFOverride(zoneID string, override WAFOverride) (WAFOverride, error) {
-	uri := "/zones/" + zoneID + "/firewall/waf/overrides"
-	res, err := api.makeRequest("POST", uri, override)
+func (api *API) CreateWAFOverride(ctx context.Context, zoneID string, override WAFOverride) (WAFOverride, error) {
+	uri := fmt.Sprintf("/zones/%s/firewall/waf/overrides", zoneID)
+	res, err := api.makeRequestContext(ctx, http.MethodPost, uri, override)
 	if err != nil {
-		return WAFOverride{}, errors.Wrap(err, errMakeRequestError)
+		return WAFOverride{}, err
 	}
 	var r WAFOverrideResponse
 	if err := json.Unmarshal(res, &r); err != nil {
-		return WAFOverride{}, errors.Wrap(err, errUnmarshalError)
+		return WAFOverride{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 	return r.Result, nil
 }
@@ -101,18 +102,18 @@ func (api *API) CreateWAFOverride(zoneID string, override WAFOverride) (WAFOverr
 // UpdateWAFOverride updates an existing WAF override.
 //
 // API reference: https://api.cloudflare.com/#waf-overrides-update-uri-controlled-waf-configuration
-func (api *API) UpdateWAFOverride(zoneID, overrideID string, override WAFOverride) (WAFOverride, error) {
-	uri := "/zones/" + zoneID + "/firewall/waf/overrides/" + overrideID
+func (api *API) UpdateWAFOverride(ctx context.Context, zoneID, overrideID string, override WAFOverride) (WAFOverride, error) {
+	uri := fmt.Sprintf("/zones/%s/firewall/waf/overrides/%s", zoneID, overrideID)
 
-	res, err := api.makeRequest("PUT", uri, override)
+	res, err := api.makeRequestContext(ctx, http.MethodPut, uri, override)
 	if err != nil {
-		return WAFOverride{}, errors.Wrap(err, errMakeRequestError)
+		return WAFOverride{}, err
 	}
 
 	var r WAFOverrideResponse
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return WAFOverride{}, errors.Wrap(err, errUnmarshalError)
+		return WAFOverride{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 
 	return r.Result, nil
@@ -121,16 +122,16 @@ func (api *API) UpdateWAFOverride(zoneID, overrideID string, override WAFOverrid
 // DeleteWAFOverride deletes a WAF override for a zone.
 //
 // API reference: https://api.cloudflare.com/#waf-overrides-delete-lockdown-rule
-func (api *API) DeleteWAFOverride(zoneID, overrideID string) error {
-	uri := "/zones/" + zoneID + "/firewall/waf/overrides/" + overrideID
-	res, err := api.makeRequest("DELETE", uri, nil)
+func (api *API) DeleteWAFOverride(ctx context.Context, zoneID, overrideID string) error {
+	uri := fmt.Sprintf("/zones/%s/firewall/waf/overrides/%s", zoneID, overrideID)
+	res, err := api.makeRequestContext(ctx, http.MethodDelete, uri, nil)
 	if err != nil {
-		return errors.Wrap(err, errMakeRequestError)
+		return err
 	}
 	var r WAFOverrideResponse
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return errors.Wrap(err, errUnmarshalError)
+		return fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 	return nil
 }

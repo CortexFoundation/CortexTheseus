@@ -13,16 +13,16 @@ import (
 )
 
 // Retrieves a list of the public and private hosted zones that are associated with
-// the current AWS account. The response includes a HostedZones child element for
-// each hosted zone. Amazon Route 53 returns a maximum of 100 items in each
-// response. If you have a lot of hosted zones, you can use the maxitems parameter
-// to list them in groups of up to 100.
+// the current Amazon Web Services account. The response includes a HostedZones
+// child element for each hosted zone. Amazon Route 53 returns a maximum of 100
+// items in each response. If you have a lot of hosted zones, you can use the
+// maxitems parameter to list them in groups of up to 100.
 func (c *Client) ListHostedZones(ctx context.Context, params *ListHostedZonesInput, optFns ...func(*Options)) (*ListHostedZonesOutput, error) {
 	if params == nil {
 		params = &ListHostedZonesInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "ListHostedZones", params, optFns, addOperationListHostedZonesMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "ListHostedZones", params, optFns, c.addOperationListHostedZonesMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func (c *Client) ListHostedZones(ctx context.Context, params *ListHostedZonesInp
 }
 
 // A request to retrieve a list of the public and private hosted zones that are
-// associated with the current AWS account.
+// associated with the current Amazon Web Services account.
 type ListHostedZonesInput struct {
 
 	// If you're using reusable delegation sets and you want to list all of the hosted
@@ -54,6 +54,8 @@ type ListHostedZonesInput struct {
 	// the response is true, and the value of NextMarker is the hosted zone ID of the
 	// first hosted zone that Route 53 will return if you submit another request.
 	MaxItems *int32
+
+	noSmithyDocumentSerde
 }
 
 type ListHostedZonesOutput struct {
@@ -92,9 +94,11 @@ type ListHostedZonesOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationListHostedZonesMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationListHostedZonesMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpListHostedZones{}, middleware.After)
 	if err != nil {
 		return err
@@ -207,12 +211,13 @@ func NewListHostedZonesPaginator(client ListHostedZonesAPIClient, params *ListHo
 		client:    client,
 		params:    params,
 		firstPage: true,
+		nextToken: params.Marker,
 	}
 }
 
 // HasMorePages returns a boolean indicating whether more pages are available
 func (p *ListHostedZonesPaginator) HasMorePages() bool {
-	return p.firstPage || p.nextToken != nil
+	return p.firstPage || (p.nextToken != nil && len(*p.nextToken) != 0)
 }
 
 // NextPage retrieves the next ListHostedZones page.
@@ -239,7 +244,10 @@ func (p *ListHostedZonesPaginator) NextPage(ctx context.Context, optFns ...func(
 	prevToken := p.nextToken
 	p.nextToken = result.NextMarker
 
-	if p.options.StopOnDuplicateToken && prevToken != nil && p.nextToken != nil && *prevToken == *p.nextToken {
+	if p.options.StopOnDuplicateToken &&
+		prevToken != nil &&
+		p.nextToken != nil &&
+		*prevToken == *p.nextToken {
 		p.nextToken = nil
 	}
 

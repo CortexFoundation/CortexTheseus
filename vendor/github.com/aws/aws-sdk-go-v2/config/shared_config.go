@@ -1,16 +1,19 @@
 package config
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
 	"github.com/aws/aws-sdk-go-v2/internal/ini"
 	"github.com/aws/smithy-go/logging"
 )
@@ -18,6 +21,11 @@ import (
 const (
 	// Prefix to use for filtering profiles
 	profilePrefix = `profile `
+
+	// string equivalent for boolean
+	endpointDiscoveryDisabled = `false`
+	endpointDiscoveryEnabled  = `true`
+	endpointDiscoveryAuto     = `auto`
 
 	// Static Credentials group
 	accessKeyIDKey  = `aws_access_key_id`     // group required
@@ -54,10 +62,30 @@ const (
 	// S3 ARN Region Usage
 	s3UseARNRegionKey = "s3_use_arn_region"
 
+	ec2MetadataServiceEndpointModeKey = "ec2_metadata_service_endpoint_mode"
+
+	ec2MetadataServiceEndpointKey = "ec2_metadata_service_endpoint"
+
+	// Use DualStack Endpoint Resolution
+	useDualStackEndpoint = "use_dualstack_endpoint"
+
 	// DefaultSharedConfigProfile is the default profile to be used when
 	// loading configuration from the config files if another profile name
 	// is not provided.
 	DefaultSharedConfigProfile = `default`
+
+	// S3 Disable Multi-Region AccessPoints
+	s3DisableMultiRegionAccessPointsKey = `s3_disable_multiregion_access_points`
+
+	useFIPSEndpointKey = "use_fips_endpoint"
+
+	defaultsModeKey = "defaults_mode"
+
+	// Retry options
+	retryMaxAttemptsKey = "max_attempts"
+	retryModeKey        = "retry_mode"
+
+	caBundleKey = "ca_bundle"
 )
 
 // defaultSharedConfigProfile allows for swapping the default profile for testing
@@ -133,20 +161,109 @@ type SharedConfig struct {
 	// Region is the region the SDK should use for looking up AWS service endpoints
 	// and signing requests.
 	//
-	//	region
+	//	region = us-west-2
 	Region string
 
-	// EnableEndpointDiscovery can be enabled in the shared config by setting
-	// endpoint_discovery_enabled to true
+	// EnableEndpointDiscovery can be enabled or disabled in the shared config
+	// by setting endpoint_discovery_enabled to true, or false respectively.
 	//
 	//	endpoint_discovery_enabled = true
-	EnableEndpointDiscovery *bool
+	EnableEndpointDiscovery aws.EndpointDiscoveryEnableState
 
 	// Specifies if the S3 service should allow ARNs to direct the region
 	// the client's requests are sent to.
 	//
 	// s3_use_arn_region=true
 	S3UseARNRegion *bool
+
+	// Specifies the EC2 Instance Metadata Service default endpoint selection
+	// mode (IPv4 or IPv6)
+	//
+	// ec2_metadata_service_endpoint_mode=IPv6
+	EC2IMDSEndpointMode imds.EndpointModeState
+
+	// Specifies the EC2 Instance Metadata Service endpoint to use. If
+	// specified it overrides EC2IMDSEndpointMode.
+	//
+	// ec2_metadata_service_endpoint=http://fd00:ec2::254
+	EC2IMDSEndpoint string
+
+	// Specifies if the S3 service should disable support for Multi-Region
+	// access-points
+	//
+	// s3_disable_multiregion_access_points=true
+	S3DisableMultiRegionAccessPoints *bool
+
+	// Specifies that SDK clients must resolve a dual-stack endpoint for
+	// services.
+	//
+	// use_dualstack_endpoint=true
+	UseDualStackEndpoint aws.DualStackEndpointState
+
+	// Specifies that SDK clients must resolve a FIPS endpoint for
+	// services.
+	//
+	// use_fips_endpoint=true
+	UseFIPSEndpoint aws.FIPSEndpointState
+
+	// Specifies which defaults mode should be used by services.
+	//
+	// defaults_mode=standard
+	DefaultsMode aws.DefaultsMode
+
+	// Specifies the maximum number attempts an API client will call an
+	// operation that fails with a retryable error.
+	//
+	// max_attempts=3
+	RetryMaxAttempts int
+
+	// Specifies the retry model the API client will be created with.
+	//
+	// retry_mode=standard
+	RetryMode aws.RetryMode
+
+	// Sets the path to a custom Credentials Authority (CA) Bundle PEM file
+	// that the SDK will use instead of the system's root CA bundle. Only use
+	// this if you want to configure the SDK to use a custom set of CAs.
+	//
+	// Enabling this option will attempt to merge the Transport into the SDK's
+	// HTTP client. If the client's Transport is not a http.Transport an error
+	// will be returned. If the Transport's TLS config is set this option will
+	// cause the SDK to overwrite the Transport's TLS config's  RootCAs value.
+	//
+	// Setting a custom HTTPClient in the aws.Config options will override this
+	// setting. To use this option and custom HTTP client, the HTTP client
+	// needs to be provided when creating the config. Not the service client.
+	//
+	//  ca_bundle=$HOME/my_custom_ca_bundle
+	CustomCABundle string
+}
+
+func (c SharedConfig) getDefaultsMode(ctx context.Context) (value aws.DefaultsMode, ok bool, err error) {
+	if len(c.DefaultsMode) == 0 {
+		return "", false, nil
+	}
+
+	return c.DefaultsMode, true, nil
+}
+
+// GetRetryMaxAttempts returns the maximum number of attempts an API client
+// created Retryer should attempt an operation call before failing.
+func (c SharedConfig) GetRetryMaxAttempts(ctx context.Context) (value int, ok bool, err error) {
+	if c.RetryMaxAttempts == 0 {
+		return 0, false, nil
+	}
+
+	return c.RetryMaxAttempts, true, nil
+}
+
+// GetRetryMode returns the model the API client should create its Retryer in.
+func (c SharedConfig) GetRetryMode(ctx context.Context) (value aws.RetryMode, ok bool, err error) {
+	if len(c.RetryMode) == 0 {
+		return "", false, nil
+	}
+
+	return c.RetryMode, true, nil
 }
 
 // GetS3UseARNRegion returns if the S3 service should allow ARNs to direct the region
@@ -157,6 +274,25 @@ func (c SharedConfig) GetS3UseARNRegion(ctx context.Context) (value, ok bool, er
 	}
 
 	return *c.S3UseARNRegion, true, nil
+}
+
+// GetEnableEndpointDiscovery returns if the enable_endpoint_discovery is set.
+func (c SharedConfig) GetEnableEndpointDiscovery(ctx context.Context) (value aws.EndpointDiscoveryEnableState, ok bool, err error) {
+	if c.EnableEndpointDiscovery == aws.EndpointDiscoveryUnset {
+		return aws.EndpointDiscoveryUnset, false, nil
+	}
+
+	return c.EnableEndpointDiscovery, true, nil
+}
+
+// GetS3DisableMultiRegionAccessPoints returns if the S3 service should disable support for Multi-Region
+// access-points.
+func (c SharedConfig) GetS3DisableMultiRegionAccessPoints(ctx context.Context) (value, ok bool, err error) {
+	if c.S3DisableMultiRegionAccessPoints == nil {
+		return false, false, nil
+	}
+
+	return *c.S3DisableMultiRegionAccessPoints, true, nil
 }
 
 // GetRegion returns the region for the profile if a region is set.
@@ -170,6 +306,57 @@ func (c SharedConfig) getRegion(ctx context.Context) (string, bool, error) {
 // GetCredentialsProvider returns the credentials for a profile if they were set.
 func (c SharedConfig) getCredentialsProvider() (aws.Credentials, bool, error) {
 	return c.Credentials, true, nil
+}
+
+// GetEC2IMDSEndpointMode implements a EC2IMDSEndpointMode option resolver interface.
+func (c SharedConfig) GetEC2IMDSEndpointMode() (imds.EndpointModeState, bool, error) {
+	if c.EC2IMDSEndpointMode == imds.EndpointModeStateUnset {
+		return imds.EndpointModeStateUnset, false, nil
+	}
+
+	return c.EC2IMDSEndpointMode, true, nil
+}
+
+// GetEC2IMDSEndpoint implements a EC2IMDSEndpoint option resolver interface.
+func (c SharedConfig) GetEC2IMDSEndpoint() (string, bool, error) {
+	if len(c.EC2IMDSEndpoint) == 0 {
+		return "", false, nil
+	}
+
+	return c.EC2IMDSEndpoint, true, nil
+}
+
+// GetUseDualStackEndpoint returns whether the service's dual-stack endpoint should be
+// used for requests.
+func (c SharedConfig) GetUseDualStackEndpoint(ctx context.Context) (value aws.DualStackEndpointState, found bool, err error) {
+	if c.UseDualStackEndpoint == aws.DualStackEndpointStateUnset {
+		return aws.DualStackEndpointStateUnset, false, nil
+	}
+
+	return c.UseDualStackEndpoint, true, nil
+}
+
+// GetUseFIPSEndpoint returns whether the service's FIPS endpoint should be
+// used for requests.
+func (c SharedConfig) GetUseFIPSEndpoint(ctx context.Context) (value aws.FIPSEndpointState, found bool, err error) {
+	if c.UseFIPSEndpoint == aws.FIPSEndpointStateUnset {
+		return aws.FIPSEndpointStateUnset, false, nil
+	}
+
+	return c.UseFIPSEndpoint, true, nil
+}
+
+// GetCustomCABundle returns the custom CA bundle's PEM bytes if the file was
+func (c SharedConfig) getCustomCABundle(context.Context) (io.Reader, bool, error) {
+	if len(c.CustomCABundle) == 0 {
+		return nil, false, nil
+	}
+
+	b, err := ioutil.ReadFile(c.CustomCABundle)
+	if err != nil {
+		return nil, false, err
+	}
+	return bytes.NewReader(b), true, nil
 }
 
 // loadSharedConfigIgnoreNotExist is an alias for loadSharedConfig with the
@@ -320,9 +507,6 @@ func LoadSharedConfigProfile(ctx context.Context, profile string, optFns ...func
 		return SharedConfig{}, err
 	}
 
-	// profile should be lower-cased to standardize
-	profile = strings.ToLower(profile)
-
 	cfg := SharedConfig{}
 	profiles := map[string]struct{}{}
 	if err = cfg.setFromIniSections(profiles, profile, configSections, option.Logger); err != nil {
@@ -449,12 +633,8 @@ func mergeSections(dst, src ini.Sections) error {
 			secretKey := srcSection.String(secretAccessKey)
 
 			if dstSection.Has(accessKeyIDKey) {
-				dstSection.Logs = append(dstSection.Logs,
-					fmt.Sprintf("For profile: %v, overriding credentials value for aws access key id, "+
-						"and aws secret access key, defined in %v, with values found in a duplicate profile "+
-						"defined at file %v. \n",
-						sectionName, dstSection.SourceFile[accessKeyIDKey],
-						srcSection.SourceFile[accessKeyIDKey]))
+				dstSection.Logs = append(dstSection.Logs, newMergeKeyLogMessage(sectionName, accessKeyIDKey,
+					dstSection.SourceFile[accessKeyIDKey], srcSection.SourceFile[accessKeyIDKey]))
 			}
 
 			// update access key
@@ -472,24 +652,8 @@ func mergeSections(dst, src ini.Sections) error {
 			dstSection.UpdateValue(secretAccessKey, v)
 
 			// update session token
-			if srcSection.Has(sessionTokenKey) {
-				sessionKey := srcSection.String(sessionTokenKey)
-
-				val, e := ini.NewStringValue(sessionKey)
-				if e != nil {
-					return fmt.Errorf("error merging session key, %w", e)
-				}
-
-				if dstSection.Has(sessionTokenKey) {
-					dstSection.Logs = append(dstSection.Logs,
-						fmt.Sprintf("For profile: %v, overriding %v value, defined in %v "+
-							"with a %v value found in a duplicate profile defined at file %v. \n",
-							sectionName, sessionTokenKey, dstSection.SourceFile[sessionTokenKey],
-							sessionTokenKey, srcSection.SourceFile[sessionTokenKey]))
-				}
-
-				dstSection.UpdateValue(sessionTokenKey, val)
-				dstSection.UpdateSourceFile(sessionTokenKey, srcSection.SourceFile[sessionTokenKey])
+			if err = mergeStringKey(&srcSection, &dstSection, sectionName, sessionTokenKey); err != nil {
+				return err
 			}
 
 			// update source file to reflect where the static creds came from
@@ -497,225 +661,40 @@ func mergeSections(dst, src ini.Sections) error {
 			dstSection.UpdateSourceFile(secretAccessKey, srcSection.SourceFile[secretAccessKey])
 		}
 
-		if srcSection.Has(roleArnKey) {
-			key := srcSection.String(roleArnKey)
-			val, err := ini.NewStringValue(key)
-			if err != nil {
-				return fmt.Errorf("error merging roleArnKey, %w", err)
+		stringKeys := []string{
+			roleArnKey,
+			sourceProfileKey,
+			credentialSourceKey,
+			externalIDKey,
+			mfaSerialKey,
+			roleSessionNameKey,
+			regionKey,
+			enableEndpointDiscoveryKey,
+			credentialProcessKey,
+			webIdentityTokenFileKey,
+			s3UseARNRegionKey,
+			s3DisableMultiRegionAccessPointsKey,
+			ec2MetadataServiceEndpointModeKey,
+			ec2MetadataServiceEndpointKey,
+			useDualStackEndpoint,
+			useFIPSEndpointKey,
+			defaultsModeKey,
+			retryModeKey,
+		}
+		for i := range stringKeys {
+			if err := mergeStringKey(&srcSection, &dstSection, sectionName, stringKeys[i]); err != nil {
+				return err
 			}
-
-			if dstSection.Has(roleArnKey) {
-				dstSection.Logs = append(dstSection.Logs,
-					fmt.Sprintf("For profile: %v, overriding %v value, defined in %v "+
-						"with a %v value found in a duplicate profile defined at file %v. \n",
-						sectionName, roleArnKey, dstSection.SourceFile[roleArnKey],
-						roleArnKey, srcSection.SourceFile[roleArnKey]))
-			}
-
-			dstSection.UpdateValue(roleArnKey, val)
-			dstSection.UpdateSourceFile(roleArnKey, srcSection.SourceFile[roleArnKey])
 		}
 
-		if srcSection.Has(sourceProfileKey) {
-			key := srcSection.String(sourceProfileKey)
-			val, err := ini.NewStringValue(key)
-			if err != nil {
-				return fmt.Errorf("error merging sourceProfileKey, %w", err)
-			}
-
-			if dstSection.Has(sourceProfileKey) {
-				dstSection.Logs = append(dstSection.Logs,
-					fmt.Sprintf("For profile: %v, overriding %v value, defined in %v "+
-						"with a %v value found in a duplicate profile defined at file %v. \n",
-						sectionName, sourceProfileKey, dstSection.SourceFile[sourceProfileKey],
-						sourceProfileKey, srcSection.SourceFile[sourceProfileKey]))
-			}
-
-			dstSection.UpdateValue(sourceProfileKey, val)
-			dstSection.UpdateSourceFile(sourceProfileKey, srcSection.SourceFile[sourceProfileKey])
+		intKeys := []string{
+			roleDurationSecondsKey,
+			retryMaxAttemptsKey,
 		}
-
-		if srcSection.Has(credentialSourceKey) {
-			key := srcSection.String(credentialSourceKey)
-			val, err := ini.NewStringValue(key)
-			if err != nil {
-				return fmt.Errorf("error merging credentialSourceKey, %w", err)
+		for i := range intKeys {
+			if err := mergeIntKey(&srcSection, &dstSection, sectionName, intKeys[i]); err != nil {
+				return err
 			}
-
-			if dstSection.Has(credentialSourceKey) {
-				dstSection.Logs = append(dstSection.Logs,
-					fmt.Sprintf("For profile: %v, overriding %v value, defined in %v "+
-						"with a %v value found in a duplicate profile defined at file %v. \n",
-						sectionName, credentialSourceKey, dstSection.SourceFile[credentialSourceKey],
-						credentialSourceKey, srcSection.SourceFile[credentialSourceKey]))
-			}
-
-			dstSection.UpdateValue(credentialSourceKey, val)
-			dstSection.UpdateSourceFile(credentialSourceKey, srcSection.SourceFile[credentialSourceKey])
-		}
-
-		if srcSection.Has(externalIDKey) {
-			key := srcSection.String(externalIDKey)
-			val, err := ini.NewStringValue(key)
-			if err != nil {
-				return fmt.Errorf("error merging externalIDKey, %w", err)
-			}
-
-			if dstSection.Has(externalIDKey) {
-				dstSection.Logs = append(dstSection.Logs,
-					fmt.Sprintf("For profile: %v, overriding %v value, defined in %v "+
-						"with a %v value found in a duplicate profile defined at file %v. \n",
-						sectionName, externalIDKey, dstSection.SourceFile[externalIDKey],
-						externalIDKey, srcSection.SourceFile[externalIDKey]))
-			}
-
-			dstSection.UpdateValue(externalIDKey, val)
-			dstSection.UpdateSourceFile(externalIDKey, srcSection.SourceFile[externalIDKey])
-		}
-
-		if srcSection.Has(mfaSerialKey) {
-			key := srcSection.String(mfaSerialKey)
-			val, err := ini.NewStringValue(key)
-			if err != nil {
-				return fmt.Errorf("error merging mfaSerialKey, %w", err)
-			}
-
-			if dstSection.Has(mfaSerialKey) {
-				dstSection.Logs = append(dstSection.Logs,
-					fmt.Sprintf("For profile: %v, overriding %v value, defined in %v "+
-						"with a %v value found in a duplicate profile defined at file %v. \n",
-						sectionName, mfaSerialKey, dstSection.SourceFile[mfaSerialKey],
-						mfaSerialKey, srcSection.SourceFile[mfaSerialKey]))
-			}
-
-			dstSection.UpdateValue(mfaSerialKey, val)
-			dstSection.UpdateSourceFile(mfaSerialKey, srcSection.SourceFile[mfaSerialKey])
-		}
-
-		if srcSection.Has(roleSessionNameKey) {
-			key := srcSection.String(roleSessionNameKey)
-			val, err := ini.NewStringValue(key)
-			if err != nil {
-				return fmt.Errorf("error merging roleSessionNameKey, %w", err)
-			}
-
-			if dstSection.Has(roleSessionNameKey) {
-				dstSection.Logs = append(dstSection.Logs,
-					fmt.Sprintf("For profile: %v, overriding %v value, defined in %v "+
-						"with a %v value found in a duplicate profile defined at file %v. \n",
-						sectionName, roleSessionNameKey, dstSection.SourceFile[roleSessionNameKey],
-						roleSessionNameKey, srcSection.SourceFile[roleSessionNameKey]))
-			}
-
-			dstSection.UpdateValue(roleSessionNameKey, val)
-			dstSection.UpdateSourceFile(roleSessionNameKey, srcSection.SourceFile[roleSessionNameKey])
-		}
-
-		// role duration seconds key update
-		if srcSection.Has(roleDurationSecondsKey) {
-			roleDurationSeconds := srcSection.Int(roleDurationSecondsKey)
-			v, err := ini.NewIntValue(roleDurationSeconds)
-			if err != nil {
-				return fmt.Errorf("error merging role duration seconds key, %w", err)
-			}
-			dstSection.UpdateValue(roleDurationSecondsKey, v)
-
-			dstSection.UpdateSourceFile(roleDurationSecondsKey, srcSection.SourceFile[roleDurationSecondsKey])
-		}
-
-		if srcSection.Has(regionKey) {
-			key := srcSection.String(regionKey)
-			val, err := ini.NewStringValue(key)
-			if err != nil {
-				return fmt.Errorf("error merging regionKey, %w", err)
-			}
-
-			if dstSection.Has(regionKey) {
-				dstSection.Logs = append(dstSection.Logs,
-					fmt.Sprintf("For profile: %v, overriding %v value, defined in %v "+
-						"with a %v value found in a duplicate profile defined at file %v. \n",
-						sectionName, regionKey, dstSection.SourceFile[regionKey],
-						regionKey, srcSection.SourceFile[regionKey]))
-			}
-
-			dstSection.UpdateValue(regionKey, val)
-			dstSection.UpdateSourceFile(regionKey, srcSection.SourceFile[regionKey])
-		}
-
-		if srcSection.Has(enableEndpointDiscoveryKey) {
-			key := srcSection.String(enableEndpointDiscoveryKey)
-			val, err := ini.NewStringValue(key)
-			if err != nil {
-				return fmt.Errorf("error merging enableEndpointDiscoveryKey, %w", err)
-			}
-
-			if dstSection.Has(enableEndpointDiscoveryKey) {
-				dstSection.Logs = append(dstSection.Logs,
-					fmt.Sprintf("For profile: %v, overriding %v value, defined in %v "+
-						"with a %v value found in a duplicate profile defined at file %v. \n",
-						sectionName, enableEndpointDiscoveryKey, dstSection.SourceFile[enableEndpointDiscoveryKey],
-						enableEndpointDiscoveryKey, srcSection.SourceFile[enableEndpointDiscoveryKey]))
-			}
-
-			dstSection.UpdateValue(enableEndpointDiscoveryKey, val)
-			dstSection.UpdateSourceFile(enableEndpointDiscoveryKey, srcSection.SourceFile[enableEndpointDiscoveryKey])
-		}
-
-		if srcSection.Has(credentialProcessKey) {
-			key := srcSection.String(credentialProcessKey)
-			val, err := ini.NewStringValue(key)
-			if err != nil {
-				return fmt.Errorf("error merging credentialProcessKey, %w", err)
-			}
-
-			if dstSection.Has(credentialProcessKey) {
-				dstSection.Logs = append(dstSection.Logs,
-					fmt.Sprintf("For profile: %v, overriding %v value, defined in %v "+
-						"with a %v value found in a duplicate profile defined at file %v. \n",
-						sectionName, credentialProcessKey, dstSection.SourceFile[credentialProcessKey],
-						credentialProcessKey, srcSection.SourceFile[credentialProcessKey]))
-			}
-
-			dstSection.UpdateValue(credentialProcessKey, val)
-			dstSection.UpdateSourceFile(credentialProcessKey, srcSection.SourceFile[credentialProcessKey])
-		}
-
-		if srcSection.Has(webIdentityTokenFileKey) {
-			key := srcSection.String(webIdentityTokenFileKey)
-			val, err := ini.NewStringValue(key)
-			if err != nil {
-				return fmt.Errorf("error merging webIdentityTokenFileKey, %w", err)
-			}
-
-			if dstSection.Has(webIdentityTokenFileKey) {
-				dstSection.Logs = append(dstSection.Logs,
-					fmt.Sprintf("For profile: %v, overriding %v value, defined in %v "+
-						"with a %v value found in a duplicate profile defined at file %v. \n",
-						sectionName, webIdentityTokenFileKey, dstSection.SourceFile[webIdentityTokenFileKey],
-						webIdentityTokenFileKey, srcSection.SourceFile[webIdentityTokenFileKey]))
-			}
-
-			dstSection.UpdateValue(webIdentityTokenFileKey, val)
-			dstSection.UpdateSourceFile(webIdentityTokenFileKey, srcSection.SourceFile[webIdentityTokenFileKey])
-		}
-
-		if srcSection.Has(s3UseARNRegionKey) {
-			key := srcSection.String(s3UseARNRegionKey)
-			val, err := ini.NewStringValue(key)
-			if err != nil {
-				return fmt.Errorf("error merging s3UseARNRegionKey, %w", err)
-			}
-
-			if dstSection.Has(s3UseARNRegionKey) {
-				dstSection.Logs = append(dstSection.Logs,
-					fmt.Sprintf("For profile: %v, overriding %v value, defined in %v "+
-						"with a %v value found in a duplicate profile defined at file %v. \n",
-						sectionName, s3UseARNRegionKey, dstSection.SourceFile[s3UseARNRegionKey],
-						s3UseARNRegionKey, srcSection.SourceFile[s3UseARNRegionKey]))
-			}
-
-			dstSection.UpdateValue(s3UseARNRegionKey, val)
-			dstSection.UpdateSourceFile(s3UseARNRegionKey, srcSection.SourceFile[s3UseARNRegionKey])
 		}
 
 		// set srcSection on dst srcSection
@@ -723,6 +702,51 @@ func mergeSections(dst, src ini.Sections) error {
 	}
 
 	return nil
+}
+
+func mergeStringKey(srcSection *ini.Section, dstSection *ini.Section, sectionName, key string) error {
+	if srcSection.Has(key) {
+		srcValue := srcSection.String(key)
+		val, err := ini.NewStringValue(srcValue)
+		if err != nil {
+			return fmt.Errorf("error merging %s, %w", key, err)
+		}
+
+		if dstSection.Has(key) {
+			dstSection.Logs = append(dstSection.Logs, newMergeKeyLogMessage(sectionName, key,
+				dstSection.SourceFile[key], srcSection.SourceFile[key]))
+		}
+
+		dstSection.UpdateValue(key, val)
+		dstSection.UpdateSourceFile(key, srcSection.SourceFile[key])
+	}
+	return nil
+}
+
+func mergeIntKey(srcSection *ini.Section, dstSection *ini.Section, sectionName, key string) error {
+	if srcSection.Has(key) {
+		srcValue := srcSection.Int(key)
+		v, err := ini.NewIntValue(srcValue)
+		if err != nil {
+			return fmt.Errorf("error merging %s, %w", key, err)
+		}
+
+		if dstSection.Has(key) {
+			dstSection.Logs = append(dstSection.Logs, newMergeKeyLogMessage(sectionName, key,
+				dstSection.SourceFile[key], srcSection.SourceFile[key]))
+
+		}
+
+		dstSection.UpdateValue(key, v)
+		dstSection.UpdateSourceFile(key, srcSection.SourceFile[key])
+	}
+	return nil
+}
+
+func newMergeKeyLogMessage(sectionName, key, dstSourceFile, srcSourceFile string) string {
+	return fmt.Sprintf("For profile: %v, overriding %v value, defined in %v "+
+		"with a %v value found in a duplicate profile defined at file %v. \n",
+		sectionName, key, dstSourceFile, key, srcSourceFile)
 }
 
 // Returns an error if all of the files fail to load. If at least one file is
@@ -860,8 +884,30 @@ func (c *SharedConfig) setFromIniSection(profile string, section ini.Section) er
 	updateString(&c.CredentialProcess, section, credentialProcessKey)
 	updateString(&c.WebIdentityTokenFile, section, webIdentityTokenFileKey)
 
-	updateBoolPtr(&c.EnableEndpointDiscovery, section, enableEndpointDiscoveryKey)
+	updateEndpointDiscoveryType(&c.EnableEndpointDiscovery, section, enableEndpointDiscoveryKey)
 	updateBoolPtr(&c.S3UseARNRegion, section, s3UseARNRegionKey)
+	updateBoolPtr(&c.S3DisableMultiRegionAccessPoints, section, s3DisableMultiRegionAccessPointsKey)
+
+	if err := updateEC2MetadataServiceEndpointMode(&c.EC2IMDSEndpointMode, section, ec2MetadataServiceEndpointModeKey); err != nil {
+		return fmt.Errorf("failed to load %s from shared config, %v", ec2MetadataServiceEndpointModeKey, err)
+	}
+	updateString(&c.EC2IMDSEndpoint, section, ec2MetadataServiceEndpointKey)
+
+	updateUseDualStackEndpoint(&c.UseDualStackEndpoint, section, useDualStackEndpoint)
+	updateUseFIPSEndpoint(&c.UseFIPSEndpoint, section, useFIPSEndpointKey)
+
+	if err := updateDefaultsMode(&c.DefaultsMode, section, defaultsModeKey); err != nil {
+		return fmt.Errorf("failed to load %s from shared config, %w", defaultsModeKey, err)
+	}
+
+	if err := updateInt(&c.RetryMaxAttempts, section, retryMaxAttemptsKey); err != nil {
+		return fmt.Errorf("failed to load %s from shared config, %w", retryMaxAttemptsKey, err)
+	}
+	if err := updateRetryMode(&c.RetryMode, section, retryModeKey); err != nil {
+		return fmt.Errorf("failed to load %s from shared config, %w", retryModeKey, err)
+	}
+
+	updateString(&c.CustomCABundle, section, caBundleKey)
 
 	// Shared Credentials
 	creds := aws.Credentials{
@@ -876,6 +922,36 @@ func (c *SharedConfig) setFromIniSection(profile string, section ini.Section) er
 	}
 
 	return nil
+}
+
+func updateDefaultsMode(mode *aws.DefaultsMode, section ini.Section, key string) error {
+	if !section.Has(key) {
+		return nil
+	}
+	value := section.String(key)
+	if ok := mode.SetFromString(value); !ok {
+		return fmt.Errorf("invalid value: %s", value)
+	}
+	return nil
+}
+
+func updateRetryMode(mode *aws.RetryMode, section ini.Section, key string) (err error) {
+	if !section.Has(key) {
+		return nil
+	}
+	value := section.String(key)
+	if *mode, err = aws.ParseRetryMode(value); err != nil {
+		return err
+	}
+	return nil
+}
+
+func updateEC2MetadataServiceEndpointMode(endpointMode *imds.EndpointModeState, section ini.Section, key string) error {
+	if !section.Has(key) {
+		return nil
+	}
+	value := section.String(key)
+	return endpointMode.SetFromString(value)
 }
 
 func (c *SharedConfig) validateCredentialsConfig(profile string) error {
@@ -915,7 +991,6 @@ func (c *SharedConfig) validateCredentialType() error {
 		len(c.CredentialSource) != 0,
 		len(c.CredentialProcess) != 0,
 		len(c.WebIdentityTokenFile) != 0,
-		c.hasSSOConfiguration(),
 	) {
 		return fmt.Errorf("only one credential type may be specified per profile: source profile, credential source, credential process, web identity token, or sso")
 	}
@@ -993,6 +1068,10 @@ func (c *SharedConfig) clearCredentialOptions() {
 	c.CredentialProcess = ""
 	c.WebIdentityTokenFile = ""
 	c.Credentials = aws.Credentials{}
+	c.SSOAccountID = ""
+	c.SSORegion = ""
+	c.SSORoleName = ""
+	c.SSOStartURL = ""
 }
 
 // SharedConfigLoadError is an error for the shared config file failed to load.
@@ -1065,12 +1144,9 @@ func (e CredentialRequiresARNError) Error() string {
 }
 
 func userHomeDir() string {
-	if runtime.GOOS == "windows" { // Windows
-		return os.Getenv("USERPROFILE")
-	}
-
-	// *nix
-	return os.Getenv("HOME")
+	// Ignore errors since we only care about Windows and *nix.
+	homedir, _ := os.UserHomeDir()
+	return homedir
 }
 
 func oneOrNone(bs ...bool) bool {
@@ -1097,6 +1173,24 @@ func updateString(dst *string, section ini.Section, key string) {
 	*dst = section.String(key)
 }
 
+// updateInt will only update the dst with the value in the section key, key
+// is present in the section.
+//
+// Down casts the INI integer value from a int64 to an int, which could be
+// different bit size depending on platform.
+func updateInt(dst *int, section ini.Section, key string) error {
+	if !section.Has(key) {
+		return nil
+	}
+	if vt, _ := section.ValueType(key); vt != ini.IntegerType {
+		return fmt.Errorf("invalid value %s=%s, expect integer",
+			key, section.String(key))
+
+	}
+	*dst = int(section.Int(key))
+	return nil
+}
+
 // updateBool will only update the dst with the value in the section key, key
 // is present in the section.
 func updateBool(dst *bool, section ini.Section, key string) {
@@ -1114,4 +1208,58 @@ func updateBoolPtr(dst **bool, section ini.Section, key string) {
 	}
 	*dst = new(bool)
 	**dst = section.Bool(key)
+}
+
+// updateEndpointDiscoveryType will only update the dst with the value in the section, if
+// a valid key and corresponding EndpointDiscoveryType is found.
+func updateEndpointDiscoveryType(dst *aws.EndpointDiscoveryEnableState, section ini.Section, key string) {
+	if !section.Has(key) {
+		return
+	}
+
+	value := section.String(key)
+	if len(value) == 0 {
+		return
+	}
+
+	switch {
+	case strings.EqualFold(value, endpointDiscoveryDisabled):
+		*dst = aws.EndpointDiscoveryDisabled
+	case strings.EqualFold(value, endpointDiscoveryEnabled):
+		*dst = aws.EndpointDiscoveryEnabled
+	case strings.EqualFold(value, endpointDiscoveryAuto):
+		*dst = aws.EndpointDiscoveryAuto
+	}
+}
+
+// updateEndpointDiscoveryType will only update the dst with the value in the section, if
+// a valid key and corresponding EndpointDiscoveryType is found.
+func updateUseDualStackEndpoint(dst *aws.DualStackEndpointState, section ini.Section, key string) {
+	if !section.Has(key) {
+		return
+	}
+
+	if section.Bool(key) {
+		*dst = aws.DualStackEndpointStateEnabled
+	} else {
+		*dst = aws.DualStackEndpointStateDisabled
+	}
+
+	return
+}
+
+// updateEndpointDiscoveryType will only update the dst with the value in the section, if
+// a valid key and corresponding EndpointDiscoveryType is found.
+func updateUseFIPSEndpoint(dst *aws.FIPSEndpointState, section ini.Section, key string) {
+	if !section.Has(key) {
+		return
+	}
+
+	if section.Bool(key) {
+		*dst = aws.FIPSEndpointStateEnabled
+	} else {
+		*dst = aws.FIPSEndpointStateDisabled
+	}
+
+	return
 }

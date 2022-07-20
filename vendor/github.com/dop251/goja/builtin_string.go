@@ -157,6 +157,20 @@ func (r *Runtime) string_raw(call FunctionCall) Value {
 	}
 }
 
+func (r *Runtime) stringproto_at(call FunctionCall) Value {
+	r.checkObjectCoercible(call.This)
+	s := call.This.toString()
+	pos := call.Argument(0).ToInteger()
+	length := int64(s.length())
+	if pos < 0 {
+		pos = length + pos
+	}
+	if pos >= length || pos < 0 {
+		return _undefined
+	}
+	return s.substring(int(pos), int(pos+1))
+}
+
 func (r *Runtime) stringproto_charAt(call FunctionCall) Value {
 	r.checkObjectCoercible(call.This)
 	s := call.This.toString()
@@ -164,7 +178,7 @@ func (r *Runtime) stringproto_charAt(call FunctionCall) Value {
 	if pos < 0 || pos >= int64(s.length()) {
 		return stringEmpty
 	}
-	return newStringValue(string(s.charAt(toIntStrict(pos))))
+	return s.substring(int(pos), int(pos+1))
 }
 
 func (r *Runtime) stringproto_charCodeAt(call FunctionCall) Value {
@@ -930,7 +944,7 @@ func (r *Runtime) stringIterProto_next(call FunctionCall) Value {
 	if iter, ok := thisObj.self.(*stringIterObject); ok {
 		return iter.next()
 	}
-	panic(r.NewTypeError("Method String Iterator.prototype.next called on incompatible receiver %s", thisObj.String()))
+	panic(r.NewTypeError("Method String Iterator.prototype.next called on incompatible receiver %s", r.objectproto_toString(FunctionCall{This: thisObj})))
 }
 
 func (r *Runtime) createStringIterProto(val *Object) objectImpl {
@@ -947,6 +961,7 @@ func (r *Runtime) initString() {
 	r.global.StringPrototype = r.builtin_newString([]Value{stringEmpty}, r.global.ObjectPrototype)
 
 	o := r.global.StringPrototype.self
+	o._putProp("at", r.newNativeFunc(r.stringproto_at, nil, "at", nil, 1), true, false, true)
 	o._putProp("charAt", r.newNativeFunc(r.stringproto_charAt, nil, "charAt", nil, 1), true, false, true)
 	o._putProp("charCodeAt", r.newNativeFunc(r.stringproto_charCodeAt, nil, "charCodeAt", nil, 1), true, false, true)
 	o._putProp("codePointAt", r.newNativeFunc(r.stringproto_codePointAt, nil, "codePointAt", nil, 1), true, false, true)

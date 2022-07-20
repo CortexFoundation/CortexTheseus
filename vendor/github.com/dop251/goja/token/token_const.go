@@ -6,17 +6,14 @@ const (
 	ILLEGAL
 	EOF
 	COMMENT
-	KEYWORD
 
 	STRING
-	BOOLEAN
-	NULL
 	NUMBER
-	IDENTIFIER
 
 	PLUS      // +
 	MINUS     // -
 	MULTIPLY  // *
+	EXPONENT  // **
 	SLASH     // /
 	REMAINDER // %
 
@@ -30,6 +27,7 @@ const (
 	ADD_ASSIGN       // +=
 	SUBTRACT_ASSIGN  // -=
 	MULTIPLY_ASSIGN  // *=
+	EXPONENT_ASSIGN  // **=
 	QUOTIENT_ASSIGN  // /=
 	REMAINDER_ASSIGN // %=
 
@@ -42,6 +40,7 @@ const (
 
 	LOGICAL_AND // &&
 	LOGICAL_OR  // ||
+	COALESCE    // ??
 	INCREMENT   // ++
 	DECREMENT   // --
 
@@ -71,11 +70,18 @@ const (
 	SEMICOLON         // ;
 	COLON             // :
 	QUESTION_MARK     // ?
+	QUESTION_DOT      // ?.
 	ARROW             // =>
 	ELLIPSIS          // ...
 	BACKTICK          // `
 
-	firstKeyword
+	// tokens below (and only them) are syntactically valid identifiers
+
+	IDENTIFIER
+	KEYWORD
+	BOOLEAN
+	NULL
+
 	IF
 	IN
 	OF
@@ -112,7 +118,6 @@ const (
 	DEBUGGER
 
 	INSTANCEOF
-	lastKeyword
 )
 
 var token2string = [...]string{
@@ -127,6 +132,7 @@ var token2string = [...]string{
 	IDENTIFIER:                  "IDENTIFIER",
 	PLUS:                        "+",
 	MINUS:                       "-",
+	EXPONENT:                    "**",
 	MULTIPLY:                    "*",
 	SLASH:                       "/",
 	REMAINDER:                   "%",
@@ -139,6 +145,7 @@ var token2string = [...]string{
 	ADD_ASSIGN:                  "+=",
 	SUBTRACT_ASSIGN:             "-=",
 	MULTIPLY_ASSIGN:             "*=",
+	EXPONENT_ASSIGN:             "**=",
 	QUOTIENT_ASSIGN:             "/=",
 	REMAINDER_ASSIGN:            "%=",
 	AND_ASSIGN:                  "&=",
@@ -149,6 +156,7 @@ var token2string = [...]string{
 	UNSIGNED_SHIFT_RIGHT_ASSIGN: ">>>=",
 	LOGICAL_AND:                 "&&",
 	LOGICAL_OR:                  "||",
+	COALESCE:                    "??",
 	INCREMENT:                   "++",
 	DECREMENT:                   "--",
 	EQUAL:                       "==",
@@ -173,6 +181,7 @@ var token2string = [...]string{
 	SEMICOLON:                   ";",
 	COLON:                       ":",
 	QUESTION_MARK:               "?",
+	QUESTION_DOT:                "?.",
 	ARROW:                       "=>",
 	ELLIPSIS:                    "...",
 	BACKTICK:                    "`",

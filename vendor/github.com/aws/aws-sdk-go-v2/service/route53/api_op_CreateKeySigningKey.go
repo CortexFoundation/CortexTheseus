@@ -18,7 +18,7 @@ func (c *Client) CreateKeySigningKey(ctx context.Context, params *CreateKeySigni
 		params = &CreateKeySigningKeyInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "CreateKeySigningKey", params, optFns, addOperationCreateKeySigningKeyMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "CreateKeySigningKey", params, optFns, c.addOperationCreateKeySigningKeyMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -40,29 +40,29 @@ type CreateKeySigningKeyInput struct {
 	// This member is required.
 	HostedZoneId *string
 
-	// The Amazon resource name (ARN) for a customer managed customer master key (CMK)
-	// in AWS Key Management Service (AWS KMS). The KeyManagementServiceArn must be
-	// unique for each key-signing key (KSK) in a single hosted zone. To see an example
-	// of KeyManagementServiceArn that grants the correct permissions for DNSSEC,
-	// scroll down to Example. You must configure the customer managed CMK as follows:
-	// Status Enabled Key spec ECC_NIST_P256 Key usage Sign and verify Key policy The
-	// key policy must give permission for the following actions:
+	// The Amazon resource name (ARN) for a customer managed key in Key Management
+	// Service (KMS). The KeyManagementServiceArn must be unique for each key-signing
+	// key (KSK) in a single hosted zone. To see an example of KeyManagementServiceArn
+	// that grants the correct permissions for DNSSEC, scroll down to Example. You must
+	// configure the customer managed customer managed key as follows: Status Enabled
+	// Key spec ECC_NIST_P256 Key usage Sign and verify Key policy The key policy must
+	// give permission for the following actions:
 	//
 	// * DescribeKey
 	//
+	// * GetPublicKey
+	//
 	// *
-	// GetPublicKey
+	// Sign
 	//
-	// * Sign
-	//
-	// The key policy must also include the Amazon Route 53
-	// service in the principal for your account. Specify the following:
+	// The key policy must also include the Amazon Route 53 service in the
+	// principal for your account. Specify the following:
 	//
 	// * "Service":
-	// "api-service.dnssec.route53.aws.internal"
+	// "dnssec-route53.amazonaws.com"
 	//
-	// For more information about working
-	// with a customer managed CMK in AWS KMS, see AWS Key Management Service concepts
+	// For more information about working with a
+	// customer managed key in KMS, see Key Management Service concepts
 	// (https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html).
 	//
 	// This member is required.
@@ -80,6 +80,8 @@ type CreateKeySigningKeyInput struct {
 	//
 	// This member is required.
 	Status *string
+
+	noSmithyDocumentSerde
 }
 
 type CreateKeySigningKeyOutput struct {
@@ -102,9 +104,11 @@ type CreateKeySigningKeyOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationCreateKeySigningKeyMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationCreateKeySigningKeyMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpCreateKeySigningKey{}, middleware.After)
 	if err != nil {
 		return err

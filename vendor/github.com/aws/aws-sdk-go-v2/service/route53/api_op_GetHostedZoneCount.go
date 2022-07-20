@@ -10,14 +10,14 @@ import (
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
-// Retrieves the number of hosted zones that are associated with the current AWS
-// account.
+// Retrieves the number of hosted zones that are associated with the current Amazon
+// Web Services account.
 func (c *Client) GetHostedZoneCount(ctx context.Context, params *GetHostedZoneCountInput, optFns ...func(*Options)) (*GetHostedZoneCountOutput, error) {
 	if params == nil {
 		params = &GetHostedZoneCountInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "GetHostedZoneCount", params, optFns, addOperationGetHostedZoneCountMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "GetHostedZoneCount", params, optFns, c.addOperationGetHostedZoneCountMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -28,24 +28,27 @@ func (c *Client) GetHostedZoneCount(ctx context.Context, params *GetHostedZoneCo
 }
 
 // A request to retrieve a count of all the hosted zones that are associated with
-// the current AWS account.
+// the current Amazon Web Services account.
 type GetHostedZoneCountInput struct {
+	noSmithyDocumentSerde
 }
 
 // A complex type that contains the response to a GetHostedZoneCount request.
 type GetHostedZoneCountOutput struct {
 
 	// The total number of public and private hosted zones that are associated with the
-	// current AWS account.
+	// current Amazon Web Services account.
 	//
 	// This member is required.
 	HostedZoneCount *int64
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationGetHostedZoneCountMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationGetHostedZoneCountMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpGetHostedZoneCount{}, middleware.After)
 	if err != nil {
 		return err

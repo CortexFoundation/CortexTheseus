@@ -12,7 +12,7 @@ import (
 )
 
 // Lists the resource record sets in a specified hosted zone.
-// ListResourceRecordSets returns up to 100 resource record sets at a time in ASCII
+// ListResourceRecordSets returns up to 300 resource record sets at a time in ASCII
 // order, beginning at a position specified by the name and type elements. Sort
 // order ListResourceRecordSets sorts results first by DNS name with the labels
 // reversed, for example: com.example.www. Note the trailing dot, which can change
@@ -47,7 +47,7 @@ func (c *Client) ListResourceRecordSets(ctx context.Context, params *ListResourc
 		params = &ListResourceRecordSetsInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "ListResourceRecordSets", params, optFns, addOperationListResourceRecordSetsMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "ListResourceRecordSets", params, optFns, c.addOperationListResourceRecordSetsMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -114,6 +114,8 @@ type ListResourceRecordSetsInput struct {
 	// Constraint: Specifying type without specifying name
 	// returns an InvalidInput error.
 	StartRecordType types.RRType
+
+	noSmithyDocumentSerde
 }
 
 // A complex type that contains list information for the resource record set.
@@ -154,9 +156,11 @@ type ListResourceRecordSetsOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationListResourceRecordSetsMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationListResourceRecordSetsMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpListResourceRecordSets{}, middleware.After)
 	if err != nil {
 		return err

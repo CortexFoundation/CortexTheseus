@@ -1,0 +1,101 @@
+# This file defines feature flags.
+#
+# It is used for code generation in the ./internal/feature package.
+# If you change this file, run `make generate` to regenerate.
+#
+# Format details:
+#
+# - name:         Human-readable name
+#   description:  Human-readable description
+#   key:          Programmatic name
+#   default:      Used when unable to reach server and to infer flag type
+#   contact:      Contact for information or issues regarding the flag
+- name: Aggregate Transformation Transport
+  description: Enable Transport interface for AggregateTransformation
+  key: aggregateTransformationTransport
+  default: false
+  contact: Jonathan Sternberg
+
+- name: Group Transformation Group
+  description: Enable GroupTransformation interface for the group function
+  key: groupTransformationGroup
+  default: false
+  contact: Sean Brickley
+
+- name: Query Concurrency Limit
+  description: Sets the query concurrency limit for the planner
+  key: queryConcurrencyLimit
+  default: 0
+  contact: Jonathan Sternberg
+
+- name: Optimize Union Transformation
+  description: Optimize the union transformation
+  key: optimizeUnionTransformation
+  default: false
+  contact: Jonathan Sternberg
+
+- name: Vectorized Map
+  description: Enables the version of map that supports vectorized functions
+  key: vectorizedMap
+  default: false
+  contact: Jonathan Sternberg
+
+- name: Narrow Transformation Difference
+  description: Enable the NarrowTransformation implementation of difference
+  key: narrowTransformationDifference
+  default: false
+  contact: Markus Westerlind
+
+- name: Narrow Transformation Fill
+  description: Enable the NarrowTransformation implementation of Fill
+  key: narrowTransformationFill
+  default: false
+  contact: Sunil Kartikey
+
+- name: Optimize Aggregate Window
+  description: Enables a version of aggregateWindow written in Go
+  key: optimizeAggregateWindow
+  default: false
+  contact: Jonathan Sternberg
+
+- name: Narrow Transformation Limit
+  description: Enable the NarrowStateTransformation implementation of limit
+  key: narrowTransformationLimit
+  default: false
+  contact: Owen Nelson
+
+- name: Optimize State Tracking
+  description: Enable implementation of NarrowStateTransformation of stateTracking
+  key: optimizeStateTracking
+  default: false
+  contact: Sean Brickley
+
+- name: Label polymorphism
+  description: Enables label polymorphism in the type system
+  key: labelPolymorphism
+  default: false
+  contact: Markus Westerlind
+
+- name: Optimize Set Transformation
+  description: Enables a version of set that is optimized
+  key: optimizeSetTransformation
+  default: false
+  contact: Jonathan Sternberg
+
+- name: Unused Symbol Warnings
+  description: Enables warnings for unused symbols
+  key: unusedSymbolWarnings
+  default: false
+  contact: Markus Westerlind
+
+- name: Vectorized Const
+  description: Calls to map can be vectorized when select literals appear in the function
+  key: vectorizedConst
+  default: false
+  contact: Owen Nelson
+
+- name: Experimental Testing Diff
+  description: Switches testing.diff to use experimental.diff
+  key: experimentalTestingDiff
+  default: false
+  contact: Jonathan Sternberg

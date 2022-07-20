@@ -11,9 +11,9 @@ import (
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
-// Authorizes the AWS account that created a specified VPC to submit an
-// AssociateVPCWithHostedZone request to associate the VPC with a specified hosted
-// zone that was created by a different account. To submit a
+// Authorizes the Amazon Web Services account that created a specified VPC to
+// submit an AssociateVPCWithHostedZone request to associate the VPC with a
+// specified hosted zone that was created by a different account. To submit a
 // CreateVPCAssociationAuthorization request, you must use the account that created
 // the hosted zone. After you authorize the association, use the account that
 // created the VPC to submit an AssociateVPCWithHostedZone request. If you want to
@@ -25,7 +25,7 @@ func (c *Client) CreateVPCAssociationAuthorization(ctx context.Context, params *
 		params = &CreateVPCAssociationAuthorizationInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "CreateVPCAssociationAuthorization", params, optFns, addOperationCreateVPCAssociationAuthorizationMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "CreateVPCAssociationAuthorization", params, optFns, c.addOperationCreateVPCAssociationAuthorizationMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -51,6 +51,8 @@ type CreateVPCAssociationAuthorizationInput struct {
 	//
 	// This member is required.
 	VPC *types.VPC
+
+	noSmithyDocumentSerde
 }
 
 // A complex type that contains the response information from a
@@ -69,9 +71,11 @@ type CreateVPCAssociationAuthorizationOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationCreateVPCAssociationAuthorizationMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationCreateVPCAssociationAuthorizationMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpCreateVPCAssociationAuthorization{}, middleware.After)
 	if err != nil {
 		return err

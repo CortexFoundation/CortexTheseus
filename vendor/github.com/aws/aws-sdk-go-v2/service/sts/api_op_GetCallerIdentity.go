@@ -24,7 +24,7 @@ func (c *Client) GetCallerIdentity(ctx context.Context, params *GetCallerIdentit
 		params = &GetCallerIdentityInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "GetCallerIdentity", params, optFns, addOperationGetCallerIdentityMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "GetCallerIdentity", params, optFns, c.addOperationGetCallerIdentityMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -35,17 +35,18 @@ func (c *Client) GetCallerIdentity(ctx context.Context, params *GetCallerIdentit
 }
 
 type GetCallerIdentityInput struct {
+	noSmithyDocumentSerde
 }
 
 // Contains the response to a successful GetCallerIdentity request, including
 // information about the entity making the request.
 type GetCallerIdentityOutput struct {
 
-	// The AWS account ID number of the account that owns or contains the calling
-	// entity.
+	// The Amazon Web Services account ID number of the account that owns or contains
+	// the calling entity.
 	Account *string
 
-	// The AWS ARN associated with the calling entity.
+	// The Amazon Web Services ARN associated with the calling entity.
 	Arn *string
 
 	// The unique identifier of the calling entity. The exact value depends on the type
@@ -57,9 +58,11 @@ type GetCallerIdentityOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationGetCallerIdentityMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationGetCallerIdentityMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsAwsquery_serializeOpGetCallerIdentity{}, middleware.After)
 	if err != nil {
 		return err
@@ -141,7 +144,7 @@ func (c *PresignClient) PresignGetCallerIdentity(ctx context.Context, params *Ge
 	clientOptFns := append(options.ClientOptions, withNopHTTPClientAPIOption)
 
 	result, _, err := c.client.invokeOperation(ctx, "GetCallerIdentity", params, clientOptFns,
-		addOperationGetCallerIdentityMiddlewares,
+		c.client.addOperationGetCallerIdentityMiddlewares,
 		presignConverter(options).convertToPresignMiddleware,
 	)
 	if err != nil {

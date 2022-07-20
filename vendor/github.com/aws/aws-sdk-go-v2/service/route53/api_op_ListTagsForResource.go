@@ -14,13 +14,13 @@ import (
 // Lists tags for one health check or hosted zone. For information about using tags
 // for cost allocation, see Using Cost Allocation Tags
 // (https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/cost-alloc-tags.html)
-// in the AWS Billing and Cost Management User Guide.
+// in the Billing and Cost Management User Guide.
 func (c *Client) ListTagsForResource(ctx context.Context, params *ListTagsForResourceInput, optFns ...func(*Options)) (*ListTagsForResourceOutput, error) {
 	if params == nil {
 		params = &ListTagsForResourceInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "ListTagsForResource", params, optFns, addOperationListTagsForResourceMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "ListTagsForResource", params, optFns, c.addOperationListTagsForResourceMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -48,6 +48,8 @@ type ListTagsForResourceInput struct {
 	//
 	// This member is required.
 	ResourceType types.TagResourceType
+
+	noSmithyDocumentSerde
 }
 
 // A complex type that contains information about the health checks or hosted zones
@@ -61,9 +63,11 @@ type ListTagsForResourceOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationListTagsForResourceMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationListTagsForResourceMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpListTagsForResource{}, middleware.After)
 	if err != nil {
 		return err

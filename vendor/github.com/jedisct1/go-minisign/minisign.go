@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/ed25519"
 )
 
@@ -45,18 +46,22 @@ func DecodePublicKey(in string) (PublicKey, error) {
 	return NewPublicKey(lines[1])
 }
 
+func trimCarriageReturn(input string) string {
+	return strings.TrimRight(input, "\r")
+}
+
 func DecodeSignature(in string) (Signature, error) {
 	var signature Signature
 	lines := strings.SplitN(in, "\n", 4)
 	if len(lines) < 4 {
 		return signature, errors.New("Incomplete encoded signature")
 	}
-	signature.UntrustedComment = lines[0]
+	signature.UntrustedComment = trimCarriageReturn(lines[0])
 	bin1, err := base64.StdEncoding.DecodeString(lines[1])
 	if err != nil || len(bin1) != 74 {
 		return signature, errors.New("Invalid encoded signature")
 	}
-	signature.TrustedComment = lines[2]
+	signature.TrustedComment = trimCarriageReturn(lines[2])
 	bin2, err := base64.StdEncoding.DecodeString(lines[3])
 	if err != nil || len(bin2) != 64 {
 		return signature, errors.New("Invalid encoded signature")
@@ -87,10 +92,15 @@ func NewSignatureFromFile(file string) (Signature, error) {
 }
 
 func (publicKey *PublicKey) Verify(bin []byte, signature Signature) (bool, error) {
-	if publicKey.SignatureAlgorithm != signature.SignatureAlgorithm {
+	if publicKey.SignatureAlgorithm != [2]byte{'E', 'd'} {
 		return false, errors.New("Incompatible signature algorithm")
 	}
-	if signature.SignatureAlgorithm[0] != 0x45 || signature.SignatureAlgorithm[1] != 0x64 {
+	prehashed := false
+	if signature.SignatureAlgorithm[0] == 0x45 && signature.SignatureAlgorithm[1] == 0x64 {
+		prehashed = false
+	} else if signature.SignatureAlgorithm[0] == 0x45 && signature.SignatureAlgorithm[1] == 0x44 {
+		prehashed = true
+	} else {
 		return false, errors.New("Unsupported signature algorithm")
 	}
 	if publicKey.KeyId != signature.KeyId {
@@ -98,6 +108,12 @@ func (publicKey *PublicKey) Verify(bin []byte, signature Signature) (bool, error
 	}
 	if !strings.HasPrefix(signature.TrustedComment, "trusted comment: ") {
 		return false, errors.New("Unexpected format for the trusted comment")
+	}
+
+	if prehashed {
+		h, _ := blake2b.New512(nil)
+		h.Write(bin)
+		bin = h.Sum(nil)
 	}
 	if !ed25519.Verify(ed25519.PublicKey(publicKey.PublicKey[:]), bin, signature.Signature[:]) {
 		return false, errors.New("Invalid signature")

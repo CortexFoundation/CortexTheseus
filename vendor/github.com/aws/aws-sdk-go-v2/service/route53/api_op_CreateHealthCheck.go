@@ -45,7 +45,7 @@ func (c *Client) CreateHealthCheck(ctx context.Context, params *CreateHealthChec
 		params = &CreateHealthCheckInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "CreateHealthCheck", params, optFns, addOperationCreateHealthCheckMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "CreateHealthCheck", params, optFns, c.addOperationCreateHealthCheckMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -87,6 +87,8 @@ type CreateHealthCheckInput struct {
 	//
 	// This member is required.
 	HealthCheckConfig *types.HealthCheckConfig
+
+	noSmithyDocumentSerde
 }
 
 // A complex type containing the response information for the new health check.
@@ -104,9 +106,11 @@ type CreateHealthCheckOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationCreateHealthCheckMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationCreateHealthCheckMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpCreateHealthCheck{}, middleware.After)
 	if err != nil {
 		return err

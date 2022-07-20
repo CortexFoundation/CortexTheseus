@@ -24,7 +24,7 @@ func (c *Client) ListTrafficPolicyInstancesByHostedZone(ctx context.Context, par
 		params = &ListTrafficPolicyInstancesByHostedZoneInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "ListTrafficPolicyInstancesByHostedZone", params, optFns, addOperationListTrafficPolicyInstancesByHostedZoneMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "ListTrafficPolicyInstancesByHostedZone", params, optFns, c.addOperationListTrafficPolicyInstancesByHostedZoneMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -68,6 +68,8 @@ type ListTrafficPolicyInstancesByHostedZoneInput struct {
 	// traffic policy instances. If the value of IsTruncated in the previous response
 	// was false, there are no more traffic policy instances to get.
 	TrafficPolicyInstanceTypeMarker types.RRType
+
+	noSmithyDocumentSerde
 }
 
 // A complex type that contains the response information for the request.
@@ -107,9 +109,11 @@ type ListTrafficPolicyInstancesByHostedZoneOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationListTrafficPolicyInstancesByHostedZoneMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationListTrafficPolicyInstancesByHostedZoneMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpListTrafficPolicyInstancesByHostedZone{}, middleware.After)
 	if err != nil {
 		return err

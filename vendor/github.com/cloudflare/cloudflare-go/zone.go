@@ -4,11 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
+	"strconv"
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
+	"errors"
+
 	"golang.org/x/net/idna"
 )
 
@@ -64,9 +67,9 @@ type ZoneMeta struct {
 // ZonePlan contains the plan information for a zone.
 type ZonePlan struct {
 	ZonePlanCommon
+	LegacyID          string `json:"legacy_id"`
 	IsSubscribed      bool   `json:"is_subscribed"`
 	CanSubscribe      bool   `json:"can_subscribe"`
-	LegacyID          string `json:"legacy_id"`
 	LegacyDiscount    bool   `json:"legacy_discount"`
 	ExternallyManaged bool   `json:"externally_managed"`
 }
@@ -77,7 +80,7 @@ type ZoneRatePlan struct {
 	Components []zoneRatePlanComponents `json:"components,omitempty"`
 }
 
-// ZonePlanCommon contains fields used by various Plan endpoints
+// ZonePlanCommon contains fields used by various Plan endpoints.
 type ZonePlanCommon struct {
 	ID        string `json:"id"`
 	Name      string `json:"name,omitempty"`
@@ -256,6 +259,8 @@ type PurgeCacheRequest struct {
 	Tags []string `json:"tags,omitempty"`
 	// Purge by hostname - e.g. "assets.example.com"
 	Hosts []string `json:"hosts,omitempty"`
+	// Purge by prefix - e.g. "example.com/css"
+	Prefixes []string `json:"prefixes,omitempty"`
 }
 
 // PurgeCacheResponse represents the response from the purge endpoint.
@@ -276,13 +281,13 @@ type newZone struct {
 	Account *Account `json:"organization,omitempty"`
 }
 
-// FallbackOrigin describes a fallback origin
+// FallbackOrigin describes a fallback origin.
 type FallbackOrigin struct {
 	Value string `json:"value"`
 	ID    string `json:"id,omitempty"`
 }
 
-// FallbackOriginResponse represents the response from the fallback_origin endpoint
+// FallbackOriginResponse represents the response from the fallback_origin endpoint.
 type FallbackOriginResponse struct {
 	Response
 	Result FallbackOrigin `json:"result"`
@@ -305,7 +310,7 @@ type zoneSubscriptionRatePlanPayload struct {
 // This will add the new zone to the specified multi-user account.
 //
 // API reference: https://api.cloudflare.com/#zone-create-a-zone
-func (api *API) CreateZone(name string, jumpstart bool, account Account, zoneType string) (Zone, error) {
+func (api *API) CreateZone(ctx context.Context, name string, jumpstart bool, account Account, zoneType string) (Zone, error) {
 	var newzone newZone
 	newzone.Name = name
 	newzone.JumpStart = jumpstart
@@ -319,15 +324,15 @@ func (api *API) CreateZone(name string, jumpstart bool, account Account, zoneTyp
 		newzone.Type = "full"
 	}
 
-	res, err := api.makeRequest("POST", "/zones", newzone)
+	res, err := api.makeRequestContext(ctx, http.MethodPost, "/zones", newzone)
 	if err != nil {
-		return Zone{}, errors.Wrap(err, errMakeRequestError)
+		return Zone{}, err
 	}
 
 	var r ZoneResponse
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return Zone{}, errors.Wrap(err, errUnmarshalError)
+		return Zone{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 	return r.Result, nil
 }
@@ -335,15 +340,15 @@ func (api *API) CreateZone(name string, jumpstart bool, account Account, zoneTyp
 // ZoneActivationCheck initiates another zone activation check for newly-created zones.
 //
 // API reference: https://api.cloudflare.com/#zone-initiate-another-zone-activation-check
-func (api *API) ZoneActivationCheck(zoneID string) (Response, error) {
-	res, err := api.makeRequest("PUT", "/zones/"+zoneID+"/activation_check", nil)
+func (api *API) ZoneActivationCheck(ctx context.Context, zoneID string) (Response, error) {
+	res, err := api.makeRequestContext(ctx, http.MethodPut, "/zones/"+zoneID+"/activation_check", nil)
 	if err != nil {
-		return Response{}, errors.Wrap(err, errMakeRequestError)
+		return Response{}, err
 	}
 	var r Response
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return Response{}, errors.Wrap(err, errUnmarshalError)
+		return Response{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 	return r, nil
 }
@@ -352,82 +357,81 @@ func (api *API) ZoneActivationCheck(zoneID string) (Response, error) {
 // to filter against.
 //
 // API reference: https://api.cloudflare.com/#zone-list-zones
-func (api *API) ListZones(z ...string) ([]Zone, error) {
-	v := url.Values{}
-	var res []byte
-	var r ZonesResponse
+func (api *API) ListZones(ctx context.Context, z ...string) ([]Zone, error) {
 	var zones []Zone
-	var err error
 	if len(z) > 0 {
+		var (
+			v = url.Values{}
+			r ZonesResponse
+		)
 		for _, zone := range z {
 			v.Set("name", normalizeZoneName(zone))
-			res, err = api.makeRequest("GET", "/zones?"+v.Encode(), nil)
+			res, err := api.makeRequestContext(ctx, http.MethodGet, "/zones?"+v.Encode(), nil)
 			if err != nil {
-				return []Zone{}, errors.Wrap(err, errMakeRequestError)
+				return []Zone{}, err
 			}
 			err = json.Unmarshal(res, &r)
 			if err != nil {
-				return []Zone{}, errors.Wrap(err, errUnmarshalError)
+				return []Zone{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 			}
 			if !r.Success {
 				// TODO: Provide an actual error message instead of always returning nil
 				return []Zone{}, err
 			}
-			for zi := range r.Result {
-				zones = append(zones, r.Result[zi])
-			}
+			zones = append(zones, r.Result...)
 		}
 	} else {
-		res, err = api.makeRequest("GET", "/zones?per_page=50", nil)
+		res, err := api.ListZonesContext(ctx)
 		if err != nil {
-			return []Zone{}, errors.Wrap(err, errMakeRequestError)
-		}
-		err = json.Unmarshal(res, &r)
-		if err != nil {
-			return []Zone{}, errors.Wrap(err, errUnmarshalError)
+			return nil, err
 		}
 
-		totalPageCount := r.TotalPages
-		var wg sync.WaitGroup
-		wg.Add(totalPageCount)
-		errc := make(chan error)
-
-		for i := 1; i <= totalPageCount; i++ {
-			go func(pageNumber int) error {
-				res, err = api.makeRequest("GET", fmt.Sprintf("/zones?per_page=50&page=%d", pageNumber), nil)
-				if err != nil {
-					errc <- err
-				}
-
-				err = json.Unmarshal(res, &r)
-				if err != nil {
-					errc <- err
-				}
-
-				for _, zone := range r.Result {
-					zones = append(zones, zone)
-				}
-
-				select {
-				case err := <-errc:
-					return err
-				default:
-					wg.Done()
-				}
-
-				return nil
-			}(i)
-		}
-
-		wg.Wait()
+		zones = res.Result
 	}
 
 	return zones, nil
 }
 
-// ListZonesContext lists zones on an account. Optionally takes a list of ReqOptions.
+const listZonesPerPage = 50
+
+// listZonesFetch fetches one page of zones.
+// This is placed as a separate function to prevent any possibility of unintended capturing.
+func (api *API) listZonesFetch(ctx context.Context, wg *sync.WaitGroup, errc chan error,
+	path string, pageSize int, buf []Zone) {
+	defer wg.Done()
+
+	// recordError sends the error to errc in a non-blocking manner
+	recordError := func(err error) {
+		select {
+		case errc <- err:
+		default:
+		}
+	}
+
+	res, err := api.makeRequestContext(ctx, http.MethodGet, path, nil)
+	if err != nil {
+		recordError(err)
+		return
+	}
+
+	var r ZonesResponse
+	err = json.Unmarshal(res, &r)
+	if err != nil {
+		recordError(err)
+		return
+	}
+
+	if len(r.Result) != pageSize {
+		recordError(errors.New(errResultInfo))
+		return
+	}
+
+	copy(buf, r.Result)
+}
+
+// ListZonesContext lists all zones on an account automatically handling the
+// pagination. Optionally takes a list of ReqOptions.
 func (api *API) ListZonesContext(ctx context.Context, opts ...ReqOption) (r ZonesResponse, err error) {
-	var res []byte
 	opt := reqOption{
 		params: url.Values{},
 	}
@@ -435,30 +439,82 @@ func (api *API) ListZonesContext(ctx context.Context, opts ...ReqOption) (r Zone
 		of(&opt)
 	}
 
-	res, err = api.makeRequestContext(ctx, "GET", "/zones?"+opt.params.Encode(), nil)
+	if opt.params.Get("page") != "" || opt.params.Get("per_page") != "" {
+		return ZonesResponse{}, errors.New(errManualPagination)
+	}
+
+	opt.params.Add("per_page", strconv.Itoa(listZonesPerPage))
+
+	res, err := api.makeRequestContext(ctx, http.MethodGet, "/zones?"+opt.params.Encode(), nil)
 	if err != nil {
-		return ZonesResponse{}, errors.Wrap(err, errMakeRequestError)
+		return ZonesResponse{}, err
 	}
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return ZonesResponse{}, errors.Wrap(err, errUnmarshalError)
+		return ZonesResponse{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 
-	return r, nil
+	// avoid overhead in most common cases where the total #zones <= 50
+	if r.TotalPages < 2 {
+		return r, nil
+	}
+
+	// parameters of pagination
+	var (
+		totalPageCount = r.TotalPages
+		totalCount     = r.Total
+
+		// zones is a large slice to prevent resizing during concurrent writes.
+		zones = make([]Zone, totalCount)
+	)
+
+	// Copy the first page into zones.
+	copy(zones, r.Result)
+
+	var wg sync.WaitGroup
+	wg.Add(totalPageCount - 1)  // all pages except the first one.
+	errc := make(chan error, 1) // getting the first error
+
+	// Creating all the workers.
+	for pageNum := 2; pageNum <= totalPageCount; pageNum++ {
+		// Note: URL.Values is just a map[string], so this would override the existing 'page'
+		opt.params.Set("page", strconv.Itoa(pageNum))
+
+		// start is the first index in the zone buffer
+		start := listZonesPerPage * (pageNum - 1)
+
+		pageSize := listZonesPerPage
+		if pageNum == totalPageCount {
+			// The size of the last page (which would be <= 50).
+			pageSize = totalCount - start
+		}
+
+		go api.listZonesFetch(ctx, &wg, errc, "/zones?"+opt.params.Encode(), pageSize, zones[start:])
+	}
+
+	wg.Wait()
+
+	select {
+	case err := <-errc: // if there were any errors
+		return ZonesResponse{}, err
+	default: // if there were no errors, the receive statement should block
+		r.Result = zones
+		return r, nil
+	}
 }
 
 // ZoneDetails fetches information about a zone.
 //
 // API reference: https://api.cloudflare.com/#zone-zone-details
-func (api *API) ZoneDetails(zoneID string) (Zone, error) {
-	res, err := api.makeRequest("GET", "/zones/"+zoneID, nil)
+func (api *API) ZoneDetails(ctx context.Context, zoneID string) (Zone, error) {
+	res, err := api.makeRequestContext(ctx, http.MethodGet, "/zones/"+zoneID, nil)
 	if err != nil {
-		return Zone{}, errors.Wrap(err, errMakeRequestError)
+		return Zone{}, err
 	}
 	var r ZoneResponse
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return Zone{}, errors.Wrap(err, errUnmarshalError)
+		return Zone{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 	return r.Result, nil
 }
@@ -468,13 +524,29 @@ type ZoneOptions struct {
 	Paused   *bool     `json:"paused,omitempty"`
 	VanityNS []string  `json:"vanity_name_servers,omitempty"`
 	Plan     *ZonePlan `json:"plan,omitempty"`
+	Type     string    `json:"type,omitempty"`
 }
 
 // ZoneSetPaused pauses Cloudflare service for the entire zone, sending all
 // traffic direct to the origin.
-func (api *API) ZoneSetPaused(zoneID string, paused bool) (Zone, error) {
+func (api *API) ZoneSetPaused(ctx context.Context, zoneID string, paused bool) (Zone, error) {
 	zoneopts := ZoneOptions{Paused: &paused}
-	zone, err := api.EditZone(zoneID, zoneopts)
+	zone, err := api.EditZone(ctx, zoneID, zoneopts)
+	if err != nil {
+		return Zone{}, err
+	}
+
+	return zone, nil
+}
+
+// ZoneSetType toggles the type for an existing zone.
+//
+// Valid values for `type` are "full" and "partial"
+//
+// API reference: https://api.cloudflare.com/#zone-edit-zone
+func (api *API) ZoneSetType(ctx context.Context, zoneID string, zoneType string) (Zone, error) {
+	zoneopts := ZoneOptions{Type: zoneType}
+	zone, err := api.EditZone(ctx, zoneID, zoneopts)
 	if err != nil {
 		return Zone{}, err
 	}
@@ -484,9 +556,9 @@ func (api *API) ZoneSetPaused(zoneID string, paused bool) (Zone, error) {
 
 // ZoneSetVanityNS sets custom nameservers for the zone.
 // These names must be within the same zone.
-func (api *API) ZoneSetVanityNS(zoneID string, ns []string) (Zone, error) {
+func (api *API) ZoneSetVanityNS(ctx context.Context, zoneID string, ns []string) (Zone, error) {
 	zoneopts := ZoneOptions{VanityNS: ns}
-	zone, err := api.EditZone(zoneID, zoneopts)
+	zone, err := api.EditZone(ctx, zoneID, zoneopts)
 	if err != nil {
 		return Zone{}, err
 	}
@@ -500,15 +572,15 @@ func (api *API) ZoneSetVanityNS(zoneID string, ns []string) (Zone, error) {
 // "CF_ENT".
 //
 // API reference: https://api.cloudflare.com/#zone-subscription-create-zone-subscription
-func (api *API) ZoneSetPlan(zoneID string, planType string) error {
+func (api *API) ZoneSetPlan(ctx context.Context, zoneID string, planType string) error {
 	zonePayload := zoneSubscriptionRatePlanPayload{}
 	zonePayload.RatePlan.ID = planType
 
 	uri := fmt.Sprintf("/zones/%s/subscription", zoneID)
 
-	_, err := api.makeRequest("POST", uri, zonePayload)
+	_, err := api.makeRequestContext(ctx, http.MethodPost, uri, zonePayload)
 	if err != nil {
-		return errors.Wrap(err, errMakeRequestError)
+		return err
 	}
 
 	return nil
@@ -520,15 +592,15 @@ func (api *API) ZoneSetPlan(zoneID string, planType string) error {
 // "CF_ENT".
 //
 // API reference: https://api.cloudflare.com/#zone-subscription-update-zone-subscription
-func (api *API) ZoneUpdatePlan(zoneID string, planType string) error {
+func (api *API) ZoneUpdatePlan(ctx context.Context, zoneID string, planType string) error {
 	zonePayload := zoneSubscriptionRatePlanPayload{}
 	zonePayload.RatePlan.ID = planType
 
 	uri := fmt.Sprintf("/zones/%s/subscription", zoneID)
 
-	_, err := api.makeRequest("PUT", uri, zonePayload)
+	_, err := api.makeRequestContext(ctx, http.MethodPut, uri, zonePayload)
 	if err != nil {
-		return errors.Wrap(err, errMakeRequestError)
+		return err
 	}
 
 	return nil
@@ -536,18 +608,18 @@ func (api *API) ZoneUpdatePlan(zoneID string, planType string) error {
 
 // EditZone edits the given zone.
 //
-// This is usually called by ZoneSetPaused or ZoneSetVanityNS.
+// This is usually called by ZoneSetPaused, ZoneSetType, or ZoneSetVanityNS.
 //
 // API reference: https://api.cloudflare.com/#zone-edit-zone-properties
-func (api *API) EditZone(zoneID string, zoneOpts ZoneOptions) (Zone, error) {
-	res, err := api.makeRequest("PATCH", "/zones/"+zoneID, zoneOpts)
+func (api *API) EditZone(ctx context.Context, zoneID string, zoneOpts ZoneOptions) (Zone, error) {
+	res, err := api.makeRequestContext(ctx, http.MethodPatch, "/zones/"+zoneID, zoneOpts)
 	if err != nil {
-		return Zone{}, errors.Wrap(err, errMakeRequestError)
+		return Zone{}, err
 	}
 	var r ZoneResponse
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return Zone{}, errors.Wrap(err, errUnmarshalError)
+		return Zone{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 
 	return r.Result, nil
@@ -559,16 +631,16 @@ func (api *API) EditZone(zoneID string, zoneOpts ZoneOptions) (Zone, error) {
 // zone if there is a high cached vs. uncached request ratio.
 //
 // API reference: https://api.cloudflare.com/#zone-purge-all-files
-func (api *API) PurgeEverything(zoneID string) (PurgeCacheResponse, error) {
-	uri := "/zones/" + zoneID + "/purge_cache"
-	res, err := api.makeRequest("POST", uri, PurgeCacheRequest{true, nil, nil, nil})
+func (api *API) PurgeEverything(ctx context.Context, zoneID string) (PurgeCacheResponse, error) {
+	uri := fmt.Sprintf("/zones/%s/purge_cache", zoneID)
+	res, err := api.makeRequestContext(ctx, http.MethodPost, uri, PurgeCacheRequest{true, nil, nil, nil, nil})
 	if err != nil {
-		return PurgeCacheResponse{}, errors.Wrap(err, errMakeRequestError)
+		return PurgeCacheResponse{}, err
 	}
 	var r PurgeCacheResponse
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return PurgeCacheResponse{}, errors.Wrap(err, errUnmarshalError)
+		return PurgeCacheResponse{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 	return r, nil
 }
@@ -576,16 +648,23 @@ func (api *API) PurgeEverything(zoneID string) (PurgeCacheResponse, error) {
 // PurgeCache purges the cache using the given PurgeCacheRequest (zone/url/tag).
 //
 // API reference: https://api.cloudflare.com/#zone-purge-individual-files-by-url-and-cache-tags
-func (api *API) PurgeCache(zoneID string, pcr PurgeCacheRequest) (PurgeCacheResponse, error) {
-	uri := "/zones/" + zoneID + "/purge_cache"
-	res, err := api.makeRequest("POST", uri, pcr)
+func (api *API) PurgeCache(ctx context.Context, zoneID string, pcr PurgeCacheRequest) (PurgeCacheResponse, error) {
+	return api.PurgeCacheContext(ctx, zoneID, pcr)
+}
+
+// PurgeCacheContext purges the cache using the given PurgeCacheRequest (zone/url/tag).
+//
+// API reference: https://api.cloudflare.com/#zone-purge-individual-files-by-url-and-cache-tags
+func (api *API) PurgeCacheContext(ctx context.Context, zoneID string, pcr PurgeCacheRequest) (PurgeCacheResponse, error) {
+	uri := fmt.Sprintf("/zones/%s/purge_cache", zoneID)
+	res, err := api.makeRequestContext(ctx, http.MethodPost, uri, pcr)
 	if err != nil {
-		return PurgeCacheResponse{}, errors.Wrap(err, errMakeRequestError)
+		return PurgeCacheResponse{}, err
 	}
 	var r PurgeCacheResponse
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return PurgeCacheResponse{}, errors.Wrap(err, errUnmarshalError)
+		return PurgeCacheResponse{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 	return r, nil
 }
@@ -593,15 +672,15 @@ func (api *API) PurgeCache(zoneID string, pcr PurgeCacheRequest) (PurgeCacheResp
 // DeleteZone deletes the given zone.
 //
 // API reference: https://api.cloudflare.com/#zone-delete-a-zone
-func (api *API) DeleteZone(zoneID string) (ZoneID, error) {
-	res, err := api.makeRequest("DELETE", "/zones/"+zoneID, nil)
+func (api *API) DeleteZone(ctx context.Context, zoneID string) (ZoneID, error) {
+	res, err := api.makeRequestContext(ctx, http.MethodDelete, "/zones/"+zoneID, nil)
 	if err != nil {
-		return ZoneID{}, errors.Wrap(err, errMakeRequestError)
+		return ZoneID{}, err
 	}
 	var r ZoneIDResponse
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return ZoneID{}, errors.Wrap(err, errUnmarshalError)
+		return ZoneID{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 	return r.Result, nil
 }
@@ -609,16 +688,16 @@ func (api *API) DeleteZone(zoneID string) (ZoneID, error) {
 // AvailableZoneRatePlans returns information about all plans available to the specified zone.
 //
 // API reference: https://api.cloudflare.com/#zone-plan-available-plans
-func (api *API) AvailableZoneRatePlans(zoneID string) ([]ZoneRatePlan, error) {
-	uri := "/zones/" + zoneID + "/available_rate_plans"
-	res, err := api.makeRequest("GET", uri, nil)
+func (api *API) AvailableZoneRatePlans(ctx context.Context, zoneID string) ([]ZoneRatePlan, error) {
+	uri := fmt.Sprintf("/zones/%s/available_rate_plans", zoneID)
+	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
-		return []ZoneRatePlan{}, errors.Wrap(err, errMakeRequestError)
+		return []ZoneRatePlan{}, err
 	}
 	var r AvailableZoneRatePlansResponse
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return []ZoneRatePlan{}, errors.Wrap(err, errUnmarshalError)
+		return []ZoneRatePlan{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 	return r.Result, nil
 }
@@ -626,16 +705,16 @@ func (api *API) AvailableZoneRatePlans(zoneID string) ([]ZoneRatePlan, error) {
 // AvailableZonePlans returns information about all plans available to the specified zone.
 //
 // API reference: https://api.cloudflare.com/#zone-rate-plan-list-available-plans
-func (api *API) AvailableZonePlans(zoneID string) ([]ZonePlan, error) {
-	uri := "/zones/" + zoneID + "/available_plans"
-	res, err := api.makeRequest("GET", uri, nil)
+func (api *API) AvailableZonePlans(ctx context.Context, zoneID string) ([]ZonePlan, error) {
+	uri := fmt.Sprintf("/zones/%s/available_plans", zoneID)
+	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
-		return []ZonePlan{}, errors.Wrap(err, errMakeRequestError)
+		return []ZonePlan{}, err
 	}
 	var r AvailableZonePlansResponse
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return []ZonePlan{}, errors.Wrap(err, errUnmarshalError)
+		return []ZonePlan{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 	return r.Result, nil
 }
@@ -658,16 +737,16 @@ func (o ZoneAnalyticsOptions) encode() string {
 // ZoneAnalyticsDashboard returns zone analytics information.
 //
 // API reference: https://api.cloudflare.com/#zone-analytics-dashboard
-func (api *API) ZoneAnalyticsDashboard(zoneID string, options ZoneAnalyticsOptions) (ZoneAnalyticsData, error) {
-	uri := "/zones/" + zoneID + "/analytics/dashboard" + "?" + options.encode()
-	res, err := api.makeRequest("GET", uri, nil)
+func (api *API) ZoneAnalyticsDashboard(ctx context.Context, zoneID string, options ZoneAnalyticsOptions) (ZoneAnalyticsData, error) {
+	uri := fmt.Sprintf("/zones/%s/analytics/dashboard?%s", zoneID, options.encode())
+	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
-		return ZoneAnalyticsData{}, errors.Wrap(err, errMakeRequestError)
+		return ZoneAnalyticsData{}, err
 	}
 	var r zoneAnalyticsDataResponse
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return ZoneAnalyticsData{}, errors.Wrap(err, errUnmarshalError)
+		return ZoneAnalyticsData{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 	return r.Result, nil
 }
@@ -675,16 +754,16 @@ func (api *API) ZoneAnalyticsDashboard(zoneID string, options ZoneAnalyticsOptio
 // ZoneAnalyticsByColocation returns zone analytics information by datacenter.
 //
 // API reference: https://api.cloudflare.com/#zone-analytics-analytics-by-co-locations
-func (api *API) ZoneAnalyticsByColocation(zoneID string, options ZoneAnalyticsOptions) ([]ZoneAnalyticsColocation, error) {
-	uri := "/zones/" + zoneID + "/analytics/colos" + "?" + options.encode()
-	res, err := api.makeRequest("GET", uri, nil)
+func (api *API) ZoneAnalyticsByColocation(ctx context.Context, zoneID string, options ZoneAnalyticsOptions) ([]ZoneAnalyticsColocation, error) {
+	uri := fmt.Sprintf("/zones/%s/analytics/colos?%s", zoneID, options.encode())
+	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, errMakeRequestError)
+		return nil, err
 	}
 	var r zoneAnalyticsColocationResponse
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return nil, errors.Wrap(err, errUnmarshalError)
+		return nil, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 	return r.Result, nil
 }
@@ -692,17 +771,17 @@ func (api *API) ZoneAnalyticsByColocation(zoneID string, options ZoneAnalyticsOp
 // ZoneSettings returns all of the settings for a given zone.
 //
 // API reference: https://api.cloudflare.com/#zone-settings-get-all-zone-settings
-func (api *API) ZoneSettings(zoneID string) (*ZoneSettingResponse, error) {
-	uri := "/zones/" + zoneID + "/settings"
-	res, err := api.makeRequest("GET", uri, nil)
+func (api *API) ZoneSettings(ctx context.Context, zoneID string) (*ZoneSettingResponse, error) {
+	uri := fmt.Sprintf("/zones/%s/settings", zoneID)
+	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, errMakeRequestError)
+		return nil, err
 	}
 
 	response := &ZoneSettingResponse{}
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		return nil, errors.Wrap(err, errUnmarshalError)
+		return nil, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 
 	return response, nil
@@ -711,19 +790,19 @@ func (api *API) ZoneSettings(zoneID string) (*ZoneSettingResponse, error) {
 // UpdateZoneSettings updates the settings for a given zone.
 //
 // API reference: https://api.cloudflare.com/#zone-settings-edit-zone-settings-info
-func (api *API) UpdateZoneSettings(zoneID string, settings []ZoneSetting) (*ZoneSettingResponse, error) {
-	uri := "/zones/" + zoneID + "/settings"
-	res, err := api.makeRequest("PATCH", uri, struct {
+func (api *API) UpdateZoneSettings(ctx context.Context, zoneID string, settings []ZoneSetting) (*ZoneSettingResponse, error) {
+	uri := fmt.Sprintf("/zones/%s/settings", zoneID)
+	res, err := api.makeRequestContext(ctx, http.MethodPatch, uri, struct {
 		Items []ZoneSetting `json:"items"`
 	}{settings})
 	if err != nil {
-		return nil, errors.Wrap(err, errMakeRequestError)
+		return nil, err
 	}
 
 	response := &ZoneSettingResponse{}
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		return nil, errors.Wrap(err, errUnmarshalError)
+		return nil, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 
 	return response, nil
@@ -732,16 +811,33 @@ func (api *API) UpdateZoneSettings(zoneID string, settings []ZoneSetting) (*Zone
 // ZoneSSLSettings returns information about SSL setting to the specified zone.
 //
 // API reference: https://api.cloudflare.com/#zone-settings-get-ssl-setting
-func (api *API) ZoneSSLSettings(zoneID string) (ZoneSSLSetting, error) {
-	uri := "/zones/" + zoneID + "/settings/ssl"
-	res, err := api.makeRequest("GET", uri, nil)
+func (api *API) ZoneSSLSettings(ctx context.Context, zoneID string) (ZoneSSLSetting, error) {
+	uri := fmt.Sprintf("/zones/%s/settings/ssl", zoneID)
+	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
-		return ZoneSSLSetting{}, errors.Wrap(err, errMakeRequestError)
+		return ZoneSSLSetting{}, err
 	}
 	var r ZoneSSLSettingResponse
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return ZoneSSLSetting{}, errors.Wrap(err, errUnmarshalError)
+		return ZoneSSLSetting{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+	}
+	return r.Result, nil
+}
+
+// UpdateZoneSSLSettings update information about SSL setting to the specified zone.
+//
+// API reference: https://api.cloudflare.com/#zone-settings-change-ssl-setting
+func (api *API) UpdateZoneSSLSettings(ctx context.Context, zoneID string, sslValue string) (ZoneSSLSetting, error) {
+	uri := fmt.Sprintf("/zones/%s/settings/ssl", zoneID)
+	res, err := api.makeRequestContext(ctx, http.MethodPatch, uri, ZoneSSLSetting{Value: sslValue})
+	if err != nil {
+		return ZoneSSLSetting{}, err
+	}
+	var r ZoneSSLSettingResponse
+	err = json.Unmarshal(res, &r)
+	if err != nil {
+		return ZoneSSLSetting{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 	return r.Result, nil
 }
@@ -749,17 +845,17 @@ func (api *API) ZoneSSLSettings(zoneID string) (ZoneSSLSetting, error) {
 // FallbackOrigin returns information about the fallback origin for the specified zone.
 //
 // API reference: https://developers.cloudflare.com/ssl/ssl-for-saas/api-calls/#fallback-origin-configuration
-func (api *API) FallbackOrigin(zoneID string) (FallbackOrigin, error) {
-	uri := "/zones/" + zoneID + "/fallback_origin"
-	res, err := api.makeRequest("GET", uri, nil)
+func (api *API) FallbackOrigin(ctx context.Context, zoneID string) (FallbackOrigin, error) {
+	uri := fmt.Sprintf("/zones/%s/fallback_origin", zoneID)
+	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
-		return FallbackOrigin{}, errors.Wrap(err, errMakeRequestError)
+		return FallbackOrigin{}, err
 	}
 
 	var r FallbackOriginResponse
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return FallbackOrigin{}, errors.Wrap(err, errUnmarshalError)
+		return FallbackOrigin{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 
 	return r.Result, nil
@@ -768,17 +864,17 @@ func (api *API) FallbackOrigin(zoneID string) (FallbackOrigin, error) {
 // UpdateFallbackOrigin updates the fallback origin for a given zone.
 //
 // API reference: https://developers.cloudflare.com/ssl/ssl-for-saas/api-calls/#4-example-patch-to-change-fallback-origin
-func (api *API) UpdateFallbackOrigin(zoneID string, fbo FallbackOrigin) (*FallbackOriginResponse, error) {
-	uri := "/zones/" + zoneID + "/fallback_origin"
-	res, err := api.makeRequest("PATCH", uri, fbo)
+func (api *API) UpdateFallbackOrigin(ctx context.Context, zoneID string, fbo FallbackOrigin) (*FallbackOriginResponse, error) {
+	uri := fmt.Sprintf("/zones/%s/fallback_origin", zoneID)
+	res, err := api.makeRequestContext(ctx, http.MethodPatch, uri, fbo)
 	if err != nil {
-		return nil, errors.Wrap(err, errMakeRequestError)
+		return nil, err
 	}
 
 	response := &FallbackOriginResponse{}
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		return nil, errors.Wrap(err, errUnmarshalError)
+		return nil, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 
 	return response, nil
@@ -788,6 +884,11 @@ func (api *API) UpdateFallbackOrigin(zoneID string, fbo FallbackOrigin) (*Fallba
 // from Punycode to Unicode form. If the given zone name is not represented
 // as Punycode, or converting fails (for invalid representations), it
 // is returned unchanged.
+//
+// Because all the zone name comparison is currently done using the API service
+// (except for comparison with the empty string), theoretically, we could
+// remove this function from the Go library. However, there should be no harm
+// calling this function other than gelable performance penalty.
 //
 // Note: conversion errors are silently discarded.
 func normalizeZoneName(name string) string {
@@ -800,16 +901,16 @@ func normalizeZoneName(name string) string {
 // ZoneSingleSetting returns information about specified setting to the specified zone.
 //
 // API reference: https://api.cloudflare.com/#zone-settings-get-all-zone-settings
-func (api *API) ZoneSingleSetting(zoneID, settingName string) (ZoneSetting, error) {
-	uri := "/zones/" + zoneID + "/settings/" + settingName
-	res, err := api.makeRequest("GET", uri, nil)
+func (api *API) ZoneSingleSetting(ctx context.Context, zoneID, settingName string) (ZoneSetting, error) {
+	uri := fmt.Sprintf("/zones/%s/settings/%s", zoneID, settingName)
+	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
-		return ZoneSetting{}, errors.Wrap(err, errMakeRequestError)
+		return ZoneSetting{}, err
 	}
 	var r ZoneSettingSingleResponse
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return ZoneSetting{}, errors.Wrap(err, errUnmarshalError)
+		return ZoneSetting{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 	return r.Result, nil
 }
@@ -817,17 +918,17 @@ func (api *API) ZoneSingleSetting(zoneID, settingName string) (ZoneSetting, erro
 // UpdateZoneSingleSetting updates the specified setting for a given zone.
 //
 // API reference: https://api.cloudflare.com/#zone-settings-edit-zone-settings-info
-func (api *API) UpdateZoneSingleSetting(zoneID, settingName string, setting ZoneSetting) (*ZoneSettingSingleResponse, error) {
-	uri := "/zones/" + zoneID + "/settings/" + settingName
-	res, err := api.makeRequest("PATCH", uri, setting)
+func (api *API) UpdateZoneSingleSetting(ctx context.Context, zoneID, settingName string, setting ZoneSetting) (*ZoneSettingSingleResponse, error) {
+	uri := fmt.Sprintf("/zones/%s/settings/%s", zoneID, settingName)
+	res, err := api.makeRequestContext(ctx, http.MethodPatch, uri, setting)
 	if err != nil {
-		return nil, errors.Wrap(err, errMakeRequestError)
+		return nil, err
 	}
 
 	response := &ZoneSettingSingleResponse{}
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		return nil, errors.Wrap(err, errUnmarshalError)
+		return nil, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 
 	return response, nil
@@ -836,10 +937,91 @@ func (api *API) UpdateZoneSingleSetting(zoneID, settingName string, setting Zone
 // ZoneExport returns the text BIND config for the given zone
 //
 // API reference: https://api.cloudflare.com/#dns-records-for-a-zone-export-dns-records
-func (api *API) ZoneExport(zoneID string) (string, error) {
-	res, err := api.makeRequest("GET", "/zones/"+zoneID+"/dns_records/export", nil)
+func (api *API) ZoneExport(ctx context.Context, zoneID string) (string, error) {
+	res, err := api.makeRequestContext(ctx, http.MethodGet, "/zones/"+zoneID+"/dns_records/export", nil)
 	if err != nil {
-		return "", errors.Wrap(err, errMakeRequestError)
+		return "", err
 	}
 	return string(res), nil
+}
+
+// ZoneDNSSECResponse represents the response from the Zone DNSSEC Setting.
+type ZoneDNSSECResponse struct {
+	Response
+	Result ZoneDNSSEC `json:"result"`
+}
+
+// ZoneDNSSEC represents the response from the Zone DNSSEC Setting result.
+type ZoneDNSSEC struct {
+	Status          string    `json:"status"`
+	Flags           int       `json:"flags"`
+	Algorithm       string    `json:"algorithm"`
+	KeyType         string    `json:"key_type"`
+	DigestType      string    `json:"digest_type"`
+	DigestAlgorithm string    `json:"digest_algorithm"`
+	Digest          string    `json:"digest"`
+	DS              string    `json:"ds"`
+	KeyTag          int       `json:"key_tag"`
+	PublicKey       string    `json:"public_key"`
+	ModifiedOn      time.Time `json:"modified_on"`
+}
+
+// ZoneDNSSECSetting returns the DNSSEC details of a zone
+//
+// API reference: https://api.cloudflare.com/#dnssec-dnssec-details
+func (api *API) ZoneDNSSECSetting(ctx context.Context, zoneID string) (ZoneDNSSEC, error) {
+	res, err := api.makeRequestContext(ctx, http.MethodGet, "/zones/"+zoneID+"/dnssec", nil)
+	if err != nil {
+		return ZoneDNSSEC{}, err
+	}
+	response := ZoneDNSSECResponse{}
+	err = json.Unmarshal(res, &response)
+	if err != nil {
+		return ZoneDNSSEC{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+	}
+
+	return response.Result, nil
+}
+
+// ZoneDNSSECDeleteResponse represents the response from the Zone DNSSEC Delete request.
+type ZoneDNSSECDeleteResponse struct {
+	Response
+	Result string `json:"result"`
+}
+
+// DeleteZoneDNSSEC deletes DNSSEC for zone
+//
+// API reference: https://api.cloudflare.com/#dnssec-delete-dnssec-records
+func (api *API) DeleteZoneDNSSEC(ctx context.Context, zoneID string) (string, error) {
+	res, err := api.makeRequestContext(ctx, http.MethodDelete, "/zones/"+zoneID+"/dnssec", nil)
+	if err != nil {
+		return "", err
+	}
+	response := ZoneDNSSECDeleteResponse{}
+	err = json.Unmarshal(res, &response)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", errUnmarshalError, err)
+	}
+	return response.Result, nil
+}
+
+// ZoneDNSSECUpdateOptions represents the options for DNSSEC update.
+type ZoneDNSSECUpdateOptions struct {
+	Status string `json:"status"`
+}
+
+// UpdateZoneDNSSEC updates DNSSEC for a zone
+//
+// API reference: https://api.cloudflare.com/#dnssec-edit-dnssec-status
+func (api *API) UpdateZoneDNSSEC(ctx context.Context, zoneID string, options ZoneDNSSECUpdateOptions) (ZoneDNSSEC, error) {
+	res, err := api.makeRequestContext(ctx, http.MethodPatch, "/zones/"+zoneID+"/dnssec", options)
+	if err != nil {
+		return ZoneDNSSEC{}, err
+	}
+	response := ZoneDNSSECResponse{}
+	err = json.Unmarshal(res, &response)
+	if err != nil {
+		return ZoneDNSSEC{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+	}
+	return response.Result, nil
 }

@@ -7,9 +7,11 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
 )
 
 // CredentialsSourceName provides a name of the provider when config is
@@ -42,14 +44,31 @@ const (
 
 	awsCustomCABundleEnvVar = "AWS_CA_BUNDLE"
 
-	awsWebIdentityTokenFilePathEnvKey = "AWS_WEB_IDENTITY_TOKEN_FILE"
+	awsWebIdentityTokenFilePathEnvVar = "AWS_WEB_IDENTITY_TOKEN_FILE"
 
-	awsRoleARNEnvKey         = "AWS_ROLE_ARN"
-	awsRoleSessionNameEnvKey = "AWS_ROLE_SESSION_NAME"
+	awsRoleARNEnvVar         = "AWS_ROLE_ARN"
+	awsRoleSessionNameEnvVar = "AWS_ROLE_SESSION_NAME"
 
-	awsEnableEndpointDiscoveryEnvKey = "AWS_ENABLE_ENDPOINT_DISCOVERY"
+	awsEnableEndpointDiscoveryEnvVar = "AWS_ENABLE_ENDPOINT_DISCOVERY"
 
 	awsS3UseARNRegionEnvVar = "AWS_S3_USE_ARN_REGION"
+
+	awsEc2MetadataServiceEndpointModeEnvVar = "AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE"
+
+	awsEc2MetadataServiceEndpointEnvVar = "AWS_EC2_METADATA_SERVICE_ENDPOINT"
+
+	awsEc2MetadataDisabled = "AWS_EC2_METADATA_DISABLED"
+
+	awsS3DisableMultiRegionAccessPointEnvVar = "AWS_S3_DISABLE_MULTIREGION_ACCESS_POINTS"
+
+	awsUseDualStackEndpoint = "AWS_USE_DUALSTACK_ENDPOINT"
+
+	awsUseFIPSEndpoint = "AWS_USE_FIPS_ENDPOINT"
+
+	awsDefaultMode = "AWS_DEFAULTS_MODE"
+
+	awsRetryMaxAttempts = "AWS_MAX_ATTEMPTS"
+	awsRetryMode        = "AWS_RETRY_MODE"
 )
 
 var (
@@ -157,7 +176,7 @@ type EnvConfig struct {
 	// Enables endpoint discovery via environment variables.
 	//
 	//	AWS_ENABLE_ENDPOINT_DISCOVERY=true
-	EnableEndpointDiscovery *bool
+	EnableEndpointDiscovery aws.EndpointDiscoveryEnableState
 
 	// Specifies the WebIdentity token the SDK should use to assume a role
 	// with.
@@ -180,6 +199,55 @@ type EnvConfig struct {
 	//
 	// AWS_S3_USE_ARN_REGION=true
 	S3UseARNRegion *bool
+
+	// Specifies if the EC2 IMDS service client is enabled.
+	//
+	// AWS_EC2_METADATA_DISABLED=true
+	EC2IMDSClientEnableState imds.ClientEnableState
+
+	// Specifies the EC2 Instance Metadata Service default endpoint selection mode (IPv4 or IPv6)
+	//
+	// AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE=IPv6
+	EC2IMDSEndpointMode imds.EndpointModeState
+
+	// Specifies the EC2 Instance Metadata Service endpoint to use. If specified it overrides EC2IMDSEndpointMode.
+	//
+	// AWS_EC2_METADATA_SERVICE_ENDPOINT=http://fd00:ec2::254
+	EC2IMDSEndpoint string
+
+	// Specifies if the S3 service should disable multi-region access points
+	// support.
+	//
+	// AWS_S3_DISABLE_MULTIREGION_ACCESS_POINTS=true
+	S3DisableMultiRegionAccessPoints *bool
+
+	// Specifies that SDK clients must resolve a dual-stack endpoint for
+	// services.
+	//
+	// AWS_USE_DUALSTACK_ENDPOINT=true
+	UseDualStackEndpoint aws.DualStackEndpointState
+
+	// Specifies that SDK clients must resolve a FIPS endpoint for
+	// services.
+	//
+	// AWS_USE_FIPS_ENDPOINT=true
+	UseFIPSEndpoint aws.FIPSEndpointState
+
+	// Specifies the SDK Defaults Mode used by services.
+	//
+	// AWS_DEFAULTS_MODE=standard
+	DefaultsMode aws.DefaultsMode
+
+	// Specifies the maximum number attempts an API client will call an
+	// operation that fails with a retryable error.
+	//
+	// AWS_MAX_ATTEMPTS=3
+	RetryMaxAttempts int
+
+	// Specifies the retry model the API client will be created with.
+	//
+	// aws_retry_mode=standard
+	RetryMode aws.RetryMode
 }
 
 // loadEnvConfig reads configuration values from the OS's environment variables.
@@ -215,12 +283,12 @@ func NewEnvConfig() (EnvConfig, error) {
 
 	cfg.CustomCABundle = os.Getenv(awsCustomCABundleEnvVar)
 
-	cfg.WebIdentityTokenFilePath = os.Getenv(awsWebIdentityTokenFilePathEnvKey)
+	cfg.WebIdentityTokenFilePath = os.Getenv(awsWebIdentityTokenFilePathEnvVar)
 
-	cfg.RoleARN = os.Getenv(awsRoleARNEnvKey)
-	cfg.RoleSessionName = os.Getenv(awsRoleSessionNameEnvKey)
+	cfg.RoleARN = os.Getenv(awsRoleARNEnvVar)
+	cfg.RoleSessionName = os.Getenv(awsRoleSessionNameEnvVar)
 
-	if err := setBoolPtrFromEnvVal(&cfg.EnableEndpointDiscovery, []string{awsEnableEndpointDiscoveryEnvKey}); err != nil {
+	if err := setEndpointDiscoveryTypeFromEnvVal(&cfg.EnableEndpointDiscovery, []string{awsEnableEndpointDiscoveryEnvVar}); err != nil {
 		return cfg, err
 	}
 
@@ -228,7 +296,117 @@ func NewEnvConfig() (EnvConfig, error) {
 		return cfg, err
 	}
 
+	setEC2IMDSClientEnableState(&cfg.EC2IMDSClientEnableState, []string{awsEc2MetadataDisabled})
+	if err := setEC2IMDSEndpointMode(&cfg.EC2IMDSEndpointMode, []string{awsEc2MetadataServiceEndpointModeEnvVar}); err != nil {
+		return cfg, err
+	}
+	cfg.EC2IMDSEndpoint = os.Getenv(awsEc2MetadataServiceEndpointEnvVar)
+
+	if err := setBoolPtrFromEnvVal(&cfg.S3DisableMultiRegionAccessPoints, []string{awsS3DisableMultiRegionAccessPointEnvVar}); err != nil {
+		return cfg, err
+	}
+
+	if err := setUseDualStackEndpointFromEnvVal(&cfg.UseDualStackEndpoint, []string{awsUseDualStackEndpoint}); err != nil {
+		return cfg, err
+	}
+
+	if err := setUseFIPSEndpointFromEnvVal(&cfg.UseFIPSEndpoint, []string{awsUseFIPSEndpoint}); err != nil {
+		return cfg, err
+	}
+
+	if err := setDefaultsModeFromEnvVal(&cfg.DefaultsMode, []string{awsDefaultMode}); err != nil {
+		return cfg, err
+	}
+
+	if err := setIntFromEnvVal(&cfg.RetryMaxAttempts, []string{awsRetryMaxAttempts}); err != nil {
+		return cfg, err
+	}
+	if err := setRetryModeFromEnvVal(&cfg.RetryMode, []string{awsRetryMode}); err != nil {
+		return cfg, err
+	}
+
 	return cfg, nil
+}
+
+func (c EnvConfig) getDefaultsMode(ctx context.Context) (aws.DefaultsMode, bool, error) {
+	if len(c.DefaultsMode) == 0 {
+		return "", false, nil
+	}
+	return c.DefaultsMode, true, nil
+}
+
+// GetRetryMaxAttempts returns the value of AWS_MAX_ATTEMPTS if was specified,
+// and not 0.
+func (c EnvConfig) GetRetryMaxAttempts(ctx context.Context) (int, bool, error) {
+	if c.RetryMaxAttempts == 0 {
+		return 0, false, nil
+	}
+	return c.RetryMaxAttempts, true, nil
+}
+
+// GetRetryMode returns the RetryMode of AWS_RETRY_MODE if was specified, and a
+// valid value.
+func (c EnvConfig) GetRetryMode(ctx context.Context) (aws.RetryMode, bool, error) {
+	if len(c.RetryMode) == 0 {
+		return "", false, nil
+	}
+	return c.RetryMode, true, nil
+}
+
+func setEC2IMDSClientEnableState(state *imds.ClientEnableState, keys []string) {
+	for _, k := range keys {
+		value := os.Getenv(k)
+		if len(value) == 0 {
+			continue
+		}
+		switch {
+		case strings.EqualFold(value, "true"):
+			*state = imds.ClientDisabled
+		case strings.EqualFold(value, "false"):
+			*state = imds.ClientEnabled
+		default:
+			continue
+		}
+		break
+	}
+}
+
+func setDefaultsModeFromEnvVal(mode *aws.DefaultsMode, keys []string) error {
+	for _, k := range keys {
+		if value := os.Getenv(k); len(value) > 0 {
+			if ok := mode.SetFromString(value); !ok {
+				return fmt.Errorf("invalid %s value: %s", k, value)
+			}
+			break
+		}
+	}
+	return nil
+}
+
+func setRetryModeFromEnvVal(mode *aws.RetryMode, keys []string) (err error) {
+	for _, k := range keys {
+		if value := os.Getenv(k); len(value) > 0 {
+			*mode, err = aws.ParseRetryMode(value)
+			if err != nil {
+				return fmt.Errorf("invalid %s value, %w", k, err)
+			}
+			break
+		}
+	}
+	return nil
+}
+
+func setEC2IMDSEndpointMode(mode *imds.EndpointModeState, keys []string) error {
+	for _, k := range keys {
+		value := os.Getenv(k)
+		if len(value) == 0 {
+			continue
+		}
+		if err := mode.SetFromString(value); err != nil {
+			return fmt.Errorf("invalid value for environment variable, %s=%s, %v", k, value, err)
+		}
+	}
+	return nil
 }
 
 // GetRegion returns the AWS Region if set in the environment. Returns an empty
@@ -304,6 +482,36 @@ func (c EnvConfig) GetS3UseARNRegion(ctx context.Context) (value, ok bool, err e
 	return *c.S3UseARNRegion, true, nil
 }
 
+// GetS3DisableMultRegionAccessPoints returns whether to disable multi-region access point
+// support for the S3 client.
+func (c EnvConfig) GetS3DisableMultRegionAccessPoints(ctx context.Context) (value, ok bool, err error) {
+	if c.S3DisableMultiRegionAccessPoints == nil {
+		return false, false, nil
+	}
+
+	return *c.S3DisableMultiRegionAccessPoints, true, nil
+}
+
+// GetUseDualStackEndpoint returns whether the service's dual-stack endpoint should be
+// used for requests.
+func (c EnvConfig) GetUseDualStackEndpoint(ctx context.Context) (value aws.DualStackEndpointState, found bool, err error) {
+	if c.UseDualStackEndpoint == aws.DualStackEndpointStateUnset {
+		return aws.DualStackEndpointStateUnset, false, nil
+	}
+
+	return c.UseDualStackEndpoint, true, nil
+}
+
+// GetUseFIPSEndpoint returns whether the service's FIPS endpoint should be
+// used for requests.
+func (c EnvConfig) GetUseFIPSEndpoint(ctx context.Context) (value aws.FIPSEndpointState, found bool, err error) {
+	if c.UseFIPSEndpoint == aws.FIPSEndpointStateUnset {
+		return aws.FIPSEndpointStateUnset, false, nil
+	}
+
+	return c.UseFIPSEndpoint, true, nil
+}
+
 func setStringFromEnvVal(dst *string, keys []string) {
 	for _, k := range keys {
 		if v := os.Getenv(k); len(v) > 0 {
@@ -311,6 +519,21 @@ func setStringFromEnvVal(dst *string, keys []string) {
 			break
 		}
 	}
+}
+
+func setIntFromEnvVal(dst *int, keys []string) error {
+	for _, k := range keys {
+		if v := os.Getenv(k); len(v) > 0 {
+			i, err := strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				return fmt.Errorf("invalid value %s=%s, %w", k, v, err)
+			}
+			*dst = int(i)
+			break
+		}
+	}
+
+	return nil
 }
 
 func setBoolPtrFromEnvVal(dst **bool, keys []string) error {
@@ -338,4 +561,105 @@ func setBoolPtrFromEnvVal(dst **bool, keys []string) error {
 	}
 
 	return nil
+}
+
+func setEndpointDiscoveryTypeFromEnvVal(dst *aws.EndpointDiscoveryEnableState, keys []string) error {
+	for _, k := range keys {
+		value := os.Getenv(k)
+		if len(value) == 0 {
+			continue // skip if empty
+		}
+
+		switch {
+		case strings.EqualFold(value, endpointDiscoveryDisabled):
+			*dst = aws.EndpointDiscoveryDisabled
+		case strings.EqualFold(value, endpointDiscoveryEnabled):
+			*dst = aws.EndpointDiscoveryEnabled
+		case strings.EqualFold(value, endpointDiscoveryAuto):
+			*dst = aws.EndpointDiscoveryAuto
+		default:
+			return fmt.Errorf(
+				"invalid value for environment variable, %s=%s, need true, false or auto",
+				k, value)
+		}
+	}
+	return nil
+}
+
+func setUseDualStackEndpointFromEnvVal(dst *aws.DualStackEndpointState, keys []string) error {
+	for _, k := range keys {
+		value := os.Getenv(k)
+		if len(value) == 0 {
+			continue // skip if empty
+		}
+
+		switch {
+		case strings.EqualFold(value, "true"):
+			*dst = aws.DualStackEndpointStateEnabled
+		case strings.EqualFold(value, "false"):
+			*dst = aws.DualStackEndpointStateDisabled
+		default:
+			return fmt.Errorf(
+				"invalid value for environment variable, %s=%s, need true, false",
+				k, value)
+		}
+	}
+	return nil
+}
+
+func setUseFIPSEndpointFromEnvVal(dst *aws.FIPSEndpointState, keys []string) error {
+	for _, k := range keys {
+		value := os.Getenv(k)
+		if len(value) == 0 {
+			continue // skip if empty
+		}
+
+		switch {
+		case strings.EqualFold(value, "true"):
+			*dst = aws.FIPSEndpointStateEnabled
+		case strings.EqualFold(value, "false"):
+			*dst = aws.FIPSEndpointStateDisabled
+		default:
+			return fmt.Errorf(
+				"invalid value for environment variable, %s=%s, need true, false",
+				k, value)
+		}
+	}
+	return nil
+}
+
+// GetEnableEndpointDiscovery returns resolved value for EnableEndpointDiscovery env variable setting.
+func (c EnvConfig) GetEnableEndpointDiscovery(ctx context.Context) (value aws.EndpointDiscoveryEnableState, found bool, err error) {
+	if c.EnableEndpointDiscovery == aws.EndpointDiscoveryUnset {
+		return aws.EndpointDiscoveryUnset, false, nil
+	}
+
+	return c.EnableEndpointDiscovery, true, nil
+}
+
+// GetEC2IMDSClientEnableState implements a EC2IMDSClientEnableState options resolver interface.
+func (c EnvConfig) GetEC2IMDSClientEnableState() (imds.ClientEnableState, bool, error) {
+	if c.EC2IMDSClientEnableState == imds.ClientDefaultEnableState {
+		return imds.ClientDefaultEnableState, false, nil
+	}
+
+	return c.EC2IMDSClientEnableState, true, nil
+}
+
+// GetEC2IMDSEndpointMode implements a EC2IMDSEndpointMode option resolver interface.
+func (c EnvConfig) GetEC2IMDSEndpointMode() (imds.EndpointModeState, bool, error) {
+	if c.EC2IMDSEndpointMode == imds.EndpointModeStateUnset {
+		return imds.EndpointModeStateUnset, false, nil
+	}
+
+	return c.EC2IMDSEndpointMode, true, nil
+}
+
+// GetEC2IMDSEndpoint implements a EC2IMDSEndpoint option resolver interface.
+func (c EnvConfig) GetEC2IMDSEndpoint() (string, bool, error) {
+	if len(c.EC2IMDSEndpoint) == 0 {
+		return "", false, nil
+	}
+
+	return c.EC2IMDSEndpoint, true, nil
 }

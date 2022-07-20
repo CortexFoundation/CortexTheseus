@@ -1,11 +1,12 @@
 package cloudflare
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
+	"net/http"
 	"net/url"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 // Railgun represents a Railgun's properties.
@@ -48,20 +49,20 @@ type railgunsResponse struct {
 // CreateRailgun creates a new Railgun.
 //
 // API reference: https://api.cloudflare.com/#railgun-create-railgun
-func (api *API) CreateRailgun(name string) (Railgun, error) {
-	uri := api.userBaseURL("") + "/railguns"
+func (api *API) CreateRailgun(ctx context.Context, name string) (Railgun, error) {
+	uri := fmt.Sprintf("%s/railguns", api.userBaseURL(""))
 	params := struct {
 		Name string `json:"name"`
 	}{
 		Name: name,
 	}
-	res, err := api.makeRequest("POST", uri, params)
+	res, err := api.makeRequestContext(ctx, http.MethodPost, uri, params)
 	if err != nil {
-		return Railgun{}, errors.Wrap(err, errMakeRequestError)
+		return Railgun{}, err
 	}
 	var r railgunResponse
 	if err := json.Unmarshal(res, &r); err != nil {
-		return Railgun{}, errors.Wrap(err, errUnmarshalError)
+		return Railgun{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 	return r.Result, nil
 }
@@ -69,19 +70,19 @@ func (api *API) CreateRailgun(name string) (Railgun, error) {
 // ListRailguns lists Railguns connected to an account.
 //
 // API reference: https://api.cloudflare.com/#railgun-list-railguns
-func (api *API) ListRailguns(options RailgunListOptions) ([]Railgun, error) {
+func (api *API) ListRailguns(ctx context.Context, options RailgunListOptions) ([]Railgun, error) {
 	v := url.Values{}
 	if options.Direction != "" {
 		v.Set("direction", options.Direction)
 	}
-	uri := api.userBaseURL("") + "/railguns" + "?" + v.Encode()
-	res, err := api.makeRequest("GET", uri, nil)
+	uri := fmt.Sprintf("%s/railguns?%s", api.userBaseURL(""), v.Encode())
+	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, errMakeRequestError)
+		return nil, err
 	}
 	var r railgunsResponse
 	if err := json.Unmarshal(res, &r); err != nil {
-		return nil, errors.Wrap(err, errUnmarshalError)
+		return nil, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 	return r.Result, nil
 }
@@ -89,15 +90,15 @@ func (api *API) ListRailguns(options RailgunListOptions) ([]Railgun, error) {
 // RailgunDetails returns the details for a Railgun.
 //
 // API reference: https://api.cloudflare.com/#railgun-railgun-details
-func (api *API) RailgunDetails(railgunID string) (Railgun, error) {
-	uri := api.userBaseURL("") + "/railguns/" + railgunID
-	res, err := api.makeRequest("GET", uri, nil)
+func (api *API) RailgunDetails(ctx context.Context, railgunID string) (Railgun, error) {
+	uri := fmt.Sprintf("%s/railguns/%s", api.userBaseURL(""), railgunID)
+	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
-		return Railgun{}, errors.Wrap(err, errMakeRequestError)
+		return Railgun{}, err
 	}
 	var r railgunResponse
 	if err := json.Unmarshal(res, &r); err != nil {
-		return Railgun{}, errors.Wrap(err, errUnmarshalError)
+		return Railgun{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 	return r.Result, nil
 }
@@ -105,15 +106,15 @@ func (api *API) RailgunDetails(railgunID string) (Railgun, error) {
 // RailgunZones returns the zones that are currently using a Railgun.
 //
 // API reference: https://api.cloudflare.com/#railgun-get-zones-connected-to-a-railgun
-func (api *API) RailgunZones(railgunID string) ([]Zone, error) {
-	uri := api.userBaseURL("") + "/railguns/" + railgunID + "/zones"
-	res, err := api.makeRequest("GET", uri, nil)
+func (api *API) RailgunZones(ctx context.Context, railgunID string) ([]Zone, error) {
+	uri := fmt.Sprintf("%s/railguns/%s/zones", api.userBaseURL(""), railgunID)
+	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, errMakeRequestError)
+		return nil, err
 	}
 	var r ZonesResponse
 	if err := json.Unmarshal(res, &r); err != nil {
-		return nil, errors.Wrap(err, errUnmarshalError)
+		return nil, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 	return r.Result, nil
 }
@@ -121,20 +122,20 @@ func (api *API) RailgunZones(railgunID string) ([]Zone, error) {
 // enableRailgun enables (true) or disables (false) a Railgun for all zones connected to it.
 //
 // API reference: https://api.cloudflare.com/#railgun-enable-or-disable-a-railgun
-func (api *API) enableRailgun(railgunID string, enable bool) (Railgun, error) {
-	uri := api.userBaseURL("") + "/railguns/" + railgunID
+func (api *API) enableRailgun(ctx context.Context, railgunID string, enable bool) (Railgun, error) {
+	uri := fmt.Sprintf("%s/railguns/%s", api.userBaseURL(""), railgunID)
 	params := struct {
 		Enabled bool `json:"enabled"`
 	}{
 		Enabled: enable,
 	}
-	res, err := api.makeRequest("PATCH", uri, params)
+	res, err := api.makeRequestContext(ctx, http.MethodPatch, uri, params)
 	if err != nil {
-		return Railgun{}, errors.Wrap(err, errMakeRequestError)
+		return Railgun{}, err
 	}
 	var r railgunResponse
 	if err := json.Unmarshal(res, &r); err != nil {
-		return Railgun{}, errors.Wrap(err, errUnmarshalError)
+		return Railgun{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 	return r.Result, nil
 }
@@ -142,24 +143,24 @@ func (api *API) enableRailgun(railgunID string, enable bool) (Railgun, error) {
 // EnableRailgun enables a Railgun for all zones connected to it.
 //
 // API reference: https://api.cloudflare.com/#railgun-enable-or-disable-a-railgun
-func (api *API) EnableRailgun(railgunID string) (Railgun, error) {
-	return api.enableRailgun(railgunID, true)
+func (api *API) EnableRailgun(ctx context.Context, railgunID string) (Railgun, error) {
+	return api.enableRailgun(ctx, railgunID, true)
 }
 
 // DisableRailgun enables a Railgun for all zones connected to it.
 //
 // API reference: https://api.cloudflare.com/#railgun-enable-or-disable-a-railgun
-func (api *API) DisableRailgun(railgunID string) (Railgun, error) {
-	return api.enableRailgun(railgunID, false)
+func (api *API) DisableRailgun(ctx context.Context, railgunID string) (Railgun, error) {
+	return api.enableRailgun(ctx, railgunID, false)
 }
 
 // DeleteRailgun disables and deletes a Railgun.
 //
 // API reference: https://api.cloudflare.com/#railgun-delete-railgun
-func (api *API) DeleteRailgun(railgunID string) error {
-	uri := api.userBaseURL("") + "/railguns/" + railgunID
-	if _, err := api.makeRequest("DELETE", uri, nil); err != nil {
-		return errors.Wrap(err, errMakeRequestError)
+func (api *API) DeleteRailgun(ctx context.Context, railgunID string) error {
+	uri := fmt.Sprintf("%s/railguns/%s", api.userBaseURL(""), railgunID)
+	if _, err := api.makeRequestContext(ctx, http.MethodDelete, uri, nil); err != nil {
+		return err
 	}
 	return nil
 }
@@ -207,7 +208,7 @@ type RailgunDiagnosis struct {
 	CFCacheStatus string `json:"cf-cache-status"`
 }
 
-// railgunDiagnosisResponse represents the response from the Test Railgun Connection enpoint.
+// railgunDiagnosisResponse represents the response from the Test Railgun Connection endpoint.
 type railgunDiagnosisResponse struct {
 	Response
 	Result RailgunDiagnosis `json:"result"`
@@ -216,15 +217,15 @@ type railgunDiagnosisResponse struct {
 // ZoneRailguns returns the available Railguns for a zone.
 //
 // API reference: https://api.cloudflare.com/#railguns-for-a-zone-get-available-railguns
-func (api *API) ZoneRailguns(zoneID string) ([]ZoneRailgun, error) {
-	uri := "/zones/" + zoneID + "/railguns"
-	res, err := api.makeRequest("GET", uri, nil)
+func (api *API) ZoneRailguns(ctx context.Context, zoneID string) ([]ZoneRailgun, error) {
+	uri := fmt.Sprintf("/zones/%s/railguns", zoneID)
+	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, errMakeRequestError)
+		return nil, err
 	}
 	var r zoneRailgunsResponse
 	if err := json.Unmarshal(res, &r); err != nil {
-		return nil, errors.Wrap(err, errUnmarshalError)
+		return nil, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 	return r.Result, nil
 }
@@ -232,15 +233,15 @@ func (api *API) ZoneRailguns(zoneID string) ([]ZoneRailgun, error) {
 // ZoneRailgunDetails returns the configuration for a given Railgun.
 //
 // API reference: https://api.cloudflare.com/#railguns-for-a-zone-get-railgun-details
-func (api *API) ZoneRailgunDetails(zoneID, railgunID string) (ZoneRailgun, error) {
-	uri := "/zones/" + zoneID + "/railguns/" + railgunID
-	res, err := api.makeRequest("GET", uri, nil)
+func (api *API) ZoneRailgunDetails(ctx context.Context, zoneID, railgunID string) (ZoneRailgun, error) {
+	uri := fmt.Sprintf("/zones/%s/railguns/%s", zoneID, railgunID)
+	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
-		return ZoneRailgun{}, errors.Wrap(err, errMakeRequestError)
+		return ZoneRailgun{}, err
 	}
 	var r zoneRailgunResponse
 	if err := json.Unmarshal(res, &r); err != nil {
-		return ZoneRailgun{}, errors.Wrap(err, errUnmarshalError)
+		return ZoneRailgun{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 	return r.Result, nil
 }
@@ -248,15 +249,15 @@ func (api *API) ZoneRailgunDetails(zoneID, railgunID string) (ZoneRailgun, error
 // TestRailgunConnection tests a Railgun connection for a given zone.
 //
 // API reference: https://api.cloudflare.com/#railgun-connections-for-a-zone-test-railgun-connection
-func (api *API) TestRailgunConnection(zoneID, railgunID string) (RailgunDiagnosis, error) {
-	uri := "/zones/" + zoneID + "/railguns/" + railgunID + "/diagnose"
-	res, err := api.makeRequest("GET", uri, nil)
+func (api *API) TestRailgunConnection(ctx context.Context, zoneID, railgunID string) (RailgunDiagnosis, error) {
+	uri := fmt.Sprintf("/zones/%s/railguns/%s/diagnose", zoneID, railgunID)
+	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
-		return RailgunDiagnosis{}, errors.Wrap(err, errMakeRequestError)
+		return RailgunDiagnosis{}, err
 	}
 	var r railgunDiagnosisResponse
 	if err := json.Unmarshal(res, &r); err != nil {
-		return RailgunDiagnosis{}, errors.Wrap(err, errUnmarshalError)
+		return RailgunDiagnosis{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 	return r.Result, nil
 }
@@ -264,20 +265,20 @@ func (api *API) TestRailgunConnection(zoneID, railgunID string) (RailgunDiagnosi
 // connectZoneRailgun connects (true) or disconnects (false) a Railgun for a given zone.
 //
 // API reference: https://api.cloudflare.com/#railguns-for-a-zone-connect-or-disconnect-a-railgun
-func (api *API) connectZoneRailgun(zoneID, railgunID string, connect bool) (ZoneRailgun, error) {
-	uri := "/zones/" + zoneID + "/railguns/" + railgunID
+func (api *API) connectZoneRailgun(ctx context.Context, zoneID, railgunID string, connect bool) (ZoneRailgun, error) {
+	uri := fmt.Sprintf("/zones/%s/railguns/%s", zoneID, railgunID)
 	params := struct {
 		Connected bool `json:"connected"`
 	}{
 		Connected: connect,
 	}
-	res, err := api.makeRequest("PATCH", uri, params)
+	res, err := api.makeRequestContext(ctx, http.MethodPatch, uri, params)
 	if err != nil {
-		return ZoneRailgun{}, errors.Wrap(err, errMakeRequestError)
+		return ZoneRailgun{}, err
 	}
 	var r zoneRailgunResponse
 	if err := json.Unmarshal(res, &r); err != nil {
-		return ZoneRailgun{}, errors.Wrap(err, errUnmarshalError)
+		return ZoneRailgun{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 	return r.Result, nil
 }
@@ -285,13 +286,13 @@ func (api *API) connectZoneRailgun(zoneID, railgunID string, connect bool) (Zone
 // ConnectZoneRailgun connects a Railgun for a given zone.
 //
 // API reference: https://api.cloudflare.com/#railguns-for-a-zone-connect-or-disconnect-a-railgun
-func (api *API) ConnectZoneRailgun(zoneID, railgunID string) (ZoneRailgun, error) {
-	return api.connectZoneRailgun(zoneID, railgunID, true)
+func (api *API) ConnectZoneRailgun(ctx context.Context, zoneID, railgunID string) (ZoneRailgun, error) {
+	return api.connectZoneRailgun(ctx, zoneID, railgunID, true)
 }
 
 // DisconnectZoneRailgun disconnects a Railgun for a given zone.
 //
 // API reference: https://api.cloudflare.com/#railguns-for-a-zone-connect-or-disconnect-a-railgun
-func (api *API) DisconnectZoneRailgun(zoneID, railgunID string) (ZoneRailgun, error) {
-	return api.connectZoneRailgun(zoneID, railgunID, false)
+func (api *API) DisconnectZoneRailgun(ctx context.Context, zoneID, railgunID string) (ZoneRailgun, error) {
+	return api.connectZoneRailgun(ctx, zoneID, railgunID, false)
 }

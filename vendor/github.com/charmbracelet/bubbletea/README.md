@@ -3,8 +3,9 @@ Bubble Tea
 
 <p>
     <img src="https://stuff.charm.sh/bubbletea/bubbletea-github-header-simple.png" width="313" alt="Bubble Tea Title Treatment"><br>
+    <a href="https://github.com/charmbracelet/bubbletea/releases"><img src="https://img.shields.io/github/release/charmbracelet/bubbletea.svg" alt="Latest Release"></a>
     <a href="https://pkg.go.dev/github.com/charmbracelet/bubbletea?tab=doc"><img src="https://godoc.org/github.com/golang/gddo?status.svg" alt="GoDoc"></a>
-    <a href="https://github.com/charmbracelet/bubbletea/actions"><img src="https://github.com/charmbracelet/glow/workflows/build/badge.svg" alt="Build Status"></a>
+    <a href="https://github.com/charmbracelet/bubbletea/actions"><img src="https://github.com/charmbracelet/bubbletea/workflows/build/badge.svg" alt="Build Status"></a>
 </p>
 
 The fun, functional and stateful way to build terminal apps. A Go framework
@@ -12,7 +13,7 @@ based on [The Elm Architecture][elm]. Bubble Tea is well-suited for simple and
 complex terminal applications, either inline, full-window, or a mix of both.
 
 <p>
-    <img src="https://stuff.charm.sh/bubbletea/bubbletea-example.gif" width="800" alt="Bubble Tea Example">
+    <img src="https://stuff.charm.sh/bubbletea/bubbletea-example.gif?0" width="800" alt="Bubble Tea Example">
 </p>
 
 Bubble Tea is in use in production and includes a number of features and
@@ -32,14 +33,12 @@ Be sure to check out [Bubbles][bubbles], a library of common UI components for B
     <a href="https://github.com/charmbracelet/bubbles"><img src="https://stuff.charm.sh/bubbles-examples/textinput.gif" width="400" alt="Text Input Example from Bubbles"></a>
 </p>
 
-[docs]: https://github.com/charmbracelet/bubbletea#libraries-we-use-with-bubble-tea
-
 * * *
 
 ## Tutorial
 
 Bubble Tea is based on the functional design paradigms of [The Elm
-Architecture][elm] which happens work nicely with Go. It's a delightful way to
+Architecture][elm], which happen to work nicely with Go. It's a delightful way to
 build applications.
 
 By the way, the non-annotated source code for this program is available
@@ -51,7 +50,7 @@ This tutorial assumes you have a working knowledge of Go.
 
 ## Enough! Let's get to it.
 
-For this tutorial we're making a to-do list.
+For this tutorial we're making a shopping list.
 
 To start we'll define our package and import some libraries. Our only external
 import will be the Bubble Tea library, which we'll call `tea` for short.
@@ -89,23 +88,29 @@ type model struct {
 
 ## Initialization
 
-Next we'll define our application’s initial state. We’ll store our initial
-model in a simple variable, and then define the `Init` method.  `Init` can
-return a `Cmd` that could perform some initial I/O. For now, we don't need to
-do any I/O, so for the command we'll just return `nil`, which translates to "no
-command."
+Next we’ll define our application’s initial state. In this case we’re defining
+a function to return our initial model, however we could just as easily define
+the initial model as a variable elsewhere, too.
 
 ```go
-var initialModel = model{
-    // Our to-do list is just a grocery list
-    choices:  []string{"Buy carrots", "Buy celery", "Buy kohlrabi"},
+func initialModel() model {
+	return model{
+		// Our shopping list is a grocery list
+		choices:  []string{"Buy carrots", "Buy celery", "Buy kohlrabi"},
 
-    // A map which indicates which choices are selected. We're using
-    // the  map like a mathematical set. The keys refer to the indexes
-    // of the `choices` slice, above.
-    selected: make(map[int]struct{}),
+		// A map which indicates which choices are selected. We're using
+		// the  map like a mathematical set. The keys refer to the indexes
+		// of the `choices` slice, above.
+		selected: make(map[int]struct{}),
+	}
 }
+```
 
+Next we define the `Init` method. `Init` can return a `Cmd` that could perform
+some initial I/O. For now, we don't need to do any I/O, so for the command
+we'll just return `nil`, which translates to "no command."
+
+```go
 func (m model) Init() tea.Cmd {
     // Just return `nil`, which means "no I/O right now, please."
     return nil
@@ -114,15 +119,15 @@ func (m model) Init() tea.Cmd {
 
 ## The Update Method
 
-Next we'll define the update method. The update function is called when
-"things happen." Its job is to look at what has happened and return an updated
-model in response to whatever happened. It can also return a `Cmd` and make
-more things happen, but for now don't worry about that part.
+Next up is the update method. The update function is called when ”things
+happen.” Its job is to look at what has happened and return an updated model in
+response. It can also return a `Cmd` to make more things happen, but for now
+don't worry about that part.
 
-In our case, when a user presses the down arrow, `update`'s job is to notice
+In our case, when a user presses the down arrow, `Update`’s job is to notice
 that the down arrow was pressed and move the cursor accordingly (or not).
 
-The "something happened" comes in the form of a `Msg`, which can be any type.
+The “something happened” comes in the form of a `Msg`, which can be any type.
 Messages are the result of some I/O that took place, such as a keypress, timer
 tick, or a response from a server.
 
@@ -176,18 +181,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 ```
 
-You may have noticed that "ctrl+c" and "q" above return a `tea.Quit` command
-with the model. That's a special command which instructs the Bubble Tea runtime
-to quit, exiting the program.
+You may have noticed that <kbd>ctrl+c</kbd> and <kbd>q</kbd> above return
+a `tea.Quit` command with the model. That’s a special command which instructs
+the Bubble Tea runtime to quit, exiting the program.
 
 ## The View Method
 
-At last, it's time to render our UI. Of all the methods, the view is the
+At last, it’s time to render our UI. Of all the methods, the view is the
 simplest. We look at the  model in it's current state and use it to return
 a `string`.  That string is our UI!
 
-Because the view describes the entire UI of your application, you don't have
-to worry about redraw logic and stuff like that. Bubble Tea takes care of it
+Because the view describes the entire UI of your application, you don’t have to
+worry about redrawing logic and stuff like that. Bubble Tea takes care of it
 for you.
 
 ```go
@@ -229,7 +234,7 @@ The last step is to simply run our program. We pass our initial model to
 
 ```go
 func main() {
-    p := tea.NewProgram(initialModel)
+    p := tea.NewProgram(initialModel())
     if err := p.Start(); err != nil {
         fmt.Printf("Alas, there's been an error: %v", err)
         os.Exit(1)
@@ -237,7 +242,7 @@ func main() {
 }
 ```
 
-## What's Next?
+## What’s Next?
 
 This tutorial covers the basics of building an interactive terminal UI, but
 in the real world you'll also need to perform I/O. To learn about that have a
@@ -248,25 +253,77 @@ there are [Go Docs][docs].
 
 [cmd]: http://github.com/charmbracelet/bubbletea/tree/master/tutorials/commands/
 [examples]: http://github.com/charmbracelet/bubbletea/tree/master/examples
-[docs]: https://pkg.go.dev/github.com/charmbracelet/glow?tab=doc
+[docs]: https://pkg.go.dev/github.com/charmbracelet/bubbletea?tab=doc
+
+## Debugging with Delve
+
+Since Bubble Tea apps assume control of stdin and stdout, you’ll need to run
+delve in headless mode and then connect to it:
+
+```bash
+# Start the debugger
+$ dlv debug --headless .
+API server listening at: 127.0.0.1:34241
+
+# Connect to it from another terminal
+$ dlv connect 127.0.0.1:34241
+```
+
+Note that the default port used will vary on your system and per run, so
+actually watch out what address the first `dlv` run tells you to connect to.
+
+## Libraries we use with Bubble Tea
+
+* [Bubbles][bubbles]: Common Bubble Tea components such as text inputs, viewports, spinners and so on
+* [Lip Gloss][lipgloss]: Style, format and layout tools for terminal applications
+* [Harmonica][harmonica]: A spring animation library for smooth, natural motion
+* [Termenv][termenv]: Advanced ANSI styling for terminal applications
+* [Reflow][reflow]: Advanced ANSI-aware methods for working with text
+
+[bubbles]: https://github.com/charmbracelet/bubbles
+[lipgloss]: https://github.com/charmbracelet/lipgloss
+[harmonica]: https://github.com/charmbracelet/harmonica
+[termenv]: https://github.com/muesli/termenv
+[reflow]: https://github.com/muesli/reflow
 
 ## Bubble Tea in the Wild
 
 For some Bubble Tea programs in production, see:
 
-* [Glow](https://github.com/charmbracelet/glow): a markdown reader, browser and online markdown stash
+* [AT CLI](https://github.com/daskycodes/at_cli): a utility for executing AT Commands via serial port connections
+* [Canard](https://github.com/mrusme/canard): an RSS client
 * [The Charm Tool](https://github.com/charmbracelet/charm): the Charm user account manager
+* [clidle](https://github.com/ajeetdsouza/clidle): a Wordle clone for your terminal
+* [fm](https://github.com/knipferrc/fm): a terminal-based file manager
+* [fork-cleaner](https://github.com/caarlos0/fork-cleaner): cleans up old and inactive forks in your GitHub account
+* [gambit](https://github.com/maaslalani/gambit): play chess in the terminal
+* [gembro](https://git.sr.ht/~rafael/gembro): a mouse-driven Gemini browser
+* [gh-b](https://github.com/joaom00/gh-b): GitHub CLI extension to easily manage your branches
+* [gh-dash](https://www.github.com/dlvhdr/gh-dash): GitHub cli extension to display a dashboard of PRs and issues
+* [gitflow-toolkit](https://github.com/mritd/gitflow-toolkit): a GitFlow submission tool
+* [Glow](https://github.com/charmbracelet/glow): a markdown reader, browser and online markdown stash
+* [gocovsh](https://github.com/orlangure/gocovsh): explore Go coverage reports from the CLI
+* [httpit](https://github.com/gonetx/httpit): a rapid http(s) benchmark tool
+* [IDNT](https://github.com/r-darwish/idnt): batch software uninstaller
+* [kboard](https://github.com/CamiloGarciaLaRotta/kboard): a typing game
+* [mergestat](https://github.com/mergestat/mergestat): run SQL queries on git repositories
+* [mc](https://github.com/minio/mc): the official [MinIO](https://min.io) client
+* [portal][portal]: securely send transfer between computers
+* [redis-viewer](https://github.com/SaltFishPr/redis-viewer): browse Redis databases
+* [Slides](https://github.com/maaslalani/slides): a markdown-based presentation tool
+* [Soft Serve](https://github.com/charmbracelet/soft-serve): a command-line-first Git server that runs a TUI over SSH
+* [StormForge Optimize Controller](https://github.com/thestormforge/optimize-controller): a tool for experimenting with application configurations in Kubernetes
+* [STTG](https://github.com/wille1101/sttg): teletext client for SVT, Sweden’s national public television station
+* [sttr](https://github.com/abhimanyu003/sttr): run various text transformations
+* [tasktimer](https://github.com/caarlos0/tasktimer): a dead-simple task timer
+* [termdbms](https://github.com/mathaou/termdbms): a keyboard and mouse driven database browser
+* [ticker](https://github.com/achannarasappa/ticker): a terminal stock watcher and stock position tracker
+* [tran](https://github.com/abdfnx/tran): securely transfer stuff between computers (based on [portal][portal])
+* [tz](https://github.com/oz/tz): an aid for scheduling across multiple time zones
+* [Typer](https://github.com/maaslalani/typer): a typing test
+* [wishlist](https://github.com/charmbracelet/wishlist): an SSH directory
 
-## Libraries we use with Bubble Tea
-
-* [Bubbles][bubbles]: various Bubble Tea components
-* [Termenv][termenv]: Advanced ANSI styling for terminal applications
-* [Reflow][reflow]: ANSI-aware methods for formatting and generally working with text. Of particular note is `PrintableRuneWidth` in the `ansi` sub-package which measures the physical widths of strings. Many runes, such as East Asian characters, emojis, and various unicode symbols are two cells wide, so measuring a layout with `len()` often won't cut it. Reflow is particularly nice for this as it measures character widths while ignoring any ANSI sequences present.
-
-[termenv]: https://github.com/muesli/termenv
-[reflow]: https://github.com/muesli/reflow
-[bubbles]: https://github.com/charmbracelet/bubbles
-[runewidth]: https://github.com/mattn/go-runewidth
+[portal]: https://github.com/ZinoKader/portal
 
 ## Feedback
 
@@ -283,16 +340,14 @@ Czaplicki et alia and the excellent [go-tea][gotea] by TJ Holowaychuk.
 [elm]: https://guide.elm-lang.org/architecture/
 [gotea]: https://github.com/tj/go-tea
 
-
 ## License
 
 [MIT](https://github.com/charmbracelet/bubbletea/raw/master/LICENSE)
-
 
 ***
 
 Part of [Charm](https://charm.sh).
 
-<a href="https://charm.sh/"><img alt="the Charm logo" src="https://stuff.charm.sh/charm-badge.jpg" width="400"></a>
+<a href="https://charm.sh/"><img alt="The Charm logo" src="https://stuff.charm.sh/charm-badge.jpg" width="400"></a>
 
-Charm热爱开源! / Charm loves open source!
+Charm热爱开源 • Charm loves open source

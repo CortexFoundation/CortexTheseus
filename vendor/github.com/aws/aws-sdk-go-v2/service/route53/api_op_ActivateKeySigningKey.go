@@ -18,7 +18,7 @@ func (c *Client) ActivateKeySigningKey(ctx context.Context, params *ActivateKeyS
 		params = &ActivateKeySigningKeyInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "ActivateKeySigningKey", params, optFns, addOperationActivateKeySigningKeyMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "ActivateKeySigningKey", params, optFns, c.addOperationActivateKeySigningKeyMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -41,6 +41,8 @@ type ActivateKeySigningKeyInput struct {
 	//
 	// This member is required.
 	Name *string
+
+	noSmithyDocumentSerde
 }
 
 type ActivateKeySigningKeyOutput struct {
@@ -53,9 +55,11 @@ type ActivateKeySigningKeyOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationActivateKeySigningKeyMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationActivateKeySigningKeyMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpActivateKeySigningKey{}, middleware.After)
 	if err != nil {
 		return err
