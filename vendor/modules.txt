@@ -44,7 +44,7 @@ github.com/CortexFoundation/merkletree
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit; go 1.16
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.25-0.20220713172336-72230e3acac6
+# github.com/CortexFoundation/torrentfs v1.0.25-0.20220719230535-678efa1def0b
 ## explicit; go 1.18
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -273,7 +273,7 @@ github.com/benbjohnson/immutable
 # github.com/beorn7/perks v1.0.1
 ## explicit; go 1.11
 github.com/beorn7/perks/quantile
-# github.com/bits-and-blooms/bitset v1.2.2
+# github.com/bits-and-blooms/bitset v1.3.0
 ## explicit; go 1.14
 github.com/bits-and-blooms/bitset
 # github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8
@@ -297,7 +297,7 @@ github.com/cespare/xxhash/v2
 # github.com/charmbracelet/bubbletea v0.22.0
 ## explicit; go 1.13
 github.com/charmbracelet/bubbletea
-# github.com/cloudflare/cloudflare-go v0.44.0
+# github.com/cloudflare/cloudflare-go v0.45.0
 ## explicit; go 1.17
 github.com/cloudflare/cloudflare-go
 # github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be
@@ -323,7 +323,7 @@ github.com/dlclark/regexp2/syntax
 # github.com/docker/docker v20.10.17+incompatible
 ## explicit
 github.com/docker/docker/pkg/reexec
-# github.com/dop251/goja v0.0.0-20220719153422-38a3647bcce0
+# github.com/dop251/goja v0.0.0-20220721122435-5b995c25f3f5
 ## explicit; go 1.14
 github.com/dop251/goja
 github.com/dop251/goja/ast
@@ -421,6 +421,12 @@ github.com/google/uuid
 # github.com/gorilla/websocket v1.5.0
 ## explicit; go 1.12
 github.com/gorilla/websocket
+# github.com/hashicorp/go-cleanhttp v0.5.2
+## explicit; go 1.13
+github.com/hashicorp/go-cleanhttp
+# github.com/hashicorp/go-retryablehttp v0.7.1
+## explicit; go 1.13
+github.com/hashicorp/go-retryablehttp
 # github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
 ## explicit; go 1.12
 github.com/hashicorp/golang-lru
@@ -599,7 +605,7 @@ github.com/pion/dtls/v2/pkg/protocol/alert
 github.com/pion/dtls/v2/pkg/protocol/extension
 github.com/pion/dtls/v2/pkg/protocol/handshake
 github.com/pion/dtls/v2/pkg/protocol/recordlayer
-# github.com/pion/ice/v2 v2.2.6
+# github.com/pion/ice/v2 v2.2.7
 ## explicit; go 1.13
 github.com/pion/ice/v2
 # github.com/pion/interceptor v0.1.11
@@ -885,7 +891,7 @@ golang.org/x/text/unicode/rangetable
 # golang.org/x/time v0.0.0-20220609170525-579cf78fd858
 ## explicit
 golang.org/x/time/rate
-# golang.org/x/tools v0.1.11
+# golang.org/x/tools v0.1.12-0.20220713141851-7464a5a40219
 ## explicit; go 1.17
 golang.org/x/tools/cmd/goimports
 golang.org/x/tools/cmd/stringer

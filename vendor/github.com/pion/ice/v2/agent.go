@@ -450,7 +450,7 @@ func (a *Agent) startConnectivityChecks(isControlling bool, remoteUfrag, remoteP
 		return ErrMultipleStart
 	default:
 	}
-	if err := a.SetRemoteCredentials(remoteUfrag, remotePwd); err != nil {
+	if err := a.SetRemoteCredentials(remoteUfrag, remotePwd); err != nil { //nolint:contextcheck
 		return err
 	}
 
@@ -477,7 +477,7 @@ func (a *Agent) startConnectivityChecks(isControlling bool, remoteUfrag, remoteP
 		agent.updateConnectionState(ConnectionStateChecking)
 
 		a.requestConnectivityCheck()
-		go a.connectivityChecks()
+		go a.connectivityChecks() //nolint:contextcheck
 	})
 }
 
@@ -568,16 +568,16 @@ func (a *Agent) updateConnectionState(newState ConnectionState) {
 }
 
 func (a *Agent) setSelectedPair(p *CandidatePair) {
-	a.log.Tracef("Set selected candidate pair: %s", p)
-
 	if p == nil {
 		var nilPair *CandidatePair
 		a.selectedPair.Store(nilPair)
+		a.log.Tracef("Unset selected candidate pair")
 		return
 	}
 
 	p.nominated = true
 	a.selectedPair.Store(p)
+	a.log.Tracef("Set selected candidate pair: %s", p)
 
 	a.updateConnectionState(ConnectionStateConnected)
 
@@ -610,7 +610,7 @@ func (a *Agent) pingAllCandidates() {
 		}
 
 		if p.bindingRequestCount > a.maxBindingRequests {
-			a.log.Tracef("max requests reached for pair %s, marking it as failed\n", p)
+			a.log.Tracef("max requests reached for pair %s, marking it as failed", p)
 			p.state = CandidatePairStateFailed
 		} else {
 			a.selector.PingCandidate(p.Local, p.Remote)
@@ -961,7 +961,7 @@ func (a *Agent) findRemoteCandidate(networkType NetworkType, addr net.Addr) Cand
 }
 
 func (a *Agent) sendBindingRequest(m *stun.Message, local, remote Candidate) {
-	a.log.Tracef("ping STUN from %s to %s\n", local.String(), remote.String())
+	a.log.Tracef("ping STUN from %s to %s", local.String(), remote.String())
 
 	a.invalidatePendingBindingRequests(time.Now())
 	a.pendingBindingRequests = append(a.pendingBindingRequests, bindingRequest{
@@ -1143,7 +1143,7 @@ func (a *Agent) validateNonSTUNTraffic(local Candidate, remote net.Addr) bool {
 func (a *Agent) GetSelectedCandidatePair() (*CandidatePair, error) {
 	selectedPair := a.getSelectedPair()
 	if selectedPair == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 
 	local, err := selectedPair.Local.copy()
@@ -1160,12 +1160,11 @@ func (a *Agent) GetSelectedCandidatePair() (*CandidatePair, error) {
 }
 
 func (a *Agent) getSelectedPair() *CandidatePair {
-	selectedPair := a.selectedPair.Load()
-	if selectedPair == nil {
-		return nil
+	if selectedPair, ok := a.selectedPair.Load().(*CandidatePair); ok {
+		return selectedPair
 	}
 
-	return selectedPair.(*CandidatePair)
+	return nil
 }
 
 func (a *Agent) closeMulticastConn() {

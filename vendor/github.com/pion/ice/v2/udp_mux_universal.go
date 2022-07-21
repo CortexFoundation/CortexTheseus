@@ -102,7 +102,7 @@ func (c *udpConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
 		}
 
 		if err = msg.Decode(); err != nil {
-			c.logger.Warnf("Failed to handle decode ICE from %s: %v\n", addr.String(), err)
+			c.logger.Warnf("Failed to handle decode ICE from %s: %v", addr.String(), err)
 			return n, addr, nil
 		}
 
@@ -183,7 +183,7 @@ func (m *UniversalUDPMuxDefault) GetXORMappedAddr(serverAddr net.Addr, deadline 
 	// or wait for already sent request to complete
 	waitAddrReceived, err := m.sendStun(serverAddr)
 	if err != nil {
-		return nil, errSendSTUNPacket
+		return nil, fmt.Errorf("%w: %s", errSendSTUNPacket, err)
 	}
 
 	// block until response was handled by the connWorker routine and XORMappedAddress was updated
