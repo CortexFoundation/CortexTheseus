@@ -5,7 +5,9 @@ import (
 	"strings"
 )
 
+// Sequence definitions.
 const (
+	// Cursor positioning.
 	CursorUpSeq              = "%dA"
 	CursorDownSeq            = "%dB"
 	CursorForwardSeq         = "%dC"
@@ -24,8 +26,12 @@ const (
 	InsertLineSeq            = "%dL"
 	DeleteLineSeq            = "%dM"
 
-	ShowCursorSeq             = "?25h"
-	HideCursorSeq             = "?25l"
+	// Explicit values for EraseLineSeq.
+	EraseLineRightSeq  = "0K"
+	EraseLineLeftSeq   = "1K"
+	EraseEntireLineSeq = "2K"
+
+	// Mouse.
 	EnableMousePressSeq       = "?9h" // press only (X10)
 	DisableMousePressSeq      = "?9l"
 	EnableMouseSeq            = "?1000h" // press, release, wheel
@@ -36,13 +42,50 @@ const (
 	DisableMouseCellMotionSeq = "?1002l"
 	EnableMouseAllMotionSeq   = "?1003h" // press, release, move, wheel
 	DisableMouseAllMotionSeq  = "?1003l"
-	AltScreenSeq              = "?1049h"
-	ExitAltScreenSeq          = "?1049l"
+
+	// Screen.
+	RestoreScreenSeq = "?47l"
+	SaveScreenSeq    = "?47h"
+	AltScreenSeq     = "?1049h"
+	ExitAltScreenSeq = "?1049l"
+
+	// Session.
+	SetWindowTitleSeq     = "2;%s\007"
+	SetForegroundColorSeq = "10;%s\007"
+	SetBackgroundColorSeq = "11;%s\007"
+	SetCursorColorSeq     = "12;%s\007"
+	ShowCursorSeq         = "?25h"
+	HideCursorSeq         = "?25l"
 )
 
 // Reset the terminal to its default style, removing any active styles.
 func Reset() {
 	fmt.Print(CSI + ResetSeq + "m")
+}
+
+// SetForegroundColor sets the default foreground color.
+func SetForegroundColor(color Color) {
+	fmt.Printf(OSC+SetForegroundColorSeq, color)
+}
+
+// SetBackgroundColor sets the default background color.
+func SetBackgroundColor(color Color) {
+	fmt.Printf(OSC+SetBackgroundColorSeq, color)
+}
+
+// SetCursorColor sets the cursor color.
+func SetCursorColor(color Color) {
+	fmt.Printf(OSC+SetCursorColorSeq, color)
+}
+
+// RestoreScreen restores a previously saved screen state.
+func RestoreScreen() {
+	fmt.Print(CSI + RestoreScreenSeq)
+}
+
+// SaveScreen saves the screen state.
+func SaveScreen() {
+	fmt.Print(CSI + SaveScreenSeq)
 }
 
 // AltScreen switches to the alternate screen buffer. The former view can be
@@ -122,7 +165,17 @@ func CursorPrevLine(n int) {
 
 // ClearLine clears the current line.
 func ClearLine() {
-	fmt.Printf(CSI+EraseLineSeq, 2)
+	fmt.Print(CSI + EraseEntireLineSeq)
+}
+
+// ClearLineLeft clears the line to the left of the cursor.
+func ClearLineLeft() {
+	fmt.Print(CSI + EraseLineLeftSeq)
+}
+
+// ClearLineRight clears the line to the right of the cursor.
+func ClearLineRight() {
+	fmt.Print(CSI + EraseLineRightSeq)
 }
 
 // ClearLines clears a given number of lines.
@@ -137,7 +190,7 @@ func ChangeScrollingRegion(top, bottom int) {
 	fmt.Printf(CSI+ChangeScrollingRegionSeq, top, bottom)
 }
 
-// InsertLines inserts the given number lines at the top of the scrollable
+// InsertLines inserts the given number of lines at the top of the scrollable
 // region, pushing lines below down.
 func InsertLines(n int) {
 	fmt.Printf(CSI+InsertLineSeq, n)
@@ -156,7 +209,7 @@ func EnableMousePress() {
 
 // DisableMousePress disables X10 mouse mode.
 func DisableMousePress() {
-	fmt.Print(CSI + EnableMousePressSeq)
+	fmt.Print(CSI + DisableMousePressSeq)
 }
 
 // EnableMouse enables Mouse Tracking mode.
@@ -197,4 +250,9 @@ func EnableMouseAllMotion() {
 // DisableMouseAllMotion disables All Motion Mouse mode.
 func DisableMouseAllMotion() {
 	fmt.Print(CSI + DisableMouseAllMotionSeq)
+}
+
+// SetWindowTitle sets the terminal window title.
+func SetWindowTitle(title string) {
+	fmt.Printf(OSC+SetWindowTitleSeq, title)
 }

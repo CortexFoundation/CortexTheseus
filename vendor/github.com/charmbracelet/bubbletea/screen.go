@@ -7,6 +7,14 @@ import (
 	te "github.com/muesli/termenv"
 )
 
+func hideCursor(w io.Writer) {
+	fmt.Fprintf(w, te.CSI+te.HideCursorSeq)
+}
+
+func showCursor(w io.Writer) {
+	fmt.Fprintf(w, te.CSI+te.ShowCursorSeq)
+}
+
 func clearLine(w io.Writer) {
 	fmt.Fprintf(w, te.CSI+te.EraseLineSeq, 2)
 }
@@ -33,4 +41,13 @@ func changeScrollingRegion(w io.Writer, top, bottom int) {
 
 func cursorBack(w io.Writer, n int) {
 	fmt.Fprintf(w, te.CSI+te.CursorBackSeq, n)
+}
+
+func enterAltScreen(w io.Writer) {
+	fmt.Fprintf(w, te.CSI+te.AltScreenSeq)
+	moveCursor(w, 0, 0)
+}
+
+func exitAltScreen(w io.Writer) {
+	fmt.Fprintf(w, te.CSI+te.ExitAltScreenSeq)
 }

@@ -51,20 +51,19 @@ import (
 // an existing resource record set that has the specified values.
 //
 // * UPSERT: If a
-// resource record set does not already exist, AWS creates it. If a resource set
-// does exist, Route 53 updates it with the values in the request.
+// resource set exists Route 53 updates it with the values in the
+// request.
 //
-// Syntaxes for
-// Creating, Updating, and Deleting Resource Record Sets The syntax for a request
-// depends on the type of resource record set that you want to create, delete, or
-// update, such as weighted, alias, or failover. The XML elements in your request
-// must appear in the order listed in the syntax. For an example for each type of
-// resource record set, see "Examples." Don't refer to the syntax in the "Parameter
-// Syntax" section, which includes all of the elements for every kind of resource
-// record set that you can create, delete, or update by using
-// ChangeResourceRecordSets. Change Propagation to Route 53 DNS Servers When you
-// submit a ChangeResourceRecordSets request, Route 53 propagates your changes to
-// all of the Route 53 authoritative DNS servers. While your changes are
+// Syntaxes for Creating, Updating, and Deleting Resource Record Sets The
+// syntax for a request depends on the type of resource record set that you want to
+// create, delete, or update, such as weighted, alias, or failover. The XML
+// elements in your request must appear in the order listed in the syntax. For an
+// example for each type of resource record set, see "Examples." Don't refer to the
+// syntax in the "Parameter Syntax" section, which includes all of the elements for
+// every kind of resource record set that you can create, delete, or update by
+// using ChangeResourceRecordSets. Change Propagation to Route 53 DNS Servers When
+// you submit a ChangeResourceRecordSets request, Route 53 propagates your changes
+// to all of the Route 53 authoritative DNS servers. While your changes are
 // propagating, GetChange returns a status of PENDING. When propagation is
 // complete, GetChange returns a status of INSYNC. Changes generally propagate to
 // all Route 53 name servers within 60 seconds. For more information, see GetChange
@@ -78,7 +77,7 @@ func (c *Client) ChangeResourceRecordSets(ctx context.Context, params *ChangeRes
 		params = &ChangeResourceRecordSetsInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "ChangeResourceRecordSets", params, optFns, addOperationChangeResourceRecordSetsMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "ChangeResourceRecordSets", params, optFns, c.addOperationChangeResourceRecordSetsMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -101,6 +100,8 @@ type ChangeResourceRecordSetsInput struct {
 	//
 	// This member is required.
 	HostedZoneId *string
+
+	noSmithyDocumentSerde
 }
 
 // A complex type containing the response for the request.
@@ -116,9 +117,11 @@ type ChangeResourceRecordSetsOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationChangeResourceRecordSetsMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationChangeResourceRecordSetsMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpChangeResourceRecordSets{}, middleware.After)
 	if err != nil {
 		return err

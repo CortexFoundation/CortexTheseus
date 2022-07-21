@@ -18,7 +18,7 @@ func (c *Client) GetHostedZone(ctx context.Context, params *GetHostedZoneInput, 
 		params = &GetHostedZoneInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "GetHostedZone", params, optFns, addOperationGetHostedZoneMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "GetHostedZone", params, optFns, c.addOperationGetHostedZoneMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -35,6 +35,8 @@ type GetHostedZoneInput struct {
 	//
 	// This member is required.
 	Id *string
+
+	noSmithyDocumentSerde
 }
 
 // A complex type that contain the response to a GetHostedZone request.
@@ -56,9 +58,11 @@ type GetHostedZoneOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationGetHostedZoneMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationGetHostedZoneMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpGetHostedZone{}, middleware.After)
 	if err != nil {
 		return err

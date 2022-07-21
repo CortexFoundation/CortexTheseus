@@ -17,7 +17,7 @@ func (c *Client) GetHealthCheck(ctx context.Context, params *GetHealthCheckInput
 		params = &GetHealthCheckInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "GetHealthCheck", params, optFns, addOperationGetHealthCheckMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "GetHealthCheck", params, optFns, c.addOperationGetHealthCheckMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -36,22 +36,26 @@ type GetHealthCheckInput struct {
 	//
 	// This member is required.
 	HealthCheckId *string
+
+	noSmithyDocumentSerde
 }
 
 // A complex type that contains the response to a GetHealthCheck request.
 type GetHealthCheckOutput struct {
 
 	// A complex type that contains information about one health check that is
-	// associated with the current AWS account.
+	// associated with the current Amazon Web Services account.
 	//
 	// This member is required.
 	HealthCheck *types.HealthCheck
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationGetHealthCheckMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationGetHealthCheckMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpGetHealthCheck{}, middleware.After)
 	if err != nil {
 		return err

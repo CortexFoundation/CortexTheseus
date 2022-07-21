@@ -14,13 +14,13 @@ import (
 // Adds, edits, or deletes tags for a health check or a hosted zone. For
 // information about using tags for cost allocation, see Using Cost Allocation Tags
 // (https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/cost-alloc-tags.html)
-// in the AWS Billing and Cost Management User Guide.
+// in the Billing and Cost Management User Guide.
 func (c *Client) ChangeTagsForResource(ctx context.Context, params *ChangeTagsForResourceInput, optFns ...func(*Options)) (*ChangeTagsForResourceOutput, error) {
 	if params == nil {
 		params = &ChangeTagsForResourceInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "ChangeTagsForResource", params, optFns, addOperationChangeTagsForResourceMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "ChangeTagsForResource", params, optFns, c.addOperationChangeTagsForResourceMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -57,15 +57,19 @@ type ChangeTagsForResourceInput struct {
 	// A complex type that contains a list of the tags that you want to delete from the
 	// specified health check or hosted zone. You can specify up to 10 keys.
 	RemoveTagKeys []string
+
+	noSmithyDocumentSerde
 }
 
 // Empty response for the request.
 type ChangeTagsForResourceOutput struct {
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationChangeTagsForResourceMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationChangeTagsForResourceMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpChangeTagsForResource{}, middleware.After)
 	if err != nil {
 		return err

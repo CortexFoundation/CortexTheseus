@@ -1,7 +1,9 @@
 package cloudflare
 
 import (
+	"context"
 	"encoding/json"
+	"net/http"
 	"net/url"
 	"path"
 	"strconv"
@@ -33,20 +35,22 @@ type AuditLogResource struct {
 	Type string `json:"type"`
 }
 
-// AuditLog is an resource that represents an update in the cloudflare dash
+// AuditLog is an resource that represents an update in the cloudflare dash.
 type AuditLog struct {
-	Action   AuditLogAction         `json:"action"`
-	Actor    AuditLogActor          `json:"actor"`
-	ID       string                 `json:"id"`
-	Metadata map[string]interface{} `json:"metadata"`
-	NewValue string                 `json:"newValue"`
-	OldValue string                 `json:"oldValue"`
-	Owner    AuditLogOwner          `json:"owner"`
-	Resource AuditLogResource       `json:"resource"`
-	When     time.Time              `json:"when"`
+	Action       AuditLogAction         `json:"action"`
+	Actor        AuditLogActor          `json:"actor"`
+	ID           string                 `json:"id"`
+	Metadata     map[string]interface{} `json:"metadata"`
+	NewValue     string                 `json:"newValue"`
+	NewValueJSON map[string]interface{} `json:"newValueJson"`
+	OldValue     string                 `json:"oldValue"`
+	OldValueJSON map[string]interface{} `json:"oldValueJson"`
+	Owner        AuditLogOwner          `json:"owner"`
+	Resource     AuditLogResource       `json:"resource"`
+	When         time.Time              `json:"when"`
 }
 
-// AuditLogResponse is the response returned from the cloudflare v4 api
+// AuditLogResponse is the response returned from the cloudflare v4 api.
 type AuditLogResponse struct {
 	Response   Response
 	Result     []AuditLog `json:"result"`
@@ -67,7 +71,7 @@ type AuditLogFilter struct {
 }
 
 // ToQuery turns an audit log filter in to an HTTP Query Param
-// list, suitable for use in a url.URL.RawQuery. It will not inclue empty
+// list, suitable for use in a url.URL.RawQuery. It will not include empty
 // members of the struct in the query parameters.
 func (a AuditLogFilter) ToQuery() url.Values {
 	v := url.Values{}
@@ -105,23 +109,23 @@ func (a AuditLogFilter) ToQuery() url.Values {
 
 // GetOrganizationAuditLogs will return the audit logs of a specific
 // organization, based on the ID passed in. The audit logs can be
-// filtered based on any argument in the AuditLogFilter
+// filtered based on any argument in the AuditLogFilter.
 //
 // API Reference: https://api.cloudflare.com/#audit-logs-list-organization-audit-logs
-func (api *API) GetOrganizationAuditLogs(organizationID string, a AuditLogFilter) (AuditLogResponse, error) {
+func (api *API) GetOrganizationAuditLogs(ctx context.Context, organizationID string, a AuditLogFilter) (AuditLogResponse, error) {
 	uri := url.URL{
 		Path:       path.Join("/accounts", organizationID, "audit_logs"),
 		ForceQuery: true,
 		RawQuery:   a.ToQuery().Encode(),
 	}
-	res, err := api.makeRequest("GET", uri.String(), nil)
+	res, err := api.makeRequestContext(ctx, http.MethodGet, uri.String(), nil)
 	if err != nil {
 		return AuditLogResponse{}, err
 	}
 	return unmarshalReturn(res)
 }
 
-// unmarshalReturn will unmarshal bytes and return an auditlogresponse
+// unmarshalReturn will unmarshal bytes and return an auditlogresponse.
 func unmarshalReturn(res []byte) (AuditLogResponse, error) {
 	var auditResponse AuditLogResponse
 	err := json.Unmarshal(res, &auditResponse)
@@ -132,16 +136,16 @@ func unmarshalReturn(res []byte) (AuditLogResponse, error) {
 }
 
 // GetUserAuditLogs will return your user's audit logs. The audit logs can be
-// filtered based on any argument in the AuditLogFilter
+// filtered based on any argument in the AuditLogFilter.
 //
 // API Reference: https://api.cloudflare.com/#audit-logs-list-user-audit-logs
-func (api *API) GetUserAuditLogs(a AuditLogFilter) (AuditLogResponse, error) {
+func (api *API) GetUserAuditLogs(ctx context.Context, a AuditLogFilter) (AuditLogResponse, error) {
 	uri := url.URL{
 		Path:       path.Join("/user", "audit_logs"),
 		ForceQuery: true,
 		RawQuery:   a.ToQuery().Encode(),
 	}
-	res, err := api.makeRequest("GET", uri.String(), nil)
+	res, err := api.makeRequestContext(ctx, http.MethodGet, uri.String(), nil)
 	if err != nil {
 		return AuditLogResponse{}, err
 	}

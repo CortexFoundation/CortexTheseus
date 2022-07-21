@@ -106,7 +106,7 @@ func TestBind(t *testing.T) {
 
 	jsre.Set("no", &testNativeObjectBinding{vm: jsre.vm})
 
-	_, err := jsre.Run(`no.TestMethod("testMsg")`)
+	_, err := jsre.Run(`no.TestMethod(null)`)
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}

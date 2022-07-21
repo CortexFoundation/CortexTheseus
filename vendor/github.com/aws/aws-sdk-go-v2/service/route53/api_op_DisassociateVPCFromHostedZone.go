@@ -25,21 +25,38 @@ import (
 // hosted zone or the account that created the Amazon VPC.
 //
 // * Some services, such
-// as AWS Cloud Map and Amazon Elastic File System (Amazon EFS) automatically
-// create hosted zones and associate VPCs with the hosted zones. A service can
-// create a hosted zone using your account or using its own account. You can
-// disassociate a VPC from a hosted zone only if the service created the hosted
-// zone using your account. When you run DisassociateVPCFromHostedZone
+// as Cloud Map and Amazon Elastic File System (Amazon EFS) automatically create
+// hosted zones and associate VPCs with the hosted zones. A service can create a
+// hosted zone using your account or using its own account. You can disassociate a
+// VPC from a hosted zone only if the service created the hosted zone using your
+// account. When you run DisassociateVPCFromHostedZone
 // (https://docs.aws.amazon.com/Route53/latest/APIReference/API_ListHostedZonesByVPC.html),
 // if the hosted zone has a value for OwningAccount, you can use
 // DisassociateVPCFromHostedZone. If the hosted zone has a value for OwningService,
 // you can't use DisassociateVPCFromHostedZone.
+//
+// When revoking access, the hosted
+// zone and the Amazon VPC must belong to the same partition. A partition is a
+// group of Amazon Web Services Regions. Each Amazon Web Services account is scoped
+// to one partition. The following are the supported partitions:
+//
+// * aws - Amazon
+// Web Services Regions
+//
+// * aws-cn - China Regions
+//
+// * aws-us-gov - Amazon Web
+// Services GovCloud (US) Region
+//
+// For more information, see Access Management
+// (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html) in
+// the Amazon Web Services General Reference.
 func (c *Client) DisassociateVPCFromHostedZone(ctx context.Context, params *DisassociateVPCFromHostedZoneInput, optFns ...func(*Options)) (*DisassociateVPCFromHostedZoneOutput, error) {
 	if params == nil {
 		params = &DisassociateVPCFromHostedZoneInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "DisassociateVPCFromHostedZone", params, optFns, addOperationDisassociateVPCFromHostedZoneMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "DisassociateVPCFromHostedZone", params, optFns, c.addOperationDisassociateVPCFromHostedZoneMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -66,6 +83,8 @@ type DisassociateVPCFromHostedZoneInput struct {
 
 	// Optional: A comment about the disassociation request.
 	Comment *string
+
+	noSmithyDocumentSerde
 }
 
 // A complex type that contains the response information for the disassociate
@@ -80,9 +99,11 @@ type DisassociateVPCFromHostedZoneOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationDisassociateVPCFromHostedZoneMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationDisassociateVPCFromHostedZoneMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpDisassociateVPCFromHostedZone{}, middleware.After)
 	if err != nil {
 		return err

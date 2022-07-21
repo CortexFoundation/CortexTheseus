@@ -21,7 +21,7 @@ func (c *Client) UpdateHealthCheck(ctx context.Context, params *UpdateHealthChec
 		params = &UpdateHealthCheckInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "UpdateHealthCheck", params, optFns, addOperationUpdateHealthCheckMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "UpdateHealthCheck", params, optFns, c.addOperationUpdateHealthCheckMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -244,10 +244,10 @@ type UpdateHealthCheckInput struct {
 	// Unhealthy: Route 53 considers the health check to be unhealthy.
 	//
 	// *
-	// LastKnownStatus: Route 53 uses the status of the health check from the last time
-	// CloudWatch had sufficient data to determine the alarm state. For new health
-	// checks that have no last known status, the default status for the health check
-	// is healthy.
+	// LastKnownStatus: By default, Route 53 uses the status of the health check from
+	// the last time CloudWatch had sufficient data to determine the alarm state. For
+	// new health checks that have no last known status, the status for the health
+	// check is healthy.
 	InsufficientDataHealthStatus types.InsufficientDataHealthStatus
 
 	// Specify whether you want Amazon Route 53 to invert the status of a health check,
@@ -301,6 +301,8 @@ type UpdateHealthCheckInput struct {
 	// resource healthy. (You can't change the value of Type when you update a health
 	// check.)
 	SearchString *string
+
+	noSmithyDocumentSerde
 }
 
 // A complex type that contains the response to the UpdateHealthCheck request.
@@ -313,9 +315,11 @@ type UpdateHealthCheckOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationUpdateHealthCheckMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationUpdateHealthCheckMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpUpdateHealthCheck{}, middleware.After)
 	if err != nil {
 		return err

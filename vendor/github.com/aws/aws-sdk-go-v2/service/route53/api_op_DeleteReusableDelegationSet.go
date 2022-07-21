@@ -22,7 +22,7 @@ func (c *Client) DeleteReusableDelegationSet(ctx context.Context, params *Delete
 		params = &DeleteReusableDelegationSetInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "DeleteReusableDelegationSet", params, optFns, addOperationDeleteReusableDelegationSetMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "DeleteReusableDelegationSet", params, optFns, c.addOperationDeleteReusableDelegationSetMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -39,15 +39,19 @@ type DeleteReusableDelegationSetInput struct {
 	//
 	// This member is required.
 	Id *string
+
+	noSmithyDocumentSerde
 }
 
 // An empty element.
 type DeleteReusableDelegationSetOutput struct {
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationDeleteReusableDelegationSetMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationDeleteReusableDelegationSetMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpDeleteReusableDelegationSet{}, middleware.After)
 	if err != nil {
 		return err

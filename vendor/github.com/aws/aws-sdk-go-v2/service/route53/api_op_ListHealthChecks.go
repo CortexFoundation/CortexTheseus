@@ -12,14 +12,14 @@ import (
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
-// Retrieve a list of the health checks that are associated with the current AWS
-// account.
+// Retrieve a list of the health checks that are associated with the current Amazon
+// Web Services account.
 func (c *Client) ListHealthChecks(ctx context.Context, params *ListHealthChecksInput, optFns ...func(*Options)) (*ListHealthChecksOutput, error) {
 	if params == nil {
 		params = &ListHealthChecksInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "ListHealthChecks", params, optFns, addOperationListHealthChecksMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "ListHealthChecks", params, optFns, c.addOperationListHealthChecksMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +30,7 @@ func (c *Client) ListHealthChecks(ctx context.Context, params *ListHealthChecksI
 }
 
 // A request to retrieve a list of the health checks that are associated with the
-// current AWS account.
+// current Amazon Web Services account.
 type ListHealthChecksInput struct {
 
 	// If the value of IsTruncated in the previous response was true, you have more
@@ -46,13 +46,15 @@ type ListHealthChecksInput struct {
 	// If you set MaxItems to a value greater than 100, Route 53 returns only the first
 	// 100 health checks.
 	MaxItems *int32
+
+	noSmithyDocumentSerde
 }
 
 // A complex type that contains the response to a ListHealthChecks request.
 type ListHealthChecksOutput struct {
 
 	// A complex type that contains one HealthCheck element for each health check that
-	// is associated with the current AWS account.
+	// is associated with the current Amazon Web Services account.
 	//
 	// This member is required.
 	HealthChecks []types.HealthCheck
@@ -84,9 +86,11 @@ type ListHealthChecksOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationListHealthChecksMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationListHealthChecksMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpListHealthChecks{}, middleware.After)
 	if err != nil {
 		return err
@@ -196,12 +200,13 @@ func NewListHealthChecksPaginator(client ListHealthChecksAPIClient, params *List
 		client:    client,
 		params:    params,
 		firstPage: true,
+		nextToken: params.Marker,
 	}
 }
 
 // HasMorePages returns a boolean indicating whether more pages are available
 func (p *ListHealthChecksPaginator) HasMorePages() bool {
-	return p.firstPage || p.nextToken != nil
+	return p.firstPage || (p.nextToken != nil && len(*p.nextToken) != 0)
 }
 
 // NextPage retrieves the next ListHealthChecks page.
@@ -228,7 +233,10 @@ func (p *ListHealthChecksPaginator) NextPage(ctx context.Context, optFns ...func
 	prevToken := p.nextToken
 	p.nextToken = result.NextMarker
 
-	if p.options.StopOnDuplicateToken && prevToken != nil && p.nextToken != nil && *prevToken == *p.nextToken {
+	if p.options.StopOnDuplicateToken &&
+		prevToken != nil &&
+		p.nextToken != nil &&
+		*prevToken == *p.nextToken {
 		p.nextToken = nil
 	}
 

@@ -76,11 +76,34 @@ type reflectTypeInfo struct {
 	FieldNames, MethodNames []string
 }
 
+type reflectValueWrapper interface {
+	esValue() Value
+	reflectValue() reflect.Value
+	setReflectValue(reflect.Value)
+}
+
+func isContainer(k reflect.Kind) bool {
+	switch k {
+	case reflect.Struct, reflect.Slice, reflect.Array:
+		return true
+	}
+	return false
+}
+
+func copyReflectValueWrapper(w reflectValueWrapper) {
+	v := w.reflectValue()
+	c := reflect.New(v.Type()).Elem()
+	c.Set(v)
+	w.setReflectValue(c)
+}
+
 type objectGoReflect struct {
 	baseObject
 	origValue, value reflect.Value
 
 	valueTypeInfo, origValueTypeInfo *reflectTypeInfo
+
+	valueCache map[string]reflectValueWrapper
 
 	toJson func() interface{}
 }
@@ -103,6 +126,12 @@ func (o *objectGoReflect) init() {
 	default:
 		o.class = classObject
 		o.prototype = o.val.runtime.global.ObjectPrototype
+		if !o.value.CanAddr() {
+			value := reflect.New(o.value.Type()).Elem()
+			value.Set(o.value)
+			o.origValue = value
+			o.value = value
+		}
 	}
 	o.extensible = true
 
@@ -134,8 +163,7 @@ func (o *objectGoReflect) getStr(name unistring.String, receiver Value) Value {
 
 func (o *objectGoReflect) _getField(jsName string) reflect.Value {
 	if info, exists := o.valueTypeInfo.Fields[jsName]; exists {
-		v := o.value.FieldByIndex(info.Index)
-		return v
+		return o.value.FieldByIndex(info.Index)
 	}
 
 	return reflect.Value{}
@@ -149,22 +177,58 @@ func (o *objectGoReflect) _getMethod(jsName string) reflect.Value {
 	return reflect.Value{}
 }
 
-func (o *objectGoReflect) getAddr(v reflect.Value) reflect.Value {
-	if (v.Kind() == reflect.Struct || v.Kind() == reflect.Slice) && v.CanAddr() {
-		return v.Addr()
+func (o *objectGoReflect) elemToValue(ev reflect.Value) (Value, reflectValueWrapper) {
+	if isContainer(ev.Kind()) {
+		if ev.Type() == reflectTypeArray {
+			a := o.val.runtime.newObjectGoSlice(ev.Addr().Interface().(*[]interface{}))
+			return a.val, a
+		}
+		ret := o.val.runtime.reflectValueToValue(ev)
+		if obj, ok := ret.(*Object); ok {
+			if w, ok := obj.self.(reflectValueWrapper); ok {
+				return ret, w
+			}
+		}
+		panic("reflectValueToValue() returned a value which is not a reflectValueWrapper")
 	}
-	return v
+
+	for ev.Kind() == reflect.Interface {
+		ev = ev.Elem()
+	}
+
+	if ev.Kind() == reflect.Invalid {
+		return _null, nil
+	}
+
+	return o.val.runtime.ToValue(ev.Interface()), nil
+}
+
+func (o *objectGoReflect) _getFieldValue(name string) Value {
+	if v := o.valueCache[name]; v != nil {
+		return v.esValue()
+	}
+	if v := o._getField(name); v.IsValid() {
+		res, w := o.elemToValue(v)
+		if w != nil {
+			if o.valueCache == nil {
+				o.valueCache = make(map[string]reflectValueWrapper)
+			}
+			o.valueCache[name] = w
+		}
+		return res
+	}
+	return nil
 }
 
 func (o *objectGoReflect) _get(name string) Value {
 	if o.value.Kind() == reflect.Struct {
-		if v := o._getField(name); v.IsValid() {
-			return o.val.runtime.ToValue(o.getAddr(v).Interface())
+		if ret := o._getFieldValue(name); ret != nil {
+			return ret
 		}
 	}
 
 	if v := o._getMethod(name); v.IsValid() {
-		return o.val.runtime.ToValue(v.Interface())
+		return o.val.runtime.reflectValueToValue(v)
 	}
 
 	return nil
@@ -173,10 +237,10 @@ func (o *objectGoReflect) _get(name string) Value {
 func (o *objectGoReflect) getOwnPropStr(name unistring.String) Value {
 	n := name.String()
 	if o.value.Kind() == reflect.Struct {
-		if v := o._getField(n); v.IsValid() {
+		if v := o._getFieldValue(n); v != nil {
 			return &valueProperty{
-				value:      o.val.runtime.ToValue(o.getAddr(v).Interface()),
-				writable:   v.CanSet(),
+				value:      v,
+				writable:   true,
 				enumerable: true,
 			}
 		}
@@ -184,7 +248,7 @@ func (o *objectGoReflect) getOwnPropStr(name unistring.String) Value {
 
 	if v := o._getMethod(n); v.IsValid() {
 		return &valueProperty{
-			value:      o.val.runtime.ToValue(v.Interface()),
+			value:      o.val.runtime.reflectValueToValue(v),
 			enumerable: true,
 		}
 	}
@@ -216,14 +280,21 @@ func (o *objectGoReflect) setForeignIdx(idx valueInt, val, receiver Value, throw
 func (o *objectGoReflect) _put(name string, val Value, throw bool) (has, ok bool) {
 	if o.value.Kind() == reflect.Struct {
 		if v := o._getField(name); v.IsValid() {
-			if !v.CanSet() {
-				o.val.runtime.typeErrorResult(throw, "Cannot assign to a non-addressable or read-only property %s of a host object", name)
-				return true, false
+			cached := o.valueCache[name]
+			if cached != nil {
+				copyReflectValueWrapper(cached)
 			}
+
 			err := o.val.runtime.toReflectValue(val, v, &objectExportCtx{})
 			if err != nil {
+				if cached != nil {
+					cached.setReflectValue(v)
+				}
 				o.val.runtime.typeErrorResult(throw, "Go struct conversion error: %v", err)
 				return true, false
+			}
+			if cached != nil {
+				delete(o.valueCache, name)
 			}
 			return true, true
 		}
@@ -362,7 +433,7 @@ func (i *goreflectPropIter) nextField() (propIterItem, iterNextFunc) {
 	if i.idx < len(names) {
 		name := names[i.idx]
 		i.idx++
-		return propIterItem{name: unistring.NewFromString(name), enumerable: _ENUM_TRUE}, i.nextField
+		return propIterItem{name: newStringValue(name), enumerable: _ENUM_TRUE}, i.nextField
 	}
 
 	i.idx = 0
@@ -374,13 +445,13 @@ func (i *goreflectPropIter) nextMethod() (propIterItem, iterNextFunc) {
 	if i.idx < len(names) {
 		name := names[i.idx]
 		i.idx++
-		return propIterItem{name: unistring.NewFromString(name), enumerable: _ENUM_TRUE}, i.nextMethod
+		return propIterItem{name: newStringValue(name), enumerable: _ENUM_TRUE}, i.nextMethod
 	}
 
 	return propIterItem{}, nil
 }
 
-func (o *objectGoReflect) enumerateOwnKeys() iterNextFunc {
+func (o *objectGoReflect) iterateStringKeys() iterNextFunc {
 	r := &goreflectPropIter{
 		o: o,
 	}
@@ -391,7 +462,7 @@ func (o *objectGoReflect) enumerateOwnKeys() iterNextFunc {
 	return r.nextMethod
 }
 
-func (o *objectGoReflect) ownKeys(_ bool, accum []Value) []Value {
+func (o *objectGoReflect) stringKeys(_ bool, accum []Value) []Value {
 	// all own keys are enumerable
 	for _, name := range o.valueTypeInfo.FieldNames {
 		accum = append(accum, newStringValue(name))
@@ -414,9 +485,28 @@ func (o *objectGoReflect) exportType() reflect.Type {
 
 func (o *objectGoReflect) equal(other objectImpl) bool {
 	if other, ok := other.(*objectGoReflect); ok {
-		return o.value.Interface() == other.value.Interface()
+		k1, k2 := o.value.Kind(), other.value.Kind()
+		if k1 == k2 {
+			if isContainer(k1) {
+				return o.value == other.value
+			}
+			return o.value.Interface() == other.value.Interface()
+		}
 	}
 	return false
+}
+
+func (o *objectGoReflect) reflectValue() reflect.Value {
+	return o.value
+}
+
+func (o *objectGoReflect) setReflectValue(v reflect.Value) {
+	o.value = v
+	o.origValue = v
+}
+
+func (o *objectGoReflect) esValue() Value {
+	return o.val
 }
 
 func (r *Runtime) buildFieldInfo(t reflect.Type, index []int, info *reflectTypeInfo) {

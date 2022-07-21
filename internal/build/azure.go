@@ -60,7 +60,7 @@ func AzureBlobstoreUpload(path string, name string, config AzureBlobstoreConfig)
 	}
 	defer in.Close()
 
-	blockblob := container.NewBlockBlobClient(name)
+	blockblob, _ := container.NewBlockBlobClient(name)
 	_, err = blockblob.Upload(context.Background(), in, nil)
 	return err
 }
@@ -78,13 +78,13 @@ func AzureBlobstoreList(config AzureBlobstoreConfig) ([]*azblob.BlobItemInternal
 		return nil, err
 	}
 	var maxResults int32 = 5000
-	pager := container.ListBlobsFlat(&azblob.ContainerListBlobFlatSegmentOptions{
-		Maxresults: &maxResults,
+	pager := container.ListBlobsFlat(&azblob.ContainerListBlobsFlatOptions{
+		MaxResults: &maxResults,
 	})
 	var allBlobs []*azblob.BlobItemInternal
 	for pager.NextPage(context.Background()) {
 		res := pager.PageResponse()
-		allBlobs = append(allBlobs, res.ContainerListBlobFlatSegmentResult.Segment.BlobItems...)
+		allBlobs = append(allBlobs, res.Segment.BlobItems...)
 	}
 	return allBlobs, pager.Err()
 }
@@ -110,8 +110,8 @@ func AzureBlobstoreDelete(config AzureBlobstoreConfig, blobs []*azblob.BlobItemI
 	}
 	// Iterate over the blobs and delete them
 	for _, blob := range blobs {
-		blockblob := container.NewBlockBlobClient(*blob.Name)
-		if _, err := blockblob.Delete(context.Background(), &azblob.DeleteBlobOptions{}); err != nil {
+		blockblob, _ := container.NewBlockBlobClient(*blob.Name)
+		if _, err := blockblob.Delete(context.Background(), nil); err != nil {
 			return err
 		}
 		fmt.Printf("deleted  %s (%s)\n", *blob.Name, blob.Properties.LastModified)

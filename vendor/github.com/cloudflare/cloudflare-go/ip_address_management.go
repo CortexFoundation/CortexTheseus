@@ -6,11 +6,9 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
-// IPPrefix contains information about an IP prefix
+// IPPrefix contains information about an IP prefix.
 type IPPrefix struct {
 	ID                   string     `json:"id"`
 	CreatedAt            *time.Time `json:"created_at"`
@@ -20,40 +18,41 @@ type IPPrefix struct {
 	Description          string     `json:"description"`
 	Approved             string     `json:"approved"`
 	OnDemandEnabled      bool       `json:"on_demand_enabled"`
+	OnDemandLocked       bool       `json:"on_demand_locked"`
 	Advertised           bool       `json:"advertised"`
 	AdvertisedModifiedAt *time.Time `json:"advertised_modified_at"`
 }
 
-// AdvertisementStatus contains information about the BGP status of an IP prefix
+// AdvertisementStatus contains information about the BGP status of an IP prefix.
 type AdvertisementStatus struct {
 	Advertised           bool       `json:"advertised"`
 	AdvertisedModifiedAt *time.Time `json:"advertised_modified_at"`
 }
 
-// ListIPPrefixResponse contains a slice of IP prefixes
+// ListIPPrefixResponse contains a slice of IP prefixes.
 type ListIPPrefixResponse struct {
 	Response
 	Result []IPPrefix `json:"result"`
 }
 
-// GetIPPrefixResponse contains a specific IP prefix's API Response
+// GetIPPrefixResponse contains a specific IP prefix's API Response.
 type GetIPPrefixResponse struct {
 	Response
 	Result IPPrefix `json:"result"`
 }
 
-// GetAdvertisementStatusResponse contains an API Response for the BGP status of the IP Prefix
+// GetAdvertisementStatusResponse contains an API Response for the BGP status of the IP Prefix.
 type GetAdvertisementStatusResponse struct {
 	Response
 	Result AdvertisementStatus `json:"result"`
 }
 
-// IPPrefixUpdateRequest contains information about prefix updates
+// IPPrefixUpdateRequest contains information about prefix updates.
 type IPPrefixUpdateRequest struct {
 	Description string `json:"description"`
 }
 
-// AdvertisementStatusUpdateRequest contains information about bgp status updates
+// AdvertisementStatusUpdateRequest contains information about bgp status updates.
 type AdvertisementStatusUpdateRequest struct {
 	Advertised bool `json:"advertised"`
 }
@@ -61,16 +60,16 @@ type AdvertisementStatusUpdateRequest struct {
 // ListPrefixes lists all IP prefixes for a given account
 //
 // API reference: https://api.cloudflare.com/#ip-address-management-prefixes-list-prefixes
-func (api *API) ListPrefixes(ctx context.Context) ([]IPPrefix, error) {
-	uri := fmt.Sprintf("/accounts/%s/addressing/prefixes", api.AccountID)
+func (api *API) ListPrefixes(ctx context.Context, accountID string) ([]IPPrefix, error) {
+	uri := fmt.Sprintf("/accounts/%s/addressing/prefixes", accountID)
 	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
-		return []IPPrefix{}, errors.Wrap(err, errMakeRequestError)
+		return []IPPrefix{}, err
 	}
 
 	result := ListIPPrefixResponse{}
 	if err := json.Unmarshal(res, &result); err != nil {
-		return []IPPrefix{}, errors.Wrap(err, errUnmarshalError)
+		return []IPPrefix{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 
 	return result.Result, nil
@@ -79,16 +78,16 @@ func (api *API) ListPrefixes(ctx context.Context) ([]IPPrefix, error) {
 // GetPrefix returns a specific IP prefix
 //
 // API reference: https://api.cloudflare.com/#ip-address-management-prefixes-prefix-details
-func (api *API) GetPrefix(ctx context.Context, id string) (IPPrefix, error) {
-	uri := fmt.Sprintf("/accounts/%s/addressing/prefixes/%s", api.AccountID, id)
+func (api *API) GetPrefix(ctx context.Context, accountID, ID string) (IPPrefix, error) {
+	uri := fmt.Sprintf("/accounts/%s/addressing/prefixes/%s", accountID, ID)
 	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
-		return IPPrefix{}, errors.Wrap(err, errMakeRequestError)
+		return IPPrefix{}, err
 	}
 
 	result := GetIPPrefixResponse{}
 	if err := json.Unmarshal(res, &result); err != nil {
-		return IPPrefix{}, errors.Wrap(err, errUnmarshalError)
+		return IPPrefix{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 
 	return result.Result, nil
@@ -97,16 +96,16 @@ func (api *API) GetPrefix(ctx context.Context, id string) (IPPrefix, error) {
 // UpdatePrefixDescription edits the description of the IP prefix
 //
 // API reference: https://api.cloudflare.com/#ip-address-management-prefixes-update-prefix-description
-func (api *API) UpdatePrefixDescription(ctx context.Context, id string, description string) (IPPrefix, error) {
-	uri := fmt.Sprintf("/accounts/%s/addressing/prefixes/%s", api.AccountID, id)
+func (api *API) UpdatePrefixDescription(ctx context.Context, accountID, ID string, description string) (IPPrefix, error) {
+	uri := fmt.Sprintf("/accounts/%s/addressing/prefixes/%s", accountID, ID)
 	res, err := api.makeRequestContext(ctx, http.MethodPatch, uri, IPPrefixUpdateRequest{Description: description})
 	if err != nil {
-		return IPPrefix{}, errors.Wrap(err, errMakeRequestError)
+		return IPPrefix{}, err
 	}
 
 	result := GetIPPrefixResponse{}
 	if err := json.Unmarshal(res, &result); err != nil {
-		return IPPrefix{}, errors.Wrap(err, errUnmarshalError)
+		return IPPrefix{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 
 	return result.Result, nil
@@ -115,16 +114,16 @@ func (api *API) UpdatePrefixDescription(ctx context.Context, id string, descript
 // GetAdvertisementStatus returns the BGP status of the IP prefix
 //
 // API reference: https://api.cloudflare.com/#ip-address-management-prefixes-update-prefix-description
-func (api *API) GetAdvertisementStatus(ctx context.Context, id string) (AdvertisementStatus, error) {
-	uri := fmt.Sprintf("/accounts/%s/addressing/prefixes/%s/bgp/status", api.AccountID, id)
+func (api *API) GetAdvertisementStatus(ctx context.Context, accountID, ID string) (AdvertisementStatus, error) {
+	uri := fmt.Sprintf("/accounts/%s/addressing/prefixes/%s/bgp/status", accountID, ID)
 	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
-		return AdvertisementStatus{}, errors.Wrap(err, errMakeRequestError)
+		return AdvertisementStatus{}, err
 	}
 
 	result := GetAdvertisementStatusResponse{}
 	if err := json.Unmarshal(res, &result); err != nil {
-		return AdvertisementStatus{}, errors.Wrap(err, errUnmarshalError)
+		return AdvertisementStatus{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 
 	return result.Result, nil
@@ -133,16 +132,16 @@ func (api *API) GetAdvertisementStatus(ctx context.Context, id string) (Advertis
 // UpdateAdvertisementStatus changes the BGP status of an IP prefix
 //
 // API reference: https://api.cloudflare.com/#ip-address-management-prefixes-update-prefix-description
-func (api *API) UpdateAdvertisementStatus(ctx context.Context, id string, advertised bool) (AdvertisementStatus, error) {
-	uri := fmt.Sprintf("/accounts/%s/addressing/prefixes/%s/bgp/status", api.AccountID, id)
+func (api *API) UpdateAdvertisementStatus(ctx context.Context, accountID, ID string, advertised bool) (AdvertisementStatus, error) {
+	uri := fmt.Sprintf("/accounts/%s/addressing/prefixes/%s/bgp/status", accountID, ID)
 	res, err := api.makeRequestContext(ctx, http.MethodPatch, uri, AdvertisementStatusUpdateRequest{Advertised: advertised})
 	if err != nil {
-		return AdvertisementStatus{}, errors.Wrap(err, errMakeRequestError)
+		return AdvertisementStatus{}, err
 	}
 
 	result := GetAdvertisementStatusResponse{}
 	if err := json.Unmarshal(res, &result); err != nil {
-		return AdvertisementStatus{}, errors.Wrap(err, errUnmarshalError)
+		return AdvertisementStatus{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 
 	return result.Result, nil

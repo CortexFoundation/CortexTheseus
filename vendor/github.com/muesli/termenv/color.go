@@ -3,6 +3,7 @@ package termenv
 import (
 	"errors"
 	"fmt"
+	"image/color"
 	"math"
 	"strconv"
 	"strings"
@@ -11,29 +12,48 @@ import (
 )
 
 var (
+	// ErrInvalidColor gets returned when a color is invalid.
 	ErrInvalidColor = errors.New("invalid color")
 )
 
+// Foreground and Background sequence codes
 const (
 	Foreground = "38"
 	Background = "48"
 )
 
+// Color is an interface implemented by all colors that can be converted to an
+// ANSI sequence.
 type Color interface {
+	// Sequence returns the ANSI Sequence for the color.
 	Sequence(bg bool) string
 }
 
+// NoColor is a nop for terminals that don't support colors.
 type NoColor struct{}
+
+func (c NoColor) String() string {
+	return ""
+}
 
 // ANSIColor is a color (0-15) as defined by the ANSI Standard.
 type ANSIColor int
 
+func (c ANSIColor) String() string {
+	return ansiHex[c]
+}
+
 // ANSI256Color is a color (16-255) as defined by the ANSI Standard.
 type ANSI256Color int
+
+func (c ANSI256Color) String() string {
+	return ansiHex[c]
+}
 
 // RGBColor is a hex-encoded color, e.g. "#abcdef".
 type RGBColor string
 
+// ConvertToRGB converts a Color to a colorful.Color.
 func ConvertToRGB(c Color) colorful.Color {
 	var hex string
 	switch v := c.(type) {
@@ -49,6 +69,7 @@ func ConvertToRGB(c Color) colorful.Color {
 	return ch
 }
 
+// Convert transforms a given Color to a Color supported within the Profile.
 func (p Profile) Convert(c Color) Color {
 	if p == Ascii {
 		return NoColor{}
@@ -82,6 +103,8 @@ func (p Profile) Convert(c Color) Color {
 	return c
 }
 
+// Color creates a Color from a string. Valid inputs are hex colors, as well as
+// ANSI color codes (0-15, 16-255).
 func (p Profile) Color(s string) Color {
 	if len(s) == 0 {
 		return nil
@@ -106,10 +129,18 @@ func (p Profile) Color(s string) Color {
 	return p.Convert(c)
 }
 
+// FromColor creates a Color from a color.Color.
+func (p Profile) FromColor(c color.Color) Color {
+	col, _ := colorful.MakeColor(c)
+	return p.Color(col.Hex())
+}
+
+// Sequence returns the ANSI Sequence for the color.
 func (c NoColor) Sequence(bg bool) string {
 	return ""
 }
 
+// Sequence returns the ANSI Sequence for the color.
 func (c ANSIColor) Sequence(bg bool) string {
 	col := int(c)
 	bgMod := func(c int) int {
@@ -125,6 +156,7 @@ func (c ANSIColor) Sequence(bg bool) string {
 	return fmt.Sprintf("%d", bgMod(col-8)+90)
 }
 
+// Sequence returns the ANSI Sequence for the color.
 func (c ANSI256Color) Sequence(bg bool) string {
 	prefix := Foreground
 	if bg {
@@ -133,6 +165,7 @@ func (c ANSI256Color) Sequence(bg bool) string {
 	return fmt.Sprintf("%s;5;%d", prefix, c)
 }
 
+// Sequence returns the ANSI Sequence for the color.
 func (c RGBColor) Sequence(bg bool) string {
 	f, err := colorful.Hex(string(c))
 	if err != nil {
@@ -147,9 +180,21 @@ func (c RGBColor) Sequence(bg bool) string {
 }
 
 func xTermColor(s string) (RGBColor, error) {
-	if len(s) != 24 {
+	if len(s) < 24 || len(s) > 25 {
 		return RGBColor(""), ErrInvalidColor
 	}
+
+	switch {
+	case strings.HasSuffix(s, "\a"):
+		s = strings.TrimSuffix(s, "\a")
+	case strings.HasSuffix(s, "\033"):
+		s = strings.TrimSuffix(s, "\033")
+	case strings.HasSuffix(s, "\033\\"):
+		s = strings.TrimSuffix(s, "\033\\")
+	default:
+		return RGBColor(""), ErrInvalidColor
+	}
+
 	s = s[4:]
 
 	prefix := ";rgb:"
@@ -157,7 +202,6 @@ func xTermColor(s string) (RGBColor, error) {
 		return RGBColor(""), ErrInvalidColor
 	}
 	s = strings.TrimPrefix(s, prefix)
-	s = strings.TrimSuffix(s, "\a")
 
 	h := strings.Split(s, "/")
 	hex := fmt.Sprintf("#%s%s%s", h[0][:2], h[1][:2], h[2][:2])
@@ -171,7 +215,7 @@ func ansi256ToANSIColor(c ANSI256Color) ANSIColor {
 	h, _ := colorful.Hex(ansiHex[c])
 	for i := 0; i <= 15; i++ {
 		hb, _ := colorful.Hex(ansiHex[i])
-		d := h.DistanceLab(hb)
+		d := h.DistanceHSLuv(hb)
 
 		if d < md {
 			md = d
@@ -218,8 +262,8 @@ func hexToANSI256Color(c colorful.Color) ANSI256Color {
 	// Return the one which is nearer to the original input rgb value
 	c2 := colorful.Color{R: float64(cr) / 255.0, G: float64(cg) / 255.0, B: float64(cb) / 255.0}
 	g2 := colorful.Color{R: float64(gv) / 255.0, G: float64(gv) / 255.0, B: float64(gv) / 255.0}
-	colorDist := c.DistanceLab(c2)
-	grayDist := c.DistanceLab(g2)
+	colorDist := c.DistanceHSLuv(c2)
+	grayDist := c.DistanceHSLuv(g2)
 
 	if colorDist <= grayDist {
 		return ANSI256Color(16 + ci)

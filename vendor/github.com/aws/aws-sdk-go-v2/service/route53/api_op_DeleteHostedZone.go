@@ -12,7 +12,7 @@ import (
 )
 
 // Deletes a hosted zone. If the hosted zone was created by another service, such
-// as AWS Cloud Map, see Deleting Public Hosted Zones That Were Created by Another
+// as Cloud Map, see Deleting Public Hosted Zones That Were Created by Another
 // Service
 // (https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/DeleteHostedZone.html#delete-public-hosted-zone-created-by-another-service)
 // in the Amazon Route 53 Developer Guide for information about how to delete it.
@@ -50,13 +50,13 @@ import (
 //
 // * Use
 // the ListHostedZones action to get a list of the hosted zones associated with the
-// current AWS account.
+// current Amazon Web Services account.
 func (c *Client) DeleteHostedZone(ctx context.Context, params *DeleteHostedZoneInput, optFns ...func(*Options)) (*DeleteHostedZoneOutput, error) {
 	if params == nil {
 		params = &DeleteHostedZoneInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "DeleteHostedZone", params, optFns, addOperationDeleteHostedZoneMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "DeleteHostedZone", params, optFns, c.addOperationDeleteHostedZoneMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -73,6 +73,8 @@ type DeleteHostedZoneInput struct {
 	//
 	// This member is required.
 	Id *string
+
+	noSmithyDocumentSerde
 }
 
 // A complex type that contains the response to a DeleteHostedZone request.
@@ -86,9 +88,11 @@ type DeleteHostedZoneOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationDeleteHostedZoneMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationDeleteHostedZoneMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpDeleteHostedZone{}, middleware.After)
 	if err != nil {
 		return err

@@ -27,7 +27,7 @@ func (c *Client) GetGeoLocation(ctx context.Context, params *GetGeoLocationInput
 		params = &GetGeoLocationInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "GetGeoLocation", params, optFns, addOperationGetGeoLocationMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "GetGeoLocation", params, optFns, c.addOperationGetGeoLocationMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -73,6 +73,8 @@ type GetGeoLocationInput struct {
 	// (https://docs.aws.amazon.com/Route53/latest/APIReference/API_ListGeoLocations.html)
 	// API.
 	SubdivisionCode *string
+
+	noSmithyDocumentSerde
 }
 
 // A complex type that contains the response information for the specified
@@ -87,9 +89,11 @@ type GetGeoLocationOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationGetGeoLocationMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationGetGeoLocationMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpGetGeoLocation{}, middleware.After)
 	if err != nil {
 		return err

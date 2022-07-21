@@ -1,12 +1,10 @@
 package cloudflare
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"net/url"
-	"strconv"
-
-	"github.com/pkg/errors"
+	"net/http"
 )
 
 // AccountMember is the definition of a member of an account.
@@ -48,86 +46,87 @@ type AccountMemberDetailResponse struct {
 // AccountMemberInvitation represents the invitation for a new member to
 // the account.
 type AccountMemberInvitation struct {
-	Email string   `json:"email"`
-	Roles []string `json:"roles"`
+	Email  string   `json:"email"`
+	Roles  []string `json:"roles"`
+	Status string   `json:"status,omitempty"`
 }
 
 // AccountMembers returns all members of an account.
 //
 // API reference: https://api.cloudflare.com/#accounts-list-accounts
-func (api *API) AccountMembers(accountID string, pageOpts PaginationOptions) ([]AccountMember, ResultInfo, error) {
+func (api *API) AccountMembers(ctx context.Context, accountID string, pageOpts PaginationOptions) ([]AccountMember, ResultInfo, error) {
 	if accountID == "" {
-		return []AccountMember{}, ResultInfo{}, errors.New(errMissingAccountID)
+		return []AccountMember{}, ResultInfo{}, ErrMissingAccountID
 	}
 
-	v := url.Values{}
-	if pageOpts.PerPage > 0 {
-		v.Set("per_page", strconv.Itoa(pageOpts.PerPage))
-	}
-	if pageOpts.Page > 0 {
-		v.Set("page", strconv.Itoa(pageOpts.Page))
-	}
+	uri := buildURI(fmt.Sprintf("/accounts/%s/members", accountID), pageOpts)
 
-	uri := "/accounts/" + accountID + "/members"
-	if len(v) > 0 {
-		uri = uri + "?" + v.Encode()
-	}
-
-	res, err := api.makeRequest("GET", uri, nil)
+	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
-		return []AccountMember{}, ResultInfo{}, errors.Wrap(err, errMakeRequestError)
+		return []AccountMember{}, ResultInfo{}, err
 	}
 
 	var accountMemberListresponse AccountMembersListResponse
 	err = json.Unmarshal(res, &accountMemberListresponse)
 	if err != nil {
-		return []AccountMember{}, ResultInfo{}, errors.Wrap(err, errUnmarshalError)
+		return []AccountMember{}, ResultInfo{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 
 	return accountMemberListresponse.Result, accountMemberListresponse.ResultInfo, nil
 }
 
-// CreateAccountMember invites a new member to join an account.
+// CreateAccountMemberWithStatus invites a new member to join an account, allowing setting the status.
+//
+// Refer to the API reference for valid statuses.
 //
 // API reference: https://api.cloudflare.com/#account-members-add-member
-func (api *API) CreateAccountMember(accountID string, emailAddress string, roles []string) (AccountMember, error) {
+func (api *API) CreateAccountMemberWithStatus(ctx context.Context, accountID string, emailAddress string, roles []string, status string) (AccountMember, error) {
 	if accountID == "" {
-		return AccountMember{}, errors.New(errMissingAccountID)
+		return AccountMember{}, ErrMissingAccountID
 	}
 
-	uri := "/accounts/" + accountID + "/members"
+	uri := fmt.Sprintf("/accounts/%s/members", accountID)
 
-	var newMember = AccountMemberInvitation{
-		Email: emailAddress,
-		Roles: roles,
+	newMember := AccountMemberInvitation{
+		Email:  emailAddress,
+		Roles:  roles,
+		Status: status,
 	}
-	res, err := api.makeRequest("POST", uri, newMember)
+	res, err := api.makeRequestContext(ctx, http.MethodPost, uri, newMember)
 	if err != nil {
-		return AccountMember{}, errors.Wrap(err, errMakeRequestError)
+		return AccountMember{}, err
 	}
 
 	var accountMemberListResponse AccountMemberDetailResponse
 	err = json.Unmarshal(res, &accountMemberListResponse)
 	if err != nil {
-		return AccountMember{}, errors.Wrap(err, errUnmarshalError)
+		return AccountMember{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 
 	return accountMemberListResponse.Result, nil
 }
 
+// CreateAccountMember invites a new member to join an account.
+// The member will be placed into "pending" status and receive an email confirmation.
+//
+// API reference: https://api.cloudflare.com/#account-members-add-member
+func (api *API) CreateAccountMember(ctx context.Context, accountID string, emailAddress string, roles []string) (AccountMember, error) {
+	return api.CreateAccountMemberWithStatus(ctx, accountID, emailAddress, roles, "")
+}
+
 // DeleteAccountMember removes a member from an account.
 //
 // API reference: https://api.cloudflare.com/#account-members-remove-member
-func (api *API) DeleteAccountMember(accountID string, userID string) error {
+func (api *API) DeleteAccountMember(ctx context.Context, accountID string, userID string) error {
 	if accountID == "" {
-		return errors.New(errMissingAccountID)
+		return ErrMissingAccountID
 	}
 
 	uri := fmt.Sprintf("/accounts/%s/members/%s", accountID, userID)
 
-	_, err := api.makeRequest("DELETE", uri, nil)
+	_, err := api.makeRequestContext(ctx, http.MethodDelete, uri, nil)
 	if err != nil {
-		return errors.Wrap(err, errMakeRequestError)
+		return err
 	}
 
 	return nil
@@ -136,22 +135,22 @@ func (api *API) DeleteAccountMember(accountID string, userID string) error {
 // UpdateAccountMember modifies an existing account member.
 //
 // API reference: https://api.cloudflare.com/#account-members-update-member
-func (api *API) UpdateAccountMember(accountID string, userID string, member AccountMember) (AccountMember, error) {
+func (api *API) UpdateAccountMember(ctx context.Context, accountID string, userID string, member AccountMember) (AccountMember, error) {
 	if accountID == "" {
-		return AccountMember{}, errors.New(errMissingAccountID)
+		return AccountMember{}, ErrMissingAccountID
 	}
 
 	uri := fmt.Sprintf("/accounts/%s/members/%s", accountID, userID)
 
-	res, err := api.makeRequest("PUT", uri, member)
+	res, err := api.makeRequestContext(ctx, http.MethodPut, uri, member)
 	if err != nil {
-		return AccountMember{}, errors.Wrap(err, errMakeRequestError)
+		return AccountMember{}, err
 	}
 
 	var accountMemberListResponse AccountMemberDetailResponse
 	err = json.Unmarshal(res, &accountMemberListResponse)
 	if err != nil {
-		return AccountMember{}, errors.Wrap(err, errUnmarshalError)
+		return AccountMember{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 
 	return accountMemberListResponse.Result, nil
@@ -160,9 +159,9 @@ func (api *API) UpdateAccountMember(accountID string, userID string, member Acco
 // AccountMember returns details of a single account member.
 //
 // API reference: https://api.cloudflare.com/#account-members-member-details
-func (api *API) AccountMember(accountID string, memberID string) (AccountMember, error) {
+func (api *API) AccountMember(ctx context.Context, accountID string, memberID string) (AccountMember, error) {
 	if accountID == "" {
-		return AccountMember{}, errors.New(errMissingAccountID)
+		return AccountMember{}, ErrMissingAccountID
 	}
 
 	uri := fmt.Sprintf(
@@ -171,15 +170,15 @@ func (api *API) AccountMember(accountID string, memberID string) (AccountMember,
 		memberID,
 	)
 
-	res, err := api.makeRequest("GET", uri, nil)
+	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
-		return AccountMember{}, errors.Wrap(err, errMakeRequestError)
+		return AccountMember{}, err
 	}
 
 	var accountMemberResponse AccountMemberDetailResponse
 	err = json.Unmarshal(res, &accountMemberResponse)
 	if err != nil {
-		return AccountMember{}, errors.Wrap(err, errUnmarshalError)
+		return AccountMember{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 
 	return accountMemberResponse.Result, nil

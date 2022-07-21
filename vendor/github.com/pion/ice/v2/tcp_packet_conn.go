@@ -1,14 +1,74 @@
 package ice
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/pion/logging"
+	"github.com/pion/transport/packetio"
 )
+
+type bufferedConn struct {
+	net.Conn
+	buffer *packetio.Buffer
+	logger logging.LeveledLogger
+	closed int32
+}
+
+func newBufferedConn(conn net.Conn, bufferSize int, logger logging.LeveledLogger) net.Conn {
+	buffer := packetio.NewBuffer()
+	if bufferSize > 0 {
+		buffer.SetLimitSize(bufferSize)
+	}
+
+	bc := &bufferedConn{
+		Conn:   conn,
+		buffer: buffer,
+		logger: logger,
+	}
+
+	go bc.writeProcess()
+	return bc
+}
+
+func (bc *bufferedConn) Write(b []byte) (int, error) {
+	n, err := bc.buffer.Write(b)
+	if err != nil {
+		return n, err
+	}
+	return n, nil
+}
+
+func (bc *bufferedConn) writeProcess() {
+	pktBuf := make([]byte, receiveMTU)
+	for atomic.LoadInt32(&bc.closed) == 0 {
+		n, err := bc.buffer.Read(pktBuf)
+		if errors.Is(err, io.EOF) {
+			return
+		}
+
+		if err != nil {
+			bc.logger.Warnf("read buffer error: %s", err)
+			continue
+		}
+
+		if _, err := bc.Conn.Write(pktBuf[:n]); err != nil {
+			bc.logger.Warnf("write error: %s", err)
+			continue
+		}
+	}
+}
+
+func (bc *bufferedConn) Close() error {
+	atomic.StoreInt32(&bc.closed, 1)
+	_ = bc.buffer.Close()
+	return bc.Conn.Close()
+}
 
 type tcpPacketConn struct {
 	params *tcpPacketParams
@@ -31,9 +91,10 @@ type streamingPacket struct {
 }
 
 type tcpPacketParams struct {
-	ReadBuffer int
-	LocalAddr  net.Addr
-	Logger     logging.LeveledLogger
+	ReadBuffer  int
+	LocalAddr   net.Addr
+	Logger      logging.LeveledLogger
+	WriteBuffer int
 }
 
 func newTCPPacketConn(params tcpPacketParams) *tcpPacketConn {
@@ -65,6 +126,9 @@ func (t *tcpPacketConn) AddConn(conn net.Conn, firstPacketData []byte) error {
 		return fmt.Errorf("%w: %s", errConnectionAddrAlreadyExist, conn.RemoteAddr().String())
 	}
 
+	if t.params.WriteBuffer > 0 {
+		conn = newBufferedConn(conn, t.params.WriteBuffer, t.params.Logger)
+	}
 	t.conns[conn.RemoteAddr().String()] = conn
 
 	t.wg.Add(1)
@@ -86,7 +150,7 @@ func (t *tcpPacketConn) startReading(conn net.Conn) {
 		n, err := readStreamingPacket(conn, buf)
 		// t.params.Logger.Infof("readStreamingPacket read %d bytes", n)
 		if err != nil {
-			t.params.Logger.Infof("%w: %s\n", errReadingStreamingPacket, err)
+			t.params.Logger.Infof("%w: %s", errReadingStreamingPacket, err)
 			t.handleRecv(streamingPacket{nil, conn.RemoteAddr(), err})
 			t.removeConn(conn)
 			return
@@ -167,7 +231,7 @@ func (t *tcpPacketConn) WriteTo(buf []byte, raddr net.Addr) (n int, err error) {
 
 	n, err = writeStreamingPacket(conn, buf)
 	if err != nil {
-		t.params.Logger.Tracef("%w %s\n", errWriting, raddr)
+		t.params.Logger.Tracef("%w %s", errWriting, raddr)
 		return n, err
 	}
 

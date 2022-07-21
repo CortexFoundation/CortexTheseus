@@ -17,9 +17,9 @@ import (
 // (https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/DNSLimitations.html)
 // in the Amazon Route 53 Developer Guide. To request a higher limit, open a case
 // (https://console.aws.amazon.com/support/home#/case/create?issueType=service-limit-increase&limitType=service-code-route53).
-// You can also view account limits in AWS Trusted Advisor. Sign in to the AWS
-// Management Console and open the Trusted Advisor console at
-// https://console.aws.amazon.com/trustedadvisor/
+// You can also view account limits in Amazon Web Services Trusted Advisor. Sign in
+// to the Amazon Web Services Management Console and open the Trusted Advisor
+// console at https://console.aws.amazon.com/trustedadvisor/
 // (https://console.aws.amazon.com/trustedadvisor). Then choose Service limits in
 // the navigation pane.
 func (c *Client) GetAccountLimit(ctx context.Context, params *GetAccountLimitInput, optFns ...func(*Options)) (*GetAccountLimitOutput, error) {
@@ -27,7 +27,7 @@ func (c *Client) GetAccountLimit(ctx context.Context, params *GetAccountLimitInp
 		params = &GetAccountLimitInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "GetAccountLimit", params, optFns, addOperationGetAccountLimitMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "GetAccountLimit", params, optFns, c.addOperationGetAccountLimitMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -65,6 +65,8 @@ type GetAccountLimitInput struct {
 	//
 	// This member is required.
 	Type types.AccountLimitType
+
+	noSmithyDocumentSerde
 }
 
 // A complex type that contains the requested limit.
@@ -88,9 +90,11 @@ type GetAccountLimitOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationGetAccountLimitMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationGetAccountLimitMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpGetAccountLimit{}, middleware.After)
 	if err != nil {
 		return err

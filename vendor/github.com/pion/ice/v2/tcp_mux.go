@@ -61,6 +61,11 @@ type TCPMuxParams struct {
 	Listener       net.Listener
 	Logger         logging.LeveledLogger
 	ReadBufferSize int
+
+	// max buffer size for write op. 0 means no write buffer, the write op will block until the whole packet is written
+	// if the write buffer is full, the subsequent write packet will be dropped until it has enough space.
+	// a default 4MB is recommended.
+	WriteBufferSize int
 }
 
 // NewTCPMuxDefault creates a new instance of TCPMuxDefault.
@@ -86,11 +91,11 @@ func NewTCPMuxDefault(params TCPMuxParams) *TCPMuxDefault {
 }
 
 func (m *TCPMuxDefault) start() {
-	m.params.Logger.Infof("Listening TCP on %s\n", m.params.Listener.Addr())
+	m.params.Logger.Infof("Listening TCP on %s", m.params.Listener.Addr())
 	for {
 		conn, err := m.params.Listener.Accept()
 		if err != nil {
-			m.params.Logger.Infof("Error accepting connection: %s\n", err)
+			m.params.Logger.Infof("Error accepting connection: %s", err)
 			return
 		}
 
@@ -127,9 +132,10 @@ func (m *TCPMuxDefault) GetConnByUfrag(ufrag string, isIPv6 bool) (net.PacketCon
 
 func (m *TCPMuxDefault) createConn(ufrag string, localAddr net.Addr, isIPv6 bool) *tcpPacketConn {
 	conn := newTCPPacketConn(tcpPacketParams{
-		ReadBuffer: m.params.ReadBufferSize,
-		LocalAddr:  localAddr,
-		Logger:     m.params.Logger,
+		ReadBuffer:  m.params.ReadBufferSize,
+		WriteBuffer: m.params.WriteBufferSize,
+		LocalAddr:   localAddr,
+		Logger:      m.params.Logger,
 	})
 
 	if isIPv6 {
@@ -173,29 +179,29 @@ func (m *TCPMuxDefault) handleConn(conn net.Conn) {
 	copy(msg.Raw, buf)
 	if err = msg.Decode(); err != nil {
 		m.closeAndLogError(conn)
-		m.params.Logger.Warnf("Failed to handle decode ICE from %s to %s: %v\n", conn.RemoteAddr(), conn.LocalAddr(), err)
+		m.params.Logger.Warnf("Failed to handle decode ICE from %s to %s: %v", conn.RemoteAddr(), conn.LocalAddr(), err)
 		return
 	}
 
 	if m == nil || msg.Type.Method != stun.MethodBinding { // not a stun
 		m.closeAndLogError(conn)
-		m.params.Logger.Warnf("Not a STUN message from %s to %s\n", conn.RemoteAddr(), conn.LocalAddr())
+		m.params.Logger.Warnf("Not a STUN message from %s to %s", conn.RemoteAddr(), conn.LocalAddr())
 		return
 	}
 
 	for _, attr := range msg.Attributes {
-		m.params.Logger.Debugf("msg attr: %s\n", attr.String())
+		m.params.Logger.Debugf("msg attr: %s", attr.String())
 	}
 
 	attr, err := msg.Get(stun.AttrUsername)
 	if err != nil {
 		m.closeAndLogError(conn)
-		m.params.Logger.Warnf("No Username attribute in STUN message from %s to %s\n", conn.RemoteAddr(), conn.LocalAddr())
+		m.params.Logger.Warnf("No Username attribute in STUN message from %s to %s", conn.RemoteAddr(), conn.LocalAddr())
 		return
 	}
 
 	ufrag := strings.Split(string(attr), ":")[0]
-	m.params.Logger.Debugf("Ufrag: %s\n", ufrag)
+	m.params.Logger.Debugf("Ufrag: %s", ufrag)
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -203,7 +209,7 @@ func (m *TCPMuxDefault) handleConn(conn net.Conn) {
 	host, _, err := net.SplitHostPort(conn.RemoteAddr().String())
 	if err != nil {
 		m.closeAndLogError(conn)
-		m.params.Logger.Warnf("Failed to get host in STUN message from %s to %s\n", conn.RemoteAddr(), conn.LocalAddr())
+		m.params.Logger.Warnf("Failed to get host in STUN message from %s to %s", conn.RemoteAddr(), conn.LocalAddr())
 		return
 	}
 
@@ -215,7 +221,7 @@ func (m *TCPMuxDefault) handleConn(conn net.Conn) {
 
 	if err := packetConn.AddConn(conn, buf); err != nil {
 		m.closeAndLogError(conn)
-		m.params.Logger.Warnf("Error adding conn to tcpPacketConn from %s to %s: %s\n", conn.RemoteAddr(), conn.LocalAddr(), err)
+		m.params.Logger.Warnf("Error adding conn to tcpPacketConn from %s to %s: %s", conn.RemoteAddr(), conn.LocalAddr(), err)
 		return
 	}
 }

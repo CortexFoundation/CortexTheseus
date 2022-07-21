@@ -2,25 +2,9 @@ package srtp
 
 import (
 	"crypto/cipher"
+
+	"github.com/pion/transport/utils/xor"
 )
-
-// xorBytes computes the exclusive-or of src1 and src2 and stores it in dst.
-// It returns the number of bytes written.
-func xorBytes(dst, src1, src2 []byte) int {
-	n := len(src1)
-	if len(src2) < n {
-		n = len(src2)
-	}
-	if len(dst) < n {
-		n = len(dst)
-	}
-
-	for i := 0; i < n; i++ {
-		dst[i] = src1[i] ^ src2[i]
-	}
-
-	return n
-}
 
 // incrementCTR increments a big-endian integer of arbitrary size.
 func incrementCTR(ctr []byte) {
@@ -48,7 +32,7 @@ func xorBytesCTR(block cipher.Block, iv []byte, dst, src []byte) error {
 	for i < len(src) {
 		block.Encrypt(stream, ctr)
 		incrementCTR(ctr)
-		n := xorBytes(dst[i:], src[i:], stream)
+		n := xor.XorBytes(dst[i:], src[i:], stream)
 		if n == 0 {
 			break
 		}

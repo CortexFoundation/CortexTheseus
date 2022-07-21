@@ -1,0 +1,43 @@
+syntax = "proto3";
+package wire;
+option go_package = ".;wire";
+
+import "google/protobuf/timestamp.proto";
+
+message SpanContext {
+  uint64 TraceID = 1;
+  uint64 SpanID = 2;
+}
+
+message Span {
+  SpanContext context = 1;
+  uint64 ParentSpanID = 2;
+  string name = 3;
+  google.protobuf.Timestamp Start = 4;
+  repeated string labels = 5;
+  repeated Field fields = 6;
+}
+
+message Trace {
+  repeated Span spans = 1;
+}
+
+message Field {
+
+  string key = 1;
+  FieldType FieldType = 2;
+
+  oneof value {
+    sfixed64 NumericVal = 3;
+    string StringVal = 4;
+  }
+}
+
+enum FieldType {
+  FieldTypeString = 0;
+  FieldTypeBool = 1;
+  FieldTypeInt64 = 2;
+  FieldTypeUint64 = 3;
+  FieldTypeDuration = 4;
+  FieldTypeFloat64 = 6;
+}

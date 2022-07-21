@@ -11,13 +11,15 @@ import (
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
-// Gets status of a specified health check.
+// Gets status of a specified health check. This API is intended for use during
+// development to diagnose behavior. It doesn’t support production use-cases with
+// high query rates that require immediate and actionable responses.
 func (c *Client) GetHealthCheckStatus(ctx context.Context, params *GetHealthCheckStatusInput, optFns ...func(*Options)) (*GetHealthCheckStatusOutput, error) {
 	if params == nil {
 		params = &GetHealthCheckStatusInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "GetHealthCheckStatus", params, optFns, addOperationGetHealthCheckStatusMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "GetHealthCheckStatus", params, optFns, c.addOperationGetHealthCheckStatusMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -39,6 +41,8 @@ type GetHealthCheckStatusInput struct {
 	//
 	// This member is required.
 	HealthCheckId *string
+
+	noSmithyDocumentSerde
 }
 
 // A complex type that contains the response to a GetHealthCheck request.
@@ -52,9 +56,11 @@ type GetHealthCheckStatusOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationGetHealthCheckStatusMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationGetHealthCheckStatusMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpGetHealthCheckStatus{}, middleware.After)
 	if err != nil {
 		return err

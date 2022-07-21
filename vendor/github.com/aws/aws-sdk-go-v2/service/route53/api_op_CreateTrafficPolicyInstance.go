@@ -22,7 +22,7 @@ func (c *Client) CreateTrafficPolicyInstance(ctx context.Context, params *Create
 		params = &CreateTrafficPolicyInstanceInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "CreateTrafficPolicyInstance", params, optFns, addOperationCreateTrafficPolicyInstanceMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "CreateTrafficPolicyInstance", params, optFns, c.addOperationCreateTrafficPolicyInstanceMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -66,6 +66,8 @@ type CreateTrafficPolicyInstanceInput struct {
 	//
 	// This member is required.
 	TrafficPolicyVersion *int32
+
+	noSmithyDocumentSerde
 }
 
 // A complex type that contains the response information for the
@@ -84,9 +86,11 @@ type CreateTrafficPolicyInstanceOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationCreateTrafficPolicyInstanceMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationCreateTrafficPolicyInstanceMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpCreateTrafficPolicyInstance{}, middleware.After)
 	if err != nil {
 		return err

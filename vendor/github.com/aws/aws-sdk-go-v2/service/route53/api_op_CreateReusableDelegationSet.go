@@ -12,13 +12,13 @@ import (
 )
 
 // Creates a delegation set (a group of four name servers) that can be reused by
-// multiple hosted zones that were created by the same AWS account. You can also
-// create a reusable delegation set that uses the four name servers that are
-// associated with an existing hosted zone. Specify the hosted zone ID in the
-// CreateReusableDelegationSet request. You can't associate a reusable delegation
-// set with a private hosted zone. For information about using a reusable
-// delegation set to configure white label name servers, see Configuring White
-// Label Name Servers
+// multiple hosted zones that were created by the same Amazon Web Services account.
+// You can also create a reusable delegation set that uses the four name servers
+// that are associated with an existing hosted zone. Specify the hosted zone ID in
+// the CreateReusableDelegationSet request. You can't associate a reusable
+// delegation set with a private hosted zone. For information about using a
+// reusable delegation set to configure white label name servers, see Configuring
+// White Label Name Servers
 // (https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/white-label-name-servers.html).
 // The process for migrating existing hosted zones to use a reusable delegation set
 // is comparable to the process for configuring white label name servers. You need
@@ -64,7 +64,7 @@ func (c *Client) CreateReusableDelegationSet(ctx context.Context, params *Create
 		params = &CreateReusableDelegationSetInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "CreateReusableDelegationSet", params, optFns, addOperationCreateReusableDelegationSetMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "CreateReusableDelegationSet", params, optFns, c.addOperationCreateReusableDelegationSetMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -88,6 +88,8 @@ type CreateReusableDelegationSetInput struct {
 	// If you want to mark the delegation set for an existing hosted zone as reusable,
 	// the ID for that hosted zone.
 	HostedZoneId *string
+
+	noSmithyDocumentSerde
 }
 
 type CreateReusableDelegationSetOutput struct {
@@ -104,9 +106,11 @@ type CreateReusableDelegationSetOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationCreateReusableDelegationSetMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationCreateReusableDelegationSetMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpCreateReusableDelegationSet{}, middleware.After)
 	if err != nil {
 		return err

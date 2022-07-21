@@ -18,7 +18,7 @@ func (c *Client) ListTrafficPolicyVersions(ctx context.Context, params *ListTraf
 		params = &ListTrafficPolicyVersionsInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "ListTrafficPolicyVersions", params, optFns, addOperationListTrafficPolicyVersionsMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "ListTrafficPolicyVersions", params, optFns, c.addOperationListTrafficPolicyVersionsMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -52,6 +52,8 @@ type ListTrafficPolicyVersionsInput struct {
 	// ListTrafficPolicyVersions request. For the value of TrafficPolicyVersionMarker,
 	// specify the value of TrafficPolicyVersionMarker in the previous response.
 	TrafficPolicyVersionMarker *string
+
+	noSmithyDocumentSerde
 }
 
 // A complex type that contains the response information for the request.
@@ -88,9 +90,11 @@ type ListTrafficPolicyVersionsOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationListTrafficPolicyVersionsMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationListTrafficPolicyVersionsMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpListTrafficPolicyVersions{}, middleware.After)
 	if err != nil {
 		return err

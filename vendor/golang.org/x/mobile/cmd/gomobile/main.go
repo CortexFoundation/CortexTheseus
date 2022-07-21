@@ -85,11 +85,7 @@ func main() {
 }
 
 func determineGoVersion() error {
-	gobin, err := exec.LookPath("go")
-	if err != nil {
-		return errors.New("go not found")
-	}
-	goVersionOut, err = exec.Command(gobin, "version").CombinedOutput()
+	goVersionOut, err := exec.Command("go", "version").CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("'go version' failed: %v, %s", err, goVersionOut)
 	}

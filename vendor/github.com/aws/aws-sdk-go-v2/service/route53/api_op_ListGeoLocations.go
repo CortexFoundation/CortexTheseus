@@ -25,7 +25,7 @@ func (c *Client) ListGeoLocations(ctx context.Context, params *ListGeoLocationsI
 		params = &ListGeoLocationsInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "ListGeoLocations", params, optFns, addOperationListGeoLocationsMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "ListGeoLocations", params, optFns, c.addOperationListGeoLocationsMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -67,6 +67,8 @@ type ListGeoLocationsInput struct {
 	// startsubdivisioncode to return the next page of results. To list subdivisions
 	// (U.S. states), you must include both startcountrycode and startsubdivisioncode.
 	StartSubdivisionCode *string
+
+	noSmithyDocumentSerde
 }
 
 // A complex type containing the response information for the request.
@@ -109,9 +111,11 @@ type ListGeoLocationsOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationListGeoLocationsMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationListGeoLocationsMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpListGeoLocations{}, middleware.After)
 	if err != nil {
 		return err

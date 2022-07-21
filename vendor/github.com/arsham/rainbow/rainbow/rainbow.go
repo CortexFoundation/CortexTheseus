@@ -1,4 +1,4 @@
-// Copyright 2016 Arsham Shirvani <arshamshirvani@gmail.com>. All rights reserved.
+// Copyright 2020 Arsham Shirvani <arshamshirvani@gmail.com>. All rights reserved.
 // Use of this source code is governed by the Apache 2.0 license
 // License that can be found in the LICENSE file.
 
@@ -17,13 +17,13 @@
 //   l := rainbow.Light{
 //       Reader: buf,
 //       Writer: os.Stdout,
-//       Seed:   int(rand.Int31n(256)),
+//       Seed:   rand.Int63n(256),
 //   }
 //
 // You can also use the Light as a Writer:
 //   l := rainbow.Light{
 //       Writer: os.Stdout, // to write to
-//       Seed:   int(rand.Int31n(256)),
+//       Seed:   rand.Int63n(256),
 //   }
 //   io.Copy(l, someReader)
 package rainbow
@@ -36,14 +36,12 @@ import (
 	"math/rand"
 	"regexp"
 	"strconv"
-	"sync/atomic"
-
-	"github.com/arsham/strings"
 )
 
 var (
-	colorMatch = regexp.MustCompile("^\033" + `\[(\d+)(;\d+)?(;\d+)?[m|K]`)
-	tabs       = []byte("\t")
+	// We remove all previous paintings to create a new rainbow.
+	colorMatch = regexp.MustCompile("^\033" + `\[\d+(;\d+)?(;\d+)?[mK]`)
+
 	// ErrNilWriter is returned when Light.Writer is nil.
 	ErrNilWriter = errors.New("nil writer")
 )
@@ -72,62 +70,68 @@ func (l *Light) Paint() error {
 
 // Write paints the data and writes it into l.Writer.
 func (l *Light) Write(data []byte) (int, error) {
-	var skip, offset int
 	if l.Writer == nil {
 		return 0, ErrNilWriter
 	}
-	buf := &bytes.Buffer{}
-	for i, c := range string(data) {
-		if skip > 0 {
-			skip--
-			continue
-		}
+	var (
+		offset  float64
+		dataLen = len(data)
+		// 16 times seems to be the sweet spot.
+		buf  = bytes.NewBuffer(make([]byte, 0, dataLen*16))
+		seed = l.Seed
+	)
+
+	data = colorMatch.ReplaceAll(data, []byte(""))
+	for _, c := range string(data) {
 		switch c {
 		case '\n':
 			offset = 0
-			atomic.AddInt64(&l.Seed, 1)
+			seed++
 			buf.WriteByte('\n')
 		case '\t':
-			offset += len(tabs)
-			buf.Write(tabs)
+			offset++
+			buf.WriteByte('\t')
 		default:
-			pos := colorMatch.FindIndex(data[i:])
-			if pos != nil {
-				skip = pos[1] - 1
-				continue
-			}
-			r, g, b := plotPos(float64(atomic.LoadInt64(&l.Seed)) + (float64(offset) / spread))
-			w := colourise(c, r, g, b)
-			buf.Write(w.Bytes())
+			r, g, b := plotPos(float64(seed) + (offset / spread))
+			colouriseWriter(buf, c, r, g, b)
 			offset++
 		}
-		skip = 0
 	}
 	_, err := l.Writer.Write(buf.Bytes())
-	return len(data), err
+	return dataLen, err
 }
 
-func plotPos(x float64) (int, int, int) {
-	red := math.Sin(freq*x)*127 + 128
-	green := math.Sin(freq*x+2*math.Pi/3)*127 + 128
-	blue := math.Sin(freq*x+4*math.Pi/3)*127 + 128
-	return int(red), int(green), int(blue)
+func plotPos(x float64) (red, green, blue float64) {
+	red = math.Sin(freq*x)*127 + 128
+	green = math.Sin(freq*x+2*math.Pi/3)*127 + 128
+	blue = math.Sin(freq*x+4*math.Pi/3)*127 + 128
+	return red, green, blue
 }
 
-func colourise(c rune, r, g, b int) *strings.Builder {
-	s := &strings.Builder{}
+const max = 16 + (6 * (127 + 128) / 256 * 36) + (6 * (127 + 128) / 256 * 6) + (6 * (127 + 128) / 256)
+
+// nums is used to cache the values of strconv.Itoa(n) for better performance
+// gains.
+var nums = make([]string, 0, max)
+
+func init() {
+	for i := int64(0); i < max; i++ {
+		nums = append(nums, strconv.FormatInt(i, 10))
+	}
+}
+
+func colouriseWriter(s *bytes.Buffer, c rune, r, g, b float64) {
 	s.WriteString("\033[38;5;")
-	s.WriteBytes(strconv.AppendInt(nil, colour(float64(r), float64(g), float64(b)), 10))
-	s.WriteRune('m')
+	s.WriteString(nums[colour(r, g, b)])
+	s.WriteByte('m')
 	s.WriteRune(c)
 	s.WriteString("\033[0m")
-	return s
 }
 
-func colour(red, green, blue float64) int64 {
+func colour(red, green, blue float64) uint8 {
 	return 16 + baseColor(red, 36) + baseColor(green, 6) + baseColor(blue, 1)
 }
 
-func baseColor(value float64, factor int64) int64 {
-	return int64(6*value/256) * factor
+func baseColor(value float64, factor uint8) uint8 {
+	return uint8(6*value/256) * factor
 }

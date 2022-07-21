@@ -13,13 +13,14 @@ import (
 
 // Gets the value that Amazon Route 53 returns in response to a DNS request for a
 // specified record name and type. You can optionally specify the IP address of a
-// DNS resolver, an EDNS0 client subnet IP address, and a subnet mask.
+// DNS resolver, an EDNS0 client subnet IP address, and a subnet mask. This call
+// only supports querying public hosted zones.
 func (c *Client) TestDNSAnswer(ctx context.Context, params *TestDNSAnswerInput, optFns ...func(*Options)) (*TestDNSAnswerOutput, error) {
 	if params == nil {
 		params = &TestDNSAnswerInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "TestDNSAnswer", params, optFns, addOperationTestDNSAnswerMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "TestDNSAnswer", params, optFns, c.addOperationTestDNSAnswerMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -71,8 +72,11 @@ type TestDNSAnswerInput struct {
 
 	// If you want to simulate a request from a specific DNS resolver, specify the IP
 	// address for that resolver. If you omit this value, TestDnsAnswer uses the IP
-	// address of a DNS resolver in the AWS US East (N. Virginia) Region (us-east-1).
+	// address of a DNS resolver in the Amazon Web Services US East (N. Virginia)
+	// Region (us-east-1).
 	ResolverIP *string
+
+	noSmithyDocumentSerde
 }
 
 // A complex type that contains the response to a TestDNSAnswer request.
@@ -117,9 +121,11 @@ type TestDNSAnswerOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationTestDNSAnswerMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationTestDNSAnswerMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpTestDNSAnswer{}, middleware.After)
 	if err != nil {
 		return err

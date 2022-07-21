@@ -1,7 +1,6 @@
 package goja
 
 import (
-	"fmt"
 	"github.com/dop251/goja/ast"
 	"github.com/dop251/goja/file"
 	"github.com/dop251/goja/token"
@@ -9,7 +8,6 @@ import (
 )
 
 func (c *compiler) compileStatement(v ast.Statement, needResult bool) {
-	// log.Printf("compileStatement(): %T", v)
 
 	switch v := v.(type) {
 	case *ast.BlockStatement:
@@ -49,11 +47,14 @@ func (c *compiler) compileStatement(v ast.Statement, needResult bool) {
 	case *ast.FunctionDeclaration:
 		c.compileStandaloneFunctionDecl(v)
 		// note functions inside blocks are hoisted to the top of the block and are compiled using compileFunctions()
+	case *ast.ClassDeclaration:
+		c.compileClassDeclaration(v)
 	case *ast.WithStatement:
 		c.compileWithStatement(v, needResult)
 	case *ast.DebuggerStatement:
 	default:
-		panic(fmt.Errorf("Unknown statement type: %T", v))
+		c.assert(false, int(v.Idx0())-1, "Unknown statement type: %T", v)
+		panic("unreachable")
 	}
 }
 
@@ -158,7 +159,7 @@ func (c *compiler) compileTryStatement(v *ast.TryStatement, needResult bool) {
 			if pattern, ok := v.Catch.Parameter.(ast.Pattern); ok {
 				c.scope.bindings[0].emitGet()
 				c.emitPattern(pattern, func(target, init compiledExpr) {
-					c.emitPatternLexicalAssign(target, init, false)
+					c.emitPatternLexicalAssign(target, init)
 				}, false)
 			}
 			for _, decl := range funcs {
@@ -189,6 +190,9 @@ func (c *compiler) compileTryStatement(v *ast.TryStatement, needResult bool) {
 		lbl1 := len(c.p.code)
 		c.emit(nil)
 		finallyOffset = len(c.p.code) - lbl
+		if bodyNeedResult && finallyBreaking != nil && lp == -1 {
+			c.emit(clearResult)
+		}
 		c.compileBlockStatement(v.Finally, false)
 		c.emit(halt, retFinally)
 
@@ -199,9 +203,13 @@ func (c *compiler) compileTryStatement(v *ast.TryStatement, needResult bool) {
 	c.leaveBlock()
 }
 
+func (c *compiler) addSrcMap(node ast.Node) {
+	c.p.addSrcMap(int(node.Idx0()) - 1)
+}
+
 func (c *compiler) compileThrowStatement(v *ast.ThrowStatement) {
-	//c.p.srcMap = append(c.p.srcMap, srcMapItem{pc: len(c.p.code), srcPos: int(v.Throw) - 1})
 	c.compileExpression(v.Argument).emitGetter(true)
+	c.addSrcMap(v)
 	c.emit(throw)
 }
 
@@ -266,7 +274,8 @@ func (c *compiler) compileLabeledForStatement(v *ast.ForStatement, needResult bo
 	case *ast.ForLoopInitializerExpression:
 		c.compileExpression(init.Expression).emitGetter(false)
 	default:
-		panic(fmt.Sprintf("Unsupported for loop initializer: %T", init))
+		c.assert(false, int(v.For)-1, "Unsupported for loop initializer: %T", init)
+		panic("unreachable")
 	}
 
 	if needResult {
@@ -380,18 +389,19 @@ func (c *compiler) compileForInto(into ast.ForInto, needResult bool) (enter *ent
 		case *ast.Identifier:
 			b := c.createLexicalIdBinding(target.Name, into.IsConst, int(into.Idx)-1)
 			c.emit(enumGet)
-			b.emitInit()
+			b.emitInitP()
 		case ast.Pattern:
 			c.createLexicalBinding(target, into.IsConst)
 			c.emit(enumGet)
 			c.emitPattern(target, func(target, init compiledExpr) {
-				c.emitPatternLexicalAssign(target, init, into.IsConst)
+				c.emitPatternLexicalAssign(target, init)
 			}, false)
 		default:
-			c.throwSyntaxError(int(into.Idx)-1, "Unsupported ForBinding: %T", into.Target)
+			c.assert(false, int(into.Idx)-1, "Unsupported ForBinding: %T", into.Target)
 		}
 	default:
-		panic(fmt.Sprintf("Unsupported for-into: %T", into))
+		c.assert(false, int(into.Idx0())-1, "Unsupported for-into: %T", into)
+		panic("unreachable")
 	}
 
 	return
@@ -547,7 +557,8 @@ func (c *compiler) compileBranchStatement(v *ast.BranchStatement) {
 	case token.CONTINUE:
 		c.compileContinue(v.Label, v.Idx)
 	default:
-		panic(fmt.Errorf("Unknown branch statement token: %s", v.Token.String()))
+		c.assert(false, int(v.Idx0())-1, "Unknown branch statement token: %s", v.Token.String())
+		panic("unreachable")
 	}
 }
 
@@ -717,8 +728,11 @@ func (c *compiler) compileIfStatement(v *ast.IfStatement, needResult bool) {
 }
 
 func (c *compiler) compileReturnStatement(v *ast.ReturnStatement) {
+	if s := c.scope.nearestFunction(); s != nil && s.funcType == funcClsInit {
+		c.throwSyntaxError(int(v.Return)-1, "Illegal return statement")
+	}
 	if v.Argument != nil {
-		c.compileExpression(v.Argument).emitGetter(true)
+		c.emitExpr(c.compileExpression(v.Argument), true)
 	} else {
 		c.emit(loadUndef)
 	}
@@ -730,6 +744,11 @@ func (c *compiler) compileReturnStatement(v *ast.ReturnStatement) {
 			c.emit(enumPopClose)
 		}
 	}
+	if s := c.scope.nearestFunction(); s != nil && s.funcType == funcDerivedCtor {
+		b := s.boundNames[thisBindingName]
+		c.assert(b != nil, int(v.Return)-1, "Derived constructor, but no 'this' binding")
+		b.markAccessPoint()
+	}
 	c.emit(ret)
 }
 
@@ -738,7 +757,7 @@ func (c *compiler) checkVarConflict(name unistring.String, offset int) {
 		if b, exists := sc.boundNames[name]; exists && !b.isVar && !(b.isArg && sc != c.scope) {
 			c.throwSyntaxError(offset, "Identifier '%s' has already been declared", name)
 		}
-		if sc.function {
+		if sc.isFunction() {
 			break
 		}
 	}
@@ -747,9 +766,17 @@ func (c *compiler) checkVarConflict(name unistring.String, offset int) {
 func (c *compiler) emitVarAssign(name unistring.String, offset int, init compiledExpr) {
 	c.checkVarConflict(name, offset)
 	if init != nil {
-		c.emitVarRef(name, offset)
-		c.emitNamed(init, name)
-		c.emit(putValueP)
+		b, noDyn := c.scope.lookupName(name)
+		if noDyn {
+			c.emitNamedOrConst(init, name)
+			c.p.addSrcMap(offset)
+			b.emitInitP()
+		} else {
+			c.emitVarRef(name, offset, b)
+			c.emitNamedOrConst(init, name)
+			c.p.addSrcMap(offset)
+			c.emit(initValueP)
+		}
 	}
 }
 
@@ -765,24 +792,19 @@ func (c *compiler) compileVarBinding(expr *ast.Binding) {
 	}
 }
 
-func (c *compiler) emitLexicalAssign(name unistring.String, offset int, init compiledExpr, isConst bool) {
+func (c *compiler) emitLexicalAssign(name unistring.String, offset int, init compiledExpr) {
 	b := c.scope.boundNames[name]
-	if b == nil {
-		panic("Lexical declaration for an unbound name")
-	}
+	c.assert(b != nil, offset, "Lexical declaration for an unbound name")
 	if init != nil {
-		c.emitNamed(init, name)
+		c.emitNamedOrConst(init, name)
+		c.p.addSrcMap(offset)
 	} else {
-		if isConst {
+		if b.isConst {
 			c.throwSyntaxError(offset, "Missing initializer in const declaration")
 		}
 		c.emit(loadUndef)
 	}
-	if c.scope.outer != nil {
-		b.emitInit()
-	} else {
-		c.emit(initGlobal(name))
-	}
+	b.emitInitP()
 }
 
 func (c *compiler) emitPatternVarAssign(target, init compiledExpr) {
@@ -790,29 +812,37 @@ func (c *compiler) emitPatternVarAssign(target, init compiledExpr) {
 	c.emitVarAssign(id.name, id.offset, init)
 }
 
-func (c *compiler) emitPatternLexicalAssign(target, init compiledExpr, isConst bool) {
+func (c *compiler) emitPatternLexicalAssign(target, init compiledExpr) {
 	id := target.(*compiledIdentifierExpr)
-	c.emitLexicalAssign(id.name, id.offset, init, isConst)
+	c.emitLexicalAssign(id.name, id.offset, init)
 }
 
 func (c *compiler) emitPatternAssign(target, init compiledExpr) {
-	target.emitRef()
 	if id, ok := target.(*compiledIdentifierExpr); ok {
-		c.emitNamed(init, id.name)
+		b, noDyn := c.scope.lookupName(id.name)
+		if noDyn {
+			c.emitNamedOrConst(init, id.name)
+			b.emitSetP()
+		} else {
+			c.emitVarRef(id.name, id.offset, b)
+			c.emitNamedOrConst(init, id.name)
+			c.emit(putValueP)
+		}
 	} else {
-		init.emitGetter(true)
+		target.emitRef()
+		c.emitExpr(init, true)
+		c.emit(putValueP)
 	}
-	c.emit(putValueP)
 }
 
-func (c *compiler) compileLexicalBinding(expr *ast.Binding, isConst bool) {
+func (c *compiler) compileLexicalBinding(expr *ast.Binding) {
 	switch target := expr.Target.(type) {
 	case *ast.Identifier:
-		c.emitLexicalAssign(target.Name, int(target.Idx)-1, c.compileExpression(expr.Initializer), isConst)
+		c.emitLexicalAssign(target.Name, int(target.Idx)-1, c.compileExpression(expr.Initializer))
 	case ast.Pattern:
 		c.compileExpression(expr.Initializer).emitGetter(true)
 		c.emitPattern(target, func(target, init compiledExpr) {
-			c.emitPatternLexicalAssign(target, init, isConst)
+			c.emitPatternLexicalAssign(target, init)
 		}, false)
 	default:
 		c.throwSyntaxError(int(target.Idx0()-1), "unsupported lexical binding target: %T", target)
@@ -826,16 +856,15 @@ func (c *compiler) compileVariableStatement(v *ast.VariableStatement) {
 }
 
 func (c *compiler) compileLexicalDeclaration(v *ast.LexicalDeclaration) {
-	isConst := v.Token == token.CONST
 	for _, e := range v.List {
-		c.compileLexicalBinding(e, isConst)
+		c.compileLexicalBinding(e)
 	}
 }
 
 func (c *compiler) isEmptyResult(st ast.Statement) bool {
 	switch st := st.(type) {
 	case *ast.EmptyStatement, *ast.VariableStatement, *ast.LexicalDeclaration, *ast.FunctionDeclaration,
-		*ast.BranchStatement, *ast.DebuggerStatement:
+		*ast.ClassDeclaration, *ast.BranchStatement, *ast.DebuggerStatement:
 		return true
 	case *ast.LabelledStatement:
 		return c.isEmptyResult(st.Statement)
@@ -955,12 +984,7 @@ func (c *compiler) compileBlockStatement(v *ast.BlockStatement, needResult bool)
 }
 
 func (c *compiler) compileExpressionStatement(v *ast.ExpressionStatement, needResult bool) {
-	expr := c.compileExpression(v.Expression)
-	if expr.constant() {
-		c.emitConst(expr, needResult)
-	} else {
-		expr.emitGetter(needResult)
-	}
+	c.emitExpr(c.compileExpression(v.Expression), needResult)
 	if needResult {
 		c.emit(saveResult)
 	}
@@ -1096,4 +1120,8 @@ func (c *compiler) compileSwitchStatement(v *ast.SwitchStatement, needResult boo
 		c.popScope()
 	}
 	c.leaveBlock()
+}
+
+func (c *compiler) compileClassDeclaration(v *ast.ClassDeclaration) {
+	c.emitLexicalAssign(v.Class.Name.Name, int(v.Class.Class)-1, c.compileClassLiteral(v.Class, false))
 }
