@@ -277,7 +277,9 @@ func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainCo
 	// Otherwise assume proof-of-work
 	if configSHA3.PowMode == sha3.ModeSha3 {
 		log.Warn("SHA3 consensus in use!")
-		return cuckoo.NewFaker()
+		engine := sha3.New(*configSHA3)
+		//engine.SetThreads(-1) // Disable CPU mining
+		return engine
 	}
 	switch config.PowMode {
 	case cuckoo.ModeFake:
@@ -290,6 +292,7 @@ func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainCo
 		log.Warn("Cuckoo used in shared mode")
 		return cuckoo.NewShared()
 	default:
+		log.Warn("Cuckoo used in default mode")
 		//	engine := cuckoo.New(cuckoo.Config{
 		/* CacheDir:       ctx.ResolvePath(config.CacheDir),
 			CachesInMem:    config.CachesInMem,

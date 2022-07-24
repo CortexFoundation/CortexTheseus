@@ -481,15 +481,10 @@ var (
 		Usage: "Time interval to recreate the block being mined",
 		Value: ctxc.DefaultConfig.Miner.Recommit,
 	}
-	CuckooBlockIntervalFlag = cli.DurationFlag{
-		Name:  "cuckoo.blockinterval",
+	MinerBlockIntervalFlag = cli.DurationFlag{
+		Name:  "miner.blockinterval",
 		Usage: "Target time interval of control CalDifficulty, estimated interval is (blockinterval * 1.5)",
 		Value: 9 * time.Second,
-	}
-	SHA3BlockIntervalFlag = cli.DurationFlag{
-		Name:  "sha3.blockinterval",
-		Usage: "Target time interval of control CalDifficulty, estimated interval is (blockinterval * 1.5)",
-		Value: 10 * time.Second,
 	}
 
 	MinerNoVerfiyFlag = cli.BoolFlag{
@@ -1518,11 +1513,9 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	if ctx.GlobalIsSet(MinerRecommitIntervalFlag.Name) {
 		cfg.Miner.Recommit = ctx.GlobalDuration(MinerRecommitIntervalFlag.Name)
 	}
-	if ctx.GlobalIsSet(CuckooBlockIntervalFlag.Name) {
-		cfg.Cuckoo.BlockInterval = ctx.GlobalDuration(CuckooBlockIntervalFlag.Name)
-	}
-	if ctx.GlobalIsSet(SHA3BlockIntervalFlag.Name) {
-		cfg.SHA3.BlockInterval = ctx.GlobalDuration(SHA3BlockIntervalFlag.Name)
+	if ctx.GlobalIsSet(MinerBlockIntervalFlag.Name) {
+		cfg.Cuckoo.BlockInterval = ctx.GlobalDuration(MinerBlockIntervalFlag.Name)
+		cfg.SHA3.BlockInterval = ctx.GlobalDuration(MinerBlockIntervalFlag.Name)
 	}
 	if ctx.GlobalIsSet(MinerNoVerfiyFlag.Name) {
 		cfg.Miner.Noverify = ctx.GlobalBool(MinerNoVerfiyFlag.Name)
