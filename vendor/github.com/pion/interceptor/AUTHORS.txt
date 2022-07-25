@@ -10,6 +10,7 @@ Aditya Kumar <k.aditya00@gmail.com>
 aler9 <46489434+aler9@users.noreply.github.com>
 Antoine Baché <antoine@tenten.app>
 Atsushi Watanabe <atsushi.w@ieee.org>
+Bobby Peck <rpeck@mux.com>
 boks1971 <raja.gobi@tutanota.com>
 David Zhao <david@davidzhao.com>
 Jonathan Müller <jonathan@fotokite.com>

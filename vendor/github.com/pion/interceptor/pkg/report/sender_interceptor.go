@@ -126,13 +126,3 @@ func (s *SenderInterceptor) BindLocalStream(info *interceptor.StreamInfo, writer
 		return writer.Write(header, payload, a)
 	})
 }
-
-func ntpTime(t time.Time) uint64 {
-	// seconds since 1st January 1900
-	s := (float64(t.UnixNano()) / 1000000000) + 2208988800
-
-	// higher 32 bits are the integer part, lower 32 bits are the fractional part
-	integerPart := uint32(s)
-	fractionalPart := uint32((s - float64(integerPart)) * 0xFFFFFFFF)
-	return uint64(integerPart)<<32 | uint64(fractionalPart)
-}

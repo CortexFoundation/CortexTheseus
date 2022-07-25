@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pion/interceptor/internal/ntp"
 	"github.com/pion/rtcp"
 	"github.com/pion/rtp"
 )
@@ -45,7 +46,7 @@ func (stream *senderStream) generateReport(now time.Time) *rtcp.SenderReport {
 
 	return &rtcp.SenderReport{
 		SSRC:        stream.ssrc,
-		NTPTime:     ntpTime(now),
+		NTPTime:     ntp.ToNTP(now),
 		RTPTime:     stream.lastRTPTimeRTP + uint32(now.Sub(stream.lastRTPTimeTime).Seconds()*stream.clockRate),
 		PacketCount: stream.packetCount,
 		OctetCount:  stream.octetCount,
