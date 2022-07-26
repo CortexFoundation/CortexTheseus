@@ -279,7 +279,7 @@ func NewBlockChain(db ctxcdb.Database, cacheConfig *CacheConfig, chainConfig *pa
 	var nilBlock *types.Block
 	bc.currentBlock.Store(nilBlock)
 	bc.currentFastBlock.Store(nilBlock)
-	//bc.currentFinalizedBlock.Store(nilBlock)
+	bc.currentFinalizedBlock.Store(nilBlock)
 	bc.currentSafeBlock.Store(nilBlock)
 
 	// Initialize the chain with ancient data if it isn't empty.
