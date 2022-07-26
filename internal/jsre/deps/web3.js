@@ -3694,7 +3694,7 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
     };
 
     var isPredefinedBlockNumber = function (blockNumber) {
-        return blockNumber === 'latest' || blockNumber === 'pending' || blockNumber === 'earliest';
+        return blockNumber === 'latest' || blockNumber === 'pending' || blockNumber === 'earliest'|| blockNumber === 'finalized' || blockNumber === 'safe';
     };
 
     var inputDefaultBlockNumberFormatter = function (blockNumber) {

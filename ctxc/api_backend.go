@@ -80,17 +80,31 @@ func (b *CortexAPIBackend) ListAllTorrents() map[string]map[string]int {
 	return b.ctxc.synapse.ListAllTorrents()
 }
 
-func (b *CortexAPIBackend) HeaderByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*types.Header, error) {
+func (b *CortexAPIBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Header, error) {
 	// Pending block is only known by the miner
-	if blockNr == rpc.PendingBlockNumber {
+	if number == rpc.PendingBlockNumber {
 		block := b.ctxc.miner.PendingBlock()
 		return block.Header(), nil
 	}
 	// Otherwise resolve and return the block
-	if blockNr == rpc.LatestBlockNumber {
+	if number == rpc.LatestBlockNumber {
 		return b.ctxc.blockchain.CurrentBlock().Header(), nil
 	}
-	return b.ctxc.blockchain.GetHeaderByNumber(uint64(blockNr)), nil
+	if number == rpc.FinalizedBlockNumber {
+		block := b.ctxc.blockchain.CurrentFinalizedBlock()
+		if block != nil {
+			return block.Header(), nil
+		}
+		return nil, errors.New("finalized block not found")
+	}
+	if number == rpc.SafeBlockNumber {
+		block := b.ctxc.blockchain.CurrentSafeBlock()
+		if block != nil {
+			return block.Header(), nil
+		}
+		return nil, errors.New("safe block not found")
+	}
+	return b.ctxc.blockchain.GetHeaderByNumber(uint64(number)), nil
 }
 
 func (b *CortexAPIBackend) HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error) {
