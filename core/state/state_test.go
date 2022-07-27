@@ -25,6 +25,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
+	"github.com/CortexFoundation/CortexTheseus/trie"
 	checker "gopkg.in/check.v1"
 )
 
@@ -37,7 +38,11 @@ var _ = checker.Suite(&StateSuite{})
 
 var toAddr = common.BytesToAddress
 
-func (s *StateSuite) TestDump(c *checker.C) {
+func TestDump(t *testing.T) {
+	db := rawdb.NewMemoryDatabase()
+	sdb, _ := New(common.Hash{}, NewDatabaseWithConfig(db, &trie.Config{Preimages: true}), nil)
+	s := &stateTest{db: db, state: sdb}
+
 	// generate a few entries
 	obj1 := s.state.GetOrNewStateObject(toAddr([]byte{0x01}))
 	obj1.AddBalance(big.NewInt(22))
