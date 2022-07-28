@@ -280,6 +280,10 @@ func (api *PublicDebugAPI) DumpBlock(blockNr rpc.BlockNumber) (state.Dump, error
 	var block *types.Block
 	if blockNr == rpc.LatestBlockNumber {
 		block = api.ctxc.blockchain.CurrentBlock()
+	} else if blockNr == rpc.FinalizedBlockNumber {
+		block = api.ctxc.blockchain.CurrentFinalizedBlock()
+	} else if blockNr == rpc.SafeBlockNumber {
+		block = api.ctxc.blockchain.CurrentSafeBlock()
 	} else {
 		block = api.ctxc.blockchain.GetBlockByNumber(uint64(blockNr))
 	}
