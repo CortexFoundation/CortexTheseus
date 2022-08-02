@@ -38,6 +38,17 @@ var _ = checker.Suite(&StateSuite{})
 
 var toAddr = common.BytesToAddress
 
+type stateTest struct {
+	db    ctxcdb.Database
+	state *StateDB
+}
+
+func newStateTest() *stateTest {
+	db := rawdb.NewMemoryDatabase()
+	sdb, _ := New(common.Hash{}, NewDatabase(db), nil)
+	return &stateTest{db: db, state: sdb}
+}
+
 func TestDump(t *testing.T) {
 	db := rawdb.NewMemoryDatabase()
 	sdb, _ := New(common.Hash{}, NewDatabaseWithConfig(db, &trie.Config{Preimages: true}), nil)
@@ -59,36 +70,31 @@ func TestDump(t *testing.T) {
 	// check that dump contains the state objects that are in trie
 	got := string(s.state.Dump(false, false, true))
 	want := `{
-    "root": "71edff0130dd2385947095001c73d9e28d862fc286fca2b922ca6f6f3cddfdd2",
+    "root": "216dc67e0f9aed70343bd382afba66928b87b95a33d2c44c12d1e05ab11bd706",
     "accounts": {
-        "0000000000000000000000000000000000000001": {
+        "0x0000000000000000000000000000000000000001": {
             "balance": "22",
             "nonce": 0,
             "root": "56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
-            "codeHash": "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
-            "code": "",
-            "storage": {}
+            "codeHash": "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
         },
-        "0000000000000000000000000000000000000002": {
+        "0x0000000000000000000000000000000000000002": {
             "balance": "44",
             "nonce": 0,
             "root": "56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
-            "codeHash": "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
-            "code": "",
-            "storage": {}
+            "codeHash": "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
         },
-        "0000000000000000000000000000000000000102": {
+        "0x0000000000000000000000000000000000000102": {
             "balance": "0",
             "nonce": 0,
             "root": "56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
             "codeHash": "87874902497a5bb968da31a2998d8f22e949d1ef6214bcdedd8bae24cca4b9e3",
-            "code": "03030303030303",
-            "storage": {}
+            "code": "03030303030303"
         }
     }
 }`
 	if got != want {
-		c.Errorf("dump mismatch:\ngot: %s\nwant: %s\n", got, want)
+		t.Errorf("dump mismatch:\ngot: %s\nwant: %s\n", got, want)
 	}
 }
 
