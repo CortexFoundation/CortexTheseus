@@ -418,7 +418,8 @@ func (api *SignerAPI) EcRecover(ctx context.Context, data, sig hexutil.Bytes) (c
 // safely used to calculate a signature from.
 //
 // The hash is calculated as
-//   keccak256("\x19Cortex Signed Message:\n"${message length}${message}).
+//
+//	keccak256("\x19Cortex Signed Message:\n"${message length}${message}).
 //
 // This gives context to the signed message and prevents signing of transactions.
 func SignHash(data []byte) ([]byte, string) {

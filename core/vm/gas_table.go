@@ -102,10 +102,10 @@ func memoryCopierGas(stackpos int) gasFunc {
 }
 
 var (
-//gasCallDataCopy = memoryCopierGas(2)
-//gasCodeCopy     = memoryCopierGas(2)
-//gasExtCodeCopy    = memoryCopierGas(3)
-//gasReturnDataCopy = memoryCopierGas(2)
+// gasCallDataCopy = memoryCopierGas(2)
+// gasCodeCopy     = memoryCopierGas(2)
+// gasExtCodeCopy    = memoryCopierGas(3)
+// gasReturnDataCopy = memoryCopierGas(2)
 )
 
 func gasCallDataCopy(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
@@ -229,19 +229,19 @@ func gasSStore(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, m
 	return params.NetSstoreDirtyGas, nil
 }
 
-// 0. If *gasleft* is less than or equal to 2300, fail the current call.
-// 1. If current value equals new value (this is a no-op), SLOAD_GAS is deducted.
-// 2. If current value does not equal new value:
-//   2.1. If original value equals current value (this storage slot has not been changed by the current execution context):
+//  0. If *gasleft* is less than or equal to 2300, fail the current call.
+//  1. If current value equals new value (this is a no-op), SLOAD_GAS is deducted.
+//  2. If current value does not equal new value:
+//     2.1. If original value equals current value (this storage slot has not been changed by the current execution context):
 //     2.1.1. If original value is 0, SSTORE_SET_GAS (20K) gas is deducted.
 //     2.1.2. Otherwise, SSTORE_RESET_GAS gas is deducted. If new value is 0, add SSTORE_CLEARS_SCHEDULE to refund counter.
-//   2.2. If original value does not equal current value (this storage slot is dirty), SLOAD_GAS gas is deducted. Apply both of the following clauses:
+//     2.2. If original value does not equal current value (this storage slot is dirty), SLOAD_GAS gas is deducted. Apply both of the following clauses:
 //     2.2.1. If original value is not 0:
-//       2.2.1.1. If current value is 0 (also means that new value is not 0), subtract SSTORE_CLEARS_SCHEDULE gas from refund counter.
-//       2.2.1.2. If new value is 0 (also means that current value is not 0), add SSTORE_CLEARS_SCHEDULE gas to refund counter.
+//     2.2.1.1. If current value is 0 (also means that new value is not 0), subtract SSTORE_CLEARS_SCHEDULE gas from refund counter.
+//     2.2.1.2. If new value is 0 (also means that current value is not 0), add SSTORE_CLEARS_SCHEDULE gas to refund counter.
 //     2.2.2. If original value equals new value (this storage slot is reset):
-//       2.2.2.1. If original value is 0, add SSTORE_INIT_REFUND to refund counter.
-//       2.2.2.2. Otherwise, add SSTORE_CLEAN_REFUND gas to refund counter.
+//     2.2.2.1. If original value is 0, add SSTORE_INIT_REFUND to refund counter.
+//     2.2.2.2. Otherwise, add SSTORE_CLEAN_REFUND gas to refund counter.
 func gasSStoreEIP2200(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
 	// If we fail the minimum gas availability invariant, fail (0)
 	if contract.Gas <= params.SstoreSentryGasEIP2200 {

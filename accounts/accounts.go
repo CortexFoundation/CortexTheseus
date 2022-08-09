@@ -175,7 +175,8 @@ type Backend interface {
 // safely used to calculate a signature from.
 //
 // The hash is calulcated as
-//   keccak256("\x19Cortex Signed Message:\n"${message length}${message}).
+//
+//	keccak256("\x19Cortex Signed Message:\n"${message length}${message}).
 //
 // This gives context to the signed message and prevents signing of transactions.
 func TextHash(data []byte) []byte {
@@ -187,7 +188,8 @@ func TextHash(data []byte) []byte {
 // safely used to calculate a signature from.
 //
 // The hash is calulcated as
-//   keccak256("\x19Cortex Signed Message:\n"${message length}${message}).
+//
+//	keccak256("\x19Cortex Signed Message:\n"${message length}${message}).
 //
 // This gives context to the signed message and prevents signing of transactions.
 func TextAndHash(data []byte) ([]byte, string) {

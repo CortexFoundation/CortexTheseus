@@ -368,7 +368,7 @@ func CalcDifficulty(config *params.ChainConfig, time uint64, parent *types.Heade
 	}
 }
 
-//important add gas limit to consensus
+// important add gas limit to consensus
 func checkGasLimit(gasUsed, gasLimit, currentGasLimit uint64) bool {
 	contrib := (gasUsed + gasUsed/2) / params.GasLimitBoundDivisor
 	decay := gasLimit/params.GasLimitBoundDivisor - 1

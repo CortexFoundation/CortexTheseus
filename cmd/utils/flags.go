@@ -1714,7 +1714,7 @@ func RegisterShhService(stack *node.Node, cfg *whisper.Config) {
 }
 
 // RegisterStorageService adds a torrent file system to the stack.
-//func RegisterStorageService(stack *node.Node, cfg *torrentfs.Config, mode downloader.SyncMode) {
+// func RegisterStorageService(stack *node.Node, cfg *torrentfs.Config, mode downloader.SyncMode) {
 func RegisterStorageService(stack *node.Node, cfg *torrentfs.Config) {
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 		//return torrentfs.New(cfg, true, false, downloader.FastSync == mode)
@@ -1894,7 +1894,6 @@ func MakeConsolePreloads(ctx *cli.Context) []string {
 // MigrateFlags sets the global flag from a local flag when it's set.
 // This is a temporary function used for migrating old command/flags to the
 // new format.
-//
 //
 // is equivalent after calling this method with:
 //

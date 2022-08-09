@@ -32,7 +32,7 @@ var (
 	DoloresGenesisHash = common.HexToHash("0xe39f1aace1c91078c97e743bd6b7a692ac215e6f9124599cdcabf0a8c7dfeae5")
 )
 
-//It should be empty for first time
+// It should be empty for first time
 var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
 	MainnetGenesisHash: MainnetTrustedCheckpoint,
 	//BernardGenesisHash: BernardTrustedCheckpoint,

@@ -51,7 +51,7 @@ var DoloresBootnodes = []string{
 ////var DiscoveryV5Bootnodes = []string{
 //}
 
-//const dnsPrefix = "enrtree://AKLET737XA6CY7T4QAPFJCUZRZ46EFAGZIV6LOAGKTG45RRZSUUWI@"
+// const dnsPrefix = "enrtree://AKLET737XA6CY7T4QAPFJCUZRZ46EFAGZIV6LOAGKTG45RRZSUUWI@"
 const dnsPrefix = "enrtree://AKLET737XA6CY7T4QAPFJCUZRZ46EFAGZIV6LOAGKTG45RRZSUUWI@"
 
 func KnownDNSNetwork(genesis common.Hash, protocol string) string {

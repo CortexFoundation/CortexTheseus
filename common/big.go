@@ -59,7 +59,6 @@ func Big(num string) *big.Int {
 }
 
 // Bytes2Big
-//
 func BytesToBig(data []byte) *big.Int {
 	n := new(big.Int)
 	n.SetBytes(data)
