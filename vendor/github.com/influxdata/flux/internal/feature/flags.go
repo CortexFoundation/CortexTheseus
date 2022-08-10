@@ -41,18 +41,6 @@ func GroupTransformationGroup() BoolFlag {
 	return groupTransformationGroup
 }
 
-var queryConcurrencyLimit = feature.MakeIntFlag(
-	"Query Concurrency Limit",
-	"queryConcurrencyLimit",
-	"Jonathan Sternberg",
-	0,
-)
-
-// QueryConcurrencyLimit - Sets the query concurrency limit for the planner
-func QueryConcurrencyLimit() IntFlag {
-	return queryConcurrencyLimit
-}
-
 var optimizeUnionTransformation = feature.MakeBoolFlag(
 	"Optimize Union Transformation",
 	"optimizeUnionTransformation",
@@ -173,6 +161,42 @@ func ExperimentalTestingDiff() BoolFlag {
 	return experimentalTestingDiff
 }
 
+var removeRedundantSortNodes = feature.MakeBoolFlag(
+	"Remove Redundant Sort Nodes",
+	"removeRedundantSortNodes",
+	"Chris Wolff",
+	false,
+)
+
+// RemoveRedundantSortNodes - Planner will remove sort nodes when tables are already sorted
+func RemoveRedundantSortNodes() BoolFlag {
+	return removeRedundantSortNodes
+}
+
+var queryConcurrencyIncrease = feature.MakeIntFlag(
+	"Query Concurrency Increase",
+	"queryConcurrencyIncrease",
+	"Jonathan Sternberg, Adrian Thurston",
+	0,
+)
+
+// QueryConcurrencyIncrease - Additional dispatcher workers to allocate on top of the minimimum allowable computed by the engine
+func QueryConcurrencyIncrease() IntFlag {
+	return queryConcurrencyIncrease
+}
+
+var vectorizedConditionals = feature.MakeBoolFlag(
+	"Vectorized Conditionals",
+	"vectorizedConditionals",
+	"Owen Nelson",
+	false,
+)
+
+// VectorizedConditionals - Calls to map can be vectorized when conditional expressions appear in the function
+func VectorizedConditionals() BoolFlag {
+	return vectorizedConditionals
+}
+
 // Inject will inject the Flagger into the context.
 func Inject(ctx context.Context, flagger Flagger) context.Context {
 	return feature.Inject(ctx, flagger)
@@ -181,7 +205,6 @@ func Inject(ctx context.Context, flagger Flagger) context.Context {
 var all = []Flag{
 	aggregateTransformationTransport,
 	groupTransformationGroup,
-	queryConcurrencyLimit,
 	optimizeUnionTransformation,
 	vectorizedMap,
 	narrowTransformationDifference,
@@ -192,12 +215,14 @@ var all = []Flag{
 	unusedSymbolWarnings,
 	vectorizedConst,
 	experimentalTestingDiff,
+	removeRedundantSortNodes,
+	queryConcurrencyIncrease,
+	vectorizedConditionals,
 }
 
 var byKey = map[string]Flag{
 	"aggregateTransformationTransport": aggregateTransformationTransport,
 	"groupTransformationGroup":         groupTransformationGroup,
-	"queryConcurrencyLimit":            queryConcurrencyLimit,
 	"optimizeUnionTransformation":      optimizeUnionTransformation,
 	"vectorizedMap":                    vectorizedMap,
 	"narrowTransformationDifference":   narrowTransformationDifference,
@@ -208,6 +233,9 @@ var byKey = map[string]Flag{
 	"unusedSymbolWarnings":             unusedSymbolWarnings,
 	"vectorizedConst":                  vectorizedConst,
 	"experimentalTestingDiff":          experimentalTestingDiff,
+	"removeRedundantSortNodes":         removeRedundantSortNodes,
+	"queryConcurrencyIncrease":         queryConcurrencyIncrease,
+	"vectorizedConditionals":           vectorizedConditionals,
 }
 
 // Flags returns all feature flags.
