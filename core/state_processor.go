@@ -84,7 +84,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 			return nil, nil, 0, err
 		}
 		statedb.Prepare(tx.Hash(), i)
-		receipt, _, err := applyTransaction(msg, p.config, p.bc, nil, gp, qp, statedb, header, blockNumber, blockHash, tx, usedGas, vmenv)
+		receipt, _, err := applyTransaction(msg, p.config, nil, gp, qp, statedb, header, blockNumber, blockHash, tx, usedGas, vmenv)
 		if err != nil {
 			return nil, nil, 0, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
 		}
@@ -106,7 +106,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 // and uses the input parameters for its environment. It returns the receipt
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
-func applyTransaction(msg types.Message, config *params.ChainConfig, bc ChainContext, author *common.Address, gp *GasPool, qp *QuotaPool, statedb *state.StateDB, header *types.Header, blockNumber *big.Int, blockHash common.Hash, tx *types.Transaction, usedGas *uint64, cvm *vm.CVM) (*types.Receipt, uint64, error) {
+func applyTransaction(msg types.Message, config *params.ChainConfig, author *common.Address, gp *GasPool, qp *QuotaPool, statedb *state.StateDB, header *types.Header, blockNumber *big.Int, blockHash common.Hash, tx *types.Transaction, usedGas *uint64, cvm *vm.CVM) (*types.Receipt, uint64, error) {
 	// Create a new context to be used in the CVM environment
 	txContext := NewCVMTxContext(msg)
 	// Update the evm with the new transaction context.
@@ -169,5 +169,5 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	// Create a new context to be used in the CVM environment
 	blockContext := NewCVMBlockContext(header, bc, author)
 	vmenv := vm.NewCVM(blockContext, vm.TxContext{}, statedb, config, cfg)
-	return applyTransaction(msg, config, bc, author, gp, qp, statedb, header, header.Number, header.Hash(), tx, usedGas, vmenv)
+	return applyTransaction(msg, config, author, gp, qp, statedb, header, header.Number, header.Hash(), tx, usedGas, vmenv)
 }
