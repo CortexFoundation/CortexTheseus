@@ -23,8 +23,6 @@ const (
 	DefaultRPCPathFlag = "default-rpc-path"
 )
 
-const statusCode = "StatusCode"
-
 // New returns new usestdlibvars analyzer.
 func New() *analysis.Analyzer {
 	return &analysis.Analyzer{
@@ -66,32 +64,77 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				return
 			}
 
-			switch selectorExpr.Sel.Name {
-			case "WriteHeader":
-				if !lookupFlag(pass, HTTPStatusCodeFlag) {
-					return
-				}
+			ident, ok := selectorExpr.X.(*ast.Ident)
+			if !ok {
+				return
+			}
 
-				if basicLit := getBasicLitFromArgs(n.Args, 1, 0, token.INT); basicLit != nil {
-					checkHTTPStatusCode(pass, basicLit)
-				}
+			switch ident.Name {
+			case "http":
+				switch selectorExpr.Sel.Name {
+				case "NewRequest":
+					if !lookupFlag(pass, HTTPMethodFlag) {
+						return
+					}
 
-			case "NewRequest":
-				if !lookupFlag(pass, HTTPMethodFlag) {
-					return
-				}
+					if basicLit := getBasicLitFromArgs(n.Args, 3, 0, token.STRING); basicLit != nil {
+						checkHTTPMethod(pass, basicLit)
+					}
 
-				if basicLit := getBasicLitFromArgs(n.Args, 3, 0, token.STRING); basicLit != nil {
-					checkHTTPMethod(pass, basicLit)
-				}
+				case "NewRequestWithContext":
+					if !lookupFlag(pass, HTTPMethodFlag) {
+						return
+					}
 
-			case "NewRequestWithContext":
-				if !lookupFlag(pass, HTTPMethodFlag) {
-					return
-				}
+					if basicLit := getBasicLitFromArgs(n.Args, 4, 1, token.STRING); basicLit != nil {
+						checkHTTPMethod(pass, basicLit)
+					}
 
-				if basicLit := getBasicLitFromArgs(n.Args, 4, 1, token.STRING); basicLit != nil {
-					checkHTTPMethod(pass, basicLit)
+				case "Error":
+					if !lookupFlag(pass, HTTPStatusCodeFlag) {
+						return
+					}
+
+					if basicLit := getBasicLitFromArgs(n.Args, 3, 2, token.INT); basicLit != nil {
+						checkHTTPStatusCode(pass, basicLit)
+					}
+
+				case "StatusText":
+					if !lookupFlag(pass, HTTPStatusCodeFlag) {
+						return
+					}
+
+					if basicLit := getBasicLitFromArgs(n.Args, 1, 0, token.INT); basicLit != nil {
+						checkHTTPStatusCode(pass, basicLit)
+					}
+
+				case "Redirect":
+					if !lookupFlag(pass, HTTPStatusCodeFlag) {
+						return
+					}
+
+					if basicLit := getBasicLitFromArgs(n.Args, 4, 3, token.INT); basicLit != nil {
+						checkHTTPStatusCode(pass, basicLit)
+					}
+
+				case "RedirectHandler":
+					if !lookupFlag(pass, HTTPStatusCodeFlag) {
+						return
+					}
+
+					if basicLit := getBasicLitFromArgs(n.Args, 2, 1, token.INT); basicLit != nil {
+						checkHTTPStatusCode(pass, basicLit)
+					}
+				}
+			default:
+				if selectorExpr.Sel.Name == "WriteHeader" {
+					if !lookupFlag(pass, HTTPStatusCodeFlag) {
+						return
+					}
+
+					if basicLit := getBasicLitFromArgs(n.Args, 1, 0, token.INT); basicLit != nil {
+						checkHTTPStatusCode(pass, basicLit)
+					}
 				}
 			}
 
@@ -145,7 +188,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 						return
 					}
 
-					if basicLit := getBasicLitFromElts(n.Elts, statusCode); basicLit != nil {
+					if basicLit := getBasicLitFromElts(n.Elts, "StatusCode"); basicLit != nil {
 						checkHTTPStatusCode(pass, basicLit)
 					}
 				}
@@ -162,12 +205,16 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				return
 			}
 
-			if selectorExpr.Sel.Name != statusCode {
+			if selectorExpr.Sel.Name != "StatusCode" {
 				return
 			}
 
 			basicLit, ok := binaryExpr.Y.(*ast.BasicLit)
 			if !ok {
+				return
+			}
+
+			if !lookupFlag(pass, HTTPStatusCodeFlag) {
 				return
 			}
 

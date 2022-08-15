@@ -3,6 +3,8 @@
 // license that can be found in the LICENSE file.
 package btree
 
+import "sync/atomic"
+
 type ordered interface {
 	~int | ~int8 | ~int16 | ~int32 | ~int64 |
 		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr |
@@ -18,14 +20,14 @@ type mapPair[K ordered, V any] struct {
 }
 
 type Map[K ordered, V any] struct {
-	cow   *cow
+	cow   uint64
 	root  *mapNode[K, V]
 	count int
 	empty mapPair[K, V]
 }
 
 type mapNode[K ordered, V any] struct {
-	cow      *cow
+	cow      uint64
 	count    int
 	items    []mapPair[K, V]
 	children *[]*mapNode[K, V]
@@ -60,13 +62,9 @@ func (tr *Map[K, V]) cowLoad(cn **mapNode[K, V]) *mapNode[K, V] {
 func (tr *Map[K, V]) Copy() *Map[K, V] {
 	tr2 := new(Map[K, V])
 	*tr2 = *tr
-	tr2.cow = new(cow)
-	tr.cow = new(cow)
+	tr2.cow = atomic.AddUint64(&gcow, 1)
+	tr.cow = atomic.AddUint64(&gcow, 1)
 	return tr2
-}
-
-func (tr *Map[K, V]) less(a, b K) bool {
-	return a < b
 }
 
 func (tr *Map[K, V]) newNode(leaf bool) *mapNode[K, V] {
@@ -83,19 +81,17 @@ func (n *mapNode[K, V]) leaf() bool {
 	return n.children == nil
 }
 
-func (tr *Map[K, V]) find(n *mapNode[K, V], key K) (index int, found bool) {
-	// fast path for no hinting
-	low := 0
-	high := len(n.items)
+func (tr *Map[K, V]) bsearch(n *mapNode[K, V], key K) (index int, found bool) {
+	low, high := 0, len(n.items)
 	for low < high {
-		mid := (low + high) / 2
-		if !tr.less(key, n.items[mid].key) {
-			low = mid + 1
+		h := int(uint(low+high) >> 1)
+		if key >= n.items[h].key {
+			low = h + 1
 		} else {
-			high = mid
+			high = h
 		}
 	}
-	if low > 0 && !tr.less(n.items[low-1].key, key) {
+	if low > 0 && n.items[low-1].key >= key {
 		return low - 1, true
 	}
 	return low, false
@@ -134,29 +130,48 @@ func (tr *Map[K, V]) nodeSplit(n *mapNode[K, V],
 	i := maxItems / 2
 	median = n.items[i]
 
-	// left node
-	left := tr.newNode(n.leaf())
-	left.items = make([]mapPair[K, V], len(n.items[:i]), maxItems/2)
-	copy(left.items, n.items[:i])
-	if !n.leaf() {
-		*left.children = make([]*mapNode[K, V],
-			len((*n.children)[:i+1]), maxItems+1)
-		copy(*left.children, (*n.children)[:i+1])
-	}
-	left.updateCount()
+	const sliceItems = true
 
 	// right node
 	right = tr.newNode(n.leaf())
-	right.items = make([]mapPair[K, V], len(n.items[i+1:]), maxItems/2)
-	copy(right.items, n.items[i+1:])
-	if !n.leaf() {
-		*right.children = make([]*mapNode[K, V],
-			len((*n.children)[i+1:]), maxItems+1)
-		copy(*right.children, (*n.children)[i+1:])
+	if sliceItems {
+		right.items = n.items[i+1:]
+		if !n.leaf() {
+			*right.children = (*n.children)[i+1:]
+		}
+	} else {
+		right.items = make([]mapPair[K, V], len(n.items[i+1:]), maxItems/2)
+		copy(right.items, n.items[i+1:])
+		if !n.leaf() {
+			*right.children = make([]*mapNode[K, V],
+				len((*n.children)[i+1:]), maxItems+1)
+			copy(*right.children, (*n.children)[i+1:])
+		}
 	}
 	right.updateCount()
 
-	*n = *left
+	// left node
+	if sliceItems {
+		n.items[i] = tr.empty
+		n.items = n.items[:i:i]
+		if !n.leaf() {
+			*n.children = (*n.children)[: i+1 : i+1]
+		}
+	} else {
+		for j := i; j < len(n.items); j++ {
+			n.items[j] = tr.empty
+		}
+		if !n.leaf() {
+			for j := i + 1; j < len((*n.children)); j++ {
+				(*n.children)[j] = nil
+			}
+		}
+		n.items = n.items[:i]
+		if !n.leaf() {
+			*n.children = (*n.children)[:i+1]
+		}
+	}
+	n.updateCount()
 	return right, median
 }
 
@@ -172,7 +187,7 @@ func (n *mapNode[K, V]) updateCount() {
 func (tr *Map[K, V]) nodeSet(pn **mapNode[K, V], item mapPair[K, V],
 ) (prev V, replaced bool, split bool) {
 	n := tr.cowLoad(pn)
-	i, found := tr.find(n, item.key)
+	i, found := tr.bsearch(n, item.key)
 	if found {
 		prev = n.items[i].value
 		n.items[i].value = item.value
@@ -242,7 +257,7 @@ func (tr *Map[K, V]) Get(key K) (V, bool) {
 	}
 	n := tr.root
 	for {
-		i, found := tr.find(n, key)
+		i, found := tr.bsearch(n, key)
 		if found {
 			return n.items[i].value, true
 		}
@@ -250,7 +265,6 @@ func (tr *Map[K, V]) Get(key K) (V, bool) {
 			return tr.empty.value, false
 		}
 		n = (*n.children)[i]
-
 	}
 }
 
@@ -287,7 +301,7 @@ func (tr *Map[K, V]) delete(pn **mapNode[K, V], max bool, key K,
 	if max {
 		i, found = len(n.items)-1, true
 	} else {
-		i, found = tr.find(n, key)
+		i, found = tr.bsearch(n, key)
 	}
 	if n.leaf() {
 		if found {
@@ -325,7 +339,6 @@ func (tr *Map[K, V]) delete(pn **mapNode[K, V], max bool, key K,
 		tr.nodeRebalance(n, i)
 	}
 	return prev, true
-
 }
 
 // nodeRebalance rebalances the child nodes following a delete operation.
@@ -426,7 +439,7 @@ func (tr *Map[K, V]) Ascend(pivot K, iter func(key K, value V) bool) {
 func (tr *Map[K, V]) ascend(n *mapNode[K, V], pivot K,
 	iter func(key K, value V) bool,
 ) bool {
-	i, found := tr.find(n, pivot)
+	i, found := tr.bsearch(n, pivot)
 	if !found {
 		if !n.leaf() {
 			if !tr.ascend((*n.children)[i], pivot, iter) {
@@ -494,7 +507,7 @@ func (tr *Map[K, V]) Descend(pivot K, iter func(key K, value V) bool) {
 func (tr *Map[K, V]) descend(n *mapNode[K, V], pivot K,
 	iter func(key K, value V) bool,
 ) bool {
-	i, found := tr.find(n, pivot)
+	i, found := tr.bsearch(n, pivot)
 	if !found {
 		if !n.leaf() {
 			if !tr.descend((*n.children)[i], pivot, iter) {
@@ -527,7 +540,7 @@ func (tr *Map[K, V]) Load(key K, value V) (V, bool) {
 		n.count++ // optimistically update counts
 		if n.leaf() {
 			if len(n.items) < maxItems {
-				if tr.less(n.items[len(n.items)-1].key, item.key) {
+				if n.items[len(n.items)-1].key < item.key {
 					n.items = append(n.items, item)
 					tr.count++
 					return tr.empty.value, false
@@ -623,7 +636,7 @@ func (tr *Map[K, V]) PopMin() (K, V, bool) {
 	return tr.empty.key, tr.empty.value, false
 }
 
-// PopMax removes the minimum item in tree and returns it.
+// PopMax removes the maximum item in tree and returns it.
 // Returns nil if the tree has no items.
 func (tr *Map[K, V]) PopMax() (K, V, bool) {
 	if tr.root == nil {
@@ -798,7 +811,7 @@ func (iter *MapIter[K, V]) Seek(key K) bool {
 	}
 	n := iter.tr.root
 	for {
-		i, found := iter.tr.find(n, key)
+		i, found := iter.tr.bsearch(n, key)
 		iter.stack = append(iter.stack, mapIterStackItem[K, V]{n, i})
 		if found {
 			iter.item = n.items[i]
