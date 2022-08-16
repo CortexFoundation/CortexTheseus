@@ -445,7 +445,8 @@ func (s *PrivateAccountAPI) SignTransaction(ctx context.Context, args SendTxArgs
 // safely used to calculate a signature from.
 //
 // The hash is calulcated as
-//   keccak256("\x19Cortex Signed Message:\n"${message length}${message}).
+//
+//	keccak256("\x19Cortex Signed Message:\n"${message length}${message}).
 //
 // This gives context to the signed message and prevents signing of transactions.
 func signHash(data []byte) []byte {
@@ -552,7 +553,7 @@ func (s *PublicBlockChainAPI) GetUpload(ctx context.Context, address common.Addr
 	return (*hexutil.Big)(state.GetUpload(address)), state.Error()
 }
 
-//blocknumber related to expiriation
+// blocknumber related to expiriation
 func (s *PublicBlockChainAPI) GetNum(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
 	if state == nil || err != nil {

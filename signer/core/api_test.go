@@ -13,7 +13,6 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with CortexFoundation. If not, see <http://www.gnu.org/licenses/>.
-//
 package core
 
 import (
@@ -30,7 +29,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/internal/ctxcapi"
 )
 
-//Used for testing
+// Used for testing
 type HeadlessUI struct {
 	controller chan string
 }
@@ -115,26 +114,26 @@ func tmpDirName(t *testing.T) string {
 	return d
 }
 
-//func setup(t *testing.T) (*SignerAPI, chan string) {
+// func setup(t *testing.T) (*SignerAPI, chan string) {
 //
-//	controller := make(chan string, 10)
+//		controller := make(chan string, 10)
 //
-//	db, err := NewAbiDBFromFile("../../cmd/clef/4byte.json")
-//	if err != nil {
-//		utils.Fatalf(err.Error())
+//		db, err := NewAbiDBFromFile("../../cmd/clef/4byte.json")
+//		if err != nil {
+//			utils.Fatalf(err.Error())
+//		}
+//		var (
+//			ui  = &HeadlessUI{controller}
+//			api = NewSignerAPI(
+//				1,
+//				tmpDirName(t),
+//				true,
+//				ui,
+//				db,
+//				true)
+//		)
+//		return api, controller
 //	}
-//	var (
-//		ui  = &HeadlessUI{controller}
-//		api = NewSignerAPI(
-//			1,
-//			tmpDirName(t),
-//			true,
-//			ui,
-//			db,
-//			true)
-//	)
-//	return api, controller
-//}
 func createAccount(control chan string, api *SignerAPI, t *testing.T) {
 
 	control <- "Y"
@@ -165,89 +164,89 @@ func list(control chan string, api *SignerAPI, t *testing.T) []Account {
 	return list
 }
 
-//func TestNewAcc(t *testing.T) {
+// func TestNewAcc(t *testing.T) {
 //
-//	api, control := setup(t)
-//	verifyNum := func(num int) {
-//		if list := list(control, api, t); len(list) != num {
-//			t.Errorf("Expected %d accounts, got %d", num, len(list))
+//		api, control := setup(t)
+//		verifyNum := func(num int) {
+//			if list := list(control, api, t); len(list) != num {
+//				t.Errorf("Expected %d accounts, got %d", num, len(list))
+//			}
+//		}
+//		// Testing create and create-deny
+//		createAccount(control, api, t)
+//		createAccount(control, api, t)
+//		failCreateAccount(control, api, t)
+//		failCreateAccount(control, api, t)
+//		createAccount(control, api, t)
+//		failCreateAccount(control, api, t)
+//		createAccount(control, api, t)
+//		failCreateAccount(control, api, t)
+//		verifyNum(4)
+//
+//		// Testing listing:
+//		// Listing one Account
+//		control <- "1"
+//		list, err := api.List(context.Background())
+//		if err != nil {
+//			t.Fatal(err)
+//		}
+//		if len(list) != 1 {
+//			t.Fatalf("List should only show one Account")
+//		}
+//		// Listing denied
+//		control <- "Nope"
+//		list, err = api.List(context.Background())
+//		if len(list) != 0 {
+//			t.Fatalf("List should be empty")
+//		}
+//		if err != ErrRequestDenied {
+//			t.Fatal("Expected deny")
 //		}
 //	}
-//	// Testing create and create-deny
-//	createAccount(control, api, t)
-//	createAccount(control, api, t)
-//	failCreateAccount(control, api, t)
-//	failCreateAccount(control, api, t)
-//	createAccount(control, api, t)
-//	failCreateAccount(control, api, t)
-//	createAccount(control, api, t)
-//	failCreateAccount(control, api, t)
-//	verifyNum(4)
 //
-//	// Testing listing:
-//	// Listing one Account
-//	control <- "1"
-//	list, err := api.List(context.Background())
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//	if len(list) != 1 {
-//		t.Fatalf("List should only show one Account")
-//	}
-//	// Listing denied
-//	control <- "Nope"
-//	list, err = api.List(context.Background())
-//	if len(list) != 0 {
-//		t.Fatalf("List should be empty")
-//	}
-//	if err != ErrRequestDenied {
-//		t.Fatal("Expected deny")
-//	}
-//}
+// func TestSignData(t *testing.T) {
 //
-//func TestSignData(t *testing.T) {
+//		api, control := setup(t)
+//		//Create two accounts
+//		createAccount(control, api, t)
+//		createAccount(control, api, t)
+//		control <- "1"
+//		list, err := api.List(context.Background())
+//		if err != nil {
+//			t.Fatal(err)
+//		}
+//		a := common.NewMixedcaseAddress(list[0].Address)
 //
-//	api, control := setup(t)
-//	//Create two accounts
-//	createAccount(control, api, t)
-//	createAccount(control, api, t)
-//	control <- "1"
-//	list, err := api.List(context.Background())
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//	a := common.NewMixedcaseAddress(list[0].Address)
+//		control <- "Y"
+//		control <- "wrongpassword"
+//		h, err := api.Sign(context.Background(), a, []byte("EHLO world"))
+//		if h != nil {
+//			t.Errorf("Expected nil-data, got %x", h)
+//		}
+//		if err != keystore.ErrDecrypt {
+//			t.Errorf("Expected ErrLocked! %v", err)
+//		}
 //
-//	control <- "Y"
-//	control <- "wrongpassword"
-//	h, err := api.Sign(context.Background(), a, []byte("EHLO world"))
-//	if h != nil {
-//		t.Errorf("Expected nil-data, got %x", h)
-//	}
-//	if err != keystore.ErrDecrypt {
-//		t.Errorf("Expected ErrLocked! %v", err)
-//	}
+//		control <- "No way"
+//		h, err = api.Sign(context.Background(), a, []byte("EHLO world"))
+//		if h != nil {
+//			t.Errorf("Expected nil-data, got %x", h)
+//		}
+//		if err != ErrRequestDenied {
+//			t.Errorf("Expected ErrRequestDenied! %v", err)
+//		}
 //
-//	control <- "No way"
-//	h, err = api.Sign(context.Background(), a, []byte("EHLO world"))
-//	if h != nil {
-//		t.Errorf("Expected nil-data, got %x", h)
-//	}
-//	if err != ErrRequestDenied {
-//		t.Errorf("Expected ErrRequestDenied! %v", err)
-//	}
+//		control <- "Y"
+//		control <- "apassword"
+//		h, err = api.Sign(context.Background(), a, []byte("EHLO world"))
 //
-//	control <- "Y"
-//	control <- "apassword"
-//	h, err = api.Sign(context.Background(), a, []byte("EHLO world"))
-//
-//	if err != nil {
-//		t.Fatal(err)
+//		if err != nil {
+//			t.Fatal(err)
+//		}
+//		if h == nil || len(h) != 65 {
+//			t.Errorf("Expected 65 byte signature (got %d bytes)", len(h))
+//		}
 //	}
-//	if h == nil || len(h) != 65 {
-//		t.Errorf("Expected 65 byte signature (got %d bytes)", len(h))
-//	}
-//}
 func mkTestTx(from common.MixedcaseAddress) SendTxArgs {
 	to := common.NewMixedcaseAddress(common.HexToAddress("0x1337"))
 	gas := hexutil.Uint64(21000)

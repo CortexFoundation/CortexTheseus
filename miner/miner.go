@@ -72,7 +72,7 @@ type Miner struct {
 	wg sync.WaitGroup
 }
 
-//New create an instance of Miner
+// New create an instance of Miner
 func New(ctxc Backend, config *Config, chainConfig *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, isLocalBlock func(block *types.Block) bool) *Miner {
 	miner := &Miner{
 		ctxc:    ctxc,

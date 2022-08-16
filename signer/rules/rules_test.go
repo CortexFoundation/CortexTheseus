@@ -13,7 +13,6 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with CortexFoundation. If not, see <http://www.gnu.org/licenses/>.
-//
 package rules
 
 import (
@@ -244,7 +243,7 @@ func (d *dummyUI) OnApprovedTx(tx ctxcapi.SignTransactionResult) {
 func (d *dummyUI) OnSignerStartup(info core.StartupInfo) {
 }
 
-//TestForwarding tests that the rule-engine correctly dispatches requests to the next caller
+// TestForwarding tests that the rule-engine correctly dispatches requests to the next caller
 func TestForwarding(t *testing.T) {
 
 	js := ""
@@ -554,7 +553,7 @@ func (d *dontCallMe) OnApprovedTx(tx ctxcapi.SignTransactionResult) {
 	d.t.Fatalf("Did not expect next-handler to be called")
 }
 
-//TestContextIsCleared tests that the rule-engine does not retain variables over several requests.
+// TestContextIsCleared tests that the rule-engine does not retain variables over several requests.
 // if it does, that would be bad since developers may rely on that to store data,
 // instead of using the disk-based data storage
 func TestContextIsCleared(t *testing.T) {

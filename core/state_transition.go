@@ -48,8 +48,10 @@ The state transitioning model does all the necessary work to work out a valid ne
 3) Create a new state object if the recipient is \0*32
 4) Value transfer
 == If contract creation ==
-  4a) Attempt to run transaction data
-  4b) If valid, use result as code for the new state object
+
+	4a) Attempt to run transaction data
+	4b) If valid, use result as code for the new state object
+
 == end ==
 5) Run Script section
 6) Derive new state root
@@ -186,7 +188,7 @@ func (st *StateTransition) buyGas() error {
 	return nil
 }
 
-//var confirmTime = params.CONFIRM_TIME * time.Second //-3600 * 24 * 30 * time.Second
+// var confirmTime = params.CONFIRM_TIME * time.Second //-3600 * 24 * 30 * time.Second
 func (st *StateTransition) preCheck() error {
 	// Make sure this transaction's nonce is correct.
 	if st.msg.CheckNonce() {
@@ -443,7 +445,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	return ret, st.gasUsed(), quota, vmerr != nil, err
 }
 
-//vote to model
+// vote to model
 func (st *StateTransition) uploading() bool {
 	//log.Trace("Vote tx", "to", st.msg.To(), "sign", st.value.Sign(), "uploading", st.state.Uploading(st.to()), "gas", st.gas, "limit", params.UploadGas)
 	return st.msg != nil && st.msg.To() != nil && st.value.Sign() == 0 && st.state.Uploading(st.to()) // && st.gas >= params.UploadGas

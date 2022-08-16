@@ -330,7 +330,7 @@ func (s *StateDB) GetState(addr common.Address, bhash common.Hash) common.Hash {
 }
 
 // GetState returns a value in account storage.
-//func (s *StateDB) GetSolidityUint256(addr common.Address, slot common.Hash) ([]byte, error) {
+// func (s *StateDB) GetSolidityUint256(addr common.Address, slot common.Hash) ([]byte, error) {
 func (s *StateDB) GetSolidityBytes(addr common.Address, slot common.Hash) ([]byte, error) {
 	length := s.GetState(addr, slot).Big().Uint64()
 	if length == uint64(0) {
@@ -728,8 +728,8 @@ func (s *StateDB) createObject(addr common.Address) (newobj, prev *stateObject) 
 // CreateAccount is called during the CVM CREATE operation. The situation might arise that
 // a contract does the following:
 //
-//   1. sends funds to sha(account ++ (nonce + 1))
-//   2. tx_create(sha(account ++ nonce)) (note that this gets the address of 1)
+//  1. sends funds to sha(account ++ (nonce + 1))
+//  2. tx_create(sha(account ++ nonce)) (note that this gets the address of 1)
 //
 // Carrying over the balance ensures that Cortex doesn't disappear.
 func (s *StateDB) CreateAccount(addr common.Address) {

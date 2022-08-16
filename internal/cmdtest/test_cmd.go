@@ -76,7 +76,7 @@ func (tt *TestCmd) Run(name string, args ...string) {
 // InputLine writes the given text to the childs stdin.
 // This method can also be called from an expect template, e.g.:
 //
-//     cortex.expect(`Passphrase: {{.InputLine "password"}}`)
+//	cortex.expect(`Passphrase: {{.InputLine "password"}}`)
 func (tt *TestCmd) InputLine(s string) string {
 	io.WriteString(tt.stdin, s+"\n")
 	return ""

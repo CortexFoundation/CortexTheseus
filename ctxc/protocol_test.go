@@ -190,7 +190,7 @@ func TestStatusMsgErrors64(t *testing.T) {
 //}
 
 // This test checks that received transactions are added to the local pool.
-//func TestRecvTransactions63(t *testing.T) { testRecvTransactions(t, 63) }
+// func TestRecvTransactions63(t *testing.T) { testRecvTransactions(t, 63) }
 func TestRecvTransactions64(t *testing.T) { testRecvTransactions(t, 64) }
 func TestRecvTransactions65(t *testing.T) { testRecvTransactions(t, 65) }
 
@@ -219,7 +219,7 @@ func testRecvTransactions(t *testing.T, protocol int) {
 }
 
 // This test checks that pending transactions are sent.
-//func TestSendTransactions63(t *testing.T) { testSendTransactions(t, 63) }
+// func TestSendTransactions63(t *testing.T) { testSendTransactions(t, 63) }
 func TestSendTransactions64(t *testing.T) { testSendTransactions(t, 64) }
 func TestSendTransactions65(t *testing.T) { testSendTransactions(t, 65) }
 
