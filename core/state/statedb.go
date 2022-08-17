@@ -605,7 +605,7 @@ func (s *StateDB) deleteStateObject(obj *stateObject) {
 	}
 	//stateObject.deleted = true
 	addr := obj.Address()
-	if err := s.trie.TryDelete(addr[:]); err != nil {
+	if err := s.trie.TryDeleteAccount(addr[:]); err != nil {
 		s.setError(fmt.Errorf("deleteStateObject (%x) error: %v", addr[:], err))
 	}
 }

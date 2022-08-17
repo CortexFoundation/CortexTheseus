@@ -70,12 +70,6 @@
   default: false
   contact: Markus Westerlind
 
-- name: Experimental Testing Diff
-  description: Switches testing.diff to use experimental.diff
-  key: experimentalTestingDiff
-  default: false
-  contact: Jonathan Sternberg
-
 - name: Remove Redundant Sort Nodes
   description: Planner will remove sort nodes when tables are already sorted
   key: removeRedundantSortNodes
@@ -91,5 +85,11 @@
 - name: Vectorized Conditionals
   description: Calls to map can be vectorized when conditional expressions appear in the function
   key: vectorizedConditionals
+  default: false
+  contact: Owen Nelson
+
+- name: Vectorized Equality Ops
+  description: Calls to map can be vectorized when equality ops appear in the function
+  key: vectorizedEqualityOps
   default: false
   contact: Owen Nelson
