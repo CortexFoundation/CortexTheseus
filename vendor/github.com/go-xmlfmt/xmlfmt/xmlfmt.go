@@ -58,6 +58,7 @@ func FormatXML(xmls, prefix, indent string, nestedTagsInComments ...bool) string
 // and deal with comments as well
 func replaceTag(prefix, indent string) func(string) string {
 	indentLevel := 0
+	lastEndElem := true
 	return func(m string) string {
 		// head elem
 		if strings.HasPrefix(m, "<?xml") {
@@ -65,6 +66,7 @@ func replaceTag(prefix, indent string) func(string) string {
 		}
 		// empty elem
 		if strings.HasSuffix(m, "/>") {
+			lastEndElem = true
 			return NL + prefix + strings.Repeat(indent, indentLevel) + m
 		}
 		// comment elem
@@ -74,12 +76,17 @@ func replaceTag(prefix, indent string) func(string) string {
 		// end elem
 		if strings.HasPrefix(m, "</") {
 			indentLevel--
-			return NL + prefix + strings.Repeat(indent, indentLevel) + m
+			if lastEndElem {
+				return NL + prefix + strings.Repeat(indent, indentLevel) + m
+			}
+			lastEndElem = true
+			return m
+		} else {
+			lastEndElem = false
 		}
 		defer func() {
 			indentLevel++
 		}()
-
 		return NL + prefix + strings.Repeat(indent, indentLevel) + m
 	}
 }

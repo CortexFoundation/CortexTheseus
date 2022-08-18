@@ -4,7 +4,7 @@
 package btree
 
 type BTree struct {
-	base *Generic[any]
+	base *BTreeG[any]
 }
 
 // New returns a new BTree
@@ -13,7 +13,7 @@ func New(less func(a, b any) bool) *BTree {
 		panic("nil less")
 	}
 	return &BTree{
-		base: NewGeneric(less),
+		base: NewBTreeG(less),
 	}
 }
 
@@ -27,7 +27,7 @@ func NewNonConcurrent(less func(a, b any) bool) *BTree {
 		panic("nil less")
 	}
 	return &BTree{
-		base: NewGenericOptions(less,
+		base: NewBTreeGOptions(less,
 			Options{
 				NoLocks: true,
 			}),
@@ -168,7 +168,7 @@ func (tr *BTree) PopMin() any {
 	return v
 }
 
-// PopMax removes the minimum item in tree and returns it.
+// PopMax removes the maximum item in tree and returns it.
 // Returns nil if the tree has no items.
 func (tr *BTree) PopMax() any {
 	v, ok := tr.base.PopMax()

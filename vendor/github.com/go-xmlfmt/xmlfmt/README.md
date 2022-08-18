@@ -35,22 +35,17 @@ Output:
 ```xml
 	<root>
 	  <this>
-	    <is>a
-	    </is>
+	    <is>a</is>
 	    <test />
 	    <message>
 	      <!-- with comment -->
 	      <org>
-	        <cn>Some org-or-other
-	        </cn>
-	        <ph>Wouldnt you like to know
-	        </ph>
+	        <cn>Some org-or-other</cn>
+	        <ph>Wouldnt you like to know</ph>
 	      </org>
 	      <contact>
-	        <fn>Pat
-	        </fn>
-	        <ln>Califia
-	        </ln>
+	        <fn>Pat</fn>
+	        <ln>Califia</ln>
 	      </contact>
 	    </message>
 	  </this>
@@ -58,11 +53,9 @@ Output:
 
 
 <book>
-  <author>Fred
-  </author>
+  <author>Fred</author>
   <!-- <price>20</price><currency>USD</currency> -->
-  <isbn>23456
-  </isbn>
+  <isbn>23456</isbn>
 </book>
 ```
 
@@ -111,22 +104,17 @@ $ curl -sL https://pastebin.com/raw/z3euQ5PR | xmlfmt -f -
 
 <root>
   <this>
-    <is>a
-    </is>
+    <is>a</is>
     <test />
     <message>
       <!-- with comment -->
       <org>
-        <cn>Some org-or-other
-        </cn>
-        <ph>Wouldnt you like to know
-        </ph>
+        <cn>Some org-or-other</cn>
+        <ph>Wouldnt you like to know</ph>
       </org>
       <contact>
-        <fn>Pat
-        </fn>
-        <ln>Califia
-        </ln>
+        <fn>Pat</fn>
+        <ln>Califia</ln>
       </contact>
     </message>
   </this>
@@ -135,22 +123,18 @@ $ curl -sL https://pastebin.com/raw/z3euQ5PR | xmlfmt -f -
 $ curl -sL https://pastebin.com/raw/Zs0qy0qz | tee /tmp/xmlfmt.xml | xmlfmt -f - -n
 
 <book>
-  <author>Fred
-  </author>
+  <author>Fred</author>
   <!-- <price>20</price><currency>USD</currency> -->
-  <isbn>23456
-  </isbn>
+  <isbn>23456</isbn>
 </book>
 
 $ XMLFMT_NESTED=true XMLFMT_PREFIX='|' xmlfmt -f /tmp/xmlfmt.xml
 
 |
 |<book>
-|  <author>Fred
-|  </author>
+|  <author>Fred</author>
 |  <!-- <price>20</price><currency>USD</currency> -->
-|  <isbn>23456
-|  </isbn>
+|  <isbn>23456</isbn>
 |</book>
 ```
 
@@ -159,7 +143,7 @@ $ XMLFMT_NESTED=true XMLFMT_PREFIX='|' xmlfmt -f /tmp/xmlfmt.xml
 
 ### The format
 
-The Go XML Formatter is not called XML Beautifier because the result is not *exactly* as what people would expect -- some, but not all, closing tags stays on the same line, just as shown above. Having been looking at the result and thinking over it, I now think it is actually a better way to present it, as those closing tags on the same line are better stay that way in my opinion. I.e., 
+The Go XML Formatter is not called XML Beautifier because the result is not *exactly* as what people would expect -- most of the closing tags stays on the same line, just as shown above. Having been looking at the result and thinking over it, I now think it is actually a better way to present it, as those closing tags on the same line are better stay that way in my opinion. I.e.,
 
 When it comes to very big XML strings, which is what I’m dealing every day, saving spaces by not allowing those closing tags taking extra lines is plus instead of negative to me. 
 
@@ -258,4 +242,4 @@ echo '<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/" xmlns:_xmlns="
 ```
 
 This package is a direct translate from above Perl code into Go,
-then further enhanced by @ruandao.
+then further enhanced by @ruandao and @chenbihao.

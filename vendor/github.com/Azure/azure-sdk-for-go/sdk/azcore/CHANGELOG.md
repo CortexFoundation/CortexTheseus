@@ -1,5 +1,10 @@
 # Release History
 
+## 1.1.2 (2022-08-09)
+
+### Other Changes
+* Fixed various doc bugs.
+
 ## 1.1.1 (2022-06-30)
 
 ### Bugs Fixed
