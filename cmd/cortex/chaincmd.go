@@ -464,8 +464,11 @@ func dump(ctx *cli.Context) error {
 		if hashish(arg) {
 			block = chain.GetBlockByHash(common.HexToHash(arg))
 		} else {
-			num, _ := strconv.Atoi(arg)
-			block = chain.GetBlockByNumber(uint64(num))
+			num, err := strconv.ParseUint(arg, 10, 64)
+			if err != nil {
+				return err
+			}
+			block = chain.GetBlockByNumber(num)
 		}
 		if block == nil {
 			fmt.Println("{}")
