@@ -148,6 +148,13 @@ func (t *SecureTrie) TryDelete(key []byte) error {
 	return t.trie.TryDelete(hk)
 }
 
+// TryDeleteACcount abstracts an account deletion from the trie.
+func (t *SecureTrie) TryDeleteAccount(key []byte) error {
+	hk := t.hashKey(key)
+	delete(t.getSecKeyCache(), string(hk))
+	return t.trie.TryDelete(hk)
+}
+
 // GetKey returns the sha3 preimage of a hashed key that was
 // previously used to store a value.
 func (t *SecureTrie) GetKey(shaKey []byte) []byte {

@@ -128,6 +128,7 @@ func (*UnsignedIntegerLiteral) node() {}
 func (*NamedType) node()      {}
 func (*TvarType) node()       {}
 func (*ArrayType) node()      {}
+func (*VectorType) node()     {}
 func (*StreamType) node()     {}
 func (*DictType) node()       {}
 func (*RecordType) node()     {}
@@ -246,6 +247,7 @@ func (StreamType) monotype()   {}
 func (DictType) monotype()     {}
 func (RecordType) monotype()   {}
 func (FunctionType) monotype() {}
+func (VectorType) monotype()   {}
 
 type NamedType struct {
 	BaseNode
@@ -304,6 +306,27 @@ func (c *ArrayType) Copy() Node {
 	nc.BaseNode = c.BaseNode.Copy()
 
 	nc.ElementType = c.ElementType.Copy().(*ArrayType)
+	return nc
+}
+
+type VectorType struct {
+	BaseNode
+	ElementType MonoType `json:"element"`
+}
+
+func (VectorType) Type() string {
+	return "VectorType"
+}
+
+func (v *VectorType) Copy() Node {
+	if v == nil {
+		return v
+	}
+	nc := new(VectorType)
+	*nc = *v
+	nc.BaseNode = v.BaseNode.Copy()
+
+	nc.ElementType = v.ElementType.Copy().(*VectorType)
 	return nc
 }
 
@@ -1117,7 +1140,8 @@ func (e *FunctionExpression) Copy() Node {
 // Result of evaluating an equality operator is always of type Boolean based on whether the
 // comparison is true
 // Arithmetic operators take numerical values (either literals or variables) as their operands
-//  and return a single numerical value.
+//
+//	and return a single numerical value.
 type OperatorKind int
 
 const (
@@ -1263,7 +1287,7 @@ func (o *LogicalOperatorKind) UnmarshalText(data []byte) error {
 
 // LogicalExpression represent the rule conditions that collectively evaluate to either true or false.
 // `or` expressions compute the disjunction of two boolean expressions and return boolean values.
-// `and`` expressions compute the conjunction of two boolean expressions and return boolean values.
+// `and“ expressions compute the conjunction of two boolean expressions and return boolean values.
 type LogicalExpression struct {
 	BaseNode
 	Operator LogicalOperatorKind `json:"operator"`
