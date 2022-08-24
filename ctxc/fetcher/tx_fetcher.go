@@ -1,4 +1,4 @@
-// Copyright 2019 The CortexTheseus Authors
+// Copyright 2020 The CortexTheseus Authors
 // This file is part of the CortexTheseus library.
 //
 // The CortexTheseus library is free software: you can redistribute it and/or modify
@@ -40,7 +40,7 @@ const (
 
 	// maxTxRetrievals is the maximum transaction number can be fetched in one
 	// request. The rationale to pick 256 is:
-	//   - In eth protocol, the softResponseLimit is 2MB. Nowadays according to
+	//   - In ctxc protocol, the softResponseLimit is 2MB. Nowadays according to
 	//     Etherscan the average transaction size is around 200B, so in theory
 	//     we can include lots of transaction in a single protocol packet.
 	//   - However the maximum size of a single transaction is raised to 128KB,
@@ -69,32 +69,32 @@ var (
 )
 
 var (
-	txAnnounceInMeter          = metrics.NewRegisteredMeter("eth/fetcher/transaction/announces/in", nil)
-	txAnnounceKnownMeter       = metrics.NewRegisteredMeter("eth/fetcher/transaction/announces/known", nil)
-	txAnnounceUnderpricedMeter = metrics.NewRegisteredMeter("eth/fetcher/transaction/announces/underpriced", nil)
-	txAnnounceDOSMeter         = metrics.NewRegisteredMeter("eth/fetcher/transaction/announces/dos", nil)
+	txAnnounceInMeter          = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/announces/in", nil)
+	txAnnounceKnownMeter       = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/announces/known", nil)
+	txAnnounceUnderpricedMeter = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/announces/underpriced", nil)
+	txAnnounceDOSMeter         = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/announces/dos", nil)
 
-	txBroadcastInMeter          = metrics.NewRegisteredMeter("eth/fetcher/transaction/broadcasts/in", nil)
-	txBroadcastKnownMeter       = metrics.NewRegisteredMeter("eth/fetcher/transaction/broadcasts/known", nil)
-	txBroadcastUnderpricedMeter = metrics.NewRegisteredMeter("eth/fetcher/transaction/broadcasts/underpriced", nil)
-	txBroadcastOtherRejectMeter = metrics.NewRegisteredMeter("eth/fetcher/transaction/broadcasts/otherreject", nil)
+	txBroadcastInMeter          = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/broadcasts/in", nil)
+	txBroadcastKnownMeter       = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/broadcasts/known", nil)
+	txBroadcastUnderpricedMeter = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/broadcasts/underpriced", nil)
+	txBroadcastOtherRejectMeter = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/broadcasts/otherreject", nil)
 
-	txRequestOutMeter     = metrics.NewRegisteredMeter("eth/fetcher/transaction/request/out", nil)
-	txRequestFailMeter    = metrics.NewRegisteredMeter("eth/fetcher/transaction/request/fail", nil)
-	txRequestDoneMeter    = metrics.NewRegisteredMeter("eth/fetcher/transaction/request/done", nil)
-	txRequestTimeoutMeter = metrics.NewRegisteredMeter("eth/fetcher/transaction/request/timeout", nil)
+	txRequestOutMeter     = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/request/out", nil)
+	txRequestFailMeter    = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/request/fail", nil)
+	txRequestDoneMeter    = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/request/done", nil)
+	txRequestTimeoutMeter = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/request/timeout", nil)
 
-	txReplyInMeter          = metrics.NewRegisteredMeter("eth/fetcher/transaction/replies/in", nil)
-	txReplyKnownMeter       = metrics.NewRegisteredMeter("eth/fetcher/transaction/replies/known", nil)
-	txReplyUnderpricedMeter = metrics.NewRegisteredMeter("eth/fetcher/transaction/replies/underpriced", nil)
-	txReplyOtherRejectMeter = metrics.NewRegisteredMeter("eth/fetcher/transaction/replies/otherreject", nil)
+	txReplyInMeter          = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/replies/in", nil)
+	txReplyKnownMeter       = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/replies/known", nil)
+	txReplyUnderpricedMeter = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/replies/underpriced", nil)
+	txReplyOtherRejectMeter = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/replies/otherreject", nil)
 
-	txFetcherWaitingPeers   = metrics.NewRegisteredGauge("eth/fetcher/transaction/waiting/peers", nil)
-	txFetcherWaitingHashes  = metrics.NewRegisteredGauge("eth/fetcher/transaction/waiting/hashes", nil)
-	txFetcherQueueingPeers  = metrics.NewRegisteredGauge("eth/fetcher/transaction/queueing/peers", nil)
-	txFetcherQueueingHashes = metrics.NewRegisteredGauge("eth/fetcher/transaction/queueing/hashes", nil)
-	txFetcherFetchingPeers  = metrics.NewRegisteredGauge("eth/fetcher/transaction/fetching/peers", nil)
-	txFetcherFetchingHashes = metrics.NewRegisteredGauge("eth/fetcher/transaction/fetching/hashes", nil)
+	txFetcherWaitingPeers   = metrics.NewRegisteredGauge("ctxc/fetcher/transaction/waiting/peers", nil)
+	txFetcherWaitingHashes  = metrics.NewRegisteredGauge("ctxc/fetcher/transaction/waiting/hashes", nil)
+	txFetcherQueueingPeers  = metrics.NewRegisteredGauge("ctxc/fetcher/transaction/queueing/peers", nil)
+	txFetcherQueueingHashes = metrics.NewRegisteredGauge("ctxc/fetcher/transaction/queueing/hashes", nil)
+	txFetcherFetchingPeers  = metrics.NewRegisteredGauge("ctxc/fetcher/transaction/fetching/peers", nil)
+	txFetcherFetchingHashes = metrics.NewRegisteredGauge("ctxc/fetcher/transaction/fetching/hashes", nil)
 )
 
 // txAnnounce is the notification of the availability of a batch
@@ -120,7 +120,7 @@ type txDelivery struct {
 	direct bool          // Whether this is a direct reply or a broadcast
 }
 
-// txDrop is the notification that a peer has disconnected.
+// txDrop is the notiication that a peer has disconnected.
 type txDrop struct {
 	peer string
 }
@@ -260,81 +260,59 @@ func (f *TxFetcher) Notify(peer string, hashes []common.Hash) error {
 // Enqueue imports a batch of received transaction into the transaction pool
 // and the fetcher. This method may be called by both transaction broadcasts and
 // direct request replies. The differentiation is important so the fetcher can
-// re-schedule missing transactions as soon as possible.
+// re-shedule missing transactions as soon as possible.
 func (f *TxFetcher) Enqueue(peer string, txs []*types.Transaction, direct bool) error {
-	var (
-		inMeter          = txReplyInMeter
-		knownMeter       = txReplyKnownMeter
-		underpricedMeter = txReplyUnderpricedMeter
-		otherRejectMeter = txReplyOtherRejectMeter
-	)
-	if !direct {
-		inMeter = txBroadcastInMeter
-		knownMeter = txBroadcastKnownMeter
-		underpricedMeter = txBroadcastUnderpricedMeter
-		otherRejectMeter = txBroadcastOtherRejectMeter
-	}
 	// Keep track of all the propagated transactions
-	inMeter.Mark(int64(len(txs)))
-
+	if direct {
+		txReplyInMeter.Mark(int64(len(txs)))
+	} else {
+		txBroadcastInMeter.Mark(int64(len(txs)))
+	}
 	// Push all the transactions into the pool, tracking underpriced ones to avoid
 	// re-requesting them and dropping the peer in case of malicious transfers.
 	var (
-		added = make([]common.Hash, 0, len(txs))
-		delay time.Duration
+		added       = make([]common.Hash, 0, len(txs))
+		duplicate   int64
+		underpriced int64
+		otherreject int64
 	)
-	// proceed in batches
-	for i := 0; i < len(txs); i += 128 {
-		end := i + 128
-		if end > len(txs) {
-			end = len(txs)
-		}
-		var (
-			duplicate   int64
-			underpriced int64
-			otherreject int64
-		)
-		batch := txs[i:end]
-		for j, err := range f.addTxs(batch) {
-			// Track the transaction hash if the price is too low for us.
-			// Avoid re-request this transaction when we receive another
-			// announcement.
-			if errors.Is(err, core.ErrUnderpriced) || errors.Is(err, core.ErrReplaceUnderpriced) {
-				for f.underpriced.Cardinality() >= maxTxUnderpricedSetSize {
-					f.underpriced.Pop()
-				}
-				f.underpriced.Add(batch[j].Hash())
+	errs := f.addTxs(txs)
+	for i, err := range errs {
+		// Track the transaction hash if the price is too low for us.
+		// Avoid re-request this transaction when we receive another
+		// announcement.
+		if errors.Is(err, core.ErrUnderpriced) || errors.Is(err, core.ErrReplaceUnderpriced) {
+			for f.underpriced.Cardinality() >= maxTxUnderpricedSetSize {
+				f.underpriced.Pop()
 			}
-			// Track a few interesting failure types
-			switch {
-			case err == nil: // Noop, but need to handle to not count these
-
-			case errors.Is(err, core.ErrAlreadyKnown):
-				duplicate++
-
-			case errors.Is(err, core.ErrUnderpriced) || errors.Is(err, core.ErrReplaceUnderpriced):
-				underpriced++
-
-			default:
-				otherreject++
-			}
-			added = append(added, batch[j].Hash())
+			f.underpriced.Add(txs[i].Hash())
 		}
-		knownMeter.Mark(duplicate)
-		underpricedMeter.Mark(underpriced)
-		otherRejectMeter.Mark(otherreject)
+		// Track a few interesting failure types
+		switch {
+		case err == nil: // Noop, but need to handle to not count these
 
-		// If 'other reject' is >25% of the deliveries in any batch, abort. Either we are
-		// out of sync with the chain or the peer is griefing us.
-		if otherreject > 128/4 {
-			delay = 200 * time.Millisecond
-			log.Warn("Peer delivering useless transactions", "peer", peer, "ignored", len(txs)-end)
-			break
+		case errors.Is(err, core.ErrAlreadyKnown):
+			duplicate++
+
+		case errors.Is(err, core.ErrUnderpriced) || errors.Is(err, core.ErrReplaceUnderpriced):
+			underpriced++
+
+		default:
+			otherreject++
 		}
+		added = append(added, txs[i].Hash())
+	}
+	if direct {
+		txReplyKnownMeter.Mark(duplicate)
+		txReplyUnderpricedMeter.Mark(underpriced)
+		txReplyOtherRejectMeter.Mark(otherreject)
+	} else {
+		txBroadcastKnownMeter.Mark(duplicate)
+		txBroadcastUnderpricedMeter.Mark(underpriced)
+		txBroadcastOtherRejectMeter.Mark(otherreject)
 	}
 	select {
 	case f.cleanup <- &txDelivery{origin: peer, hashes: added, direct: direct}:
-		time.Sleep(delay)
 		return nil
 	case <-f.quit:
 		return errTerminated
@@ -536,7 +514,7 @@ func (f *TxFetcher) loop() {
 			// Schedule a new transaction retrieval
 			f.scheduleFetches(timeoutTimer, timeoutTrigger, nil)
 
-			// No idea if we scheduled something or not, trigger the timer if needed
+			// No idea if we sheduled something or not, trigger the timer if needed
 			// TODO(karalabe): this is kind of lame, can't we dump it into scheduleFetches somehow?
 			f.rescheduleTimeout(timeoutTimer, timeoutTrigger)
 
@@ -580,7 +558,7 @@ func (f *TxFetcher) loop() {
 			// In case of a direct delivery, also reschedule anything missing
 			// from the original query
 			if delivery.direct {
-				// Mark the requesting successful (independent of individual status)
+				// Mark the reqesting successful (independent of individual status)
 				txRequestDoneMeter.Mark(int64(len(delivery.hashes)))
 
 				// Make sure something was pending, nuke it
@@ -629,7 +607,7 @@ func (f *TxFetcher) loop() {
 					delete(f.alternates, hash)
 					delete(f.fetching, hash)
 				}
-				// Something was delivered, try to reschedule requests
+				// Something was delivered, try to rechedule requests
 				f.scheduleFetches(timeoutTimer, timeoutTrigger, nil) // Partial delivery may enable others to deliver too
 			}
 
@@ -741,7 +719,7 @@ func (f *TxFetcher) rescheduleWait(timer *mclock.Timer, trigger chan struct{}) {
 // should be rescheduled if some request is pending. In practice, a timeout will
 // cause the timer to be rescheduled every 5 secs (until the peer comes through or
 // disconnects). This is a limitation of the fetcher code because we don't trac
-// pending requests and timed out requests separately. Without double tracking, if
+// pending requests and timed out requests separatey. Without double tracking, if
 // we simply didn't reschedule the timer on all-timeout then the timer would never
 // be set again since len(request) > 0 => something's running.
 func (f *TxFetcher) rescheduleTimeout(timer *mclock.Timer, trigger chan struct{}) {
