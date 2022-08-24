@@ -53,18 +53,6 @@ func OptimizeUnionTransformation() BoolFlag {
 	return optimizeUnionTransformation
 }
 
-var vectorizedMap = feature.MakeBoolFlag(
-	"Vectorized Map",
-	"vectorizedMap",
-	"Jonathan Sternberg",
-	false,
-)
-
-// VectorizedMap - Enables the version of map that supports vectorized functions
-func VectorizedMap() BoolFlag {
-	return vectorizedMap
-}
-
 var narrowTransformationDifference = feature.MakeBoolFlag(
 	"Narrow Transformation Difference",
 	"narrowTransformationDifference",
@@ -185,6 +173,30 @@ func VectorizedEqualityOps() BoolFlag {
 	return vectorizedEqualityOps
 }
 
+var vectorizedConst = feature.MakeBoolFlag(
+	"Vectorized Const",
+	"vectorizedConst",
+	"Owen Nelson",
+	false,
+)
+
+// VectorizedConst - Calls to map can be vectorized when select literals appear in the function
+func VectorizedConst() BoolFlag {
+	return vectorizedConst
+}
+
+var vectorizedFloat = feature.MakeBoolFlag(
+	"Vectorized Float",
+	"vectorizedFloat",
+	"Owen Nelson",
+	false,
+)
+
+// VectorizedFloat - Calls to map can be vectorized when float casts appear in the function
+func VectorizedFloat() BoolFlag {
+	return vectorizedFloat
+}
+
 // Inject will inject the Flagger into the context.
 func Inject(ctx context.Context, flagger Flagger) context.Context {
 	return feature.Inject(ctx, flagger)
@@ -194,7 +206,6 @@ var all = []Flag{
 	aggregateTransformationTransport,
 	groupTransformationGroup,
 	optimizeUnionTransformation,
-	vectorizedMap,
 	narrowTransformationDifference,
 	narrowTransformationFill,
 	optimizeAggregateWindow,
@@ -205,13 +216,14 @@ var all = []Flag{
 	queryConcurrencyIncrease,
 	vectorizedConditionals,
 	vectorizedEqualityOps,
+	vectorizedConst,
+	vectorizedFloat,
 }
 
 var byKey = map[string]Flag{
 	"aggregateTransformationTransport": aggregateTransformationTransport,
 	"groupTransformationGroup":         groupTransformationGroup,
 	"optimizeUnionTransformation":      optimizeUnionTransformation,
-	"vectorizedMap":                    vectorizedMap,
 	"narrowTransformationDifference":   narrowTransformationDifference,
 	"narrowTransformationFill":         narrowTransformationFill,
 	"optimizeAggregateWindow":          optimizeAggregateWindow,
@@ -222,6 +234,8 @@ var byKey = map[string]Flag{
 	"queryConcurrencyIncrease":         queryConcurrencyIncrease,
 	"vectorizedConditionals":           vectorizedConditionals,
 	"vectorizedEqualityOps":            vectorizedEqualityOps,
+	"vectorizedConst":                  vectorizedConst,
+	"vectorizedFloat":                  vectorizedFloat,
 }
 
 // Flags returns all feature flags.

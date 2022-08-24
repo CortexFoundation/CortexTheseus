@@ -368,7 +368,7 @@ func (tm *TorrentManager) verifyTorrent(info *metainfo.Info, root string) error 
 	return nil
 }
 
-//func (tm *TorrentManager) loadSpec(ih metainfo.Hash, filePath string, BytesRequested int64) *torrent.TorrentSpec {
+// func (tm *TorrentManager) loadSpec(ih metainfo.Hash, filePath string, BytesRequested int64) *torrent.TorrentSpec {
 func (tm *TorrentManager) loadSpec(ih string, filePath string) *torrent.TorrentSpec {
 	if _, err := os.Stat(filePath); err != nil {
 		return nil
@@ -776,7 +776,7 @@ func (tm *TorrentManager) Simulate() {
 	log.Info("Do simulate")
 }
 
-//Search and donwload files from torrent
+// Search and donwload files from torrent
 func (tm *TorrentManager) Search(ctx context.Context, hex string, request uint64, ch chan bool) error {
 	if !common.IsHexAddress(hex) {
 		return errors.New("invalid infohash format")

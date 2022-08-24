@@ -339,7 +339,7 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta, b *
 
 	if receipt.ContractAddr == nil {
 		log.Warn("contract address is nil", "tx.Hash.String()", tx.Hash.String())
-		return nil
+		return errors.New("contract address is nil")
 	}
 
 	log.Debug("Transaction Receipt", "address", receipt.ContractAddr.String(), "gas", receipt.GasUsed, "status", receipt.Status) //, "tx", receipt.TxHash.String())

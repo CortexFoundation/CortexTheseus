@@ -675,7 +675,7 @@ func (fs *TorrentFS) ListAllTorrents(ctx context.Context) map[string]map[string]
 	return fs.storage().listAllTorrents()
 }
 
-//Download is used to download file with request
+// Download is used to download file with request
 func (fs *TorrentFS) Download(ctx context.Context, ih string, request uint64) error {
 	update, p, err := fs.chain().SetTorrent(ih, request)
 	if err != nil {
