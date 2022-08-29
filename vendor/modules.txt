@@ -1010,7 +1010,7 @@ github.com/hexops/gotextdiff/span
 # github.com/holiman/bloomfilter/v2 v2.0.3
 ## explicit; go 1.15
 github.com/holiman/bloomfilter/v2
-# github.com/holiman/uint256 v1.2.1-0.20220325085528-78905e8fd24f
+# github.com/holiman/uint256 v1.2.1-0.20220829143637-6f8ccba90ce6
 ## explicit; go 1.13
 github.com/holiman/uint256
 # github.com/huandu/xstrings v1.3.2
