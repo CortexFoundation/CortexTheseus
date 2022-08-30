@@ -54,6 +54,7 @@ type entryType int
 
 const (
 	EntryNone            entryType = iota
+	EntryNormal                    // without ctx in
 	EntryWithCtx                   // has ctx in
 	EntryWithHttpHandler           // is http handler
 )
@@ -93,7 +94,7 @@ func NewRun(pkgs []*packages.Package, disableFact bool) func(pass *analysis.Pass
 	}
 	return func(pass *analysis.Pass) (interface{}, error) {
 		// skip different repo
-		if !m[strings.Split(pass.Pkg.Path(), "/")[0]] {
+		if len(m) > 0 && !m[strings.Split(pass.Pkg.Path(), "/")[0]] {
 			return nil, nil
 		}
 
@@ -133,13 +134,13 @@ func (r *runner) run(pass *analysis.Pass) {
 			continue
 		}
 
-		if entryType := r.checkIsEntry(f); entryType == EntryNone {
+		if entryType := r.checkIsEntry(f); entryType == EntryNormal {
 			// record the result of nomal function
 			checkingMap := make(map[string]bool)
 			checkingMap[key] = true
 			r.setFact(key, r.checkFuncWithoutCtx(f, checkingMap), f.Name())
 			continue
-		} else {
+		} else if entryType == EntryWithCtx || entryType == EntryWithHttpHandler {
 			tmpFuncs = append(tmpFuncs, entryInfo{f: f, tp: entryType})
 		}
 	}
@@ -177,14 +178,14 @@ func (r *runner) getRequiedType(pssa *buildssa.SSA, path, name string) (obj *typ
 }
 
 func (r *runner) collectHttpTyps(pssa *buildssa.SSA) {
-	objRes, pobjRes, ok := r.getRequiedType(pssa, httpPkg, httpRes)
+	objRes, _, ok := r.getRequiedType(pssa, httpPkg, httpRes)
 	if ok {
-		r.httpResTyps = append(r.httpResTyps, objRes, pobjRes)
+		r.httpResTyps = append(r.httpResTyps, objRes)
 	}
 
-	objReq, pobjReq, ok := r.getRequiedType(pssa, httpPkg, httpReq)
+	_, pobjReq, ok := r.getRequiedType(pssa, httpPkg, httpReq)
 	if ok {
-		r.httpReqTyps = append(r.httpReqTyps, objReq, pobjReq, types.NewPointer(pobjReq))
+		r.httpReqTyps = append(r.httpReqTyps, pobjReq)
 	}
 }
 
@@ -220,9 +221,9 @@ func (r *runner) noImportedContextAndHttp(f *ssa.Function) (ret bool) {
 }
 
 func (r *runner) checkIsEntry(f *ssa.Function) entryType {
-	if r.noImportedContextAndHttp(f) {
-		return EntryNone
-	}
+	// if r.noImportedContextAndHttp(f) {
+	// 	return EntryNormal
+	// }
 
 	ctxIn, ctxOut := r.checkIsCtx(f)
 	if ctxOut {
@@ -238,7 +239,7 @@ func (r *runner) checkIsEntry(f *ssa.Function) entryType {
 		return EntryWithHttpHandler
 	}
 
-	return EntryNone
+	return EntryNormal
 }
 
 func (r *runner) checkIsCtx(f *ssa.Function) (in, out bool) {
@@ -540,7 +541,7 @@ func (r *runner) checkFuncWithoutCtx(f *ssa.Function, checkingMap map[string]boo
 				continue
 			}
 
-			if entryType := r.checkIsEntry(ff); entryType == EntryNone {
+			if entryType := r.checkIsEntry(ff); entryType == EntryNormal {
 				// cannot get info from fact, skip
 				if ff.Blocks == nil {
 					continue

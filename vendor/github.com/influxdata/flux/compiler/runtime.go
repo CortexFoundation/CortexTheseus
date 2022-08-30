@@ -503,16 +503,18 @@ func (e *conditionalVectorEvaluator) Eval(ctx context.Context, scope Scope) (val
 		return nil, errors.Newf(codes.Invalid, "cannot use test of type %s in vectorized conditional expression; expected vector of boolean", typ)
 	}
 
+	// If t is invalid/null, treat the same as "all false" and early return the
+	// alternate branch.
+	if t.IsNull() {
+		return eval(ctx, e.alternate, scope)
+	}
+
 	mem := memory.GetAllocator(ctx)
 
 	tv := t.Vector()
+
 	// If `t` is vec repeat, skip the varied check and immediately select the
 	// branch to return.
-	// FIXME: currently there's no way to vectorize bool literals.
-	//   This branch will never run until boolean literals work and/or we have
-	//	 const folding working with equality operators.
-	//   <https://github.com/influxdata/flux/issues/4997>
-	//   <https://github.com/influxdata/flux/issues/4608>
 	if vr, ok := tv.(*values.VectorRepeatValue); ok {
 		if vr.Value().Bool() {
 			return eval(ctx, e.consequent, scope)
@@ -556,7 +558,7 @@ func (e *conditionalVectorEvaluator) Eval(ctx context.Context, scope Scope) (val
 	}
 	defer a.Release()
 
-	return values.VectorConditional(tv, c.Vector(), a.Vector(), mem)
+	return values.VectorConditional(tv, c, a, mem)
 }
 
 type binaryEvaluator struct {
@@ -642,15 +644,91 @@ func (e *unaryEvaluator) Type() semantic.MonoType {
 	return e.t
 }
 
+func doUnary(mt semantic.MonoType, op ast.OperatorKind, v values.Value) (values.Value, error) {
+	if op == ast.ExistsOperator {
+		return values.NewBool(!v.IsNull()), nil
+	}
+
+	// If the value is null, return it immediately.
+	if v.IsNull() {
+		return v, nil
+	}
+
+	switch op {
+	case ast.AdditionOperator:
+		// Do nothing.
+		return v, nil
+	case ast.SubtractionOperator, ast.NotOperator:
+		// Fallthrough to below.
+	default:
+		return nil, errors.Newf(codes.Internal, "unknown unary operator: %s", op)
+	}
+
+	// The subtraction operator falls through to here.
+	switch v.Type().Nature() {
+	case semantic.Int:
+		return values.NewInt(-v.Int()), nil
+	case semantic.Float:
+		return values.NewFloat(-v.Float()), nil
+	case semantic.Bool:
+		return values.NewBool(!v.Bool()), nil
+	case semantic.Duration:
+		return values.NewDuration(v.Duration().Mul(-1)), nil
+	default:
+		panic(values.UnexpectedKind(mt.Nature(), v.Type().Nature()))
+	}
+}
+
 func (e *unaryEvaluator) Eval(ctx context.Context, scope Scope) (values.Value, error) {
 	v, err := e.node.Eval(ctx, scope)
 	if err != nil {
 		return nil, err
 	}
 
+	ret, err := doUnary(e.t, e.op, v)
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
+}
+
+type unaryVectorEvaluator struct {
+	t    semantic.MonoType
+	node Evaluator
+	op   ast.OperatorKind
+}
+
+func (e *unaryVectorEvaluator) Type() semantic.MonoType {
+	return e.t
+}
+
+func (e *unaryVectorEvaluator) Eval(ctx context.Context, scope Scope) (values.Value, error) {
+	v, err := e.node.Eval(ctx, scope)
+	defer v.Release()
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Delegate to the standard row-based implementation when v is a vec repeat.
+	if vr, ok := v.(*values.VectorRepeatValue); ok {
+		x, err := doUnary(e.t, e.op, vr.Value())
+		if err != nil {
+			return nil, err
+		}
+		return values.NewVectorRepeatValue(x), nil
+	}
+
+	// XXX: defer the check for null until inside this closure.
+	// The type of the op changes the way nulls are handled.
 	ret, err := func(v values.Value) (values.Value, error) {
+		mem := memory.GetAllocator(ctx)
+
 		if e.op == ast.ExistsOperator {
-			return values.NewBool(!v.IsNull()), nil
+			if v.IsNull() {
+				return values.NewVectorRepeatValue(values.NewBool(false)), nil
+			}
+			return values.VectorExists(v.Vector(), mem)
 		}
 
 		// If the value is null, return it immediately.
@@ -661,25 +739,14 @@ func (e *unaryEvaluator) Eval(ctx context.Context, scope Scope) (values.Value, e
 		switch e.op {
 		case ast.AdditionOperator:
 			// Do nothing.
+			v.Retain()
 			return v, nil
-		case ast.SubtractionOperator, ast.NotOperator:
-			// Fallthrough to below.
+		case ast.SubtractionOperator:
+			return values.VectorUnarySub(v.Vector(), mem)
+		case ast.NotOperator:
+			return values.VectorNot(v.Vector(), mem)
 		default:
 			return nil, errors.Newf(codes.Internal, "unknown unary operator: %s", e.op)
-		}
-
-		// The subtraction operator falls through to here.
-		switch v.Type().Nature() {
-		case semantic.Int:
-			return values.NewInt(-v.Int()), nil
-		case semantic.Float:
-			return values.NewFloat(-v.Float()), nil
-		case semantic.Bool:
-			return values.NewBool(!v.Bool()), nil
-		case semantic.Duration:
-			return values.NewDuration(v.Duration().Mul(-1)), nil
-		default:
-			panic(values.UnexpectedKind(e.t.Nature(), v.Type().Nature()))
 		}
 	}(v)
 	if err != nil {

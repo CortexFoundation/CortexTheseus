@@ -4,6 +4,7 @@ import (
 	"crypto"
 	"net/http"
 	"net/rpc"
+	"os"
 	"strconv"
 	"time"
 )
@@ -111,7 +112,7 @@ var HTTPStatusCode = map[string]string{
 	strconv.Itoa(http.StatusNetworkAuthenticationRequired): "http.StatusNetworkAuthenticationRequired",
 }
 
-var DefaultRPCPath = map[string]string{
+var RPCDefaultPath = map[string]string{
 	rpc.DefaultRPCPath:   "rpc.DefaultRPCPath",
 	rpc.DefaultDebugPath: "rpc.DefaultDebugPath",
 }
@@ -158,4 +159,8 @@ var TimeLayout = map[string]string{
 	time.StampMilli:  "time.StampMilli",
 	time.StampMicro:  "time.StampMicro",
 	time.StampNano:   "time.StampNano",
+}
+
+var OSDevNull = map[string]string{
+	os.DevNull: "os.DevNull",
 }
