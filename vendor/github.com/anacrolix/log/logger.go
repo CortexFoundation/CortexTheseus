@@ -65,6 +65,13 @@ func (l Logger) Levelf(level Level, format string, a ...interface{}) {
 	})
 }
 
+// Efficiently print arguments at the given level.
+func (l Logger) LevelPrint(level Level, a ...interface{}) {
+	l.LazyLog(level, func() Msg {
+		return Str(fmt.Sprint(a...)).Skip(1)
+	})
+}
+
 func (l Logger) Println(a ...interface{}) {
 	l.LazyLogDefaultLevel(func() Msg {
 		return Str(fmt.Sprintln(a...)).Skip(1)
