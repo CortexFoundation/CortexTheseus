@@ -194,7 +194,7 @@ func (fs *ChainDB) Metrics() time.Duration {
 	return fs.treeUpdates
 }
 
-//Make sure the block group is increasing by number
+// Make sure the block group is increasing by number
 func (fs *ChainDB) addLeaf(block *types.Block, mes bool, dup bool) error {
 	number := block.Number
 	leaf := merkletree.NewContent(block.Hash.String(), number)
@@ -405,7 +405,7 @@ func (fs *ChainDB) progress(f *types.FileInfo, init bool) (bool, error) {
 	return update, err
 }
 
-//func (fs *ChainDB) addBlock(b *Block, record bool) error {
+// func (fs *ChainDB) addBlock(b *Block, record bool) error {
 func (fs *ChainDB) AddBlock(b *types.Block) error {
 	if fs.metrics {
 		defer func(start time.Time) { fs.treeUpdates += time.Since(start) }(time.Now())

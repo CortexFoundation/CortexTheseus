@@ -11,6 +11,7 @@ import (
 	goerrors "errors"
 	"io"
 	"math/big"
+	"time"
 
 	"github.com/ProtonMail/go-crypto/openpgp/ecdh"
 	"github.com/ProtonMail/go-crypto/openpgp/ecdsa"
@@ -29,11 +30,6 @@ func NewEntity(name, comment, email string, config *packet.Config) (*Entity, err
 	creationTime := config.Now()
 	keyLifetimeSecs := config.KeyLifetime()
 
-	uid := packet.NewUserId(name, comment, email)
-	if uid == nil {
-		return nil, errors.InvalidArgumentError("user id field contained invalid characters")
-	}
-
 	// Generate a primary signing key
 	primaryPrivRaw, err := newSigner(config)
 	if err != nil {
@@ -44,7 +40,48 @@ func NewEntity(name, comment, email string, config *packet.Config) (*Entity, err
 		primary.UpgradeToV5()
 	}
 
-	isPrimaryId := true
+	e := &Entity{
+		PrimaryKey: &primary.PublicKey,
+		PrivateKey: primary,
+		Identities: make(map[string]*Identity),
+		Subkeys:    []Subkey{},
+	}
+
+	err = e.addUserId(name, comment, email, config, creationTime, keyLifetimeSecs)
+	if err != nil {
+		return nil, err
+	}
+
+	// NOTE: No key expiry here, but we will not return this subkey in EncryptionKey()
+	// if the primary/master key has expired.
+	err = e.addEncryptionSubkey(config, creationTime, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	return e, nil
+}
+
+func (t *Entity) AddUserId(name, comment, email string, config *packet.Config) error {
+	creationTime := config.Now()
+	keyLifetimeSecs := config.KeyLifetime()
+	return t.addUserId(name, comment, email, config, creationTime, keyLifetimeSecs)
+}
+
+func (t *Entity) addUserId(name, comment, email string, config *packet.Config, creationTime time.Time, keyLifetimeSecs uint32) error {
+	uid := packet.NewUserId(name, comment, email)
+	if uid == nil {
+		return errors.InvalidArgumentError("user id field contained invalid characters")
+	}
+
+	if _, ok := t.Identities[uid.Id]; ok {
+		return errors.InvalidArgumentError("user id exist")
+	}
+
+	primary := t.PrivateKey
+
+	isPrimaryId := len(t.Identities) == 0
+
 	selfSignature := &packet.Signature{
 		Version:           primary.PublicKey.Version,
 		SigType:           packet.SigTypePositiveCert,
@@ -92,60 +129,17 @@ func NewEntity(name, comment, email string, config *packet.Config) (*Entity, err
 	}
 
 	// User ID binding signature
-	err = selfSignature.SignUserId(uid.Id, &primary.PublicKey, primary, config)
+	err := selfSignature.SignUserId(uid.Id, &primary.PublicKey, primary, config)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	// Generate an encryption subkey
-	subPrivRaw, err := newDecrypter(config)
-	if err != nil {
-		return nil, err
+	t.Identities[uid.Id] = &Identity{
+		Name:          uid.Id,
+		UserId:        uid,
+		SelfSignature: selfSignature,
+		Signatures:    []*packet.Signature{selfSignature},
 	}
-	sub := packet.NewDecrypterPrivateKey(creationTime, subPrivRaw)
-	sub.IsSubkey = true
-	sub.PublicKey.IsSubkey = true
-	if config != nil && config.V5Keys {
-		sub.UpgradeToV5()
-	}
-
-	// NOTE: No KeyLifetimeSecs here, but we will not return this subkey in EncryptionKey()
-	// if the primary/master key has expired.
-	subKey := Subkey{
-		PublicKey:  &sub.PublicKey,
-		PrivateKey: sub,
-		Sig: &packet.Signature{
-			Version:                   primary.PublicKey.Version,
-			CreationTime:              creationTime,
-			SigType:                   packet.SigTypeSubkeyBinding,
-			PubKeyAlgo:                primary.PublicKey.PubKeyAlgo,
-			Hash:                      config.Hash(),
-			FlagsValid:                true,
-			FlagEncryptStorage:        true,
-			FlagEncryptCommunications: true,
-			IssuerKeyId:               &primary.PublicKey.KeyId,
-		},
-	}
-
-	// Subkey binding signature
-	err = subKey.Sig.SignKey(subKey.PublicKey, primary, config)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Entity{
-		PrimaryKey: &primary.PublicKey,
-		PrivateKey: primary,
-		Identities: map[string]*Identity{
-			uid.Id: &Identity{
-				Name:          uid.Id,
-				UserId:        uid,
-				SelfSignature: selfSignature,
-				Signatures:    []*packet.Signature{selfSignature},
-			},
-		},
-		Subkeys: []Subkey{subKey},
-	}, nil
+	return nil
 }
 
 // AddSigningSubkey adds a signing keypair as a subkey to the Entity.
@@ -207,7 +201,10 @@ func (e *Entity) AddSigningSubkey(config *packet.Config) error {
 func (e *Entity) AddEncryptionSubkey(config *packet.Config) error {
 	creationTime := config.Now()
 	keyLifetimeSecs := config.KeyLifetime()
+	return e.addEncryptionSubkey(config, creationTime, keyLifetimeSecs)
+}
 
+func (e *Entity) addEncryptionSubkey(config *packet.Config, creationTime time.Time, keyLifetimeSecs uint32) error {
 	subPrivRaw, err := newDecrypter(config)
 	if err != nil {
 		return err

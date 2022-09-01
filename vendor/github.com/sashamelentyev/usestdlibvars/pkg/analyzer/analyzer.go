@@ -54,6 +54,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		(*ast.BasicLit)(nil),
 		(*ast.CompositeLit)(nil),
 		(*ast.IfStmt)(nil),
+		(*ast.SwitchStmt)(nil),
 	}
 
 	insp.Preorder(filter, func(node ast.Node) {
@@ -205,20 +206,62 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				return
 			}
 
-			if selectorExpr.Sel.Name != "StatusCode" {
-				return
-			}
-
 			basicLit, ok := binaryExpr.Y.(*ast.BasicLit)
 			if !ok {
 				return
 			}
 
-			if !lookupFlag(pass, HTTPStatusCodeFlag) {
+			switch selectorExpr.Sel.Name {
+			case "StatusCode":
+				if !lookupFlag(pass, HTTPStatusCodeFlag) {
+					return
+				}
+
+				checkHTTPStatusCode(pass, basicLit)
+			case "Method":
+				if !lookupFlag(pass, HTTPMethodFlag) {
+					return
+				}
+
+				checkHTTPMethod(pass, basicLit)
+			}
+
+		case *ast.SwitchStmt:
+			selectorExpr, ok := n.Tag.(*ast.SelectorExpr)
+			if !ok {
 				return
 			}
 
-			checkHTTPStatusCode(pass, basicLit)
+			var checkFunc func(pass *analysis.Pass, basicLit *ast.BasicLit)
+
+			switch selectorExpr.Sel.Name {
+			case "StatusCode":
+				if !lookupFlag(pass, HTTPStatusCodeFlag) {
+					return
+				}
+				checkFunc = checkHTTPStatusCode
+			case "Method":
+				if !lookupFlag(pass, HTTPMethodFlag) {
+					return
+				}
+				checkFunc = checkHTTPMethod
+			default:
+				return
+			}
+
+			for _, stmt := range n.Body.List {
+				caseClause, ok := stmt.(*ast.CaseClause)
+				if !ok {
+					continue
+				}
+				for _, expr := range caseClause.List {
+					basicLit, ok := expr.(*ast.BasicLit)
+					if !ok {
+						continue
+					}
+					checkFunc(pass, basicLit)
+				}
+			}
 		}
 	})
 
