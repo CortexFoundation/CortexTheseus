@@ -287,12 +287,12 @@ func NewBlockChain(db ctxcdb.Database, cacheConfig *CacheConfig, chainConfig *pa
 
 	if bc.empty() {
 		rawdb.InitDatabaseFromFreezer(bc.db)
-		// If ancient database is not empty, reconstruct all missing
-		// indices in the background.
-		frozen, _ := bc.db.Ancients()
-		if frozen > 0 {
-			txIndexBlock = frozen
-		}
+	}
+	// If ancient database is not empty, reconstruct all missing
+	// indices in the background.
+	frozen, _ := bc.db.Ancients()
+	if frozen > 0 {
+		txIndexBlock = frozen
 	}
 	if err := bc.loadLastState(); err != nil {
 		return nil, err
@@ -2070,7 +2070,10 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 		rawdb.DeleteTxLookupEntry(indexesBatch, tx)
 	}
 	// Delete any canonical number assignments above the new head
-	number := bc.CurrentBlock().NumberU64()
+	number := commonBlock.NumberU64()
+	if len(newChain) > 1 {
+		number = newChain[1].NumberU64()
+	}
 	for i := number + 1; ; i++ {
 		hash := rawdb.ReadCanonicalHash(bc.db, i)
 		if hash == (common.Hash{}) {
