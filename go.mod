@@ -33,7 +33,7 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
 	github.com/holiman/bloomfilter/v2 v2.0.3
-	github.com/holiman/uint256 v1.2.1-0.20220325085528-78905e8fd24f
+	github.com/holiman/uint256 v1.2.1-0.20220829143637-6f8ccba90ce6
 	github.com/huin/goupnp v1.0.4-0.20220613170603-23b555710578
 	github.com/influxdata/influxdb v1.10.0
 	github.com/jackpal/go-nat-pmp v1.0.2
