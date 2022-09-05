@@ -365,6 +365,8 @@ func (c *compiler) compileExpr(n ast.Expr) {
 		c.compileBinaryExpr(n)
 	case *ast.IndexExpr:
 		c.compileIndexExpr(n)
+	case *typeparams.IndexListExpr:
+		c.compileIndexListExpr(n)
 	case *ast.Ident:
 		c.compileIdent(n)
 	case *ast.CallExpr:
@@ -450,6 +452,15 @@ func (c *compiler) compileIndexExpr(n *ast.IndexExpr) {
 	c.emitInstOp(opIndexExpr)
 	c.compileExpr(n.X)
 	c.compileExpr(n.Index)
+}
+
+func (c *compiler) compileIndexListExpr(n *typeparams.IndexListExpr) {
+	c.emitInstOp(opIndexListExpr)
+	c.compileExpr(n.X)
+	for _, x := range n.Indices {
+		c.compileExpr(x)
+	}
+	c.emitInstOp(opEnd)
 }
 
 func (c *compiler) compileWildIdent(n *ast.Ident, optional bool) {

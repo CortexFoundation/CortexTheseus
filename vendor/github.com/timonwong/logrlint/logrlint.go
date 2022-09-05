@@ -1,9 +1,11 @@
 package logrlint
 
 import (
+	"flag"
 	"fmt"
 	"go/ast"
 	"go/types"
+	"strings"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
@@ -11,41 +13,109 @@ import (
 	"golang.org/x/tools/go/types/typeutil"
 )
 
-const Doc = "Check logr arguments."
+const Doc = `Checks key valur pairs for common logger libraries (logr,klog,zap).`
 
-var Analyzer = &analysis.Analyzer{
-	Name:     "logrlint",
-	Doc:      Doc,
-	Run:      run,
-	Requires: []*analysis.Analyzer{inspect.Analyzer},
+func NewAnalyzer() *analysis.Analyzer {
+	l := &logrlint{
+		enable: loggerCheckersFlag{
+			newStringSet(defaultEnabledCheckers...),
+		},
+	}
+
+	a := &analysis.Analyzer{
+		Name:     "logrlint",
+		Doc:      Doc,
+		Run:      l.run,
+		Requires: []*analysis.Analyzer{inspect.Analyzer},
+	}
+
+	checkerKeys := strings.Join(loggerCheckersByName.Keys(), ",")
+	a.Flags.Init("logrlint", flag.ExitOnError)
+	a.Flags.BoolVar(&l.disableAll, "disableall", false, "disable all logger checkers")
+	a.Flags.Var(&l.disable, "disable", fmt.Sprintf("comma-separated list of disabled logger checker (%s)", checkerKeys))
+	a.Flags.Var(&l.enable, "enable", fmt.Sprintf("comma-separated list of enabled logger checker (%s)", checkerKeys))
+	return a
 }
 
-var isValidName = map[string]struct{}{
-	"Error":      {},
-	"Info":       {},
-	"WithValues": {},
+type logrlint struct {
+	disableAll bool               // flag -disableall
+	disable    loggerCheckersFlag // flag -disable
+	enable     loggerCheckersFlag // flag -enable
 }
 
-func isValidPackage(pass *analysis.Pass, fn *types.Func) bool {
-	// We allow only logr package import path
-	const packageName = "github.com/go-logr/logr"
+func (l *logrlint) isCheckerDisabled(name string) bool {
+	if l.disableAll {
+		return !l.enable.Has(name)
+	}
+	if l.disable.Has(name) {
+		return true
+	}
+	return !l.enable.Has(name)
+}
 
+func (l *logrlint) getLoggerFuncs(pkgPath string) stringSet {
+	for name, entry := range loggerCheckersByName {
+		if l.isCheckerDisabled(name) {
+			// Skip ignored logger checker.
+			continue
+		}
+
+		if entry.packageImport == pkgPath {
+			return entry.funcs
+		}
+
+		if strings.HasSuffix(pkgPath, "/vendor/"+entry.packageImport) {
+			return decorateVendoredFuncs(entry.funcs, pkgPath, entry.packageImport)
+		}
+	}
+
+	return nil
+}
+
+func decorateVendoredFuncs(entryFuncs stringSet, currentPkgImport, packageImport string) stringSet {
+	funcs := make(stringSet, len(entryFuncs))
+	for fn := range entryFuncs {
+		lastDot := strings.LastIndex(fn, ".")
+		if lastDot == -1 {
+			continue // invalid pattern
+		}
+
+		importOrReceiver := fn[:lastDot]
+		fnName := fn[lastDot+1:]
+
+		if strings.HasPrefix(importOrReceiver, "(") { // is receiver
+			if !strings.HasSuffix(importOrReceiver, ")") {
+				continue // invalid pattern
+			}
+
+			var pointerIndicator string
+			if strings.HasPrefix(importOrReceiver[1:], "*") { // pointer type
+				pointerIndicator = "*"
+			}
+
+			leftOver := strings.TrimPrefix(importOrReceiver, "("+pointerIndicator+packageImport+".")
+			importOrReceiver = fmt.Sprintf("(%s%s.%s", pointerIndicator, currentPkgImport, leftOver)
+		} else { // is import
+			importOrReceiver = currentPkgImport
+		}
+
+		fn = fmt.Sprintf("%s.%s", importOrReceiver, fnName)
+		funcs.Insert(fn)
+	}
+	return funcs
+}
+
+func (l *logrlint) isValidLoggerFunc(fn *types.Func) bool {
 	pkg := fn.Pkg()
 	if pkg == nil {
 		return false
 	}
-	pkgPath := pkg.Path()
-	// Fast path: for GOPATH or go mod enabled packages
-	if pkgPath == packageName {
-		return true
-	}
 
-	// Special case for vendor
-	vendorPath := fmt.Sprintf("%s/vendor/%s", pass.Pkg.Name(), packageName)
-	return pkgPath == vendorPath
+	funcs := l.getLoggerFuncs(pkg.Path())
+	return funcs.Has(fn.FullName())
 }
 
-func checkEvenArguments(pass *analysis.Pass, call *ast.CallExpr) {
+func (l *logrlint) checkLoggerArguments(pass *analysis.Pass, call *ast.CallExpr) {
 	fn, _ := typeutil.Callee(pass.TypesInfo, call).(*types.Func)
 	if fn == nil {
 		return // function pointer is not supported
@@ -56,11 +126,12 @@ func checkEvenArguments(pass *analysis.Pass, call *ast.CallExpr) {
 		return // not variadic
 	}
 
-	if _, ok := isValidName[fn.Name()]; !ok {
+	if !l.isValidLoggerFunc(fn) {
 		return
 	}
 
-	if !isValidPackage(pass, fn) {
+	// ellipsis args is hard, just skip
+	if call.Ellipsis.IsValid() {
 		return
 	}
 
@@ -73,19 +144,21 @@ func checkEvenArguments(pass *analysis.Pass, call *ast.CallExpr) {
 	}
 
 	startIndex := nparams - 1
-	variadicLen := len(call.Args) - (startIndex)
+	nargs := len(call.Args)
+	variadicLen := nargs - startIndex
 	if variadicLen%2 != 0 {
 		firstArg := call.Args[startIndex]
-		lastArg := call.Args[len(call.Args)-1]
+		lastArg := call.Args[nargs-1]
 		pass.Report(analysis.Diagnostic{
 			Pos:      firstArg.Pos(),
 			End:      lastArg.End(),
 			Category: "logging",
-			Message:  "odd number of arguments passed as key-value pairs for logging"})
+			Message:  "odd number of arguments passed as key-value pairs for logging",
+		})
 	}
 }
 
-func run(pass *analysis.Pass) (interface{}, error) {
+func (l *logrlint) run(pass *analysis.Pass) (interface{}, error) {
 	insp := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 	nodeFilter := []ast.Node{
 		(*ast.CallExpr)(nil),
@@ -99,7 +172,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			return
 		}
 
-		checkEvenArguments(pass, call)
+		l.checkLoggerArguments(pass, call)
 	})
 
 	return nil, nil

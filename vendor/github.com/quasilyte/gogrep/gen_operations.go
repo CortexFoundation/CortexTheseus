@@ -42,6 +42,8 @@ var opPrototypes = []operationProto{
 
 	{name: "IndexExpr", tag: "IndexExpr", args: "x expr"},
 
+	{name: "IndexListExpr", tag: "IndexListExpr", args: "x exprs..."},
+
 	{name: "SliceExpr", tag: "SliceExpr", args: "x"},
 	{name: "SliceFromExpr", tag: "SliceExpr", args: "x from", example: "x[from:]"},
 	{name: "SliceToExpr", tag: "SliceExpr", args: "x to", example: "x[:to]"},

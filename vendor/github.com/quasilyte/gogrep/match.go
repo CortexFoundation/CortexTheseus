@@ -287,6 +287,10 @@ func (m *matcher) matchNodeWithInst(state *MatcherState, inst instruction, n ast
 		n, ok := n.(*ast.IndexExpr)
 		return ok && m.matchNode(state, n.X) && m.matchNode(state, n.Index)
 
+	case opIndexListExpr:
+		n, ok := n.(*typeparams.IndexListExpr)
+		return ok && m.matchNode(state, n.X) && m.matchExprSlice(state, n.Indices)
+
 	case opKeyValueExpr:
 		n, ok := n.(*ast.KeyValueExpr)
 		return ok && m.matchNode(state, n.Key) && m.matchNode(state, n.Value)
