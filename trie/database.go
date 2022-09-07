@@ -300,11 +300,6 @@ func NewDatabaseWithConfig(diskdb ctxcdb.KeyValueStore, config *Config) *Databas
 	return db
 }
 
-// DiskDB retrieves the persistent storage backing the trie database.
-func (db *Database) DiskDB() ctxcdb.KeyValueStore {
-	return db.diskdb
-}
-
 // insert inserts a collapsed trie node into the memory database.
 // The blob size must be specified to allow proper size tracking.
 // All nodes inserted by this function will be reference tracked
