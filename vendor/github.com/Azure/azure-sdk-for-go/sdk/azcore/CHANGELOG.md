@@ -1,5 +1,10 @@
 # Release History
 
+## 1.1.3 (2022-09-01)
+
+### Bugs Fixed
+* Adjusted the initial retry delay to 800ms per the Azure SDK guidelines.
+
 ## 1.1.2 (2022-08-09)
 
 ### Other Changes

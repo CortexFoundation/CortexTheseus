@@ -7,7 +7,7 @@
 crawshaw.io/sqlite
 crawshaw.io/sqlite/c
 crawshaw.io/sqlite/sqlitex
-# github.com/Azure/azure-sdk-for-go/sdk/azcore v1.1.2
+# github.com/Azure/azure-sdk-for-go/sdk/azcore v1.1.3
 ## explicit; go 1.18
 github.com/Azure/azure-sdk-for-go/sdk/azcore
 github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud
@@ -48,7 +48,7 @@ github.com/CortexFoundation/merkletree
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit; go 1.16
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.25-0.20220831020028-5cc6aaa02945
+# github.com/CortexFoundation/torrentfs v1.0.27
 ## explicit; go 1.19
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/compress
@@ -190,7 +190,7 @@ github.com/arsham/figurine/figurine
 github.com/arsham/rainbow/rainbow
 # github.com/aws/aws-sdk-go v1.37.0
 ## explicit; go 1.11
-# github.com/aws/aws-sdk-go-v2 v1.16.13
+# github.com/aws/aws-sdk-go-v2 v1.16.14
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2
 github.com/aws/aws-sdk-go-v2/aws
@@ -210,10 +210,10 @@ github.com/aws/aws-sdk-go-v2/internal/sdkio
 github.com/aws/aws-sdk-go-v2/internal/strings
 github.com/aws/aws-sdk-go-v2/internal/sync/singleflight
 github.com/aws/aws-sdk-go-v2/internal/timeconv
-# github.com/aws/aws-sdk-go-v2/config v1.17.4
+# github.com/aws/aws-sdk-go-v2/config v1.17.5
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/config
-# github.com/aws/aws-sdk-go-v2/credentials v1.12.17
+# github.com/aws/aws-sdk-go-v2/credentials v1.12.18
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/credentials
 github.com/aws/aws-sdk-go-v2/credentials/ec2rolecreds
@@ -222,44 +222,44 @@ github.com/aws/aws-sdk-go-v2/credentials/endpointcreds/internal/client
 github.com/aws/aws-sdk-go-v2/credentials/processcreds
 github.com/aws/aws-sdk-go-v2/credentials/ssocreds
 github.com/aws/aws-sdk-go-v2/credentials/stscreds
-# github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.12.14
+# github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.12.15
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds/internal/config
-# github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.20
+# github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.21
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/internal/configsources
-# github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.14
+# github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.15
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/internal/endpoints/v2
-# github.com/aws/aws-sdk-go-v2/internal/ini v1.3.21
+# github.com/aws/aws-sdk-go-v2/internal/ini v1.3.22
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/internal/ini
-# github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.14
+# github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.15
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url
-# github.com/aws/aws-sdk-go-v2/service/route53 v1.21.9
+# github.com/aws/aws-sdk-go-v2/service/route53 v1.21.11
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/service/route53
 github.com/aws/aws-sdk-go-v2/service/route53/internal/customizations
 github.com/aws/aws-sdk-go-v2/service/route53/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/route53/types
-# github.com/aws/aws-sdk-go-v2/service/sso v1.11.20
+# github.com/aws/aws-sdk-go-v2/service/sso v1.11.21
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/service/sso
 github.com/aws/aws-sdk-go-v2/service/sso/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/sso/types
-# github.com/aws/aws-sdk-go-v2/service/ssooidc v1.13.2
+# github.com/aws/aws-sdk-go-v2/service/ssooidc v1.13.3
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/service/ssooidc
 github.com/aws/aws-sdk-go-v2/service/ssooidc/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/ssooidc/types
-# github.com/aws/aws-sdk-go-v2/service/sts v1.16.16
+# github.com/aws/aws-sdk-go-v2/service/sts v1.16.17
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/service/sts
 github.com/aws/aws-sdk-go-v2/service/sts/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/sts/types
-# github.com/aws/smithy-go v1.13.1
+# github.com/aws/smithy-go v1.13.2
 ## explicit; go 1.15
 github.com/aws/smithy-go
 github.com/aws/smithy-go/auth/bearer
@@ -338,7 +338,7 @@ github.com/dlclark/regexp2/syntax
 # github.com/docker/docker v20.10.17+incompatible
 ## explicit
 github.com/docker/docker/pkg/reexec
-# github.com/dop251/goja v0.0.0-20220815083517-0c74f9139fd6
+# github.com/dop251/goja v0.0.0-20220906144433-c4d370b87b45
 ## explicit; go 1.16
 github.com/dop251/goja
 github.com/dop251/goja/ast
@@ -471,7 +471,7 @@ github.com/huin/goupnp/httpu
 github.com/huin/goupnp/scpd
 github.com/huin/goupnp/soap
 github.com/huin/goupnp/ssdp
-# github.com/influxdata/flux v0.181.0
+# github.com/influxdata/flux v0.182.0
 ## explicit; go 1.18
 github.com/influxdata/flux
 github.com/influxdata/flux/array
@@ -756,7 +756,7 @@ github.com/shirou/gopsutil/internal/common
 github.com/shirou/gopsutil/mem
 # github.com/sirupsen/logrus v1.9.0
 ## explicit; go 1.13
-# github.com/status-im/keycard-go v0.0.0-20220804094519-059bc140cef1
+# github.com/status-im/keycard-go v0.0.0-20220906070205-e43cb0f06ae9
 ## explicit; go 1.17
 github.com/status-im/keycard-go/derivationpath
 # github.com/steakknife/bloomfilter v0.0.0-20180922174646-6819c0d2a570
@@ -873,7 +873,7 @@ golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/exp v0.0.0-20220827204233-334a2380cb91
+# golang.org/x/exp v0.0.0-20220907003533-145caa8ea1d0
 ## explicit; go 1.18
 golang.org/x/exp/constraints
 golang.org/x/exp/slices
@@ -892,7 +892,7 @@ golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/modfile
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20220826154423-83b083e8dc8b
+# golang.org/x/net v0.0.0-20220907135653-1e95f45603a7
 ## explicit; go 1.17
 golang.org/x/net/bpf
 golang.org/x/net/dns/dnsmessage
@@ -906,12 +906,12 @@ golang.org/x/net/proxy
 golang.org/x/net/publicsuffix
 # golang.org/x/oauth2 v0.0.0-20220822191816-0ebed06d0094
 ## explicit; go 1.17
-# golang.org/x/sync v0.0.0-20220819030929-7fc1605a5dde
+# golang.org/x/sync v0.0.0-20220907140024-f12130a52804
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/singleflight
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.0.0-20220829200755-d48e67d00261
+# golang.org/x/sys v0.0.0-20220907062415-87db552b00fd
 ## explicit; go 1.17
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
