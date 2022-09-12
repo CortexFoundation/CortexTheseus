@@ -303,11 +303,15 @@ func (t *Trackers) medianRoundTrip() time.Duration {
 	}
 	sort.Float64s(rtts)
 
-	median := rttMaxEstimate
-	if qosTuningPeers <= len(rtts) {
-		median = time.Duration(rtts[qosTuningPeers/2]) // Median of our best few peers
-	} else if len(rtts) > 0 {
-		median = time.Duration(rtts[len(rtts)/2]) // Median of all out connected peers
+	var median time.Duration
+	switch len(rtts) {
+	case 0:
+		median = rttMaxEstimate
+	case 1:
+		median = time.Duration(rtts[0])
+	default:
+		idx := int(math.Sqrt(float64(len(rtts))))
+		median = time.Duration(rtts[idx])
 	}
 	// Restrict the RTT into some QoS defaults, irrelevant of true RTT
 	if median < rttMinEstimate {
