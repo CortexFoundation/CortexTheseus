@@ -266,6 +266,10 @@ var (
 		Name:  "storage.disable_tcp",
 		Usage: "disable TCP network in FS (EXPERIMENTAL)",
 	}
+	StorageEnableUTPFlag = cli.BoolFlag{
+		Name:  "storage.utp",
+		Usage: "enable UTP network in FS (EXPERIMENTAL)",
+	}
 	StorageFullFlag = cli.BoolFlag{
 		Name:  "storage.full",
 		Usage: "download full file",
@@ -1683,7 +1687,8 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 	cfg.MaxActiveNum = ctx.GlobalInt(StorageMaxActiveFlag.Name)
 	cfg.Mode = ctx.GlobalString(StorageModeFlag.Name)
 	cfg.DisableDHT = ctx.GlobalBool(StorageDisableDHTFlag.Name)
-	//cfg.DisableTCP = ctx.GlobalBool(StorageDisableTCPFlag.Name)
+	cfg.DisableTCP = ctx.GlobalBool(StorageDisableTCPFlag.Name)
+	cfg.DisableUTP = !ctx.GlobalBool(StorageEnableUTPFlag.Name)
 	//cfg.FullSeed = ctx.GlobalBool(StorageFullFlag.Name)
 	//if cfg.Mode == "full" {
 	//	cfg.FullSeed = true

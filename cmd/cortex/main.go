@@ -160,6 +160,7 @@ var (
 		utils.StorageTrackerFlag,
 		utils.StorageDisableDHTFlag,
 		utils.StorageDisableTCPFlag,
+		utils.StorageEnableUTPFlag,
 		utils.StorageFullFlag,
 		utils.StorageModeFlag,
 		utils.StorageBoostFlag,
