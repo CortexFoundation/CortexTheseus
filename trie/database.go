@@ -654,8 +654,9 @@ func (db *Database) Commit(node common.Hash, report bool, callback func(common.H
 	// Uncache any leftovers in the last batch
 	db.lock.Lock()
 	defer db.lock.Unlock()
-
-	batch.Replay(uncacher)
+	if err := batch.Replay(uncacher); err != nil {
+		return err
+	}
 	batch.Reset()
 
 	// Reset the storage counters and bumped metrics
@@ -703,9 +704,12 @@ func (db *Database) commit(hash common.Hash, batch ctxcdb.Batch, uncacher *clean
 			return err
 		}
 		db.lock.Lock()
-		batch.Replay(uncacher)
+		err := batch.Replay(uncacher)
 		batch.Reset()
 		db.lock.Unlock()
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
