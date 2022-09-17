@@ -807,6 +807,7 @@ func (tm *TorrentManager) Search(ctx context.Context, hex string, request uint64
 
 func (tm *TorrentManager) mainLoop() {
 	defer tm.wg.Done()
+	var bytes int64
 	for {
 		select {
 		case msg := <-tm.taskChan:
@@ -818,7 +819,7 @@ func (tm *TorrentManager) mainLoop() {
 				continue
 			}
 
-			bytes := int64(meta.BytesRequested)
+			bytes = int64(meta.BytesRequested)
 			if bytes == 0 {
 				//preloading
 				bytes = block
