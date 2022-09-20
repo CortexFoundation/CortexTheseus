@@ -1006,11 +1006,14 @@ func (tm *TorrentManager) activeLoop() {
 							t.fast = true
 						} else {
 							t.lock.Lock()
-							if t.bytesRequested <= t.BytesCompleted()+block/2 {
-								t.bytesRequested = int64(math.Min(float64(t.Length()), float64(t.bytesRequested+block)))
-								t.bytesLimitation = tm.getLimitation(t.bytesRequested)
-								t.fast = false
-							}
+							//if t.bytesRequested <= t.BytesCompleted()+block/2 {
+							//	t.bytesRequested = int64(math.Min(float64(t.Length()), float64(t.bytesRequested+block)))
+							//	t.bytesLimitation = tm.getLimitation(t.bytesRequested)
+							//	t.fast = false
+							//}
+							t.bytesRequested = t.Length()
+							t.bytesLimitation = tm.getLimitation(t.bytesRequested)
+							t.fast = true
 							t.lock.Unlock()
 						}
 					} else {
