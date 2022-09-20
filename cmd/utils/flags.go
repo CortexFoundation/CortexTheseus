@@ -270,10 +270,10 @@ var (
 		Name:  "storage.utp",
 		Usage: "enable UTP network in FS (EXPERIMENTAL)",
 	}
-	StorageFullFlag = cli.BoolFlag{
-		Name:  "storage.full",
-		Usage: "download full file",
-	}
+	//StorageFullFlag = cli.BoolFlag{
+	//	Name:  "storage.full",
+	//	Usage: "download full file",
+	//}
 	StorageModeFlag = cli.StringFlag{
 		Name:  "storage.mode",
 		Usage: "P2P storage tracker list",
