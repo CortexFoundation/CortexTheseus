@@ -270,6 +270,10 @@ var (
 		Name:  "storage.utp",
 		Usage: "enable UTP network in FS (EXPERIMENTAL)",
 	}
+	StorageEnableWormholeFlag = cli.BoolFlag{
+		Name:  "storage.wormhole",
+		Usage: "enable wormhole network in FS (EXPERIMENTAL)",
+	}
 	StorageFullFlag = cli.BoolFlag{
 		Name:  "storage.full",
 		Usage: "download full file",
@@ -1689,6 +1693,7 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 	cfg.DisableDHT = ctx.GlobalBool(StorageDisableDHTFlag.Name)
 	cfg.DisableTCP = ctx.GlobalBool(StorageDisableTCPFlag.Name)
 	cfg.DisableUTP = !ctx.GlobalBool(StorageEnableUTPFlag.Name)
+	cfg.Wormhole = ctx.GlobalBool(StorageEnableWormholeFlag.Name)
 	//cfg.FullSeed = ctx.GlobalBool(StorageFullFlag.Name)
 	//if cfg.Mode == "full" {
 	//	cfg.FullSeed = true

@@ -38,6 +38,7 @@ import (
 	"github.com/CortexFoundation/torrentfs/compress"
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
+	"github.com/CortexFoundation/torrentfs/wormhole"
 
 	"github.com/allegro/bigcache/v3"
 	"github.com/bradfitz/iter"
@@ -71,9 +72,11 @@ const (
 )
 
 var (
-	getfileMeter   = metrics.NewRegisteredMeter("torrent/getfile/call", nil)
-	availableMeter = metrics.NewRegisteredMeter("torrent/available/call", nil)
-	diskReadMeter  = metrics.NewRegisteredMeter("torrent/disk/read", nil)
+	server         bool = false
+	worm           bool = false
+	getfileMeter        = metrics.NewRegisteredMeter("torrent/getfile/call", nil)
+	availableMeter      = metrics.NewRegisteredMeter("torrent/available/call", nil)
+	diskReadMeter       = metrics.NewRegisteredMeter("torrent/disk/read", nil)
 
 	downloadMeter = metrics.NewRegisteredMeter("torrent/download/call", nil)
 	updateMeter   = metrics.NewRegisteredMeter("torrent/update/call", nil)
@@ -301,6 +304,18 @@ func (tm *TorrentManager) dropAll() {
 
 func (tm *TorrentManager) commit(ctx context.Context, hex string, request uint64, ch chan bool) error {
 	log.Debug("Commit task", "ih", hex, "request", request, "ch", ch)
+
+	/*if !server {
+		tm.wg.Add(1)
+		go func() {
+			defer tm.wg.Done()
+			err := wormhole.Tunnel(hex)
+			if err != nil {
+				log.Error("Wormhole error", "err", err)
+			}
+		}()
+	}*/
+
 	task := types.FlowControlMeta{
 		InfoHash:       hex,
 		BytesRequested: request,
@@ -425,6 +440,17 @@ func (tm *TorrentManager) addInfoHash(ih string, BytesRequested int64, ch chan b
 		return nil
 	}
 
+	if !server && worm {
+		tm.wg.Add(1)
+		go func() {
+			defer tm.wg.Done()
+			err := wormhole.Tunnel(ih)
+			if err != nil {
+				log.Error("Wormhole error", "err", err)
+			}
+		}()
+	}
+
 	tmpTorrentPath := filepath.Join(tm.TmpDataDir, ih, "torrent")
 	seedTorrentPath := filepath.Join(tm.DataDir, ih, "torrent")
 
@@ -547,6 +573,9 @@ func (tm *TorrentManager) updateInfoHash(t *Torrent, BytesRequested int64) {
 }
 
 func NewTorrentManager(config *Config, fsid uint64, cache, compress bool, notify chan string) (*TorrentManager, error) {
+	server = config.Server
+	worm = config.Wormhole
+
 	cfg := torrent.NewDefaultClientConfig()
 	cfg.DisableUTP = config.DisableUTP
 	cfg.NoDHT = config.DisableDHT
@@ -1090,7 +1119,7 @@ func (tm *TorrentManager) activeLoop() {
 					}
 				}*/
 
-				if log_counter%300 == 0 && t.bytesCompleted > 0 {
+				if log_counter%300 == 0 && t.bytesCompleted >= 0 {
 					bar := ProgressBar(t.bytesCompleted, t.Torrent.Length(), "")
 					elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
 					log.Info(bar, "ih", ih, "complete", common.StorageSize(t.bytesCompleted), "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.Torrent.Length()), "seg", len(t.Torrent.PieceStateRuns()), "peers", t.currentConns, "max", t.Torrent.NumPieces(), "speed", common.StorageSize(float64(t.bytesCompleted*1000*1000*1000)/float64(elapsed)).String()+"/s", "elapsed", common.PrettyDuration(elapsed))
