@@ -207,8 +207,8 @@ func (t *Torrent) IsSeeding() bool {
 
 func (t *Torrent) Pause() {
 	if t.currentConns > t.minEstablishedConns {
-		t.setCurrentConns(t.minEstablishedConns)
-		t.Torrent.SetMaxEstablishedConns(t.minEstablishedConns)
+		//t.setCurrentConns(t.minEstablishedConns)
+		//t.Torrent.SetMaxEstablishedConns(t.minEstablishedConns)
 	}
 	if t.status != torrentPaused {
 		t.status = torrentPaused
@@ -236,8 +236,8 @@ func (t *Torrent) Run(slot int) {
 
 	//if t.fast {
 	if t.currentConns <= t.minEstablishedConns {
-		t.setCurrentConns(t.maxEstablishedConns)
-		t.Torrent.SetMaxEstablishedConns(t.currentConns)
+		//t.setCurrentConns(t.maxEstablishedConns)
+		//t.Torrent.SetMaxEstablishedConns(t.currentConns)
 	}
 	//} else {
 	//	if t.currentConns > t.minEstablishedConns {

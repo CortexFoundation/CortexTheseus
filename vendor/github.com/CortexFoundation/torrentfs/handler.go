@@ -745,10 +745,10 @@ func (tm *TorrentManager) seedingLoop() {
 				//}
 				tm.hotCache.Add(t.Torrent.InfoHash(), true)
 				if len(tm.seedingTorrents) > params.LimitSeeding {
-					tm.dropSeeding(tm.slot)
+					//tm.dropSeeding(tm.slot)
 				} else if len(tm.seedingTorrents) > tm.maxSeedTask {
 					tm.maxSeedTask++
-					tm.graceSeeding(tm.slot)
+					//tm.graceSeeding(tm.slot)
 				}
 
 				// TODO notify neighbors
@@ -893,15 +893,16 @@ func (tm *TorrentManager) pendingLoop() {
 		case <-timer.C:
 			for ih, t := range tm.pendingTorrents {
 				if _, ok := BadFiles[ih]; ok {
+					timer.Reset(time.Second * queryTimeInterval)
 					continue
 				}
-				t.loop++
-				if t.Torrent.Info() != nil {
+				if t.start == 0 {
 					t.start = mclock.Now()
+				}
+				if t.Torrent.Info() != nil {
 					if err := t.WriteTorrent(); err == nil {
 						if len(tm.activeChan) < cap(tm.activeChan) {
 							delete(tm.pendingTorrents, ih)
-							t.loop = 0
 							tm.activeChan <- t
 						}
 					}
@@ -1257,8 +1258,8 @@ func (tm *TorrentManager) getFile(infohash, subpath string) ([]byte, uint64, err
 
 		tm.hotCache.Add(infohash, true)
 		if t.currentConns < tm.maxEstablishedConns {
-			t.setCurrentConns(tm.maxEstablishedConns)
-			t.Torrent.SetMaxEstablishedConns(t.currentConns)
+			//t.setCurrentConns(tm.maxEstablishedConns)
+			//t.Torrent.SetMaxEstablishedConns(t.currentConns)
 			log.Debug("Torrent active", "ih", infohash, "peers", t.currentConns)
 		}
 
