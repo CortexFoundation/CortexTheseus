@@ -49,7 +49,7 @@ type Config struct {
 
 // DefaultConfig contains default settings for the storage.
 var DefaultConfig = Config{
-	Port:            40401,
+	Port:            0,
 	DefaultTrackers: params.MainnetTrackers,
 	BoostNodes:      params.TorrentBoostNodes,
 	Mode:            "default",

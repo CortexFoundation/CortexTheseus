@@ -684,7 +684,7 @@ func (fs *TorrentFS) Tunnel(ctx context.Context, ih string) error {
 	} else {
 		return nil
 	}
-	if err := fs.storage().Search(ctx, ih, 0, nil); err != nil {
+	if err := fs.storage().Search(ctx, ih, 1000000000, nil); err != nil {
 		return err
 	}
 	return nil
