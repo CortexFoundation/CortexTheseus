@@ -584,12 +584,12 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool, notify
 	cfg.DisableTCP = config.DisableTCP
 	cfg.DisableIPv6 = config.DisableIPv6
 
-	cfg.DisableWebtorrent = false
-	cfg.DisablePEX = false
-	cfg.DisableWebseeds = false
+	//cfg.DisableWebtorrent = false
+	//cfg.DisablePEX = false
+	//cfg.DisableWebseeds = false
 	cfg.DisableIPv4 = false
 	cfg.DisableAcceptRateLimiting = true
-	cfg.DisableWebtorrent = false
+	//cfg.DisableWebtorrent = false
 	//cfg.HeaderObfuscationPolicy.Preferred = true
 	//cfg.HeaderObfuscationPolicy.RequirePreferred = true
 
@@ -599,8 +599,8 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool, notify
 	cfg.Seed = true
 	//cfg.Debug=true
 
-	//cfg.EstablishedConnsPerTorrent = 10 //len(config.DefaultTrackers)
-	//cfg.HalfOpenConnsPerTorrent = 5
+	cfg.EstablishedConnsPerTorrent = 2 //len(config.DefaultTrackers)
+	cfg.HalfOpenConnsPerTorrent = 1
 
 	cfg.ListenPort = config.Port
 	if config.Quiet {
