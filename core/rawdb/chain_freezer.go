@@ -92,6 +92,9 @@ func (f *chainFreezer) freeze(db ctxcdb.KeyValueStore) {
 		backoff   bool
 		triggered chan struct{} // Used in tests
 	)
+
+	timer := time.NewTimer(freezerRecheckInterval)
+	defer timer.Stop()
 	for {
 		select {
 		case <-f.quit:
@@ -106,8 +109,9 @@ func (f *chainFreezer) freeze(db ctxcdb.KeyValueStore) {
 				triggered = nil
 			}
 			select {
-			case <-time.NewTimer(freezerRecheckInterval).C:
+			case <-timer.C:
 				backoff = false
+				timer.Reset(freezerRecheckInterval)
 			case triggered = <-f.trigger:
 				backoff = false
 			case <-f.quit:

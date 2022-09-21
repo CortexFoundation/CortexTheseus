@@ -43,11 +43,13 @@ type Config struct {
 	UploadRate   int  `toml:",omitempty"`
 	DownloadRate int  `toml:",omitempty"`
 	Metrics      bool `toml:",omitempty"`
+	Server       bool `toml:",omitempty"`
+	Wormhole     bool `toml:",omitempty"`
 }
 
 // DefaultConfig contains default settings for the storage.
 var DefaultConfig = Config{
-	Port:            40401,
+	Port:            0,
 	DefaultTrackers: params.MainnetTrackers,
 	BoostNodes:      params.TorrentBoostNodes,
 	Mode:            "default",
@@ -63,6 +65,8 @@ var DefaultConfig = Config{
 	UploadRate:   -1,
 	DownloadRate: -1,
 	Metrics:      true,
+	Server:       false,
+	Wormhole:     false,
 }
 
 const (
