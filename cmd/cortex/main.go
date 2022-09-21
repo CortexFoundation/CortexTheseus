@@ -161,7 +161,7 @@ var (
 		utils.StorageDisableDHTFlag,
 		utils.StorageDisableTCPFlag,
 		utils.StorageEnableUTPFlag,
-		//utils.StorageFullFlag,
+		utils.StorageEnableWormholeFlag,
 		utils.StorageModeFlag,
 		utils.StorageBoostFlag,
 	}

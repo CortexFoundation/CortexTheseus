@@ -17,8 +17,10 @@ package params
 
 var (
 	MainnetTrackers = []string{
-		"udp://tracker.cortexlabs.ai:5008",
-		"udp://tracker.openbittorrent.com:80",
+		"udp://tracker.cortexlabs.ai:5008/announce",
+		//"http://tracker.cortexlabs.ai:5008/announce",
+		//"http://tracker.openbittorrent.com:80/announce",
+		"udp://tracker.openbittorrent.com:6969/announce",
 		"udp://tracker.opentrackr.org:1337/announce",
 	}
 	/*MainnetTrackers = [][]string{
