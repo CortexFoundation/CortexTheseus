@@ -276,7 +276,7 @@ var (
 	}
 	StorageModeFlag = cli.StringFlag{
 		Name:  "storage.mode",
-		Usage: "P2P storage tracker list",
+		Usage: "P2P storage running mode",
 		Value: "normal",
 	}
 	StorageDebugFlag = cli.BoolFlag{
