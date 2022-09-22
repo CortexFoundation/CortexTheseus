@@ -274,13 +274,9 @@ var (
 		Name:  "storage.wormhole",
 		Usage: "enable wormhole network in FS (EXPERIMENTAL)",
 	}
-	StorageFullFlag = cli.BoolFlag{
-		Name:  "storage.full",
-		Usage: "download full file",
-	}
 	StorageModeFlag = cli.StringFlag{
 		Name:  "storage.mode",
-		Usage: "P2P storage tracker list",
+		Usage: "P2P storage running mode",
 		Value: "normal",
 	}
 	StorageDebugFlag = cli.BoolFlag{
