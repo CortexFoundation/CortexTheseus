@@ -722,8 +722,6 @@ type CallArgs struct {
 	Data     hexutil.Bytes   `json:"data"`
 }
 
-var globalGasCap = uint64(50000000)
-
 func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr rpc.BlockNumber, vmCfg vm.Config, timeout time.Duration) ([]byte, uint64, bool, error) {
 	defer func(start time.Time) { log.Debug("Executing CVM call finished", "runtime", time.Since(start)) }(time.Now())
 
@@ -745,6 +743,7 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 	if gas == 0 {
 		gas = math.MaxUint64 / 2
 	}
+	globalGasCap := s.b.RPCGasCap()
 	if globalGasCap != 0 && globalGasCap < gas {
 		log.Warn("Caller gas above allowance, capping", "requested", gas, "cap", globalGasCap)
 		gas = globalGasCap
