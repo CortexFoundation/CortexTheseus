@@ -602,8 +602,8 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool, notify
 	cfg.Seed = true
 	//cfg.Debug=true
 
-	cfg.EstablishedConnsPerTorrent = 2 //len(config.DefaultTrackers)
-	cfg.HalfOpenConnsPerTorrent = 1
+	cfg.EstablishedConnsPerTorrent = 4 //len(config.DefaultTrackers)
+	cfg.HalfOpenConnsPerTorrent = 2
 
 	cfg.ListenPort = config.Port
 	if config.Quiet {
