@@ -254,10 +254,10 @@ var (
 		Usage: "P2P storage tracker list",
 		Value: strings.Join(torrentfs.DefaultConfig.DefaultTrackers, ","),
 	}
-	StorageDisableDHTFlag = cli.BoolFlag{
+	/*StorageDisableDHTFlag = cli.BoolFlag{
 		Name:  "storage.disable_dht",
 		Usage: "disable DHT network in FS",
-	}
+	}*/
 	StorageBoostFlag = cli.BoolFlag{
 		Name:  "storage.boost",
 		Usage: "Boost fs (EXPERIMENTAL)",
@@ -1686,7 +1686,7 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
 		"MaxActiveNum", ctx.GlobalInt(StorageMaxActiveFlag.Name))
 	cfg.MaxActiveNum = ctx.GlobalInt(StorageMaxActiveFlag.Name)
 	cfg.Mode = ctx.GlobalString(StorageModeFlag.Name)
-	cfg.DisableDHT = ctx.GlobalBool(StorageDisableDHTFlag.Name)
+	//cfg.DisableDHT = ctx.GlobalBool(StorageDisableDHTFlag.Name)
 	cfg.DisableTCP = ctx.GlobalBool(StorageDisableTCPFlag.Name)
 	cfg.DisableUTP = !ctx.GlobalBool(StorageEnableUTPFlag.Name)
 	cfg.Wormhole = ctx.GlobalBool(StorageEnableWormholeFlag.Name)

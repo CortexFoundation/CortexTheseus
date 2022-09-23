@@ -98,10 +98,6 @@ var (
 		Usage: "P2P storage tracker list",
 		Value: strings.Join(torrentfs.DefaultConfig.DefaultTrackers, ","),
 	}
-	StorageDisableDHTFlag = cli.BoolFlag{
-		Name:  "cvm.disable_dht",
-		Usage: "disable DHT network",
-	}
 	StorageBoostFlag = cli.BoolFlag{
 		Name:  "cvm.boost",
 		Usage: "boost fs network",
@@ -188,7 +184,7 @@ func cvmServer(ctx *cli.Context) error {
 	fsCfg.MaxActiveNum = ctx.GlobalInt(StorageMaxActiveFlag.Name)
 	fsCfg.DataDir = ctx.GlobalString(utils.StorageDirFlag.Name)
 	fsCfg.RpcURI = ctx.GlobalString(utils.StorageRpcFlag.Name)
-	fsCfg.DisableDHT = ctx.GlobalBool(utils.StorageDisableDHTFlag.Name)
+	//fsCfg.DisableDHT = ctx.GlobalBool(utils.StorageDisableDHTFlag.Name)
 	//fsCfg.DisableTCP = ctx.GlobalBool(utils.StorageDisableTCPFlag.Name)
 	fsCfg.Mode = ctx.GlobalString(utils.StorageModeFlag.Name)
 	//fsCfg.FullSeed = ctx.GlobalBool(utils.StorageFullFlag.Name)

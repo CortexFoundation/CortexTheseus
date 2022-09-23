@@ -602,8 +602,8 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool, notify
 	cfg.Seed = true
 	//cfg.Debug=true
 
-	cfg.EstablishedConnsPerTorrent = 4 //len(config.DefaultTrackers)
-	cfg.HalfOpenConnsPerTorrent = 2
+	cfg.EstablishedConnsPerTorrent = 8 //len(config.DefaultTrackers)
+	cfg.HalfOpenConnsPerTorrent = 4
 
 	cfg.ListenPort = config.Port
 	if config.Quiet {
@@ -936,13 +936,15 @@ func (tm *TorrentManager) activeLoop() {
 			log_counter++
 
 			for ih, t := range tm.activeTorrents {
+				if t.BytesCompleted() > t.bytesCompleted {
+					total_size += uint64(t.BytesCompleted() - t.bytesCompleted)
+					current_size += uint64(t.BytesCompleted() - t.bytesCompleted)
+					actual_counter++
+				}
 				if t.BytesMissing() == 0 {
-					//tm.lock.Lock()
 					if _, err := os.Stat(filepath.Join(tm.DataDir, ih)); err == nil {
 						if len(tm.seedingChan) < cap(tm.seedingChan) {
-							log.Debug("Path exist", "ih", ih, "path", filepath.Join(tm.DataDir, ih))
 							delete(tm.activeTorrents, ih)
-							log.Trace("S <- A", "ih", ih) //, "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
 							tm.seedingChan <- t
 						}
 					} else {
@@ -951,184 +953,56 @@ func (tm *TorrentManager) activeLoop() {
 							filepath.Join(tm.DataDir, ih),
 						)
 						if err != nil {
-							err = os.Remove(
+							os.Remove(
 								filepath.Join(tm.DataDir, ih),
 							)
-							if err == nil {
-								log.Debug("Fix path success", "ih", ih, "size", t.bytesCompleted, "miss", t.bytesMissing, "loop", log_counter)
-							}
 						} else {
 							if len(tm.seedingChan) < cap(tm.seedingChan) {
 								delete(tm.activeTorrents, ih)
-								log.Trace("S <- A", "ih", ih) //, "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
 								tm.seedingChan <- t
 							}
 						}
 					}
-
-					//tm.lock.Unlock()
 					continue
 				}
+
+				t.bytesCompleted = t.BytesCompleted()
 				if t.fast {
 					if log_counter%60 == 0 && t.bytesCompleted >= 0 {
 						bar := ProgressBar(t.bytesCompleted, t.Torrent.Length(), "")
 						elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
-						log.Info(bar, "ih", ih, "complete", common.StorageSize(t.bytesCompleted), "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.Torrent.Length()), "seg", len(t.Torrent.PieceStateRuns()), "peers", t.currentConns, "max", t.Torrent.NumPieces(), "speed", common.StorageSize(float64(t.bytesCompleted*1000*1000*1000)/float64(elapsed)).String()+"/s", "elapsed", common.PrettyDuration(elapsed))
+						log.Info(bar, "ih", ih, "complete", common.StorageSize(t.bytesCompleted), "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.Torrent.Length()), "want", t.maxPieces, "peers", t.currentConns, "max", t.Torrent.NumPieces(), "speed", common.StorageSize(float64(t.bytesCompleted*1000*1000*1000)/float64(elapsed)).String()+"/s", "elapsed", common.PrettyDuration(elapsed))
 					}
 					active_running++
-					if t.BytesCompleted() > t.bytesCompleted {
-						total_size += uint64(t.BytesCompleted() - t.bytesCompleted)
-						current_size += uint64(t.BytesCompleted() - t.bytesCompleted)
-						//actual_size +=  uint64(t.BytesCompleted() - t.bytesCompleted)
-						actual_counter++
-					}
-					t.bytesCompleted = t.BytesCompleted()
-					t.bytesMissing = t.BytesMissing()
-					if tm.getLimitation(t.bytesRequested) == t.bytesLimitation {
-						//log.Debug("continue", "ih", ih, "t.bytesLimitation", t.bytesLimitation, "t.bytesRequested", t.bytesRequested)
-						continue
-					}
 				} else {
-					t.fast = true
-				}
-				//BytesRequested := int64(0)
-				//if _, ok := GoodFiles[t.InfoHash()]; ok {
-				if IsGood(t.InfoHash()) {
-					t.lock.Lock()
-					t.bytesRequested = t.Length()
-					t.bytesLimitation = tm.getLimitation(t.bytesRequested)
-					t.lock.Unlock()
-				} else {
-					if tm.mode == params.FULL {
+					if IsGood(t.InfoHash()) || tm.mode == params.FULL {
+						t.lock.Lock()
 						t.bytesRequested = t.Length()
 						t.bytesLimitation = tm.getLimitation(t.bytesRequested)
+						t.lock.Unlock()
 					}
+					t.fast = true
+					active_running++
 				}
 
 				if t.bytesRequested == 0 {
 					active_wait++
-					if log_counter%60 == 0 {
-						log.Debug("[Waiting]", "ih", ih, "complete", common.StorageSize(t.bytesCompleted), "req", common.StorageSize(t.bytesRequested), "quota", common.StorageSize(t.bytesRequested), "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.BytesMissing()), "seg", len(t.Torrent.PieceStateRuns()), "peers", t.currentConns, "max", t.Torrent.NumPieces())
-					}
 					continue
 				}
 
-				/*if t.BytesCompleted() > t.bytesCompleted {
-					total_size += uint64(t.BytesCompleted() - t.bytesCompleted)
-					current_size += uint64(t.BytesCompleted() - t.bytesCompleted)
-					actual_counter++
-				}*/
-
-				//TODO
-				//t.bytesCompleted = t.BytesCompleted()
-				//t.bytesMissing = t.BytesMissing()
-
-				/*if t.BytesMissing() == 0 {
-					//tm.lock.Lock()
-					if _, err := os.Stat(filepath.Join(tm.DataDir, ih)); err == nil {
-						if len(tm.seedingChan) < cap(tm.seedingChan) {
-							log.Debug("Path exist", "ih", ih, "path", filepath.Join(tm.DataDir, ih))
-							delete(tm.activeTorrents, ih)
-							log.Trace("S <- A", "ih", ih) //, "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
-							tm.seedingChan <- t
-						}
-					} else {
-						err := os.Symlink(
-							filepath.Join(defaultTmpPath, ih),
-							filepath.Join(tm.DataDir, ih),
-						)
-						if err != nil {
-							err = os.Remove(
-								filepath.Join(tm.DataDir, ih),
-							)
-							if err == nil {
-								log.Debug("Fix path success", "ih", ih, "size", t.bytesCompleted, "miss", t.bytesMissing, "loop", log_counter)
-							}
-						} else {
-							if len(tm.seedingChan) < cap(tm.seedingChan) {
-								delete(tm.activeTorrents, ih)
-								log.Trace("S <- A", "ih", ih) //, "elapsed", time.Duration(mclock.Now())-time.Duration(t.start))
-								tm.seedingChan <- t
-							}
-						}
-					}
-
-					//tm.lock.Unlock()
-					continue
-				}*/
-
-				if t.bytesCompleted >= t.bytesLimitation {
-					//t.Pause()
-					active_paused++
-					if log_counter%300 == 0 && active_paused < 11 {
-						bar := ProgressBar(t.bytesCompleted, t.Torrent.Length(), "[Paused]")
-						log.Debug(bar, "ih", ih, "complete", common.StorageSize(t.bytesCompleted), "req", common.StorageSize(t.bytesRequested), "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.bytesMissing+t.bytesCompleted), "seg", len(t.Torrent.PieceStateRuns()), "peers", t.currentConns, "max", t.Torrent.NumPieces())
-					}
-					continue
-				} /*else if t.bytesRequested >= t.bytesCompleted+t.bytesMissing {
-					t.loop++
-					if tm.boost && t.bytesCompleted == 0 { //t.loop > downloadWaitingTime/queryTimeInterval && t.bytesCompleted*2 < t.bytesRequested {
-						log.Info("Boost status", "request", t.bytesRequested, "complete", t.bytesCompleted, "missing", t.bytesMissing)
-						t.loop = 0
-						if t.isBoosting {
-							continue
-						}
-						t.Pause()
-						t.isBoosting = true
-						//tm.wg.Add(1)
-						filepaths := []string{}
-						filedatas := [][]byte{}
-						for _, file := range t.Files() {
-							if file.BytesCompleted() > 0 {
-								continue
-							}
-							subpath := file.Path()
-							if data, err := tm.boostFetcher.FetchFile(ih.String(), subpath); err == nil {
-								log.Info("Boost download file", "ih", ih, "path", subpath)
-								filedatas = append(filedatas, data)
-								filepaths = append(filepaths, subpath)
-							} else {
-								log.Warn("Boost download file failed", "ih", ih, "path", subpath)
-								//return
-							}
-						}
-						t.Torrent.Drop()
-						t.ReloadFile(filepaths, filedatas, tm)
-						t.BoostOff()
-						continue
-					}
-				}*/
-
-				/*if log_counter%180 == 0 && t.bytesCompleted >= 0 {
-					bar := ProgressBar(t.bytesCompleted, t.Torrent.Length(), "")
-					elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
-					log.Info(bar, "ih", ih, "complete", common.StorageSize(t.bytesCompleted), "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.Torrent.Length()), "seg", len(t.Torrent.PieceStateRuns()), "peers", t.currentConns, "max", t.Torrent.NumPieces(), "speed", common.StorageSize(float64(t.bytesCompleted*1000*1000*1000)/float64(elapsed)).String()+"/s", "elapsed", common.PrettyDuration(elapsed))
-				}*/
-
 				if t.bytesCompleted < t.bytesLimitation && !t.isBoosting {
-					//tm.wg.Add(1)
-					//go func() {
-					//	defer tm.wg.Done()
-
 					t.lock.Lock()
 					t.Run(tm.slot)
-					//t.lock.Unlock()
-					//}()
-					//active_running++
 					t.lock.Unlock()
 				}
 			}
 
 			if counter >= 2*loops {
-				//if len(tm.seedingTorrents) < len(GoodFiles) && tm.mode != params.LAZY {
-				//log.Warn(ProgressBar(int64(len(tm.seedingTorrents)), int64(len(GoodFiles)), "Network scanning"), "mode", tm.mode, "ports", "40401,5008,40404", "seeding", len(tm.seedingTorrents), "expected", len(GoodFiles))
-				//} else {
 				if tm.cache {
 					log.Info("Fs status", "pending", len(tm.pendingTorrents), "waiting", active_wait, "downloading", active_running, "paused", active_paused, "seeding", len(tm.seedingTorrents), "size", common.StorageSize(total_size), "speed", common.StorageSize(total_size/actual_counter*queryTimeInterval).String()+"/s", "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s", "metrics", common.PrettyDuration(tm.Updates), "hot", tm.hotCache.Len(), "stats", tm.fileCache.Stats(), "len", tm.fileCache.Len(), "capacity", common.StorageSize(tm.fileCache.Capacity()).String())
 				} else {
 					log.Info("Fs status", "pending", len(tm.pendingTorrents), "waiting", active_wait, "downloading", active_running, "paused", active_paused, "seeding", len(tm.seedingTorrents), "size", common.StorageSize(total_size), "speed", common.StorageSize(total_size/actual_counter*queryTimeInterval).String()+"/s", "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s", "metrics", common.PrettyDuration(tm.Updates), "hot", tm.hotCache.Len())
 				}
-				//}
 				counter = 1
 				current_size = 0
 			}
