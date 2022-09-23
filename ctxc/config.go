@@ -65,7 +65,7 @@ var DefaultConfig = Config{
 	},
 
 	TxPool:      core.DefaultTxPoolConfig,
-	RPCGasCap:   25000000,
+	RPCGasCap:   50000000,
 	GPO:         DefaultFullGPOConfig,
 	RPCTxFeeCap: 1, // 1 ctxc
 
