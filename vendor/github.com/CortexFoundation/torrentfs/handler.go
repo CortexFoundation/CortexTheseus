@@ -428,15 +428,14 @@ func (tm *TorrentManager) loadSpec(ih string, filePath string) *torrent.TorrentS
 	return spec
 }
 
-func (tm *TorrentManager) addInfoHash(ih string, BytesRequested int64, ch chan bool) *Torrent {
-	log.Debug("Add seed", "ih", ih, "bytes", BytesRequested, "ch", ch)
+func (tm *TorrentManager) addInfoHash(ih string, bytesRequested int64, ch chan bool) *Torrent {
+	log.Debug("Add seed", "ih", ih, "bytes", bytesRequested, "ch", ch)
 	if t := tm.getTorrent(ih); t != nil {
-		//update
-		tm.updateInfoHash(t, BytesRequested)
+		tm.updateInfoHash(t, bytesRequested)
 		return t
 	}
 
-	if BytesRequested < 0 {
+	if bytesRequested < 0 {
 		return nil
 	}
 
@@ -458,8 +457,12 @@ func (tm *TorrentManager) addInfoHash(ih string, BytesRequested int64, ch chan b
 
 	if _, err := os.Stat(seedTorrentPath); err == nil {
 		spec = tm.loadSpec(ih, seedTorrentPath)
-	} else if _, err := os.Stat(tmpTorrentPath); err == nil {
-		spec = tm.loadSpec(ih, tmpTorrentPath)
+	}
+
+	if spec == nil {
+		if _, err := os.Stat(tmpTorrentPath); err == nil {
+			spec = tm.loadSpec(ih, tmpTorrentPath)
+		}
 	}
 
 	/*if _, err := os.Stat(filepath.Join(tm.TmpDataDir, ih, ".torrent.db")); err != nil {
@@ -558,7 +561,7 @@ func (tm *TorrentManager) addInfoHash(ih string, BytesRequested int64, ch chan b
 	//if t, n := tm.client.AddTorrentInfoHashWithStorage(spec.InfoHash, spec.Storage); n {
 	if t, _, err := tm.client.AddTorrentSpec(spec); err == nil {
 		t.AddTrackers(tm.trackers)
-		return tm.register(t, BytesRequested, torrentPending, ih, ch)
+		return tm.register(t, bytesRequested, torrentPending, ih, ch)
 	}
 
 	return nil
@@ -580,7 +583,7 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool, notify
 
 	cfg := torrent.NewDefaultClientConfig()
 	cfg.DisableUTP = config.DisableUTP
-	cfg.NoDHT = true //config.DisableDHT
+	cfg.NoDHT = config.DisableDHT
 	cfg.DisableTCP = config.DisableTCP
 	cfg.DisableIPv6 = config.DisableIPv6
 

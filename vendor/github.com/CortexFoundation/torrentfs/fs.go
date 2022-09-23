@@ -151,6 +151,7 @@ func New(config *Config, cache, compress, listen bool) (*TorrentFS, error) {
 					"root":           inst.chain().Root().Hex(),
 					"files":          inst.Congress(),
 					"active":         inst.Candidate(),
+					"nominee":        inst.Nominee(),
 					"leafs":          len(inst.chain().Blocks()),
 					"number":         monitor.currentNumber,
 					"maxMessageSize": inst.MaxMessageSize(),
@@ -762,4 +763,8 @@ func (fs *TorrentFS) NasCounter() uint64 {
 
 func (fs *TorrentFS) ScoreTabler() map[string]int {
 	return fs.scoreTable
+}
+
+func (fs *TorrentFS) Nominee() int {
+	return fs.storage().Nominee()
 }
