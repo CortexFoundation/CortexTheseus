@@ -230,9 +230,9 @@ func (t *Torrent) Run(slot int) {
 		limitPieces = t.Torrent.NumPieces()
 	}
 
-	if limitPieces <= t.maxPieces && t.status == torrentRunning {
-		return
-	}
+	//if limitPieces <= t.maxPieces && t.status == torrentRunning {
+	//	return
+	//}
 
 	//if t.fast {
 	if t.currentConns <= t.minEstablishedConns {
@@ -245,8 +245,8 @@ func (t *Torrent) Run(slot int) {
 	//		t.Torrent.SetMaxEstablishedConns(t.currentConns)
 	//	}
 	//}
-	t.status = torrentRunning
 	if limitPieces != t.maxPieces {
+		t.status = torrentRunning
 		t.maxPieces = limitPieces
 		t.download(limitPieces, slot)
 	}
@@ -278,10 +278,6 @@ func (t *Torrent) download(p, slot int) {
 
 func (t *Torrent) Running() bool {
 	return t.status == torrentRunning
-}
-
-func (t *Torrent) Finished() bool {
-	return t.bytesMissing == 0 && t.bytesRequested > 0 && t.bytesCompleted > 0
 }
 
 func (t *Torrent) Pending() bool {
