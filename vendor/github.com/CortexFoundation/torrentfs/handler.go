@@ -280,6 +280,7 @@ func (tm *TorrentManager) setTorrent(ih string, t *Torrent) {
 
 func (tm *TorrentManager) Close() error {
 	tm.client.Close()
+	tm.client.WaitAll()
 	close(tm.closeAll)
 	tm.wg.Wait()
 	if tm.fileCache != nil {
