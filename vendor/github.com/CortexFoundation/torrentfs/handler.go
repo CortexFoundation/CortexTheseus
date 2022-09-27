@@ -279,9 +279,9 @@ func (tm *TorrentManager) setTorrent(ih string, t *Torrent) {
 }
 
 func (tm *TorrentManager) Close() error {
+	tm.client.Close()
 	close(tm.closeAll)
 	tm.wg.Wait()
-	tm.dropAll()
 	if tm.fileCache != nil {
 		tm.fileCache.Reset()
 	}
@@ -289,18 +289,6 @@ func (tm *TorrentManager) Close() error {
 	tm.hotCache.Purge()
 	log.Info("Fs Download Manager Closed")
 	return nil
-}
-
-func (tm *TorrentManager) dropAll() {
-	tm.lock.Lock()
-	defer tm.lock.Unlock()
-	for _, t := range tm.torrents {
-		if t.ch != nil {
-			close(t.ch)
-		}
-	}
-
-	tm.client.Close()
 }
 
 func (tm *TorrentManager) commit(ctx context.Context, hex string, request uint64, ch chan bool) error {
@@ -878,9 +866,7 @@ func (tm *TorrentManager) pendingLoop() {
 		select {
 		case t := <-tm.pendingChan:
 			tm.pendingTorrents[t.Torrent.InfoHash().HexString()] = t
-			tm.wg.Add(1)
 			go func() {
-				defer tm.wg.Done()
 				t.start = mclock.Now()
 				select {
 				case <-t.GotInfo():
@@ -891,7 +877,6 @@ func (tm *TorrentManager) pendingLoop() {
 						}
 					}
 				case <-t.Closed():
-					return
 				}
 			}()
 		/*case <-timer.C:
