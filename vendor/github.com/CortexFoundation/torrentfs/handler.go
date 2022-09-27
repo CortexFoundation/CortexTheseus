@@ -860,13 +860,13 @@ func (tm *TorrentManager) mainLoop() {
 
 func (tm *TorrentManager) pendingLoop() {
 	defer tm.wg.Done()
-	//timer := time.NewTimer(time.Second * queryTimeInterval)
-	//defer timer.Stop()
 	for {
 		select {
 		case t := <-tm.pendingChan:
 			tm.pendingTorrents[t.Torrent.InfoHash().HexString()] = t
+			tm.wg.Add(1)
 			go func() {
+				defer tm.wg.Done()
 				t.start = mclock.Now()
 				select {
 				case <-t.GotInfo():
@@ -879,25 +879,6 @@ func (tm *TorrentManager) pendingLoop() {
 				case <-t.Closed():
 				}
 			}()
-		/*case <-timer.C:
-		for ih, t := range tm.pendingTorrents {
-			if _, ok := BadFiles[ih]; ok {
-				timer.Reset(time.Second * queryTimeInterval)
-				continue
-			}
-			if t.start == 0 {
-				t.start = mclock.Now()
-			}
-			if t.Torrent.Info() != nil {
-				if err := t.WriteTorrent(); err == nil {
-					if len(tm.activeChan) < cap(tm.activeChan) {
-						delete(tm.pendingTorrents, ih)
-						tm.activeChan <- t
-					}
-				}
-			}
-		}
-		timer.Reset(time.Second * queryTimeInterval)*/
 		case <-tm.closeAll:
 			log.Info("Pending seed loop closed")
 			return
