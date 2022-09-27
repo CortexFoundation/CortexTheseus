@@ -851,37 +851,19 @@ func (tm *TorrentManager) mainLoop() {
 		select {
 		case msg := <-tm.taskChan:
 			meta := msg.(types.FlowControlMeta)
-			//if _, ok := BadFiles[meta.InfoHash.HexString()]; ok {
-			//	continue
-			//}
 			if IsBad(meta.InfoHash) {
 				continue
 			}
 
 			bytes = int64(meta.BytesRequested)
 			if bytes == 0 {
-				//preloading
 				bytes = block
 			}
-
-			//tm.addInfoHash(meta.InfoHash, bytes, meta.Ch)
 
 			if t := tm.addInfoHash(meta.InfoHash, bytes, meta.Ch); t == nil {
 				log.Error("Seed [create] failed", "ih", meta.InfoHash, "request", bytes)
 				continue
-			} else {
-				//if bytes > 0 {
-				//	tm.updateInfoHash(t, bytes)
-				/*t.lock.Lock()
-				if t.currentConns <= 1 {
-					t.setCurrentConns(tm.maxEstablishedConns)
-					t.Torrent.SetMaxEstablishedConns(tm.maxEstablishedConns)
-					log.Warn("Active torrent", "ih", meta.InfoHash, "bytes", bytes)
-				}
-				t.lock.Unlock()*/
-				//}
 			}
-			//time.Sleep(time.Second)
 		case <-tm.closeAll:
 			return
 		}
@@ -890,32 +872,47 @@ func (tm *TorrentManager) mainLoop() {
 
 func (tm *TorrentManager) pendingLoop() {
 	defer tm.wg.Done()
-	timer := time.NewTimer(time.Second * queryTimeInterval)
-	defer timer.Stop()
+	//timer := time.NewTimer(time.Second * queryTimeInterval)
+	//defer timer.Stop()
 	for {
 		select {
 		case t := <-tm.pendingChan:
 			tm.pendingTorrents[t.Torrent.InfoHash().HexString()] = t
-			//timer.Reset(time.Second * queryTimeInterval)
-		case <-timer.C:
-			for ih, t := range tm.pendingTorrents {
-				if _, ok := BadFiles[ih]; ok {
-					timer.Reset(time.Second * queryTimeInterval)
-					continue
-				}
-				if t.start == 0 {
-					t.start = mclock.Now()
-				}
-				if t.Torrent.Info() != nil {
+			tm.wg.Add(1)
+			go func() {
+				defer tm.wg.Done()
+				t.start = mclock.Now()
+				select {
+				case <-t.GotInfo():
 					if err := t.WriteTorrent(); err == nil {
 						if len(tm.activeChan) < cap(tm.activeChan) {
-							delete(tm.pendingTorrents, ih)
+							delete(tm.pendingTorrents, t.Torrent.InfoHash().HexString())
 							tm.activeChan <- t
 						}
 					}
+				case <-t.Closed():
+					return
+				}
+			}()
+		/*case <-timer.C:
+		for ih, t := range tm.pendingTorrents {
+			if _, ok := BadFiles[ih]; ok {
+				timer.Reset(time.Second * queryTimeInterval)
+				continue
+			}
+			if t.start == 0 {
+				t.start = mclock.Now()
+			}
+			if t.Torrent.Info() != nil {
+				if err := t.WriteTorrent(); err == nil {
+					if len(tm.activeChan) < cap(tm.activeChan) {
+						delete(tm.pendingTorrents, ih)
+						tm.activeChan <- t
+					}
 				}
 			}
-			timer.Reset(time.Second * queryTimeInterval)
+		}
+		timer.Reset(time.Second * queryTimeInterval)*/
 		case <-tm.closeAll:
 			log.Info("Pending seed loop closed")
 			return
