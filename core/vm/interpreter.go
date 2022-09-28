@@ -18,22 +18,15 @@ package vm
 
 import (
 	"fmt"
-	"hash"
 	"math/big"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/math"
+	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/inference/synapse"
 	torrentfs "github.com/CortexFoundation/torrentfs/types"
-)
-
-var (
-// MIN_UPLOAD_BYTES     uint64 = 0
-// MAX_UPLOAD_BYTES     uint64 = 1024 * 1024 * 1024 * 1024
-// DEFAULT_UPLOAD_BYTES uint64 = 10 * 512 * 1024
-// MODEL_GAS_LIMIT      uint64 = 65536
 )
 
 // Config are the configuration options for the Interpreter
@@ -76,22 +69,14 @@ type callCtx struct {
 	contract *Contract
 }
 
-// keccakState wraps sha3.state. In addition to the usual hash methods, it also supports
-// Read to get a variable amount of data from the hash state. Read is faster than Sum
-// because it doesn't copy the internal state, but also modifies the internal state.
-type keccakState interface {
-	hash.Hash
-	Read([]byte) (int, error)
-}
-
 // CVMInterpreter represents an CVM interpreter
 type CVMInterpreter struct {
 	cvm      *CVM
 	cfg      Config
 	gasTable params.GasTable
 
-	hasher    keccakState // Keccak256 hasher instance shared across opcodes
-	hasherBuf common.Hash // Keccak256 hasher result array shared aross opcodes
+	hasher    crypto.KeccakState // Keccak256 hasher instance shared across opcodes
+	hasherBuf common.Hash        // Keccak256 hasher result array shared aross opcodes
 
 	readOnly   bool   // Whether to throw on stateful modifications
 	returnData []byte // Last CALL's return data for subsequent reuse
