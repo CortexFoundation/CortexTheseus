@@ -39,18 +39,18 @@ type Torrent struct {
 	bytesRequested      int64
 	bytesLimitation     int64
 	bytesCompleted      int64
-	bytesMissing        int64
-	status              int
-	infohash            string
-	filepath            string
-	cited               int64
-	weight              int
-	loop                int
-	maxPieces           int
-	isBoosting          bool
-	fast                bool
-	start               mclock.AbsTime
-	ch                  chan bool
+	//bytesMissing        int64
+	status     int
+	infohash   string
+	filepath   string
+	cited      int64
+	weight     int
+	loop       int
+	maxPieces  int
+	isBoosting bool
+	fast       bool
+	start      mclock.AbsTime
+	ch         chan bool
 
 	lock sync.RWMutex
 }
@@ -144,7 +144,7 @@ func (t *Torrent) Ready() bool {
 
 func (t *Torrent) WriteTorrent() error {
 	if _, err := os.Stat(filepath.Join(t.filepath, "torrent")); err == nil {
-		t.Pause()
+		//t.Pause()
 		return nil
 	}
 
@@ -152,7 +152,7 @@ func (t *Torrent) WriteTorrent() error {
 		defer f.Close()
 		log.Debug("Write seed file", "path", t.filepath)
 		if err := t.Metainfo().Write(f); err == nil {
-			t.Pause()
+			//t.Pause()
 			return f.Close()
 		} else {
 			log.Warn("Write seed error", "err", err)
