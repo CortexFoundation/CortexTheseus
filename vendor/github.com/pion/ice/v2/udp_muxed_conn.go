@@ -16,6 +16,7 @@ type udpMuxedConnParams struct {
 	AddrPool  *sync.Pool
 	Key       string
 	LocalAddr net.Addr
+	LocalIP   net.IP
 	Logger    logging.LeveledLogger
 }
 
@@ -112,9 +113,6 @@ func (c *udpMuxedConn) Close() error {
 		err = c.buffer.Close()
 		close(c.closedChan)
 	})
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.addresses = nil
 	return err
 }
 
