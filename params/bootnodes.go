@@ -59,6 +59,10 @@ func KnownDNSNetwork(genesis common.Hash, protocol string) string {
 	switch genesis {
 	case MainnetGenesisHash:
 		net = "mainnet"
+	case DoloresGenesisHash:
+		net = "dolores"
+	case BernardGenesisHash:
+		net = "bernard"
 	}
 	return dnsPrefix + protocol + "." + net + ".coinbag.org"
 }
