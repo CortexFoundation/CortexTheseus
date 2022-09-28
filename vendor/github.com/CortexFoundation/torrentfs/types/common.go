@@ -177,5 +177,4 @@ type FlowControlMeta struct {
 	InfoHash       string
 	BytesRequested uint64
 	//IsCreate       bool
-	Ch chan bool
 }
