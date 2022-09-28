@@ -785,10 +785,10 @@ func (tm *TorrentManager) pendingLoop() {
 							t.bytesRequested = t.Length()
 							t.bytesLimitation = tm.getLimitation(t.bytesRequested)
 						}
-						if len(tm.activeChan) < cap(tm.activeChan) {
-							delete(tm.pendingTorrents, t.infohash)
-							tm.activeChan <- t
-						}
+						//if len(tm.activeChan) < cap(tm.activeChan) {
+						tm.activeChan <- t
+						delete(tm.pendingTorrents, t.infohash)
+						//}
 					}
 				case <-t.Closed():
 				}
@@ -802,10 +802,10 @@ func (tm *TorrentManager) pendingLoop() {
 
 func (tm *TorrentManager) toSeed(ih string, t *Torrent) {
 	if _, err := os.Stat(filepath.Join(tm.DataDir, ih)); err == nil {
-		if len(tm.seedingChan) < cap(tm.seedingChan) {
-			delete(tm.activeTorrents, ih)
-			tm.seedingChan <- t
-		}
+		//if len(tm.seedingChan) < cap(tm.seedingChan) {
+		tm.seedingChan <- t
+		delete(tm.activeTorrents, ih)
+		//}
 	} else {
 		err := os.Symlink(
 			filepath.Join(defaultTmpPath, ih),
@@ -816,10 +816,10 @@ func (tm *TorrentManager) toSeed(ih string, t *Torrent) {
 				filepath.Join(tm.DataDir, ih),
 			)
 		} else {
-			if len(tm.seedingChan) < cap(tm.seedingChan) {
-				delete(tm.activeTorrents, ih)
-				tm.seedingChan <- t
-			}
+			//if len(tm.seedingChan) < cap(tm.seedingChan) {
+			tm.seedingChan <- t
+			delete(tm.activeTorrents, ih)
+			//}
 		}
 	}
 }
