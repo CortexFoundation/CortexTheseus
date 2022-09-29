@@ -338,7 +338,7 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta, b *
 	}
 
 	if receipt.ContractAddr == nil {
-		log.Warn("contract address is nil", "tx.Hash.String()", tx.Hash.String())
+		log.Warn("contract address is nil, waiting for indexing", "tx.Hash.String()", tx.Hash.String())
 		return errors.New("contract address is nil")
 	}
 
@@ -607,7 +607,7 @@ func (m *Monitor) syncLatestBlock() {
 						elapsed := time.Duration(mclock.Now()) - time.Duration(m.start)
 						log.Warn("Finish sync, listener will be paused", "current", m.currentNumber, "elapsed", common.PrettyDuration(elapsed), "progress", progress, "end", end, "last", m.lastNumber)
 						//return
-						timer.Reset(time.Millisecond * 1000 * 300)
+						timer.Reset(time.Millisecond * 1000 * 180)
 						end = false
 						continue
 					}
