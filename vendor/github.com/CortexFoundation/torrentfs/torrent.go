@@ -94,10 +94,7 @@ func (t *Torrent) WriteTorrent() error {
 	if f, err := os.OpenFile(filepath.Join(t.filepath, TORRENT), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0777); err == nil {
 		defer f.Close()
 		log.Debug("Write seed file", "path", t.filepath)
-		if err := t.Metainfo().Write(f); err == nil {
-			//t.Pause()
-			return f.Close()
-		} else {
+		if err := t.Metainfo().Write(f); err != nil {
 			log.Warn("Write seed error", "err", err)
 			return err
 		}
@@ -105,6 +102,8 @@ func (t *Torrent) WriteTorrent() error {
 		log.Warn("Create Path error", "err", err)
 		return err
 	}
+
+	return nil
 }
 
 //func (t *Torrent) BoostOff() {
