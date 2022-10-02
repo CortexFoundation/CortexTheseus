@@ -127,7 +127,7 @@ func NewMonitor(flag *Config, cache, compress, listen bool, fs *ChainDB, tMana *
 	torrents, _ := fs.initTorrents()
 	if m.mode != params.LAZY {
 		for k, v := range torrents {
-			if err := tMana.Search(context.Background(), k, v, nil); err != nil {
+			if err := tMana.Search(context.Background(), k, v); err != nil {
 				return nil, err
 			}
 		}
@@ -198,7 +198,7 @@ func (m *Monitor) indexInit() error {
 		if u, p, err := m.fs.SetTorrent(file.Meta.InfoHash, bytesRequested); u && err == nil {
 			if m.mode != params.LAZY {
 				log.Debug("Search in sync parse download", "ih", file.Meta.InfoHash, "request", p)
-				m.dl.Search(context.Background(), file.Meta.InfoHash, p, nil)
+				m.dl.Search(context.Background(), file.Meta.InfoHash, p)
 			}
 		}
 		if file.LeftSize == 0 {
@@ -338,7 +338,7 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta, b *
 	}
 
 	if receipt.ContractAddr == nil {
-		log.Warn("contract address is nil", "tx.Hash.String()", tx.Hash.String())
+		log.Warn("contract address is nil, waiting for indexing", "tx.Hash.String()", tx.Hash.String())
 		return errors.New("contract address is nil")
 	}
 
@@ -367,7 +367,7 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta, b *
 		if u, p, err := m.fs.SetTorrent(meta.InfoHash, 0); u && err == nil {
 			if m.mode != params.LAZY {
 				log.Debug("Search in sync parse create", "ih", meta.InfoHash, "request", p)
-				m.dl.Search(context.Background(), meta.InfoHash, p, nil)
+				m.dl.Search(context.Background(), meta.InfoHash, p)
 			}
 		}
 		//m.dl.UpdateTorrent(context.Background(), types.FlowControlMeta{
@@ -433,7 +433,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 						if u, p, err := m.fs.SetTorrent(file.Meta.InfoHash, bytesRequested); u && err == nil {
 							if m.mode != params.LAZY {
 								log.Debug("Search in sync parse download", "ih", file.Meta.InfoHash, "request", p)
-								m.dl.Search(context.Background(), file.Meta.InfoHash, p, nil)
+								m.dl.Search(context.Background(), file.Meta.InfoHash, p)
 							}
 						}
 						//m.dl.UpdateTorrent(context.Background(), types.FlowControlMeta{
@@ -607,7 +607,7 @@ func (m *Monitor) syncLatestBlock() {
 						elapsed := time.Duration(mclock.Now()) - time.Duration(m.start)
 						log.Warn("Finish sync, listener will be paused", "current", m.currentNumber, "elapsed", common.PrettyDuration(elapsed), "progress", progress, "end", end, "last", m.lastNumber)
 						//return
-						timer.Reset(time.Millisecond * 1000 * 300)
+						timer.Reset(time.Millisecond * 1000 * 180)
 						end = false
 						continue
 					}

@@ -283,17 +283,10 @@ func NewBlockChain(db ctxcdb.Database, cacheConfig *CacheConfig, chainConfig *pa
 	bc.currentSafeBlock.Store(nilBlock)
 
 	// Initialize the chain with ancient data if it isn't empty.
-	var txIndexBlock uint64
-
 	if bc.empty() {
 		rawdb.InitDatabaseFromFreezer(bc.db)
 	}
-	// If ancient database is not empty, reconstruct all missing
-	// indices in the background.
-	frozen, _ := bc.db.Ancients()
-	if frozen > 0 {
-		txIndexBlock = frozen
-	}
+
 	if err := bc.loadLastState(); err != nil {
 		return nil, err
 	}
@@ -397,15 +390,7 @@ func NewBlockChain(db ctxcdb.Database, cacheConfig *CacheConfig, chainConfig *pa
 
 	// Start future block processor.
 	bc.wg.Add(1)
-	go bc.futureBlocksLoop()
-
-	// Start tx indexer/unindexer.
-	if txLookupLimit != nil {
-		bc.txLookupLimit = *txLookupLimit
-
-		bc.wg.Add(1)
-		go bc.maintainTxIndex(txIndexBlock)
-	}
+	go bc.updateFutureBlocks()
 
 	// If periodic cache journal is required, spin it up.
 	if bc.cacheConfig.TrieCleanRejournal > 0 {
@@ -419,6 +404,13 @@ func NewBlockChain(db ctxcdb.Database, cacheConfig *CacheConfig, chainConfig *pa
 			defer bc.wg.Done()
 			triedb.SaveCachePeriodically(bc.cacheConfig.TrieCleanJournal, bc.cacheConfig.TrieCleanRejournal, bc.quit)
 		}()
+	}
+	// Start tx indexer/unindexer if required.
+	if txLookupLimit != nil {
+		bc.txLookupLimit = *txLookupLimit
+
+		bc.wg.Add(1)
+		go bc.maintainTxIndex()
 	}
 	return bc, nil
 }
@@ -1061,7 +1053,7 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 		// * If block number is large enough to be regarded as a recent block
 		// It means blocks below the ancientLimit-txlookupLimit won't be indexed.
 		//
-		// But if the `TxIndexTail` is not nil, e.g. Geth is initialized with
+		// But if the `TxIndexTail` is not nil, e.g. Cortex is initialized with
 		// an external ancient database, during the setup, blockchain will start
 		// a background routine to re-indexed all indices in [ancients - txlookupLimit, ancients)
 		// range. In this case, all tx indices of newly imported blocks should be
@@ -1197,7 +1189,7 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 		// * ancient-limit: the indices of blocks before ancient-limit are ignored
 		if tail := rawdb.ReadTxIndexTail(bc.db); tail == nil {
 			if bc.txLookupLimit == 0 || ancientLimit <= bc.txLookupLimit {
-				rawdb.WriteTxIndexTail(bc.db, 0)
+				//rawdb.WriteTxIndexTail(bc.db, 0)
 			} else {
 				rawdb.WriteTxIndexTail(bc.db, ancientLimit-bc.txLookupLimit)
 			}
@@ -2114,7 +2106,7 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 }
 
 // futureBlocksLoop processes the 'future block' queue.
-func (bc *BlockChain) futureBlocksLoop() {
+func (bc *BlockChain) updateFutureBlocks() {
 	defer bc.wg.Done()
 
 	futureTimer := time.NewTicker(5 * time.Second)
@@ -2170,6 +2162,45 @@ func (bc *BlockChain) skipBlock(err error, it *insertIterator) bool {
 	return false
 }
 
+// indexBlocks reindexes or unindexes transactions depending on user configuration
+func (bc *BlockChain) indexBlocks(tail *uint64, head uint64, done chan struct{}) {
+	defer func() { close(done) }()
+
+	// The tail flag is not existent, it means the node is just initialized
+	// and all blocks(may from ancient store) are not indexed yet.
+	if tail == nil {
+		from := uint64(0)
+		if bc.txLookupLimit != 0 && head >= bc.txLookupLimit {
+			from = head - bc.txLookupLimit + 1
+		}
+		rawdb.IndexTransactions(bc.db, from, head+1, bc.quit)
+		rawdb.WriteTxIndexTail(bc.db, from)
+		return
+	}
+	// The tail flag is existent, but the whole chain is required to be indexed.
+	if bc.txLookupLimit == 0 || head < bc.txLookupLimit {
+		if *tail > 0 {
+			// It can happen when chain is rewound to a historical point which
+			// is even lower than the indexes tail, recap the indexing target
+			// to new head to avoid reading non-existent block bodies.
+			end := *tail
+			if end > head+1 {
+				end = head + 1
+			}
+			rawdb.IndexTransactions(bc.db, 0, end, bc.quit)
+		}
+		return
+	}
+	// Update the transaction index to the new chain state
+	if head-bc.txLookupLimit+1 < *tail {
+		// Reindex a part of missing indices and rewind index tail to HEAD-limit
+		rawdb.IndexTransactions(bc.db, head-bc.txLookupLimit+1, *tail, bc.quit)
+	} else {
+		// Unindex a part of stale indices and forward index tail to HEAD-limit
+		rawdb.UnindexTransactions(bc.db, *tail, head-bc.txLookupLimit+1, bc.quit)
+	}
+}
+
 // maintainTxIndex is responsible for the construction and deletion of the
 // transaction index.
 //
@@ -2180,60 +2211,8 @@ func (bc *BlockChain) skipBlock(err error, it *insertIterator) bool {
 // The user can adjust the txlookuplimit value for each launch after fast
 // sync, Cortex will automatically construct the missing indices and delete
 // the extra indices.
-func (bc *BlockChain) maintainTxIndex(ancients uint64) {
+func (bc *BlockChain) maintainTxIndex() {
 	defer bc.wg.Done()
-
-	// Before starting the actual maintenance, we need to handle a special case,
-	// where user might init Cortex with an external ancient database. If so, we
-	// need to reindex all necessary transactions before starting to process any
-	// pruning requests.
-	if ancients > 0 {
-		var from = uint64(0)
-		if bc.txLookupLimit != 0 && ancients > bc.txLookupLimit {
-			from = ancients - bc.txLookupLimit
-		}
-		rawdb.IndexTransactions(bc.db, from, ancients, bc.quit)
-	}
-
-	// indexBlocks reindexes or unindexes transactions depending on user configuration
-	indexBlocks := func(tail *uint64, head uint64, done chan struct{}) {
-		defer func() { done <- struct{}{} }()
-
-		// If the user just upgraded Cortex to a new version which supports transaction
-		// index pruning, write the new tail and remove anything older.
-		if tail == nil {
-			if bc.txLookupLimit == 0 || head < bc.txLookupLimit {
-				// Nothing to delete, write the tail and return
-				rawdb.WriteTxIndexTail(bc.db, 0)
-			} else {
-				// Prune all stale tx indices and record the tx index tail
-				rawdb.UnindexTransactions(bc.db, 0, head-bc.txLookupLimit+1, bc.quit)
-			}
-			return
-		}
-		// If a previous indexing existed, make sure that we fill in any missing entries
-		if bc.txLookupLimit == 0 || head < bc.txLookupLimit {
-			if *tail > 0 {
-				// It can happen when chain is rewound to a historical point which
-				// is even lower than the indexes tail, recap the indexing target
-				// to new head to avoid reading non-existent block bodies.
-				end := *tail
-				if end > head+1 {
-					end = head + 1
-				}
-				rawdb.IndexTransactions(bc.db, 0, end, bc.quit)
-			}
-			return
-		}
-		// Update the transaction index to the new chain state
-		if head-bc.txLookupLimit+1 < *tail {
-			// Reindex a part of missing indices and rewind index tail to HEAD-limit
-			rawdb.IndexTransactions(bc.db, head-bc.txLookupLimit+1, *tail, bc.quit)
-		} else {
-			// Unindex a part of stale indices and forward index tail to HEAD-limit
-			rawdb.UnindexTransactions(bc.db, *tail, head-bc.txLookupLimit+1, bc.quit)
-		}
-	}
 
 	// Any reindexing done, start listening to chain events and moving the index window
 	var (
@@ -2251,7 +2230,7 @@ func (bc *BlockChain) maintainTxIndex(ancients uint64) {
 		case head := <-headCh:
 			if done == nil {
 				done = make(chan struct{})
-				go indexBlocks(rawdb.ReadTxIndexTail(bc.db), head.Block.NumberU64(), done)
+				go bc.indexBlocks(rawdb.ReadTxIndexTail(bc.db), head.Block.NumberU64(), done)
 			}
 		case <-done:
 			done = nil

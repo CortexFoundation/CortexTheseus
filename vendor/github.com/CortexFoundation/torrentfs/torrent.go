@@ -17,7 +17,7 @@
 package torrentfs
 
 import (
-	"bytes"
+	//"bytes"
 	"os"
 	"path/filepath"
 	"sync"
@@ -27,8 +27,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/anacrolix/torrent"
-	"github.com/anacrolix/torrent/metainfo"
-	"github.com/anacrolix/torrent/storage"
+	//"github.com/anacrolix/torrent/metainfo"
+	//"github.com/anacrolix/torrent/storage"
 )
 
 type Torrent struct {
@@ -39,18 +39,18 @@ type Torrent struct {
 	bytesRequested      int64
 	bytesLimitation     int64
 	bytesCompleted      int64
-	bytesMissing        int64
-	status              int
-	infohash            string
-	filepath            string
-	cited               int64
-	weight              int
-	loop                int
-	maxPieces           int
-	isBoosting          bool
-	fast                bool
-	start               mclock.AbsTime
-	ch                  chan bool
+	//bytesMissing        int64
+	status   int
+	infohash string
+	filepath string
+	//cited      int64
+	//weight     int
+	//loop       int
+	maxPieces int
+	//isBoosting bool
+	fast  bool
+	start mclock.AbsTime
+	//ch    chan bool
 
 	lock sync.RWMutex
 }
@@ -64,63 +64,6 @@ func (t *Torrent) BytesLeft() int64 {
 
 func (t *Torrent) InfoHash() string {
 	return t.infohash
-}
-
-func (t *Torrent) ReloadFile(files []string, datas [][]byte, tm *TorrentManager) {
-	if len(files) > 1 {
-		err := os.MkdirAll(filepath.Dir(filepath.Join(t.filepath, "data")), 0777) //os.ModePerm)
-		if err != nil {
-			return
-		}
-	}
-	for i, filename := range files {
-		filePath := filepath.Join(t.filepath, filename)
-		f, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0777)
-		if err != nil {
-			return
-		}
-		defer f.Close()
-		log.Debug("Write file (Boost mode)", "path", filePath)
-		if _, err := f.Write(datas[i]); err != nil {
-			log.Error("Error while write data file", "error", err)
-		}
-	}
-	mi, err := metainfo.LoadFromFile(filepath.Join(t.filepath, "torrent"))
-	if err != nil {
-		log.Error("Error while loading torrent", "Err", err)
-		return
-	}
-	spec := torrent.TorrentSpecFromMetaInfo(mi)
-	spec.Storage = storage.NewFile(t.filepath)
-	if torrent, _, err := tm.client.AddTorrentSpec(spec); err == nil {
-		t.Torrent = torrent
-	}
-}
-
-func (t *Torrent) ReloadTorrent(data []byte, tm *TorrentManager) error {
-
-	//err := os.Remove(filepath.Join(t.filepath, ".torrent.bolt.db"))
-	//if err != nil {
-	//	log.Warn("Remove path failed", "path", filepath.Join(t.filepath, ".torrent.bolt.db"), "err", err)
-	//}
-
-	buf := bytes.NewBuffer(data)
-	mi, err := metainfo.Load(buf)
-
-	if err != nil {
-		log.Error("Error while adding torrent", "Err", err)
-		return err
-	}
-	spec := torrent.TorrentSpecFromMetaInfo(mi)
-	//spec.Storage = storage.NewFile(t.filepath)
-	//spec.Trackers = nil
-	//t.Drop()
-	if torrent, _, err := tm.client.AddTorrentSpec(spec); err == nil {
-		t.Torrent = torrent
-	} else {
-		return err
-	}
-	return nil
 }
 
 func (t *Torrent) Ready() bool {
@@ -143,18 +86,15 @@ func (t *Torrent) Ready() bool {
 }
 
 func (t *Torrent) WriteTorrent() error {
-	if _, err := os.Stat(filepath.Join(t.filepath, "torrent")); err == nil {
-		t.Pause()
+	if _, err := os.Stat(filepath.Join(t.filepath, TORRENT)); err == nil {
+		//t.Pause()
 		return nil
 	}
 
-	if f, err := os.OpenFile(filepath.Join(t.filepath, "torrent"), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0777); err == nil {
+	if f, err := os.OpenFile(filepath.Join(t.filepath, TORRENT), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0777); err == nil {
 		defer f.Close()
 		log.Debug("Write seed file", "path", t.filepath)
-		if err := t.Metainfo().Write(f); err == nil {
-			t.Pause()
-			return f.Close()
-		} else {
+		if err := t.Metainfo().Write(f); err != nil {
 			log.Warn("Write seed error", "err", err)
 			return err
 		}
@@ -162,11 +102,13 @@ func (t *Torrent) WriteTorrent() error {
 		log.Warn("Create Path error", "err", err)
 		return err
 	}
+
+	return nil
 }
 
-func (t *Torrent) BoostOff() {
-	t.isBoosting = false
-}
+//func (t *Torrent) BoostOff() {
+//t.isBoosting = false
+//}
 
 func (t *Torrent) Seed() bool {
 	//t.lock.Lock()
@@ -191,9 +133,9 @@ func (t *Torrent) Seed() bool {
 
 		elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
 		if active, ok := GoodFiles[t.InfoHash()]; !ok {
-			log.Info("New active nas found", "ih", t.InfoHash(), "ok", ok, "active", active, "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "peers", t.currentConns, "status", t.status, "elapsed", common.PrettyDuration(elapsed))
+			log.Info("New active nas found", "ih", t.InfoHash(), "ok", ok, "active", active, "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "peers", t.currentConns, "status", t.status, "elapsed", common.PrettyDuration(elapsed))
 		} else {
-			log.Info("Imported new nas segment", "ih", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "cited", t.cited, "peers", t.currentConns, "status", t.status, "elapsed", common.PrettyDuration(elapsed))
+			log.Info("Imported new nas segment", "ih", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "peers", t.currentConns, "status", t.status, "elapsed", common.PrettyDuration(elapsed))
 		}
 		return true
 	}

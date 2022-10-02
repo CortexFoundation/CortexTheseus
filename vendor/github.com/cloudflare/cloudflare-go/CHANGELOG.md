@@ -1,4 +1,19 @@
-## 0.51.0 (Unreleased)
+## 0.52.0 (Unreleased)
+
+## 0.51.0 (September 28th, 2022)
+
+BREAKING CHANGES:
+
+* load_balancing: update method signatures to match experimental conventions ([#1084](https://github.com/cloudflare/cloudflare-go/issues/1084))
+
+ENHANCEMENTS:
+
+* device_posture_rule: add input fields for linux OS ([#1087](https://github.com/cloudflare/cloudflare-go/issues/1087))
+* load_balancing: support adaptive_routing and location_strategy ([#1091](https://github.com/cloudflare/cloudflare-go/issues/1091))
+
+BUG FIXES:
+
+* user-agent-blocking-rules: add missing managed_challenge validation and removed the deprecated whitelist one ([#1089](https://github.com/cloudflare/cloudflare-go/issues/1089))
 
 ## 0.50.0 (September 14, 2022)
 

@@ -292,7 +292,7 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 					if info.Size > 0 && tfs.config.Mode == params.LAZY { // if local nas is lazy, wake up
 						if progress, e := tfs.chain().GetTorrent(info.Hash); e == nil {
 							if progress >= info.Size {
-								if err := tfs.storage().Search(context.Background(), info.Hash, info.Size, nil); err != nil {
+								if err := tfs.storage().Search(context.Background(), info.Hash, info.Size); err != nil {
 									log.Error("Nas 2.0 error", "err", err)
 									return err
 								}
@@ -454,7 +454,7 @@ func (fs *TorrentFS) available(ctx context.Context, infohash string, rawSize uin
 		if errors.Is(err, ErrInactiveTorrent) {
 			if progress, e := fs.chain().GetTorrent(infohash); e == nil {
 				log.Debug("Lazy mode, restarting", "ih", infohash, "request", progress)
-				if e := fs.storage().Search(ctx, infohash, progress, nil); e == nil {
+				if e := fs.storage().Search(ctx, infohash, progress); e == nil {
 					log.Debug("Torrent wake up", "ih", infohash, "progress", progress, "err", err, "available", ret, "raw", rawSize, "err", err)
 				}
 			} else {
@@ -655,7 +655,7 @@ func (fs *TorrentFS) SeedingLocal(ctx context.Context, filePath string, isLinkMo
 	// 5. seeding
 	if err == nil || err == os.ErrExist {
 		log.Debug("SeedingLocal", "dest", linkDst, "err", err)
-		err = fs.storage().Search(context.Background(), ih.Hex(), 0, nil)
+		err = fs.storage().Search(context.Background(), ih.Hex(), 0)
 		if err == nil {
 			fs.storage().addLocalSeedFile(infoHash)
 		}
@@ -685,7 +685,7 @@ func (fs *TorrentFS) Tunnel(ctx context.Context, ih string) error {
 	} else {
 		return nil
 	}
-	if err := fs.storage().Search(ctx, ih, 1000000000, nil); err != nil {
+	if err := fs.storage().Search(ctx, ih, 1000000000); err != nil {
 		return err
 	}
 	return nil
@@ -702,7 +702,7 @@ func (fs *TorrentFS) Download(ctx context.Context, ih string, request uint64) er
 
 	if update {
 		log.Debug("Search in fs download", "ih", ih, "request", p)
-		if err := fs.storage().Search(ctx, ih, p, nil); err != nil {
+		if err := fs.storage().Search(ctx, ih, p); err != nil {
 			return err
 		}
 	}
