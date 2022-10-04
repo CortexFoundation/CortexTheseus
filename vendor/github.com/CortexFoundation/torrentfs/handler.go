@@ -515,15 +515,15 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool, notify
 	cfg.Seed = true
 	//cfg.Debug=true
 
-	cfg.EstablishedConnsPerTorrent = 8 //len(config.DefaultTrackers)
-	cfg.HalfOpenConnsPerTorrent = 4
+	cfg.EstablishedConnsPerTorrent = 2 //len(config.DefaultTrackers)
+	cfg.HalfOpenConnsPerTorrent = cfg.EstablishedConnsPerTorrent / 2
 
 	cfg.ListenPort = config.Port
 	if config.Quiet {
 		//cfg.Logger = xlog.Discard
 	}
 	//cfg.Debug = true
-	//cfg.DropDuplicatePeerIds = true
+	cfg.DropDuplicatePeerIds = true
 	cfg.Bep20 = "-COLA01-"
 	//id := strconv.FormatUint(fsid, 16)[0:14]
 	//cfg.PeerID = "cortex" + id
@@ -730,6 +730,8 @@ func (tm *TorrentManager) mainLoop() {
 
 func (tm *TorrentManager) pendingLoop() {
 	defer tm.wg.Done()
+	//timer := time.NewTimer(time.Second * 60)
+	//defer timer.Stop()
 	for {
 		select {
 		case t := <-tm.pendingChan:
@@ -737,9 +739,16 @@ func (tm *TorrentManager) pendingLoop() {
 			tm.wg.Add(1)
 			go func() {
 				defer tm.wg.Done()
-				t.start = mclock.Now()
+				if t.start == 0 {
+					t.start = mclock.Now()
+				}
+				log.Debug("Seeding ... ...", "ih", t.infohash)
+				ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+				defer cancel()
 				select {
 				case <-t.GotInfo():
+					elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
+					log.Info("Imported new seed", "ih", t.infohash, "elapsed", common.PrettyDuration(elapsed))
 					if err := t.WriteTorrent(); err == nil {
 						if IsGood(t.infohash) || tm.mode == params.FULL {
 							t.bytesRequested = t.Length()
@@ -749,10 +758,21 @@ func (tm *TorrentManager) pendingLoop() {
 						tm.pendingRemoveChan <- t.infohash
 					}
 				case <-t.Closed():
+				case <-ctx.Done():
+					elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
+					log.Debug("Pending seed", "ih", t.infohash, "elapsed", common.PrettyDuration(elapsed))
+					t.AddTrackers([][]string{params.GlobalTrackers})
+					tm.pendingChan <- t
 				}
 			}()
 		case i := <-tm.pendingRemoveChan:
 			delete(tm.pendingTorrents, i)
+		//case <-timer.C:
+		//	for ih, t := range tm.pendingTorrents {
+		//		elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
+		//		log.Info("Pending seed", "ih", ih, "elapsed", common.PrettyDuration(elapsed))
+		//	}
+		//	timer.Reset(time.Second * 60)
 		case <-tm.closeAll:
 			log.Info("Pending seed loop closed")
 			return
