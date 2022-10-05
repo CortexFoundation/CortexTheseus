@@ -732,6 +732,8 @@ func (tm *TorrentManager) pendingLoop() {
 	defer tm.wg.Done()
 	//timer := time.NewTimer(time.Second * 60)
 	//defer timer.Stop()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	for {
 		select {
 		case t := <-tm.pendingChan:
@@ -757,7 +759,7 @@ func (tm *TorrentManager) pendingLoop() {
 						tm.pendingRemoveChan <- t.infohash
 					}
 				case <-t.Closed():
-					//case <-ctx.Done():
+				case <-ctx.Done():
 					//elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
 					//log.Debug("Pending seed", "ih", t.infohash, "elapsed", common.PrettyDuration(elapsed))
 					//t.AddTrackers([][]string{params.GlobalTrackers})

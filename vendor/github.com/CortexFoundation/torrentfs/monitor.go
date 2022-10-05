@@ -548,15 +548,17 @@ func (m *Monitor) run() error {
 	}
 	//m.wg.Add(1)
 	//go m.taskLoop()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	m.wg.Add(1)
-	go m.listenLatestBlock()
+	go m.listenLatestBlock(ctx)
 	m.wg.Add(1)
-	go m.syncLatestBlock()
+	go m.syncLatestBlock(ctx)
 
 	return nil
 }
 
-func (m *Monitor) listenLatestBlock() {
+func (m *Monitor) listenLatestBlock(ctx context.Context) {
 	defer m.wg.Done()
 	timer := time.NewTimer(time.Second * queryTimeInterval)
 	defer timer.Stop()
@@ -572,11 +574,12 @@ func (m *Monitor) listenLatestBlock() {
 		case <-m.exitCh:
 			log.Debug("Block listener stopped")
 			return
+		case <-ctx.Done():
 		}
 	}
 }
 
-func (m *Monitor) syncLatestBlock() {
+func (m *Monitor) syncLatestBlock(ctx context.Context) {
 	defer m.wg.Done()
 	timer := time.NewTimer(time.Second * queryTimeInterval)
 	defer timer.Stop()
@@ -623,6 +626,7 @@ func (m *Monitor) syncLatestBlock() {
 		case <-m.exitCh:
 			log.Debug("Block syncer stopped")
 			return
+		case <-ctx.Done():
 		}
 	}
 }
