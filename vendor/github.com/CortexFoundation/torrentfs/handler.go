@@ -515,15 +515,15 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool, notify
 	cfg.Seed = true
 	//cfg.Debug=true
 
-	cfg.EstablishedConnsPerTorrent = 8 //len(config.DefaultTrackers)
-	cfg.HalfOpenConnsPerTorrent = 4
+	cfg.EstablishedConnsPerTorrent = 2 //len(config.DefaultTrackers)
+	cfg.HalfOpenConnsPerTorrent = cfg.EstablishedConnsPerTorrent / 2
 
 	cfg.ListenPort = config.Port
 	if config.Quiet {
 		//cfg.Logger = xlog.Discard
 	}
 	//cfg.Debug = true
-	//cfg.DropDuplicatePeerIds = true
+	cfg.DropDuplicatePeerIds = true
 	cfg.Bep20 = "-COLA01-"
 	//id := strconv.FormatUint(fsid, 16)[0:14]
 	//cfg.PeerID = "cortex" + id
@@ -730,6 +730,8 @@ func (tm *TorrentManager) mainLoop() {
 
 func (tm *TorrentManager) pendingLoop() {
 	defer tm.wg.Done()
+	//timer := time.NewTimer(time.Second * 60)
+	//defer timer.Stop()
 	for {
 		select {
 		case t := <-tm.pendingChan:
@@ -737,9 +739,16 @@ func (tm *TorrentManager) pendingLoop() {
 			tm.wg.Add(1)
 			go func() {
 				defer tm.wg.Done()
-				t.start = mclock.Now()
+				if t.start == 0 {
+					t.start = mclock.Now()
+				}
+				log.Debug("Seeding ... ...", "ih", t.infohash)
+				ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+				defer cancel()
 				select {
 				case <-t.GotInfo():
+					elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
+					log.Info("Imported new seed", "ih", t.infohash, "elapsed", common.PrettyDuration(elapsed))
 					if err := t.WriteTorrent(); err == nil {
 						if IsGood(t.infohash) || tm.mode == params.FULL {
 							t.bytesRequested = t.Length()
@@ -749,10 +758,21 @@ func (tm *TorrentManager) pendingLoop() {
 						tm.pendingRemoveChan <- t.infohash
 					}
 				case <-t.Closed():
+				case <-ctx.Done():
+					elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
+					log.Debug("Pending seed", "ih", t.infohash, "elapsed", common.PrettyDuration(elapsed))
+					t.AddTrackers([][]string{params.GlobalTrackers})
+					tm.pendingChan <- t
 				}
 			}()
 		case i := <-tm.pendingRemoveChan:
 			delete(tm.pendingTorrents, i)
+		//case <-timer.C:
+		//	for ih, t := range tm.pendingTorrents {
+		//		elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
+		//		log.Info("Pending seed", "ih", ih, "elapsed", common.PrettyDuration(elapsed))
+		//	}
+		//	timer.Reset(time.Second * 60)
 		case <-tm.closeAll:
 			log.Info("Pending seed loop closed")
 			return
@@ -779,8 +799,7 @@ func (tm *TorrentManager) activeLoop() {
 	defer tm.wg.Done()
 	timer := time.NewTimer(time.Second * queryTimeInterval)
 	defer timer.Stop()
-	var total_size, current_size, log_counter, counter, actual_counter uint64 = 0, 0, 1, 1, 1
-	var active_running int
+	var total_size, current_size, log_counter, counter uint64 = 0, 0, 1, 1
 	for {
 		select {
 		case t := <-tm.activeChan:
@@ -793,7 +812,8 @@ func (tm *TorrentManager) activeLoop() {
 				if t.BytesCompleted() > t.bytesCompleted {
 					total_size += uint64(t.BytesCompleted() - t.bytesCompleted)
 					current_size += uint64(t.BytesCompleted() - t.bytesCompleted)
-					actual_counter++
+
+					t.bytesCompleted = t.BytesCompleted()
 				}
 
 				if t.BytesMissing() == 0 {
@@ -801,12 +821,10 @@ func (tm *TorrentManager) activeLoop() {
 					continue
 				}
 
-				t.bytesCompleted = t.BytesCompleted()
 				if log_counter%60 == 0 {
 					elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
 					log.Info(ProgressBar(t.bytesCompleted, t.Torrent.Length(), ""), "ih", ih, "complete", common.StorageSize(t.bytesCompleted), "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.Torrent.Length()), "want", t.maxPieces, "max", t.Torrent.NumPieces(), "speed", common.StorageSize(float64(t.bytesCompleted*1000*1000*1000)/float64(elapsed)).String()+"/s", "elapsed", common.PrettyDuration(elapsed))
 				}
-				active_running++
 
 				if t.bytesCompleted < t.bytesLimitation { //&& !t.isBoosting {
 					t.lock.Lock()
@@ -816,11 +834,10 @@ func (tm *TorrentManager) activeLoop() {
 			}
 
 			if counter >= 2*loops {
-				log.Info("Fs status", "pending", len(tm.pendingTorrents), "downloading", active_running, "seeding", len(tm.seedingTorrents), "size", common.StorageSize(total_size), "speed", common.StorageSize(total_size/actual_counter*queryTimeInterval).String()+"/s", "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s", "metrics", common.PrettyDuration(tm.Updates), "hot", tm.hotCache.Len())
+				log.Info("Fs status", "pending", len(tm.pendingTorrents), "downloading", len(tm.activeTorrents), "seeding", len(tm.seedingTorrents), "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*queryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*queryTimeInterval).String()+"/s", "metrics", common.PrettyDuration(tm.Updates), "hot", tm.hotCache.Len())
 				counter = 1
 				current_size = 0
 			}
-			active_running = 0
 			timer.Reset(time.Second * queryTimeInterval)
 		case <-tm.closeAll:
 			log.Info("Active seed loop closed")

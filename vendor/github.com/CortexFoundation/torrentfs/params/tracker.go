@@ -20,6 +20,11 @@ var (
 		"udp://tracker.cortexlabs.ai:5008",
 		//"http://tracker.cortexlabs.ai:5008/announce",
 		//"http://tracker.openbittorrent.com:80/announce",
+		//"udp://tracker.openbittorrent.com:6969/announce",
+		//"udp://tracker.opentrackr.org:1337/announce",
+	}
+
+	GlobalTrackers = []string{
 		"udp://tracker.openbittorrent.com:6969/announce",
 		"udp://tracker.opentrackr.org:1337/announce",
 	}
