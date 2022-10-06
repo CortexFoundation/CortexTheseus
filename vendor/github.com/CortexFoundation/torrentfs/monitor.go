@@ -513,14 +513,14 @@ func (m *Monitor) Start() error {
 	m.wg.Add(1)
 	go func() {
 		defer m.wg.Done()
-		if err := m.startWork(); err != nil {
+		if err := m.run(); err != nil {
 			log.Error("Fs monitor start failed", "err", err)
 		}
 	}()
 	return nil
 }
 
-func (m *Monitor) startWork() error {
+func (m *Monitor) run() error {
 	var ipcpath string
 	if runtime.GOOS != "windows" && m.config.IpcPath != "" {
 		ipcpath = m.config.IpcPath

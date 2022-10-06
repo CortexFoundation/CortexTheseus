@@ -732,6 +732,8 @@ func (tm *TorrentManager) pendingLoop() {
 	defer tm.wg.Done()
 	//timer := time.NewTimer(time.Second * 60)
 	//defer timer.Stop()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	for {
 		select {
 		case t := <-tm.pendingChan:
@@ -743,8 +745,7 @@ func (tm *TorrentManager) pendingLoop() {
 					t.start = mclock.Now()
 				}
 				log.Debug("Seeding ... ...", "ih", t.infohash)
-				ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
-				defer cancel()
+				//ctx, _ := context.WithTimeout(context.Background(), 300*time.Second)
 				select {
 				case <-t.GotInfo():
 					elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
@@ -759,10 +760,10 @@ func (tm *TorrentManager) pendingLoop() {
 					}
 				case <-t.Closed():
 				case <-ctx.Done():
-					elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
-					log.Debug("Pending seed", "ih", t.infohash, "elapsed", common.PrettyDuration(elapsed))
-					t.AddTrackers([][]string{params.GlobalTrackers})
-					tm.pendingChan <- t
+					//elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
+					//log.Debug("Pending seed", "ih", t.infohash, "elapsed", common.PrettyDuration(elapsed))
+					//t.AddTrackers([][]string{params.GlobalTrackers})
+					//tm.pendingChan <- t
 				}
 			}()
 		case i := <-tm.pendingRemoveChan:
