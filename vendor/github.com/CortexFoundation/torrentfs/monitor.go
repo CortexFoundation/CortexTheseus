@@ -548,8 +548,8 @@ func (m *Monitor) run() error {
 	}
 	//m.wg.Add(1)
 	//go m.taskLoop()
-	m.wg.Add(1)
-	go m.listenLatestBlock()
+	//m.wg.Add(1)
+	//go m.listenLatestBlock()
 	m.wg.Add(1)
 	go m.syncLatestBlock()
 
@@ -580,11 +580,11 @@ func (m *Monitor) syncLatestBlock() {
 	defer m.wg.Done()
 	timer := time.NewTimer(time.Second * queryTimeInterval)
 	defer timer.Stop()
-	progress, counter := uint64(0), 0
-	end := false
+	progress, counter, end := uint64(0), 0, false
 	for {
 		select {
 		case <-timer.C:
+			//m.currentBlock()
 			progress = m.syncLastBlock()
 			// Avoid sync in full mode, fresh interval may be less.
 			if progress >= delay {
@@ -658,7 +658,11 @@ func (m *Monitor) skip(i uint64) bool {
 }
 
 func (m *Monitor) syncLastBlock() uint64 {
-	currentNumber := atomic.LoadUint64(&(m.currentNumber)) //m.currentNumber
+	//currentNumber := atomic.LoadUint64(&(m.currentNumber))
+	currentNumber, err := m.currentBlock()
+	if err != nil {
+		return 0
+	}
 
 	if currentNumber < m.lastNumber {
 		log.Warn("Fs sync rollback", "current", currentNumber, "last", m.lastNumber, "offset", m.lastNumber-currentNumber)
