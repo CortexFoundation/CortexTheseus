@@ -34,7 +34,7 @@ type Config struct {
 	// Debug enabled debugging Interpreter options
 	Debug bool
 	// Tracer is the op code logger
-	Tracer Tracer
+	Tracer CVMLogger
 	// NoRecursion disabled Interpreter call, callcode,
 	// delegate call and create.
 	//NoRecursion bool
@@ -61,12 +61,12 @@ type ConfigAux struct {
 	InferURI string
 }
 
-// callCtx contains the things that are per-call, such as stack and memory,
+// ScopeContext contains the things that are per-call, such as stack and memory,
 // but not transients like pc and gas
-type callCtx struct {
-	memory   *Memory
-	stack    *Stack
-	contract *Contract
+type ScopeContext struct {
+	Memory   *Memory
+	Stack    *Stack
+	Contract *Contract
 }
 
 // CVMInterpreter represents an CVM interpreter
@@ -315,10 +315,10 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		op          OpCode        // current opcode
 		mem         = NewMemory() // bound memory
 		stack       = newstack()  // local stack
-		callContext = &callCtx{
-			memory:   mem,
-			stack:    stack,
-			contract: contract,
+		callContext = &ScopeContext{
+			Memory:   mem,
+			Stack:    stack,
+			Contract: contract,
 		}
 		// For optimisation reason we're using uint64 as the program counter.
 		// It's theoretically possible to go above 2^64. The YP defines the PC
@@ -344,9 +344,9 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		defer func() {
 			if err != nil {
 				if !logged {
-					in.cfg.Tracer.CaptureState(in.cvm, pcCopy, op, gasCopy, cost, mem, stack, in.returnData, contract, in.cvm.depth, err)
+					in.cfg.Tracer.CaptureState(pcCopy, op, gasCopy, cost, callContext, in.returnData, in.cvm.depth, err)
 				} else {
-					in.cfg.Tracer.CaptureFault(in.cvm, pcCopy, op, gasCopy, cost, mem, stack, contract, in.cvm.depth, err)
+					in.cfg.Tracer.CaptureFault(pcCopy, op, gasCopy, cost, callContext, in.cvm.depth, err)
 				}
 			}
 		}()
@@ -436,7 +436,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 
 		if in.cfg.Debug {
-			in.cfg.Tracer.CaptureState(in.cvm, pc, op, gasCopy, cost, mem, stack, in.returnData, contract, in.cvm.depth, err)
+			in.cfg.Tracer.CaptureState(pc, op, gasCopy, cost, callContext, in.returnData, in.cvm.depth, err)
 			logged = true
 		}
 

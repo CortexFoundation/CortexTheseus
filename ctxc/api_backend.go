@@ -33,6 +33,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/gasprice"
+	"github.com/CortexFoundation/CortexTheseus/ctxc/tracers"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/params"
@@ -345,4 +346,12 @@ func (b *CortexAPIBackend) Engine() consensus.Engine {
 
 func (b *CortexAPIBackend) CurrentHeader() *types.Header {
 	return b.ctxc.blockchain.CurrentHeader()
+}
+
+func (b *CortexAPIBackend) StateAtBlock(ctx context.Context, block *types.Block, reexec uint64, base *state.StateDB, readOnly bool, preferDisk bool) (*state.StateDB, tracers.StateReleaseFunc, error) {
+	return b.ctxc.StateAtBlock(block, reexec, base, readOnly, preferDisk)
+}
+
+func (b *CortexAPIBackend) StateAtTransaction(ctx context.Context, block *types.Block, txIndex int, reexec uint64) (core.Message, vm.BlockContext, *state.StateDB, tracers.StateReleaseFunc, error) {
+	return b.ctxc.stateAtTransaction(block, txIndex, reexec)
 }

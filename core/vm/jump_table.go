@@ -23,7 +23,7 @@ import (
 )
 
 type (
-	executionFunc       func(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error)
+	executionFunc       func(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error)
 	gasFunc             func(params.GasTable, *CVM, *Contract, *Stack, *Memory, uint64) (uint64, error) // last parameter is the requested memory size as a uint64
 	stackValidationFunc func(*Stack) error
 	memorySizeFunc      func(*Stack) (size uint64, overflow bool)

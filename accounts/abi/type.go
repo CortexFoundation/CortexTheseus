@@ -23,6 +23,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 )
@@ -44,7 +46,7 @@ const (
 	FunctionTy
 )
 
-// Type is the reflection of the supported argument type
+// Type is the reflection of the supported argument type.
 type Type struct {
 	Elem *Type
 	Size int
@@ -98,7 +100,7 @@ func NewType(t string, internalType string, components []ArgumentMarshaling) (ty
 			typ.Elem = &embeddedType
 			typ.stringKind = embeddedType.stringKind + sliced
 		} else if len(intz) == 1 {
-			// is a array
+			// is an array
 			typ.T = ArrayTy
 			typ.Elem = &embeddedType
 			typ.Size, err = strconv.Atoi(intz[0])
@@ -161,22 +163,29 @@ func NewType(t string, internalType string, components []ArgumentMarshaling) (ty
 			elems      []*Type
 			names      []string
 			expression string // canonical parameter expression
+			used       = make(map[string]bool)
 		)
 		expression += "("
-		overloadedNames := make(map[string]string)
 		for idx, c := range components {
 			cType, err := NewType(c.Type, c.InternalType, c.Components)
 			if err != nil {
 				return Type{}, err
 			}
-			fieldName, err := overloadedArgName(c.Name, overloadedNames)
+			name := ToCamelCase(c.Name)
+			if name == "" {
+				return Type{}, errors.New("abi: purely anonymous or underscored field is not supported")
+			}
+			fieldName := ResolveNameConflict(name, func(s string) bool { return used[s] })
 			if err != nil {
 				return Type{}, err
 			}
-			overloadedNames[fieldName] = fieldName
+			used[fieldName] = true
+			if !isValidFieldName(fieldName) {
+				return Type{}, fmt.Errorf("field %d has invalid name", idx)
+			}
 			fields = append(fields, reflect.StructField{
 				Name: fieldName, // reflect.StructOf will panic for any exported field.
-				Type: cType.getType(),
+				Type: cType.GetType(),
 				Tag:  reflect.StructTag("json:\"" + c.Name + "\""),
 			})
 			elems = append(elems, &cType)
@@ -201,7 +210,7 @@ func NewType(t string, internalType string, components []ArgumentMarshaling) (ty
 		if internalType != "" && strings.HasPrefix(internalType, structPrefix) {
 			// Foo.Bar type definition is not allowed in golang,
 			// convert the format to FooBar
-			typ.TupleRawName = strings.Replace(internalType[len(structPrefix):], ".", "", -1)
+			typ.TupleRawName = strings.ReplaceAll(internalType[len(structPrefix):], ".", "")
 		}
 
 	case "function":
@@ -214,7 +223,8 @@ func NewType(t string, internalType string, components []ArgumentMarshaling) (ty
 	return
 }
 
-func (t Type) getType() reflect.Type {
+// GetType returns the reflection type of the ABI type.
+func (t Type) GetType() reflect.Type {
 	switch t.T {
 	case IntTy:
 		return reflectIntType(false, t.Size)
@@ -225,9 +235,9 @@ func (t Type) getType() reflect.Type {
 	case StringTy:
 		return reflect.TypeOf("")
 	case SliceTy:
-		return reflect.SliceOf(t.Elem.getType())
+		return reflect.SliceOf(t.Elem.GetType())
 	case ArrayTy:
-		return reflect.ArrayOf(t.Size, t.Elem.getType())
+		return reflect.ArrayOf(t.Size, t.Elem.GetType())
 	case TupleTy:
 		return t.TupleType
 	case AddressTy:
@@ -249,21 +259,7 @@ func (t Type) getType() reflect.Type {
 	}
 }
 
-func overloadedArgName(rawName string, names map[string]string) (string, error) {
-	fieldName := ToCamelCase(rawName)
-	if fieldName == "" {
-		return "", errors.New("abi: purely anonymous or underscored field is not supported")
-	}
-	// Handle overloaded fieldNames
-	_, ok := names[fieldName]
-	for idx := 0; ok; idx++ {
-		fieldName = fmt.Sprintf("%s%d", ToCamelCase(rawName), idx)
-		_, ok = names[fieldName]
-	}
-	return fieldName, nil
-}
-
-// String implements Stringer
+// String implements Stringer.
 func (t Type) String() (out string) {
 	return t.stringKind
 }
@@ -345,7 +341,7 @@ func (t Type) pack(v reflect.Value) ([]byte, error) {
 		return append(ret, tail...), nil
 
 	default:
-		return packElement(t, v), nil
+		return packElement(t, v)
 	}
 }
 
@@ -397,4 +393,31 @@ func getTypeSize(t Type) int {
 		return total
 	}
 	return 32
+}
+
+// isLetter reports whether a given 'rune' is classified as a Letter.
+// This method is copied from reflect/type.go
+func isLetter(ch rune) bool {
+	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_' || ch >= utf8.RuneSelf && unicode.IsLetter(ch)
+}
+
+// isValidFieldName checks if a string is a valid (struct) field name or not.
+//
+// According to the language spec, a field name should be an identifier.
+//
+// identifier = letter { letter | unicode_digit } .
+// letter = unicode_letter | "_" .
+// This method is copied from reflect/type.go
+func isValidFieldName(fieldName string) bool {
+	for i, c := range fieldName {
+		if i == 0 && !isLetter(c) {
+			return false
+		}
+
+		if !(isLetter(c) || unicode.IsDigit(c)) {
+			return false
+		}
+	}
+
+	return len(fieldName) > 0
 }

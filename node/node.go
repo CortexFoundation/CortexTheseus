@@ -263,6 +263,19 @@ func (n *Node) Start() error {
 	return nil
 }
 
+// RegisterAPIs registers the APIs a service provides on the node.
+func (n *Node) RegisterAPIs(apis []rpc.API) {
+	n.lock.Lock()
+	defer n.lock.Unlock()
+	log.Warn("Register api", "api", apis)
+
+	if n.state != initializingState {
+		panic("can't register APIs on running/stopped node")
+	}
+	n.rpcAPIs = append(n.rpcAPIs, apis...)
+	log.Warn("Register api end", "api", apis, "n.rpcAPIs", n.rpcAPIs)
+}
+
 // Config returns the configuration of node.
 func (n *Node) Config() *Config {
 	return n.config
