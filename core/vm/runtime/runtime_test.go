@@ -20,7 +20,6 @@ import (
 	"math/big"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/accounts/abi"
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -316,26 +315,6 @@ func TestBlockhash(t *testing.T) {
 	if exp, got := 255, chain.counter; exp != got {
 		t.Errorf("suboptimal; too much chain iteration, expected %d, got %d", exp, got)
 	}
-}
-
-type stepCounter struct {
-	inner *vm.JSONLogger
-	steps int
-}
-
-func (s *stepCounter) CaptureStart(from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) {
-}
-
-func (s *stepCounter) CaptureState(env *vm.CVM, pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, rData []byte, depth int, err error) {
-	s.steps++
-	// Enable this for more output
-	//s.inner.CaptureState(env, pc, op, gas, cost, memory, stack, rStack, contract, depth, err)
-}
-
-func (s *stepCounter) CaptureFault(env *vm.CVM, pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, depth int, err error) {
-}
-
-func (s *stepCounter) CaptureEnd(output []byte, gasUsed uint64, t time.Duration, err error) {
 }
 
 // benchmarkNonModifyingCode benchmarks code, but if the code modifies the
