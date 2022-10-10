@@ -24,6 +24,32 @@ import (
 	"strings"
 )
 
+// ConvertType converts an interface of a runtime type into a interface of the
+// given type, e.g. turn this code:
+//
+//	var fields []reflect.StructField
+//
+//	fields = append(fields, reflect.StructField{
+//			Name: "X",
+//			Type: reflect.TypeOf(new(big.Int)),
+//			Tag:  reflect.StructTag("json:\"" + "x" + "\""),
+//	}
+//
+// into:
+//
+//	type TupleT struct { X *big.Int }
+func ConvertType(in interface{}, proto interface{}) interface{} {
+	protoType := reflect.TypeOf(proto)
+	if reflect.TypeOf(in).ConvertibleTo(protoType) {
+		return reflect.ValueOf(in).Convert(protoType).Interface()
+	}
+	// Use set as a last ditch effort
+	if err := set(reflect.ValueOf(proto), reflect.ValueOf(in)); err != nil {
+		panic(err)
+	}
+	return proto
+}
+
 // indirect recursively dereferences the value until it either gets the value
 // or finds a big.Int
 func indirect(v reflect.Value) reflect.Value {
@@ -61,7 +87,7 @@ func reflectIntType(unsigned bool, size int) reflect.Type {
 	return reflect.TypeOf(&big.Int{})
 }
 
-// mustArrayToBytesSlice creates a new byte slice with the exact same size as value
+// mustArrayToByteSlice creates a new byte slice with the exact same size as value
 // and copies the bytes in value to the new slice.
 func mustArrayToByteSlice(value reflect.Value) reflect.Value {
 	slice := reflect.MakeSlice(reflect.TypeOf([]byte{}), value.Len(), value.Len())
@@ -100,15 +126,8 @@ func set(dst, src reflect.Value) error {
 func setSlice(dst, src reflect.Value) error {
 	slice := reflect.MakeSlice(dst.Type(), src.Len(), src.Len())
 	for i := 0; i < src.Len(); i++ {
-		if src.Index(i).Kind() == reflect.Struct {
-			if err := set(slice.Index(i), src.Index(i)); err != nil {
-				return err
-			}
-		} else {
-			// e.g. [][32]uint8 to []common.Hash
-			if err := set(slice.Index(i), src.Index(i)); err != nil {
-				return err
-			}
+		if err := set(slice.Index(i), src.Index(i)); err != nil {
+			return err
 		}
 	}
 	if dst.CanSet() {
@@ -119,6 +138,9 @@ func setSlice(dst, src reflect.Value) error {
 }
 
 func setArray(dst, src reflect.Value) error {
+	if src.Kind() == reflect.Ptr {
+		return set(dst, indirect(src))
+	}
 	array := reflect.New(dst.Type()).Elem()
 	min := src.Len()
 	if src.Len() > dst.Len() {
@@ -151,14 +173,12 @@ func setStruct(dst, src reflect.Value) error {
 }
 
 // mapArgNamesToStructFields maps a slice of argument names to struct fields.
-// first round: for each Exportable field that contains a `abi:""` tag
 //
-//	and this field name exists in the given argument name list, pair them together.
+// first round: for each Exportable field that contains a `abi:""` tag and this field name
+// exists in the given argument name list, pair them together.
 //
-// second round: for each argument name that has not been already linked,
-//
-//	find what variable is expected to be mapped into, if it exists and has not been
-//	used, pair them.
+// second round: for each argument name that has not been already linked, find what
+// variable is expected to be mapped into, if it exists and has not been used, pair them.
 //
 // Note this function assumes the given value is a struct value.
 func mapArgNamesToStructFields(argNames []string, value reflect.Value) (map[string]string, error) {
@@ -205,7 +225,6 @@ func mapArgNamesToStructFields(argNames []string, value reflect.Value) (map[stri
 
 	// second round ~~~
 	for _, argName := range argNames {
-
 		structFieldName := ToCamelCase(argName)
 
 		if structFieldName == "" {

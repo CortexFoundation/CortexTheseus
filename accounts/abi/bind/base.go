@@ -192,7 +192,7 @@ func (c *BoundContract) Call(opts *CallOpts, result interface{}, method string, 
 	if err != nil {
 		return err
 	}
-	return c.abi.Unpack(result, method, output)
+	return c.abi.UnpackIntoInterface(result, method, output)
 }
 
 // Transact invokes the (paid) contract method with params as input values.
@@ -373,7 +373,7 @@ func (c *BoundContract) UnpackLog(out interface{}, event string, log types.Log) 
 		return fmt.Errorf("event signature mismatch")
 	}
 	if len(log.Data) > 0 {
-		if err := c.abi.Unpack(out, event, log.Data); err != nil {
+		if err := c.abi.UnpackIntoInterface(out, event, log.Data); err != nil {
 			return err
 		}
 	}

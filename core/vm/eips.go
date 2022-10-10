@@ -65,9 +65,9 @@ func enable1884(jt *JumpTable) {
 	}
 }
 
-func opSelfBalance(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
-	balance, _ := uint256.FromBig(interpreter.cvm.StateDB.GetBalance(callContext.contract.Address()))
-	callContext.stack.push(balance)
+func opSelfBalance(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
+	balance, _ := uint256.FromBig(interpreter.cvm.StateDB.GetBalance(callContext.Contract.Address()))
+	callContext.Stack.push(balance)
 	return nil, nil
 }
 
@@ -85,9 +85,9 @@ func enable1344(jt *JumpTable) {
 }
 
 // opChainID implements CHAINID opcode
-func opChainID(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
+func opChainID(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
 	chainId, _ := uint256.FromBig(interpreter.cvm.chainConfig.ChainID)
-	callContext.stack.push(chainId)
+	callContext.Stack.push(chainId)
 	return nil, nil
 }
 
@@ -108,7 +108,7 @@ func enable3855(jt *JumpTable) {
 }
 
 // opPush0 implements the PUSH0 opcode
-func opPush0(pc *uint64, interpreter *CVMInterpreter, callContext *callCtx) ([]byte, error) {
-	callContext.stack.push(new(uint256.Int))
+func opPush0(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
+	callContext.Stack.push(new(uint256.Int))
 	return nil, nil
 }

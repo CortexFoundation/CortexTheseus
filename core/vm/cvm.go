@@ -95,10 +95,11 @@ type BlockContext struct {
 	// Block information
 	Coinbase    common.Address // Provides information for COINBASE
 	GasLimit    uint64         // Provides information for GASLIMIT
-	BlockNumber *big.Int       // Provides information for NUMBER
-	Time        *big.Int       // Provides information for TIME
-	Difficulty  *big.Int       // Provides information for DIFFICULTY
-	Random      *common.Hash   // Provides information for RANDOM
+	Quota       uint64
+	BlockNumber *big.Int     // Provides information for NUMBER
+	Time        *big.Int     // Provides information for TIME
+	Difficulty  *big.Int     // Provides information for DIFFICULTY
+	Random      *common.Hash // Provides information for RANDOM
 }
 
 // TxContext provides the CVM with information about a transaction.
@@ -219,7 +220,7 @@ func (cvm *CVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		if !isPrecompile && cvm.chainRules.IsEIP158 && value.Sign() == 0 {
 			// Calling a non existing account, don't do anything, but ping the tracer
 			if cvm.vmConfig.Debug && cvm.depth == 0 {
-				cvm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
+				cvm.vmConfig.Tracer.CaptureStart(cvm, caller.Address(), addr, false, input, gas, value)
 				cvm.vmConfig.Tracer.CaptureEnd(ret, 0, 0, nil)
 			}
 			return nil, gas, nil, nil
@@ -230,7 +231,7 @@ func (cvm *CVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 
 	// Capture the tracer start/end events in debug mode
 	if cvm.vmConfig.Debug && cvm.depth == 0 {
-		cvm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
+		cvm.vmConfig.Tracer.CaptureStart(cvm, caller.Address(), addr, false, input, gas, value)
 		defer func(startGas uint64, startTime time.Time) { // Lazy evaluation of the parameters
 			cvm.vmConfig.Tracer.CaptureEnd(ret, startGas-gas, time.Since(startTime), err)
 		}(gas, time.Now())
@@ -456,7 +457,7 @@ func (cvm *CVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	//}
 
 	if cvm.vmConfig.Debug && cvm.depth == 0 {
-		cvm.vmConfig.Tracer.CaptureStart(caller.Address(), address, true, codeAndHash.code, gas, value)
+		cvm.vmConfig.Tracer.CaptureStart(cvm, caller.Address(), address, true, codeAndHash.code, gas, value)
 	}
 	start := time.Now()
 

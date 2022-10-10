@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"math/big"
 	"os"
 	//"runtime"
@@ -34,7 +35,9 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/internal/ctxcapi"
+	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
@@ -374,6 +377,48 @@ func (api *PrivateDebugAPI) StorageRangeAt(ctx context.Context, blockHash common
 	return storageRangeAt(st, keyStart, maxResult)
 }
 
+// computeTxEnv returns the execution environment of a certain transaction.
+func (api *PrivateDebugAPI) computeTxEnv(blockHash common.Hash, txIndex int, reexec uint64) (core.Message, vm.BlockContext, *state.StateDB, error) {
+	// Create the parent state database
+	block := api.ctxc.blockchain.GetBlockByHash(blockHash)
+	if block == nil {
+		return nil, vm.BlockContext{}, nil, fmt.Errorf("block %x not found", blockHash)
+	}
+	parent := api.ctxc.blockchain.GetBlock(block.ParentHash(), block.NumberU64()-1)
+	if parent == nil {
+		return nil, vm.BlockContext{}, nil, fmt.Errorf("parent %x not found", block.ParentHash())
+	}
+	statedb, err := api.computeStateDB(parent, reexec)
+	if err != nil {
+		return nil, vm.BlockContext{}, nil, err
+	}
+
+	if txIndex == 0 && len(block.Transactions()) == 0 {
+		return nil, vm.BlockContext{}, statedb, nil
+	}
+
+	// Recompute transactions up to the target index.
+	signer := types.MakeSigner(api.config, block.Number())
+
+	for idx, tx := range block.Transactions() {
+		// Assemble the transaction call message and return if the requested offset
+		msg, _ := tx.AsMessage(signer)
+		txContext := core.NewCVMTxContext(msg)
+		context := core.NewCVMBlockContext(block.Header(), api.ctxc.blockchain, nil)
+		if idx == txIndex {
+			return msg, context, statedb, nil
+		}
+		// Not yet the searched for transaction, execute on top of the current state
+		vmenv := vm.NewCVM(context, txContext, statedb, api.config, vm.Config{})
+		if _, _, _, _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(tx.Gas()), new(core.QuotaPool).AddQuota(math.MaxUint64)); err != nil {
+			return nil, vm.BlockContext{}, nil, fmt.Errorf("tx %x failed: %v", tx.Hash(), err)
+		}
+		// Ensure any modifications are committed to the state
+		statedb.Finalise(true)
+	}
+	return nil, vm.BlockContext{}, nil, fmt.Errorf("tx index %d out of range for block %x", txIndex, blockHash)
+}
+
 func storageRangeAt(st state.Trie, start []byte, maxResult int) (StorageRangeResult, error) {
 	it := trie.NewIterator(st.NodeIterator(start))
 	result := StorageRangeResult{Storage: storageMap{}}
@@ -478,4 +523,73 @@ func (api *PrivateDebugAPI) getModifiedAccounts(startBlock, endBlock *types.Bloc
 		dirty = append(dirty, common.BytesToAddress(key))
 	}
 	return dirty, nil
+}
+
+// attempted to be reexecuted to generate the desired state.
+func (api *PrivateDebugAPI) computeStateDB(block *types.Block, reexec uint64) (*state.StateDB, error) {
+	// If we have the state fully available, use that
+	statedb, err := api.ctxc.blockchain.StateAt(block.Root())
+	if err == nil {
+		return statedb, nil
+	}
+	// Otherwise try to reexec blocks until we find a state or reach our limit
+	origin := block.NumberU64()
+	database := state.NewDatabaseWithConfig(api.ctxc.ChainDb(), &trie.Config{Cache: 16, Preimages: true})
+
+	for i := uint64(0); i < reexec; i++ {
+		block = api.ctxc.blockchain.GetBlock(block.ParentHash(), block.NumberU64()-1)
+		if block == nil {
+			break
+		}
+		if statedb, err = state.New(block.Root(), database, nil); err == nil {
+			break
+		}
+	}
+	if err != nil {
+		switch err.(type) {
+		case *trie.MissingNodeError:
+			return nil, errors.New("required historical state unavailable")
+		default:
+			return nil, err
+		}
+	}
+	// State was available at historical point, regenerate
+	var (
+		start  = time.Now()
+		logged time.Time
+		proot  common.Hash
+	)
+	for block.NumberU64() < origin {
+		// Print progress logs if long enough time elapsed
+		if time.Since(logged) > 8*time.Second {
+			log.Info("Regenerating historical state", "block", block.NumberU64()+1, "target", origin, "elapsed", time.Since(start))
+			logged = time.Now()
+		}
+		// Retrieve the next block to regenerate and process it
+		if block = api.ctxc.blockchain.GetBlockByNumber(block.NumberU64() + 1); block == nil {
+			return nil, fmt.Errorf("block #%d not found", block.NumberU64()+1)
+		}
+		_, _, _, err := api.ctxc.blockchain.Processor().Process(block, statedb, vm.Config{})
+		if err != nil {
+			return nil, err
+		}
+		// Finalize the state so any modifications are written to the trie
+		root, err := statedb.Commit(api.ctxc.blockchain.Config().IsEIP158(block.Number()))
+		if err != nil {
+			return nil, fmt.Errorf("stateAtBlock commit failed, number %d root %v: %w",
+				block.NumberU64(), block.Root().Hex(), err)
+		}
+		statedb, err = state.New(root, database, nil)
+		if err != nil {
+			return nil, fmt.Errorf("state reset after block %d failed: %v", block.NumberU64(), err)
+		}
+		database.TrieDB().Reference(root, common.Hash{})
+		if proot != (common.Hash{}) {
+			database.TrieDB().Dereference(proot)
+		}
+		proot = root
+	}
+	nodes, imgs := database.TrieDB().Size()
+	log.Info("Historical state regenerated", "block", block.NumberU64(), "elapsed", time.Since(start), "nodes", nodes, "preimages", imgs)
+	return statedb, nil
 }

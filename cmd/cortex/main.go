@@ -39,6 +39,10 @@ import (
 	_ "github.com/CortexFoundation/statik"
 	"github.com/arsham/figurine/figurine"
 	"gopkg.in/urfave/cli.v1"
+
+	// Force-load the tracer engines to trigger registration
+	_ "github.com/CortexFoundation/CortexTheseus/ctxc/tracers/js"
+	_ "github.com/CortexFoundation/CortexTheseus/ctxc/tracers/native"
 )
 
 const (

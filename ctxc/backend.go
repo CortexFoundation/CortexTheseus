@@ -40,6 +40,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/filters"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/gasprice"
+	"github.com/CortexFoundation/CortexTheseus/ctxc/tracers"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/internal/ctxcapi"
@@ -353,6 +354,10 @@ func (s *Cortex) APIs() []rpc.API {
 			Version:   "1.0",
 			Service:   s.netRPCService,
 			Public:    true,
+		}, {
+			Namespace: "debug",
+			Version:   "1.0",
+			Service:   tracers.NewAPI(s.APIBackend),
 		},
 
 		// {

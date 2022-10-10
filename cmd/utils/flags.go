@@ -39,6 +39,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/consensus/clique"
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
 	"github.com/CortexFoundation/CortexTheseus/core"
+	//"github.com/CortexFoundation/CortexTheseus/ctxc/tracers"
 	whisper "github.com/CortexFoundation/CortexTheseus/whisper/whisperv6"
 	gopsutil "github.com/shirou/gopsutil/mem"
 	// "github.com/CortexFoundation/CortexTheseus/core/state"
@@ -1703,8 +1704,10 @@ func RegisterCortexService(stack *node.Node, cfg *ctxc.Config) {
 	var err error
 	err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 		fullNode, err := ctxc.New(ctx, cfg)
+		//go stack.RegisterAPIs(tracers.APIs(fullNode.APIBackend))
 		return fullNode, err
 	})
+
 	if err != nil {
 		Fatalf("Failed to register the Cortex service: %v", err)
 	}
