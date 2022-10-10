@@ -339,7 +339,7 @@ func (c *bigModExp) RequiredGas(input []byte) uint64 {
 	if c.eip2565 {
 		// EIP-2565 has three changes
 		// 1. Different multComplexity (inlined here)
-		// in EIP-2565 (https://eips.ethereum.org/EIPS/eip-2565):
+		// in EIP-2565 (https://eips.cortex.org/EIPS/eip-2565):
 		//
 		// def mult_complexity(x):
 		//    ceiling(x/8)^2
