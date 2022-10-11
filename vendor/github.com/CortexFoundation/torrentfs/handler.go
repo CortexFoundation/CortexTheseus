@@ -955,8 +955,8 @@ func (tm *TorrentManager) available(ih string, rawSize uint64) (bool, uint64, mc
 			//		return torrent.BytesCompleted() <= int64(rawSize), nil
 			//	}
 			//}
-			if t.start == 0 {
-				return false, uint64(t.BytesCompleted()), 0, ErrUnfinished
+			if t.Torrent.Info() == nil {
+				return false, uint64(t.BytesCompleted()), 0, ErrTorrentNotFound
 			}
 			return false, uint64(t.BytesCompleted()), mclock.Now() - t.start, ErrUnfinished
 		}

@@ -24,4 +24,6 @@ var (
 
 	//ErrUnfinished is for the file not downloaded
 	ErrUnfinished = errors.New("download not completed")
+
+	ErrTorrentNotFound = errors.New("torrent not found")
 )

@@ -150,6 +150,10 @@ func (b *CortexAPIBackend) BlockByNumberOrHash(ctx context.Context, blockNrOrHas
 	return nil, errors.New("invalid arguments; neither block nor hash specified")
 }
 
+func (b *CortexAPIBackend) PendingBlockAndReceipts() (*types.Block, types.Receipts) {
+	return b.ctxc.miner.PendingBlockAndReceipts()
+}
+
 func (b *CortexAPIBackend) StateAndHeaderByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*state.StateDB, *types.Header, error) {
 	// Pending state is only known by the miner
 	if blockNr == rpc.PendingBlockNumber {
@@ -200,7 +204,7 @@ func (b *CortexAPIBackend) GetReceipts(ctx context.Context, hash common.Hash) (t
 	return b.ctxc.blockchain.GetReceiptsByHash(hash), nil
 }
 
-func (b *CortexAPIBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*types.Log, error) {
+/*func (b *CortexAPIBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*types.Log, error) {
 	db := b.ctxc.ChainDb()
 	number := rawdb.ReadHeaderNumber(db, hash)
 	if number == nil {
@@ -211,6 +215,10 @@ func (b *CortexAPIBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*
 		return nil, fmt.Errorf("failed to get logs for block #%d (0x%s)", *number, hash.TerminalString())
 	}
 	return logs, nil
+}*/
+
+func (b *CortexAPIBackend) GetLogs(ctx context.Context, hash common.Hash, number uint64) ([][]*types.Log, error) {
+	return rawdb.ReadLogs(b.ctxc.chainDb, hash, number, b.ChainConfig()), nil
 }
 
 func (b *CortexAPIBackend) GetTd(ctx context.Context, blockHash common.Hash) *big.Int {
