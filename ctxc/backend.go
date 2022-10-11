@@ -24,7 +24,6 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -332,11 +331,6 @@ func (s *Cortex) APIs() []rpc.API {
 			Service:   NewPrivateMinerAPI(s),
 			Public:    false,
 		}, {
-			Namespace: "ctxc",
-			Version:   "1.0",
-			Service:   filters.NewPublicFilterAPI(s.APIBackend, false, 5*time.Minute),
-			Public:    true,
-		}, {
 			Namespace: "admin",
 			Version:   "1.0",
 			Service:   NewPrivateAdminAPI(s),
@@ -358,6 +352,11 @@ func (s *Cortex) APIs() []rpc.API {
 			Namespace: "debug",
 			Version:   "1.0",
 			Service:   tracers.NewAPI(s.APIBackend),
+		}, {
+			Namespace: "ctxc",
+			Version:   "1.0",
+			Service:   filters.NewFilterAPI(filters.NewFilterSystem(s.APIBackend, filters.Config{}), false),
+			Public:    true,
 		},
 
 		// {

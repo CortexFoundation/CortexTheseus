@@ -556,7 +556,7 @@ func (m *Monitor) run() error {
 	return nil
 }
 
-func (m *Monitor) listenLatestBlock() {
+/*func (m *Monitor) listenLatestBlock() {
 	defer m.wg.Done()
 	timer := time.NewTimer(time.Second * queryTimeInterval)
 	defer timer.Stop()
@@ -574,7 +574,7 @@ func (m *Monitor) listenLatestBlock() {
 			return
 		}
 	}
-}
+}*/
 
 func (m *Monitor) syncLatestBlock() {
 	defer m.wg.Done()
@@ -621,7 +621,7 @@ func (m *Monitor) syncLatestBlock() {
 			}
 			m.fs.Flush()
 		case <-m.exitCh:
-			log.Debug("Block syncer stopped")
+			log.Info("Block syncer stopped")
 			return
 		}
 	}
@@ -636,7 +636,6 @@ func (m *Monitor) currentBlock() (uint64, error) {
 		return 0, err
 	}
 	if m.currentNumber != uint64(currentNumber) {
-		//m.currentNumber = uint64(currentNumber)
 		atomic.StoreUint64(&(m.currentNumber), uint64(currentNumber))
 	}
 
