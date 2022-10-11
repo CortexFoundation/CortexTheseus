@@ -356,6 +356,7 @@ func (s *Cortex) APIs() []rpc.API {
 			Namespace: "ctxc",
 			Version:   "1.0",
 			Service:   filters.NewFilterAPI(filters.NewFilterSystem(s.APIBackend, filters.Config{}), false),
+			Public:    true,
 		},
 
 		// {
