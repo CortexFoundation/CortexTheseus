@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
 	github.com/CortexFoundation/inference v1.0.2-0.20220421072809-9c87efb8a557
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.31-0.20221010073023-f81f304f1fce
+	github.com/CortexFoundation/torrentfs v1.0.31-0.20221012205419-a44dbb132c83
 	github.com/VictoriaMetrics/fastcache v1.12.0
 	github.com/arsham/figurine v1.2.0
 	github.com/aws/aws-sdk-go-v2 v1.16.16
@@ -122,6 +122,8 @@ require (
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect
+	github.com/dgraph-io/badger/v3 v3.0.0-20220802162129-2de177900e3c // indirect
+	github.com/dgraph-io/ristretto v0.1.0 // indirect
 	github.com/dlclark/regexp2 v1.7.0 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/edsrzf/mmap-go v1.1.0 // indirect
@@ -134,6 +136,8 @@ require (
 	github.com/goccy/go-json v0.9.11 // indirect
 	github.com/gofrs/uuid v4.3.0+incompatible // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang/glog v1.0.0 // indirect
+	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/flatbuffers v22.9.29+incompatible // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
@@ -144,6 +148,7 @@ require (
 	github.com/influxdata/flux v0.184.2 // indirect
 	github.com/influxdata/influxql v1.1.1-0.20211004132434-7e7d61973256 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/klauspost/compress v1.15.11 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/lib/pq v1.10.6 // indirect
@@ -193,9 +198,12 @@ require (
 	github.com/tklauser/numcpus v0.5.0 // indirect
 	github.com/uber/jaeger-client-go v2.30.0+incompatible // indirect
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
+	github.com/ucwong/go-ttlmap v1.0.2-0.20220906034005-3632715c09cf // indirect
+	github.com/ucwong/golang-kv v1.0.10-0.20220911003714-51ffe42c65e6 // indirect
 	github.com/xlab/treeprint v1.1.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	go.etcd.io/bbolt v1.3.7-0.20220226045046-fd5535f71f48 // indirect
+	go.opencensus.io v0.23.0 // indirect
 	go.opentelemetry.io/otel v1.10.0 // indirect
 	go.opentelemetry.io/otel/trace v1.10.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect

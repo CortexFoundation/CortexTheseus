@@ -49,10 +49,12 @@ import (
 
 	//xlog "github.com/anacrolix/log"
 	"github.com/anacrolix/torrent"
+	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/anacrolix/torrent/mmap_span"
 	pp "github.com/anacrolix/torrent/peer_protocol"
 	"github.com/anacrolix/torrent/storage"
+	"github.com/ucwong/golang-kv"
 )
 
 const (
@@ -113,6 +115,7 @@ type TorrentManager struct {
 	activeChan          chan *Torrent
 	pendingChan         chan *Torrent
 	pendingRemoveChan   chan string
+	droppingChan        chan string
 	mode                string
 	boost               bool
 	id                  uint64
@@ -138,6 +141,8 @@ type TorrentManager struct {
 
 	startOnce     sync.Once
 	seedingNotify chan string
+
+	badger kv.Bucket
 }
 
 // can only call by fs.go: 'SeedingLocal()'
@@ -260,6 +265,7 @@ func (tm *TorrentManager) register(t *torrent.Torrent, requested int64, status i
 		fast:  false,
 		start: 0,
 	}
+
 	tm.lock.Lock()
 	tm.torrents[ih] = tt
 	tm.lock.Unlock()
@@ -286,7 +292,12 @@ func (tm *TorrentManager) Close() error {
 		tm.fileCache.Reset()
 	}
 
-	tm.hotCache.Purge()
+	if tm.badger != nil {
+		tm.badger.Close()
+	}
+	if tm.hotCache != nil {
+		tm.hotCache.Purge()
+	}
 	log.Info("Fs Download Manager Closed")
 	return nil
 }
@@ -437,18 +448,22 @@ func (tm *TorrentManager) addInfoHash(ih string, bytesRequested int64) *Torrent 
 		}()
 	}
 
-	tmpTorrentPath := filepath.Join(tm.TmpDataDir, ih, TORRENT)
-	seedTorrentPath := filepath.Join(tm.DataDir, ih, TORRENT)
+	var (
+		spec *torrent.TorrentSpec
+		v    []byte
+	)
 
-	var spec *torrent.TorrentSpec
+	if v = tm.badger.Get([]byte(ih)); v == nil {
+		seedTorrentPath := filepath.Join(tm.DataDir, ih, TORRENT)
+		if _, err := os.Stat(seedTorrentPath); err == nil {
+			spec = tm.loadSpec(ih, seedTorrentPath)
+		}
 
-	if _, err := os.Stat(seedTorrentPath); err == nil {
-		spec = tm.loadSpec(ih, seedTorrentPath)
-	}
-
-	if spec == nil {
-		if _, err := os.Stat(tmpTorrentPath); err == nil {
-			spec = tm.loadSpec(ih, tmpTorrentPath)
+		if spec == nil {
+			tmpTorrentPath := filepath.Join(tm.TmpDataDir, ih, TORRENT)
+			if _, err := os.Stat(tmpTorrentPath); err == nil {
+				spec = tm.loadSpec(ih, tmpTorrentPath)
+			}
 		}
 	}
 
@@ -463,8 +478,9 @@ func (tm *TorrentManager) addInfoHash(ih string, bytesRequested int64) *Torrent 
 		}
 
 		spec = &torrent.TorrentSpec{
-			InfoHash: metainfo.NewHashFromHex(ih),
-			Storage:  storage.NewFile(tmpDataPath),
+			InfoHash:  metainfo.NewHashFromHex(ih),
+			Storage:   storage.NewFile(tmpDataPath),
+			InfoBytes: v,
 		}
 	}
 
@@ -472,7 +488,15 @@ func (tm *TorrentManager) addInfoHash(ih string, bytesRequested int64) *Torrent 
 		if !n {
 			log.Warn("Try to add a dupliated torrent", "ih", ih)
 		}
+
 		t.AddTrackers(tm.trackers)
+
+		if t.Info() == nil {
+			if v := tm.badger.Get([]byte(ih)); v != nil {
+				t.SetInfoBytes(v)
+			}
+		}
+
 		return tm.register(t, bytesRequested, torrentPending, ih)
 	}
 
@@ -567,12 +591,14 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool, notify
 		activeChan:        make(chan *Torrent, torrentChanSize),
 		pendingChan:       make(chan *Torrent, torrentChanSize),
 		pendingRemoveChan: make(chan string, torrentChanSize),
+		droppingChan:      make(chan string, torrentChanSize),
 		mode:              config.Mode,
 		boost:             config.Boost,
 		id:                fsid,
 		slot:              int(fsid % bucket),
 		localSeedFiles:    make(map[string]bool),
 		seedingNotify:     notify,
+		badger:            kv.Badger(config.DataDir),
 	}
 
 	if cache {
@@ -750,6 +776,15 @@ func (tm *TorrentManager) pendingLoop() {
 				case <-t.GotInfo():
 					elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
 					log.Info("Imported new seed", "ih", t.infohash, "elapsed", common.PrettyDuration(elapsed))
+					if b, err := bencode.Marshal(t.Torrent.Info()); err == nil {
+						log.Debug("Record full torrent in history", "ih", t.infohash, "info", len(b))
+						if tm.badger.Get([]byte(t.infohash)) == nil {
+							tm.badger.Set([]byte(t.infohash), b)
+						}
+					} else {
+						log.Error("Meta info marshal failed", "ih", t.infohash, "err", err)
+					}
+
 					if err := t.WriteTorrent(); err == nil {
 						if IsGood(t.infohash) || tm.mode == params.FULL {
 							t.bytesRequested = t.Length()
@@ -824,13 +859,11 @@ func (tm *TorrentManager) activeLoop() {
 
 				if log_counter%60 == 0 {
 					elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
-					log.Info(ProgressBar(t.bytesCompleted, t.Torrent.Length(), ""), "ih", ih, "complete", common.StorageSize(t.bytesCompleted), "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.Torrent.Length()), "want", t.maxPieces, "max", t.Torrent.NumPieces(), "speed", common.StorageSize(float64(t.bytesCompleted*1000*1000*1000)/float64(elapsed)).String()+"/s", "elapsed", common.PrettyDuration(elapsed))
+					log.Debug(ProgressBar(t.bytesCompleted, t.Torrent.Length(), ""), "ih", ih, "complete", common.StorageSize(t.bytesCompleted), "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.Torrent.Length()), "want", t.maxPieces, "max", t.Torrent.NumPieces(), "speed", common.StorageSize(float64(t.bytesCompleted*1000*1000*1000)/float64(elapsed)).String()+"/s", "elapsed", common.PrettyDuration(elapsed))
 				}
 
 				if t.bytesCompleted < t.bytesLimitation { //&& !t.isBoosting {
-					t.lock.Lock()
 					t.Run(tm.slot)
-					t.lock.Unlock()
 				}
 			}
 
@@ -873,11 +906,29 @@ func (tm *TorrentManager) seedingLoop() {
 					}()
 				}
 			}
+		case ih := <-tm.droppingChan:
+			if t := tm.getTorrent(ih); t != nil {
+				if t.Ready() {
+					t.Torrent.Drop()
+					delete(tm.seedingTorrents, ih)
+					tm.lock.Lock()
+					delete(tm.torrents, ih)
+					tm.lock.Unlock()
+					log.Info("Seed has been dropped", "ih", ih)
+				}
+			} else {
+				log.Warn("Drop seed not found", "ih", ih)
+			}
 		case <-tm.closeAll:
 			log.Info("Seeding loop closed")
 			return
 		}
 	}
+}
+
+func (tm *TorrentManager) Drop(ih string) error {
+	tm.droppingChan <- ih
+	return nil
 }
 
 func (tm *TorrentManager) dropSeeding(slot int) error {

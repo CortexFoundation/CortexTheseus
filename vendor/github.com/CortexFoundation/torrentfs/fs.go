@@ -680,12 +680,14 @@ func (fs *TorrentFS) ListAllTorrents(ctx context.Context) map[string]map[string]
 }
 
 func (fs *TorrentFS) Tunnel(ctx context.Context, ih string) error {
-	if !fs.worm.Contains(ih) {
-		fs.worm.Add(ih)
-	} else {
-		return nil
-	}
 	if err := fs.storage().Search(ctx, ih, 1000000000); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (fs *TorrentFS) Drop(ih string) error {
+	if err := fs.storage().Drop(ih); err != nil {
 		return err
 	}
 	return nil
