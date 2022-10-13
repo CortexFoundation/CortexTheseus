@@ -22,7 +22,8 @@ package tools
 import (
 	// Tool imports for go:generate.
 	_ "github.com/fjl/gencodec"
-	_ "github.com/golang/protobuf/protoc-gen-go"
+	//_ "github.com/golang/protobuf/protoc-gen-go"
+	_ "google.golang.org/protobuf/cmd/protoc-gen-go"
 	_ "golang.org/x/tools/cmd/stringer"
 
 	// Tool imports for mobile build.

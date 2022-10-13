@@ -26,7 +26,6 @@ require (
 	github.com/fogleman/ease v0.0.0-20170301025033-8da417bf1776
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
 	github.com/go-stack/stack v1.8.1
-	github.com/golang/protobuf v1.5.2
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb
 	github.com/google/gofuzz v1.2.1-0.20210524182514-9eed411d8615
 	github.com/google/uuid v1.3.0
@@ -64,6 +63,7 @@ require (
 	golang.org/x/text v0.3.7
 	golang.org/x/time v0.0.0-20220922220347-f3bd1da661af
 	golang.org/x/tools v0.1.13-0.20220812184215-3f9b119300de
+	google.golang.org/protobuf v1.28.1
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
 	gopkg.in/urfave/cli.v1 v1.20.0
@@ -138,6 +138,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/glog v1.0.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/flatbuffers v22.9.29+incompatible // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
@@ -216,7 +217,6 @@ require (
 	golang.org/x/term v0.0.0-20220919170432-7a66f970e087 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/api v0.81.0 // indirect
-	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gotest.tools/v3 v3.3.0 // indirect
 )
