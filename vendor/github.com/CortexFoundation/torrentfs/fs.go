@@ -290,7 +290,7 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 				//if suc := tfs.queryCache.Contains(info.Hash); !suc {
 				//				log.Info("Nas msg received", "ih", info.Hash, "size", common.StorageSize(float64(info.Size)))
 
-				if info.Size >= 0 { // if local nas is lazy, wake up
+				if info.Size > 0 { // if local nas is lazy, wake up
 					//switch tfs.config.Mode {
 					//case params.LAZY:
 					//tfs.localCheck(context.Background(), info.Hash, info.Size)
@@ -397,7 +397,7 @@ func (tfs *TorrentFS) Start(server *p2p.Server) (err error) {
 	if tfs.config.Mode != params.LAZY {
 		for k, ok := range GoodFiles {
 			if ok {
-				if err := tfs.Download(context.Background(), k, 0); err != nil {
+				if err := tfs.Download(context.Background(), k, 1000000000); err != nil {
 					return err
 				}
 			}
