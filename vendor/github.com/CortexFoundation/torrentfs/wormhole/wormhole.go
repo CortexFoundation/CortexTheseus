@@ -19,7 +19,6 @@ package wormhole
 import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 
-	mapset "github.com/deckarep/golang-set"
 	resty "github.com/go-resty/resty/v2"
 
 	"time"
@@ -27,15 +26,9 @@ import (
 
 var (
 	client *resty.Client = resty.New().SetTimeout(time.Second * 15)
-	filter               = mapset.NewSet()
 )
 
 func Tunnel(hash string) error {
-	if !filter.Contains(hash) {
-		filter.Add(hash)
-	} else {
-		return nil
-	}
 	log.Debug("Wormhole tunnel", "hash", hash)
 	for _, worm := range Wormholes {
 		if _, err := client.R().Post(worm + hash); err != nil {

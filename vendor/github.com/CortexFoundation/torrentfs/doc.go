@@ -32,8 +32,9 @@ const (
 	queryCode  = 1
 	msgCode    = 2
 
-	peerStateCycle    = time.Second * 60
+	peerStateCycle = time.Second * 60
+
 	expirationCycle   = time.Second
-	transmissionCycle = 1 * time.Second
+	transmissionCycle = 300 * time.Millisecond
 	handshakeTimeout  = 60 * time.Second
 )

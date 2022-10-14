@@ -24,6 +24,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	//"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
@@ -286,48 +287,48 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 					return errors.New("invalid address")
 				}
 
-				if suc := tfs.queryCache.Contains(info.Hash); !suc {
-					log.Debug("Nas msg received", "ih", info.Hash, "size", common.StorageSize(float64(info.Size)))
+				//if suc := tfs.queryCache.Contains(info.Hash); !suc {
+				//				log.Info("Nas msg received", "ih", info.Hash, "size", common.StorageSize(float64(info.Size)))
 
-					if info.Size > 0 && tfs.config.Mode == params.LAZY { // if local nas is lazy, wake up
-						if progress, e := tfs.chain().GetTorrent(info.Hash); e == nil {
-							if progress >= info.Size {
-								if err := tfs.storage().Search(context.Background(), info.Hash, info.Size); err != nil {
-									log.Error("Nas 2.0 error", "err", err)
-									return err
-								}
-								// TODO
-
-								//tfs.nasCache.Add(info.Hash, uint64(0))
-								tfs.notify(info.Hash)
-							}
+				if info.Size > 0 { // if local nas is lazy, wake up
+					//switch tfs.config.Mode {
+					//case params.LAZY:
+					//tfs.localCheck(context.Background(), info.Hash, info.Size)
+					if progress, e := tfs.chain().GetTorrentProgress(info.Hash); e == nil {
+						log.Info("Nas msg received", "ih", info.Hash, "size", common.StorageSize(float64(info.Size)), "local", common.StorageSize(float64(progress)), "pid", p.id)
+						if err := tfs.storage().Search(context.Background(), info.Hash, progress); err != nil {
+							log.Error("Nas 2.0 error", "err", err)
+							return err
 						}
-						tfs.nasCounter++
-						tfs.queryCache.Add(info.Hash, info.Size)
 					}
+					//case params.FULL:
+					//if err := tfs.storage().Search(context.Background(), info.Hash, info.Size); err != nil {
+					//	log.Error("Nas 2.0 error", "err", err)
+					//	return err
+					//}
+					//case params.DEV:
+					//default:
+					//}
 
+					tfs.nasCounter++
+					tfs.queryCache.Add(info.Hash, info.Size)
+				}
+
+				/*if suc := tfs.queryCache.Contains(info.Hash); !suc {
+					log.Debug("Nas msg received", "ih", info.Hash, "size", common.StorageSize(float64(info.Size)))
 					if info.Size > 0 && tfs.config.Mode == params.DEV {
-						if ok, err := tfs.available(context.Background(), info.Hash, info.Size); ok && err == nil {
-							//tfs.nasCache.Add(info.Hash, uint64(0))
+						if ok, err := tfs.localCheck(context.Background(), info.Hash, info.Size); ok && err == nil {
 							tfs.notify(info.Hash)
 						}
 					}
 
 					if info.Size == 0 {
-						// TODO check
-						// TODO score
-						//if _, ok := tfs.scoreTable[info.Hash]; !ok {
-						//	tfs.scoreTable[info.Hash] = 1
-						//} else {
-						//	tfs.scoreTable[info.Hash]++
-						//}
 						if ok := tfs.score(info.Hash); ok {
-
-							// TODO peer seed update
 							p.seen(info.Hash)
 						}
 					}
-				}
+					tfs.queryCache.Add(info.Hash, info.Size)
+				}*/
 			}
 		case msgCode:
 			if ProtocolVersion >= 4 {
@@ -447,80 +448,82 @@ func (fs *TorrentFS) notify(infohash string) bool {
 }
 
 // Available is used to check the file status
-func (fs *TorrentFS) available(ctx context.Context, infohash string, rawSize uint64) (bool, error) {
+func (fs *TorrentFS) localCheck(ctx context.Context, infohash string, rawSize uint64) (bool, error) {
 	ret, f, cost, err := fs.storage().available(infohash, rawSize)
 
-	if fs.config.Mode == params.LAZY || fs.config.Mode == params.DEV {
-		if errors.Is(err, ErrInactiveTorrent) {
-			if progress, e := fs.chain().GetTorrent(infohash); e == nil {
-				log.Debug("Lazy mode, restarting", "ih", infohash, "request", progress)
-				if e := fs.storage().Search(ctx, infohash, progress); e == nil {
-					log.Debug("Torrent wake up", "ih", infohash, "progress", progress, "err", err, "available", ret, "raw", rawSize, "err", err)
-				}
-			} else {
-				//TODO local fs may be not matched with block chain for some unexpected reasons
-				log.Warn("Unregister file", "ih", infohash, "size", common.StorageSize(float64(rawSize)), "err", e)
-			}
-		} else if errors.Is(err, ErrUnfinished) {
+	//if fs.config.Mode == params.LAZY {
+	switch {
+	case errors.Is(err, ErrInactiveTorrent):
+		if progress, e := fs.chain().GetTorrentProgress(infohash); e == nil {
 			if suc := fs.nasCache.Contains(infohash); !suc {
-				if f == 0 {
-					var speed float64
-					if cost > 0 {
-						t := float64(cost) / (1000 * 1000 * 1000)
-						speed = float64(f) / t
-					}
-					log.Info("Nas 2.0 query", "ih", infohash, "raw", common.StorageSize(float64(rawSize)), "finish", f, "cost", common.PrettyDuration(cost), "speed", common.StorageSize(speed), "peers", len(fs.peers), "cache", fs.nasCache.Len(), "err", err)
-					//fs.nasCache.Add(infohash, rawSize)
-					fs.query(infohash, rawSize)
+				fs.wg.Add(1)
+				go func() {
+					defer fs.wg.Done()
+					fs.query(infohash, progress)
+				}()
+				log.Info("Nas 3.0, restarting", "ih", infohash, "request", common.StorageSize(float64(progress)))
+			}
+			if e := fs.storage().Search(ctx, infohash, progress); e == nil {
+				log.Debug("Torrent wake up", "ih", infohash, "progress", progress, "available", ret, "raw", rawSize, "err", err)
+			}
+		} else {
+			log.Warn("Try to read unregister file", "ih", infohash, "size", common.StorageSize(float64(rawSize)), "err", e)
+		}
+	case errors.Is(err, ErrUnfinished) || errors.Is(err, ErrTorrentNotFound):
+		if progress, e := fs.chain().GetTorrentProgress(infohash); e == nil {
+			if suc := fs.nasCache.Contains(infohash); !suc {
+				var speed float64
+				if cost > 0 {
+					t := float64(cost) / (1000 * 1000 * 1000)
+					speed = float64(f) / t
 				}
+				log.Info("Nas 3.0 query", "ih", infohash, "raw", common.StorageSize(float64(rawSize)), "finish", f, "cost", common.PrettyDuration(cost), "speed", common.StorageSize(speed), "peers", len(fs.peers), "cache", fs.nasCache.Len(), "err", err)
+				fs.wg.Add(1)
+				go func() {
+					defer fs.wg.Done()
+					fs.query(infohash, progress)
+				}()
 			}
 
 			log.Debug("Torrent sync downloading", "ih", infohash, "available", ret, "raw", rawSize, "finish", f, "err", err)
 		}
 	}
+	//}
 	return ret, err
 }
 
 func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSize uint64, subpath string) ([]byte, error) {
 	log.Debug("Get file with size", "ih", infohash, "size", rawSize, "path", subpath)
-	if ok, err := fs.available(ctx, infohash, rawSize); err != nil || !ok {
-		if fs.config.Mode == params.DEV {
-			if p, err := fs.find(infohash); err == nil && p != nil {
-				// TODO
-				log.Warn("Seed found from neighbors", "id", p.id, "ih", infohash, "size", rawSize)
-			} else {
-				log.Warn("Seed not found from neighbors", "ih", infohash, "size", rawSize, "peers", len(fs.peers))
-			}
+	//fs.wg.Add(1)
+	//go func() {
+	///	defer fs.wg.Done()
+	//if ok, err := fs.localCheck(ctx, infohash, rawSize); err != nil || !ok {
+	//	return nil, err
+	//}
+	//}()
+
+	/*if !fs.worm.Contains(infohash) {
+		timer := time.NewTicker(1 * time.Second)
+		defer timer.Stop()
+		select {
+		case <-timer.C:
+		case <-ctx.Done():
 		}
-		//log.Error("File is not available", "err", err)
+	} else {
+		fs.worm.Add(infohash)
+	}*/
+
+	if ret, _, err := fs.storage().getFile(infohash, subpath); err != nil {
+		//log.Warn("Get file failed", "ih", infohash, "size", rawSize, "path", subpath, "err", err)
+		if ok, err := fs.localCheck(ctx, infohash, rawSize); err != nil || !ok {
+			log.Debug("Get file failed", "ih", infohash, "size", rawSize, "path", subpath, "err", err)
+			return nil, err
+		}
 		return nil, err
 	} else {
-		log.Debug("File available", "ih", infohash, "size", rawSize, "path", subpath, "available", ok)
+		log.Debug("Get File directly", "ih", infohash, "size", rawSize, "path", subpath, "ret", len(ret))
+		return ret, nil
 	}
-
-	ret, progress, err := fs.storage().getFile(infohash, subpath)
-
-	if err != nil {
-		log.Warn("Not avaialble err in getFile", "err", err, "ret", ret, "ih", infohash, "progress", progress)
-		// TODO
-		if progress > 0 {
-			// TODO downloading
-		} else if progress == 0 {
-			// TODO not boot
-		}
-	} else {
-		// TODO zero means complete locally, score msg broadcast
-		//fs.nasCache.Add(infohash, uint64(0))
-
-		//if _, ok := fs.scoreTable[infohash]; !ok {
-		//	fs.scoreTable[infohash] = 1
-		//} else {
-		//	fs.scoreTable[infohash]++
-		//}
-		log.Debug("todo")
-	}
-
-	return ret, err
 }
 
 // Seeding Local File, validate folder, seeding and
@@ -695,7 +698,7 @@ func (fs *TorrentFS) Drop(ih string) error {
 
 // Download is used to download file with request
 func (fs *TorrentFS) Download(ctx context.Context, ih string, request uint64) error {
-	update, p, err := fs.chain().SetTorrent(ih, request)
+	update, p, err := fs.chain().SetTorrentProgress(ih, request)
 	if err != nil {
 		return err
 	}

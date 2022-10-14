@@ -43,7 +43,7 @@ type Torrent struct {
 	status   int
 	infohash string
 	filepath string
-	//cited      int64
+	cited    int64
 	//weight     int
 	//loop       int
 	maxPieces int

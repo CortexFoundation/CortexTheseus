@@ -195,7 +195,7 @@ func cvmServer(ctx *cli.Context) error {
 	log.Warn("fsCfg.DataDir", "fsCfg.DataDir", fsCfg.DataDir)
 	fsCfg.IpcPath = filepath.Join(ctx.GlobalString(CVMCortexDir.Name), "cortex.ipc")
 	log.Debug("Cvm Server", "fs", fsCfg, "storage", ctx.GlobalString(utils.StorageDirFlag.Name), "ipc path", fsCfg.IpcPath)
-	storagefs, fsErr := torrentfs.New(&fsCfg, true, false, true)
+	storagefs, fsErr := torrentfs.New(&fsCfg, false, false, true)
 	if fsErr != nil {
 		return errors.New("fs start failed")
 	}
