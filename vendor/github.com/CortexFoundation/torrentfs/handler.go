@@ -916,8 +916,8 @@ func (tm *TorrentManager) seedingLoop() {
 
 				//if tm.mode == params.LAZY {
 				n := tm.blockCaculate(t.Torrent.BytesCompleted())
-				if n < 15 {
-					n = 15
+				if n < 10 {
+					n = 10
 				}
 				tm.wg.Add(1)
 				go func(i string, n int64) {

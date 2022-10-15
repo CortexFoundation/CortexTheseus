@@ -397,9 +397,11 @@ func (tfs *TorrentFS) Start(server *p2p.Server) (err error) {
 	if tfs.config.Mode != params.LAZY {
 		for k, ok := range GoodFiles {
 			if ok {
-				if err := tfs.Download(context.Background(), k, 1000000000); err != nil {
+				if err := tfs.storage().Search(context.Background(), k, 0); err != nil {
 					return err
 				}
+
+				tfs.query(k, 1000000000)
 			}
 		}
 	}
