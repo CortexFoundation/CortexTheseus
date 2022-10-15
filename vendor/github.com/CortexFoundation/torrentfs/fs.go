@@ -54,8 +54,8 @@ type TorrentFS struct {
 
 	//queryChan chan Query
 
-	nasCache   *lru.Cache
-	queryCache *lru.Cache
+	nasCache *lru.Cache
+	//queryCache *lru.Cache
 	nasCounter uint64
 
 	received uint64
@@ -128,8 +128,8 @@ func New(config *Config, cache, compress, listen bool) (*TorrentFS, error) {
 		//queryChan: make(chan Query, 128),
 	}
 
-	inst.nasCache, _ = lru.New(25)
-	inst.queryCache, _ = lru.New(25)
+	inst.nasCache, _ = lru.New(1024)
+	//inst.queryCache, _ = lru.New(25)
 
 	inst.scoreTable = make(map[string]int)
 	inst.seedingNotify = _seedingNotify
@@ -311,7 +311,7 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 					//}
 
 					tfs.nasCounter++
-					tfs.queryCache.Add(info.Hash, info.Size)
+					//tfs.queryCache.Add(info.Hash, info.Size)
 				}
 
 				/*if suc := tfs.queryCache.Contains(info.Hash); !suc {
@@ -431,9 +431,9 @@ func (tfs *TorrentFS) Stop() error {
 		tfs.nasCache.Purge()
 	}
 
-	if tfs.queryCache != nil {
-		tfs.queryCache.Purge()
-	}
+	//if tfs.queryCache != nil {
+	//	tfs.queryCache.Purge()
+	//}
 	log.Info("Cortex fs engine stopped")
 	return nil
 }
