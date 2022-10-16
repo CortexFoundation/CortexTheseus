@@ -41,11 +41,11 @@ func Tunnel(hash string) error {
 	return nil
 }
 
-func BestTrackers() (ret []string, err error) {
+func BestTrackers() (ret []string) {
 	resp, err := client.R().Get(params.BestTrackerUrl)
 
 	if err != nil {
-		return nil, err
+		return
 	}
 	str := strings.Split(resp.String(), "\n\n")
 	for _, s := range str {
@@ -55,5 +55,5 @@ func BestTrackers() (ret []string, err error) {
 		}
 	}
 
-	return str, err
+	return
 }

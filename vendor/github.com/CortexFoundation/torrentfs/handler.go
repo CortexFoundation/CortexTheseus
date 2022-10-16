@@ -515,7 +515,7 @@ func (tm *TorrentManager) addInfoHash(ih string, bytesRequested int64) *Torrent 
 func (tm *TorrentManager) updateGlobalTrackers() {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
-	if global, err := wormhole.BestTrackers(); global != nil && err == nil {
+	if global := wormhole.BestTrackers(); global != nil && len(global) > 0 {
 		tm.globalTrackers = [][]string{global}
 		log.Info("Global trackers update", "size", len(global))
 	}
