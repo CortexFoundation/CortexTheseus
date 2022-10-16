@@ -166,8 +166,8 @@ func New(config *Config, cache, compress, listen bool) (*TorrentFS, error) {
 			}
 		},
 		PeerInfo: func(id enode.ID) interface{} {
-			inst.peerMu.Lock()
-			defer inst.peerMu.Unlock()
+			inst.peerMu.RLock()
+			defer inst.peerMu.RUnlock()
 			if p := inst.peers[fmt.Sprintf("%x", id[:8])]; p != nil {
 				if p.Info() != nil {
 					return map[string]interface{}{
@@ -798,4 +798,11 @@ func (fs *TorrentFS) ScoreTabler() map[string]int {
 
 func (fs *TorrentFS) Nominee() int {
 	return fs.storage().Nominee()
+}
+
+func (fs *TorrentFS) Envelopes() *lru.Cache {
+	fs.peerMu.RLock()
+	defer fs.peerMu.RUnlock()
+
+	return fs.nasCache
 }
