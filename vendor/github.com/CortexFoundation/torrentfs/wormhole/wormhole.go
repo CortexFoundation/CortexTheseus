@@ -41,7 +41,7 @@ func Tunnel(hash string) error {
 	return nil
 }
 
-func BestTrackers() ([]string, error) {
+func BestTrackers() (ret []string, err error) {
 	resp, err := client.R().Get(params.BestTrackerUrl)
 
 	if err != nil {
@@ -49,7 +49,10 @@ func BestTrackers() ([]string, error) {
 	}
 	str := strings.Split(resp.String(), "\n\n")
 	for _, s := range str {
-		log.Debug("Global best trackers", "url", s)
+		if strings.HasPrefix(s, "udp") {
+			log.Debug("Global best trackers", "url", s)
+			ret = append(ret, s)
+		}
 	}
 
 	return str, err
