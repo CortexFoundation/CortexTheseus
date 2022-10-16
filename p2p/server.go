@@ -126,7 +126,7 @@ type Config struct {
 	// Protocols should contain the protocols supported
 	// by the server. Matching protocols are launched for
 	// each peer.
-	Protocols []Protocol `toml:"-"`
+	Protocols []Protocol `toml:"-" json:"-"`
 
 	// If ListenAddr is set to a non-nil address, the server
 	// will listen for incoming connections.
@@ -357,7 +357,7 @@ func (srv *Server) RemovePeer(node *enode.Node) {
 	}
 }
 
-// AddTrustedPeer adds the given node to a reserved whitelist which allows the
+// AddTrustedPeer adds the given node to a reserved trusted list which allows the
 // node to always connect, even if the slot are full.
 func (srv *Server) AddTrustedPeer(node *enode.Node) {
 	select {
@@ -562,7 +562,6 @@ func (srv *Server) setupDiscovery() error {
 	}
 
 	addr, err := net.ResolveUDPAddr("udp", listenAddr)
-
 	if err != nil {
 		return err
 	}
@@ -576,8 +575,8 @@ func (srv *Server) setupDiscovery() error {
 		if !realaddr.IP.IsLoopback() {
 			srv.loopWG.Add(1)
 			go func() {
-				defer srv.loopWG.Done()
-				nat.Map(srv.NAT, srv.quit, "udp", realaddr.Port, realaddr.Port, "CortexFoundation discovery")
+				nat.Map(srv.NAT, srv.quit, "udp", realaddr.Port, realaddr.Port, "cortex discovery")
+				srv.loopWG.Done()
 			}()
 		}
 	}
@@ -683,8 +682,8 @@ func (srv *Server) setupListening() error {
 		if !tcp.IP.IsLoopback() && srv.NAT != nil {
 			srv.loopWG.Add(1)
 			go func() {
-				defer srv.loopWG.Done()
-				nat.Map(srv.NAT, srv.quit, "tcp", tcp.Port, tcp.Port, "CortexFoundation p2p")
+				nat.Map(srv.NAT, srv.quit, "tcp", tcp.Port, tcp.Port, "cortex p2p")
+				srv.loopWG.Done()
 			}()
 		}
 	}
@@ -916,7 +915,7 @@ func (srv *Server) checkInboundConn(remoteIP net.IP) error {
 	}
 	// Reject connections that do not match NetRestrict.
 	if srv.NetRestrict != nil && !srv.NetRestrict.Contains(remoteIP) {
-		return fmt.Errorf("not whitelisted in NetRestrict")
+		return fmt.Errorf("not in netrestrict list")
 	}
 	// Reject Internet peers that try too often.
 	now := srv.clock.Now()
