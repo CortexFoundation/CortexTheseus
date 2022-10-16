@@ -521,6 +521,13 @@ func (tm *TorrentManager) updateGlobalTrackers() {
 	}
 }
 
+func (tm *TorrentManager) GlobalTrackers() [][]string {
+	tm.lock.RLock()
+	defer tm.lock.RUnlock()
+
+	return tm.globalTrackers
+}
+
 func (tm *TorrentManager) updateInfoHash(t *Torrent, bytesRequested int64) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
