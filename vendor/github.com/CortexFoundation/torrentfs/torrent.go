@@ -43,7 +43,7 @@ type Torrent struct {
 	status   int
 	infohash string
 	filepath string
-	//cited      int64
+	cited    int64
 	//weight     int
 	//loop       int
 	maxPieces int
@@ -67,8 +67,9 @@ func (t *Torrent) InfoHash() string {
 }
 
 func (t *Torrent) Ready() bool {
-	t.lock.Lock()
-	defer t.lock.Unlock()
+	t.lock.RLock()
+	defer t.lock.RUnlock()
+
 	if _, ok := BadFiles[t.InfoHash()]; ok {
 		return false
 	}
@@ -164,8 +165,8 @@ func (t *Torrent) Paused() bool {
 }
 
 func (t *Torrent) Run(slot int) {
-	//t.lock.Lock()
-	//defer t.lock.Unlock()
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
 	limitPieces := int((t.bytesRequested*int64(t.Torrent.NumPieces()) + t.Length() - 1) / t.Length())
 	if limitPieces > t.Torrent.NumPieces() {

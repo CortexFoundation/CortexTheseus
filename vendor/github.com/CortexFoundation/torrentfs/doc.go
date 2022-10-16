@@ -22,9 +22,9 @@ import (
 
 const (
 	ProtocolName         = "nas"
-	ProtocolVersion      = uint64(3)
+	ProtocolVersion      = uint64(4)
 	NumberOfMessageCodes = 128
-	ProtocolVersionStr   = "3.0"
+	ProtocolVersionStr   = "4.0"
 
 	DefaultMaxMessageSize = uint32(1024)
 
@@ -32,8 +32,9 @@ const (
 	queryCode  = 1
 	msgCode    = 2
 
-	peerStateCycle    = time.Second * 60
+	peerStateCycle = time.Second * 60
+
 	expirationCycle   = time.Second
-	transmissionCycle = 1 * time.Second
+	transmissionCycle = 300 * time.Millisecond
 	handshakeTimeout  = 60 * time.Second
 )

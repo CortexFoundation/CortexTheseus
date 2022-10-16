@@ -722,7 +722,7 @@ func (fs *ChainDB) SkipPrint() {
 }
 
 // SetTorrent is for recording torrent latest status
-func (fs *ChainDB) SetTorrent(ih string, size uint64) (bool, uint64, error) {
+func (fs *ChainDB) SetTorrentProgress(ih string, size uint64) (bool, uint64, error) {
 	fs.lock.Lock()
 	defer fs.lock.Unlock()
 
@@ -768,7 +768,7 @@ func (fs *ChainDB) SetTorrent(ih string, size uint64) (bool, uint64, error) {
 }
 
 // GetTorrent return the torrent status by uint64, if return 0 for torrent not exist
-func (fs *ChainDB) GetTorrent(ih string) (progress uint64, err error) {
+func (fs *ChainDB) GetTorrentProgress(ih string) (progress uint64, err error) {
 	fs.lock.RLock()
 	defer fs.lock.RUnlock()
 

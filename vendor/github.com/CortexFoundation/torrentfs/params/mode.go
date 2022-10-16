@@ -21,4 +21,5 @@ const (
 	DEFAULT = "default"
 	LAZY    = "lazy"
 	DEV     = "dev"
+	AUTO    = "auto"
 )
