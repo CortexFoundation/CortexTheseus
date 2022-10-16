@@ -54,7 +54,7 @@ var DefaultConfig = Config{
 	BoostNodes:      params.TorrentBoostNodes,
 	Mode:            "default",
 	DisableUTP:      true,
-	DisableDHT:      false,
+	DisableDHT:      true,
 	DisableTCP:      false,
 	DisableIPv6:     false,
 	MaxSeedingNum:   params.LimitSeeding / 2,
