@@ -45,6 +45,7 @@ func BestTrackers() (ret []string) {
 	resp, err := client.R().Get(params.BestTrackerUrl)
 
 	if err != nil {
+		log.Warn("Global tracker lost", "err", err)
 		return
 	}
 	str := strings.Split(resp.String(), "\n\n")
