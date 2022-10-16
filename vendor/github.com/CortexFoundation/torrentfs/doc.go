@@ -22,9 +22,9 @@ import (
 
 const (
 	ProtocolName         = "nas"
-	ProtocolVersion      = uint64(3)
+	ProtocolVersion      = uint64(4)
 	NumberOfMessageCodes = 128
-	ProtocolVersionStr   = "3.0"
+	ProtocolVersionStr   = "4.0"
 
 	DefaultMaxMessageSize = uint32(1024)
 

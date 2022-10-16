@@ -23,8 +23,8 @@ import (
 	// Tool imports for go:generate.
 	_ "github.com/fjl/gencodec"
 	//_ "github.com/golang/protobuf/protoc-gen-go"
-	_ "google.golang.org/protobuf/cmd/protoc-gen-go"
 	_ "golang.org/x/tools/cmd/stringer"
+	_ "google.golang.org/protobuf/cmd/protoc-gen-go"
 
 	// Tool imports for mobile build.
 	_ "golang.org/x/mobile/cmd/gobind"

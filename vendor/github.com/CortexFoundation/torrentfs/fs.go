@@ -264,7 +264,7 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 			return errors.New("oversized message received")
 		}
 
-		log.Debug("Nas package", "size", packet.Size)
+		log.Debug("Nas "+ProtocolVersionStr+" package", "size", packet.Size)
 		tfs.received++
 
 		switch packet.Code {
@@ -276,7 +276,7 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 			}
 			p.peerInfo = info
 		case queryCode:
-			if ProtocolVersion >= 3 {
+			if ProtocolVersion >= 4 {
 				var info *Query
 				if err := packet.Decode(&info); err != nil {
 					log.Warn("failed to decode msg, peer will be disconnected", "peer", p.peer.ID(), "err", err)
@@ -331,7 +331,7 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 				}*/
 			}
 		case msgCode:
-			if ProtocolVersion >= 4 {
+			if ProtocolVersion > 4 {
 				var info *MsgInfo
 				if err := packet.Decode(&info); err != nil {
 					log.Warn("failed to decode msg, peer will be disconnected", "peer", p.peer.ID(), "err", err)
@@ -479,7 +479,7 @@ func (fs *TorrentFS) localCheck(ctx context.Context, infohash string, rawSize ui
 				defer fs.wg.Done()
 				s := fs.query(infohash, progress)
 				if s {
-					log.Info("Nas 3.0, restarting", "ih", infohash, "request", common.StorageSize(float64(progress)))
+					log.Info("Nas "+ProtocolVersionStr+", restarting", "ih", infohash, "request", common.StorageSize(float64(progress)))
 				}
 			}()
 			if e := fs.storage().Search(ctx, infohash, progress); e == nil {
@@ -500,7 +500,7 @@ func (fs *TorrentFS) localCheck(ctx context.Context, infohash string, rawSize ui
 				defer fs.wg.Done()
 				s := fs.query(infohash, progress)
 				if s {
-					log.Info("Nas 3.0 query", "ih", infohash, "raw", common.StorageSize(float64(rawSize)), "finish", f, "cost", common.PrettyDuration(cost), "speed", common.StorageSize(speed), "peers", len(fs.peers), "cache", fs.nasCache.Len(), "err", err)
+					log.Info("Nas "+ProtocolVersionStr+" query", "ih", infohash, "raw", common.StorageSize(float64(rawSize)), "finish", f, "cost", common.PrettyDuration(cost), "speed", common.StorageSize(speed), "peers", len(fs.peers), "cache", fs.nasCache.Len(), "err", err)
 				}
 			}()
 
@@ -728,7 +728,7 @@ func (fs *TorrentFS) Download(ctx context.Context, ih string, request uint64) er
 		defer fs.wg.Done()
 		s := fs.query(ih, request)
 		if s {
-			log.Info("Nas 3.0 tunnel", "ih", ih, "request", common.StorageSize(float64(request)))
+			log.Info("Nas "+ProtocolVersionStr+" tunnel", "ih", ih, "request", common.StorageSize(float64(request)))
 		}
 	}()
 
