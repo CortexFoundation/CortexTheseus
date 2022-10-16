@@ -61,6 +61,13 @@ func IsGood(hash string) bool {
 	return false
 }
 
+func IsGreat(hash string) bool {
+	if v, ok := GoodFiles[hash]; ok && v {
+		return true
+	}
+	return false
+}
+
 func IsBad(hash string) bool {
 	if _, ok := BadFiles[hash]; ok {
 		return true
