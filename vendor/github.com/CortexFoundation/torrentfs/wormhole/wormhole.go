@@ -18,9 +18,11 @@ package wormhole
 
 import (
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/torrentfs/params"
 
 	resty "github.com/go-resty/resty/v2"
 
+	"strings"
 	"time"
 )
 
@@ -37,4 +39,18 @@ func Tunnel(hash string) error {
 	}
 
 	return nil
+}
+
+func BestTrackers() ([]string, error) {
+	resp, err := client.R().Get(params.BestTrackerUrl)
+
+	if err != nil {
+		return nil, err
+	}
+	str := strings.Split(resp.String(), "\n\n")
+	for _, s := range str {
+		log.Debug("Global best trackers", "url", s)
+	}
+
+	return str, err
 }

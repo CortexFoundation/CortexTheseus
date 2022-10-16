@@ -104,6 +104,7 @@ type TorrentManager struct {
 	maxSeedTask         int
 	maxEstablishedConns int
 	trackers            [][]string
+	globalTrackers      [][]string
 	boostFetcher        *BoostDataFetcher
 	DataDir             string
 	TmpDataDir          string
@@ -495,6 +496,10 @@ func (tm *TorrentManager) addInfoHash(ih string, bytesRequested int64) *Torrent 
 
 		t.AddTrackers(tm.trackers)
 
+		if tm.globalTrackers != nil {
+			t.AddTrackers(tm.globalTrackers)
+		}
+
 		if t.Info() == nil {
 			if v := tm.badger.Get([]byte(ih)); v != nil {
 				t.SetInfoBytes(v)
@@ -505,6 +510,15 @@ func (tm *TorrentManager) addInfoHash(ih string, bytesRequested int64) *Torrent 
 	}
 
 	return nil
+}
+
+func (tm *TorrentManager) updateGlobalTrackers() {
+	tm.lock.Lock()
+	defer tm.lock.Unlock()
+	if global, err := wormhole.BestTrackers(); global != nil && err == nil {
+		tm.globalTrackers = [][]string{global}
+		log.Info("Global trackers update", "size", len(global))
+	}
 }
 
 func (tm *TorrentManager) updateInfoHash(t *Torrent, bytesRequested int64) {
@@ -638,7 +652,13 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool, notify
 		log.Debug("Tracker list", "trackers", config.DefaultTrackers)
 		torrentManager.trackers = [][]string{config.DefaultTrackers}
 	}
-	log.Debug("Fs client initialized", "config", config)
+
+	torrentManager.updateGlobalTrackers()
+	//if global, err := wormhole.BestTrackers(); global != nil && err == nil {
+	//	torrentManager.globalTrackers = [][]string{global}
+	//}
+
+	log.Debug("Fs client initialized", "config", config, "trackers", torrentManager.trackers)
 
 	return torrentManager, nil
 }
@@ -882,6 +902,15 @@ func (tm *TorrentManager) activeLoop() {
 				counter = 1
 				current_size = 0
 			}
+
+			if log_counter%(3600*24) == 0 {
+				tm.wg.Add(1)
+				go func() {
+					defer tm.wg.Done()
+					tm.updateGlobalTrackers()
+				}()
+			}
+
 			//timer.Reset(time.Second * queryTimeInterval)
 		case <-tm.closeAll:
 			log.Info("Active seed loop closed")
