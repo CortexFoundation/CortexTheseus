@@ -40,4 +40,6 @@ var (
 	TorrentBoostNodes = []string{
 		"http://share.cortexlabs.ai:7881",
 	}
+
+	BestTrackerUrl = "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt"
 )
