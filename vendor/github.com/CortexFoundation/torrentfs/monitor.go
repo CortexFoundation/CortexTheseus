@@ -127,7 +127,8 @@ func NewMonitor(flag *Config, cache, compress, listen bool, fs *ChainDB, tMana *
 	torrents, _ := fs.initTorrents()
 	if m.mode != params.LAZY {
 		for k, v := range torrents {
-			if err := tMana.Search(context.Background(), k, v); err != nil {
+			//if err := tMana.Search(context.Background(), k, v); err != nil {
+			if err := GetStorage().Download(context.Background(), k, v); err != nil {
 				return nil, err
 			}
 		}
@@ -198,7 +199,8 @@ func (m *Monitor) indexInit() error {
 		if u, p, err := m.fs.SetTorrentProgress(file.Meta.InfoHash, bytesRequested); u && err == nil {
 			if m.mode != params.LAZY {
 				log.Debug("Search in sync parse download", "ih", file.Meta.InfoHash, "request", p)
-				m.dl.Search(context.Background(), file.Meta.InfoHash, p)
+				//m.dl.Search(context.Background(), file.Meta.InfoHash, p)
+				GetStorage().Download(context.Background(), file.Meta.InfoHash, p)
 			}
 		}
 		if file.LeftSize == 0 {
@@ -367,7 +369,8 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta, b *
 		if u, p, err := m.fs.SetTorrentProgress(meta.InfoHash, 0); u && err == nil {
 			if m.mode != params.LAZY {
 				log.Debug("Search in sync parse create", "ih", meta.InfoHash, "request", p)
-				m.dl.Search(context.Background(), meta.InfoHash, p)
+				//m.dl.Search(context.Background(), meta.InfoHash, p)
+				GetStorage().Download(context.Background(), meta.InfoHash, p)
 			}
 		}
 		//m.dl.UpdateTorrent(context.Background(), types.FlowControlMeta{
@@ -433,7 +436,8 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 						if u, p, err := m.fs.SetTorrentProgress(file.Meta.InfoHash, bytesRequested); u && err == nil {
 							if m.mode != params.LAZY {
 								log.Debug("Search in sync parse download", "ih", file.Meta.InfoHash, "request", p)
-								m.dl.Search(context.Background(), file.Meta.InfoHash, p)
+								//m.dl.Search(context.Background(), file.Meta.InfoHash, p)
+								GetStorage().Download(context.Background(), file.Meta.InfoHash, p)
 							}
 						}
 						//m.dl.UpdateTorrent(context.Background(), types.FlowControlMeta{

@@ -82,6 +82,9 @@ func (t *TorrentFS) chain() *ChainDB {
 var inst *TorrentFS = nil
 
 func GetStorage() CortexStorage {
+	mut.RLock()
+	defer mut.RUnlock()
+
 	if inst == nil {
 		//inst, _ = New(&DefaultConfig, true, false, false)
 		log.Warn("Storage instance get failed, should new it first")
@@ -89,7 +92,7 @@ func GetStorage() CortexStorage {
 	return inst //GetTorrentInstance()
 }
 
-var mut sync.Mutex
+var mut sync.RWMutex
 
 // New creates a new torrentfs instance with the given configuration.
 func New(config *Config, cache, compress, listen bool) (*TorrentFS, error) {
@@ -716,7 +719,7 @@ func (fs *TorrentFS) Drop(ih string) error {
 }
 
 // Download is used to download file with request
-func (fs *TorrentFS) Download(ctx context.Context, ih string, request uint64) error {
+func (fs *TorrentFS) download(ctx context.Context, ih string, request uint64) error {
 	update, p, err := fs.chain().SetTorrentProgress(ih, request)
 	if err != nil {
 		return err
@@ -750,6 +753,10 @@ func (fs *TorrentFS) Download(ctx context.Context, ih string, request uint64) er
 	//}
 
 	return nil
+}
+
+func (fs *TorrentFS) Download(ctx context.Context, ih string, request uint64) error {
+	return fs.download(ctx, ih, request)
 }
 
 func (fs *TorrentFS) Status(ctx context.Context, ih string) (int, error) {
