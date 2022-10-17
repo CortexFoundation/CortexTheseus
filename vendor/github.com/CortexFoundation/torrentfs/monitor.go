@@ -145,7 +145,6 @@ func (m *Monitor) loadHistory() error {
 	torrents, _ := m.fs.initTorrents()
 	if m.mode != params.LAZY {
 		for k, v := range torrents {
-			log.Info("............", "k", k, "v", v)
 			if err := GetStorage().Download(context.Background(), k, v); err != nil {
 				return err
 			}
