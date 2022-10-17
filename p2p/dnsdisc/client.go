@@ -1,4 +1,4 @@
-// Copyright 2018 The CortexTheseus Authors
+// Copyright 2019 The CortexTheseus Authors
 // This file is part of the CortexTheseus library.
 //
 // The CortexTheseus library is free software: you can redistribute it and/or modify
@@ -33,15 +33,17 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enr"
 	lru "github.com/hashicorp/golang-lru"
+	"golang.org/x/sync/singleflight"
 	"golang.org/x/time/rate"
 )
 
 // Client discovers nodes by querying DNS servers.
 type Client struct {
-	cfg       Config
-	clock     mclock.Clock
-	entries   *lru.Cache
-	ratelimit *rate.Limiter
+	cfg          Config
+	clock        mclock.Clock
+	entries      *lru.Cache
+	ratelimit    *rate.Limiter
+	singleflight singleflight.Group
 }
 
 // Config holds configuration options for the client.
@@ -136,17 +138,20 @@ func (c *Client) NewIterator(urls ...string) (enode.Iterator, error) {
 
 // resolveRoot retrieves a root entry via DNS.
 func (c *Client) resolveRoot(ctx context.Context, loc *linkEntry) (rootEntry, error) {
-	txts, err := c.cfg.Resolver.LookupTXT(ctx, loc.domain)
-	c.cfg.Logger.Trace("Updating DNS discovery root", "tree", loc.domain, "err", err)
-	if err != nil {
-		return rootEntry{}, err
-	}
-	for _, txt := range txts {
-		if strings.HasPrefix(txt, rootPrefix) {
-			return parseAndVerifyRoot(txt, loc)
+	e, err, _ := c.singleflight.Do(loc.str, func() (interface{}, error) {
+		txts, err := c.cfg.Resolver.LookupTXT(ctx, loc.domain)
+		c.cfg.Logger.Trace("Updating DNS discovery root", "tree", loc.domain, "err", err)
+		if err != nil {
+			return rootEntry{}, err
 		}
-	}
-	return rootEntry{}, nameError{loc.domain, errNoRoot}
+		for _, txt := range txts {
+			if strings.HasPrefix(txt, rootPrefix) {
+				return parseAndVerifyRoot(txt, loc)
+			}
+		}
+		return rootEntry{}, nameError{loc.domain, errNoRoot}
+	})
+	return e.(rootEntry), err
 }
 
 func parseAndVerifyRoot(txt string, loc *linkEntry) (rootEntry, error) {
@@ -169,17 +174,21 @@ func (c *Client) resolveEntry(ctx context.Context, domain, hash string) (entry, 
 	if err := c.ratelimit.Wait(ctx); err != nil {
 		return nil, err
 	}
-
 	cacheKey := truncateHash(hash)
 	if e, ok := c.entries.Get(cacheKey); ok {
 		return e.(entry), nil
 	}
-	e, err := c.doResolveEntry(ctx, domain, hash)
-	if err != nil {
-		return nil, err
-	}
-	c.entries.Add(cacheKey, e)
-	return e, nil
+
+	ei, err, _ := c.singleflight.Do(cacheKey, func() (interface{}, error) {
+		e, err := c.doResolveEntry(ctx, domain, hash)
+		if err != nil {
+			return nil, err
+		}
+		c.entries.Add(cacheKey, e)
+		return e, nil
+	})
+	e, _ := ei.(entry)
+	return e, err
 }
 
 // doResolveEntry fetches an entry via DNS.
@@ -254,7 +263,7 @@ func (it *randomIterator) Next() bool {
 	return it.cur != nil
 }
 
-// addTree adds a enrtree:// URL to the iterator.
+// addTree adds an enrtree:// URL to the iterator.
 func (it *randomIterator) addTree(url string) error {
 	le, err := parseLink(url)
 	if err != nil {
