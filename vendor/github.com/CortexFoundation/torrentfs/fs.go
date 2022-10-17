@@ -398,13 +398,18 @@ func (tfs *TorrentFS) Start(server *p2p.Server) (err error) {
 	}
 
 	if tfs.config.Mode != params.LAZY {
-		for k, ok := range GoodFiles {
-			if ok {
-				if err := tfs.storage().Search(context.Background(), k, 0); err != nil {
-					return err
-				}
+		//torrents, _ := tfs.chain().initTorrents()
+		checkpoint := tfs.chain().GetRoot(395964)
+		//if len(torrents) == 0 {
+		if checkpoint == nil {
+			for k, ok := range GoodFiles {
+				if ok {
+					if err := tfs.storage().Search(context.Background(), k, 0); err != nil {
+						return err
+					}
 
-				tfs.query(k, 1000000000)
+					tfs.query(k, 0)
+				}
 			}
 		}
 	}
@@ -721,26 +726,26 @@ func (fs *TorrentFS) Drop(ih string) error {
 // Download is used to download file with request
 func (fs *TorrentFS) download(ctx context.Context, ih string, request uint64) error {
 	ih = strings.ToLower(ih)
-	_, p, err := fs.chain().setTorrentProgress(ih, request)
+	update, p, err := fs.chain().setTorrentProgress(ih, request)
 	if err != nil {
 		return err
 	}
 
 	//fs.find(ih)
-	fs.wg.Add(1)
-	go func() {
-		defer fs.wg.Done()
-		s := fs.query(ih, request)
-		if s {
-			log.Info("Nas "+ProtocolVersionStr+" tunnel", "ih", ih, "request", common.StorageSize(float64(request)))
-		}
-	}()
+	if update {
+		fs.wg.Add(1)
+		go func() {
+			defer fs.wg.Done()
+			s := fs.query(ih, p)
+			if s {
+				log.Info("Nas "+ProtocolVersionStr+" tunnel", "ih", ih, "request", common.StorageSize(float64(p)))
+			}
+		}()
 
-	//if update {
-	if err := fs.storage().Search(ctx, ih, p); err != nil {
-		return err
+		if err := fs.storage().Search(ctx, ih, p); err != nil {
+			return err
+		}
 	}
-	//}
 
 	//if _, ok := fs.scoreTable[ih]; !ok {
 	//	fs.scoreTable[ih] = 1

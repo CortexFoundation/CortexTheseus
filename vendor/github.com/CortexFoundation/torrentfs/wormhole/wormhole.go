@@ -42,17 +42,24 @@ func Tunnel(hash string) error {
 }
 
 func BestTrackers() (ret []string) {
-	resp, err := client.R().Get(params.BestTrackerUrl)
+	for _, url := range params.BestTrackerUrl {
+		resp, err := client.R().Get(url)
 
-	if err != nil {
-		log.Warn("Global tracker lost", "err", err)
-		return
-	}
-	str := strings.Split(resp.String(), "\n\n")
-	for _, s := range str {
-		if strings.HasPrefix(s, "udp") {
-			log.Debug("Global best trackers", "url", s)
-			ret = append(ret, s)
+		if err != nil {
+			log.Warn("Global tracker lost", "err", err)
+			continue
+		}
+
+		str := strings.Split(resp.String(), "\n\n")
+		for _, s := range str {
+			if strings.HasPrefix(s, "udp") {
+				log.Debug("Global best trackers", "url", s)
+				ret = append(ret, s)
+			}
+		}
+
+		if len(ret) > 0 {
+			return
 		}
 	}
 

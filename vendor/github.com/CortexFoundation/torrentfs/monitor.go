@@ -565,9 +565,9 @@ func (m *Monitor) run() error {
 		return err
 	}
 
-	if err := m.loadHistory(); err != nil {
-		return err
-	}
+	//if err := m.loadHistory(); err != nil {
+	//	return err
+	//}
 	//m.wg.Add(1)
 	//go m.taskLoop()
 	//m.wg.Add(1)
