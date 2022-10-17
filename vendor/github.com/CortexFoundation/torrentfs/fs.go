@@ -297,7 +297,7 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 					//switch tfs.config.Mode {
 					//case params.LAZY:
 					//tfs.localCheck(context.Background(), info.Hash, info.Size)
-					if progress, e := tfs.chain().GetTorrentProgress(info.Hash); e == nil {
+					if progress, e := tfs.chain().getTorrentProgress(info.Hash); e == nil {
 						log.Info("Nas msg received", "ih", info.Hash, "size", common.StorageSize(float64(info.Size)), "local", common.StorageSize(float64(progress)), "pid", p.id)
 						if err := tfs.storage().Search(context.Background(), info.Hash, progress); err != nil {
 							log.Error("Nas 2.0 error", "err", err)
@@ -476,7 +476,7 @@ func (fs *TorrentFS) localCheck(ctx context.Context, infohash string, rawSize ui
 	//if fs.config.Mode == params.LAZY {
 	switch {
 	case errors.Is(err, ErrInactiveTorrent):
-		if progress, e := fs.chain().GetTorrentProgress(infohash); e == nil {
+		if progress, e := fs.chain().getTorrentProgress(infohash); e == nil {
 			fs.wg.Add(1)
 			go func() {
 				defer fs.wg.Done()
@@ -492,7 +492,7 @@ func (fs *TorrentFS) localCheck(ctx context.Context, infohash string, rawSize ui
 			log.Warn("Try to read unregister file", "ih", infohash, "size", common.StorageSize(float64(rawSize)), "err", e)
 		}
 	case errors.Is(err, ErrUnfinished) || errors.Is(err, ErrTorrentNotFound):
-		if progress, e := fs.chain().GetTorrentProgress(infohash); e == nil {
+		if progress, e := fs.chain().getTorrentProgress(infohash); e == nil {
 			var speed float64
 			if cost > 0 {
 				t := float64(cost) / (1000 * 1000 * 1000)
@@ -720,7 +720,8 @@ func (fs *TorrentFS) Drop(ih string) error {
 
 // Download is used to download file with request
 func (fs *TorrentFS) download(ctx context.Context, ih string, request uint64) error {
-	update, p, err := fs.chain().SetTorrentProgress(ih, request)
+	ih = strings.ToLower(ih)
+	update, p, err := fs.chain().setTorrentProgress(ih, request)
 	if err != nil {
 		return err
 	}
