@@ -142,11 +142,10 @@ func NewMonitor(flag *Config, cache, compress, listen bool, fs *ChainDB, tMana *
 }
 
 func (m *Monitor) loadHistory() error {
-
 	torrents, _ := m.fs.initTorrents()
 	if m.mode != params.LAZY {
 		for k, v := range torrents {
-			//if err := tMana.Search(context.Background(), k, v); err != nil {
+			log.Info("............", "k", k, "v", v)
 			if err := GetStorage().Download(context.Background(), k, v); err != nil {
 				return err
 			}
@@ -567,7 +566,9 @@ func (m *Monitor) run() error {
 		return err
 	}
 
-	m.loadHistory()
+	if err := m.loadHistory(); err != nil {
+		return err
+	}
 	//m.wg.Add(1)
 	//go m.taskLoop()
 	//m.wg.Add(1)

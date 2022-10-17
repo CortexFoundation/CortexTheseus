@@ -721,7 +721,7 @@ func (fs *TorrentFS) Drop(ih string) error {
 // Download is used to download file with request
 func (fs *TorrentFS) download(ctx context.Context, ih string, request uint64) error {
 	ih = strings.ToLower(ih)
-	update, p, err := fs.chain().setTorrentProgress(ih, request)
+	_, p, err := fs.chain().setTorrentProgress(ih, request)
 	if err != nil {
 		return err
 	}
@@ -736,11 +736,11 @@ func (fs *TorrentFS) download(ctx context.Context, ih string, request uint64) er
 		}
 	}()
 
-	if update {
-		if err := fs.storage().Search(ctx, ih, p); err != nil {
-			return err
-		}
+	//if update {
+	if err := fs.storage().Search(ctx, ih, p); err != nil {
+		return err
 	}
+	//}
 
 	//if _, ok := fs.scoreTable[ih]; !ok {
 	//	fs.scoreTable[ih] = 1
