@@ -110,8 +110,8 @@ func New(config *Config, cache, compress, listen bool) (*TorrentFS, error) {
 	}
 	log.Info("File storage initialized")
 
-	_seedingNotify := make(chan string, 25)
-	handler, err := NewTorrentManager(config, db.ID(), cache, compress, _seedingNotify)
+	//_seedingNotify := make(chan string, 25)
+	handler, err := NewTorrentManager(config, db.ID(), cache, compress, nil)
 	if err != nil || handler == nil {
 		log.Error("fs manager failed")
 		return nil, errors.New("fs download manager initialise failed")
@@ -135,7 +135,7 @@ func New(config *Config, cache, compress, listen bool) (*TorrentFS, error) {
 	//inst.queryCache, _ = lru.New(25)
 
 	inst.scoreTable = make(map[string]int)
-	inst.seedingNotify = _seedingNotify
+	//inst.seedingNotify = _seedingNotify
 
 	inst.worm = mapset.NewSet()
 
@@ -193,8 +193,8 @@ func New(config *Config, cache, compress, listen bool) (*TorrentFS, error) {
 
 	inst.closeAll = make(chan struct{})
 
-	inst.wg.Add(1)
-	go inst.listen()
+	//inst.wg.Add(1)
+	//go inst.listen()
 
 	return inst, nil
 }
@@ -204,7 +204,6 @@ func (tfs *TorrentFS) listen() {
 	for {
 		select {
 		case s := <-tfs.seedingNotify:
-			//tfs.nasCache.Add(s, uint64(0))
 			tfs.notify(s)
 		case <-tfs.closeAll:
 			return
@@ -785,9 +784,9 @@ func (fs *TorrentFS) LocalPort() int {
 	return fs.storage().LocalPort()
 }
 
-func (fs *TorrentFS) Simulate() {
-	fs.storage().Simulate()
-}
+//func (fs *TorrentFS) Simulate() {
+//	fs.storage().Simulate()
+//}
 
 func (fs *TorrentFS) Congress() int {
 	return fs.storage().Congress()

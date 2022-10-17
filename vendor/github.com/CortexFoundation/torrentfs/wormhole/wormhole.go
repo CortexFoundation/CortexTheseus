@@ -27,7 +27,7 @@ import (
 )
 
 var (
-	client *resty.Client = resty.New().SetTimeout(time.Second * 15)
+	client *resty.Client = resty.New().SetTimeout(time.Second * 5)
 )
 
 func Tunnel(hash string) error {

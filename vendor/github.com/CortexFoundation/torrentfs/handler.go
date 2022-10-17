@@ -97,30 +97,30 @@ var (
 type TorrentManager struct {
 	client *torrent.Client
 	//bytes               map[metainfo.Hash]int64
-	torrents            map[string]*Torrent
-	seedingTorrents     map[string]*Torrent
-	activeTorrents      map[string]*Torrent
-	pendingTorrents     map[string]*Torrent
-	maxSeedTask         int
+	torrents        map[string]*Torrent
+	seedingTorrents map[string]*Torrent
+	activeTorrents  map[string]*Torrent
+	pendingTorrents map[string]*Torrent
+	//maxSeedTask         int
 	maxEstablishedConns int
 	trackers            [][]string
 	globalTrackers      [][]string
-	boostFetcher        *BoostDataFetcher
-	DataDir             string
-	TmpDataDir          string
-	closeAll            chan struct{}
-	taskChan            chan interface{}
-	lock                sync.RWMutex
-	wg                  sync.WaitGroup
-	seedingChan         chan *Torrent
-	activeChan          chan *Torrent
-	pendingChan         chan *Torrent
-	pendingRemoveChan   chan string
-	droppingChan        chan string
-	mode                string
-	boost               bool
-	id                  uint64
-	slot                int
+	//boostFetcher        *BoostDataFetcher
+	DataDir           string
+	TmpDataDir        string
+	closeAll          chan struct{}
+	taskChan          chan interface{}
+	lock              sync.RWMutex
+	wg                sync.WaitGroup
+	seedingChan       chan *Torrent
+	activeChan        chan *Torrent
+	pendingChan       chan *Torrent
+	pendingRemoveChan chan string
+	droppingChan      chan string
+	mode              string
+	//boost               bool
+	id   uint64
+	slot int
 
 	//fileLock sync.RWMutex
 	//fileCache *bigcache.BigCache
@@ -137,8 +137,8 @@ type TorrentManager struct {
 	localSeedFiles map[string]bool
 
 	//initCh   chan struct{}
-	simulate bool
-	good     uint64
+	//simulate bool
+	//good     uint64
 
 	startOnce     sync.Once
 	seedingNotify chan string
@@ -605,14 +605,14 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool, notify
 		seedingTorrents: make(map[string]*Torrent),
 		activeTorrents:  make(map[string]*Torrent),
 		//bytes:               make(map[metainfo.Hash]int64),
-		maxSeedTask:         config.MaxSeedingNum,
+		//maxSeedTask:         config.MaxSeedingNum,
 		maxEstablishedConns: cfg.EstablishedConnsPerTorrent,
 		DataDir:             config.DataDir,
 		TmpDataDir:          tmpFilePath,
-		boostFetcher:        NewBoostDataFetcher(config.BoostNodes),
-		closeAll:            make(chan struct{}),
+		//boostFetcher:        NewBoostDataFetcher(config.BoostNodes),
+		closeAll: make(chan struct{}),
 		//initCh:              make(chan struct{}),
-		simulate:          false,
+		//simulate:          false,
 		taskChan:          make(chan interface{}, taskChanBuffer),
 		seedingChan:       make(chan *Torrent, torrentChanSize),
 		activeChan:        make(chan *Torrent, torrentChanSize),
@@ -620,12 +620,12 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool, notify
 		pendingRemoveChan: make(chan string, torrentChanSize),
 		droppingChan:      make(chan string, torrentChanSize),
 		mode:              config.Mode,
-		boost:             config.Boost,
-		id:                fsid,
-		slot:              int(fsid % bucket),
-		localSeedFiles:    make(map[string]bool),
-		seedingNotify:     notify,
-		badger:            kv.Badger(config.DataDir),
+		//boost:             config.Boost,
+		id:             fsid,
+		slot:           int(fsid % bucket),
+		localSeedFiles: make(map[string]bool),
+		seedingNotify:  notify,
+		badger:         kv.Badger(config.DataDir),
 	}
 
 	if cache {
@@ -682,7 +682,7 @@ func (tm *TorrentManager) Start() (err error) {
 		tm.wg.Add(1)
 		go tm.mainLoop()
 
-		err = tm.init()
+		//err = tm.init()
 	})
 
 	return
@@ -695,35 +695,35 @@ func (tm *TorrentManager) prepare() bool {
 func (tm *TorrentManager) init() error {
 	log.Debug("Chain files init", "files", len(GoodFiles))
 
-	if tm.mode == params.DEV || tm.mode == params.LAZY {
-		tm.Simulate()
-	}
+	//if tm.mode == params.DEV || tm.mode == params.LAZY {
+	//	tm.Simulate()
+	//}
 
-	if !tm.simulate {
-		/*for k, ok := range GoodFiles {
-			if ok {
-				if err := tm.Search(context.Background(), k, 0); err == nil {
-					tm.good++
-					//atomic.AddUint64(&tm.good, 1)
-				} else {
-					log.Info("Fs init failed", "err", err)
-					return err
-				}
+	//if !tm.simulate {
+	/*for k, ok := range GoodFiles {
+		if ok {
+			if err := tm.Search(context.Background(), k, 0); err == nil {
+				tm.good++
+				//atomic.AddUint64(&tm.good, 1)
+			} else {
+				log.Info("Fs init failed", "err", err)
+				return err
 			}
-		}*/
-		/*select {
-		case <-tm.initCh:
-			log.Info("Chain files sync init OK !!!", "seeding", len(tm.seedingTorrents), "pending", len(tm.pendingTorrents), "active", len(tm.activeTorrents), "good", len(GoodFiles), "active", tm.good)
-		case <-tm.closeAll:
-			log.Info("Init files closed")
-		}*/
-	}
+		}
+	}*/
+	/*select {
+	case <-tm.initCh:
+		log.Info("Chain files sync init OK !!!", "seeding", len(tm.seedingTorrents), "pending", len(tm.pendingTorrents), "active", len(tm.activeTorrents), "good", len(GoodFiles), "active", tm.good)
+	case <-tm.closeAll:
+		log.Info("Init files closed")
+	}*/
+	//}
 
 	log.Debug("Chain files OK !!!")
 	return nil
 }
 
-func (tm *TorrentManager) Simulate() {
+/*func (tm *TorrentManager) Simulate() {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
 
@@ -731,7 +731,7 @@ func (tm *TorrentManager) Simulate() {
 		tm.simulate = true
 	}
 	log.Info("Do simulate")
-}
+}*/
 
 // Search and donwload files from torrent
 func (tm *TorrentManager) Search(ctx context.Context, hex string, request uint64) error {
