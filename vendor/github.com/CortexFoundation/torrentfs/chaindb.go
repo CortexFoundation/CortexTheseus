@@ -784,7 +784,7 @@ func (fs *ChainDB) getTorrentProgress(ih string) (progress uint64, err error) {
 		v := buk.Get([]byte(ih))
 
 		if v == nil {
-			return errors.New("Not torrent record found")
+			return errors.New("No torrent record found")
 		}
 
 		s, err := strconv.ParseUint(string(v), 16, 64)
