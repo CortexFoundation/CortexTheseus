@@ -124,10 +124,9 @@ func NewMonitor(flag *Config, cache, compress, listen bool, fs *ChainDB, tMana *
 
 	m.mode = flag.Mode
 
-	torrents, _ := fs.initTorrents()
+	/*torrents, _ := fs.initTorrents()
 	if m.mode != params.LAZY {
 		for k, v := range torrents {
-			//if err := tMana.Search(context.Background(), k, v); err != nil {
 			if err := GetStorage().Download(context.Background(), k, v); err != nil {
 				return nil, err
 			}
@@ -137,9 +136,31 @@ func NewMonitor(flag *Config, cache, compress, listen bool, fs *ChainDB, tMana *
 	if len(torrents) == 0 {
 		log.Warn("Data reloading", "mode", m.mode)
 		m.indexInit()
-	}
+	}*/
 
 	return m, nil
+}
+
+func (m *Monitor) loadHistory() error {
+
+	torrents, _ := m.fs.initTorrents()
+	if m.mode != params.LAZY {
+		for k, v := range torrents {
+			//if err := tMana.Search(context.Background(), k, v); err != nil {
+			if err := GetStorage().Download(context.Background(), k, v); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(torrents) == 0 {
+		log.Warn("Data reloading", "mode", m.mode)
+		if err := m.indexInit(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (m *Monitor) indexCheck() error {
@@ -545,6 +566,8 @@ func (m *Monitor) run() error {
 	if err := m.indexCheck(); err != nil {
 		return err
 	}
+
+	m.loadHistory()
 	//m.wg.Add(1)
 	//go m.taskLoop()
 	//m.wg.Add(1)
