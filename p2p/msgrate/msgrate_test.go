@@ -1,4 +1,4 @@
-// Copyright 2017 The CortexTheseus Authors
+// Copyright 2021 The CortexTheseus Authors
 // This file is part of the CortexTheseus library.
 //
 // The CortexTheseus library is free software: you can redistribute it and/or modify
@@ -14,5 +14,15 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package dnsdisc implements node discovery via DNS (EIP-1459).
-package dnsdisc
+package msgrate
+
+import "testing"
+
+func TestCapacityOverflow(t *testing.T) {
+	tracker := NewTracker(nil, 1)
+	tracker.Update(1, 1, 100000)
+	cap := tracker.Capacity(1, 10000000)
+	if int32(cap) < 0 {
+		t.Fatalf("Negative: %v", int32(cap))
+	}
+}

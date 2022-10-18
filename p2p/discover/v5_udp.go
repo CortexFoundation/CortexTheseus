@@ -1,4 +1,4 @@
-// Copyright 2019 The CortexTheseus Authors
+// Copyright 2020 The CortexTheseus Authors
 // This file is part of the CortexTheseus library.
 //
 // The CortexTheseus library is free software: you can redistribute it and/or modify
@@ -54,7 +54,7 @@ type codecV5 interface {
 	// Encode encodes a packet.
 	Encode(enode.ID, string, v5wire.Packet, *v5wire.Whoareyou) ([]byte, v5wire.Nonce, error)
 
-	// decode decodes a packet. It returns a *v5wire.Unknown packet if decryption fails.
+	// Decode decodes a packet. It returns a *v5wire.Unknown packet if decryption fails.
 	// The *enode.Node return value is non-nil when the input contains a handshake response.
 	Decode([]byte, string) (enode.ID, *enode.Node, v5wire.Packet, error)
 }
@@ -74,7 +74,7 @@ type UDPv5 struct {
 
 	// talkreq handler registry
 	trlock     sync.Mutex
-	trhandlers map[string]func([]byte) []byte
+	trhandlers map[string]TalkRequestHandler
 
 	// channels into dispatch
 	packetInCh    chan ReadPacket
@@ -95,6 +95,9 @@ type UDPv5 struct {
 	cancelCloseCtx context.CancelFunc
 	wg             sync.WaitGroup
 }
+
+// TalkRequestHandler callback processes a talk request and optionally returns a reply
+type TalkRequestHandler func(enode.ID, *net.UDPAddr, []byte) []byte
 
 // callV5 represents a remote procedure call against another node.
 type callV5 struct {
@@ -145,7 +148,7 @@ func newUDPv5(conn UDPConn, ln *enode.LocalNode, cfg Config) (*UDPv5, error) {
 		log:          cfg.Log,
 		validSchemes: cfg.ValidSchemes,
 		clock:        cfg.Clock,
-		trhandlers:   make(map[string]func([]byte) []byte),
+		trhandlers:   make(map[string]TalkRequestHandler),
 		// channels into dispatch
 		packetInCh:    make(chan ReadPacket, 1),
 		readNextCh:    make(chan struct{}, 1),
@@ -233,7 +236,7 @@ func (t *UDPv5) LocalNode() *enode.LocalNode {
 // RegisterTalkHandler adds a handler for 'talk requests'. The handler function is called
 // whenever a request for the given protocol is received and should return the response
 // data or nil.
-func (t *UDPv5) RegisterTalkHandler(protocol string, handler func([]byte) []byte) {
+func (t *UDPv5) RegisterTalkHandler(protocol string, handler TalkRequestHandler) {
 	t.trlock.Lock()
 	defer t.trlock.Unlock()
 	t.trhandlers[protocol] = handler
@@ -344,7 +347,7 @@ func (t *UDPv5) ping(n *enode.Node) (uint64, error) {
 	}
 }
 
-// requestENR requests n's record.
+// RequestENR requests n's record.
 func (t *UDPv5) RequestENR(n *enode.Node) (*enode.Node, error) {
 	nodes, err := t.findnode(n, []uint{0})
 	if err != nil {
@@ -457,6 +460,9 @@ func (t *UDPv5) call(node *enode.Node, responseType byte, packet v5wire.Packet) 
 
 // callDone tells dispatch that the active call is done.
 func (t *UDPv5) callDone(c *callV5) {
+	// This needs a loop because further responses may be incoming until the
+	// send to callDoneCh has completed. Such responses need to be discarded
+	// in order to avoid blocking the dispatch loop.
 	for {
 		select {
 		case <-c.ch:
@@ -619,7 +625,7 @@ func (t *UDPv5) readLoop() {
 			t.log.Debug("Temporary UDP read error", "err", err)
 			continue
 		} else if err != nil {
-			// Shut down the loop for permament errors.
+			// Shut down the loop for permanent errors.
 			if !errors.Is(err, io.EOF) {
 				t.log.Debug("UDP read error", "err", err)
 			}
@@ -848,7 +854,7 @@ func (t *UDPv5) handleTalkRequest(p *v5wire.TalkRequest, fromID enode.ID, fromAd
 
 	var response []byte
 	if handler != nil {
-		response = handler(p.Message)
+		response = handler(fromID, fromAddr, p.Message)
 	}
 	resp := &v5wire.TalkResponse{ReqID: p.ReqID, Message: response}
 	t.sendResponse(fromID, fromAddr, resp)

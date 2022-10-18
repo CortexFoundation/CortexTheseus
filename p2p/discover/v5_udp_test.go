@@ -1,4 +1,4 @@
-// Copyright 2019 The CortexTheseus Authors
+// Copyright 2020 The CortexTheseus Authors
 // This file is part of the CortexTheseus library.
 //
 // The CortexTheseus library is free software: you can redistribute it and/or modify
@@ -435,7 +435,7 @@ func TestUDPv5_talkHandling(t *testing.T) {
 	defer test.close()
 
 	var recvMessage []byte
-	test.udp.RegisterTalkHandler("test", func(message []byte) []byte {
+	test.udp.RegisterTalkHandler("test", func(id enode.ID, addr *net.UDPAddr, message []byte) []byte {
 		recvMessage = message
 		return []byte("test response")
 	})
