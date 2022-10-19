@@ -307,33 +307,6 @@ func (tm *TorrentManager) Close() error {
 	return nil
 }
 
-func (tm *TorrentManager) commit(ctx context.Context, hex string, request uint64) error {
-	//log.Debug("Commit task", "ih", hex, "request", request, "ch", ch)
-
-	/*if !server {
-		tm.wg.Add(1)
-		go func() {
-			defer tm.wg.Done()
-			err := wormhole.Tunnel(hex)
-			if err != nil {
-				log.Error("Wormhole error", "err", err)
-			}
-		}()
-	}*/
-
-	task := types.FlowControlMeta{
-		InfoHash:       hex,
-		BytesRequested: request,
-	}
-	select {
-	case tm.taskChan <- task:
-	case <-ctx.Done():
-		return ctx.Err()
-	}
-
-	return nil
-}
-
 /*func (tm *TorrentManager) buildUdpTrackers(trackers []string) (array [][]string) {
 	array = make([][]string, 1)
 	for _, tracker := range trackers {
@@ -760,6 +733,33 @@ func (tm *TorrentManager) Search(ctx context.Context, hex string, request uint64
 	downloadMeter.Mark(1)
 
 	return tm.commit(ctx, hex, request)
+}
+
+func (tm *TorrentManager) commit(ctx context.Context, hex string, request uint64) error {
+	//log.Debug("Commit task", "ih", hex, "request", request, "ch", ch)
+
+	/*if !server {
+	        tm.wg.Add(1)
+	        go func() {
+	                defer tm.wg.Done()
+	                err := wormhole.Tunnel(hex)
+	                if err != nil {
+	                        log.Error("Wormhole error", "err", err)
+	                }
+	        }()
+	}*/
+
+	task := types.FlowControlMeta{
+		InfoHash:       hex,
+		BytesRequested: request,
+	}
+	select {
+	case tm.taskChan <- task:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
+	return nil
 }
 
 func (tm *TorrentManager) mainLoop() {

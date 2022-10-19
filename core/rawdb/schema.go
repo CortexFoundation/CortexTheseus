@@ -107,6 +107,16 @@ var (
 	// Chain index prefixes (use `i` + single byte to avoid mixing data types).
 	BloomBitsIndexPrefix = []byte("iB") // BloomBitsIndexPrefix is the data table of a chain indexer to track its progress
 
+	ChtPrefix           = []byte("chtRootV2-") // ChtPrefix + chtNum (uint64 big endian) -> trie root hash
+	ChtTablePrefix      = []byte("cht-")
+	ChtIndexTablePrefix = []byte("chtIndexV2-")
+
+	BloomTriePrefix      = []byte("bltRoot-") // BloomTriePrefix + bloomTrieNum (uint64 big endian) -> trie root hash
+	BloomTrieTablePrefix = []byte("blt-")
+	BloomTrieIndexPrefix = []byte("bltIndex-")
+
+	CliqueSnapshotPrefix = []byte("clique-")
+
 	preimageCounter    = metrics.NewRegisteredCounter("db/preimage/total", nil)
 	preimageHitCounter = metrics.NewRegisteredCounter("db/preimage/hits", nil)
 )

@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/log"
@@ -87,7 +88,7 @@ func newSnapshot(config *params.CliqueConfig, sigcache *lru.ARCCache, number uin
 
 // loadSnapshot loads an existing snapshot from the database.
 func loadSnapshot(config *params.CliqueConfig, sigcache *lru.ARCCache, db ctxcdb.Database, hash common.Hash) (*Snapshot, error) {
-	blob, err := db.Get(append([]byte("clique-"), hash[:]...))
+	blob, err := db.Get(append(rawdb.CliqueSnapshotPrefix, hash[:]...))
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +108,7 @@ func (s *Snapshot) store(db ctxcdb.Database) error {
 	if err != nil {
 		return err
 	}
-	return db.Put(append([]byte("clique-"), s.Hash[:]...), blob)
+	return db.Put(append(rawdb.CliqueSnapshotPrefix, s.Hash[:]...), blob)
 }
 
 // copy creates a deep copy of the snapshot, though not the individual votes.
