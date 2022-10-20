@@ -161,7 +161,7 @@ func newTable(path string, name string, readMeter metrics.Meter, writeMeter metr
 		// will suddenly break lots of database relevant commands. So the metadata file
 		// is always opened for mutation and nothing else will be written except
 		// the initialization.
-		meta, err = openFreezerFileForAppend(filepath.Join(path, fmt.Sprintf("%s.meta", name)))
+		meta, err = openFreezerFileForReadOnly(filepath.Join(path, fmt.Sprintf("%s.meta", name)))
 		if err != nil {
 			return nil, err
 		}
