@@ -722,8 +722,8 @@ func TestBoundedHeavyForkedSync64Full(t *testing.T) { testBoundedHeavyForkedSync
 func TestBoundedHeavyForkedSync64Fast(t *testing.T) { testBoundedHeavyForkedSync(t, 64, FastSync) }
 
 func testBoundedHeavyForkedSync(t *testing.T, protocol int, mode SyncMode) {
-	t.Parallel()
 	tester := newTester()
+	defer tester.terminate()
 
 	// Create a long enough forked chain
 	chainA := testChainForkLightA
@@ -741,7 +741,6 @@ func testBoundedHeavyForkedSync(t *testing.T, protocol int, mode SyncMode) {
 	if err := tester.sync("heavy-rewriter", nil, mode); err != errInvalidAncestor {
 		t.Fatalf("sync failure mismatch: have %v, want %v", err, errInvalidAncestor)
 	}
-	tester.terminate()
 }
 
 // Tests that an inactive downloader will not accept incoming block headers and
