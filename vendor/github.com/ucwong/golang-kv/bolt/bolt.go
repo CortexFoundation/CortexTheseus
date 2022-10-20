@@ -138,13 +138,6 @@ func (b *Bolt) Prefix(prefix []byte) (res [][]byte) {
 func (b *Bolt) Suffix(suffix []byte) (res [][]byte) {
 	b.engine.View(func(tx *bolt.Tx) error {
 		if buk := tx.Bucket([]byte(GLOBAL)); buk != nil {
-			/*c := buk.Cursor()
-			for k, v := c.First(); k != nil; k, v = c.Next() {
-				if bytes.HasSuffix(k, suffix) {
-					res = append(res, common.SafeCopy(nil, v))
-				}
-			}*/
-
 			buk.ForEach(func(k, v []byte) error {
 				if bytes.HasSuffix(k, suffix) {
 					res = append(res, common.SafeCopy(nil, v))

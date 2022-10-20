@@ -3,6 +3,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+## [3.2103.3] - 2022-10-14
+
+### Remarks
+
+  - This is a minor patch release that fixes arm64 related issues.  The issues in the `z` package in Ristretto were resolved in Ristretto v0.1.1.
+
+### Fixed
+
+  -  fix(arm64): bump ristretto v0.1.0 --> v0.1.1 (#1806)
+
+## [3.2103.2] - 2021-10-07
+
+### Fixed
+
+  - fix(compact): close vlog after the compaction at L0 has completed (#1752)
+  - fix(builder): put the upper limit on reallocation (#1748)
+  - deps: Bump github.com/google/flatbuffers to v1.12.1 (#1746)
+  - fix(levels): Avoid a deadlock when acquiring read locks in levels (#1744)
+  - fix(pubsub): avoid deadlock in publisher and subscriber (#1749) (#1751)
+
 ## [3.2103.1] - 2021-07-08
 
 ### Fixed
@@ -178,29 +198,6 @@ This release is not backward compatible with Badger v2.x.x
   - WithTableLoadingMode (#1555)
   - WithTruncate (#1555)
   - WithValueLogLoadingMode (#1555)
-
-## [2.2007.4] - 2021-08-25
-
-### Fixed
-  - Fix build on Plan 9 (#1451)  (#1508) (#1738)
-
-### Features
-  - feat(zstd): backport replacement of DataDog's zstd with Klauspost's zstd (#1736)
-
-## [2.2007.3] - 2021-07-21
-
-### Fixed
-  - fix(maxVersion): Use choosekey instead of KeyToList (#1532) #1533
-  - fix(flatten): Add --num_versions flag (#1518) #1520
-  - fix(build): Fix integer overflow on 32-bit architectures #1558
-  - fix(pb): avoid protobuf warning due to common filename (#1519)
-
-### Features
-  - Add command to stream contents of DB into another DB. (#1486)
-
-### New APIs
-  - DB.StreamDB
-  - DB.MaxVersion
 
 ## [2.2007.2] - 2020-08-31
 

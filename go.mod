@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
 	github.com/CortexFoundation/inference v1.0.2-0.20220421072809-9c87efb8a557
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.33-0.20221019235443-9bf382760d5a
+	github.com/CortexFoundation/torrentfs v1.0.33-0.20221020175559-927dc9538190
 	github.com/VictoriaMetrics/fastcache v1.12.0
 	github.com/arsham/figurine v1.2.0
 	github.com/aws/aws-sdk-go-v2 v1.16.16
@@ -59,8 +59,8 @@ require (
 	golang.org/x/crypto v0.0.0-20220926161630-eccd6366d1be
 	golang.org/x/mobile v0.0.0-20201217150744-e6ae53a27f4f
 	golang.org/x/sync v0.0.0-20220929204114-8fcdb60fdcc0
-	golang.org/x/sys v0.0.0-20220928140112-f11e5e49a4ec
-	golang.org/x/text v0.3.7
+	golang.org/x/sys v0.1.0
+	golang.org/x/text v0.4.0
 	golang.org/x/time v0.0.0-20220922220347-f3bd1da661af
 	golang.org/x/tools v0.1.13-0.20220812184215-3f9b119300de
 	google.golang.org/protobuf v1.28.1
@@ -121,8 +121,8 @@ require (
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect
-	github.com/dgraph-io/badger/v3 v3.0.0-20220802162129-2de177900e3c // indirect
-	github.com/dgraph-io/ristretto v0.1.0 // indirect
+	github.com/dgraph-io/badger/v3 v3.2103.3 // indirect
+	github.com/dgraph-io/ristretto v0.1.1 // indirect
 	github.com/dlclark/regexp2 v1.7.0 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/edsrzf/mmap-go v1.1.0 // indirect
@@ -198,11 +198,11 @@ require (
 	github.com/tklauser/numcpus v0.5.0 // indirect
 	github.com/uber/jaeger-client-go v2.30.0+incompatible // indirect
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
-	github.com/ucwong/go-ttlmap v1.0.2-0.20220906034005-3632715c09cf // indirect
-	github.com/ucwong/golang-kv v1.0.10-0.20220911003714-51ffe42c65e6 // indirect
+	github.com/ucwong/go-ttlmap v1.0.2-0.20221020075847-39ed53681163 // indirect
+	github.com/ucwong/golang-kv v1.0.10-0.20221020174003-430ea14a471a // indirect
 	github.com/xlab/treeprint v1.1.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
-	go.etcd.io/bbolt v1.3.7-0.20220226045046-fd5535f71f48 // indirect
+	go.etcd.io/bbolt v1.3.7-0.20221019093018-00cd6970d05b // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.opentelemetry.io/otel v1.10.0 // indirect
 	go.opentelemetry.io/otel/trace v1.10.0 // indirect
@@ -211,9 +211,9 @@ require (
 	go.uber.org/zap v1.23.0 // indirect
 	golang.org/x/exp v0.0.0-20220930202632-ec3f01382ef9 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
-	golang.org/x/net v0.0.0-20220930213112-107f3e3c3b0b // indirect
+	golang.org/x/net v0.1.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20220822191816-0ebed06d0094 // indirect
-	golang.org/x/term v0.0.0-20220919170432-7a66f970e087 // indirect
+	golang.org/x/term v0.1.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/api v0.81.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
