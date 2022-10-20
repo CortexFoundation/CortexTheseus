@@ -2,7 +2,10 @@
 // items. Keys are currently limited to strings.
 package ttlmap
 
-import "errors"
+import (
+	"errors"
+	"reflect"
+)
 
 // Errors returned Map operations.
 var (
@@ -57,6 +60,13 @@ func (m *Map) Get(key string) (Item, error) {
 	}
 	m.store.RUnlock()
 	return zeroItem, ErrNotExist
+}
+
+func (m *Map) Keys() []reflect.Value {
+	m.store.RLock()
+	defer m.store.RUnlock()
+
+	return reflect.ValueOf(m.store.kv).MapKeys()
 }
 
 // Set assigns an item with the specified key in the map.

@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
 	github.com/CortexFoundation/inference v1.0.2-0.20220421072809-9c87efb8a557
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.33-0.20221019235443-9bf382760d5a
+	github.com/CortexFoundation/torrentfs v1.0.33-0.20221020045307-2801766652cc
 	github.com/VictoriaMetrics/fastcache v1.12.0
 	github.com/arsham/figurine v1.2.0
 	github.com/aws/aws-sdk-go-v2 v1.16.16
@@ -198,7 +198,7 @@ require (
 	github.com/tklauser/numcpus v0.5.0 // indirect
 	github.com/uber/jaeger-client-go v2.30.0+incompatible // indirect
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
-	github.com/ucwong/go-ttlmap v1.0.2-0.20220906034005-3632715c09cf // indirect
+	github.com/ucwong/go-ttlmap v1.0.2-0.20221020041159-efb52090cb4a // indirect
 	github.com/ucwong/golang-kv v1.0.10-0.20220911003714-51ffe42c65e6 // indirect
 	github.com/xlab/treeprint v1.1.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect

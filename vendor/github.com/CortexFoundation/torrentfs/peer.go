@@ -84,7 +84,7 @@ func (peer *Peer) start() error {
 func (peer *Peer) expire() {
 	unmark := make(map[string]struct{})
 	peer.known.Each(func(k interface{}) bool {
-		if _, ok := peer.host.Envelopes().Peek(k.(string)); !ok {
+		if _, ok := peer.host.Envelopes().Get(k.(string)); ok != nil {
 			unmark[k.(string)] = struct{}{}
 		}
 		return true
@@ -92,7 +92,6 @@ func (peer *Peer) expire() {
 	// Dump all known but no longer cached
 	for hash := range unmark {
 		peer.known.Remove(hash)
-		//log.Warn("Peer msg expire", "ih", hash, "know", peer.known.Cardinality(), "cache", peer.host.nasCache.Len())
 	}
 }
 
@@ -164,21 +163,19 @@ func (peer *Peer) marked(hash string) bool {
 
 func (peer *Peer) broadcast() error {
 	for _, k := range peer.host.Envelopes().Keys() {
-		if v, ok := peer.host.Envelopes().Peek(k.(string)); ok {
-			if !peer.marked(k.(string)) {
+		if v, ok := peer.host.Envelopes().Get(k.Interface().(string)); ok == nil {
+			if !peer.marked(k.Interface().(string)) {
 				query := Query{
-					Hash: k.(string),
-					Size: v.(uint64),
+					Hash: k.Interface().(string),
+					Size: v.Value().(uint64),
 				}
 				//log.Debug("Broadcast", "ih", k.(string), "size", v.(uint64))
 				if err := p2p.Send(peer.ws, queryCode, &query); err != nil {
 					return err
 				}
 				peer.host.sent++
-				peer.mark(k.(string))
+				peer.mark(k.Interface().(string))
 			}
-		} else {
-			log.Warn("Message has been expired", "k", k.(string), "v", v.(string))
 		}
 	}
 
