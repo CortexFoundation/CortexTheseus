@@ -320,7 +320,7 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 
 				if info.Size > 0 {
 					if progress, e := tfs.progress(info.Hash); e == nil {
-						log.Info("Nas msg received", "ih", info.Hash, "size", common.StorageSize(float64(info.Size)), "local", common.StorageSize(float64(progress)), "pid", p.id, "queue", tfs.msg.Len(), "peers", len(tfs.peers))
+						log.Debug("Nas msg received", "ih", info.Hash, "size", common.StorageSize(float64(info.Size)), "local", common.StorageSize(float64(progress)), "pid", p.id, "queue", tfs.msg.Len(), "peers", len(tfs.peers))
 						if err := tfs.storage().Search(context.Background(), info.Hash, progress); err != nil {
 							log.Error("Nas "+ProtocolVersionStr+" error", "err", err)
 							return err
@@ -500,7 +500,7 @@ func (fs *TorrentFS) localCheck(ctx context.Context, infohash string, rawSize ui
 				defer fs.wg.Done()
 				s := fs.query(infohash, progress)
 				if s {
-					log.Info("Nas "+ProtocolVersionStr+", restarting", "ih", infohash, "request", common.StorageSize(float64(progress)), "queue", fs.msg.Len(), "peers", len(fs.peers))
+					log.Debug("Nas "+ProtocolVersionStr+", restarting", "ih", infohash, "request", common.StorageSize(float64(progress)), "queue", fs.msg.Len(), "peers", len(fs.peers))
 				}
 			}()
 			if e := fs.storage().Search(ctx, infohash, progress); e == nil {
@@ -522,7 +522,7 @@ func (fs *TorrentFS) localCheck(ctx context.Context, infohash string, rawSize ui
 				defer fs.wg.Done()
 				s := fs.query(infohash, progress)
 				if s {
-					log.Info("Nas "+ProtocolVersionStr+" query", "ih", infohash, "raw", common.StorageSize(float64(rawSize)), "finish", f, "cost", common.PrettyDuration(cost), "speed", common.StorageSize(speed), "peers", len(fs.peers), "cache", fs.nasCache.Len(), "err", err, "queue", fs.msg.Len(), "peers", len(fs.peers))
+					log.Debug("Nas "+ProtocolVersionStr+" query", "ih", infohash, "raw", common.StorageSize(float64(rawSize)), "finish", f, "cost", common.PrettyDuration(cost), "speed", common.StorageSize(speed), "peers", len(fs.peers), "cache", fs.nasCache.Len(), "err", err, "queue", fs.msg.Len(), "peers", len(fs.peers))
 				}
 			}()
 
