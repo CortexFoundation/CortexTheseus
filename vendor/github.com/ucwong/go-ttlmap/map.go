@@ -39,8 +39,8 @@ func New(opts *Options) *Map {
 // Len returns the number of elements in the map.
 func (m *Map) Len() int {
 	m.store.RLock()
+	defer m.store.RUnlock()
 	n := len(m.store.kv)
-	m.store.RUnlock()
 	return n
 }
 
@@ -49,16 +49,14 @@ func (m *Map) Len() int {
 // ErrDrained will be returned if the map is already drained.
 func (m *Map) Get(key string) (Item, error) {
 	m.store.RLock()
+	defer m.store.RUnlock()
 	if m.keeper.drained {
-		m.store.RUnlock()
 		return zeroItem, ErrDrained
 	}
 	if pqi := m.store.kv[key]; pqi != nil {
 		item := *pqi.item
-		m.store.RUnlock()
 		return item, nil
 	}
-	m.store.RUnlock()
 	return zeroItem, ErrNotExist
 }
 
@@ -74,12 +72,11 @@ func (m *Map) Keys() []reflect.Value {
 // ErrDrained will be returned if the map is already drained.
 func (m *Map) Set(key string, item Item, opts *SetOptions) error {
 	m.store.Lock()
+	defer m.store.Unlock()
 	if m.keeper.drained {
-		m.store.Unlock()
 		return ErrDrained
 	}
 	err := m.set(key, &item, opts)
-	m.store.Unlock()
 	return err
 }
 
@@ -88,17 +85,15 @@ func (m *Map) Set(key string, item Item, opts *SetOptions) error {
 // ErrDrained will be returned if the map is already drained.
 func (m *Map) Update(key string, item Item, opts *UpdateOptions) (Item, error) {
 	m.store.Lock()
+	defer m.store.Unlock()
 	if m.keeper.drained {
-		m.store.Unlock()
 		return zeroItem, ErrDrained
 	}
 	if pqi := m.store.kv[key]; pqi != nil {
 		m.update(pqi, &item, opts)
 		item = *pqi.item
-		m.store.Unlock()
 		return item, nil
 	}
-	m.store.Unlock()
 	return zeroItem, ErrNotExist
 }
 
@@ -107,17 +102,15 @@ func (m *Map) Update(key string, item Item, opts *UpdateOptions) (Item, error) {
 // ErrDrained will be returned if the map is already drained.
 func (m *Map) Delete(key string) (Item, error) {
 	m.store.Lock()
+	defer m.store.Unlock()
 	if m.keeper.drained {
-		m.store.Unlock()
 		return zeroItem, ErrDrained
 	}
 	if pqi := m.store.kv[key]; pqi != nil {
 		m.delete(pqi)
 		item := *pqi.item
-		m.store.Unlock()
 		return item, nil
 	}
-	m.store.Unlock()
 	return zeroItem, ErrNotExist
 }
 

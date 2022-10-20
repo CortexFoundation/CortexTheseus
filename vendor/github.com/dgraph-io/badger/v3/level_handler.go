@@ -304,9 +304,9 @@ func (s *levelHandler) get(key []byte) (y.ValueStruct, error) {
 	return maxVs, decr()
 }
 
-// iterators returns an array of iterators, for merging.
+// appendIterators appends iterators to an array of iterators, for merging.
 // Note: This obtains references for the table handlers. Remember to close these iterators.
-func (s *levelHandler) iterators(opt *IteratorOptions) []y.Iterator {
+func (s *levelHandler) appendIterators(iters []y.Iterator, opt *IteratorOptions) []y.Iterator {
 	s.RLock()
 	defer s.RUnlock()
 
@@ -324,41 +324,14 @@ func (s *levelHandler) iterators(opt *IteratorOptions) []y.Iterator {
 				out = append(out, t)
 			}
 		}
-		return iteratorsReversed(out, topt)
+		return appendIteratorsReversed(iters, out, topt)
 	}
 
 	tables := opt.pickTables(s.tables)
 	if len(tables) == 0 {
-		return nil
+		return iters
 	}
-	return []y.Iterator{table.NewConcatIterator(tables, topt)}
-}
-
-func (s *levelHandler) getTables(opt *IteratorOptions) []*table.Table {
-	if opt.Reverse {
-		panic("Invalid option for getTables")
-	}
-
-	// Typically this would only be called for the last level.
-	s.RLock()
-	defer s.RUnlock()
-
-	if s.level == 0 {
-		var out []*table.Table
-		for _, t := range s.tables {
-			if opt.pickTable(t) {
-				t.IncrRef()
-				out = append(out, t)
-			}
-		}
-		return out
-	}
-
-	tables := opt.pickTables(s.tables)
-	for _, t := range tables {
-		t.IncrRef()
-	}
-	return tables
+	return append(iters, table.NewConcatIterator(tables, topt))
 }
 
 type levelHandlerRLocked struct{}

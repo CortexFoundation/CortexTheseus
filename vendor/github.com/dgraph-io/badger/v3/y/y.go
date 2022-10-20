@@ -116,11 +116,6 @@ func Copy(a []byte) []byte {
 	return b
 }
 
-func SetKeyTs(key []byte, ts uint64) {
-	start := len(key) - 8
-	binary.BigEndian.PutUint64(key[start:], math.MaxUint64-ts)
-}
-
 // KeyWithTs generates a new key by appending ts to key.
 func KeyWithTs(key []byte, ts uint64) []byte {
 	out := make([]byte, len(key)+8)
@@ -260,18 +255,6 @@ func (t *Throttle) Finish() error {
 	})
 
 	return t.finishErr
-}
-
-// U16ToBytes converts the given Uint16 to bytes
-func U16ToBytes(v uint16) []byte {
-	var uBuf [2]byte
-	binary.BigEndian.PutUint16(uBuf[:], v)
-	return uBuf[:]
-}
-
-// BytesToU16 converts the given byte slice to uint16
-func BytesToU16(b []byte) uint16 {
-	return binary.BigEndian.Uint16(b)
 }
 
 // U32ToBytes converts the given Uint32 to bytes

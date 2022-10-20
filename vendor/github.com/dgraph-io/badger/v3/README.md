@@ -167,7 +167,6 @@ Below is a list of known projects that use Badger:
 * [Immudb](https://github.com/codenotary/immudb) - Lightweight, high-speed immutable database for systems and applications.
 * [Usenet Express](https://usenetexpress.com/) - Serving over 300TB of data with Badger.
 * [gorush](https://github.com/appleboy/gorush) - A push notification server written in Go.
-* [0-stor](https://github.com/zero-os/0-stor) - Single device object store.
 * [Dispatch Protocol](https://github.com/dispatchlabs/disgo) - Blockchain protocol for distributed application data analytics.
 * [GarageMQ](https://github.com/valinurovam/garagemq) - AMQP server written in Go.
 * [RedixDB](https://alash3al.github.io/redix/) - A real-time persistent key-value store with the same redis protocol.
@@ -190,15 +189,6 @@ Below is a list of known projects that use Badger:
 * [Terminotes](https://gitlab.com/asad-awadia/terminotes) - Self hosted notes storage and search server - storage powered by BadgerDB
 * [Pyroscope](https://github.com/pyroscope-io/pyroscope) - Open source confinuous profiling platform built with BadgerDB
 * [Veri](https://github.com/bgokden/veri) - A distributed feature store optimized for Search and Recommendation tasks.
-* [bIter](https://github.com/MikkelHJuul/bIter) - A library and Iterator interface for working with the `badger.Iterator`, simplifying from-to, and prefix mechanics.
-* [ld](https://github.com/MikkelHJuul/ld) - (Lean Database) A very simple gRPC-only key-value database, exposing BadgerDB with key-range scanning semantics.
-* [Souin](https://github.com/darkweak/Souin) - A RFC compliant HTTP cache with lot of other features based on Badger for the storage. Compatible with all existing reverse-proxies.
-* [Xuperchain](https://github.com/xuperchain/xupercore) - A highly flexible blockchain architecture with great transaction performance.
-* [m2](https://github.com/qichengzx/m2) - A simple http key/value store based on the raft protocol.
-* [chaindb](https://github.com/ChainSafe/chaindb) - A blockchain storage layer used by [Gossamer](https://chainsafe.github.io/gossamer/), a Go client for the [Polkadot Network](https://polkadot.network/).
-* [vxdb](https://github.com/vitalvas/vxdb) - Simple schema-less Key-Value NoSQL database with simplest API interface.
-* [Opacity](https://github.com/opacity/storage-node) - Backend implementation for the Opacity storage project
-* [Vephar](https://github.com/vaccovecrana/vephar) - A minimal key/value store using hashicorp-raft for cluster coordination and Badger for data storage.
 
 If you are using Badger in a project please send a pull request to add it to the list.
 
@@ -208,5 +198,6 @@ If you're interested in contributing to Badger see [CONTRIBUTING.md](./CONTRIBUT
 
 ## Contact
 - Please use [discuss.dgraph.io](https://discuss.dgraph.io) for questions, feature requests and discussions.
-- Please use [discuss.dgraph.io](https://discuss.dgraph.io) for filing bugs or feature requests.
+- Please use [Github issue tracker](https://github.com/dgraph-io/badger/issues) for filing bugs or feature requests.
 - Follow us on Twitter [@dgraphlabs](https://twitter.com/dgraphlabs).
+
