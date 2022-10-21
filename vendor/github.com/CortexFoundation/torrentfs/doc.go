@@ -28,11 +28,11 @@ const (
 
 	DefaultMaxMessageSize = uint32(1024)
 
-	statusCode = 0
-	queryCode  = 1
-	msgCode    = 2
+	statusCode = iota
+	queryCode
+	msgCode
 
-	peerStateCycle = time.Second * 60
+	peerStateCycle = time.Second * 300
 
 	expirationCycle   = time.Second
 	transmissionCycle = 300 * time.Millisecond
