@@ -32,7 +32,7 @@ const (
 	queryCode  = 1
 	msgCode    = 2
 
-	peerStateCycle = time.Second * 60
+	peerStateCycle = time.Second * 300
 
 	expirationCycle   = time.Second
 	transmissionCycle = 300 * time.Millisecond

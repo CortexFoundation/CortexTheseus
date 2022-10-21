@@ -326,12 +326,7 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 							return err
 						}
 					}
-
 					tfs.nasCounter++
-				} else if info.Size == 0 {
-					// TODO
-				} else {
-					// TODO
 				}
 			}
 		case msgCode:
@@ -341,7 +336,7 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 					log.Warn("failed to decode msg, peer will be disconnected", "peer", p.peer.ID(), "err", err)
 					return errors.New("invalid msg")
 				}
-				log.Warn("Nas 4 testing", "msgCode", msgCode, "package", info.Desc)
+				log.Warn("Nas msg testing", "code", msgCode, "desc", info.Desc)
 			}
 		default:
 			log.Warn("Encounter package code", "code", packet.Code)
@@ -461,7 +456,7 @@ func (fs *TorrentFS) query(ih string, rawSize uint64) bool {
 		return false
 	}
 
-	if _, suc := fs.msg.Get(ih); suc == nil {
+	if _, err := fs.msg.Get(ih); err == nil {
 		return false
 	}
 

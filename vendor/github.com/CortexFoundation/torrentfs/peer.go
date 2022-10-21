@@ -111,7 +111,6 @@ func (peer *Peer) update() {
 		select {
 		case <-expire.C:
 			peer.expire()
-		//case query := <-peer.host.queryChan:
 		case <-transmit.C:
 			if err := peer.broadcast(); err != nil {
 				log.Trace("transmit broadcast failed", "reason", err, "peer", peer.ID())
@@ -163,7 +162,7 @@ func (peer *Peer) marked(hash string) bool {
 
 func (peer *Peer) broadcast() error {
 	for _, k := range peer.host.Envelopes().Keys() {
-		if v, ok := peer.host.Envelopes().Get(k.Interface().(string)); ok == nil {
+		if v, err := peer.host.Envelopes().Get(k.Interface().(string)); err == nil {
 			if !peer.marked(k.Interface().(string)) {
 				query := Query{
 					Hash: k.Interface().(string),
