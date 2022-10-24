@@ -30,6 +30,8 @@ import (
 	"sync"
 	//"sync/atomic"
 	//"strconv"
+	"math"
+	"runtime"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -539,7 +541,7 @@ func NewTorrentManager(config *Config, fsid uint64, cache, compress bool, notify
 	cfg.Seed = true
 	//cfg.Debug=true
 
-	cfg.EstablishedConnsPerTorrent = 4 //len(config.DefaultTrackers)
+	cfg.EstablishedConnsPerTorrent = int(math.Min(float64(runtime.NumCPU()*2), float64(50))) //4 //len(config.DefaultTrackers)
 	cfg.HalfOpenConnsPerTorrent = cfg.EstablishedConnsPerTorrent / 2
 
 	cfg.ListenPort = config.Port
