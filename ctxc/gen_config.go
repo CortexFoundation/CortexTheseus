@@ -8,6 +8,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
 	"github.com/CortexFoundation/CortexTheseus/core"
+	"github.com/CortexFoundation/CortexTheseus/core/txpool"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/gasprice"
 	"github.com/CortexFoundation/CortexTheseus/miner"
@@ -42,7 +43,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		InferDeviceId           int
 		InferMemoryUsage        int64
 		Cuckoo                  cuckoo.Config
-		TxPool                  core.TxPoolConfig
+		TxPool                  txpool.Config
 		GPO                     gasprice.Config
 		EnablePreimageRecording bool
 		InferURI                string
@@ -122,7 +123,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		InferDeviceId           *int
 		InferMemoryUsage        *int64
 		Cuckoo                  *cuckoo.Config
-		TxPool                  *core.TxPoolConfig
+		TxPool                  *txpool.Config
 		GPO                     *gasprice.Config
 		EnablePreimageRecording *bool
 		InferURI                *string

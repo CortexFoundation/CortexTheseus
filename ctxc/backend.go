@@ -34,6 +34,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/bloombits"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
+	"github.com/CortexFoundation/CortexTheseus/core/txpool"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
@@ -66,7 +67,7 @@ type Cortex struct {
 	//shutdownChan chan bool // Channel for shutting down the Cortex
 
 	// Handlers
-	txPool          *core.TxPool
+	txPool          *txpool.TxPool
 	blockchain      *core.BlockChain
 	protocolManager *ProtocolManager
 
@@ -218,7 +219,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 	if config.TxPool.Journal != "" {
 		config.TxPool.Journal = ctx.ResolvePath(config.TxPool.Journal)
 	}
-	ctxc.txPool = core.NewTxPool(config.TxPool, ctxc.chainConfig, ctxc.blockchain)
+	ctxc.txPool = txpool.NewTxPool(config.TxPool, ctxc.chainConfig, ctxc.blockchain)
 
 	cacheLimit := cacheConfig.TrieCleanLimit + cacheConfig.TrieDirtyLimit + cacheConfig.SnapshotLimit
 
@@ -533,7 +534,7 @@ func (s *Cortex) Miner() *miner.Miner { return s.miner }
 
 func (s *Cortex) AccountManager() *accounts.Manager  { return s.accountManager }
 func (s *Cortex) BlockChain() *core.BlockChain       { return s.blockchain }
-func (s *Cortex) TxPool() *core.TxPool               { return s.txPool }
+func (s *Cortex) TxPool() *txpool.TxPool             { return s.txPool }
 func (s *Cortex) EventMux() *event.TypeMux           { return s.eventMux }
 func (s *Cortex) Engine() consensus.Engine           { return s.engine }
 func (s *Cortex) ChainDb() ctxcdb.Database           { return s.chainDb }

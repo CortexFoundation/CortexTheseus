@@ -30,6 +30,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/bloombits"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/state"
+	"github.com/CortexFoundation/CortexTheseus/core/txpool"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/gasprice"
@@ -294,7 +295,7 @@ func (b *CortexAPIBackend) TxPoolContentFrom(addr common.Address) (types.Transac
 	return b.ctxc.TxPool().ContentFrom(addr)
 }
 
-func (b *CortexAPIBackend) TxPool() *core.TxPool {
+func (b *CortexAPIBackend) TxPool() *txpool.TxPool {
 	return b.ctxc.TxPool()
 }
 
