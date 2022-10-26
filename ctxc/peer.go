@@ -175,7 +175,7 @@ func (p *peer) broadcastTransactions(removePeer func(string)) {
 			for i := 0; i < len(queue) && size < txsyncPackSize; i++ {
 				if tx := p.getPooledTx(queue[i]); tx != nil {
 					txs = append(txs, tx)
-					size += tx.Size()
+					size += common.StorageSize(tx.Size())
 				}
 				hashesCount++
 			}
