@@ -29,6 +29,14 @@ import (
 	"github.com/anacrolix/torrent"
 	//"github.com/anacrolix/torrent/metainfo"
 	//"github.com/anacrolix/torrent/storage"
+	"github.com/CortexFoundation/torrentfs/params"
+)
+
+const (
+	torrentPending = iota //2
+	torrentPaused
+	torrentRunning
+	torrentSeeding
 )
 
 type Torrent struct {
@@ -70,7 +78,7 @@ func (t *Torrent) Ready() bool {
 	t.lock.RLock()
 	defer t.lock.RUnlock()
 
-	if _, ok := BadFiles[t.InfoHash()]; ok {
+	if _, ok := params.BadFiles[t.InfoHash()]; ok {
 		return false
 	}
 
@@ -133,7 +141,7 @@ func (t *Torrent) Seed() bool {
 		t.lock.Unlock()
 
 		elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
-		if active, ok := GoodFiles[t.InfoHash()]; !ok {
+		if active, ok := params.GoodFiles[t.InfoHash()]; !ok {
 			log.Info("New active nas found", "ih", t.InfoHash(), "ok", ok, "active", active, "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "peers", t.currentConns, "status", t.status, "elapsed", common.PrettyDuration(elapsed))
 		} else {
 			log.Info("Imported new nas segment", "ih", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "peers", t.currentConns, "status", t.status, "elapsed", common.PrettyDuration(elapsed))

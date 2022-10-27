@@ -36,7 +36,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/node"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	whisper "github.com/CortexFoundation/CortexTheseus/whisper/whisperv6"
-	"github.com/CortexFoundation/torrentfs"
+	params1 "github.com/CortexFoundation/torrentfs/params"
 	"github.com/naoina/toml"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -85,7 +85,7 @@ type cortexConfig struct {
 	Node        node.Config
 	Cortexstats ctxcstatsConfig
 	// Dashboard dashboard.Config
-	TorrentFs torrentfs.Config
+	TorrentFs params1.Config
 }
 
 func loadConfig(file string, cfg *cortexConfig) error {
@@ -120,7 +120,7 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, cortexConfig) {
 		Shh:    whisper.DefaultConfig,
 		Node:   defaultNodeConfig(),
 		// Dashboard: dashboard.DefaultConfig,
-		TorrentFs: torrentfs.DefaultConfig,
+		TorrentFs: params1.DefaultConfig,
 	}
 
 	// Load config file.

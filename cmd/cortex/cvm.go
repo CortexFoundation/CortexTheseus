@@ -38,6 +38,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/inference/synapse"
 	"github.com/CortexFoundation/torrentfs"
+	"github.com/CortexFoundation/torrentfs/params"
 	gopsutil "github.com/shirou/gopsutil/mem"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -81,22 +82,22 @@ var (
 	StorageMaxSeedingFlag = cli.IntFlag{
 		Name:  "cvm.max_seeding",
 		Usage: "The maximum number of seeding tasks in the same time",
-		Value: torrentfs.DefaultConfig.MaxSeedingNum,
+		Value: params.DefaultConfig.MaxSeedingNum,
 	}
 	StorageMaxActiveFlag = cli.IntFlag{
 		Name:  "cvm.max_active",
 		Usage: "The maximum number of active tasks in the same time",
-		Value: torrentfs.DefaultConfig.MaxActiveNum,
+		Value: params.DefaultConfig.MaxActiveNum,
 	}
 	StorageBoostNodesFlag = cli.StringFlag{
 		Name:  "cvm.boostnodes",
 		Usage: "p2p storage boostnodes",
-		Value: strings.Join(torrentfs.DefaultConfig.BoostNodes, ","),
+		Value: strings.Join(params.DefaultConfig.BoostNodes, ","),
 	}
 	StorageTrackerFlag = cli.StringFlag{
 		Name:  "cvm.tracker",
 		Usage: "P2P storage tracker list",
-		Value: strings.Join(torrentfs.DefaultConfig.DefaultTrackers, ","),
+		Value: strings.Join(params.DefaultConfig.DefaultTrackers, ","),
 	}
 	StorageBoostFlag = cli.BoolFlag{
 		Name:  "cvm.boost",
@@ -174,7 +175,7 @@ func cvmServer(ctx *cli.Context) error {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(ctx.GlobalInt(CVMVerbosity.Name)), log.StreamHandler(os.Stdout, log.TerminalFormat(true))))
 
-	fsCfg := torrentfs.DefaultConfig
+	fsCfg := params.DefaultConfig
 	utils.SetTorrentFsConfig(ctx, &fsCfg)
 	trackers := ctx.GlobalString(StorageTrackerFlag.Name)
 	boostnodes := ctx.GlobalString(StorageBoostNodesFlag.Name)

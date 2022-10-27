@@ -63,6 +63,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/inference/synapse"
 	"github.com/CortexFoundation/torrentfs"
+	params1 "github.com/CortexFoundation/torrentfs/params"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -233,28 +234,28 @@ var (
 	StoragePortFlag = cli.IntFlag{
 		Name:  "storage.port",
 		Usage: "p2p storage listening port",
-		Value: torrentfs.DefaultConfig.Port,
+		Value: params1.DefaultConfig.Port,
 	}
 
 	StorageMaxSeedingFlag = cli.IntFlag{
 		Name:  "storage.max_seeding",
 		Usage: "The maximum number of seeding tasks in the same time",
-		Value: torrentfs.DefaultConfig.MaxSeedingNum,
+		Value: params1.DefaultConfig.MaxSeedingNum,
 	}
 	StorageMaxActiveFlag = cli.IntFlag{
 		Name:  "storage.max_active",
 		Usage: "The maximum number of active tasks in the same time",
-		Value: torrentfs.DefaultConfig.MaxActiveNum,
+		Value: params1.DefaultConfig.MaxActiveNum,
 	}
 	StorageBoostNodesFlag = cli.StringFlag{
 		Name:  "storage.boostnodes",
 		Usage: "p2p storage boostnodes (EXPERIMENTAL)",
-		Value: strings.Join(torrentfs.DefaultConfig.BoostNodes, ","),
+		Value: strings.Join(params1.DefaultConfig.BoostNodes, ","),
 	}
 	StorageTrackerFlag = cli.StringFlag{
 		Name:  "storage.tracker",
 		Usage: "P2P storage tracker list",
-		Value: strings.Join(torrentfs.DefaultConfig.DefaultTrackers, ","),
+		Value: strings.Join(params1.DefaultConfig.DefaultTrackers, ","),
 	}
 	/*StorageDisableDHTFlag = cli.BoolFlag{
 		Name:  "storage.disable_dht",
@@ -1665,7 +1666,7 @@ func setDNSDiscoveryDefaults(cfg *ctxc.Config, genesis common.Hash) {
 // }
 
 // SetTorrentFsConfig applies torrentFs related command line flags to the config.
-func SetTorrentFsConfig(ctx *cli.Context, cfg *torrentfs.Config) {
+func SetTorrentFsConfig(ctx *cli.Context, cfg *params1.Config) {
 	//	cfg.Host = ctx.GlobalString(StorageAddrFlag.Name)
 	cfg.Port = ctx.GlobalInt(StoragePortFlag.Name)
 	IPCDisabled := ctx.GlobalBool(IPCDisabledFlag.Name)
@@ -1725,7 +1726,7 @@ func RegisterShhService(stack *node.Node, cfg *whisper.Config) {
 
 // RegisterStorageService adds a torrent file system to the stack.
 // func RegisterStorageService(stack *node.Node, cfg *torrentfs.Config, mode downloader.SyncMode) {
-func RegisterStorageService(stack *node.Node, cfg *torrentfs.Config) {
+func RegisterStorageService(stack *node.Node, cfg *params1.Config) {
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 		//return torrentfs.New(cfg, true, false, downloader.FastSync == mode)
 		return torrentfs.New(cfg, false, false, false)

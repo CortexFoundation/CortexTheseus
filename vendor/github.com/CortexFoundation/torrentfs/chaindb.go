@@ -62,7 +62,7 @@ type ChainDB struct {
 	leaves                []merkletree.Content
 	tree                  *merkletree.MerkleTree
 	dataDir               string
-	config                *Config
+	config                *params.Config
 	treeUpdates           time.Duration
 	metrics               bool
 
@@ -71,7 +71,7 @@ type ChainDB struct {
 	//rootCache *lru.Cache
 }
 
-func NewChainDB(config *Config) (*ChainDB, error) {
+func NewChainDB(config *params.Config) (*ChainDB, error) {
 	if err := os.MkdirAll(config.DataDir, 0777); err != nil {
 		log.Error("Make data dir failed", "err", err, "dir", config.DataDir)
 		return nil, err
@@ -95,7 +95,7 @@ func NewChainDB(config *Config) (*ChainDB, error) {
 
 	fs.config = config
 	fs.metrics = config.Metrics
-	fs.version = version
+	fs.version = params.Version
 	fs.torrents = make(map[string]uint64)
 
 	//fs.rootCache, _ = lru.New(8)

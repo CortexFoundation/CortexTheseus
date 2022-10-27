@@ -48,7 +48,7 @@ const (
 // TorrentFS contains the torrent file system internals.
 type TorrentFS struct {
 	protocol p2p.Protocol // Protocol description and parameters
-	config   *Config
+	config   *params.Config
 	monitor  *Monitor
 
 	peerMu sync.RWMutex     // Mutex to sync the active peer set
@@ -99,7 +99,7 @@ func GetStorage() CortexStorage {
 var mut sync.RWMutex
 
 // New creates a new torrentfs instance with the given configuration.
-func New(config *Config, cache, compress, listen bool) (*TorrentFS, error) {
+func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error) {
 	mut.Lock()
 	defer mut.Unlock()
 	if inst != nil {
@@ -143,13 +143,13 @@ func New(config *Config, cache, compress, listen bool) (*TorrentFS, error) {
 	inst.worm = mapset.NewSet()
 
 	inst.protocol = p2p.Protocol{
-		Name:    ProtocolName,
-		Version: uint(ProtocolVersion),
-		Length:  NumberOfMessageCodes,
+		Name:    params.ProtocolName,
+		Version: uint(params.ProtocolVersion),
+		Length:  params.NumberOfMessageCodes,
 		Run:     inst.HandlePeer,
 		NodeInfo: func() interface{} {
 			return map[string]interface{}{
-				"version": ProtocolVersion,
+				"version": params.ProtocolVersion,
 				"status": map[string]interface{}{
 					"dht":            !config.DisableDHT,
 					"tcp":            !config.DisableTCP,
@@ -241,7 +241,7 @@ func (tfs *TorrentFS) listen() {
 }
 
 func (tfs *TorrentFS) MaxMessageSize() uint32 {
-	return DefaultMaxMessageSize
+	return params.DefaultMaxMessageSize
 }
 
 func (tfs *TorrentFS) find(ih string) (*Peer, error) {
@@ -295,19 +295,19 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 			return errors.New("oversized message received")
 		}
 
-		log.Debug("Nas "+ProtocolVersionStr+" package", "size", packet.Size, "code", packet.Code)
+		log.Debug("Nas "+params.ProtocolVersionStr+" package", "size", packet.Size, "code", packet.Code)
 		tfs.received++
 
 		switch packet.Code {
-		case statusCode:
+		case params.StatusCode:
 			var info *PeerInfo
 			if err := packet.Decode(&info); err != nil {
 				log.Warn("failed to decode peer state, peer will be disconnected", "peer", p.peer.ID(), "err", err)
 				return errors.New("invalid peer state")
 			}
 			p.peerInfo = info
-		case queryCode:
-			if ProtocolVersion >= 4 {
+		case params.QueryCode:
+			if params.ProtocolVersion >= 4 {
 				var info *Query
 				if err := packet.Decode(&info); err != nil {
 					log.Warn("failed to decode msg, peer will be disconnected", "peer", p.peer.ID(), "err", err)
@@ -322,21 +322,21 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 					if progress, e := tfs.progress(info.Hash); e == nil {
 						log.Debug("Nas msg received", "ih", info.Hash, "size", common.StorageSize(float64(info.Size)), "local", common.StorageSize(float64(progress)), "pid", p.id, "queue", tfs.msg.Len(), "peers", len(tfs.peers))
 						if err := tfs.storage().Search(context.Background(), info.Hash, progress); err != nil {
-							log.Error("Nas "+ProtocolVersionStr+" error", "err", err)
+							log.Error("Nas "+params.ProtocolVersionStr+" error", "err", err)
 							return err
 						}
 					}
 					tfs.nasCounter++
 				}
 			}
-		case msgCode:
-			if ProtocolVersion > 4 {
+		case params.MsgCode:
+			if params.ProtocolVersion > 4 {
 				var info *MsgInfo
 				if err := packet.Decode(&info); err != nil {
 					log.Warn("failed to decode msg, peer will be disconnected", "peer", p.peer.ID(), "err", err)
 					return errors.New("invalid msg")
 				}
-				log.Warn("Nas msg testing", "code", msgCode, "desc", info.Desc)
+				log.Warn("Nas msg testing", "code", params.MsgCode, "desc", info.Desc)
 			}
 		default:
 			log.Warn("Encounter package code", "code", packet.Code)
@@ -371,8 +371,8 @@ func (tfs *TorrentFS) Protocols() []p2p.Protocol { return []p2p.Protocol{tfs.pro
 func (tfs *TorrentFS) APIs() []rpc.API {
 	return []rpc.API{
 		{
-			Namespace: ProtocolName,
-			Version:   ProtocolVersionStr,
+			Namespace: params.ProtocolName,
+			Version:   params.ProtocolVersionStr,
 			Service:   NewPublicTorrentAPI(tfs),
 			Public:    false,
 		},
@@ -390,7 +390,7 @@ func (tfs *TorrentFS) Start(server *p2p.Server) (err error) {
 		log.Warn("Storage fs init failed", "fs", tfs)
 		return
 	}
-	log.Info("Started nas", "config", tfs, "mode", tfs.config.Mode, "version", ProtocolVersion, "queue", tfs.msg.Len(), "peers", len(tfs.peers))
+	log.Info("Started nas", "config", tfs, "mode", tfs.config.Mode, "version", params.ProtocolVersion, "queue", tfs.msg.Len(), "peers", len(tfs.peers))
 
 	err = tfs.monitor.Start()
 	if err != nil {
@@ -402,7 +402,7 @@ func (tfs *TorrentFS) Start(server *p2p.Server) (err error) {
 		checkpoint := tfs.chain().GetRoot(395964)
 		//if len(torrents) == 0 {
 		if checkpoint == nil {
-			for k, ok := range GoodFiles {
+			for k, ok := range params.GoodFiles {
 				if ok {
 					if err := tfs.storage().Search(context.Background(), k, 0); err != nil {
 						return err
@@ -495,7 +495,7 @@ func (fs *TorrentFS) localCheck(ctx context.Context, infohash string, rawSize ui
 				defer fs.wg.Done()
 				s := fs.query(infohash, progress)
 				if s {
-					log.Debug("Nas "+ProtocolVersionStr+", restarting", "ih", infohash, "request", common.StorageSize(float64(progress)), "queue", fs.msg.Len(), "peers", len(fs.peers))
+					log.Debug("Nas "+params.ProtocolVersionStr+", restarting", "ih", infohash, "request", common.StorageSize(float64(progress)), "queue", fs.msg.Len(), "peers", len(fs.peers))
 				}
 			}()
 			if e := fs.storage().Search(ctx, infohash, progress); e == nil {
@@ -517,7 +517,7 @@ func (fs *TorrentFS) localCheck(ctx context.Context, infohash string, rawSize ui
 				defer fs.wg.Done()
 				s := fs.query(infohash, progress)
 				if s {
-					log.Debug("Nas "+ProtocolVersionStr+" query", "ih", infohash, "raw", common.StorageSize(float64(rawSize)), "finish", f, "cost", common.PrettyDuration(cost), "speed", common.StorageSize(speed), "peers", len(fs.peers), "cache", fs.nasCache.Len(), "err", err, "queue", fs.msg.Len(), "peers", len(fs.peers))
+					log.Debug("Nas "+params.ProtocolVersionStr+" query", "ih", infohash, "raw", common.StorageSize(float64(rawSize)), "finish", f, "cost", common.PrettyDuration(cost), "speed", common.StorageSize(speed), "peers", len(fs.peers), "cache", fs.nasCache.Len(), "err", err, "queue", fs.msg.Len(), "peers", len(fs.peers))
 				}
 			}()
 
@@ -748,7 +748,7 @@ func (fs *TorrentFS) download(ctx context.Context, ih string, request uint64) er
 			defer fs.wg.Done()
 			s := fs.query(ih, p)
 			if s {
-				log.Info("Nas "+ProtocolVersionStr+" tunnel", "ih", ih, "request", common.StorageSize(float64(p)), "queue", fs.msg.Len(), "peers", len(fs.peers))
+				log.Info("Nas "+params.ProtocolVersionStr+" tunnel", "ih", ih, "request", common.StorageSize(float64(p)), "queue", fs.msg.Len(), "peers", len(fs.peers))
 			}
 		}()
 

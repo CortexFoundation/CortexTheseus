@@ -22,6 +22,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
+	"github.com/CortexFoundation/torrentfs/params"
 	mapset "github.com/deckarep/golang-set"
 	"sync"
 	"time"
@@ -97,13 +98,13 @@ func (peer *Peer) expire() {
 
 func (peer *Peer) update() {
 	defer peer.wg.Done()
-	stateTicker := time.NewTicker(peerStateCycle)
+	stateTicker := time.NewTicker(params.PeerStateCycle)
 	defer stateTicker.Stop()
 
-	transmit := time.NewTicker(transmissionCycle)
+	transmit := time.NewTicker(params.TransmissionCycle)
 	defer transmit.Stop()
 
-	expire := time.NewTicker(expirationCycle)
+	expire := time.NewTicker(params.ExpirationCycle)
 	defer expire.Stop()
 
 	// Loop and transmit until termination is requested
@@ -135,7 +136,7 @@ func (peer *Peer) state() error {
 		Files:  uint64(peer.host.Congress()),
 		Leafs:  uint64(len(peer.host.chain().Blocks())),
 	}
-	if err := p2p.Send(peer.ws, statusCode, &state); err != nil {
+	if err := p2p.Send(peer.ws, params.StatusCode, &state); err != nil {
 		return err
 	}
 	return nil
@@ -169,7 +170,7 @@ func (peer *Peer) broadcast() error {
 					Size: v.Value().(uint64),
 				}
 				//log.Debug("Broadcast", "ih", k.(string), "size", v.(uint64))
-				if err := p2p.Send(peer.ws, queryCode, &query); err != nil {
+				if err := p2p.Send(peer.ws, params.QueryCode, &query); err != nil {
 					return err
 				}
 				peer.host.sent++
@@ -194,7 +195,7 @@ func (peer *Peer) calling() {
 	for {
 		select {
 		case msg := <-peer.msgChan:
-			if err := p2p.Send(peer.ws, msgCode, &msg); err != nil {
+			if err := p2p.Send(peer.ws, params.MsgCode, &msg); err != nil {
 				log.Warn("Msg sending failed", "msg", msg, "id", peer.id, "err", err)
 				return
 			}
@@ -211,15 +212,15 @@ func (peer *Peer) handshake() error {
 	peer.wg.Add(1)
 	go func() {
 		defer peer.wg.Done()
-		log.Debug("Nas send items", "status", statusCode, "version", ProtocolVersion)
+		log.Debug("Nas send items", "status", params.StatusCode, "version", params.ProtocolVersion)
 		info := PeerInfo{
 			Listen: uint64(peer.host.LocalPort()),
 			Root:   peer.host.chain().Root(),
 			Files:  uint64(peer.host.Congress()),
 			Leafs:  uint64(len(peer.host.chain().Blocks())),
 		}
-		errc <- p2p.SendItems(peer.ws, statusCode, ProtocolVersion, &info)
-		log.Debug("Nas send items OK", "status", statusCode, "version", ProtocolVersion, "len", len(errc))
+		errc <- p2p.SendItems(peer.ws, params.StatusCode, params.ProtocolVersion, &info)
+		log.Debug("Nas send items OK", "status", params.StatusCode, "version", params.ProtocolVersion, "len", len(errc))
 	}()
 	// Fetch the remote status packet and verify protocol match
 	peer.wg.Add(1)
@@ -228,7 +229,7 @@ func (peer *Peer) handshake() error {
 		errc <- peer.readStatus()
 	}()
 
-	timeout := time.NewTimer(handshakeTimeout)
+	timeout := time.NewTimer(params.HandshakeTimeout)
 	defer timeout.Stop()
 	for i := 0; i < 2; i++ {
 		select {
@@ -254,7 +255,7 @@ func (peer *Peer) readStatus() error {
 
 	defer packet.Discard()
 
-	if packet.Code != statusCode {
+	if packet.Code != params.StatusCode {
 		return fmt.Errorf("peer [%x] sent packet %x before status packet", peer.ID(), packet.Code)
 	}
 	s := rlp.NewStream(packet.Payload, uint64(packet.Size))
@@ -266,8 +267,8 @@ func (peer *Peer) readStatus() error {
 	if err != nil {
 		return fmt.Errorf("peer [%x] sent bad status message (unable to decode version): %v", peer.ID(), err)
 	}
-	if peerVersion != ProtocolVersion {
-		return fmt.Errorf("peer [%x]: protocol version mismatch %d != %d", peer.ID(), peerVersion, ProtocolVersion)
+	if peerVersion != params.ProtocolVersion {
+		return fmt.Errorf("peer [%x]: protocol version mismatch %d != %d", peer.ID(), peerVersion, params.ProtocolVersion)
 	}
 
 	err = s.Decode(&peer.peerInfo)

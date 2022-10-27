@@ -51,7 +51,7 @@ var (
 // Monitor observes the data changes on the blockchain and synchronizes.
 // cl for ipc/rpc communication, dl for download manager, and fs for data storage.
 type Monitor struct {
-	config *Config
+	config *params.Config
 	cl     *rpc.Client
 	fs     *ChainDB
 	dl     *TorrentManager
@@ -85,7 +85,7 @@ type Monitor struct {
 // Once Ipcpath is settle, this method prefers to build socket connection in order to
 // get higher communicating performance.
 // IpcPath is unavailable on windows.
-func NewMonitor(flag *Config, cache, compress, listen bool, fs *ChainDB, tMana *TorrentManager) (*Monitor, error) {
+func NewMonitor(flag *params.Config, cache, compress, listen bool, fs *ChainDB, tMana *TorrentManager) (*Monitor, error) {
 	/*fs, fsErr := NewChainDB(flag)
 	if fsErr != nil {
 		log.Error("file storage failed", "err", fsErr)
@@ -263,7 +263,7 @@ func (m *Monitor) buildConnection(ipcpath string, rpcuri string) (*rpc.Client, e
 
 	if len(ipcpath) > 0 {
 		for i := 0; i < 30; i++ {
-			time.Sleep(time.Second * queryTimeInterval * 2)
+			time.Sleep(time.Second * params.QueryTimeInterval * 2)
 			cl, err := rpc.Dial(ipcpath)
 			if err != nil {
 				log.Warn("Building internal ipc connection ... ", "ipc", ipcpath, "rpc", rpcuri, "error", err, "terminated", m.terminated)
@@ -600,7 +600,7 @@ func (m *Monitor) run() error {
 
 func (m *Monitor) syncLatestBlock() {
 	defer m.wg.Done()
-	timer := time.NewTimer(time.Second * queryTimeInterval)
+	timer := time.NewTimer(time.Second * params.QueryTimeInterval)
 	defer timer.Stop()
 	progress, counter, end := uint64(0), 0, false
 	for {
