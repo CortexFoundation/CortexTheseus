@@ -209,11 +209,11 @@ func initialize() {
 			peers = append(peers, peer)
 		}
 
-		if len(*argEnode) == 0 && len(peers) == 0 {
-			argEnode = scanLineA("Please enter the peer's enode: ")
-			peer := enode.MustParse(*argEnode)
-			peers = append(peers, peer)
-		}
+		//if len(*argEnode) == 0 && len(peers) == 0 {
+		//	argEnode = scanLineA("Please enter the peer's enode: ")
+		//	peer := enode.MustParse(*argEnode)
+		//	peers = append(peers, peer)
+		//}
 	}
 
 	if *mailServerMode {
@@ -316,7 +316,7 @@ func startServer() error {
 	} else {
 		fmt.Println("Whisper node started")
 		// first see if we can establish connection, then ask for user input
-		waitForConnection(true)
+		waitForConnection(false)
 		configureNode()
 	}
 
@@ -441,7 +441,7 @@ func run() {
 		return
 	}
 	defer server.Stop()
-	shh.Start(nil)
+	shh.Start(&p2p.Server{})
 	defer shh.Stop()
 
 	if !*forwarderMode {
