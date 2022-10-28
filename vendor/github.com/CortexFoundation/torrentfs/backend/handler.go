@@ -106,7 +106,7 @@ type TorrentManager struct {
 	DataDir           string
 	TmpDataDir        string
 	closeAll          chan struct{}
-	taskChan          chan interface{}
+	taskChan          chan any
 	lock              sync.RWMutex
 	wg                sync.WaitGroup
 	seedingChan       chan *Torrent
@@ -583,7 +583,7 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool,
 		closeAll: make(chan struct{}),
 		//initCh:              make(chan struct{}),
 		//simulate:          false,
-		taskChan:          make(chan interface{}, taskChanBuffer),
+		taskChan:          make(chan any, taskChanBuffer),
 		seedingChan:       make(chan *Torrent, torrentChanSize),
 		activeChan:        make(chan *Torrent, torrentChanSize),
 		pendingChan:       make(chan *Torrent, torrentChanSize),
@@ -746,7 +746,7 @@ func (tm *TorrentManager) commit(ctx context.Context, hex string, request uint64
 	        }()
 	}*/
 
-	task := types.FlowControlMeta{
+	task := types.BitsFlow{
 		InfoHash:       hex,
 		BytesRequested: request,
 	}
@@ -765,7 +765,7 @@ func (tm *TorrentManager) mainLoop() {
 	for {
 		select {
 		case msg := <-tm.taskChan:
-			meta := msg.(types.FlowControlMeta)
+			meta := msg.(types.BitsFlow)
 			if params.IsBad(meta.InfoHash) {
 				continue
 			}

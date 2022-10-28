@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
-package torrentfs
+package monitor
 
 import (
-	"context"
+	//"context"
 	"errors"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
@@ -80,13 +80,15 @@ type Monitor struct {
 	mode      string
 
 	lock sync.RWMutex
+
+	callback chan any
 }
 
 // NewMonitor creates a new instance of monitor.
 // Once Ipcpath is settle, this method prefers to build socket connection in order to
 // get higher communicating performance.
 // IpcPath is unavailable on windows.
-func NewMonitor(flag *params.Config, cache, compress, listen bool, fs *backend.ChainDB, tMana *backend.TorrentManager) (*Monitor, error) {
+func New(flag *params.Config, cache, compress, listen bool, fs *backend.ChainDB, tMana *backend.TorrentManager, callback chan any) (*Monitor, error) {
 	/*fs, fsErr := NewChainDB(flag)
 	if fsErr != nil {
 		log.Error("file storage failed", "err", fsErr)
@@ -117,6 +119,7 @@ func NewMonitor(flag *params.Config, cache, compress, listen bool, fs *backend.C
 	m.blockCache, _ = lru.New(delay)
 	m.sizeCache, _ = lru.New(batch)
 	m.listen = listen
+	m.callback = callback
 
 	if err := m.dl.Start(); err != nil {
 		log.Warn("Fs start error")
@@ -142,13 +145,27 @@ func NewMonitor(flag *params.Config, cache, compress, listen bool, fs *backend.C
 	return m, nil
 }
 
+func (m *Monitor) DL() *backend.TorrentManager {
+	return m.dl
+}
+
+func (m *Monitor) DB() *backend.ChainDB {
+	return m.fs
+}
+
+func (m *Monitor) CurrentNumber() uint64 {
+	return m.currentNumber
+}
+
 func (m *Monitor) loadHistory() error {
 	torrents, _ := m.fs.InitTorrents()
 	if m.mode != params.LAZY {
 		for k, v := range torrents {
-			if err := GetStorage().Download(context.Background(), k, v); err != nil {
-				return err
-			}
+			//if err := GetStorage().Download(context.Background(), k, v); err != nil {
+			//	return err
+			//}
+
+			m.download(k, v)
 		}
 	}
 
@@ -160,6 +177,16 @@ func (m *Monitor) loadHistory() error {
 	}
 
 	return nil
+}
+
+func (m *Monitor) download(k string, v uint64) {
+	if m.mode != params.LAZY {
+		task := types.BitsFlow{
+			InfoHash:       k,
+			BytesRequested: v,
+		}
+		m.callback <- task
+	}
 }
 
 func (m *Monitor) indexCheck() error {
@@ -220,9 +247,11 @@ func (m *Monitor) indexInit() error {
 		//	if m.mode != params.LAZY {
 		//		log.Debug("Search in sync parse download", "ih", file.Meta.InfoHash, "request", p)
 		//m.dl.Search(context.Background(), file.Meta.InfoHash, p)
-		GetStorage().Download(context.Background(), file.Meta.InfoHash, bytesRequested)
+		//GetStorage().Download(context.Background(), file.Meta.InfoHash, bytesRequested)
 		//	}
 		//}
+
+		m.download(file.Meta.InfoHash, bytesRequested)
 		if file.LeftSize == 0 {
 			seed++
 		} else if file.Meta.RawSize == file.LeftSize && file.LeftSize > 0 {
@@ -390,9 +419,11 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta, b *
 		//	if m.mode != params.LAZY {
 		//		log.Debug("Search in sync parse create", "ih", meta.InfoHash, "request", p)
 		//m.dl.Search(context.Background(), meta.InfoHash, p)
-		GetStorage().Download(context.Background(), meta.InfoHash, 0)
+		//GetStorage().Download(context.Background(), meta.InfoHash, 0)
 		//	}
 		//}
+
+		m.download(meta.InfoHash, 0)
 	}
 	return nil
 }
@@ -452,13 +483,15 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 						//if u, p, err := m.fs.SetTorrentProgress(file.Meta.InfoHash, bytesRequested); u && err == nil {
 						//if m.mode != params.LAZY {
 						//m.dl.Search(context.Background(), file.Meta.InfoHash, p)
-						GetStorage().Download(context.Background(), file.Meta.InfoHash, bytesRequested)
+						//				GetStorage().Download(context.Background(), file.Meta.InfoHash, bytesRequested)
 						//}
 						//}
 						//m.dl.UpdateTorrent(context.Background(), types.FlowControlMeta{
 						//	InfoHash:       file.Meta.InfoHash,
 						//	BytesRequested: bytesRequested,
 						//})
+
+						m.download(file.Meta.InfoHash, bytesRequested)
 					}
 				}
 
@@ -496,9 +529,9 @@ func (m *Monitor) exit() {
 	})
 }
 
-func (m *Monitor) stop() {
-	//m.lock.Lock()
-	//defer m.lock.Unlock()
+func (m *Monitor) Stop() {
+	m.lock.Lock()
+	defer m.lock.Unlock()
 	//m.closeOnce.Do(func() {
 	if atomic.LoadInt32(&(m.terminated)) == 1 {
 		return

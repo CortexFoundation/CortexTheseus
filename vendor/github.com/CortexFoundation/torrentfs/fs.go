@@ -32,7 +32,9 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/CortexFoundation/torrentfs/backend"
+	"github.com/CortexFoundation/torrentfs/monitor"
 	"github.com/CortexFoundation/torrentfs/params"
+	"github.com/CortexFoundation/torrentfs/types"
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/metainfo"
 	mapset "github.com/deckarep/golang-set"
@@ -50,7 +52,7 @@ const (
 type TorrentFS struct {
 	protocol p2p.Protocol // Protocol description and parameters
 	config   *params.Config
-	monitor  *Monitor
+	monitor  *monitor.Monitor
 
 	peerMu sync.RWMutex     // Mutex to sync the active peer set
 	peers  map[string]*Peer // Set of currently active peers
@@ -74,14 +76,16 @@ type TorrentFS struct {
 	worm          mapset.Set
 
 	msg *ttlmap.Map
+
+	callback chan any
 }
 
 func (t *TorrentFS) storage() *backend.TorrentManager {
-	return t.monitor.dl
+	return t.monitor.DL()
 }
 
 func (t *TorrentFS) chain() *backend.ChainDB {
-	return t.monitor.fs
+	return t.monitor.DB()
 }
 
 var inst *TorrentFS = nil
@@ -122,7 +126,8 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 	}
 	log.Info("Fs manager initialized")
 
-	monitor, moErr := NewMonitor(config, cache, compress, listen, db, handler)
+	_callback := make(chan any, 32)
+	monitor, moErr := monitor.New(config, cache, compress, listen, db, handler, _callback)
 	if moErr != nil {
 		log.Error("Failed create monitor")
 		return nil, moErr
@@ -136,6 +141,7 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 	}
 
 	inst.nasCache, _ = lru.New(32)
+	inst.callback = _callback
 	//inst.queryCache, _ = lru.New(25)
 
 	inst.scoreTable = make(map[string]int)
@@ -148,10 +154,10 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 		Version: uint(params.ProtocolVersion),
 		Length:  params.NumberOfMessageCodes,
 		Run:     inst.HandlePeer,
-		NodeInfo: func() interface{} {
-			return map[string]interface{}{
+		NodeInfo: func() any {
+			return map[string]any{
 				"version": params.ProtocolVersion,
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"dht":            !config.DisableDHT,
 					"tcp":            !config.DisableTCP,
 					"utp":            !config.DisableUTP,
@@ -161,7 +167,7 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 					"active":         inst.Candidate(),
 					"nominee":        inst.Nominee(),
 					"leafs":          len(inst.chain().Blocks()),
-					"number":         monitor.currentNumber,
+					"number":         monitor.CurrentNumber(),
 					"maxMessageSize": inst.MaxMessageSize(),
 					//					"listen":         monitor.listen,
 					"metrics":    inst.NasCounter(),
@@ -172,12 +178,12 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 				"score": inst.scoreTable,
 			}
 		},
-		PeerInfo: func(id enode.ID) interface{} {
+		PeerInfo: func(id enode.ID) any {
 			inst.peerMu.RLock()
 			defer inst.peerMu.RUnlock()
 			if p := inst.peers[fmt.Sprintf("%x", id[:8])]; p != nil {
 				if p.Info() != nil {
-					return map[string]interface{}{
+					return map[string]any{
 						"version": p.version,
 						"listen":  p.Info().Listen,
 						"root":    p.Info().Root.Hex(),
@@ -186,7 +192,7 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 					}
 				} else {
 
-					return map[string]interface{}{
+					return map[string]any{
 						"version": p.version,
 					}
 				}
@@ -209,8 +215,8 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 
 	inst.closeAll = make(chan struct{})
 
-	//inst.wg.Add(1)
-	//go inst.listen()
+	inst.wg.Add(1)
+	go inst.listen()
 	//inst.wg.Add(1)
 	//go inst.process()
 
@@ -233,8 +239,9 @@ func (tfs *TorrentFS) listen() {
 	defer tfs.wg.Done()
 	for {
 		select {
-		case s := <-tfs.seedingNotify:
-			tfs.notify(s)
+		case msg := <-tfs.callback:
+			meta := msg.(types.BitsFlow)
+			tfs.download(context.Background(), meta.InfoHash, meta.BytesRequested)
 		case <-tfs.closeAll:
 			return
 		}
@@ -433,9 +440,9 @@ func (tfs *TorrentFS) Stop() error {
 	tfs.wg.Wait()
 
 	// Wait until every goroutine terminates.
-	tfs.monitor.lock.Lock()
-	tfs.monitor.stop()
-	tfs.monitor.lock.Unlock()
+	//tfs.monitor.lock.Lock()
+	tfs.monitor.Stop()
+	//tfs.monitor.lock.Unlock()
 
 	if tfs.nasCache != nil {
 		tfs.nasCache.Purge()

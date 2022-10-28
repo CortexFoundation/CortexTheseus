@@ -40,7 +40,7 @@ type Peer struct {
 	version  uint64
 	peerInfo *PeerInfo
 
-	msgChan chan interface{}
+	msgChan chan any
 	seeding mapset.Set
 }
 
@@ -64,7 +64,7 @@ func newPeer(id string, host *TorrentFS, remote *p2p.Peer, rw p2p.MsgReadWriter)
 		known:   mapset.NewSet(),
 		trusted: false,
 		quit:    make(chan struct{}),
-		msgChan: make(chan interface{}, 10),
+		msgChan: make(chan any, 10),
 		seeding: mapset.NewSet(),
 	}
 	return &p
@@ -84,7 +84,7 @@ func (peer *Peer) start() error {
 
 func (peer *Peer) expire() {
 	unmark := make(map[string]struct{})
-	peer.known.Each(func(k interface{}) bool {
+	peer.known.Each(func(k any) bool {
 		if _, ok := peer.host.Envelopes().Get(k.(string)); ok != nil {
 			unmark[k.(string)] = struct{}{}
 		}
@@ -186,7 +186,7 @@ func (peer *Peer) broadcast() error {
 	return nil
 }
 
-func (peer *Peer) call(msg interface{}) {
+func (peer *Peer) call(msg any) {
 	peer.msgChan <- msg
 }
 
