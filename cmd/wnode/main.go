@@ -209,11 +209,16 @@ func initialize() {
 			peers = append(peers, peer)
 		}
 
-		//if len(*argEnode) == 0 && len(peers) == 0 {
-		//	argEnode = scanLineA("Please enter the peer's enode: ")
-		//	peer := enode.MustParse(*argEnode)
-		//	peers = append(peers, peer)
-		//}
+		if len(*argEnode) > 0 {
+			peer := enode.MustParse(*argEnode)
+			peers = append(peers, peer)
+		}
+
+		if len(peers) == 0 {
+			argEnode = scanLineA("Please enter the peer's enode: ")
+			peer := enode.MustParse(*argEnode)
+			peers = append(peers, peer)
+		}
 	}
 
 	if *mailServerMode {
