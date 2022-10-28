@@ -138,7 +138,7 @@ func (tx *Transaction) DecodeRLP(s *rlp.Stream) error {
 	_, size, _ := s.Kind()
 	err := s.Decode(&tx.data)
 	if err == nil {
-		tx.size.Store(common.StorageSize(rlp.ListSize(size)))
+		tx.size.Store(rlp.ListSize(size))
 		tx.time = time.Now()
 	}
 	return err
@@ -208,14 +208,14 @@ func (tx *Transaction) Hash() common.Hash {
 
 // Size returns the true RLP encoded storage size of the transaction, either by
 // encoding and returning it, or returning a previsouly cached value.
-func (tx *Transaction) Size() common.StorageSize {
+func (tx *Transaction) Size() uint64 {
 	if size := tx.size.Load(); size != nil {
-		return size.(common.StorageSize)
+		return size.(uint64)
 	}
 	c := writeCounter(0)
 	rlp.Encode(&c, &tx.data)
-	tx.size.Store(common.StorageSize(c))
-	return common.StorageSize(c)
+	tx.size.Store(uint64(c))
+	return uint64(c)
 }
 
 // AsMessage returns the transaction as a core.Message.

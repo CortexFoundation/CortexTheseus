@@ -25,6 +25,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
 	"github.com/CortexFoundation/CortexTheseus/core"
+	"github.com/CortexFoundation/CortexTheseus/core/txpool"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/gasprice"
 	"github.com/CortexFoundation/CortexTheseus/miner"
@@ -64,7 +65,7 @@ var DefaultConfig = Config{
 		Recommit: 3 * time.Second,
 	},
 
-	TxPool:      core.DefaultTxPoolConfig,
+	TxPool:      txpool.DefaultConfig,
 	RPCGasCap:   50000000,
 	GPO:         DefaultFullGPOConfig,
 	RPCTxFeeCap: 1, // 1 ctxc
@@ -122,7 +123,7 @@ type Config struct {
 	Cuckoo cuckoo.Config
 
 	// Transaction pool options
-	TxPool core.TxPoolConfig
+	TxPool txpool.Config
 
 	// Gas Price Oracle options
 	GPO gasprice.Config
