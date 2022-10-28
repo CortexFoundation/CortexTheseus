@@ -25,6 +25,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
+	"github.com/CortexFoundation/torrentfs/backend"
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
 	lru "github.com/hashicorp/golang-lru"
@@ -53,8 +54,8 @@ var (
 type Monitor struct {
 	config *params.Config
 	cl     *rpc.Client
-	fs     *ChainDB
-	dl     *TorrentManager
+	fs     *backend.ChainDB
+	dl     *backend.TorrentManager
 
 	exitCh        chan struct{}
 	terminated    int32
@@ -85,7 +86,7 @@ type Monitor struct {
 // Once Ipcpath is settle, this method prefers to build socket connection in order to
 // get higher communicating performance.
 // IpcPath is unavailable on windows.
-func NewMonitor(flag *params.Config, cache, compress, listen bool, fs *ChainDB, tMana *TorrentManager) (*Monitor, error) {
+func NewMonitor(flag *params.Config, cache, compress, listen bool, fs *backend.ChainDB, tMana *backend.TorrentManager) (*Monitor, error) {
 	/*fs, fsErr := NewChainDB(flag)
 	if fsErr != nil {
 		log.Error("file storage failed", "err", fsErr)
@@ -142,7 +143,7 @@ func NewMonitor(flag *params.Config, cache, compress, listen bool, fs *ChainDB, 
 }
 
 func (m *Monitor) loadHistory() error {
-	torrents, _ := m.fs.initTorrents()
+	torrents, _ := m.fs.InitTorrents()
 	if m.mode != params.LAZY {
 		for k, v := range torrents {
 			if err := GetStorage().Download(context.Background(), k, v); err != nil {
@@ -638,7 +639,7 @@ func (m *Monitor) syncLatestBlock() {
 			}
 			counter++
 			if counter%10 == 0 {
-				log.Info(ProgressBar(int64(m.lastNumber), int64(m.currentNumber), ""), "blocks", progress, "current", m.currentNumber, "latest", m.lastNumber, "end", end, "txs", m.fs.Txs())
+				log.Info(backend.ProgressBar(int64(m.lastNumber), int64(m.currentNumber), ""), "blocks", progress, "current", m.currentNumber, "latest", m.lastNumber, "end", end, "txs", m.fs.Txs())
 				counter = 0
 			}
 			m.fs.Flush()
@@ -797,7 +798,7 @@ func (m *Monitor) solve(block *types.Block) error {
 	if i%65536 == 0 {
 		defer func() {
 			elapsedA := time.Duration(mclock.Now()) - time.Duration(m.start)
-			log.Info(ProgressBar(int64(i), int64(m.currentNumber), ""), "start", m.startNumber, "max", uint64(m.currentNumber), "last", m.lastNumber, "cur", i, "bps", math.Abs(float64(i)-float64(m.startNumber))*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA), "scope", m.scope, "db", common.PrettyDuration(m.fs.Metrics()), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "root", m.fs.Root())
+			log.Info(backend.ProgressBar(int64(i), int64(m.currentNumber), ""), "start", m.startNumber, "max", uint64(m.currentNumber), "last", m.lastNumber, "cur", i, "bps", math.Abs(float64(i)-float64(m.startNumber))*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA), "scope", m.scope, "db", common.PrettyDuration(m.fs.Metrics()), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "root", m.fs.Root())
 			m.fs.SkipPrint()
 		}()
 	}

@@ -31,6 +31,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
+	"github.com/CortexFoundation/torrentfs/backend"
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/metainfo"
@@ -75,11 +76,11 @@ type TorrentFS struct {
 	msg *ttlmap.Map
 }
 
-func (t *TorrentFS) storage() *TorrentManager {
+func (t *TorrentFS) storage() *backend.TorrentManager {
 	return t.monitor.dl
 }
 
-func (t *TorrentFS) chain() *ChainDB {
+func (t *TorrentFS) chain() *backend.ChainDB {
 	return t.monitor.fs
 }
 
@@ -107,14 +108,14 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 		return inst, nil
 	}
 
-	db, fsErr := NewChainDB(config)
+	db, fsErr := backend.NewChainDB(config)
 	if fsErr != nil {
 		log.Error("file storage failed", "err", fsErr)
 		return nil, fsErr
 	}
 	log.Info("File storage initialized")
 
-	handler, err := NewTorrentManager(config, db.ID(), cache, compress, nil)
+	handler, err := backend.NewTorrentManager(config, db.ID(), cache, compress, nil)
 	if err != nil || handler == nil {
 		log.Error("fs manager failed")
 		return nil, errors.New("fs download manager initialise failed")
@@ -347,7 +348,7 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 }
 
 func (tfs *TorrentFS) progress(ih string) (uint64, error) {
-	return tfs.chain().getTorrentProgress(ih)
+	return tfs.chain().GetTorrentProgress(ih)
 }
 
 func (tfs *TorrentFS) score(ih string) bool {
@@ -483,11 +484,11 @@ func (fs *TorrentFS) notify(infohash string) bool {
 
 // Available is used to check the file status
 func (fs *TorrentFS) localCheck(ctx context.Context, infohash string, rawSize uint64) (bool, error) {
-	ret, f, cost, err := fs.storage().available(infohash, rawSize)
+	ret, f, cost, err := fs.storage().Available(infohash, rawSize)
 
 	//if fs.config.Mode == params.LAZY {
 	switch {
-	case errors.Is(err, ErrInactiveTorrent):
+	case errors.Is(err, backend.ErrInactiveTorrent):
 		if progress, e := fs.progress(infohash); e == nil {
 			//fs.seedingNotify <- infohash
 			fs.wg.Add(1)
@@ -504,7 +505,7 @@ func (fs *TorrentFS) localCheck(ctx context.Context, infohash string, rawSize ui
 		} else {
 			log.Warn("Try to read unregister file", "ih", infohash, "size", common.StorageSize(float64(rawSize)), "err", e)
 		}
-	case errors.Is(err, ErrUnfinished) || errors.Is(err, ErrTorrentNotFound):
+	case errors.Is(err, backend.ErrUnfinished) || errors.Is(err, backend.ErrTorrentNotFound):
 		if progress, e := fs.progress(infohash); e == nil {
 			var speed float64
 			if cost > 0 {
@@ -549,7 +550,7 @@ func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSi
 		fs.worm.Add(infohash)
 	}*/
 
-	if ret, _, err := fs.storage().getFile(infohash, subpath); err != nil {
+	if ret, _, err := fs.storage().GetFile(infohash, subpath); err != nil {
 		//log.Warn("Get file failed", "ih", infohash, "size", rawSize, "path", subpath, "err", err)
 		if ok, err := fs.localCheck(ctx, infohash, rawSize); err != nil || !ok {
 			log.Debug("Get file failed", "ih", infohash, "size", rawSize, "path", subpath, "err", err)
@@ -696,7 +697,7 @@ func (fs *TorrentFS) SeedingLocal(ctx context.Context, filePath string, isLinkMo
 		log.Debug("SeedingLocal", "dest", linkDst, "err", err)
 		err = fs.storage().Search(context.Background(), ih.Hex(), 0)
 		if err == nil {
-			fs.storage().addLocalSeedFile(infoHash)
+			fs.storage().AddLocalSeedFile(infoHash)
 		}
 	}
 
@@ -705,17 +706,17 @@ func (fs *TorrentFS) SeedingLocal(ctx context.Context, filePath string, isLinkMo
 
 // PauseSeeding Local File
 func (fs *TorrentFS) PauseLocalSeed(ctx context.Context, ih string) error {
-	return fs.storage().pauseLocalSeedFile(ih)
+	return fs.storage().PauseLocalSeedFile(ih)
 }
 
 // ResumeSeeding Local File
 func (fs *TorrentFS) ResumeLocalSeed(ctx context.Context, ih string) error {
-	return fs.storage().resumeLocalSeedFile(ih)
+	return fs.storage().ResumeLocalSeedFile(ih)
 }
 
 // List All Torrents Status (read-only)
 func (fs *TorrentFS) ListAllTorrents(ctx context.Context) map[string]map[string]int {
-	return fs.storage().listAllTorrents()
+	return fs.storage().ListAllTorrents()
 }
 
 func (fs *TorrentFS) Tunnel(ctx context.Context, ih string) error {
@@ -735,7 +736,7 @@ func (fs *TorrentFS) Drop(ih string) error {
 // Download is used to download file with request
 func (fs *TorrentFS) download(ctx context.Context, ih string, request uint64) error {
 	ih = strings.ToLower(ih)
-	update, p, err := fs.chain().setTorrentProgress(ih, request)
+	update, p, err := fs.chain().SetTorrentProgress(ih, request)
 	if err != nil {
 		return err
 	}
@@ -803,7 +804,7 @@ func (fs *TorrentFS) Congress() int {
 	return fs.storage().Congress()
 }
 
-func (fs *TorrentFS) FullSeed() map[string]*Torrent {
+func (fs *TorrentFS) FullSeed() map[string]*backend.Torrent {
 	return fs.storage().FullSeed()
 }
 

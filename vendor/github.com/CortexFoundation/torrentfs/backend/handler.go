@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
-package torrentfs
+package backend
 
 import (
 	"bytes"
@@ -144,7 +144,7 @@ type TorrentManager struct {
 }
 
 // can only call by fs.go: 'SeedingLocal()'
-func (tm *TorrentManager) addLocalSeedFile(ih string) bool {
+func (tm *TorrentManager) AddLocalSeedFile(ih string) bool {
 	if !common.IsHexAddress(ih) {
 		return false
 	}
@@ -162,7 +162,7 @@ func (tm *TorrentManager) addLocalSeedFile(ih string) bool {
 }
 
 // only files in map:localSeedFile can be paused!
-func (tm *TorrentManager) pauseLocalSeedFile(ih string) error {
+func (tm *TorrentManager) PauseLocalSeedFile(ih string) error {
 	if !common.IsHexAddress(ih) {
 		return errors.New("invalid infohash format")
 	}
@@ -189,7 +189,7 @@ func (tm *TorrentManager) pauseLocalSeedFile(ih string) error {
 }
 
 // only files in map:localSeedFile can be resumed!
-func (tm *TorrentManager) resumeLocalSeedFile(ih string) error {
+func (tm *TorrentManager) ResumeLocalSeedFile(ih string) error {
 	if !common.IsHexAddress(ih) {
 		return errors.New("invalid infohash format")
 	}
@@ -217,7 +217,7 @@ func (tm *TorrentManager) resumeLocalSeedFile(ih string) error {
 
 // divide localSeed/on-chain Files
 // return status of torrents
-func (tm *TorrentManager) listAllTorrents() map[string]map[string]int {
+func (tm *TorrentManager) ListAllTorrents() map[string]map[string]int {
 	tm.lock.RLock()
 	tm.localSeedLock.RLock()
 	defer tm.lock.RUnlock()
@@ -1059,7 +1059,7 @@ func (tm *TorrentManager) Drop(ih string) error {
 		return nil
 	}
 */
-func (tm *TorrentManager) available(ih string, rawSize uint64) (bool, uint64, mclock.AbsTime, error) {
+func (tm *TorrentManager) Available(ih string, rawSize uint64) (bool, uint64, mclock.AbsTime, error) {
 	availableMeter.Mark(1)
 	if rawSize <= 0 {
 		return false, 0, 0, errors.New("raw size is zero or negative")
@@ -1098,7 +1098,7 @@ func (tm *TorrentManager) available(ih string, rawSize uint64) (bool, uint64, mc
 	}
 }
 
-func (tm *TorrentManager) getFile(infohash, subpath string) ([]byte, uint64, error) {
+func (tm *TorrentManager) GetFile(infohash, subpath string) ([]byte, uint64, error) {
 	getfileMeter.Mark(1)
 	if tm.metrics {
 		defer func(start time.Time) { tm.Updates += time.Since(start) }(time.Now())
