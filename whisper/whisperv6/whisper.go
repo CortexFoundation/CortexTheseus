@@ -143,10 +143,13 @@ func New(cfg *Config) *Whisper {
 		},
 	}
 	//add dns discovery to whisper
-	client := dnsdisc.NewClient(dnsdisc.Config{})
-	s, err := client.NewIterator([]string{params.KnownDNSNetwork(params.MainnetGenesisHash, "all")}...)
-	if err == nil {
-		whisper.protocol.DialCandidates = s
+	if whisper.protocol.DialCandidates == nil {
+		log.Info("Whisper dial candidates", "version", ProtocolVersionStr)
+		client := dnsdisc.NewClient(dnsdisc.Config{})
+		s, err := client.NewIterator([]string{params.KnownDNSNetwork(params.MainnetGenesisHash, "all")}...)
+		if err == nil {
+			whisper.protocol.DialCandidates = s
+		}
 	}
 
 	return whisper
