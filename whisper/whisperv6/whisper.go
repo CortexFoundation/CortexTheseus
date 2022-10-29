@@ -31,6 +31,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/p2p/dnsdisc"
+	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
@@ -131,6 +132,14 @@ func New(cfg *Config) *Whisper {
 				"maxMessageSize": whisper.MaxMessageSize(),
 				"minimumPoW":     whisper.MinPow(),
 			}
+		},
+		PeerInfo: func(id enode.ID) any {
+			if p, _ := whisper.getPeer(id[:]); p != nil {
+				return map[string]any{
+					"version": ProtocolVersion,
+				}
+			}
+			return nil
 		},
 	}
 	//add dns discovery to whisper
