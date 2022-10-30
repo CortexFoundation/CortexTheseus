@@ -252,8 +252,8 @@ func (tfs *TorrentFS) listen() {
 	for {
 		select {
 		case msg := <-tfs.callback:
-			meta := msg.(types.BitsFlow)
-			tfs.download(context.Background(), meta.InfoHash, meta.BytesRequested)
+			meta := msg.(*types.BitsFlow)
+			tfs.download(context.Background(), meta.InfoHash(), meta.Request())
 		case <-tfs.closeAll:
 			return
 		}

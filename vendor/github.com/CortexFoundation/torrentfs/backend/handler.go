@@ -746,10 +746,10 @@ func (tm *TorrentManager) commit(ctx context.Context, hex string, request uint64
 	        }()
 	}*/
 
-	task := types.BitsFlow{
-		InfoHash:       hex,
-		BytesRequested: request,
-	}
+	task := types.NewBitsFlow(hex, request) /*types.BitsFlow{
+		infohash: hex,
+		request:  request,
+	}*/
 	select {
 	case tm.taskChan <- task:
 	case <-ctx.Done():
@@ -765,18 +765,18 @@ func (tm *TorrentManager) mainLoop() {
 	for {
 		select {
 		case msg := <-tm.taskChan:
-			meta := msg.(types.BitsFlow)
-			if params.IsBad(meta.InfoHash) {
+			meta := msg.(*types.BitsFlow)
+			if params.IsBad(meta.InfoHash()) {
 				continue
 			}
 
-			bytes = int64(meta.BytesRequested)
+			bytes = int64(meta.Request())
 			if bytes == 0 {
 				bytes = block
 			}
 
-			if t := tm.addInfoHash(meta.InfoHash, bytes); t == nil {
-				log.Error("Seed [create] failed", "ih", meta.InfoHash, "request", bytes)
+			if t := tm.addInfoHash(meta.InfoHash(), bytes); t == nil {
+				log.Error("Seed [create] failed", "ih", meta.InfoHash(), "request", bytes)
 			}
 		case <-tm.closeAll:
 			return

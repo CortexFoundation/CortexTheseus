@@ -57,8 +57,8 @@ type ChainDB struct {
 	version           string
 
 	id                    uint64
-	CheckPoint            uint64
-	LastListenBlockNumber uint64
+	checkPoint            uint64
+	lastListenBlockNumber uint64
 	leaves                []merkletree.Content
 	tree                  *merkletree.MerkleTree
 	dataDir               string
@@ -153,8 +153,8 @@ func (fs *ChainDB) Txs() uint64 {
 
 func (fs *ChainDB) Reset() error {
 	fs.blocks = nil
-	fs.CheckPoint = 0
-	fs.LastListenBlockNumber = 0
+	fs.checkPoint = 0
+	fs.lastListenBlockNumber = 0
 	if err := fs.initMerkleTree(); err != nil {
 		return errors.New("err storage reset")
 	}
@@ -185,7 +185,7 @@ func (fs *ChainDB) initMerkleTree() error {
 		}
 	}
 
-	log.Info("Storage merkletree initialization", "root", hexutil.Encode(fs.tree.MerkleRoot()), "number", fs.LastListenBlockNumber, "checkpoint", fs.CheckPoint, "version", fs.version, "len", len(fs.blocks))
+	log.Info("Storage merkletree initialization", "root", hexutil.Encode(fs.tree.MerkleRoot()), "number", fs.lastListenBlockNumber, "checkpoint", fs.checkPoint, "version", fs.version, "len", len(fs.blocks))
 
 	return nil
 }
@@ -205,14 +205,14 @@ func (fs *ChainDB) addLeaf(block *types.Block, mes bool, dup bool) error {
 			fs.leaves = append(fs.leaves, leaf)
 		}
 	} else {
-		log.Debug("Node is already in the tree", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.CheckPoint, "mes", mes, "dup", dup, "err", e)
+		log.Debug("Node is already in the tree", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.checkPoint, "mes", mes, "dup", dup, "err", e)
 		if !mes {
 			return nil
 		}
 	}
 
 	if mes {
-		log.Debug("Messing", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.CheckPoint, "mes", mes, "dup", dup)
+		log.Debug("Messing", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.checkPoint, "mes", mes, "dup", dup)
 		sort.Slice(fs.leaves, func(i, j int) bool {
 			return fs.leaves[i].(merkletree.BlockContent).N() < fs.leaves[j].(merkletree.BlockContent).N()
 		})
@@ -223,7 +223,7 @@ func (fs *ChainDB) addLeaf(block *types.Block, mes bool, dup bool) error {
 			i = len(fs.leaves)
 		}
 
-		log.Warn("Messing solved", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.CheckPoint, "mes", mes, "dup", dup, "i", i)
+		log.Warn("Messing solved", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.checkPoint, "mes", mes, "dup", dup, "i", i)
 
 		if err := fs.tree.RebuildTreeWith(fs.leaves[0:i]); err != nil {
 			return err
@@ -233,8 +233,8 @@ func (fs *ChainDB) addLeaf(block *types.Block, mes bool, dup bool) error {
 		if err := fs.tree.AddNode(leaf); err != nil {
 			return err
 		}
-		if number > fs.CheckPoint {
-			fs.CheckPoint = number
+		if number > fs.checkPoint {
+			fs.checkPoint = number
 		}
 	}
 
@@ -289,8 +289,7 @@ func (fs *ChainDB) GetFileByAddr(addr common.Address) *types.FileInfo {
 
 func (fs *ChainDB) Close() error {
 	defer fs.db.Close()
-	//fs.writeCheckPoint()
-	log.Info("File DB Closed", "database", fs.db.Path(), "last", fs.LastListenBlockNumber)
+	log.Info("File DB Closed", "database", fs.db.Path(), "last", fs.lastListenBlockNumber)
 	return fs.Flush()
 }
 
@@ -439,7 +438,7 @@ func (fs *ChainDB) AddBlock(b *types.Block) error {
 		fs.blocks = append(fs.blocks, b)
 		fs.txs += uint64(len(b.Txs))
 		mes := false
-		if b.Number < fs.CheckPoint {
+		if b.Number < fs.checkPoint {
 			mes = true
 		}
 
@@ -447,8 +446,8 @@ func (fs *ChainDB) AddBlock(b *types.Block) error {
 	} else {
 		return err
 	}
-	if b.Number > fs.LastListenBlockNumber {
-		fs.LastListenBlockNumber = b.Number
+	if b.Number > fs.lastListenBlockNumber {
+		fs.lastListenBlockNumber = b.Number
 		if err := fs.Flush(); err != nil {
 			return err
 		}
@@ -624,7 +623,7 @@ func (fs *ChainDB) initBlockNumber() error {
 			return err
 		}
 
-		fs.LastListenBlockNumber = number
+		fs.lastListenBlockNumber = number
 		log.Info("Start from block number (default:0)", "num", number)
 
 		return nil
@@ -691,8 +690,8 @@ func (fs *ChainDB) Flush() error {
 		if err != nil {
 			return err
 		}
-		log.Trace("Write block number", "num", fs.LastListenBlockNumber)
-		e := buk.Put([]byte("key"), []byte(strconv.FormatUint(fs.LastListenBlockNumber, 16)))
+		log.Trace("Write block number", "num", fs.lastListenBlockNumber)
+		e := buk.Put([]byte("key"), []byte(strconv.FormatUint(fs.lastListenBlockNumber, 16)))
 
 		return e
 	})
@@ -713,8 +712,8 @@ func (fs *ChainDB) SkipPrint() {
 		//fmt.Println(b.Number, ":true,")
 	}
 
-	if fs.LastListenBlockNumber-from > 1000 {
-		str = str + "{From:" + strconv.FormatUint(from, 10) + ",To:" + strconv.FormatUint(fs.LastListenBlockNumber, 10) + "},"
+	if fs.lastListenBlockNumber-from > 1000 {
+		str = str + "{From:" + strconv.FormatUint(from, 10) + ",To:" + strconv.FormatUint(fs.lastListenBlockNumber, 10) + "},"
 	}
 
 	//log.Info("Skip chart", "skips", str)
@@ -827,4 +826,16 @@ func (fs *ChainDB) InitTorrents() (map[string]uint64, error) {
 		return nil, err
 	}
 	return fs.torrents, nil
+}
+
+func (fs *ChainDB) CheckPoint() uint64 {
+	return fs.checkPoint
+}
+
+func (fs *ChainDB) LastListenBlockNumber() uint64 {
+	return fs.lastListenBlockNumber
+}
+
+func (fs *ChainDB) Anchor(n uint64) {
+	fs.lastListenBlockNumber = n
 }

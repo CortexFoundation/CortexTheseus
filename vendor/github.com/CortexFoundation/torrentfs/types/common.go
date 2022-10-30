@@ -174,7 +174,22 @@ type FileMeta struct {
 //}
 
 type BitsFlow struct {
-	InfoHash       string
-	BytesRequested uint64
+	infohash string
+	request  uint64
 	//IsCreate       bool
+}
+
+func (b *BitsFlow) InfoHash() string {
+	return b.infohash
+}
+
+func (b *BitsFlow) Request() uint64 {
+	return b.request
+}
+
+func NewBitsFlow(ih string, request uint64) *BitsFlow {
+	return &BitsFlow{
+		infohash: ih,
+		request:  request,
+	}
 }

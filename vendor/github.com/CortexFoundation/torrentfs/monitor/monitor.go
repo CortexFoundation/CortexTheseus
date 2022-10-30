@@ -181,16 +181,16 @@ func (m *Monitor) loadHistory() error {
 
 func (m *Monitor) download(k string, v uint64) {
 	if m.mode != params.LAZY {
-		task := types.BitsFlow{
-			InfoHash:       k,
-			BytesRequested: v,
-		}
+		task := types.NewBitsFlow(k, v) /*types.BitsFlow{
+			infohash: k,
+			request:  v,
+		}*/
 		m.callback <- task
 	}
 }
 
 func (m *Monitor) indexCheck() error {
-	log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber, "checkpoint", m.fs.CheckPoint, "root", m.fs.Root(), "version", m.fs.Version(), "current", m.currentNumber)
+	log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber(), "checkpoint", m.fs.CheckPoint(), "root", m.fs.Root(), "version", m.fs.Version(), "current", m.currentNumber)
 	genesis, err := m.rpcBlockByNumber(0)
 	if err != nil {
 		return err
@@ -205,13 +205,14 @@ func (m *Monitor) indexCheck() error {
 			m.lastNumber = 0
 			m.startNumber = 0
 			if m.lastNumber > checkpoint.TfsCheckPoint {
-				m.fs.LastListenBlockNumber = 0
+				//m.fs.LastListenBlockNumber = 0
+				m.fs.Anchor(0)
 				//m.lastNumber = 0
 				//if err := m.fs.Reset(); err != nil {
 				//	return err
 				//}
 			}
-			log.Warn("Fs storage is reloading ...", "name", m.ckp.Name, "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot, "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs(), "lastNumber", m.lastNumber, "last in db", m.fs.LastListenBlockNumber)
+			log.Warn("Fs storage is reloading ...", "name", m.ckp.Name, "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot, "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs(), "lastNumber", m.lastNumber, "last in db", m.fs.LastListenBlockNumber())
 		} else {
 			log.Info("Fs storage version check passed", "name", m.ckp.Name, "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs())
 		}
@@ -591,9 +592,9 @@ func (m *Monitor) run() error {
 	}
 	m.cl = rpcClient
 
-	m.lastNumber = m.fs.LastListenBlockNumber
+	m.lastNumber = m.fs.LastListenBlockNumber()
 	m.currentBlock()
-	m.startNumber = uint64(math.Min(float64(m.fs.LastListenBlockNumber), float64(m.currentNumber))) // ? m.currentNumber:m.fs.LastListenBlockNumber
+	m.startNumber = uint64(math.Min(float64(m.fs.LastListenBlockNumber()), float64(m.currentNumber))) // ? m.currentNumber:m.fs.LastListenBlockNumber
 
 	if err := m.indexCheck(); err != nil {
 		return err
@@ -851,10 +852,11 @@ func (m *Monitor) solve(block *types.Block) error {
 				}
 			}
 
-			log.Debug("Seal fs record", "number", i, "record", record, "root", m.fs.Root().Hex(), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "ckp", m.fs.CheckPoint)
+			log.Debug("Seal fs record", "number", i, "record", record, "root", m.fs.Root().Hex(), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "ckp", m.fs.CheckPoint())
 		} else {
-			if m.fs.LastListenBlockNumber < i {
-				m.fs.LastListenBlockNumber = i
+			if m.fs.LastListenBlockNumber() < i {
+				//m.fs.LastListenBlockNumber = i
+				m.fs.Anchor(i)
 			}
 
 			log.Trace("Confirm to seal the fs record", "number", i)
