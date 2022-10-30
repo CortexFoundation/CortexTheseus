@@ -173,7 +173,7 @@ type FileMeta struct {
 //	return m.Name
 //}
 
-type FlowControlMeta struct {
+type BitsFlow struct {
 	InfoHash       string
 	BytesRequested uint64
 	//IsCreate       bool

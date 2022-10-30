@@ -14,11 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
-package torrentfs
-
-import (
-	"github.com/CortexFoundation/torrentfs/params"
-)
+package params
 
 // Config ...
 type Config struct {
@@ -50,15 +46,15 @@ type Config struct {
 // DefaultConfig contains default settings for the storage.
 var DefaultConfig = Config{
 	Port:            0,
-	DefaultTrackers: params.MainnetTrackers,
-	BoostNodes:      params.TorrentBoostNodes,
+	DefaultTrackers: MainnetTrackers,
+	BoostNodes:      TorrentBoostNodes,
 	Mode:            "default",
 	DisableUTP:      true,
 	DisableDHT:      true,
 	DisableTCP:      false,
 	DisableIPv6:     false,
-	MaxSeedingNum:   params.LimitSeeding / 2,
-	MaxActiveNum:    params.LimitSeeding / 2,
+	MaxSeedingNum:   LimitSeeding / 2,
+	MaxActiveNum:    LimitSeeding / 2,
 	//FullSeed:        false,
 	Boost:        false,
 	Quiet:        true,
@@ -70,12 +66,12 @@ var DefaultConfig = Config{
 }
 
 const (
-	queryTimeInterval              = 1
-	expansionFactor        float64 = 1.2
-	defaultSeedInterval            = 600
-	torrentWaitingTime             = 1800
-	downloadWaitingTime            = 2700
-	defaultBytesLimitation         = 512 * 1024
-	defaultTmpPath                 = ".tmp"
-	version                        = "3"
+	QueryTimeInterval              = 1
+	ExpansionFactor        float64 = 1.2
+	DefaultSeedInterval            = 600
+	TorrentWaitingTime             = 1800
+	DownloadWaitingTime            = 2700
+	DefaultBytesLimitation         = 512 * 1024
+	DefaultTmpPath                 = ".tmp"
+	Version                        = "3"
 )

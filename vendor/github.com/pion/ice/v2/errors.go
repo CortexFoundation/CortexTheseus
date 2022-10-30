@@ -134,11 +134,15 @@ var (
 	errMismatchUsername              = errors.New("username mismatch")
 	errICEWriteSTUNMessage           = errors.New("the ICE conn can't write STUN messages")
 	errUDPMuxDisabled                = errors.New("UDPMux is not enabled")
-	errCandidateIPNotFound           = errors.New("could not determine local IP for Mux candidate")
 	errNoXorAddrMapping              = errors.New("no address mapping")
 	errSendSTUNPacket                = errors.New("failed to send STUN packet")
 	errXORMappedAddrTimeout          = errors.New("timeout while waiting for XORMappedAddr")
 	errNotImplemented                = errors.New("not implemented yet")
 	errNoUDPMuxAvailable             = errors.New("no UDP mux is available")
 	errNoTCPMuxAvailable             = errors.New("no TCP mux is available")
+	errInvalidAddress                = errors.New("invalid address")
+
+	// UDPMuxDefault should not listen on unspecified address, but to keep backward compatibility, don't return error now.
+	// will be used in the future.
+	// errListenUnspecified             = errors.New("can't listen on unspecified address")
 )

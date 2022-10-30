@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
-package torrentfs
+package monitor
 
 import (
-	"context"
+	//"context"
 	"errors"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
@@ -25,6 +25,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
+	"github.com/CortexFoundation/torrentfs/backend"
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
 	lru "github.com/hashicorp/golang-lru"
@@ -51,10 +52,10 @@ var (
 // Monitor observes the data changes on the blockchain and synchronizes.
 // cl for ipc/rpc communication, dl for download manager, and fs for data storage.
 type Monitor struct {
-	config *Config
+	config *params.Config
 	cl     *rpc.Client
-	fs     *ChainDB
-	dl     *TorrentManager
+	fs     *backend.ChainDB
+	dl     *backend.TorrentManager
 
 	exitCh        chan struct{}
 	terminated    int32
@@ -79,13 +80,15 @@ type Monitor struct {
 	mode      string
 
 	lock sync.RWMutex
+
+	callback chan any
 }
 
 // NewMonitor creates a new instance of monitor.
 // Once Ipcpath is settle, this method prefers to build socket connection in order to
 // get higher communicating performance.
 // IpcPath is unavailable on windows.
-func NewMonitor(flag *Config, cache, compress, listen bool, fs *ChainDB, tMana *TorrentManager) (*Monitor, error) {
+func New(flag *params.Config, cache, compress, listen bool, fs *backend.ChainDB, tMana *backend.TorrentManager, callback chan any) (*Monitor, error) {
 	/*fs, fsErr := NewChainDB(flag)
 	if fsErr != nil {
 		log.Error("file storage failed", "err", fsErr)
@@ -116,6 +119,7 @@ func NewMonitor(flag *Config, cache, compress, listen bool, fs *ChainDB, tMana *
 	m.blockCache, _ = lru.New(delay)
 	m.sizeCache, _ = lru.New(batch)
 	m.listen = listen
+	m.callback = callback
 
 	if err := m.dl.Start(); err != nil {
 		log.Warn("Fs start error")
@@ -141,13 +145,27 @@ func NewMonitor(flag *Config, cache, compress, listen bool, fs *ChainDB, tMana *
 	return m, nil
 }
 
+func (m *Monitor) DL() *backend.TorrentManager {
+	return m.dl
+}
+
+func (m *Monitor) DB() *backend.ChainDB {
+	return m.fs
+}
+
+func (m *Monitor) CurrentNumber() uint64 {
+	return m.currentNumber
+}
+
 func (m *Monitor) loadHistory() error {
-	torrents, _ := m.fs.initTorrents()
+	torrents, _ := m.fs.InitTorrents()
 	if m.mode != params.LAZY {
 		for k, v := range torrents {
-			if err := GetStorage().Download(context.Background(), k, v); err != nil {
-				return err
-			}
+			//if err := GetStorage().Download(context.Background(), k, v); err != nil {
+			//	return err
+			//}
+
+			m.download(k, v)
 		}
 	}
 
@@ -159,6 +177,16 @@ func (m *Monitor) loadHistory() error {
 	}
 
 	return nil
+}
+
+func (m *Monitor) download(k string, v uint64) {
+	if m.mode != params.LAZY {
+		task := types.BitsFlow{
+			InfoHash:       k,
+			BytesRequested: v,
+		}
+		m.callback <- task
+	}
 }
 
 func (m *Monitor) indexCheck() error {
@@ -219,9 +247,11 @@ func (m *Monitor) indexInit() error {
 		//	if m.mode != params.LAZY {
 		//		log.Debug("Search in sync parse download", "ih", file.Meta.InfoHash, "request", p)
 		//m.dl.Search(context.Background(), file.Meta.InfoHash, p)
-		GetStorage().Download(context.Background(), file.Meta.InfoHash, bytesRequested)
+		//GetStorage().Download(context.Background(), file.Meta.InfoHash, bytesRequested)
 		//	}
 		//}
+
+		m.download(file.Meta.InfoHash, bytesRequested)
 		if file.LeftSize == 0 {
 			seed++
 		} else if file.Meta.RawSize == file.LeftSize && file.LeftSize > 0 {
@@ -263,7 +293,7 @@ func (m *Monitor) buildConnection(ipcpath string, rpcuri string) (*rpc.Client, e
 
 	if len(ipcpath) > 0 {
 		for i := 0; i < 30; i++ {
-			time.Sleep(time.Second * queryTimeInterval * 2)
+			time.Sleep(time.Second * params.QueryTimeInterval * 2)
 			cl, err := rpc.Dial(ipcpath)
 			if err != nil {
 				log.Warn("Building internal ipc connection ... ", "ipc", ipcpath, "rpc", rpcuri, "error", err, "terminated", m.terminated)
@@ -389,9 +419,11 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta, b *
 		//	if m.mode != params.LAZY {
 		//		log.Debug("Search in sync parse create", "ih", meta.InfoHash, "request", p)
 		//m.dl.Search(context.Background(), meta.InfoHash, p)
-		GetStorage().Download(context.Background(), meta.InfoHash, 0)
+		//GetStorage().Download(context.Background(), meta.InfoHash, 0)
 		//	}
 		//}
+
+		m.download(meta.InfoHash, 0)
 	}
 	return nil
 }
@@ -451,13 +483,15 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 						//if u, p, err := m.fs.SetTorrentProgress(file.Meta.InfoHash, bytesRequested); u && err == nil {
 						//if m.mode != params.LAZY {
 						//m.dl.Search(context.Background(), file.Meta.InfoHash, p)
-						GetStorage().Download(context.Background(), file.Meta.InfoHash, bytesRequested)
+						//				GetStorage().Download(context.Background(), file.Meta.InfoHash, bytesRequested)
 						//}
 						//}
 						//m.dl.UpdateTorrent(context.Background(), types.FlowControlMeta{
 						//	InfoHash:       file.Meta.InfoHash,
 						//	BytesRequested: bytesRequested,
 						//})
+
+						m.download(file.Meta.InfoHash, bytesRequested)
 					}
 				}
 
@@ -495,9 +529,9 @@ func (m *Monitor) exit() {
 	})
 }
 
-func (m *Monitor) stop() {
-	//m.lock.Lock()
-	//defer m.lock.Unlock()
+func (m *Monitor) Stop() {
+	m.lock.Lock()
+	defer m.lock.Unlock()
 	//m.closeOnce.Do(func() {
 	if atomic.LoadInt32(&(m.terminated)) == 1 {
 		return
@@ -600,7 +634,7 @@ func (m *Monitor) run() error {
 
 func (m *Monitor) syncLatestBlock() {
 	defer m.wg.Done()
-	timer := time.NewTimer(time.Second * queryTimeInterval)
+	timer := time.NewTimer(time.Second * params.QueryTimeInterval)
 	defer timer.Stop()
 	progress, counter, end := uint64(0), 0, false
 	for {
@@ -638,7 +672,7 @@ func (m *Monitor) syncLatestBlock() {
 			}
 			counter++
 			if counter%10 == 0 {
-				log.Info(ProgressBar(int64(m.lastNumber), int64(m.currentNumber), ""), "blocks", progress, "current", m.currentNumber, "latest", m.lastNumber, "end", end, "txs", m.fs.Txs())
+				log.Info(backend.ProgressBar(int64(m.lastNumber), int64(m.currentNumber), ""), "blocks", progress, "current", m.currentNumber, "latest", m.lastNumber, "end", end, "txs", m.fs.Txs())
 				counter = 0
 			}
 			m.fs.Flush()
@@ -797,7 +831,7 @@ func (m *Monitor) solve(block *types.Block) error {
 	if i%65536 == 0 {
 		defer func() {
 			elapsedA := time.Duration(mclock.Now()) - time.Duration(m.start)
-			log.Info(ProgressBar(int64(i), int64(m.currentNumber), ""), "start", m.startNumber, "max", uint64(m.currentNumber), "last", m.lastNumber, "cur", i, "bps", math.Abs(float64(i)-float64(m.startNumber))*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA), "scope", m.scope, "db", common.PrettyDuration(m.fs.Metrics()), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "root", m.fs.Root())
+			log.Info(backend.ProgressBar(int64(i), int64(m.currentNumber), ""), "start", m.startNumber, "max", uint64(m.currentNumber), "last", m.lastNumber, "cur", i, "bps", math.Abs(float64(i)-float64(m.startNumber))*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA), "scope", m.scope, "db", common.PrettyDuration(m.fs.Metrics()), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "root", m.fs.Root())
 			m.fs.SkipPrint()
 		}()
 	}

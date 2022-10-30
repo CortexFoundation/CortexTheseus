@@ -152,6 +152,9 @@ type Association struct {
 	willSendShutdownAck      bool
 	willSendShutdownComplete bool
 
+	willSendAbort      bool
+	willSendAbortCause errorCause
+
 	// Reconfig
 	myNextRSN        uint32
 	reconfigs        map[uint32]*chunkReconfig
@@ -469,6 +472,26 @@ func (a *Association) close() error {
 	return err
 }
 
+// Abort sends the abort packet with user initiated abort and immediately
+// closes the connection.
+func (a *Association) Abort(reason string) {
+	a.log.Debugf("[%s] aborting association: %s", a.name, reason)
+
+	a.lock.Lock()
+
+	a.willSendAbort = true
+	a.willSendAbortCause = &errorCauseUserInitiatedAbort{
+		upperLayerAbortReason: []byte(reason),
+	}
+
+	a.lock.Unlock()
+
+	a.awakeWriteLoop()
+
+	// Wait for readLoop to end
+	<-a.readLoopCloseCh
+}
+
 func (a *Association) closeAllTimers() {
 	// Close all retransmission & ack timers
 	a.t1Init.close()
@@ -538,7 +561,7 @@ loop:
 		for _, raw := range rawPackets {
 			_, err := a.netConn.Write(raw)
 			if err != nil {
-				if err != io.EOF {
+				if !errors.Is(err, io.EOF) {
 					a.log.Warnf("[%s] failed to write packets on netConn: %v", a.name, err)
 				}
 				a.log.Debugf("[%s] writeLoop ended", a.name)
@@ -829,11 +852,38 @@ func (a *Association) gatherOutboundShutdownPackets(rawPackets [][]byte) ([][]by
 	return rawPackets, ok
 }
 
+func (a *Association) gatherAbortPacket() ([]byte, error) {
+	cause := a.willSendAbortCause
+
+	a.willSendAbort = false
+	a.willSendAbortCause = nil
+
+	abort := &chunkAbort{}
+
+	if cause != nil {
+		abort.errorCauses = []errorCause{cause}
+	}
+
+	raw, err := a.createPacket([]chunk{abort}).marshal()
+
+	return raw, err
+}
+
 // gatherOutbound gathers outgoing packets. The returned bool value set to
 // false means the association should be closed down after the final send.
 func (a *Association) gatherOutbound() ([][]byte, bool) {
 	a.lock.Lock()
 	defer a.lock.Unlock()
+
+	if a.willSendAbort {
+		pkt, err := a.gatherAbortPacket()
+		if err != nil {
+			a.log.Warnf("[%s] failed to serialize an abort packet", a.name)
+			return nil, false
+		}
+
+		return [][]byte{pkt}, false
+	}
 
 	rawPackets := [][]byte{}
 
@@ -1008,14 +1058,14 @@ func (a *Association) handleInit(p *packet, i *chunkInit) ([]*packet, error) {
 		case *paramSupportedExtensions:
 			for _, t := range v.ChunkTypes {
 				if t == ctForwardTSN {
-					a.log.Debugf("[%s] use ForwardTSN (on init)\n", a.name)
+					a.log.Debugf("[%s] use ForwardTSN (on init)", a.name)
 					a.useForwardTSN = true
 				}
 			}
 		}
 	}
 	if !a.useForwardTSN {
-		a.log.Warnf("[%s] not using ForwardTSN (on init)\n", a.name)
+		a.log.Warnf("[%s] not using ForwardTSN (on init)", a.name)
 	}
 
 	outbound := &packet{}
@@ -1093,14 +1143,14 @@ func (a *Association) handleInitAck(p *packet, i *chunkInitAck) error {
 		case *paramSupportedExtensions:
 			for _, t := range v.ChunkTypes {
 				if t == ctForwardTSN {
-					a.log.Debugf("[%s] use ForwardTSN (on initAck)\n", a.name)
+					a.log.Debugf("[%s] use ForwardTSN (on initAck)", a.name)
 					a.useForwardTSN = true
 				}
 			}
 		}
 	}
 	if !a.useForwardTSN {
-		a.log.Warnf("[%s] not using ForwardTSN (on initAck)\n", a.name)
+		a.log.Warnf("[%s] not using ForwardTSN (on initAck)", a.name)
 	}
 	if cookieParam == nil {
 		return errInitAckNoCookie
@@ -1747,6 +1797,17 @@ func (a *Association) handleShutdownComplete(_ *chunkShutdownComplete) error {
 	return nil
 }
 
+func (a *Association) handleAbort(c *chunkAbort) error {
+	var errStr string
+	for _, e := range c.errorCauses {
+		errStr += fmt.Sprintf("(%s)", e)
+	}
+
+	_ = a.close()
+
+	return fmt.Errorf("[%s] %w: %s", a.name, errChunk, errStr)
+}
+
 // createForwardTSN generates ForwardTSN chunk.
 // This method will be be called if useForwardTSN is set to false.
 // The caller should hold the lock.
@@ -1849,7 +1910,7 @@ func (a *Association) handleForwardTSN(c *chunkForwardTSN) []*packet {
 	//   send a SACK to its peer (the sender of the FORWARD TSN) since such a
 	//   duplicate may indicate the previous SACK was lost in the network.
 
-	a.log.Tracef("[%s] should send ack? newCumTSN=%d peerLastTSN=%d\n",
+	a.log.Tracef("[%s] should send ack? newCumTSN=%d peerLastTSN=%d",
 		a.name, c.newCumulativeTSN, a.peerLastTSN)
 	if sna32LTE(c.newCumulativeTSN, a.peerLastTSN) {
 		a.log.Tracef("[%s] sending ack on Forward TSN", a.name)
@@ -1924,19 +1985,21 @@ func (a *Association) sendResetRequest(streamIdentifier uint16) error {
 func (a *Association) handleReconfigParam(raw param) (*packet, error) {
 	switch p := raw.(type) {
 	case *paramOutgoingResetRequest:
+		a.log.Tracef("[%s] handleReconfigParam (OutgoingResetRequest)", a.name)
 		a.reconfigRequests[p.reconfigRequestSequenceNumber] = p
 		resp := a.resetStreamsIfAny(p)
 		if resp != nil {
 			return resp, nil
 		}
-		return nil, nil
+		return nil, nil //nolint:nilnil
 
 	case *paramReconfigResponse:
+		a.log.Tracef("[%s] handleReconfigParam (ReconfigResponse)", a.name)
 		delete(a.reconfigs, p.reconfigResponseSequenceNumber)
 		if len(a.reconfigs) == 0 {
 			a.tReconfig.stop()
 		}
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	default:
 		return nil, fmt.Errorf("%w: %t", errParamterType, p)
 	}
@@ -1953,7 +2016,11 @@ func (a *Association) resetStreamsIfAny(p *paramOutgoingResetRequest) *packet {
 			if !ok {
 				continue
 			}
-			a.unregisterStream(s, io.EOF)
+			a.lock.Unlock()
+			s.onInboundStreamReset()
+			a.lock.Lock()
+			a.log.Debugf("[%s] deleting stream %d", a.name, id)
+			delete(a.streams, s.streamIdentifier)
 		}
 		delete(a.reconfigRequests, p.reconfigRequestSequenceNumber)
 	} else {
@@ -2251,6 +2318,8 @@ func (a *Association) handleChunk(p *packet, c chunk) error {
 		return nil
 	}
 
+	isAbort := false
+
 	switch c := c.(type) {
 	case *chunkInit:
 		packets, err = a.handleInit(p, c)
@@ -2259,11 +2328,8 @@ func (a *Association) handleChunk(p *packet, c chunk) error {
 		err = a.handleInitAck(p, c)
 
 	case *chunkAbort:
-		var errStr string
-		for _, e := range c.errorCauses {
-			errStr += fmt.Sprintf("(%s)", e)
-		}
-		return fmt.Errorf("[%s] %w: %s", a.name, errChunk, errStr)
+		isAbort = true
+		err = a.handleAbort(c)
 
 	case *chunkError:
 		var errStr string
@@ -2306,6 +2372,10 @@ func (a *Association) handleChunk(p *packet, c chunk) error {
 
 	// Log and return, the only condition that is fatal is a ABORT chunk
 	if err != nil {
+		if isAbort {
+			return err
+		}
+
 		a.log.Errorf("Failed to handle chunk: %v", err)
 		return nil
 	}

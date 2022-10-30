@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
-package torrentfs
+package backend
 
 import (
 	"encoding/binary"
@@ -62,7 +62,7 @@ type ChainDB struct {
 	leaves                []merkletree.Content
 	tree                  *merkletree.MerkleTree
 	dataDir               string
-	config                *Config
+	config                *params.Config
 	treeUpdates           time.Duration
 	metrics               bool
 
@@ -71,7 +71,7 @@ type ChainDB struct {
 	//rootCache *lru.Cache
 }
 
-func NewChainDB(config *Config) (*ChainDB, error) {
+func NewChainDB(config *params.Config) (*ChainDB, error) {
 	if err := os.MkdirAll(config.DataDir, 0777); err != nil {
 		log.Error("Make data dir failed", "err", err, "dir", config.DataDir)
 		return nil, err
@@ -95,7 +95,7 @@ func NewChainDB(config *Config) (*ChainDB, error) {
 
 	fs.config = config
 	fs.metrics = config.Metrics
-	fs.version = version
+	fs.version = params.Version
 	fs.torrents = make(map[string]uint64)
 
 	//fs.rootCache, _ = lru.New(8)
@@ -722,7 +722,7 @@ func (fs *ChainDB) SkipPrint() {
 }
 
 // SetTorrent is for recording torrent latest status
-func (fs *ChainDB) setTorrentProgress(ih string, size uint64) (bool, uint64, error) {
+func (fs *ChainDB) SetTorrentProgress(ih string, size uint64) (bool, uint64, error) {
 	fs.lock.Lock()
 	defer fs.lock.Unlock()
 
@@ -765,7 +765,7 @@ func (fs *ChainDB) setTorrentProgress(ih string, size uint64) (bool, uint64, err
 }
 
 // GetTorrent return the torrent status by uint64, if return 0 for torrent not exist
-func (fs *ChainDB) getTorrentProgress(ih string) (progress uint64, err error) {
+func (fs *ChainDB) GetTorrentProgress(ih string) (progress uint64, err error) {
 	fs.lock.RLock()
 	defer fs.lock.RUnlock()
 
@@ -805,7 +805,7 @@ func (fs *ChainDB) getTorrentProgress(ih string) (progress uint64, err error) {
 	return progress, nil
 }
 
-func (fs *ChainDB) initTorrents() (map[string]uint64, error) {
+func (fs *ChainDB) InitTorrents() (map[string]uint64, error) {
 	//torrents := make(map[string]uint64)
 	err := fs.db.Update(func(tx *bolt.Tx) error {
 		if buk, err := tx.CreateBucketIfNotExists([]byte(TORRENT_ + fs.version)); err != nil {

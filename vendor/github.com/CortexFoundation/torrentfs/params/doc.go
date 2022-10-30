@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
-package torrentfs
+package params
 
 import (
 	"time"
@@ -28,13 +28,13 @@ const (
 
 	DefaultMaxMessageSize = uint32(1024)
 
-	statusCode = 0
-	queryCode  = 1
-	msgCode    = 2
+	StatusCode = 0
+	QueryCode  = 1
+	MsgCode    = 2
 
-	peerStateCycle = time.Second * 300
+	PeerStateCycle = time.Second * 300
 
-	expirationCycle   = time.Second
-	transmissionCycle = 300 * time.Millisecond
-	handshakeTimeout  = 60 * time.Second
+	ExpirationCycle   = time.Second
+	TransmissionCycle = 300 * time.Millisecond
+	HandshakeTimeout  = 60 * time.Second
 )
