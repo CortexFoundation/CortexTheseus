@@ -29,7 +29,9 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
+	"github.com/CortexFoundation/CortexTheseus/p2p/dnsdisc"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
+	params1 "github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/CortexFoundation/torrentfs/backend"
 	"github.com/CortexFoundation/torrentfs/monitor"
@@ -199,6 +201,16 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 			}
 			return nil
 		},
+	}
+
+	//add dns discovery
+	if inst.protocol.DialCandidates == nil {
+		log.Info("Nas dial candidates", "version", params.ProtocolVersion)
+		client := dnsdisc.NewClient(dnsdisc.Config{})
+		s, err := client.NewIterator([]string{params1.KnownDNSNetwork(params1.MainnetGenesisHash, "all")}...)
+		if err == nil {
+			inst.protocol.DialCandidates = s
+		}
 	}
 
 	options := &ttlmap.Options{
@@ -727,9 +739,13 @@ func (fs *TorrentFS) ListAllTorrents(ctx context.Context) map[string]map[string]
 }
 
 func (fs *TorrentFS) Tunnel(ctx context.Context, ih string) error {
-	if err := fs.storage().Search(ctx, ih, 1000000000); err != nil {
+	if err := fs.storage().Search(ctx, ih, 1024*1024*1024); err != nil {
 		return err
 	}
+	/*s := fs.query(ih, 1024*1024*1024)
+	if s {
+		log.Info("Nas "+params.ProtocolVersionStr+" tunnel", "ih", ih, "queue", fs.msg.Len(), "peers", len(fs.peers))
+	}*/
 	return nil
 }
 
