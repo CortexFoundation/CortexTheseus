@@ -45,14 +45,34 @@ type Peer struct {
 }
 
 type PeerInfo struct {
-	Listen uint64      `json:"listen"`
-	Root   common.Hash `json:"root"` // SHA3 hash of the peer's best owned block
-	Files  uint64      `json:"files"`
-	Leafs  uint64      `json:"leafs"`
+	listen uint64
+	root   common.Hash
+	files  uint64
+	leafs  uint64
+}
+
+func (p *PeerInfo) Listen() uint64 {
+	return p.listen
+}
+
+func (p *PeerInfo) Root() common.Hash {
+	return p.root
+}
+
+func (p *PeerInfo) Files() uint64 {
+	return p.files
+}
+
+func (p *PeerInfo) Leafs() uint64 {
+	return p.leafs
 }
 
 type MsgInfo struct {
-	Desc string `json:"desc"`
+	desc string
+}
+
+func (m *MsgInfo) Desc() string {
+	return m.desc
 }
 
 func newPeer(id string, host *TorrentFS, remote *p2p.Peer, rw p2p.MsgReadWriter) *Peer {
@@ -131,10 +151,10 @@ func (peer *Peer) update() {
 
 func (peer *Peer) state() error {
 	state := PeerInfo{
-		Listen: uint64(peer.host.LocalPort()),
-		Root:   peer.host.chain().Root(),
-		Files:  uint64(peer.host.Congress()),
-		Leafs:  uint64(len(peer.host.chain().Blocks())),
+		listen: uint64(peer.host.LocalPort()),
+		root:   peer.host.chain().Root(),
+		files:  uint64(peer.host.Congress()),
+		leafs:  uint64(len(peer.host.chain().Blocks())),
 	}
 	if err := p2p.Send(peer.ws, params.StatusCode, &state); err != nil {
 		return err
@@ -143,8 +163,16 @@ func (peer *Peer) state() error {
 }
 
 type Query struct {
-	Hash string `json:"hash"`
-	Size uint64 `json:"size"`
+	hash string
+	size uint64
+}
+
+func (q *Query) Hash() string {
+	return q.hash
+}
+
+func (q *Query) Size() uint64 {
+	return q.size
 }
 
 func (peer *Peer) seen(hash string) {
@@ -166,8 +194,8 @@ func (peer *Peer) broadcast() error {
 		if v, err := peer.host.Envelopes().Get(k.Interface().(string)); err == nil {
 			if !peer.marked(k.Interface().(string)) {
 				query := Query{
-					Hash: k.Interface().(string),
-					Size: v.Value().(uint64),
+					hash: k.Interface().(string),
+					size: v.Value().(uint64),
 				}
 				//log.Debug("Broadcast", "ih", k.(string), "size", v.(uint64))
 				if err := p2p.Send(peer.ws, params.QueryCode, &query); err != nil {
@@ -214,10 +242,10 @@ func (peer *Peer) handshake() error {
 		defer peer.wg.Done()
 		log.Debug("Nas send items", "status", params.StatusCode, "version", params.ProtocolVersion)
 		info := PeerInfo{
-			Listen: uint64(peer.host.LocalPort()),
-			Root:   peer.host.chain().Root(),
-			Files:  uint64(peer.host.Congress()),
-			Leafs:  uint64(len(peer.host.chain().Blocks())),
+			listen: uint64(peer.host.LocalPort()),
+			root:   peer.host.chain().Root(),
+			files:  uint64(peer.host.Congress()),
+			leafs:  uint64(len(peer.host.chain().Blocks())),
 		}
 		errc <- p2p.SendItems(peer.ws, params.StatusCode, params.ProtocolVersion, &info)
 		log.Debug("Nas send items OK", "status", params.StatusCode, "version", params.ProtocolVersion, "len", len(errc))
@@ -285,6 +313,7 @@ func (peer *Peer) stop() error {
 	peer.wg.Wait()
 	return nil
 }
+
 func (peer *Peer) ID() []byte {
 	id := peer.peer.ID()
 	return id[:]

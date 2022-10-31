@@ -187,10 +187,10 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 				if p.Info() != nil {
 					return map[string]any{
 						"version": p.version,
-						"listen":  p.Info().Listen,
-						"root":    p.Info().Root.Hex(),
-						"files":   p.Info().Files,
-						"leafs":   p.Info().Leafs,
+						"listen":  p.Info().Listen(),
+						"root":    p.Info().Root().Hex(),
+						"files":   p.Info().Files(),
+						"leafs":   p.Info().Leafs(),
 					}
 				} else {
 
@@ -334,14 +334,14 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 					return errors.New("invalid msg")
 				}
 
-				if !common.IsHexAddress(info.Hash) {
+				if !common.IsHexAddress(info.Hash()) {
 					return errors.New("invalid address")
 				}
 
-				if info.Size > 0 {
-					if progress, e := tfs.progress(info.Hash); e == nil {
-						log.Debug("Nas msg received", "ih", info.Hash, "size", common.StorageSize(float64(info.Size)), "local", common.StorageSize(float64(progress)), "pid", p.id, "queue", tfs.msg.Len(), "peers", len(tfs.peers))
-						if err := tfs.storage().Search(context.Background(), info.Hash, progress); err != nil {
+				if info.Size() > 0 {
+					if progress, e := tfs.progress(info.Hash()); e == nil {
+						log.Debug("Nas msg received", "ih", info.Hash(), "size", common.StorageSize(float64(info.Size())), "local", common.StorageSize(float64(progress)), "pid", p.id, "queue", tfs.msg.Len(), "peers", len(tfs.peers))
+						if err := tfs.storage().Search(context.Background(), info.Hash(), progress); err != nil {
 							log.Error("Nas "+params.ProtocolVersionStr+" error", "err", err)
 							return err
 						}
@@ -356,7 +356,7 @@ func (tfs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 					log.Warn("failed to decode msg, peer will be disconnected", "peer", p.peer.ID(), "err", err)
 					return errors.New("invalid msg")
 				}
-				log.Warn("Nas msg testing", "code", params.MsgCode, "desc", info.Desc)
+				log.Warn("Nas msg testing", "code", params.MsgCode, "desc", info.Desc())
 			}
 		default:
 			log.Warn("Encounter package code", "code", packet.Code)
