@@ -19,3 +19,7 @@ package wormhole
 var Wormholes = []string{
 	"http://wormhole.cortexlabs.ai:30089/tunnel?hash=",
 }
+
+const (
+	CAP = 10
+)

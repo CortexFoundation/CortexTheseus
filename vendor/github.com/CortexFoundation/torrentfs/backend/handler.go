@@ -268,9 +268,7 @@ func (tm *TorrentManager) register(t *torrent.Torrent, requested int64, status i
 		start: 0,
 	}
 
-	tm.lock.Lock()
-	tm.torrents[ih] = tt
-	tm.lock.Unlock()
+	tm.setTorrent(ih, tt)
 
 	tm.pendingChan <- tt
 	return tt
@@ -283,6 +281,20 @@ func (tm *TorrentManager) getTorrent(ih string) *Torrent {
 		return torrent
 	}
 	return nil
+}
+
+func (tm *TorrentManager) setTorrent(ih string, t *Torrent) {
+	tm.lock.Lock()
+	defer tm.lock.Unlock()
+
+	tm.torrents[ih] = t
+}
+
+func (tm *TorrentManager) removeTorrent(ih string) {
+	tm.lock.Lock()
+	defer tm.lock.Unlock()
+
+	delete(tm.torrents, ih)
 }
 
 func (tm *TorrentManager) Close() error {
@@ -487,7 +499,7 @@ func (tm *TorrentManager) updateGlobalTrackers() {
 	defer tm.lock.Unlock()
 	if global := wormhole.BestTrackers(); global != nil && len(global) > 0 {
 		tm.globalTrackers = [][]string{global}
-		log.Info("Global trackers update", "size", len(global))
+		log.Info("Global trackers update", "size", len(global), "cap", wormhole.CAP)
 	}
 }
 
@@ -805,7 +817,7 @@ func (tm *TorrentManager) pendingLoop() {
 				select {
 				case <-t.GotInfo():
 					elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
-					log.Info("Imported new seed", "ih", t.infohash, "elapsed", common.PrettyDuration(elapsed))
+					log.Debug("Imported new seed", "ih", t.infohash, "elapsed", common.PrettyDuration(elapsed))
 					if b, err := bencode.Marshal(t.Torrent.Info()); err == nil {
 						log.Debug("Record full torrent in history", "ih", t.infohash, "info", len(b))
 						if tm.badger.Get([]byte(t.infohash)) == nil {
@@ -985,9 +997,9 @@ func (tm *TorrentManager) seedingLoop() {
 			if t := tm.getTorrent(ih); t != nil && t.Ready() {
 				t.Torrent.Drop()
 				delete(tm.seedingTorrents, ih)
-				tm.lock.Lock()
-				delete(tm.torrents, ih)
-				tm.lock.Unlock()
+
+				tm.removeTorrent(ih)
+
 				log.Info("Seed has been dropped", "ih", ih, "cited", t.cited)
 			} else {
 				log.Warn("Drop seed not found", "ih", ih)

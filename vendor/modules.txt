@@ -48,7 +48,7 @@ github.com/CortexFoundation/merkletree
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit; go 1.16
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.34-0.20221031000942-2485f1fbdf71
+# github.com/CortexFoundation/torrentfs v1.0.34-0.20221108065902-7592e50551c5
 ## explicit; go 1.19
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/backend
