@@ -101,9 +101,9 @@ type callFrameMarshaling struct {
 type callTracer struct {
 	callstack []callFrame
 	config    callTracerConfig
+	gasLimit  uint64
 	interrupt uint32 // Atomic flag to signal execution interruption
 	reason    error  // Textual reason for the interruption
-	gasLimit  uint64
 }
 
 type callTracerConfig struct {
@@ -162,8 +162,10 @@ func (t *callTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, sco
 	switch op {
 	case vm.LOG0, vm.LOG1, vm.LOG2, vm.LOG3, vm.LOG4:
 		size := int(op - vm.LOG0)
+
 		stack := scope.Stack
 		stackData := stack.Data()
+
 		// Don't modify the stack
 		mStart := stackData[len(stackData)-1]
 		mSize := stackData[len(stackData)-2]
@@ -172,6 +174,7 @@ func (t *callTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, sco
 			topic := stackData[len(stackData)-2-(i+1)]
 			topics[i] = common.Hash(topic.Bytes32())
 		}
+
 		data := scope.Memory.GetCopy(int64(mStart.Uint64()), int64(mSize.Uint64()))
 		log := callLog{Address: scope.Contract.Address(), Topics: topics, Data: hexutil.Bytes(data)}
 		t.callstack[len(t.callstack)-1].Logs = append(t.callstack[len(t.callstack)-1].Logs, log)
@@ -179,7 +182,7 @@ func (t *callTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, sco
 }
 
 // CaptureFault implements the CVMLogger interface to trace an execution fault.
-func (t *callTracer) CaptureFault(pc uint64, op vm.OpCode, gas, cost uint64, _ *vm.ScopeContext, depth int, err error) {
+func (t *callTracer) CaptureFault(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, depth int, err error) {
 }
 
 // CaptureEnter is called when CVM enters a new scope (via call, create or selfdestruct).
