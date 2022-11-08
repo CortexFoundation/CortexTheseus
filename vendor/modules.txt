@@ -48,7 +48,7 @@ github.com/CortexFoundation/merkletree
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit; go 1.16
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.34-0.20221108065902-7592e50551c5
+# github.com/CortexFoundation/torrentfs v1.0.35-0.20221108200753-ae9a20513af4
 ## explicit; go 1.19
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/backend
@@ -333,7 +333,7 @@ github.com/deckarep/golang-set
 ## explicit; go 1.17
 github.com/decred/dcrd/dcrec/secp256k1/v4
 github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa
-# github.com/dgraph-io/badger/v3 v3.2103.3
+# github.com/dgraph-io/badger/v3 v3.2103.4
 ## explicit; go 1.12
 github.com/dgraph-io/badger/v3
 github.com/dgraph-io/badger/v3/fb
@@ -798,7 +798,7 @@ github.com/steakknife/bloomfilter
 # github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3
 ## explicit
 github.com/steakknife/hamming
-# github.com/stretchr/testify v1.8.0
+# github.com/stretchr/testify v1.8.1
 ## explicit; go 1.13
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
@@ -848,7 +848,7 @@ github.com/ucwong/color
 # github.com/ucwong/go-ttlmap v1.0.2-0.20221020075847-39ed53681163
 ## explicit; go 1.19
 github.com/ucwong/go-ttlmap
-# github.com/ucwong/golang-kv v1.0.10-0.20221020174003-430ea14a471a
+# github.com/ucwong/golang-kv v1.0.10
 ## explicit; go 1.19
 github.com/ucwong/golang-kv
 github.com/ucwong/golang-kv/badger
@@ -867,7 +867,7 @@ github.com/yusufpapurcu/wmi
 # go.etcd.io/bbolt v1.3.7-0.20221019093018-00cd6970d05b
 ## explicit; go 1.17
 go.etcd.io/bbolt
-# go.opencensus.io v0.23.0
+# go.opencensus.io v0.24.0
 ## explicit; go 1.13
 go.opencensus.io
 go.opencensus.io/internal
@@ -964,7 +964,7 @@ golang.org/x/net/trace
 golang.org/x/sync/errgroup
 golang.org/x/sync/singleflight
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.1.0
+# golang.org/x/sys v0.2.0
 ## explicit; go 1.17
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs

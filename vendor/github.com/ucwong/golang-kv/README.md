@@ -50,6 +50,9 @@ defer ldb.Close()
 ```
 make test
 ```
+## Repobeats
+
+![Alt](https://repobeats.axiom.co/api/embed/6187bb40cb7709dfbf08cd33cb06f44f046c7cb4.svg "Repobeats analytics image")
 
 # How to choose database engine
 ![image](https://user-images.githubusercontent.com/22344498/111969569-5aede600-8b35-11eb-8580-8cd1baf2bbb1.png)

@@ -31,13 +31,18 @@ type Badger struct {
 	wb     *badger.WriteBatch
 }
 
-func Open(path string) *Badger {
+type BadgerOption func(badger.Options) badger.Options
+
+func Open(path string, opts ...BadgerOption) *Badger {
 	//if len(path) == 0 {
 	path = filepath.Join(path, common.GLOBAL_SPACE, ".badger")
 	//}
 	b := &Badger{}
-	//if bg, err := badger.Open(badger.DefaultOptions(path).WithCompression(options.ZSTD)); err == nil {
-	if bg, err := badger.Open(badger.DefaultOptions(path)); err == nil {
+	options := badger.DefaultOptions(path)
+	for _, opt := range opts {
+		options = opt(options)
+	}
+	if bg, err := badger.Open(options); err == nil {
 		b.engine = bg
 		b.wb = bg.NewWriteBatch()
 	} else {

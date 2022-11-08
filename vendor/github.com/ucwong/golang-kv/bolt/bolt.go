@@ -39,7 +39,9 @@ type Bolt struct {
 
 const GLOBAL = "m41gA7omIWU4s"
 
-func Open(path string) *Bolt {
+type BoltOption func(bolt.Options) bolt.Options
+
+func Open(path string, opts ...BoltOption) *Bolt {
 	//if len(path) == 0 {
 	path = filepath.Join(path, common.GLOBAL_SPACE, ".bolt")
 	err := os.MkdirAll(path, 0777) //os.FileMode(os.ModePerm))
@@ -49,7 +51,12 @@ func Open(path string) *Bolt {
 	}
 	//}
 	b := &Bolt{}
-	if db, err := bolt.Open(filepath.Join(path, ".bolt"), 0777, nil); err == nil {
+
+	var option bolt.Options
+	for _, opt := range opts {
+		option = opt(option)
+	}
+	if db, err := bolt.Open(filepath.Join(path, ".bolt"), 0777, &option); err == nil {
 		b.engine = db
 	} else {
 		//panic(err)

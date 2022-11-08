@@ -37,12 +37,18 @@ type LevelDB struct {
 	once    sync.Once
 }
 
-func Open(path string) *LevelDB {
+type LevelDBOption func(opt.Options) opt.Options
+
+func Open(path string, opts ...LevelDBOption) *LevelDB {
 	//if len(path) == 0 {
 	path = filepath.Join(path, common.GLOBAL_SPACE, ".leveldb")
 	//}
 	db := &LevelDB{}
-	ldb, err := leveldb.OpenFile(path, &opt.Options{OpenFilesCacheCapacity: 32})
+	option := opt.Options{OpenFilesCacheCapacity: 32}
+	for _, op := range opts {
+		option = op(option)
+	}
+	ldb, err := leveldb.OpenFile(path, &option)
 	if _, iscorrupted := err.(*errors.ErrCorrupted); iscorrupted {
 		ldb, err = leveldb.RecoverFile(path, nil)
 	}
