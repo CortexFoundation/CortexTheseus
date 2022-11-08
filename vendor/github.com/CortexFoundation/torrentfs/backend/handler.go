@@ -499,7 +499,7 @@ func (tm *TorrentManager) updateGlobalTrackers() {
 	defer tm.lock.Unlock()
 	if global := wormhole.BestTrackers(); global != nil && len(global) > 0 {
 		tm.globalTrackers = [][]string{global}
-		log.Info("Global trackers update", "size", len(global))
+		log.Info("Global trackers update", "size", len(global), "cap", wormhole.CAP)
 	}
 }
 
