@@ -497,7 +497,7 @@ func (tm *TorrentManager) addInfoHash(ih string, bytesRequested int64) *Torrent 
 func (tm *TorrentManager) updateGlobalTrackers() {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
-	if global := wormhole.BestTrackers(); global != nil && len(global) > 0 {
+	if global := wormhole.BestTrackers(); len(global) > 0 {
 		tm.globalTrackers = [][]string{global}
 		log.Info("Global trackers update", "size", len(global), "cap", wormhole.CAP)
 	}
@@ -557,7 +557,7 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool,
 	}
 	//cfg.Debug = true
 	cfg.DropDuplicatePeerIds = true
-	cfg.Bep20 = "-COLA01-"
+	cfg.Bep20 = params.ClientVersion //"-COLA01-"
 	//id := strconv.FormatUint(fsid, 16)[0:14]
 	//cfg.PeerID = "cortex" + id
 	//cfg.ListenHost = torrent.LoopbackListenHost
