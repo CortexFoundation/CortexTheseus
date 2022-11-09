@@ -21,11 +21,11 @@ import (
 	"fmt"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
+	lru2 "github.com/CortexFoundation/CortexTheseus/common/lru"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/trie"
-	"github.com/VictoriaMetrics/fastcache"
 	lru "github.com/hashicorp/golang-lru"
 )
 
@@ -128,7 +128,7 @@ func NewDatabaseWithConfig(db ctxcdb.Database, config *trie.Config) Database {
 		db:            trie.NewDatabaseWithConfig(db, config),
 		disk:          db,
 		codeSizeCache: csc,
-		codeCache:     fastcache.New(codeCacheSize),
+		codeCache:     lru2.NewSizeConstrainedLRU(codeCacheSize),
 	}
 }
 
@@ -136,7 +136,7 @@ type cachingDB struct {
 	db            *trie.Database
 	disk          ctxcdb.KeyValueStore
 	codeSizeCache *lru.Cache
-	codeCache     *fastcache.Cache
+	codeCache     *lru2.SizeConstrainedLRU
 }
 
 // OpenTrie opens the main account trie at a specific root hash.
@@ -169,12 +169,12 @@ func (db *cachingDB) CopyTrie(t Trie) Trie {
 
 // ContractCode retrieves a particular contract's code.
 func (db *cachingDB) ContractCode(addrHash, codeHash common.Hash) ([]byte, error) {
-	if code := db.codeCache.Get(nil, codeHash.Bytes()); len(code) > 0 {
+	if code := db.codeCache.Get(codeHash); len(code) > 0 {
 		return code, nil
 	}
 	code := rawdb.ReadCode(db.disk, codeHash)
 	if len(code) > 0 {
-		db.codeCache.Set(codeHash.Bytes(), code)
+		db.codeCache.Add(codeHash, code)
 		db.codeSizeCache.Add(codeHash, len(code))
 		return code, nil
 	}
@@ -185,12 +185,12 @@ func (db *cachingDB) ContractCode(addrHash, codeHash common.Hash) ([]byte, error
 // code can't be found in the cache, then check the existence with **new**
 // db scheme.
 func (db *cachingDB) ContractCodeWithPrefix(addrHash, codeHash common.Hash) ([]byte, error) {
-	if code := db.codeCache.Get(nil, codeHash.Bytes()); len(code) > 0 {
+	if code := db.codeCache.Get(codeHash); len(code) > 0 {
 		return code, nil
 	}
 	code := rawdb.ReadCodeWithPrefix(db.disk, codeHash)
 	if len(code) > 0 {
-		db.codeCache.Set(codeHash.Bytes(), code)
+		db.codeCache.Add(codeHash, code)
 		db.codeSizeCache.Add(codeHash, len(code))
 		return code, nil
 	}
