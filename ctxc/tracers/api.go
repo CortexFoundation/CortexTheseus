@@ -917,6 +917,7 @@ func (api *API) traceTx(ctx context.Context, message core.Message, txctx *Contex
 			return nil, err
 		}
 	}
+	vmenv := vm.NewCVM(vmctx, txContext, statedb, api.backend.ChainConfig(), vm.Config{Debug: true, Tracer: tracer})
 	// Define a meaningful timeout of a single transaction trace
 	if config.Timeout != nil {
 		if timeout, err = time.ParseDuration(*config.Timeout); err != nil {
@@ -928,12 +929,13 @@ func (api *API) traceTx(ctx context.Context, message core.Message, txctx *Contex
 		<-deadlineCtx.Done()
 		if errors.Is(deadlineCtx.Err(), context.DeadlineExceeded) {
 			tracer.Stop(errors.New("execution timeout"))
+			// Stop evm execution. Note cancellation is not necessarily immediate.
+			vmenv.Cancel()
 		}
 	}()
 	defer cancel()
 
 	// Run the transaction with tracing enabled.
-	vmenv := vm.NewCVM(vmctx, txContext, statedb, api.backend.ChainConfig(), vm.Config{Debug: true, Tracer: tracer})
 	// Call Prepare to clear out the statedb access list
 	statedb.Prepare(txctx.TxHash, txctx.TxIndex)
 	if _, _, _, _, err = core.ApplyMessage(vmenv, message, new(core.GasPool).AddGas(message.Gas()), new(core.QuotaPool).AddQuota(vmctx.Quota)); err != nil {
