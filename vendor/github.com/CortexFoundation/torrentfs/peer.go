@@ -23,7 +23,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/torrentfs/params"
-	mapset "github.com/deckarep/golang-set"
+	mapset "github.com/deckarep/golang-set/v2"
 	"sync"
 	"time"
 )
@@ -34,14 +34,14 @@ type Peer struct {
 	peer     *p2p.Peer
 	ws       p2p.MsgReadWriter
 	trusted  bool
-	known    mapset.Set
+	known    mapset.Set[string]
 	quit     chan struct{}
 	wg       sync.WaitGroup
 	version  uint64
 	peerInfo *PeerInfo
 
 	msgChan chan any
-	seeding mapset.Set
+	seeding mapset.Set[string]
 }
 
 type PeerInfo struct {
@@ -61,11 +61,11 @@ func newPeer(id string, host *TorrentFS, remote *p2p.Peer, rw p2p.MsgReadWriter)
 		host:    host,
 		peer:    remote,
 		ws:      rw,
-		known:   mapset.NewSet(),
+		known:   mapset.NewSet[string](),
 		trusted: false,
 		quit:    make(chan struct{}),
 		msgChan: make(chan any, 10),
-		seeding: mapset.NewSet(),
+		seeding: mapset.NewSet[string](),
 	}
 	return &p
 }
@@ -84,9 +84,9 @@ func (peer *Peer) start() error {
 
 func (peer *Peer) expire() {
 	unmark := make(map[string]struct{})
-	peer.known.Each(func(k any) bool {
-		if _, ok := peer.host.Envelopes().Get(k.(string)); ok != nil {
-			unmark[k.(string)] = struct{}{}
+	peer.known.Each(func(k string) bool {
+		if _, ok := peer.host.Envelopes().Get(k); ok != nil {
+			unmark[k] = struct{}{}
 		}
 		return true
 	})
