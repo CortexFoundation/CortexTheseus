@@ -1,4 +1,4 @@
-package lru
+package legacy
 
 import "container/list"
 

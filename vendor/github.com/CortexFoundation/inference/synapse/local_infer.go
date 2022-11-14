@@ -9,7 +9,7 @@ import (
 	"context"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/common/lru"
+	"github.com/CortexFoundation/CortexTheseus/common/lru/legacy"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/cvm-runtime/kernel"
@@ -170,8 +170,8 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 
 		memoryUsage -= ReservedMemoryUsage
 		log.Info("Memory alloc", "size", common.StorageSize(memoryUsage))
-		s.caches[s.config.DeviceId] = lru.New(memoryUsage)
-		s.caches[s.config.DeviceId].OnEvicted = func(key lru.Key, value interface{}) {
+		s.caches[s.config.DeviceId] = legacy.New(memoryUsage)
+		s.caches[s.config.DeviceId].OnEvicted = func(key legacy.Key, value interface{}) {
 			log.Warn("C FREE On Evicted", "k", key, "size", common.StorageSize(value.(*kernel.Model).Size()), "free", common.StorageSize(memoryUsage), "max", common.StorageSize(s.config.MaxMemoryUsage), "min", common.StorageSize(MinMemoryUsage))
 			value.(*kernel.Model).Free()
 		}

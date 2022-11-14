@@ -21,12 +21,11 @@ import (
 	"fmt"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	lru2 "github.com/CortexFoundation/CortexTheseus/common/lru"
+	"github.com/CortexFoundation/CortexTheseus/common/lru"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/trie"
-	lru "github.com/hashicorp/golang-lru"
 )
 
 const (
@@ -123,20 +122,19 @@ func NewDatabase(db ctxcdb.Database) Database {
 // is safe for concurrent use and retains a lot of collapsed RLP trie nodes in a
 // large memory cache.
 func NewDatabaseWithConfig(db ctxcdb.Database, config *trie.Config) Database {
-	csc, _ := lru.New(codeSizeCacheSize)
 	return &cachingDB{
 		db:            trie.NewDatabaseWithConfig(db, config),
 		disk:          db,
-		codeSizeCache: csc,
-		codeCache:     lru2.NewSizeConstrainedLRU(codeCacheSize),
+		codeSizeCache: lru.NewCache[common.Hash, int](codeSizeCacheSize),
+		codeCache:     lru.NewSizeConstrainedCache[common.Hash, []byte](codeCacheSize),
 	}
 }
 
 type cachingDB struct {
 	db            *trie.Database
 	disk          ctxcdb.KeyValueStore
-	codeSizeCache *lru.Cache
-	codeCache     *lru2.SizeConstrainedLRU
+	codeSizeCache *lru.Cache[common.Hash, int]
+	codeCache     *lru.SizeConstrainedCache[common.Hash, []byte]
 }
 
 // OpenTrie opens the main account trie at a specific root hash.
@@ -169,10 +167,11 @@ func (db *cachingDB) CopyTrie(t Trie) Trie {
 
 // ContractCode retrieves a particular contract's code.
 func (db *cachingDB) ContractCode(addrHash, codeHash common.Hash) ([]byte, error) {
-	if code := db.codeCache.Get(codeHash); len(code) > 0 {
+	code, _ := db.codeCache.Get(codeHash)
+	if len(code) > 0 {
 		return code, nil
 	}
-	code := rawdb.ReadCode(db.disk, codeHash)
+	code = rawdb.ReadCode(db.disk, codeHash)
 	if len(code) > 0 {
 		db.codeCache.Add(codeHash, code)
 		db.codeSizeCache.Add(codeHash, len(code))
@@ -185,10 +184,11 @@ func (db *cachingDB) ContractCode(addrHash, codeHash common.Hash) ([]byte, error
 // code can't be found in the cache, then check the existence with **new**
 // db scheme.
 func (db *cachingDB) ContractCodeWithPrefix(addrHash, codeHash common.Hash) ([]byte, error) {
-	if code := db.codeCache.Get(codeHash); len(code) > 0 {
+	code, _ := db.codeCache.Get(codeHash)
+	if len(code) > 0 {
 		return code, nil
 	}
-	code := rawdb.ReadCodeWithPrefix(db.disk, codeHash)
+	code = rawdb.ReadCodeWithPrefix(db.disk, codeHash)
 	if len(code) > 0 {
 		db.codeCache.Add(codeHash, code)
 		db.codeSizeCache.Add(codeHash, len(code))
@@ -200,7 +200,7 @@ func (db *cachingDB) ContractCodeWithPrefix(addrHash, codeHash common.Hash) ([]b
 // ContractCodeSize retrieves a particular contracts code's size.
 func (db *cachingDB) ContractCodeSize(addrHash, codeHash common.Hash) (int, error) {
 	if cached, ok := db.codeSizeCache.Get(codeHash); ok {
-		return cached.(int), nil
+		return cached, nil
 	}
 	code, err := db.ContractCode(addrHash, codeHash)
 	return len(code), err
