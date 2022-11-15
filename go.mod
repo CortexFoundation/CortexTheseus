@@ -19,6 +19,7 @@ require (
 	github.com/cloudflare/cloudflare-go v0.51.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/deckarep/golang-set v1.8.0
+	github.com/deckarep/golang-set/v2 v2.1.0
 	github.com/docker/docker v20.10.18+incompatible
 	github.com/dop251/goja v0.0.0-20221003171542-5ea1285e6c91
 	github.com/fjl/gencodec v0.0.0-20220412091415-8bb9e558978c

@@ -26,7 +26,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
-	mapset "github.com/deckarep/golang-set"
+	mapset "github.com/deckarep/golang-set/v2"
 )
 
 // Peer represents a whisper protocol peer connection.
@@ -41,7 +41,7 @@ type Peer struct {
 	bloomFilter    []byte
 	fullNode       bool
 
-	known mapset.Set // Messages already known by the peer to avoid wasting bandwidth
+	known mapset.Set[common.Hash] // Messages already known by the peer to avoid wasting bandwidth
 
 	quit chan struct{}
 
@@ -56,7 +56,7 @@ func newPeer(host *Whisper, remote *p2p.Peer, rw p2p.MsgReadWriter) *Peer {
 		ws:             rw,
 		trusted:        false,
 		powRequirement: 0.0,
-		known:          mapset.NewSet(),
+		known:          mapset.NewSet[common.Hash](),
 		quit:           make(chan struct{}),
 		bloomFilter:    MakeFullNodeBloom(),
 		fullNode:       true,
@@ -189,9 +189,9 @@ func (peer *Peer) marked(envelope *Envelope) bool {
 // expired (unknown) ones from the known list.
 func (peer *Peer) expire() {
 	unmark := make(map[common.Hash]struct{})
-	peer.known.Each(func(v interface{}) bool {
-		if !peer.host.isEnvelopeCached(v.(common.Hash)) {
-			unmark[v.(common.Hash)] = struct{}{}
+	peer.known.Each(func(v common.Hash) bool {
+		if !peer.host.isEnvelopeCached(v) {
+			unmark[v] = struct{}{}
 		}
 		return true
 	})
