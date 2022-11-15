@@ -18,6 +18,7 @@ const (
 )
 
 // Infer by input info hash
+//
 //go:generate gencodec -type IHWork -out gen_ih_json.go
 type IHWork struct {
 	Type         InferType `json:"type"  gencodec:"required"`
@@ -30,6 +31,7 @@ type IHWork struct {
 }
 
 // Infer by input content
+//
 //go:generate gencodec -type ICWork -out gen_ic_json.go
 type ICWork struct {
 	Type         InferType     `json:"type" gencodec:"required"`
@@ -41,6 +43,7 @@ type ICWork struct {
 }
 
 // Infer gas
+//
 //go:generate gencodec -type GasWork -out gen_gas_json.go
 type GasWork struct {
 	Type         InferType `json:"type" gencodec:"required"`
@@ -50,6 +53,7 @@ type GasWork struct {
 }
 
 // check Available
+//
 //go:generate gencodec -type AvailableWork -out gen_avaiable_json.go
 type AvailableWork struct {
 	Type         InferType `json:"type" gencodec:"required"`
