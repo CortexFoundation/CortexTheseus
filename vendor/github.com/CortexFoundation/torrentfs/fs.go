@@ -39,7 +39,7 @@ import (
 	"github.com/CortexFoundation/torrentfs/types"
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/metainfo"
-	mapset "github.com/deckarep/golang-set"
+	mapset "github.com/deckarep/golang-set/v2"
 	lru "github.com/hashicorp/golang-lru"
 	cp "github.com/otiai10/copy"
 
@@ -75,7 +75,7 @@ type TorrentFS struct {
 	closeAll      chan struct{}
 	wg            sync.WaitGroup
 	once          sync.Once
-	worm          mapset.Set
+	worm          mapset.Set[string]
 
 	msg *ttlmap.Map
 
@@ -149,7 +149,7 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 	inst.scoreTable = make(map[string]int)
 	inst.seedingNotify = make(chan string, 32)
 
-	inst.worm = mapset.NewSet()
+	inst.worm = mapset.NewSet[string]()
 
 	inst.protocol = p2p.Protocol{
 		Name:    params.ProtocolName,
