@@ -3,7 +3,7 @@ package synapse
 import (
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/common/lru"
+	"github.com/CortexFoundation/CortexTheseus/common/lru/legacy"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/cvm-runtime/kernel"
@@ -55,7 +55,7 @@ type Synapse struct {
 	//modelLock   sync.Map
 	mutex  sync.Mutex
 	lib    *kernel.LibCVM
-	caches map[int]*lru.Cache
+	caches map[int]*legacy.Cache
 	//exitCh chan struct{}
 	client *resty.Client
 	//ctx    context.Context
@@ -108,7 +108,7 @@ Error: %v
 		config: config,
 		lib:    lib,
 		//exitCh: make(chan struct{}),
-		caches: make(map[int]*lru.Cache),
+		caches: make(map[int]*legacy.Cache),
 	}
 
 	if synapseInstance.config.IsRemoteInfer {

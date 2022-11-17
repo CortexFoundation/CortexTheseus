@@ -32,7 +32,7 @@ func (s *Synapse) remoteGasByModelHashWithSize(modelInfoHash string, modelSize u
 	return binary.BigEndian.Uint64(retArray), nil
 }
 
-//func (s *Synapse) remoteAvailable(infoHash string, rawSize int64, uri string) error {
+// func (s *Synapse) remoteAvailable(infoHash string, rawSize int64, uri string) error {
 func (s *Synapse) remoteAvailable(infoHash string, rawSize uint64, cvmNetworkID int64) error {
 	inferWork := inference.AvailableWork{
 		Type:         inference.AVAILABLE_BY_H,

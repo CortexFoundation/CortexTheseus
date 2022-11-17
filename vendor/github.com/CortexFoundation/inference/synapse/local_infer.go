@@ -9,7 +9,7 @@ import (
 	"context"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/common/lru"
+	"github.com/CortexFoundation/CortexTheseus/common/lru/legacy"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/cvm-runtime/kernel"
@@ -70,7 +70,7 @@ func (s *Synapse) getGasByInfoHashWithSize(modelInfoHash string, modelSize uint6
 		gasCacheHitMeter.Mark(1)
 		return v.(uint64), nil
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	modelJson, modelJson_err := s.config.Storagefs.GetFileWithSize(ctx, modelHash, modelSize, SYMBOL_PATH)
 	if modelJson_err != nil || modelJson == nil {
@@ -131,7 +131,7 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 		return v.([]byte), nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if inputContent == nil {
@@ -170,8 +170,8 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 
 		memoryUsage -= ReservedMemoryUsage
 		log.Info("Memory alloc", "size", common.StorageSize(memoryUsage))
-		s.caches[s.config.DeviceId] = lru.New(memoryUsage)
-		s.caches[s.config.DeviceId].OnEvicted = func(key lru.Key, value interface{}) {
+		s.caches[s.config.DeviceId] = legacy.New(memoryUsage)
+		s.caches[s.config.DeviceId].OnEvicted = func(key legacy.Key, value interface{}) {
 			log.Warn("C FREE On Evicted", "k", key, "size", common.StorageSize(value.(*kernel.Model).Size()), "free", common.StorageSize(memoryUsage), "max", common.StorageSize(s.config.MaxMemoryUsage), "min", common.StorageSize(MinMemoryUsage))
 			value.(*kernel.Model).Free()
 		}
@@ -236,7 +236,7 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 			return nil
 		}
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	isOK, err := s.config.Storagefs.Available(ctx, ih, rawSize)
 	if err != nil {
@@ -255,7 +255,7 @@ func (s *Synapse) download(infohash string, request uint64) error {
 		return KERNEL_RUNTIME_ERROR //errors.New("Invalid infohash format")
 	}
 	ih := strings.TrimPrefix(strings.ToLower(infohash), common.Prefix)
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	err := s.config.Storagefs.Download(ctx, ih, request)
 	if err != nil {
