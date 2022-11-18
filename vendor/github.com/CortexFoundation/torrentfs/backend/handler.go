@@ -812,7 +812,7 @@ func (tm *TorrentManager) pendingLoop() {
 				if t.start == 0 {
 					t.start = mclock.Now()
 				}
-				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+				ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 				defer cancel()
 				select {
 				case <-t.GotInfo():
@@ -825,6 +825,8 @@ func (tm *TorrentManager) pendingLoop() {
 						}
 					} else {
 						log.Error("Meta info marshal failed", "ih", t.infohash, "err", err)
+						tm.droppingChan <- t.infohash
+						return
 					}
 
 					if err := t.WriteTorrent(); err == nil {
@@ -836,15 +838,14 @@ func (tm *TorrentManager) pendingLoop() {
 						}
 						tm.activeChan <- t
 						tm.pendingRemoveChan <- t.infohash
+					} else {
+						log.Error("Write torrent info to file failed", "ih", t.infohash, "err", err)
+						tm.droppingChan <- t.infohash
 					}
 				case <-t.Closed():
 				case <-tm.closeAll:
 				case <-ctx.Done():
 					tm.droppingChan <- t.infohash
-					//elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
-					//log.Debug("Pending seed", "ih", t.infohash, "elapsed", common.PrettyDuration(elapsed))
-					//t.AddTrackers([][]string{params.GlobalTrackers})
-					//tm.pendingChan <- t
 				}
 			}()
 		case i := <-tm.pendingRemoveChan:
