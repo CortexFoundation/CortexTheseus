@@ -423,8 +423,11 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta, b *
 		//GetStorage().Download(context.Background(), meta.InfoHash, 0)
 		//	}
 		//}
-
-		m.download(meta.InfoHash, 0)
+		if m.mode == params.FULL {
+			m.download(meta.InfoHash, 512*1024)
+		} else {
+			m.download(meta.InfoHash, 0)
+		}
 	}
 	return nil
 }
