@@ -602,6 +602,12 @@ web3._extend({
 			call: 'ctxc_getLogs',
 			params: 1,
 		}),
+		new web3._extend.Method({
+			name: 'call',
+			call: 'ctxc_call',
+			params: 3,
+			inputFormatter: [formatters.inputCallFormatter, formatters.inputDefaultBlockNumberFormatter, null],
+		}),
 	],
 	properties: [
 		new web3._extend.Property({
