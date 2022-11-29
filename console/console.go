@@ -30,6 +30,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/internal/jsre"
 	"github.com/CortexFoundation/CortexTheseus/internal/jsre/deps"
 	"github.com/CortexFoundation/CortexTheseus/internal/web3ext"
+	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/dop251/goja"
 	"github.com/mattn/go-colorable"
@@ -180,12 +181,20 @@ func (c *Console) initWeb3(bridge *bridge) error {
 	return err
 }
 
+var defaultAPIs = map[string]string{"ctxc": "1.0", "net": "1.0", "debug": "1.0"}
+
 // initExtensions loads and registers web3.js extensions.
 func (c *Console) initExtensions() error {
+	const methodNotFound = -32601
 	// Compute aliases from server-provided modules.
 	apis, err := c.client.SupportedModules()
 	if err != nil {
-		return fmt.Errorf("api modules: %v", err)
+		if rpcErr, ok := err.(rpc.Error); ok && rpcErr.ErrorCode() == methodNotFound {
+			log.Warn("Server does not support method rpc_modules, using default API list.")
+			apis = defaultAPIs
+		} else {
+			return err
+		}
 	}
 	aliases := map[string]struct{}{"ctxc": {}, "personal": {}}
 	for api := range apis {
