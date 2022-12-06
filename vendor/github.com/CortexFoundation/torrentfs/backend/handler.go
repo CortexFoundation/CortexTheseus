@@ -600,7 +600,7 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool,
 		activeChan:        make(chan *Torrent, torrentChanSize),
 		pendingChan:       make(chan *Torrent, torrentChanSize),
 		pendingRemoveChan: make(chan string, torrentChanSize),
-		droppingChan:      make(chan string, 1),
+		droppingChan:      make(chan string, torrentChanSize),
 		mode:              config.Mode,
 		//boost:             config.Boost,
 		id:             fsid,
@@ -654,8 +654,6 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool,
 
 func (tm *TorrentManager) Start() (err error) {
 	tm.startOnce.Do(func() {
-		tm.wg.Add(1)
-		go tm.droppingLoop()
 		tm.wg.Add(1)
 		go tm.seedingLoop()
 		tm.wg.Add(1)
@@ -814,7 +812,7 @@ func (tm *TorrentManager) pendingLoop() {
 				if t.start == 0 {
 					t.start = mclock.Now()
 				}
-				ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 				defer cancel()
 				select {
 				case <-t.GotInfo():
@@ -827,8 +825,6 @@ func (tm *TorrentManager) pendingLoop() {
 						}
 					} else {
 						log.Error("Meta info marshal failed", "ih", t.infohash, "err", err)
-						tm.Drop(t.infohash)
-						return
 					}
 
 					if err := t.WriteTorrent(); err == nil {
@@ -840,14 +836,15 @@ func (tm *TorrentManager) pendingLoop() {
 						}
 						tm.activeChan <- t
 						tm.pendingRemoveChan <- t.infohash
-					} else {
-						log.Error("Write torrent info to file failed", "ih", t.infohash, "err", err)
-						tm.Drop(t.infohash)
 					}
 				case <-t.Closed():
 				case <-tm.closeAll:
 				case <-ctx.Done():
-					tm.Drop(t.infohash)
+					tm.droppingChan <- t.infohash
+					//elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
+					//log.Debug("Pending seed", "ih", t.infohash, "elapsed", common.PrettyDuration(elapsed))
+					//t.AddTrackers([][]string{params.GlobalTrackers})
+					//tm.pendingChan <- t
 				}
 			}()
 		case i := <-tm.pendingRemoveChan:
@@ -906,7 +903,7 @@ func (tm *TorrentManager) activeLoop() {
 					case <-timer.C:
 						if t := tm.getTorrent(i); t != nil { //&& t.Ready() {
 							if t.cited <= 0 {
-								tm.Drop(i)
+								tm.droppingChan <- i
 								return
 							} else {
 								t.lock.Lock()
@@ -998,17 +995,6 @@ func (tm *TorrentManager) seedingLoop() {
 					}()
 				}
 			}
-		case <-tm.closeAll:
-			log.Info("Seeding loop closed")
-			return
-		}
-	}
-}
-
-func (tm *TorrentManager) droppingLoop() {
-	defer tm.wg.Done()
-	for {
-		select {
 		case ih := <-tm.droppingChan:
 			if t := tm.getTorrent(ih); t != nil { //&& t.Ready() {
 				t.Torrent.Drop()
@@ -1030,7 +1016,7 @@ func (tm *TorrentManager) droppingLoop() {
 				log.Warn("Drop seed not found", "ih", ih)
 			}
 		case <-tm.closeAll:
-			log.Info("Dropping loop closed")
+			log.Info("Seeding loop closed")
 			return
 		}
 	}

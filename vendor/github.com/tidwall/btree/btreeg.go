@@ -8,20 +8,27 @@ import (
 	"sync/atomic"
 )
 
-const (
-	degree   = 128
-	maxItems = degree*2 - 1 // max items per node. max children is +1
-	minItems = maxItems / 2
-)
+func degreeToMinMax(deg int) (min, max int) {
+	if deg <= 0 {
+		deg = 128
+	} else if deg == 1 {
+		deg = 2 // must have at least 2
+	}
+	max = deg*2 - 1 // max items per node. max children is +1
+	min = max / 2
+	return min, max
+}
 
 type BTreeG[T any] struct {
-	mu    *sync.RWMutex
 	cow   uint64
+	mu    *sync.RWMutex
 	root  *node[T]
 	count int
 	locks bool
 	less  func(a, b T) bool
 	empty T
+	max   int
+	min   int
 }
 
 type node[T any] struct {
@@ -31,7 +38,7 @@ type node[T any] struct {
 	children *[]*node[T]
 }
 
-var gcow uint64
+var gcow atomic.Uint64
 
 // PathHint is a utility type used with the *Hint() functions. Hints provide
 // faster operations for clustered keys.
@@ -42,6 +49,14 @@ type PathHint struct {
 
 // Options for passing to New when creating a new BTree.
 type Options struct {
+	// Degree is used to define how many items and children each internal node
+	// can contain before it must branch. For example, a degree of 2 will
+	// create a 2-3-4 tree, where each node may contains 1-3 items and
+	// 2-4 children. See https://en.wikipedia.org/wiki/2–3–4_tree.
+	// Default is 128
+	Degree int
+	// NoLocks will disable locking. Otherwide a sync.RWMutex is used to
+	// ensure all operations are safe across multiple goroutines.
 	NoLocks bool
 }
 
@@ -52,10 +67,11 @@ func NewBTreeG[T any](less func(a, b T) bool) *BTreeG[T] {
 
 func NewBTreeGOptions[T any](less func(a, b T) bool, opts Options) *BTreeG[T] {
 	tr := new(BTreeG[T])
-	tr.cow = atomic.AddUint64(&gcow, 1)
+	tr.cow = gcow.Add(1)
 	tr.mu = new(sync.RWMutex)
 	tr.less = less
 	tr.locks = !opts.NoLocks
+	tr.min, tr.max = degreeToMinMax(opts.Degree)
 	return tr
 }
 
@@ -202,7 +218,7 @@ func (tr *BTreeG[T]) setHint(item T, hint *PathHint) (prev T, replaced bool) {
 		left := tr.cowLoad(&tr.root)
 		right, median := tr.nodeSplit(left)
 		tr.root = tr.newNode(false)
-		*tr.root.children = make([]*node[T], 0, maxItems+1)
+		*tr.root.children = make([]*node[T], 0, tr.max+1)
 		*tr.root.children = append([]*node[T]{}, left, right)
 		tr.root.items = append([]T{}, median)
 		tr.root.updateCount()
@@ -221,7 +237,7 @@ func (tr *BTreeG[T]) Set(item T) (T, bool) {
 }
 
 func (tr *BTreeG[T]) nodeSplit(n *node[T]) (right *node[T], median T) {
-	i := maxItems / 2
+	i := tr.max / 2
 	median = n.items[i]
 
 	const sliceItems = true
@@ -234,11 +250,11 @@ func (tr *BTreeG[T]) nodeSplit(n *node[T]) (right *node[T], median T) {
 			*right.children = (*n.children)[i+1:]
 		}
 	} else {
-		right.items = make([]T, len(n.items[i+1:]), maxItems/2)
+		right.items = make([]T, len(n.items[i+1:]), tr.max/2)
 		copy(right.items, n.items[i+1:])
 		if !n.leaf() {
 			*right.children =
-				make([]*node[T], len((*n.children)[i+1:]), maxItems+1)
+				make([]*node[T], len((*n.children)[i+1:]), tr.max+1)
 			copy(*right.children, (*n.children)[i+1:])
 		}
 	}
@@ -291,7 +307,7 @@ func (tr *BTreeG[T]) copy(n *node[T]) *node[T] {
 	copy(n2.items, n.items)
 	if !n.leaf() {
 		n2.children = new([]*node[T])
-		*n2.children = make([]*node[T], len(*n.children), maxItems+1)
+		*n2.children = make([]*node[T], len(*n.children), tr.max+1)
 		copy(*n2.children, *n.children)
 	}
 	return n2
@@ -325,7 +341,7 @@ func (tr *BTreeG[T]) nodeSet(cn **node[T], item T,
 		return prev, true, false
 	}
 	if n.leaf() {
-		if len(n.items) == maxItems {
+		if len(n.items) == tr.max {
 			return tr.empty, false, true
 		}
 		n.items = append(n.items, tr.empty)
@@ -336,7 +352,7 @@ func (tr *BTreeG[T]) nodeSet(cn **node[T], item T,
 	}
 	prev, replaced, split = tr.nodeSet(&(*n.children)[i], item, hint, depth+1)
 	if split {
-		if len(n.items) == maxItems {
+		if len(n.items) == tr.max {
 			return tr.empty, false, true
 		}
 		right, median := tr.nodeSplit((*n.children)[i])
@@ -515,7 +531,7 @@ func (tr *BTreeG[T]) delete(cn **node[T], max bool, key T,
 		return tr.empty, false
 	}
 	n.count--
-	if len((*n.children)[i].items) < minItems {
+	if len((*n.children)[i].items) < tr.min {
 		tr.nodeRebalance(n, i)
 	}
 	return prev, true
@@ -533,7 +549,7 @@ func (tr *BTreeG[T]) nodeRebalance(n *node[T], i int) {
 	left := tr.cowLoad(&(*n.children)[i])
 	right := tr.cowLoad(&(*n.children)[i+1])
 
-	if len(left.items)+len(right.items) < maxItems {
+	if len(left.items)+len(right.items) < tr.max {
 		// Merges the left and right children nodes together as a single node
 		// that includes (left,item,right), and places the contents into the
 		// existing left node. Delete the right node altogether and move the
@@ -730,7 +746,7 @@ func (tr *BTreeG[T]) Load(item T) (T, bool) {
 	for {
 		n.count++ // optimistically update counts
 		if n.leaf() {
-			if len(n.items) < maxItems {
+			if len(n.items) < tr.max {
 				if tr.Less(n.items[len(n.items)-1], item) {
 					n.items = append(n.items, item)
 					tr.count++
@@ -804,7 +820,7 @@ func (tr *BTreeG[T]) PopMin() (T, bool) {
 		n.count-- // optimistically update counts
 		if n.leaf() {
 			item = n.items[0]
-			if len(n.items) == minItems {
+			if len(n.items) == tr.min {
 				break
 			}
 			copy(n.items[:], n.items[1:])
@@ -845,7 +861,7 @@ func (tr *BTreeG[T]) PopMax() (T, bool) {
 		n.count-- // optimistically update counts
 		if n.leaf() {
 			item = n.items[len(n.items)-1]
-			if len(n.items) == minItems {
+			if len(n.items) == tr.min {
 				break
 			}
 			n.items[len(n.items)-1] = tr.empty
@@ -916,7 +932,7 @@ outer:
 		if n.leaf() {
 			// the index is the item position
 			item = n.items[index]
-			if len(n.items) == minItems {
+			if len(n.items) == tr.min {
 				path = append(path, uint8(index))
 				break outer
 			}
@@ -1013,11 +1029,11 @@ func (tr *BTreeG[T]) Copy() *BTreeG[T] {
 	if tr.lock() {
 		defer tr.unlock()
 	}
-	tr.cow = atomic.AddUint64(&gcow, 1)
+	tr.cow = gcow.Add(1)
 	tr2 := new(BTreeG[T])
 	*tr2 = *tr
 	tr2.mu = new(sync.RWMutex)
-	tr2.cow = atomic.AddUint64(&gcow, 1)
+	tr2.cow = gcow.Add(1)
 	return tr2
 }
 
