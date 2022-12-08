@@ -221,7 +221,7 @@ func (cvm *CVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 			// Calling a non existing account, don't do anything, but ping the tracer
 			if cvm.vmConfig.Debug && cvm.depth == 0 {
 				cvm.vmConfig.Tracer.CaptureStart(cvm, caller.Address(), addr, false, input, gas, value)
-				cvm.vmConfig.Tracer.CaptureEnd(ret, 0, 0, nil)
+				cvm.vmConfig.Tracer.CaptureEnd(ret, 0, nil)
 			}
 			return nil, gas, nil, nil
 		}
@@ -232,9 +232,9 @@ func (cvm *CVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	// Capture the tracer start/end events in debug mode
 	if cvm.vmConfig.Debug && cvm.depth == 0 {
 		cvm.vmConfig.Tracer.CaptureStart(cvm, caller.Address(), addr, false, input, gas, value)
-		defer func(startGas uint64, startTime time.Time) { // Lazy evaluation of the parameters
-			cvm.vmConfig.Tracer.CaptureEnd(ret, startGas-gas, time.Since(startTime), err)
-		}(gas, time.Now())
+		defer func(startGas uint64) { // Lazy evaluation of the parameters
+			cvm.vmConfig.Tracer.CaptureEnd(ret, startGas-gas, err)
+		}(gas)
 	}
 
 	if isPrecompile {
@@ -459,7 +459,6 @@ func (cvm *CVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	if cvm.vmConfig.Debug && cvm.depth == 0 {
 		cvm.vmConfig.Tracer.CaptureStart(cvm, caller.Address(), address, true, codeAndHash.code, gas, value)
 	}
-	start := time.Now()
 
 	ret, err := cvm.interpreter.Run(contract, nil, false)
 
@@ -494,7 +493,7 @@ func (cvm *CVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 		}
 	}
 	if cvm.vmConfig.Debug && cvm.depth == 0 {
-		cvm.vmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
+		cvm.vmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, err)
 	}
 	return ret, address, contract.Gas, contract.ModelGas, err
 }
