@@ -4,5 +4,6 @@
 // environment and runtime configuration.
 //
 // When not used to replace std log, the import should use the package name "analog" as in:
-//     import analog "github.com/anacrolix/log".
+//
+//	import analog "github.com/anacrolix/log".
 package log
