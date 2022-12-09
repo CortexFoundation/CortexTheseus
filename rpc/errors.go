@@ -56,7 +56,17 @@ var (
 	_ Error = new(invalidParamsError)
 )
 
-const defaultErrorCode = -32000
+const (
+	defaultErrorCode                = -32000
+	errcodeNotificationsUnsupported = -32001
+	errcodeTimeout                  = -32002
+	errcodePanic                    = -32603
+	errcodeMarshalError             = -32603
+)
+
+const (
+	errMsgTimeout = "request timed out"
+)
 
 type methodNotFoundError struct{ method string }
 
@@ -81,13 +91,6 @@ func (e *parseError) ErrorCode() int { return -32700 }
 
 func (e *parseError) Error() string { return e.message }
 
-// received message isn't a valid request
-type invalidRequestError struct{ message string }
-
-func (e *invalidRequestError) ErrorCode() int { return -32600 }
-
-func (e *invalidRequestError) Error() string { return e.message }
-
 // received message is invalid
 type invalidMessageError struct{ message string }
 
@@ -98,6 +101,25 @@ func (e *invalidMessageError) Error() string { return e.message }
 // unable to decode supplied params, or an invalid number of parameters
 type invalidParamsError struct{ message string }
 
+// received message isn't a valid request
+type invalidRequestError struct{ message string }
+
+func (e *invalidRequestError) ErrorCode() int { return -32600 }
+
+func (e *invalidRequestError) Error() string { return e.message }
+
+// unable to decode supplied params, or an invalid number of parameters
+
 func (e *invalidParamsError) ErrorCode() int { return -32602 }
 
 func (e *invalidParamsError) Error() string { return e.message }
+
+// internalServerError is used for server errors during request processing.
+type internalServerError struct {
+	code    int
+	message string
+}
+
+func (e *internalServerError) ErrorCode() int { return e.code }
+
+func (e *internalServerError) Error() string { return e.message }
