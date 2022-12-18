@@ -15,18 +15,18 @@ key-value cache with notification events for storing TTL-based expirable items.
 First, you need to install the package:
 
 ```go
-go get -u github.com/imkira/go-ttlmap
+go get -u github.com/ucwong/go-ttlmap
 ```
 
 ## Documentation
 
 For advanced usage, make sure to check the
-[available documentation here](http://godoc.org/github.com/imkira/go-ttlmap).
+[available documentation here](http://godoc.org/github.com/ucwong/go-ttlmap).
 
 ## Examples
 
 For examples check out the following
-[code](http://github.com/imkira/go-ttlmap/tree/master/examples).
+[code](http://github.com/ucwong/go-ttlmap/tree/master/examples).
 
 ## Contribute
 
@@ -43,5 +43,5 @@ www.opensource.org/licenses/MIT
 ## Copyright
 
 Copyright (c) 2016 Mario Freitas. See
-[LICENSE](http://github.com/imkira/go-ttlmap/blob/master/LICENSE)
+[LICENSE](http://github.com/ucwong/go-ttlmap/blob/master/LICENSE)
 for further details.

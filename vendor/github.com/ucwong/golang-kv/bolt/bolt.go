@@ -219,7 +219,7 @@ func (b *Bolt) Close() error {
 	return b.engine.Close()
 }
 
-func (b *Bolt) Batch(kvs map[string][]byte) error {
+func (b *Bolt) BatchSet(kvs map[string][]byte) error {
 	return b.engine.Batch(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(GLOBAL))
 		for k, v := range kvs {

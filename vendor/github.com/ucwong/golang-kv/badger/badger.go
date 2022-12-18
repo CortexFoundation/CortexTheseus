@@ -159,7 +159,7 @@ func (b *Badger) Close() error {
 	return b.engine.Close()
 }
 
-func (b *Badger) Batch(kvs map[string][]byte) error {
+func (b *Badger) BatchSet(kvs map[string][]byte) error {
 	for k, v := range kvs {
 		b.wb.Set([]byte(k), v)
 	}

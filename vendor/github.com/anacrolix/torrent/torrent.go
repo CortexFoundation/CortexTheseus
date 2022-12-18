@@ -30,8 +30,6 @@ import (
 	"github.com/anacrolix/missinggo/v2/pubsub"
 	"github.com/anacrolix/multiless"
 	"github.com/anacrolix/sync"
-	request_strategy "github.com/anacrolix/torrent/request-strategy"
-	typedRoaring "github.com/anacrolix/torrent/typed-roaring"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/pion/datachannel"
 
@@ -39,9 +37,11 @@ import (
 	"github.com/anacrolix/torrent/common"
 	"github.com/anacrolix/torrent/metainfo"
 	pp "github.com/anacrolix/torrent/peer_protocol"
+	request_strategy "github.com/anacrolix/torrent/request-strategy"
 	"github.com/anacrolix/torrent/segments"
 	"github.com/anacrolix/torrent/storage"
 	"github.com/anacrolix/torrent/tracker"
+	typedRoaring "github.com/anacrolix/torrent/typed-roaring"
 	"github.com/anacrolix/torrent/webseed"
 	"github.com/anacrolix/torrent/webtorrent"
 )
@@ -535,7 +535,7 @@ func (t *Torrent) setMetadataSize(size int) (err error) {
 		return
 	}
 	if uint32(size) > maxMetadataSize {
-		return errors.New("bad size")
+		return log.WithLevel(log.Warning, errors.New("bad size"))
 	}
 	if len(t.metadataBytes) == size {
 		return
@@ -1614,7 +1614,7 @@ func (t *Torrent) onWebRtcConn(
 func (t *Torrent) logRunHandshookConn(pc *PeerConn, logAll bool, level log.Level) {
 	err := t.cl.runHandshookConn(pc, t)
 	if err != nil || logAll {
-		t.logger.WithDefaultLevel(level).Printf("error running handshook conn: %v", err)
+		t.logger.WithDefaultLevel(level).Levelf(log.ErrorLevel(err), "error running handshook conn: %v", err)
 	}
 }
 
@@ -2540,4 +2540,23 @@ func (t *Torrent) iterUndirtiedRequestIndexesInPiece(
 type requestState struct {
 	peer *Peer
 	when time.Time
+}
+
+// Returns an error if a received chunk is out of bounds in someway.
+func (t *Torrent) checkValidReceiveChunk(r Request) error {
+	if !t.haveInfo() {
+		return errors.New("torrent missing info")
+	}
+	if int(r.Index) >= t.numPieces() {
+		return fmt.Errorf("chunk index %v, torrent num pieces %v", r.Index, t.numPieces())
+	}
+	pieceLength := t.pieceLength(pieceIndex(r.Index))
+	if r.Begin >= pieceLength {
+		return fmt.Errorf("chunk begins beyond end of piece (%v >= %v)", r.Begin, pieceLength)
+	}
+	// We could check chunk lengths here, but chunk request size is not changed often, and tricky
+	// for peers to manipulate as they need to send potentially large buffers to begin with. There
+	// should be considerable checks elsewhere for this case due to the network overhead. We should
+	// catch most of the overflow manipulation stuff by checking index and begin above.
+	return nil
 }
