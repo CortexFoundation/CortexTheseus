@@ -30,6 +30,6 @@ type Bucket interface {
 	SetTTL(k, v []byte, expire time.Duration) error
 	Close() error
 
-	// Batch write & flush
-	Batch(kvs map[string][]byte) error
+	// BatchSet write & flush
+	BatchSet(kvs map[string][]byte) error
 }

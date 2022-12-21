@@ -244,14 +244,6 @@ func (m *Monitor) indexInit() error {
 		}
 		capcity += bytesRequested
 		log.Debug("File storage info", "addr", file.ContractAddr, "ih", file.Meta.InfoHash, "remain", common.StorageSize(file.LeftSize), "raw", common.StorageSize(file.Meta.RawSize), "request", common.StorageSize(bytesRequested))
-		//if u, p, err := m.fs.SetTorrentProgress(file.Meta.InfoHash, bytesRequested); u && err == nil {
-		//	if m.mode != params.LAZY {
-		//		log.Debug("Search in sync parse download", "ih", file.Meta.InfoHash, "request", p)
-		//m.dl.Search(context.Background(), file.Meta.InfoHash, p)
-		//GetStorage().Download(context.Background(), file.Meta.InfoHash, bytesRequested)
-		//	}
-		//}
-
 		m.download(file.Meta.InfoHash, bytesRequested)
 		if file.LeftSize == 0 {
 			seed++
@@ -416,13 +408,6 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta, b *
 	if update && op == 1 {
 		log.Debug("Create new file", "ih", meta.InfoHash, "op", op)
 
-		//if u, p, err := m.fs.SetTorrentProgress(meta.InfoHash, 0); u && err == nil {
-		//	if m.mode != params.LAZY {
-		//		log.Debug("Search in sync parse create", "ih", meta.InfoHash, "request", p)
-		//m.dl.Search(context.Background(), meta.InfoHash, p)
-		//GetStorage().Download(context.Background(), meta.InfoHash, 0)
-		//	}
-		//}
 		if m.mode == params.FULL {
 			m.download(meta.InfoHash, 512*1024)
 		} else {
@@ -433,91 +418,73 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta, b *
 }
 
 func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
-	record := false
-	if len(b.Txs) > 0 {
-		start := mclock.Now()
-		var final []types.Transaction
-		for _, tx := range b.Txs {
-			if meta := tx.Parse(); meta != nil {
-				log.Debug("Data encounter", "ih", meta.InfoHash, "number", b.Number, "meta", meta)
-				if err := m.parseFileMeta(&tx, meta, b); err != nil {
-					log.Error("Parse file meta error", "err", err, "number", b.Number)
-					return false, err
-				}
-				final = append(final, tx)
-				record = true
-			} else if tx.IsFlowControl() {
-				if tx.Recipient == nil {
-					continue
-				}
-				file := m.fs.GetFileByAddr(*tx.Recipient)
-				if file == nil {
-					continue
-				}
-
-				receipt, err := m.getReceipt(tx.Hash.String())
-				if err != nil {
-					return false, err
-				}
-				//todo
-				if receipt.Status != 1 || receipt.GasUsed != params.UploadGas {
-					continue
-				}
-
-				remainingSize, err := m.getRemainingSize((*tx.Recipient).String())
-				if err != nil {
-					log.Error("Get remain failed", "err", err, "addr", (*tx.Recipient).String())
-					return false, err
-				}
-				if file.LeftSize > remainingSize {
-					file.LeftSize = remainingSize
-					if _, progress, err := m.fs.AddFile(file); err != nil {
-						return false, err
-					} else if progress { // && progress {
-						log.Debug("Update storage success", "ih", file.Meta.InfoHash, "left", file.LeftSize)
-						var bytesRequested uint64
-						if file.Meta.RawSize > file.LeftSize {
-							bytesRequested = file.Meta.RawSize - file.LeftSize
-						}
-						if file.LeftSize == 0 {
-							log.Debug("Data processing completed !!!", "ih", file.Meta.InfoHash, "addr", (*tx.Recipient).String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
-						} else {
-							log.Debug("Data processing ...", "ih", file.Meta.InfoHash, "addr", (*tx.Recipient).String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
-						}
-						//if u, p, err := m.fs.SetTorrentProgress(file.Meta.InfoHash, bytesRequested); u && err == nil {
-						//if m.mode != params.LAZY {
-						//m.dl.Search(context.Background(), file.Meta.InfoHash, p)
-						//				GetStorage().Download(context.Background(), file.Meta.InfoHash, bytesRequested)
-						//}
-						//}
-						//m.dl.UpdateTorrent(context.Background(), types.FlowControlMeta{
-						//	InfoHash:       file.Meta.InfoHash,
-						//	BytesRequested: bytesRequested,
-						//})
-
-						m.download(file.Meta.InfoHash, bytesRequested)
-					}
-				}
-
-				record = true
-				final = append(final, tx)
+	var (
+		record bool
+		start  = mclock.Now()
+		final  []types.Transaction
+	)
+	for _, tx := range b.Txs {
+		if meta := tx.Parse(); meta != nil {
+			log.Debug("Data encounter", "ih", meta.InfoHash, "number", b.Number, "meta", meta)
+			if err := m.parseFileMeta(&tx, meta, b); err != nil {
+				log.Error("Parse file meta error", "err", err, "number", b.Number)
+				return false, err
 			}
-		}
-		if len(final) > 0 && len(final) < len(b.Txs) {
-			log.Debug("Final txs layout", "total", len(b.Txs), "final", len(final), "num", b.Number, "txs", m.fs.Txs())
-			b.Txs = final
-		}
-
-		if record {
-			m.fs.AddBlock(b)
-		}
-
-		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-		if len(b.Txs) > 0 {
-			log.Trace("Transactions scanning", "count", len(b.Txs), "number", b.Number, "elapsed", common.PrettyDuration(elapsed))
+			record = true
+			final = append(final, tx)
+		} else if tx.IsFlowControl() {
+			if tx.Recipient == nil {
+				continue
+			}
+			file := m.fs.GetFileByAddr(*tx.Recipient)
+			if file == nil {
+				continue
+			}
+			receipt, err := m.getReceipt(tx.Hash.String())
+			if err != nil {
+				return false, err
+			}
+			if receipt.Status != 1 || receipt.GasUsed != params.UploadGas {
+				continue
+			}
+			remainingSize, err := m.getRemainingSize((*tx.Recipient).String())
+			if err != nil {
+				log.Error("Get remain failed", "err", err, "addr", (*tx.Recipient).String())
+				return false, err
+			}
+			if file.LeftSize > remainingSize {
+				file.LeftSize = remainingSize
+				if _, progress, err := m.fs.AddFile(file); err != nil {
+					return false, err
+				} else if progress { // && progress {
+					log.Debug("Update storage success", "ih", file.Meta.InfoHash, "left", file.LeftSize)
+					var bytesRequested uint64
+					if file.Meta.RawSize > file.LeftSize {
+						bytesRequested = file.Meta.RawSize - file.LeftSize
+					}
+					if file.LeftSize == 0 {
+						log.Debug("Data processing completed !!!", "ih", file.Meta.InfoHash, "addr", (*tx.Recipient).String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
+					} else {
+						log.Debug("Data processing ...", "ih", file.Meta.InfoHash, "addr", (*tx.Recipient).String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
+					}
+					m.download(file.Meta.InfoHash, bytesRequested)
+				}
+			}
+			record = true
+			final = append(final, tx)
 		}
 	}
-
+	if len(final) > 0 && len(final) < len(b.Txs) {
+		log.Debug("Final txs layout", "total", len(b.Txs), "final", len(final), "num", b.Number, "txs", m.fs.Txs())
+		b.Txs = final
+	}
+	if record {
+		m.fs.AddBlock(b)
+	}
+	if len(b.Txs) > 0 {
+		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
+		log.Trace("Transactions scanning", "count", len(b.Txs), "number", b.Number, "elapsed", common.PrettyDuration(elapsed))
+	}
 	return record, nil
 }
 
