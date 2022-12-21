@@ -21,35 +21,12 @@ type renderer interface {
 	// in succession.
 	repaint()
 
-	// Clears the terminal.
-	clearScreen()
-
 	// Whether or not the alternate screen buffer is enabled.
 	altScreen() bool
-	// Enable the alternate screen buffer.
-	enterAltScreen()
-	// Disable the alternate screen buffer.
-	exitAltScreen()
 
-	// Show the cursor.
-	showCursor()
-	// Hide the cursor.
-	hideCursor()
-
-	// enableMouseCellMotion enables mouse click, release, wheel and motion
-	// events if a mouse button is pressed (i.e., drag events).
-	enableMouseCellMotion()
-
-	// DisableMouseCellMotion disables Mouse Cell Motion tracking.
-	disableMouseCellMotion()
-
-	// EnableMouseAllMotion enables mouse click, release, wheel and motion
-	// events, regardless of whether a mouse button is pressed. Many modern
-	// terminals support this, but not all.
-	enableMouseAllMotion()
-
-	// DisableMouseAllMotion disables All Motion mouse tracking.
-	disableMouseAllMotion()
+	// Record internally that the alternate screen buffer is enabled. This
+	// does not actually toggle the alternate screen buffer.
+	setAltScreen(bool)
 }
 
 // repaintMsg forces a full repaint.

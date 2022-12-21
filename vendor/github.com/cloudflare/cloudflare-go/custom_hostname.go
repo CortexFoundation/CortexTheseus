@@ -3,12 +3,13 @@ package cloudflare
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
 	"time"
+
+	"errors"
 )
 
 // CustomHostnameStatus is the enumeration of valid state values in the CustomHostnameSSL.
@@ -37,14 +38,14 @@ type CustomHostnameSSLSettings struct {
 	EarlyHints    string   `json:"early_hints,omitempty"`
 }
 
-// CustomHostnameOwnershipVerification represents ownership verification status of a given custom hostname.
+//CustomHostnameOwnershipVerification represents ownership verification status of a given custom hostname.
 type CustomHostnameOwnershipVerification struct {
 	Type  string `json:"type,omitempty"`
 	Name  string `json:"name,omitempty"`
 	Value string `json:"value,omitempty"`
 }
 
-// SSLValidationError represents errors that occurred during SSL validation.
+//SSLValidationError represents errors that occurred during SSL validation.
 type SSLValidationError struct {
 	Message string `json:"message,omitempty"`
 }

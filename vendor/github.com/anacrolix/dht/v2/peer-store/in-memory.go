@@ -8,10 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/anacrolix/multiless"
-
 	"github.com/anacrolix/dht/v2/int160"
 	"github.com/anacrolix/dht/v2/krpc"
+	"github.com/anacrolix/multiless"
 )
 
 type InMemory struct {

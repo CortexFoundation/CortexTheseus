@@ -3,11 +3,12 @@ package cloudflare
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
+
+	"errors"
 )
 
 const (
@@ -28,7 +29,7 @@ const (
 	RulesetPhaseHTTPRequestLateTransformManaged     RulesetPhase = "http_request_late_transform_managed"
 	RulesetPhaseHTTPRequestMain                     RulesetPhase = "http_request_main"
 	RulesetPhaseHTTPRequestOrigin                   RulesetPhase = "http_request_origin"
-	RulesetPhaseHTTPRequestDynamicRedirect          RulesetPhase = "http_request_dynamic_redirect" //nolint:gosec
+	RulesetPhaseHTTPRequestDynamicRedirect          RulesetPhase = "http_request_dynamic_redirect"
 	RulesetPhaseHTTPRequestRedirect                 RulesetPhase = "http_request_redirect"
 	RulesetPhaseHTTPRequestSanitize                 RulesetPhase = "http_request_sanitize"
 	RulesetPhaseHTTPRequestTransform                RulesetPhase = "http_request_transform"
@@ -330,7 +331,6 @@ type RulesetRuleActionParametersCustomKeyFields struct {
 type RulesetRuleActionParametersCustomKeyQuery struct {
 	Include *RulesetRuleActionParametersCustomKeyList `json:"include,omitempty"`
 	Exclude *RulesetRuleActionParametersCustomKeyList `json:"exclude,omitempty"`
-	Ignore  *bool                                     `json:"ignore,omitempty"`
 }
 
 type RulesetRuleActionParametersCustomKeyList struct {
@@ -407,11 +407,10 @@ type RulesetRuleActionParametersHTTPHeader struct {
 }
 
 type RulesetRuleActionParametersOverrides struct {
-	Enabled          *bool                                   `json:"enabled,omitempty"`
-	Action           string                                  `json:"action,omitempty"`
-	SensitivityLevel string                                  `json:"sensitivity_level,omitempty"`
-	Categories       []RulesetRuleActionParametersCategories `json:"categories,omitempty"`
-	Rules            []RulesetRuleActionParametersRules      `json:"rules,omitempty"`
+	Enabled    *bool                                   `json:"enabled,omitempty"`
+	Action     string                                  `json:"action,omitempty"`
+	Categories []RulesetRuleActionParametersCategories `json:"categories,omitempty"`
+	Rules      []RulesetRuleActionParametersRules      `json:"rules,omitempty"`
 }
 
 type RulesetRuleActionParametersCategories struct {

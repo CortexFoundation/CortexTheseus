@@ -6,7 +6,6 @@ import (
 	"net/netip"
 
 	"github.com/anacrolix/generics"
-
 	"github.com/anacrolix/torrent/smartban"
 )
 

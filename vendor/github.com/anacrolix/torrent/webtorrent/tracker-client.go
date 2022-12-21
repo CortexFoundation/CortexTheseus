@@ -5,18 +5,17 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"net/http"
+	"github.com/anacrolix/generics"
+	"go.opentelemetry.io/otel/trace"
 	"sync"
 	"time"
 
-	"github.com/anacrolix/generics"
 	"github.com/anacrolix/log"
+
+	"github.com/anacrolix/torrent/tracker"
 	"github.com/gorilla/websocket"
 	"github.com/pion/datachannel"
 	"github.com/pion/webrtc/v3"
-	"go.opentelemetry.io/otel/trace"
-
-	"github.com/anacrolix/torrent/tracker"
 )
 
 type TrackerClientStats struct {
@@ -41,8 +40,6 @@ type TrackerClient struct {
 	closed         bool
 	stats          TrackerClientStats
 	pingTicker     *time.Ticker
-
-	WebsocketTrackerHttpHeader func() http.Header
 }
 
 func (me *TrackerClient) Stats() TrackerClientStats {
@@ -89,13 +86,7 @@ func (tc *TrackerClient) doWebsocket() error {
 	tc.mu.Lock()
 	tc.stats.Dials++
 	tc.mu.Unlock()
-
-	var header http.Header
-	if tc.WebsocketTrackerHttpHeader != nil {
-		header = tc.WebsocketTrackerHttpHeader()
-	}
-
-	c, _, err := tc.Dialer.Dial(tc.Url, header)
+	c, _, err := tc.Dialer.Dial(tc.Url, nil)
 	if err != nil {
 		return fmt.Errorf("dialing tracker: %w", err)
 	}

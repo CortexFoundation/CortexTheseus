@@ -78,7 +78,7 @@ func NewUDPMuxDefault(params UDPMuxParams) *UDPMuxDefault {
 		}
 		if len(networks) > 0 {
 			muxNet := vnet.NewNet(nil)
-			ips, err := localInterfaces(muxNet, nil, nil, networks, true)
+			ips, err := localInterfaces(muxNet, nil, nil, networks)
 			if err == nil {
 				for _, ip := range ips {
 					localAddrsForUnspecified = append(localAddrsForUnspecified, &net.UDPAddr{IP: ip, Port: addr.Port})
@@ -227,8 +227,8 @@ func (m *UDPMuxDefault) Close() error {
 	return err
 }
 
-func (m *UDPMuxDefault) writeTo(buf []byte, rAddr net.Addr) (n int, err error) {
-	return m.params.UDPConn.WriteTo(buf, rAddr)
+func (m *UDPMuxDefault) writeTo(buf []byte, raddr net.Addr) (n int, err error) {
+	return m.params.UDPConn.WriteTo(buf, raddr)
 }
 
 func (m *UDPMuxDefault) registerConnForAddress(conn *udpMuxedConn, addr string) {
@@ -338,11 +338,11 @@ func (m *UDPMuxDefault) getConn(ufrag string, isIPv6 bool) (val *udpMuxedConn, o
 }
 
 type bufferHolder struct {
-	buf []byte
+	buffer []byte
 }
 
 func newBufferHolder(size int) *bufferHolder {
 	return &bufferHolder{
-		buf: make([]byte, size),
+		buffer: make([]byte, size),
 	}
 }

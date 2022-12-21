@@ -5,6 +5,7 @@
 package zstd
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"io"
@@ -458,11 +459,7 @@ func (d *Decoder) nextBlock(blocking bool) (ok bool) {
 		println("got", len(d.current.b), "bytes, error:", d.current.err, "data crc:", tmp)
 	}
 
-	if d.o.ignoreChecksum {
-		return true
-	}
-
-	if len(next.b) > 0 {
+	if !d.o.ignoreChecksum && len(next.b) > 0 {
 		n, err := d.current.crc.Write(next.b)
 		if err == nil {
 			if n != len(next.b) {
@@ -470,16 +467,18 @@ func (d *Decoder) nextBlock(blocking bool) (ok bool) {
 			}
 		}
 	}
-	if next.err == nil && next.d != nil && next.d.hasCRC {
-		got := uint32(d.current.crc.Sum64())
-		if got != next.d.checkCRC {
+	if next.err == nil && next.d != nil && len(next.d.checkCRC) != 0 {
+		got := d.current.crc.Sum64()
+		var tmp [4]byte
+		binary.LittleEndian.PutUint32(tmp[:], uint32(got))
+		if !d.o.ignoreChecksum && !bytes.Equal(tmp[:], next.d.checkCRC) {
 			if debugDecoder {
-				printf("CRC Check Failed: %08x (got) != %08x (on stream)\n", got, next.d.checkCRC)
+				println("CRC Check Failed:", tmp[:], " (got) !=", next.d.checkCRC, "(on stream)")
 			}
 			d.current.err = ErrCRCMismatch
 		} else {
 			if debugDecoder {
-				printf("CRC ok %08x\n", got)
+				println("CRC ok", tmp[:])
 			}
 		}
 	}
@@ -919,22 +918,18 @@ decodeStream:
 				println("next block returned error:", err)
 			}
 			dec.err = err
-			dec.hasCRC = false
+			dec.checkCRC = nil
 			if dec.Last && frame.HasCheckSum && err == nil {
 				crc, err := frame.rawInput.readSmall(4)
-				if len(crc) < 4 {
-					if err == nil {
-						err = io.ErrUnexpectedEOF
-
-					}
+				if err != nil {
 					println("CRC missing?", err)
 					dec.err = err
-				} else {
-					dec.checkCRC = binary.LittleEndian.Uint32(crc)
-					dec.hasCRC = true
-					if debugDecoder {
-						printf("found crc to check: %08x\n", dec.checkCRC)
-					}
+				}
+				var tmp [4]byte
+				copy(tmp[:], crc)
+				dec.checkCRC = tmp[:]
+				if debugDecoder {
+					println("found crc to check:", dec.checkCRC)
 				}
 			}
 			err = dec.err

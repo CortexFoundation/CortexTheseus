@@ -142,13 +142,6 @@ func (v Value) AsBool() bool {
 // AsBoolSlice returns the []bool value. Make sure that the Value's type is
 // BOOLSLICE.
 func (v Value) AsBoolSlice() []bool {
-	if v.vtype != BOOLSLICE {
-		return nil
-	}
-	return v.asBoolSlice()
-}
-
-func (v Value) asBoolSlice() []bool {
 	return attribute.AsSlice[bool](v.slice)
 }
 
@@ -161,13 +154,6 @@ func (v Value) AsInt64() int64 {
 // AsInt64Slice returns the []int64 value. Make sure that the Value's type is
 // INT64SLICE.
 func (v Value) AsInt64Slice() []int64 {
-	if v.vtype != INT64SLICE {
-		return nil
-	}
-	return v.asInt64Slice()
-}
-
-func (v Value) asInt64Slice() []int64 {
 	return attribute.AsSlice[int64](v.slice)
 }
 
@@ -180,13 +166,6 @@ func (v Value) AsFloat64() float64 {
 // AsFloat64Slice returns the []float64 value. Make sure that the Value's type is
 // FLOAT64SLICE.
 func (v Value) AsFloat64Slice() []float64 {
-	if v.vtype != FLOAT64SLICE {
-		return nil
-	}
-	return v.asFloat64Slice()
-}
-
-func (v Value) asFloat64Slice() []float64 {
 	return attribute.AsSlice[float64](v.slice)
 }
 
@@ -199,13 +178,6 @@ func (v Value) AsString() string {
 // AsStringSlice returns the []string value. Make sure that the Value's type is
 // STRINGSLICE.
 func (v Value) AsStringSlice() []string {
-	if v.vtype != STRINGSLICE {
-		return nil
-	}
-	return v.asStringSlice()
-}
-
-func (v Value) asStringSlice() []string {
 	return attribute.AsSlice[string](v.slice)
 }
 
@@ -217,19 +189,19 @@ func (v Value) AsInterface() interface{} {
 	case BOOL:
 		return v.AsBool()
 	case BOOLSLICE:
-		return v.asBoolSlice()
+		return v.AsBoolSlice()
 	case INT64:
 		return v.AsInt64()
 	case INT64SLICE:
-		return v.asInt64Slice()
+		return v.AsInt64Slice()
 	case FLOAT64:
 		return v.AsFloat64()
 	case FLOAT64SLICE:
-		return v.asFloat64Slice()
+		return v.AsFloat64Slice()
 	case STRING:
 		return v.stringly
 	case STRINGSLICE:
-		return v.asStringSlice()
+		return v.AsStringSlice()
 	}
 	return unknownValueType{}
 }
@@ -238,19 +210,19 @@ func (v Value) AsInterface() interface{} {
 func (v Value) Emit() string {
 	switch v.Type() {
 	case BOOLSLICE:
-		return fmt.Sprint(v.asBoolSlice())
+		return fmt.Sprint(v.AsBoolSlice())
 	case BOOL:
 		return strconv.FormatBool(v.AsBool())
 	case INT64SLICE:
-		return fmt.Sprint(v.asInt64Slice())
+		return fmt.Sprint(v.AsInt64Slice())
 	case INT64:
 		return strconv.FormatInt(v.AsInt64(), 10)
 	case FLOAT64SLICE:
-		return fmt.Sprint(v.asFloat64Slice())
+		return fmt.Sprint(v.AsFloat64Slice())
 	case FLOAT64:
 		return fmt.Sprint(v.AsFloat64())
 	case STRINGSLICE:
-		return fmt.Sprint(v.asStringSlice())
+		return fmt.Sprint(v.AsStringSlice())
 	case STRING:
 		return v.stringly
 	default:

@@ -188,7 +188,3 @@ func (d *uintDecoder) Decode(ctx *RuntimeContext, cursor, depth int64, p unsafe.
 	d.op(p, u64)
 	return cursor, nil
 }
-
-func (d *uintDecoder) DecodePath(ctx *RuntimeContext, cursor, depth int64) ([][]byte, int64, error) {
-	return nil, 0, fmt.Errorf("json: uint decoder does not support decode path")
-}

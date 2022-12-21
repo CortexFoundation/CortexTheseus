@@ -3,10 +3,11 @@ package cloudflare
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
+
+	"errors"
 )
 
 var ErrMissingVnetName = errors.New("required missing virtual network name")

@@ -4,11 +4,12 @@ import (
 	"context"
 	"sync/atomic"
 
-	"github.com/anacrolix/chansync"
 	"github.com/anacrolix/chansync/events"
+	"github.com/anacrolix/dht/v2/containers"
 	"github.com/anacrolix/sync"
 
-	"github.com/anacrolix/dht/v2/containers"
+	"github.com/anacrolix/chansync"
+
 	"github.com/anacrolix/dht/v2/int160"
 	k_nearest_nodes "github.com/anacrolix/dht/v2/k-nearest-nodes"
 	"github.com/anacrolix/dht/v2/krpc"

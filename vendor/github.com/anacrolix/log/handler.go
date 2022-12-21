@@ -1,7 +1,7 @@
 package log
 
 type Handler interface {
-	Handle(r Record)
+	Handle(Record)
 }
 
 type Record struct {

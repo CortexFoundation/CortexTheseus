@@ -3,11 +3,12 @@ package cloudflare
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
+
+	"errors"
 )
 
 // UserAgentRule represents a User-Agent Block. These rules can be used to

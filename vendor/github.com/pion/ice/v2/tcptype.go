@@ -3,7 +3,7 @@ package ice
 import "strings"
 
 // TCPType is the type of ICE TCP candidate as described in
-// https://tools.ietf.org/html/rfc6544#section-4.5
+// ttps://tools.ietf.org/html/rfc6544#section-4.5
 type TCPType int
 
 const (

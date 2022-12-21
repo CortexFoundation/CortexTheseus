@@ -1,10 +1,9 @@
-package httpTracker
+package http
 
 import (
 	"fmt"
 
 	"github.com/anacrolix/dht/v2/krpc"
-
 	"github.com/anacrolix/torrent/bencode"
 )
 
@@ -19,30 +18,7 @@ type HttpResponse struct {
 	Peers6 krpc.CompactIPv6NodeAddrs `bencode:"peers6"`
 }
 
-type Peers struct {
-	List    []Peer
-	Compact bool
-}
-
-func (me Peers) MarshalBencode() ([]byte, error) {
-	if me.Compact {
-		cnas := make([]krpc.NodeAddr, 0, len(me.List))
-		for _, peer := range me.List {
-			cnas = append(cnas, krpc.NodeAddr{
-				IP:   peer.IP,
-				Port: peer.Port,
-			})
-		}
-		return krpc.CompactIPv4NodeAddrs(cnas).MarshalBencode()
-	} else {
-		return bencode.Marshal(me.List)
-	}
-}
-
-var (
-	_ bencode.Unmarshaler = (*Peers)(nil)
-	_ bencode.Marshaler   = Peers{}
-)
+type Peers []Peer
 
 func (me *Peers) UnmarshalBencode(b []byte) (err error) {
 	var _v interface{}
@@ -58,21 +34,19 @@ func (me *Peers) UnmarshalBencode(b []byte) (err error) {
 		if err != nil {
 			return
 		}
-		me.Compact = true
 		for _, cp := range cnas {
-			me.List = append(me.List, Peer{
+			*me = append(*me, Peer{
 				IP:   cp.IP[:],
-				Port: cp.Port,
+				Port: int(cp.Port),
 			})
 		}
 		return
 	case []interface{}:
 		vars.Add("http responses with list peers", 1)
-		me.Compact = false
 		for _, i := range v {
 			var p Peer
 			p.FromDictInterface(i.(map[string]interface{}))
-			me.List = append(me.List, p)
+			*me = append(*me, p)
 		}
 		return
 	default:

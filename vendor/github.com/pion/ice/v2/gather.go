@@ -149,7 +149,7 @@ func (a *Agent) gatherCandidatesLocal(ctx context.Context, networkTypes []Networ
 		delete(networks, udp)
 	}
 
-	localIPs, err := localInterfaces(a.net, a.interfaceFilter, a.ipFilter, networkTypes, a.includeLoopback)
+	localIPs, err := localInterfaces(a.net, a.interfaceFilter, a.ipFilter, networkTypes)
 	if err != nil {
 		a.log.Warnf("failed to iterate local interfaces, host candidates will not be gathered %s", err)
 		return
@@ -221,7 +221,7 @@ func (a *Agent) gatherCandidatesLocal(ctx context.Context, networkTypes []Networ
 				// is there a way to verify that the listen address is even
 				// accessible from the current interface.
 			case udp:
-				conn, err := listenUDPInPortRange(a.net, a.log, int(a.portMax), int(a.portMin), network, &net.UDPAddr{IP: ip, Port: 0})
+				conn, err := listenUDPInPortRange(a.net, a.log, int(a.portmax), int(a.portmin), network, &net.UDPAddr{IP: ip, Port: 0})
 				if err != nil {
 					a.log.Warnf("could not listen %s %s", network, ip)
 					continue
@@ -334,38 +334,38 @@ func (a *Agent) gatherCandidatesSrflxMapped(ctx context.Context, networkTypes []
 		go func() {
 			defer wg.Done()
 
-			conn, err := listenUDPInPortRange(a.net, a.log, int(a.portMax), int(a.portMin), network, &net.UDPAddr{IP: nil, Port: 0})
+			conn, err := listenUDPInPortRange(a.net, a.log, int(a.portmax), int(a.portmin), network, &net.UDPAddr{IP: nil, Port: 0})
 			if err != nil {
 				a.log.Warnf("Failed to listen %s: %v", network, err)
 				return
 			}
 
-			lAddr, ok := conn.LocalAddr().(*net.UDPAddr)
+			laddr, ok := conn.LocalAddr().(*net.UDPAddr)
 			if !ok {
 				closeConnAndLog(conn, a.log, "1:1 NAT mapping is enabled but LocalAddr is not a UDPAddr")
 				return
 			}
 
-			mappedIP, err := a.extIPMapper.findExternalIP(lAddr.IP.String())
+			mappedIP, err := a.extIPMapper.findExternalIP(laddr.IP.String())
 			if err != nil {
-				closeConnAndLog(conn, a.log, fmt.Sprintf("1:1 NAT mapping is enabled but no external IP is found for %s", lAddr.IP.String()))
+				closeConnAndLog(conn, a.log, fmt.Sprintf("1:1 NAT mapping is enabled but no external IP is found for %s", laddr.IP.String()))
 				return
 			}
 
 			srflxConfig := CandidateServerReflexiveConfig{
 				Network:   network,
 				Address:   mappedIP.String(),
-				Port:      lAddr.Port,
+				Port:      laddr.Port,
 				Component: ComponentRTP,
-				RelAddr:   lAddr.IP.String(),
-				RelPort:   lAddr.Port,
+				RelAddr:   laddr.IP.String(),
+				RelPort:   laddr.Port,
 			}
 			c, err := NewCandidateServerReflexive(&srflxConfig)
 			if err != nil {
 				closeConnAndLog(conn, a.log, fmt.Sprintf("Failed to create server reflexive candidate: %s %s %d: %v",
 					network,
 					mappedIP.String(),
-					lAddr.Port,
+					laddr.Port,
 					err))
 				return
 			}
@@ -407,7 +407,7 @@ func (a *Agent) gatherCandidatesSrflxUDPMux(ctx context.Context, urls []*URL, ne
 						return
 					}
 
-					xorAddr, err := a.udpMuxSrflx.GetXORMappedAddr(serverAddr, stunGatherTimeout)
+					xoraddr, err := a.udpMuxSrflx.GetXORMappedAddr(serverAddr, stunGatherTimeout)
 					if err != nil {
 						a.log.Warnf("could not get server reflexive address %s %s: %v", network, url, err)
 						return
@@ -419,8 +419,8 @@ func (a *Agent) gatherCandidatesSrflxUDPMux(ctx context.Context, urls []*URL, ne
 						return
 					}
 
-					ip := xorAddr.IP
-					port := xorAddr.Port
+					ip := xoraddr.IP
+					port := xoraddr.Port
 
 					srflxConfig := CandidateServerReflexiveConfig{
 						Network:   network,
@@ -469,7 +469,7 @@ func (a *Agent) gatherCandidatesSrflx(ctx context.Context, urls []*URL, networkT
 					return
 				}
 
-				conn, err := listenUDPInPortRange(a.net, a.log, int(a.portMax), int(a.portMin), network, &net.UDPAddr{IP: nil, Port: 0})
+				conn, err := listenUDPInPortRange(a.net, a.log, int(a.portmax), int(a.portmin), network, &net.UDPAddr{IP: nil, Port: 0})
 				if err != nil {
 					closeConnAndLog(conn, a.log, fmt.Sprintf("Failed to listen for %s: %v", serverAddr.String(), err))
 					return
@@ -487,23 +487,23 @@ func (a *Agent) gatherCandidatesSrflx(ctx context.Context, urls []*URL, networkT
 					}
 				}()
 
-				xorAddr, err := getXORMappedAddr(conn, serverAddr, stunGatherTimeout)
+				xoraddr, err := getXORMappedAddr(conn, serverAddr, stunGatherTimeout)
 				if err != nil {
 					closeConnAndLog(conn, a.log, fmt.Sprintf("could not get server reflexive address %s %s: %v", network, url, err))
 					return
 				}
 
-				ip := xorAddr.IP
-				port := xorAddr.Port
+				ip := xoraddr.IP
+				port := xoraddr.Port
 
-				lAddr := conn.LocalAddr().(*net.UDPAddr) //nolint:forcetypeassert
+				laddr := conn.LocalAddr().(*net.UDPAddr) //nolint:forcetypeassert
 				srflxConfig := CandidateServerReflexiveConfig{
 					Network:   network,
 					Address:   ip.String(),
 					Port:      port,
 					Component: ComponentRTP,
-					RelAddr:   lAddr.IP.String(),
-					RelPort:   lAddr.Port,
+					RelAddr:   laddr.IP.String(),
+					RelPort:   laddr.Port,
 				}
 				c, err := NewCandidateServerReflexive(&srflxConfig)
 				if err != nil {
@@ -658,12 +658,12 @@ func (a *Agent) gatherCandidatesRelay(ctx context.Context, urls []*URL) { //noli
 				return
 			}
 
-			rAddr := relayConn.LocalAddr().(*net.UDPAddr) //nolint:forcetypeassert
+			raddr := relayConn.LocalAddr().(*net.UDPAddr) //nolint:forcetypeassert
 			relayConfig := CandidateRelayConfig{
 				Network:       network,
 				Component:     ComponentRTP,
-				Address:       rAddr.IP.String(),
-				Port:          rAddr.Port,
+				Address:       raddr.IP.String(),
+				Port:          raddr.Port,
 				RelAddr:       RelAddr,
 				RelPort:       RelPort,
 				RelayProtocol: relayProtocol,
@@ -682,7 +682,7 @@ func (a *Agent) gatherCandidatesRelay(ctx context.Context, urls []*URL) { //noli
 				relayConnClose()
 
 				client.Close()
-				closeConnAndLog(locConn, a.log, fmt.Sprintf("Failed to create relay candidate: %s %s: %v", network, rAddr.String(), err))
+				closeConnAndLog(locConn, a.log, fmt.Sprintf("Failed to create relay candidate: %s %s: %v", network, raddr.String(), err))
 				return
 			}
 

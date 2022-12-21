@@ -76,9 +76,9 @@ func (os objects[T]) MarshalLogArray(arr zapcore.ArrayEncoder) error {
 	return nil
 }
 
-// ObjectMarshalerPtr is a constraint that specifies that the given type
+// objectMarshalerPtr is a constraint that specifies that the given type
 // implements zapcore.ObjectMarshaler on a pointer receiver.
-type ObjectMarshalerPtr[T any] interface {
+type objectMarshalerPtr[T any] interface {
 	*T
 	zapcore.ObjectMarshaler
 }
@@ -105,11 +105,11 @@ type ObjectMarshalerPtr[T any] interface {
 //
 //	var requests []*Request = ...
 //	logger.Info("sending requests", zap.Objects("requests", requests))
-func ObjectValues[T any, P ObjectMarshalerPtr[T]](key string, values []T) Field {
+func ObjectValues[T any, P objectMarshalerPtr[T]](key string, values []T) Field {
 	return Array(key, objectValues[T, P](values))
 }
 
-type objectValues[T any, P ObjectMarshalerPtr[T]] []T
+type objectValues[T any, P objectMarshalerPtr[T]] []T
 
 func (os objectValues[T, P]) MarshalLogArray(arr zapcore.ArrayEncoder) error {
 	for i := range os {

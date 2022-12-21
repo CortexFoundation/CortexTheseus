@@ -272,9 +272,8 @@ func (b *BitSet) Shrink(lastbitindex uint) *BitSet {
 	copy(shrunk, b.set[:idx])
 	b.set = shrunk
 	b.length = length
-	lastWordUsedBits := length % 64
-	if lastWordUsedBits != 0 {
-		b.set[idx-1] &= allBits >> uint64(64-wordsIndex(lastWordUsedBits))
+	if length < 64 {
+		b.set[idx-1] &= allBits >> uint64(64-wordsIndex(length))
 	}
 	return b
 }
@@ -557,9 +556,6 @@ func (b *BitSet) Copy(c *BitSet) (count uint) {
 	if b.length < c.length {
 		count = b.length
 	}
-	// Cleaning the last word is needed to keep the invariant that other functions, such as Count, require
-	// that any bits in the last word that would exceed the length of the bitmask are set to 0.
-	c.cleanLastWord()
 	return
 }
 
@@ -898,8 +894,7 @@ func (b *BitSet) DumpAsBits() string {
 
 // BinaryStorageSize returns the binary storage requirements
 func (b *BitSet) BinaryStorageSize() int {
-	nWords := wordsNeeded(b.length)
-	return binary.Size(uint64(0)) + binary.Size(b.set[:nWords])
+	return binary.Size(uint64(0)) + binary.Size(b.set)
 }
 
 // WriteTo writes a BitSet to a stream
@@ -917,8 +912,7 @@ func (b *BitSet) WriteTo(stream io.Writer) (int64, error) {
 	// binary.Write for large set
 	writer := bufio.NewWriter(stream)
 	var item = make([]byte, binary.Size(uint64(0))) // for serializing one uint64
-	nWords := wordsNeeded(uint(length))
-	for i := range b.set[:nWords] {
+	for i := range b.set {
 		binaryOrder.PutUint64(item, b.set[i])
 		if nn, err := writer.Write(item); err != nil {
 			return int64(i*binary.Size(uint64(0)) + nn), err

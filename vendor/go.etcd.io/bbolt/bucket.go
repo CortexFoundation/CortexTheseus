@@ -353,7 +353,7 @@ func (b *Bucket) SetSequence(v uint64) error {
 		_ = b.node(b.root, nil)
 	}
 
-	// Set the sequence.
+	// Increment and return the sequence.
 	b.bucket.sequence = v
 	return nil
 }

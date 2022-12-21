@@ -37,5 +37,3 @@ type UnmarshalTypeError = errors.UnmarshalTypeError
 type UnsupportedTypeError = errors.UnsupportedTypeError
 
 type UnsupportedValueError = errors.UnsupportedValueError
-
-type PathError = errors.PathError

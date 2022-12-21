@@ -46,6 +46,17 @@ func (r *Runtime) weakSetProto_has(call FunctionCall) Value {
 	return valueFalse
 }
 
+func (r *Runtime) populateWeakSetGeneric(s *Object, adderValue Value, iterable Value) {
+	adder := toMethod(adderValue)
+	if adder == nil {
+		panic(r.NewTypeError("WeakSet.add is not set"))
+	}
+	iter := r.getIterator(iterable, nil)
+	iter.iterate(func(val Value) {
+		adder(FunctionCall{This: s, Arguments: []Value{val}})
+	})
+}
+
 func (r *Runtime) builtin_newWeakSet(args []Value, newTarget *Object) *Object {
 	if newTarget == nil {
 		panic(r.needNew("WeakSet"))
@@ -63,32 +74,15 @@ func (r *Runtime) builtin_newWeakSet(args []Value, newTarget *Object) *Object {
 	if len(args) > 0 {
 		if arg := args[0]; arg != nil && arg != _undefined && arg != _null {
 			adder := wso.getStr("add", nil)
-			stdArr := r.checkStdArrayIter(arg)
 			if adder == r.global.weakSetAdder {
-				if stdArr != nil {
-					for _, v := range stdArr.values {
+				if arr := r.checkStdArrayIter(arg); arr != nil {
+					for _, v := range arr.values {
 						wso.s.set(r.toObject(v), nil)
 					}
-				} else {
-					r.getIterator(arg, nil).iterate(func(item Value) {
-						wso.s.set(r.toObject(item), nil)
-					})
-				}
-			} else {
-				adderFn := toMethod(adder)
-				if adderFn == nil {
-					panic(r.NewTypeError("WeakSet.add in missing"))
-				}
-				if stdArr != nil {
-					for _, item := range stdArr.values {
-						adderFn(FunctionCall{This: o, Arguments: []Value{item}})
-					}
-				} else {
-					r.getIterator(arg, nil).iterate(func(item Value) {
-						adderFn(FunctionCall{This: o, Arguments: []Value{item}})
-					})
+					return o
 				}
 			}
+			r.populateWeakSetGeneric(o, adder, arg)
 		}
 	}
 	return o

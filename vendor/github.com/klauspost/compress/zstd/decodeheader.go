@@ -4,6 +4,7 @@
 package zstd
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"io"
@@ -101,8 +102,8 @@ func (h *Header) Decode(in []byte) error {
 	}
 	h.HeaderSize += 4
 	b, in := in[:4], in[4:]
-	if string(b) != frameMagic {
-		if string(b[1:4]) != skippableFrameMagic || b[0]&0xf0 != 0x50 {
+	if !bytes.Equal(b, frameMagic) {
+		if !bytes.Equal(b[1:4], skippableFrameMagic) || b[0]&0xf0 != 0x50 {
 			return ErrMagicMismatch
 		}
 		if len(in) < 4 {

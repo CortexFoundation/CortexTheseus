@@ -13,7 +13,6 @@ import (
 
 	"crawshaw.io/sqlite"
 	"crawshaw.io/sqlite/sqlitex"
-
 	"github.com/anacrolix/torrent/metainfo"
 )
 

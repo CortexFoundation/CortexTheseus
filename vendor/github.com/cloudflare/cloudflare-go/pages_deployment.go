@@ -3,10 +3,11 @@ package cloudflare
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
+
+	"errors"
 )
 
 // SizeOptions can be passed to a list request to configure size and cursor location.
@@ -181,7 +182,46 @@ func (api *API) GetPagesDeploymentInfo(ctx context.Context, rc *ResourceContaine
 	return r.Result, nil
 }
 
-// GetPagesDeploymentLogs returns the logs for a Pages deployment.
+// GetPagesDeploymentStageLogs returns the logs for a Pages deployment stage.
+//
+// API reference: https://api.cloudflare.com/#pages-deployment-get-deployment-stage-logs
+//
+// Deprecated: Use GetPagesDeploymentLogs instead.
+func (api *API) GetPagesDeploymentStageLogs(ctx context.Context, rc *ResourceContainer, params GetPagesDeploymentStageLogsParams) (PagesDeploymentStageLogs, error) {
+	if rc.Identifier == "" {
+		return PagesDeploymentStageLogs{}, ErrMissingAccountID
+	}
+
+	if params.ProjectName == "" {
+		return PagesDeploymentStageLogs{}, ErrMissingProjectName
+	}
+
+	if params.DeploymentID == "" {
+		return PagesDeploymentStageLogs{}, ErrMissingDeploymentID
+	}
+
+	if params.StageName == "" {
+		return PagesDeploymentStageLogs{}, ErrMissingStageName
+	}
+
+	uri := buildURI(
+		fmt.Sprintf("/accounts/%s/pages/projects/%s/deployments/%s/history/%s/logs", rc.Identifier, params.ProjectName, params.DeploymentID, params.StageName),
+		params.SizeOptions,
+	)
+
+	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
+	if err != nil {
+		return PagesDeploymentStageLogs{}, err
+	}
+	var r pagesDeploymentStageLogsResponse
+	err = json.Unmarshal(res, &r)
+	if err != nil {
+		return PagesDeploymentStageLogs{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+	}
+	return r.Result, nil
+}
+
+// GetPagesDeploymentStageLogs returns the logs for a Pages deployment stage.
 //
 // API reference: https://api.cloudflare.com/#pages-deployment-get-deployment-logs
 func (api *API) GetPagesDeploymentLogs(ctx context.Context, rc *ResourceContainer, params GetPagesDeploymentLogsParams) (PagesDeploymentLogs, error) {
