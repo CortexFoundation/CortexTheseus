@@ -34,7 +34,7 @@ type Allocation struct {
 	closed              chan interface{}
 	log                 logging.LeveledLogger
 
-	// some clients (firefox or others using resiprocate's nICE lib) may retry allocation
+	// some clients (Firefox or others using resiprocate's nICE lib) may retry allocation
 	// with same 5 tuple when received 413, for compatible with these clients,
 	// cache for response lost and client retry to implement 'stateless stack approach'
 	// https://datatracker.ietf.org/doc/html/rfc5766#section-6.2
@@ -48,7 +48,7 @@ func addr2IPFingerprint(addr net.Addr) string {
 	case *net.TCPAddr: // Do we really need this case?
 		return a.IP.String()
 	}
-	return "" // shoud never happen
+	return "" // should never happen
 }
 
 // NewAllocation creates a new instance of NewAllocation.
@@ -186,8 +186,7 @@ func (a *Allocation) SetResponseCache(transactionID [stun.TransactionIDSize]byte
 
 // GetResponseCache return response cache for retransmit allocation request
 func (a *Allocation) GetResponseCache() (id [stun.TransactionIDSize]byte, attrs []stun.Setter) {
-	if r := a.responseCache.Load(); r != nil {
-		res := r.(*allocationResponse)
+	if res, ok := a.responseCache.Load().(*allocationResponse); ok && res != nil {
 		id, attrs = res.transactionID, res.responseAttrs
 	}
 	return
@@ -267,13 +266,19 @@ func (a *Allocation) packetHandler(m *Manager) {
 				a.log.Errorf("Failed to send ChannelData from allocation %v %v", srcAddr, err)
 			}
 		} else if p := a.GetPermission(srcAddr); p != nil {
-			udpAddr := srcAddr.(*net.UDPAddr)
+			udpAddr, ok := srcAddr.(*net.UDPAddr)
+			if !ok {
+				a.log.Errorf("Failed to send DataIndication from allocation %v %v", srcAddr, err)
+				return
+			}
+
 			peerAddressAttr := proto.PeerAddress{IP: udpAddr.IP, Port: udpAddr.Port}
 			dataAttr := proto.Data(buffer[:n])
 
 			msg, err := stun.Build(stun.TransactionID, stun.NewType(stun.MethodData, stun.ClassIndication), peerAddressAttr, dataAttr)
 			if err != nil {
 				a.log.Errorf("Failed to send DataIndication from allocation %v %v", srcAddr, err)
+				return
 			}
 			a.log.Debugf("relaying message from %s to client at %s",
 				srcAddr.String(),

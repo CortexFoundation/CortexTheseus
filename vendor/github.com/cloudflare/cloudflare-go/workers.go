@@ -6,17 +6,15 @@ import (
 	rand "crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime"
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
 	"strings"
 	"time"
-
-	"errors"
 )
 
 // WorkerRequestParams provides parameters for worker requests for both enterprise and standard requests.
@@ -113,6 +111,8 @@ const (
 	WorkerServiceBindingType WorkerBindingType = "service"
 	// WorkerR2BucketBindingType is the type for R2 bucket bindings.
 	WorkerR2BucketBindingType WorkerBindingType = "r2_bucket"
+	// WorkerAnalyticsEngineBindingType is the type for Analytics Engine dataset bindings.
+	WorkerAnalyticsEngineBindingType WorkerBindingType = "analytics_engine"
 )
 
 // WorkerBindingListItem a struct representing an individual binding in a list of bindings.
@@ -357,6 +357,28 @@ func (b WorkerR2BucketBinding) serialize(bindingName string) (workerBindingMeta,
 	}, nil, nil
 }
 
+// WorkerAnalyticsEngineBinding is a binding to an Analytics Engine dataset.
+type WorkerAnalyticsEngineBinding struct {
+	Dataset string
+}
+
+// Type returns the type of the binding.
+func (b WorkerAnalyticsEngineBinding) Type() WorkerBindingType {
+	return WorkerAnalyticsEngineBindingType
+}
+
+func (b WorkerAnalyticsEngineBinding) serialize(bindingName string) (workerBindingMeta, workerBindingBodyWriter, error) {
+	if b.Dataset == "" {
+		return nil, nil, fmt.Errorf(`Dataset for binding "%s" cannot be empty`, bindingName)
+	}
+
+	return workerBindingMeta{
+		"name":    bindingName,
+		"type":    b.Type(),
+		"dataset": b.Dataset,
+	}, nil, nil
+}
+
 // Each binding that adds a part to the multipart form body will need
 // a unique part name so we just generate a random 128bit hex string.
 func getRandomPartName() string {
@@ -449,7 +471,7 @@ func (api *API) downloadWorkerWithName(ctx context.Context, scriptName string) (
 		if err != nil {
 			return r, fmt.Errorf("could not get multipart response body: %w", err)
 		}
-		mimePartBody, err := ioutil.ReadAll(mimePart)
+		mimePartBody, err := io.ReadAll(mimePart)
 		if err != nil {
 			return r, fmt.Errorf("could not read multipart response body: %w", err)
 		}
@@ -546,6 +568,11 @@ func (api *API) ListWorkerBindings(ctx context.Context, requestParams *WorkerReq
 			bucketName := jsonBinding["bucket_name"].(string)
 			bindingListItem.Binding = WorkerR2BucketBinding{
 				BucketName: bucketName,
+			}
+		case WorkerAnalyticsEngineBindingType:
+			dataset := jsonBinding["dataset"].(string)
+			bindingListItem.Binding = WorkerAnalyticsEngineBinding{
+				Dataset: dataset,
 			}
 		default:
 			bindingListItem.Binding = WorkerInheritBinding{}

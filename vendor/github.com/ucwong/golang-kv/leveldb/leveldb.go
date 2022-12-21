@@ -164,7 +164,7 @@ func (ldb *LevelDB) Close() error {
 	return ldb.engine.Close()
 }
 
-func (ldb *LevelDB) Batch(kvs map[string][]byte) error {
+func (ldb *LevelDB) BatchSet(kvs map[string][]byte) error {
 	for k, v := range kvs {
 		ldb.wb.Put([]byte(k), v)
 	}
