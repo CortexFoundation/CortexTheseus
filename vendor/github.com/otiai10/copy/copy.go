@@ -26,6 +26,11 @@ func Copy(src, dest string, opt ...Options) error {
 // switchboard switches proper copy functions regarding file type, etc...
 // If there would be anything else here, add a case to this switchboard.
 func switchboard(src, dest string, info os.FileInfo, opt Options) (err error) {
+
+	if info.Mode()&os.ModeDevice != 0 && !opt.Specials {
+		return err
+	}
+
 	switch {
 	case info.Mode()&os.ModeSymlink != 0:
 		err = onsymlink(src, dest, opt)
@@ -44,12 +49,14 @@ func switchboard(src, dest string, info os.FileInfo, opt Options) (err error) {
 // Because this "copy" could be called recursively,
 // "info" MUST be given here, NOT nil.
 func copyNextOrSkip(src, dest string, info os.FileInfo, opt Options) error {
-	skip, err := opt.Skip(src)
-	if err != nil {
-		return err
-	}
-	if skip {
-		return nil
+	if opt.Skip != nil {
+		skip, err := opt.Skip(info, src, dest)
+		if err != nil {
+			return err
+		}
+		if skip {
+			return nil
+		}
 	}
 	return switchboard(src, dest, info, opt)
 }
@@ -83,7 +90,12 @@ func fcopy(src, dest string, info os.FileInfo, opt Options) (err error) {
 
 	var buf []byte = nil
 	var w io.Writer = f
-	// var r io.Reader = s
+	var r io.Reader = s
+
+	if opt.WrapReader != nil {
+		r = opt.WrapReader(s)
+	}
+
 	if opt.CopyBufferSize != 0 {
 		buf = make([]byte, opt.CopyBufferSize)
 		// Disable using `ReadFrom` by io.CopyBuffer.
@@ -91,7 +103,8 @@ func fcopy(src, dest string, info os.FileInfo, opt Options) (err error) {
 		w = struct{ io.Writer }{f}
 		// r = struct{ io.Reader }{s}
 	}
-	if _, err = io.CopyBuffer(w, s, buf); err != nil {
+
+	if _, err = io.CopyBuffer(w, r, buf); err != nil {
 		return err
 	}
 
@@ -118,18 +131,10 @@ func fcopy(src, dest string, info os.FileInfo, opt Options) (err error) {
 // and pass everything to "copy" recursively.
 func dcopy(srcdir, destdir string, info os.FileInfo, opt Options) (err error) {
 
-	_, err = os.Stat(destdir)
-	if err == nil && opt.OnDirExists != nil && destdir != opt.intent.dest {
-		switch opt.OnDirExists(srcdir, destdir) {
-		case Replace:
-			if err := os.RemoveAll(destdir); err != nil {
-				return err
-			}
-		case Untouchable:
-			return nil
-		} // case "Merge" is default behaviour. Go through.
-	} else if err != nil && !os.IsNotExist(err) {
-		return err // Unwelcome error type...!
+	if skip, err := onDirExists(opt, srcdir, destdir); err != nil {
+		return err
+	} else if skip {
+		return nil
 	}
 
 	// Make dest dir with 0755 so that everything writable.
@@ -168,10 +173,33 @@ func dcopy(srcdir, destdir string, info os.FileInfo, opt Options) (err error) {
 	return
 }
 
+func onDirExists(opt Options, srcdir, destdir string) (bool, error) {
+	_, err := os.Stat(destdir)
+	if err == nil && opt.OnDirExists != nil && destdir != opt.intent.dest {
+		switch opt.OnDirExists(srcdir, destdir) {
+		case Replace:
+			if err := os.RemoveAll(destdir); err != nil {
+				return false, err
+			}
+		case Untouchable:
+			return true, nil
+		} // case "Merge" is default behaviour. Go through.
+	} else if err != nil && !os.IsNotExist(err) {
+		return true, err // Unwelcome error type...!
+	}
+	return false, nil
+}
+
 func onsymlink(src, dest string, opt Options) error {
 	switch opt.OnSymlink(src) {
 	case Shallow:
-		return lcopy(src, dest)
+		if err := lcopy(src, dest); err != nil {
+			return err
+		}
+		if opt.PreserveTimes {
+			return preserveLtimes(src, dest)
+		}
+		return nil
 	case Deep:
 		orig, err := os.Readlink(src)
 		if err != nil {

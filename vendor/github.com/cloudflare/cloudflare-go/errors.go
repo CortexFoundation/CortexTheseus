@@ -1,11 +1,10 @@
 package cloudflare
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
-
-	"errors"
 )
 
 const (
@@ -27,7 +26,7 @@ const (
 	errManualPagination                       = "unexpected pagination options passed to functions that handle pagination automatically"
 	errInvalidResourceIdentifer               = "invalid resource identifier: %s"
 	errInvalidZoneIdentifer                   = "invalid zone identifier: %s"
-	errAPIKeysAndTokensAreMutuallyExclusive   = "API keys and tokens are mutually exclusive"
+	errAPIKeysAndTokensAreMutuallyExclusive   = "API keys and tokens are mutually exclusive" //nolint:gosec
 	errMissingCredentials                     = "no credentials provided"
 
 	errInvalidResourceContainerAccess = "requested resource container (%q) is not supported for this endpoint"
@@ -70,6 +69,9 @@ type Error struct {
 	// ErrorMessages is a list of all the error codes.
 	ErrorMessages []string
 
+	// Messages is a list of informational messages provided by the endpoint.
+	Messages []ResponseInfo
+
 	// RayID is the internal identifier for the request that was made.
 	RayID string
 }
@@ -90,7 +92,21 @@ func (e Error) Error() string {
 		errMessages = append(errMessages, m)
 	}
 
-	return errString + strings.Join(errMessages, ", ")
+	msgs := []string{}
+	for _, m := range e.Messages {
+		msgs = append(msgs, m.Message)
+	}
+
+	errString += strings.Join(errMessages, ", ")
+
+	// `Messages` is primarily used for additional validation failure notes in
+	// page rules. This shouldn't be used going forward but instead, use the
+	// error fields appropriately.
+	if len(msgs) > 0 {
+		errString += "\n" + strings.Join(msgs, "  \n")
+	}
+
+	return errString
 }
 
 // RequestError is for 4xx errors that we encounter not covered elsewhere
@@ -117,6 +133,10 @@ func (e RequestError) ErrorMessages() []string {
 
 func (e RequestError) InternalErrorCodeIs(code int) bool {
 	return e.cloudflareError.InternalErrorCodeIs(code)
+}
+
+func (e RequestError) Messages() []ResponseInfo {
+	return e.cloudflareError.Messages
 }
 
 func (e RequestError) RayID() string {
