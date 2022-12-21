@@ -3,10 +3,11 @@ package cloudflare
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
+
+	"errors"
 )
 
 // LogpushJob describes a Logpush job.

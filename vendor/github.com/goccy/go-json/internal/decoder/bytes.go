@@ -2,7 +2,6 @@ package decoder
 
 import (
 	"encoding/base64"
-	"fmt"
 	"unsafe"
 
 	"github.com/goccy/go-json/internal/errors"
@@ -77,10 +76,6 @@ func (d *bytesDecoder) Decode(ctx *RuntimeContext, cursor, depth int64, p unsafe
 	}
 	*(*[]byte)(p) = b[:n]
 	return cursor, nil
-}
-
-func (d *bytesDecoder) DecodePath(ctx *RuntimeContext, cursor, depth int64) ([][]byte, int64, error) {
-	return nil, 0, fmt.Errorf("json: []byte decoder does not support decode path")
 }
 
 func (d *bytesDecoder) decodeStreamBinary(s *Stream, depth int64, p unsafe.Pointer) ([]byte, error) {

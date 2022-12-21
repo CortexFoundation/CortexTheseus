@@ -82,9 +82,8 @@ type blockDec struct {
 
 	err error
 
-	// Check against this crc, if hasCRC is true.
-	checkCRC uint32
-	hasCRC   bool
+	// Check against this crc
+	checkCRC []byte
 
 	// Frame to use for singlethreaded decoding.
 	// Should not be used by the decoder itself since parent may be another frame.

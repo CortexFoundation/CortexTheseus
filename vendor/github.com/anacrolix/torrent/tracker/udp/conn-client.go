@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/anacrolix/log"
+
 	"github.com/anacrolix/missinggo/v2"
 )
 

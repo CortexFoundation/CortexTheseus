@@ -5,9 +5,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"math"
 	"net/http"
@@ -15,6 +15,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"errors"
 
 	"golang.org/x/time/rate"
 )
@@ -56,7 +58,7 @@ type API struct {
 
 // newClient provides shared logic for New and NewWithUserServiceKey.
 func newClient(opts ...Option) (*API, error) {
-	silentLogger := log.New(io.Discard, "", log.LstdFlags)
+	silentLogger := log.New(ioutil.Discard, "", log.LstdFlags)
 
 	api := &API{
 		BaseURL:     fmt.Sprintf("%s://%s%s", defaultScheme, defaultHostname, defaultBasePath),
@@ -254,8 +256,8 @@ func (api *API) makeRequestWithAuthTypeAndHeadersComplete(ctx context.Context, m
 			if method == http.MethodPost || method == http.MethodPut || method == http.MethodPatch {
 				buf := &bytes.Buffer{}
 				tee := io.TeeReader(reqBody, buf)
-				debugBody, _ := io.ReadAll(tee)
-				payloadBody, _ := io.ReadAll(buf)
+				debugBody, _ := ioutil.ReadAll(tee)
+				payloadBody, _ := ioutil.ReadAll(buf)
 				fmt.Printf("cloudflare-go [DEBUG] REQUEST Method:%v URI:%s Headers:%#v Body:%v\n", method, api.BaseURL+uri, headers, string(debugBody))
 				// ensure we recreate the io.Reader for use
 				reqBody = bytes.NewReader(payloadBody)
@@ -281,7 +283,7 @@ func (api *API) makeRequestWithAuthTypeAndHeadersComplete(ctx context.Context, m
 			// if we got a valid http response, try to read body so we can reuse the connection
 			// see https://golang.org/pkg/net/http/#Client.Do
 			if respErr == nil {
-				respBody, err = io.ReadAll(resp.Body)
+				respBody, err = ioutil.ReadAll(resp.Body)
 				resp.Body.Close()
 
 				respErr = fmt.Errorf("could not read response body: %w", err)
@@ -293,7 +295,7 @@ func (api *API) makeRequestWithAuthTypeAndHeadersComplete(ctx context.Context, m
 			}
 			continue
 		} else {
-			respBody, err = io.ReadAll(resp.Body)
+			respBody, err = ioutil.ReadAll(resp.Body)
 			defer resp.Body.Close()
 			if err != nil {
 				return nil, fmt.Errorf("could not read response body: %w", err)
@@ -345,7 +347,6 @@ func (api *API) makeRequestWithAuthTypeAndHeadersComplete(ctx context.Context, m
 			Errors:        errBody.Errors,
 			ErrorCodes:    errCodes,
 			ErrorMessages: errMsgs,
-			Messages:      errBody.Messages,
 		}
 
 		switch resp.StatusCode {

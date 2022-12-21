@@ -10,5 +10,3 @@ Gemfile.lock
 .gradle/
 build/
 .idea/
-bin/
-.vscode/

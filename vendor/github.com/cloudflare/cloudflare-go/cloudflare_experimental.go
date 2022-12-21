@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -227,8 +228,8 @@ func (c *Client) makeRequest(ctx context.Context, method, uri string, params int
 	if method == http.MethodPost || method == http.MethodPut || method == http.MethodPatch {
 		buf := &bytes.Buffer{}
 		tee := io.TeeReader(reqBody, buf)
-		debugBody, _ := io.ReadAll(tee)
-		payloadBody, _ := io.ReadAll(buf)
+		debugBody, _ := ioutil.ReadAll(tee)
+		payloadBody, _ := ioutil.ReadAll(buf)
 		c.Logger.Debugf("REQUEST Method:%v URI:%s Headers:%#v Body:%v\n", method, c.BaseURL.String()+uri, headers, string(debugBody))
 		// ensure we recreate the io.Reader for use
 		reqBody = bytes.NewReader(payloadBody)
@@ -243,7 +244,7 @@ func (c *Client) makeRequest(ctx context.Context, method, uri string, params int
 
 	c.Logger.Debugf("RESPONSE URI:%s StatusCode:%d Body:%#v RayID:%s\n", c.BaseURL.String()+uri, resp.StatusCode, string(respBody), resp.Header.Get("cf-ray"))
 
-	respBody, err = io.ReadAll(resp.Body)
+	respBody, err = ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
 		return nil, fmt.Errorf("could not read response body: %w", err)

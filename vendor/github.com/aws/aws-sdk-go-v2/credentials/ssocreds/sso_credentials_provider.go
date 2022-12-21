@@ -45,10 +45,6 @@ type Options struct {
 	// If custom cached token filepath is used, the Provider's startUrl
 	// parameter will be ignored.
 	CachedTokenFilepath string
-
-	// Used by the SSOCredentialProvider if a token configuration
-	// profile is used in the shared config
-	SSOTokenProvider *SSOTokenProvider
 }
 
 // Provider is an AWS credential provider that retrieves temporary AWS
@@ -82,39 +78,27 @@ func New(client GetRoleCredentialsAPIClient, accountID, roleName, startURL strin
 
 // Retrieve retrieves temporary AWS credentials from the configured Amazon
 // Single Sign-On (AWS SSO) user portal by exchanging the accessToken present
-// in ~/.aws/sso/cache. However, if a token provider configuration exists
-// in the shared config, then we ought to use the token provider rather then
-// direct access on the cached token.
+// in ~/.aws/sso/cache.
 func (p *Provider) Retrieve(ctx context.Context) (aws.Credentials, error) {
-	var accessToken *string
-	if p.options.SSOTokenProvider != nil {
-		token, err := p.options.SSOTokenProvider.RetrieveBearerToken(ctx)
-		if err != nil {
-			return aws.Credentials{}, err
-		}
-		accessToken = &token.Value
-	} else {
-		if p.cachedTokenFilepath == "" {
-			cachedTokenFilepath, err := StandardCachedTokenFilepath(p.options.StartURL)
-			if err != nil {
-				return aws.Credentials{}, &InvalidTokenError{Err: err}
-			}
-			p.cachedTokenFilepath = cachedTokenFilepath
-		}
-
-		tokenFile, err := loadCachedToken(p.cachedTokenFilepath)
+	if p.cachedTokenFilepath == "" {
+		cachedTokenFilepath, err := StandardCachedTokenFilepath(p.options.StartURL)
 		if err != nil {
 			return aws.Credentials{}, &InvalidTokenError{Err: err}
 		}
+		p.cachedTokenFilepath = cachedTokenFilepath
+	}
 
-		if tokenFile.ExpiresAt == nil || sdk.NowTime().After(time.Time(*tokenFile.ExpiresAt)) {
-			return aws.Credentials{}, &InvalidTokenError{}
-		}
-		accessToken = &tokenFile.AccessToken
+	tokenFile, err := loadCachedToken(p.cachedTokenFilepath)
+	if err != nil {
+		return aws.Credentials{}, &InvalidTokenError{Err: err}
+	}
+
+	if tokenFile.ExpiresAt == nil || sdk.NowTime().After(time.Time(*tokenFile.ExpiresAt)) {
+		return aws.Credentials{}, &InvalidTokenError{}
 	}
 
 	output, err := p.options.Client.GetRoleCredentials(ctx, &sso.GetRoleCredentialsInput{
-		AccessToken: accessToken,
+		AccessToken: &tokenFile.AccessToken,
 		AccountId:   &p.options.AccountID,
 		RoleName:    &p.options.RoleName,
 	})

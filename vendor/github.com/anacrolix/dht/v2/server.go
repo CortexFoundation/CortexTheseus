@@ -16,11 +16,13 @@ import (
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo/v2"
 	"github.com/anacrolix/sync"
-	"github.com/anacrolix/torrent/bencode"
+	"golang.org/x/time/rate"
+
 	"github.com/anacrolix/torrent/iplist"
 	"github.com/anacrolix/torrent/logonce"
 	"github.com/anacrolix/torrent/metainfo"
-	"golang.org/x/time/rate"
+
+	"github.com/anacrolix/torrent/bencode"
 
 	"github.com/anacrolix/dht/v2/bep44"
 	"github.com/anacrolix/dht/v2/int160"
@@ -1371,7 +1373,7 @@ func (s *Server) pingQuestionableNodesInBucket(bucketIndex int) {
 				defer wg.Done()
 				err := s.questionableNodePing(context.TODO(), n.Addr, n.Id.AsByteArray()).Err
 				if err != nil {
-					s.logger().WithDefaultLevel(log.Debug).Printf("error pinging questionable node in bucket %v: %v", bucketIndex, err)
+					log.Printf("error pinging questionable node in bucket %v: %v", bucketIndex, err)
 				}
 			}()
 		}
@@ -1387,14 +1389,13 @@ func (s *Server) pingQuestionableNodesInBucket(bucketIndex int) {
 // having set it up. It is not necessary to explicitly Bootstrap the Server once this routine has
 // started.
 func (s *Server) TableMaintainer() {
-	logger := s.logger()
 	for {
 		if s.shouldBootstrapUnlocked() {
 			stats, err := s.Bootstrap()
 			if err != nil {
-				logger.Levelf(log.Error,"error bootstrapping during bucket refresh: %v", err)
+				log.Printf("error bootstrapping during bucket refresh: %v", err)
 			}
-			logger.Levelf(log.Debug,"bucket refresh bootstrap stats: %v", stats)
+			log.Printf("bucket refresh bootstrap stats: %v", stats)
 		}
 		s.mu.RLock()
 		for i := range s.table.buckets {
@@ -1405,10 +1406,10 @@ func (s *Server) TableMaintainer() {
 			if s.shouldStopRefreshingBucket(i) {
 				continue
 			}
-			logger.Levelf(log.Debug, "refreshing bucket %v", i)
+			s.logger().Levelf(log.Info, "refreshing bucket %v", i)
 			s.mu.RUnlock()
 			stats := s.refreshBucket(i)
-			logger.Levelf(log.Debug, "finished refreshing bucket %v: %v", i, stats)
+			s.logger().Levelf(log.Info, "finished refreshing bucket %v: %v", i, stats)
 			s.mu.RLock()
 			if !s.shouldStopRefreshingBucket(i) {
 				// Presumably we couldn't fill the bucket anymore, so assume we're as deep in the

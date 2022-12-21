@@ -56,13 +56,10 @@ func (l loggerCore) LazyLog(level Level, f func() Msg) {
 }
 
 func (l loggerCore) LazyLogDefaultLevel(f func() Msg) {
-	l.lazyLog(NotSet, 1, f)
+	l.lazyLog(l.defaultLevel, 1, f)
 }
 
 func (l loggerCore) lazyLog(level Level, skip int, f func() Msg) {
-	if level.isNotSet() {
-		level = l.defaultLevel
-	}
 	if !l.IsEnabledFor(level) {
 		// have a big sook
 		//internalLogger.Levelf(Debug, "skipped logging %v for %q", level, l.names)
@@ -104,10 +101,4 @@ func (l loggerCore) withFilterLevelFromRules() Logger {
 		l.filterLevel = level
 	}
 	return l.asLogger()
-}
-
-// Clobber the Loggers Handlers. Note this breaks convention by not returning a new Logger, but
-// seems to fit here.
-func (l *loggerCore) SetHandlers(h ...Handler) {
-	l.Handlers = h
 }

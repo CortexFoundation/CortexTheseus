@@ -120,7 +120,6 @@ gen-config-asserts:
 gen-internal-codegen:
 	@echo "Generating internal/codegen"
 	cd internal/codegen \
-		&& go mod tidy \
 		&& go generate
 
 gen-repo-mod-replace:

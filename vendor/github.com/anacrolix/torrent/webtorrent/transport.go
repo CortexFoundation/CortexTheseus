@@ -4,10 +4,6 @@ import (
 	"context"
 	"expvar"
 	"fmt"
-	"io"
-	"sync"
-	"time"
-
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo/v2/pproffd"
 	"github.com/pion/datachannel"
@@ -16,6 +12,9 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+	"io"
+	"sync"
+	"time"
 )
 
 const (

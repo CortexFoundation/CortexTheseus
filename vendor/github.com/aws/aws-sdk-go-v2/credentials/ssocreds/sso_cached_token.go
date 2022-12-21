@@ -13,10 +13,9 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/internal/sdk"
-	"github.com/aws/aws-sdk-go-v2/internal/shareddefaults"
 )
 
-var osUserHomeDur = shareddefaults.UserHomeDir
+var osUserHomeDur = os.UserHomeDir
 
 // StandardCachedTokenFilepath returns the filepath for the cached SSO token file, or
 // error if unable get derive the path. Key that will be used to compute a SHA1
@@ -26,12 +25,13 @@ var osUserHomeDur = shareddefaults.UserHomeDir
 //
 //	~/.aws/sso/cache/<sha1-hex-encoded-key>.json
 func StandardCachedTokenFilepath(key string) (string, error) {
-	homeDir := osUserHomeDur()
-	if len(homeDir) == 0 {
-		return "", fmt.Errorf("unable to get USER's home directory for cached token")
+	homeDir, err := osUserHomeDur()
+	if err != nil {
+		return "", fmt.Errorf("unable to get USER's home directory for cached token, %w", err)
 	}
+
 	hash := sha1.New()
-	if _, err := hash.Write([]byte(key)); err != nil {
+	if _, err = hash.Write([]byte(key)); err != nil {
 		return "", fmt.Errorf("unable to compute cached token filepath key SHA1 hash, %w", err)
 	}
 

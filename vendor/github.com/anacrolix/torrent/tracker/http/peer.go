@@ -1,4 +1,4 @@
-package httpTracker
+package http
 
 import (
 	"fmt"
@@ -8,9 +8,9 @@ import (
 )
 
 type Peer struct {
-	IP   net.IP `bencode:"ip"`
-	Port int    `bencode:"port"`
-	ID   []byte `bencode:"peer id"`
+	IP   net.IP
+	Port int
+	ID   []byte
 }
 
 func (p Peer) String() string {

@@ -365,29 +365,29 @@ func (s *Scratch) countSimple(in []byte) (max int, reuse bool) {
 	m := uint32(0)
 	if len(s.prevTable) > 0 {
 		for i, v := range s.count[:] {
-			if v == 0 {
-				continue
-			}
 			if v > m {
 				m = v
 			}
-			s.symbolLen = uint16(i) + 1
-			if i >= len(s.prevTable) {
-				reuse = false
-			} else if s.prevTable[i].nBits == 0 {
-				reuse = false
+			if v > 0 {
+				s.symbolLen = uint16(i) + 1
+				if i >= len(s.prevTable) {
+					reuse = false
+				} else {
+					if s.prevTable[i].nBits == 0 {
+						reuse = false
+					}
+				}
 			}
 		}
 		return int(m), reuse
 	}
 	for i, v := range s.count[:] {
-		if v == 0 {
-			continue
-		}
 		if v > m {
 			m = v
 		}
-		s.symbolLen = uint16(i) + 1
+		if v > 0 {
+			s.symbolLen = uint16(i) + 1
+		}
 	}
 	return int(m), false
 }

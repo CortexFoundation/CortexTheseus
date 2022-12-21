@@ -1,4 +1,4 @@
-package httpTracker
+package http
 
 import (
 	"bytes"
@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"github.com/anacrolix/missinggo/httptoo"
-
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/tracker/shared"
 	"github.com/anacrolix/torrent/tracker/udp"
@@ -76,11 +75,10 @@ func setAnnounceParams(_url *url.URL, ar *AnnounceRequest, opts AnnounceOpt) {
 }
 
 type AnnounceOpt struct {
-	UserAgent           string
-	HostHeader          string
-	ClientIp4           net.IP
-	ClientIp6           net.IP
-	HttpRequestDirector func(*http.Request) error
+	UserAgent  string
+	HostHeader string
+	ClientIp4  net.IP
+	ClientIp6  net.IP
 }
 
 type AnnounceRequest = udp.AnnounceRequest
@@ -96,15 +94,6 @@ func (cl Client) Announce(ctx context.Context, ar AnnounceRequest, opt AnnounceO
 	if userAgent != "" {
 		req.Header.Set("User-Agent", userAgent)
 	}
-
-	if opt.HttpRequestDirector != nil {
-		err = opt.HttpRequestDirector(req)
-		if err != nil {
-			err = fmt.Errorf("error modifying HTTP request: %w", err)
-			return
-		}
-	}
-
 	req.Host = opt.HostHeader
 	resp, err := cl.hc.Do(req)
 	if err != nil {
@@ -133,10 +122,10 @@ func (cl Client) Announce(ctx context.Context, ar AnnounceRequest, opt AnnounceO
 	ret.Interval = trackerResponse.Interval
 	ret.Leechers = trackerResponse.Incomplete
 	ret.Seeders = trackerResponse.Complete
-	if len(trackerResponse.Peers.List) != 0 {
+	if len(trackerResponse.Peers) != 0 {
 		vars.Add("http responses with nonempty peers key", 1)
 	}
-	ret.Peers = trackerResponse.Peers.List
+	ret.Peers = trackerResponse.Peers
 	if len(trackerResponse.Peers6) != 0 {
 		vars.Add("http responses with nonempty peers6 key", 1)
 	}

@@ -19,7 +19,7 @@ type RelayAddressGeneratorStatic struct {
 	Net *vnet.Net
 }
 
-// Validate is called on server startup and confirms the RelayAddressGenerator is properly configured
+// Validate is caled on server startup and confirms the RelayAddressGenerator is properly configured
 func (r *RelayAddressGeneratorStatic) Validate() error {
 	if r.Net == nil {
 		r.Net = vnet.NewNet(nil)
@@ -43,11 +43,7 @@ func (r *RelayAddressGeneratorStatic) AllocatePacketConn(network string, request
 	}
 
 	// Replace actual listening IP with the user requested one of RelayAddressGeneratorStatic
-	relayAddr, ok := conn.LocalAddr().(*net.UDPAddr)
-	if !ok {
-		return nil, nil, errNilConn
-	}
-
+	relayAddr := conn.LocalAddr().(*net.UDPAddr)
 	relayAddr.IP = r.RelayAddress
 
 	return conn, relayAddr, nil

@@ -19,6 +19,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
+	"github.com/dustin/go-humanize"
+	gbtree "github.com/google/btree"
+	"github.com/pion/datachannel"
+	"golang.org/x/time/rate"
+
 	"github.com/anacrolix/chansync"
 	"github.com/anacrolix/chansync/events"
 	"github.com/anacrolix/dht/v2"
@@ -31,11 +37,6 @@ import (
 	"github.com/anacrolix/missinggo/v2/bitmap"
 	"github.com/anacrolix/missinggo/v2/pproffd"
 	"github.com/anacrolix/sync"
-	"github.com/davecgh/go-spew/spew"
-	"github.com/dustin/go-humanize"
-	gbtree "github.com/google/btree"
-	"github.com/pion/datachannel"
-	"golang.org/x/time/rate"
 
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/internal/limiter"
@@ -202,8 +203,7 @@ func (cl *Client) init(cfg *ClientConfig) {
 	cl.ipBlockList = cfg.IPBlocklist
 	cl.httpClient = &http.Client{
 		Transport: &http.Transport{
-			Proxy:       cfg.HTTPProxy,
-			DialContext: cfg.HTTPDialContext,
+			Proxy: cfg.HTTPProxy,
 			// I think this value was observed from some webseeds. It seems reasonable to extend it
 			// to other uses of HTTP from the client.
 			MaxConnsPerHost: 10,
@@ -297,9 +297,7 @@ func NewClient(cfg *ClientConfig) (cl *Client, err error) {
 			}
 			return t.announceRequest(event), nil
 		},
-		Proxy:                      cl.config.HTTPProxy,
-		WebsocketTrackerHttpHeader: cl.config.WebsocketTrackerHttpHeader,
-		DialContext:                cl.config.TrackerDialContext,
+		Proxy: cl.config.HTTPProxy,
 		OnConn: func(dc datachannel.ReadWriteCloser, dcc webtorrent.DataChannelContext) {
 			cl.lock()
 			defer cl.unlock()
@@ -1050,7 +1048,8 @@ func (cl *Client) sendInitialMessages(conn *PeerConn, torrent *Torrent) {
 					Encryption:   cl.config.HeaderObfuscationPolicy.Preferred || !cl.config.HeaderObfuscationPolicy.RequirePreferred,
 					Port:         cl.incomingPeerPort(),
 					MetadataSize: torrent.metadataSize(),
-					// TODO: We can figure these out specific to the socket used.
+					// TODO: We can figured these out specific to the socket
+					// used.
 					Ipv4: pp.CompactIp(cl.config.PublicIp4.To4()),
 					Ipv6: cl.config.PublicIp6.To16(),
 				}

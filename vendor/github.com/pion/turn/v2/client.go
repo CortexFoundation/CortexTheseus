@@ -34,7 +34,7 @@ const (
 // ClientConfig is a bag of config parameters for Client.
 type ClientConfig struct {
 	STUNServerAddr string // STUN server address (e.g. "stun.abc.com:3478")
-	TURNServerAddr string // TURN server address (e.g. "turn.abc.com:3478")
+	TURNServerAddr string // TURN server addrees (e.g. "turn.abc.com:3478")
 	Username       string
 	Password       string
 	Realm          string
@@ -50,8 +50,8 @@ type Client struct {
 	conn          net.PacketConn         // read-only
 	stunServ      net.Addr               // read-only
 	turnServ      net.Addr               // read-only
-	stunServStr   string                 // read-only, used for de-multiplexing
-	turnServStr   string                 // read-only, used for de-multiplexing
+	stunServStr   string                 // read-only, used for dmuxing
+	turnServStr   string                 // read-only, used for dmuxing
 	username      stun.Username          // read-only
 	password      string                 // read-only
 	realm         stun.Realm             // read-only
@@ -341,8 +341,7 @@ func (c *Client) CreatePermission(addrs ...net.Addr) error {
 
 // PerformTransaction performs STUN transaction
 func (c *Client) PerformTransaction(msg *stun.Message, to net.Addr, ignoreResult bool) (client.TransactionResult,
-	error,
-) {
+	error) {
 	trKey := b64.StdEncoding.EncodeToString(msg.TransactionID[:])
 
 	raw := make([]byte, len(msg.Raw))
@@ -378,16 +377,16 @@ func (c *Client) PerformTransaction(msg *stun.Message, to net.Addr, ignoreResult
 	return res, nil
 }
 
-// OnDeallocated is called when de-allocation of relay address has been complete.
+// OnDeallocated is called when deallocation of relay address has been complete.
 // (Called by UDPConn)
 func (c *Client) OnDeallocated(relayedAddr net.Addr) {
 	c.setRelayedUDPConn(nil)
 }
 
 // HandleInbound handles data received.
-// This method handles incoming packet de-multiplex it by the source address
+// This method handles incoming packet demultiplex it by the source address
 // and the types of the message.
-// This return a boolean (handled or not) and if there was an error.
+// This return a booleen (handled or not) and if there was an error.
 // Caller should check if the packet was handled by this client or not.
 // If not handled, it is assumed that the packet is application data.
 // If an error is returned, the caller should discard the packet regardless.
@@ -420,7 +419,7 @@ func (c *Client) HandleInbound(data []byte, from net.Addr) (bool, error) {
 		return true, errNonSTUNMessage
 	default:
 		// assume, this is an application data
-		c.log.Tracef("non-STUN/TURN packet, unhandled")
+		c.log.Tracef("non-STUN/TURN packect, unhandled")
 	}
 
 	return false, nil
@@ -536,7 +535,7 @@ func (c *Client) onRtxTimeout(trKey string, nRtx int) {
 	}
 
 	if nRtx == maxRtxCount {
-		// all retransmissions failed
+		// all retransmisstions failed
 		c.trMap.Delete(trKey)
 		if !tr.WriteResult(client.TransactionResult{
 			Err: fmt.Errorf("%w %s", errAllRetransmissionsFailed, trKey),
