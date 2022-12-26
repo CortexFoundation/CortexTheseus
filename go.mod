@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
 	github.com/CortexFoundation/inference v1.0.2-0.20221114235728-985486629a61
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.35-0.20221225023123-b8e7dde81301
+	github.com/CortexFoundation/torrentfs v1.0.35-0.20221225224751-768108fe230c
 	github.com/VictoriaMetrics/fastcache v1.12.0
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.17.3
@@ -75,7 +75,7 @@ require (
 	cloud.google.com/go/bigquery v1.44.0 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	cloud.google.com/go/longrunning v0.3.0 // indirect
-	crawshaw.io/sqlite v0.3.3-0.20210127221821-98b1f83c5508 // indirect
+	crawshaw.io/sqlite v0.3.3-0.20220618202545-d1964889ea3c // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.2.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.1.2 // indirect
 	github.com/CortexFoundation/cvm-runtime v0.0.0-20221117094012-b5a251885572 // indirect
@@ -96,7 +96,7 @@ require (
 	github.com/anacrolix/multiless v0.3.0 // indirect
 	github.com/anacrolix/stm v0.4.1 // indirect
 	github.com/anacrolix/sync v0.4.0 // indirect
-	github.com/anacrolix/torrent v1.47.1-0.20221211042123-f75989863cfc // indirect
+	github.com/anacrolix/torrent v1.47.1-0.20221225082601-87105005e387 // indirect
 	github.com/anacrolix/upnp v0.1.3-0.20220123035249-922794e51c96 // indirect
 	github.com/anacrolix/utp v0.1.0 // indirect
 	github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883 // indirect
