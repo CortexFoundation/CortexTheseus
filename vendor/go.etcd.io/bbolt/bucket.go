@@ -229,11 +229,9 @@ func (b *Bucket) DeleteBucket(key []byte) error {
 
 	// Recursively delete all child buckets.
 	child := b.Bucket(key)
-	err := child.ForEach(func(k, v []byte) error {
-		if _, _, childFlags := child.Cursor().seek(k); (childFlags & bucketLeafFlag) != 0 {
-			if err := child.DeleteBucket(k); err != nil {
-				return fmt.Errorf("delete bucket: %s", err)
-			}
+	err := child.ForEachBucket(func(k []byte) error {
+		if err := child.DeleteBucket(k); err != nil {
+			return fmt.Errorf("delete bucket: %s", err)
 		}
 		return nil
 	})
@@ -378,6 +376,7 @@ func (b *Bucket) NextSequence() (uint64, error) {
 }
 
 // ForEach executes a function for each key/value pair in a bucket.
+// Because ForEach uses a Cursor, the iteration over keys is in lexicographical order.
 // If the provided function returns an error then the iteration is stopped and
 // the error is returned to the caller. The provided function must not modify
 // the bucket; this will result in undefined behavior.
@@ -394,7 +393,22 @@ func (b *Bucket) ForEach(fn func(k, v []byte) error) error {
 	return nil
 }
 
-// Stat returns stats on a bucket.
+func (b *Bucket) ForEachBucket(fn func(k []byte) error) error {
+	if b.tx.db == nil {
+		return ErrTxClosed
+	}
+	c := b.Cursor()
+	for k, _, flags := c.first(); k != nil; k, _, flags = c.next() {
+		if flags&bucketLeafFlag != 0 {
+			if err := fn(k); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// Stats returns stats on a bucket.
 func (b *Bucket) Stats() BucketStats {
 	var s, subStats BucketStats
 	pageSize := b.tx.db.pageSize
@@ -402,7 +416,7 @@ func (b *Bucket) Stats() BucketStats {
 	if b.root == 0 {
 		s.InlineBucketN += 1
 	}
-	b.forEachPage(func(p *page, depth int) {
+	b.forEachPage(func(p *page, depth int, pgstack []pgid) {
 		if (p.flags & leafPageFlag) != 0 {
 			s.KeyN += int(p.count)
 
@@ -461,7 +475,7 @@ func (b *Bucket) Stats() BucketStats {
 
 		// Keep track of maximum page depth.
 		if depth+1 > s.Depth {
-			s.Depth = (depth + 1)
+			s.Depth = depth + 1
 		}
 	})
 
@@ -477,15 +491,15 @@ func (b *Bucket) Stats() BucketStats {
 }
 
 // forEachPage iterates over every page in a bucket, including inline pages.
-func (b *Bucket) forEachPage(fn func(*page, int)) {
+func (b *Bucket) forEachPage(fn func(*page, int, []pgid)) {
 	// If we have an inline page then just use that.
 	if b.page != nil {
-		fn(b.page, 0)
+		fn(b.page, 0, []pgid{b.root})
 		return
 	}
 
 	// Otherwise traverse the page hierarchy.
-	b.tx.forEachPage(b.root, 0, fn)
+	b.tx.forEachPage(b.root, fn)
 }
 
 // forEachPageNode iterates over every page (or node) in a bucket.
