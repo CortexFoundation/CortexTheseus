@@ -121,7 +121,7 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 	}
 	log.Info("File storage initialized")
 
-	handler, err := backend.NewTorrentManager(config, db.ID(), cache, compress, nil)
+	handler, err := backend.NewTorrentManager(config, db.ID(), cache, compress)
 	if err != nil || handler == nil {
 		log.Error("fs manager failed")
 		return nil, errors.New("fs download manager initialise failed")
