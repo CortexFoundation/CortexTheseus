@@ -915,7 +915,6 @@ func (tm *TorrentManager) activeLoop() {
 								log.Info("Seed cited has been decreased", "ih", i, "cited", t.cited, "n", n, "status", t.status)
 							}
 						} else {
-							log.Warn("Seed broken", "ih", i, "cited", t.cited, "n", n, "status", t.status)
 							return
 						}
 					case <-tm.closeAll:
