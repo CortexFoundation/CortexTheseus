@@ -422,7 +422,7 @@ func (tfs *TorrentFS) Start(server *p2p.Server) (err error) {
 		checkpoint := tfs.chain().GetRoot(395964)
 		//if len(torrents) == 0 {
 		if checkpoint == nil {
-			for k, ok := range params.GoodFiles {
+			for k, ok := range params.ColaFiles {
 				if ok {
 					//if err := tfs.storage().Search(context.Background(), k, 0); err != nil {
 					//	return err
@@ -548,6 +548,8 @@ func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSi
 		return nil, err
 	} else {
 		log.Debug("Get File directly", "ih", infohash, "size", rawSize, "path", subpath, "ret", len(ret))
+		//TODO t0 file
+		fs.score(infohash)
 		return ret, nil
 	}
 }

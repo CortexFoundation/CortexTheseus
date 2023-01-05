@@ -45,4 +45,6 @@ var (
 		"https://cdn.jsdelivr.net/gh/ngosang/trackerslist@master/trackers_best.txt",
 		"https://ngosang.github.io/trackerslist/trackers_best.txt",
 	}
+
+	ColaUrl = []string{"https://github.com/CortexFoundation/cola/releases/download/1.0.0/cola.txt"}
 )

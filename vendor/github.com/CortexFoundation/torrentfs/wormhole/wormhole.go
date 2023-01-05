@@ -22,6 +22,8 @@ import (
 
 	resty "github.com/go-resty/resty/v2"
 
+	mapset "github.com/deckarep/golang-set/v2"
+
 	"strings"
 	"time"
 )
@@ -64,4 +66,25 @@ func BestTrackers() (ret []string) {
 	}
 
 	return
+}
+
+func ColaList() mapset.Set[string] {
+	m := mapset.NewSet[string]()
+	for _, url := range params.ColaUrl {
+		resp, err := client.R().Get(url)
+
+		if err != nil {
+			log.Warn("Cola lost", "err", err)
+			continue
+		}
+
+		str := strings.Split(resp.String(), "\n\n")
+		for _, s := range str {
+			log.Info("Cola", "ih", s)
+			//ret = append(ret, s)
+			m.Add(s)
+		}
+	}
+
+	return m
 }

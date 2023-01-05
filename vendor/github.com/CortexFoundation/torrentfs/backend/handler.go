@@ -47,6 +47,8 @@ import (
 	"github.com/bradfitz/iter"
 	"github.com/edsrzf/mmap-go"
 	//lru "github.com/hashicorp/golang-lru"
+
+	//mapset "github.com/deckarep/golang-set/v2"
 	//"golang.org/x/time/rate"
 
 	//xlog "github.com/anacrolix/log"
@@ -143,6 +145,8 @@ type TorrentManager struct {
 	//seedingNotify chan string
 
 	badger kv.Bucket
+
+	//colaList mapset.Set[string]
 }
 
 // can only call by fs.go: 'SeedingLocal()'
@@ -507,6 +511,16 @@ func (tm *TorrentManager) updateGlobalTrackers() {
 	}
 }
 
+/*func (tm *TorrentManager) updateColaList() {
+	tm.lock.Lock()
+	defer tm.lock.Unlock()
+	tm.colaList = wormhole.ColaList()
+}
+
+func (tm *TorrentManager) ColaList() mapset.Set[string] {
+	return tm.colaList
+}*/
+
 func (tm *TorrentManager) GlobalTrackers() [][]string {
 	tm.lock.RLock()
 	defer tm.lock.RUnlock()
@@ -650,6 +664,8 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 	//if global, err := wormhole.BestTrackers(); global != nil && err == nil {
 	//	torrentManager.globalTrackers = [][]string{global}
 	//}
+
+	//torrentManager.updateColaList()
 
 	log.Debug("Fs client initialized", "config", config, "trackers", torrentManager.trackers)
 
@@ -822,8 +838,8 @@ func (tm *TorrentManager) pendingLoop() {
 				defer cancel()
 				select {
 				case <-t.GotInfo():
-					elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
-					log.Info("Imported new seed", "ih", t.infohash, "elapsed", common.PrettyDuration(elapsed), "n", len(tm.pendingTorrents))
+					//elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
+					//log.Info("Imported new seed", "ih", t.infohash, "elapsed", common.PrettyDuration(elapsed), "n", len(tm.pendingTorrents))
 					if b, err := bencode.Marshal(t.Torrent.Info()); err == nil {
 						log.Debug("Record full torrent in history", "ih", t.infohash, "info", len(b))
 						if tm.badger != nil && tm.badger.Get([]byte(SEED_PRE+t.infohash)) == nil {
@@ -836,7 +852,7 @@ func (tm *TorrentManager) pendingLoop() {
 					}
 
 					if err := t.WriteTorrent(); err == nil {
-						if params.IsGood(t.infohash) || tm.mode == params.FULL {
+						if params.IsGood(t.infohash) || tm.mode == params.FULL { //|| tm.colaList.Contains(t.infohash) {
 							t.lock.Lock()
 							t.bytesRequested = t.Length()
 							t.bytesLimitation = tm.getLimitation(t.Length())
@@ -998,6 +1014,7 @@ func (tm *TorrentManager) seedingLoop() {
 						tm.seedingNotify <- t.InfoHash()
 					}()
 				}*/
+				// TODO t1 file
 			}
 		case <-tm.closeAll:
 			log.Info("Seeding loop closed")
