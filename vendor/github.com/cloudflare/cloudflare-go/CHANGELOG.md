@@ -1,39 +1,4 @@
-## 0.59.0 (Unreleased)
-
-## 0.58.0 (January 4th, 2023)
-
-BREAKING CHANGES:
-
-* dns: `DNSRecord` has been renamed to `GetDNSRecord` ([#1151](https://github.com/cloudflare/cloudflare-go/issues/1151))
-* dns: `DNSRecords` has been renamed to `ListDNSRecords` ([#1151](https://github.com/cloudflare/cloudflare-go/issues/1151))
-* dns: method signatures have been updated to align with the upcoming client conventions ([#1151](https://github.com/cloudflare/cloudflare-go/issues/1151))
-* origin_ca: renamed to `CreateOriginCertificate` to `CreateOriginCACertificate` ([#1161](https://github.com/cloudflare/cloudflare-go/issues/1161))
-* origin_ca: renamed to `OriginCARootCertificate` to `GetOriginCARootCertificate` ([#1161](https://github.com/cloudflare/cloudflare-go/issues/1161))
-* origin_ca: renamed to `OriginCertificate` to `GetOriginCACertificate` ([#1161](https://github.com/cloudflare/cloudflare-go/issues/1161))
-* origin_ca: renamed to `OriginCertificates` to `ListOriginCACertificates` ([#1161](https://github.com/cloudflare/cloudflare-go/issues/1161))
-* origin_ca: renamed to `RevokeOriginCertificate` to `RevokeOriginCACertificate` ([#1161](https://github.com/cloudflare/cloudflare-go/issues/1161))
-
-ENHANCEMENTS:
-
-* dns: add support for tags and comments ([#1151](https://github.com/cloudflare/cloudflare-go/issues/1151))
-* mtls_certificate: add support for managing mTLS certificates and assocations ([#1150](https://github.com/cloudflare/cloudflare-go/issues/1150))
-* origin_ca: add support for using API keys, API tokens or API User service keys for interacting with Origin CA endpoints ([#1161](https://github.com/cloudflare/cloudflare-go/issues/1161))
-* workers: Add support for workers logpush enablement on script upload ([#1160](https://github.com/cloudflare/cloudflare-go/issues/1160))
-
-BUG FIXES:
-
-* email_routing_destination: use empty reponse struct on each page call ([#1156](https://github.com/cloudflare/cloudflare-go/issues/1156))
-* email_routing_rules: use empty reponse struct on each page call ([#1156](https://github.com/cloudflare/cloudflare-go/issues/1156))
-* filter: use empty reponse struct on each page call ([#1156](https://github.com/cloudflare/cloudflare-go/issues/1156))
-* firewall_rules: use empty reponse struct on each page call ([#1156](https://github.com/cloudflare/cloudflare-go/issues/1156))
-* lockdown: use empty reponse struct on each page call ([#1156](https://github.com/cloudflare/cloudflare-go/issues/1156))
-* queue: use empty reponse struct on each page call ([#1156](https://github.com/cloudflare/cloudflare-go/issues/1156))
-* teams_list: use empty reponse struct on each page call ([#1156](https://github.com/cloudflare/cloudflare-go/issues/1156))
-* workers_kv: use empty reponse struct on each page call ([#1156](https://github.com/cloudflare/cloudflare-go/issues/1156))
-
-DEPENDENCIES:
-
-* deps: bumps github.com/hashicorp/go-retryablehttp from 0.7.1 to 0.7.2 ([#1162](https://github.com/cloudflare/cloudflare-go/issues/1162))
+## 0.58.0 (Unreleased)
 
 ## 0.57.1 (December 23rd, 2022)
 

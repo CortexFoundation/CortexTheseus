@@ -153,7 +153,6 @@ func (api *API) ListWorkersKVNamespaces(ctx context.Context, rc *ResourceContain
 	var namespaces []WorkersKVNamespace
 	var nsResponse ListWorkersKVNamespacesResponse
 	for {
-		nsResponse = ListWorkersKVNamespacesResponse{}
 		uri := buildURI(fmt.Sprintf("/accounts/%s/storage/kv/namespaces", rc.Identifier), params)
 
 		res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)

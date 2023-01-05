@@ -323,7 +323,7 @@ github.com/cespare/xxhash/v2
 # github.com/charmbracelet/bubbletea v0.23.1
 ## explicit; go 1.16
 github.com/charmbracelet/bubbletea
-# github.com/cloudflare/cloudflare-go v0.58.0
+# github.com/cloudflare/cloudflare-go v0.57.1
 ## explicit; go 1.17
 github.com/cloudflare/cloudflare-go
 # github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be

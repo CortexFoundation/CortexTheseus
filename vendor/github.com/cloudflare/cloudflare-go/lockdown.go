@@ -166,7 +166,6 @@ func (api *API) ListZoneLockdowns(ctx context.Context, rc *ResourceContainer, pa
 	var zoneLockdowns []ZoneLockdown
 	var zResponse ZoneLockdownListResponse
 	for {
-		zResponse = ZoneLockdownListResponse{}
 		uri := buildURI(fmt.Sprintf("/zones/%s/firewall/lockdowns", rc.Identifier), params)
 
 		res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
