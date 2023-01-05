@@ -805,9 +805,9 @@ func (tm *TorrentManager) mainLoop() {
 			}
 
 			bytes = int64(meta.Request())
-			if bytes == 0 {
-				bytes = block
-			}
+			//if bytes == 0 && tm.mode != params.LAZY {
+			//	bytes = block
+			//}
 
 			if t := tm.addInfoHash(meta.InfoHash(), bytes); t == nil {
 				log.Error("Seed [create] failed", "ih", meta.InfoHash(), "request", bytes)
