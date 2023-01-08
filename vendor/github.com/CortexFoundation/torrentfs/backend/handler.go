@@ -108,18 +108,18 @@ type TorrentManager struct {
 	trackers            [][]string
 	globalTrackers      [][]string
 	//boostFetcher        *BoostDataFetcher
-	DataDir     string
-	TmpDataDir  string
-	closeAll    chan struct{}
-	taskChan    chan any
-	lock        sync.RWMutex
-	wg          sync.WaitGroup
-	seedingChan chan *Torrent
-	activeChan  chan *Torrent
-	pendingChan chan *Torrent
-	//pendingRemoveChan chan string
-	droppingChan chan string
-	mode         string
+	DataDir           string
+	TmpDataDir        string
+	closeAll          chan struct{}
+	taskChan          chan any
+	lock              sync.RWMutex
+	wg                sync.WaitGroup
+	seedingChan       chan *Torrent
+	activeChan        chan *Torrent
+	pendingChan       chan *Torrent
+	pendingRemoveChan chan string
+	droppingChan      chan string
+	mode              string
 	//boost               bool
 	id   uint64
 	slot int
@@ -622,13 +622,13 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 		closeAll: make(chan struct{}),
 		//initCh:              make(chan struct{}),
 		//simulate:          false,
-		taskChan:    make(chan any, taskChanBuffer),
-		seedingChan: make(chan *Torrent, torrentChanSize),
-		activeChan:  make(chan *Torrent, torrentChanSize),
-		pendingChan: make(chan *Torrent, torrentChanSize),
-		//pendingRemoveChan: make(chan string, torrentChanSize),
-		droppingChan: make(chan string, 1),
-		mode:         config.Mode,
+		taskChan:          make(chan any, taskChanBuffer),
+		seedingChan:       make(chan *Torrent, torrentChanSize),
+		activeChan:        make(chan *Torrent, torrentChanSize),
+		pendingChan:       make(chan *Torrent, torrentChanSize),
+		pendingRemoveChan: make(chan string, torrentChanSize),
+		droppingChan:      make(chan string, 1),
+		mode:              config.Mode,
 		//boost:             config.Boost,
 		id:             fsid,
 		slot:           int(fsid % bucket),
@@ -869,7 +869,7 @@ func (tm *TorrentManager) pendingLoop() {
 							t.lock.Unlock()
 						}
 						tm.activeChan <- t
-						delete(tm.pendingTorrents, t.infohash)
+						tm.pendingRemoveChan <- t.infohash
 					} else {
 						log.Error("Write torrent info to file failed", "ih", t.infohash, "err", err)
 						tm.Drop(t.infohash)
@@ -880,8 +880,8 @@ func (tm *TorrentManager) pendingLoop() {
 					tm.Drop(t.infohash)
 				}
 			}(t)
-		//case i := <-tm.pendingRemoveChan:
-		//	delete(tm.pendingTorrents, i)
+		case i := <-tm.pendingRemoveChan:
+			delete(tm.pendingTorrents, i)
 		//case <-timer.C:
 		//	for ih, t := range tm.pendingTorrents {
 		//		elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
