@@ -52,7 +52,7 @@ import (
 	//"golang.org/x/time/rate"
 
 	//xlog "github.com/anacrolix/log"
-	"github.com/anacrolix/missinggo/v2/filecache"
+	//"github.com/anacrolix/missinggo/v2/filecache"
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/metainfo"
@@ -412,9 +412,9 @@ func (tm *TorrentManager) loadSpec(ih string, filePath string) *torrent.TorrentS
 	}
 
 	if useExistDir {
-		spec.Storage = storage.NewFile(ExistDir)
+		spec.Storage = storage.NewMMap(ExistDir) //storage.NewFile(ExistDir)
 	} else {
-		spec.Storage = storage.NewFile(TmpDir)
+		spec.Storage = storage.NewMMap(TmpDir)
 	}
 	spec.Trackers = nil
 
@@ -475,7 +475,7 @@ func (tm *TorrentManager) addInfoHash(ih string, bytesRequested int64) *Torrent 
 
 		spec = &torrent.TorrentSpec{
 			InfoHash:  metainfo.NewHashFromHex(ih),
-			Storage:   storage.NewFile(tmpDataPath),
+			Storage:   storage.NewMMap(tmpDataPath),
 			InfoBytes: v,
 		}
 	}
@@ -561,11 +561,13 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 	//cfg.HeaderObfuscationPolicy.Preferred = true
 	//cfg.HeaderObfuscationPolicy.RequirePreferred = true
 
-	fc, err := filecache.NewCache(config.DataDir)
+	/*fc, err := filecache.NewCache(config.DataDir)
 	if err != nil {
 		return nil, err
 	}
-	cfg.DefaultStorage = storage.NewResourcePieces(fc.AsResourceProvider())
+	cfg.DefaultStorage = storage.NewResourcePieces(fc.AsResourceProvider())*/
+
+	cfg.DefaultStorage = storage.NewMMap(config.DataDir)
 
 	cfg.DataDir = config.DataDir
 	//cfg.DisableEncryption = true

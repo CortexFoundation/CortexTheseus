@@ -53,7 +53,7 @@ github.com/CortexFoundation/merkletree
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit; go 1.16
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.35-0.20230107005624-7130fbf71a6c
+# github.com/CortexFoundation/torrentfs v1.0.35-0.20230108035632-b73c2ff1c2fc
 ## explicit; go 1.19
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/backend
@@ -112,7 +112,6 @@ github.com/anacrolix/missinggo/httptoo
 github.com/anacrolix/missinggo/inproc
 github.com/anacrolix/missinggo/iter
 github.com/anacrolix/missinggo/mime
-github.com/anacrolix/missinggo/orderedmap
 github.com/anacrolix/missinggo/pproffd
 github.com/anacrolix/missinggo/slices
 # github.com/anacrolix/missinggo/perf v1.0.0
@@ -122,7 +121,6 @@ github.com/anacrolix/missinggo/perf
 ## explicit; go 1.18
 github.com/anacrolix/missinggo/v2
 github.com/anacrolix/missinggo/v2/bitmap
-github.com/anacrolix/missinggo/v2/filecache
 github.com/anacrolix/missinggo/v2/iter
 github.com/anacrolix/missinggo/v2/pproffd
 github.com/anacrolix/missinggo/v2/pubsub
@@ -796,9 +794,6 @@ github.com/rs/cors
 # github.com/rs/dnscache v0.0.0-20211102005908-e0241e321417
 ## explicit; go 1.12
 github.com/rs/dnscache
-# github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46
-## explicit
-github.com/ryszard/goskiplist/skiplist
 # github.com/sergi/go-diff v1.2.0
 ## explicit; go 1.12
 github.com/sergi/go-diff/diffmatchpatch
