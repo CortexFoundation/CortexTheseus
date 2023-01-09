@@ -837,7 +837,7 @@ func (tm *TorrentManager) pendingLoop() {
 						return
 					}
 
-					if err := t.WriteTorrent(); err == nil {
+					if err := t.WriteTorrent(); err != nil {
 						log.Warn("Write torrent file error", "ih", t.infohash, "err", err)
 					}
 
