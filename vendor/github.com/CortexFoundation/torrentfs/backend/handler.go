@@ -776,25 +776,8 @@ func (tm *TorrentManager) Search(ctx context.Context, hex string, request uint64
 }
 
 func (tm *TorrentManager) commit(ctx context.Context, hex string, request uint64) error {
-	//log.Debug("Commit task", "ih", hex, "request", request, "ch", ch)
-
-	/*if !server {
-	        tm.wg.Add(1)
-	        go func() {
-	                defer tm.wg.Done()
-	                err := wormhole.Tunnel(hex)
-	                if err != nil {
-	                        log.Error("Wormhole error", "err", err)
-	                }
-	        }()
-	}*/
-
-	task := types.NewBitsFlow(hex, request) /*types.BitsFlow{
-		infohash: hex,
-		request:  request,
-	}*/
 	select {
-	case tm.taskChan <- task:
+	case tm.taskChan <- types.NewBitsFlow(hex, request):
 	case <-ctx.Done():
 		return ctx.Err()
 	}
@@ -829,10 +812,6 @@ func (tm *TorrentManager) mainLoop() {
 
 func (tm *TorrentManager) pendingLoop() {
 	defer tm.wg.Done()
-	//timer := time.NewTimer(time.Second * 60)
-	//defer timer.Stop()
-	//ctx, cancel := context.WithCancel(context.Background())
-	//defer cancel()
 	for {
 		select {
 		case t := <-tm.pendingChan:
@@ -840,9 +819,6 @@ func (tm *TorrentManager) pendingLoop() {
 			tm.wg.Add(1)
 			go func(t *Torrent) {
 				defer tm.wg.Done()
-				//if t.start == 0 {
-				//	t.start = mclock.Now()
-				//}
 				ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 				defer cancel()
 				select {
@@ -862,18 +838,21 @@ func (tm *TorrentManager) pendingLoop() {
 					}
 
 					if err := t.WriteTorrent(); err == nil {
-						if params.IsGood(t.infohash) || tm.mode == params.FULL { //|| tm.colaList.Contains(t.infohash) {
-							t.lock.Lock()
-							t.bytesRequested = t.Length()
-							t.bytesLimitation = tm.getLimitation(t.Length())
-							t.lock.Unlock()
-						}
-						tm.activeChan <- t
-						tm.pendingRemoveChan <- t.infohash
-					} else {
-						log.Error("Write torrent info to file failed", "ih", t.infohash, "err", err)
-						tm.Drop(t.infohash)
+						log.Warn("Write torrent file error", "ih", t.infohash, "err", err)
 					}
+
+					if params.IsGood(t.infohash) || tm.mode == params.FULL { //|| tm.colaList.Contains(t.infohash) {
+						t.lock.Lock()
+						t.bytesRequested = t.Length()
+						t.bytesLimitation = tm.getLimitation(t.Length())
+						t.lock.Unlock()
+					}
+					tm.activeChan <- t
+					tm.pendingRemoveChan <- t.infohash
+					//} else {
+					//	log.Error("Write torrent info to file failed", "ih", t.infohash, "err", err)
+					//	tm.Drop(t.infohash)
+					//}
 				case <-t.Closed():
 				case <-tm.closeAll:
 				case <-ctx.Done():
@@ -882,12 +861,6 @@ func (tm *TorrentManager) pendingLoop() {
 			}(t)
 		case i := <-tm.pendingRemoveChan:
 			delete(tm.pendingTorrents, i)
-		//case <-timer.C:
-		//	for ih, t := range tm.pendingTorrents {
-		//		elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
-		//		log.Info("Pending seed", "ih", ih, "elapsed", common.PrettyDuration(elapsed))
-		//	}
-		//	timer.Reset(time.Second * 60)
 		case <-tm.closeAll:
 			log.Info("Pending seed loop closed")
 			return
@@ -958,7 +931,6 @@ func (tm *TorrentManager) activeLoop() {
 				if t.BytesCompleted() > t.bytesCompleted {
 					total_size += uint64(t.BytesCompleted() - t.bytesCompleted)
 					current_size += uint64(t.BytesCompleted() - t.bytesCompleted)
-
 					t.bytesCompleted = t.BytesCompleted()
 				}
 
@@ -990,7 +962,6 @@ func (tm *TorrentManager) activeLoop() {
 					tm.updateGlobalTrackers()
 				}()
 			}
-
 			//timer.Reset(time.Second * queryTimeInterval)
 		case <-tm.closeAll:
 			log.Info("Active seed loop closed")
@@ -1007,23 +978,7 @@ func (tm *TorrentManager) seedingLoop() {
 			tm.seedingTorrents[t.infohash] = t
 
 			s := t.Seed()
-
 			if s {
-				//tm.hotCache.Add(t.infohash, true)
-				//if len(tm.seedingTorrents) > params.LimitSeeding {
-				//tm.dropSeeding(tm.slot)
-				//} else if len(tm.seedingTorrents) > tm.maxSeedTask {
-				//	tm.maxSeedTask++
-				//tm.graceSeeding(tm.slot)
-				//}
-
-				/*if tm.seedingNotify != nil {
-					tm.wg.Add(1)
-					go func() {
-						defer tm.wg.Done()
-						tm.seedingNotify <- t.InfoHash()
-					}()
-				}*/
 				// TODO t1 file
 			}
 		case <-tm.closeAll:
@@ -1046,7 +1001,6 @@ func (tm *TorrentManager) droppingLoop() {
 				if t.status == torrentRunning || t.status == torrentPaused {
 					delete(tm.activeTorrents, ih)
 				}
-
 				if t.status == torrentSeeding {
 					delete(tm.seedingTorrents, ih)
 				}
