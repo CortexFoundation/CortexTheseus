@@ -21,6 +21,22 @@ var BadFiles = map[string]bool{
 	//"7c6ff2ae3b9dfc654c5dec61cc950b70a16431c4": true,
 }
 
+var ColaFiles = map[string]bool{
+	"1f1706fa53ce0723ba1c577418b222acbfa5a200": true,
+	"1fb97d6da1761ddc051446307bd915506359a17a": true,
+	"2b6ae7e31d65991e4ba575a05d635e9eb5ba30bf": true,
+	"3101ac2c157ace6e4be72575758f7ba62b53e219": true,
+	"3145ad19228c1cd2d051314e72f26c1ce77b7f02": true,
+	"3f1f6c007e8da3e16f7c3378a20a746e70f1c2b0": true,
+	"5a49fed84aaf368cbf472cc06e42f93a93d92db5": true,
+	"6b75cc1354495ec763a6b295ee407ea864a0c292": true,
+	"a83dc64f96494b6b6c4f5291196d0ddd2f1a0769": true,
+	"ae5a301ddfe1d4be9848adf8dde9f78d7ebba919": true,
+	"aea5584d0cd3865e90c80eace3bfcb062473d966": true,
+	"b2f5b0036877be22c6101bdfa5f2c7927fc35ef8": true,
+	"c599d0fa8d816cf83c5018232453c6ae57db4ab3": true,
+}
+
 var GoodFiles = map[string]bool{
 	"aea5584d0cd3865e90c80eace3bfcb062473d966": true, //
 	"3145ad19228c1cd2d051314e72f26c1ce77b7f02": true, //
@@ -55,7 +71,7 @@ var GoodFiles = map[string]bool{
 }
 
 func IsGood(hash string) bool {
-	if _, ok := GoodFiles[hash]; ok {
+	if _, ok := ColaFiles[hash]; ok {
 		return true
 	}
 	return false

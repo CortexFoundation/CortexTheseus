@@ -188,12 +188,16 @@ func (n *node) read(p *page) {
 }
 
 // write writes the items onto one or more pages.
+// The page should have p.id (might be 0 for meta or bucket-inline page) and p.overflow set
+// and the rest should be zeroed.
 func (n *node) write(p *page) {
+	_assert(p.count == 0 && p.flags == 0, "node cannot be written into a not empty page")
+
 	// Initialize page.
 	if n.isLeaf {
-		p.flags |= leafPageFlag
+		p.flags = leafPageFlag
 	} else {
-		p.flags |= branchPageFlag
+		p.flags = branchPageFlag
 	}
 
 	if len(n.inodes) >= 0xFFFF {
@@ -300,7 +304,7 @@ func (n *node) splitTwo(pageSize uintptr) (*node, *node) {
 	n.inodes = n.inodes[:splitIndex]
 
 	// Update the statistics.
-	n.bucket.tx.stats.Split++
+	n.bucket.tx.stats.IncSplit(1)
 
 	return n, next
 }
@@ -387,7 +391,7 @@ func (n *node) spill() error {
 		}
 
 		// Update the statistics.
-		tx.stats.Spill++
+		tx.stats.IncSpill(1)
 	}
 
 	// If the root node split and created a new root then we need to spill that
@@ -409,7 +413,7 @@ func (n *node) rebalance() {
 	n.unbalanced = false
 
 	// Update statistics.
-	n.bucket.tx.stats.Rebalance++
+	n.bucket.tx.stats.IncRebalance(1)
 
 	// Ignore if node is above threshold (25%) and has enough keys.
 	var threshold = n.bucket.tx.db.pageSize / 4
@@ -543,7 +547,7 @@ func (n *node) dereference() {
 	}
 
 	// Update statistics.
-	n.bucket.tx.stats.NodeDeref++
+	n.bucket.tx.stats.IncNodeDeref(1)
 }
 
 // free adds the node's underlying page to the freelist.
