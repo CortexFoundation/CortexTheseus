@@ -711,6 +711,7 @@ func (diff *StateOverride) Apply(state *state.StateDB) error {
 			}
 		}
 	}
+	state.Finalise(false)
 	return nil
 }
 
