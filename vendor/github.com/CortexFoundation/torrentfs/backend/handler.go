@@ -55,7 +55,7 @@ import (
 	//"github.com/anacrolix/missinggo/v2/filecache"
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/bencode"
-	//"github.com/anacrolix/torrent/iplist"
+	"github.com/anacrolix/torrent/iplist"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/anacrolix/torrent/mmap_span"
 	pp "github.com/anacrolix/torrent/peer_protocol"
@@ -556,11 +556,12 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 	cfg.DisableTCP = config.DisableTCP
 	cfg.DisableIPv6 = config.DisableIPv6
 
-	//blocklist, err := iplist.MMapPackedFile("packed-blocklist")
-	//if err != nil {
-	//	log.Error("black list load err", "err", err)
-	//}
-	//cfg.IPBlocklist = blocklist
+	if blocklist, err := iplist.MMapPackedFile("packed-blocklist"); err != nil {
+		log.Warn("black list load err", "err", err)
+	} else {
+		//defer blocklist.Close()
+		cfg.IPBlocklist = blocklist
+	}
 
 	cfg.MinPeerExtensions.SetBit(pp.ExtensionBitFast, true)
 	//cfg.DisableWebtorrent = false

@@ -108,4 +108,6 @@ testdata/*
 .golang-kv
 .vlog
 *.file.bolt.db
-*.golang-kv*
+*.golang-kv
+*.db-shm
+*.db-wal
