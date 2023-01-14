@@ -55,11 +55,16 @@ import (
 	//"github.com/anacrolix/missinggo/v2/filecache"
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/bencode"
+	"github.com/anacrolix/torrent/iplist"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/anacrolix/torrent/mmap_span"
 	pp "github.com/anacrolix/torrent/peer_protocol"
 	"github.com/anacrolix/torrent/storage"
 	"github.com/ucwong/golang-kv"
+
+	"github.com/anacrolix/dht/v2"
+	"github.com/anacrolix/dht/v2/int160"
+	peer_store "github.com/anacrolix/dht/v2/peer-store"
 )
 
 const (
@@ -551,6 +556,13 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 	cfg.DisableTCP = config.DisableTCP
 	cfg.DisableIPv6 = config.DisableIPv6
 
+	if blocklist, err := iplist.MMapPackedFile("packed-blocklist"); err != nil {
+		log.Warn("black list load err", "err", err)
+	} else {
+		//defer blocklist.Close()
+		cfg.IPBlocklist = blocklist
+	}
+
 	cfg.MinPeerExtensions.SetBit(pp.ExtensionBitFast, true)
 	//cfg.DisableWebtorrent = false
 	//cfg.DisablePEX = false
@@ -589,6 +601,15 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 	//cfg.PeerID = "cortex" + id
 	//cfg.ListenHost = torrent.LoopbackListenHost
 	//cfg.DhtStartingNodes = dht.GlobalBootstrapAddrs //func() ([]dht.Addr, error) { return nil, nil }
+	cfg.ConfigureAnacrolixDhtServer = func(cfg *dht.ServerConfig) {
+		cfg.InitNodeId()
+		if cfg.PeerStore == nil {
+			cfg.PeerStore = &peer_store.InMemory{
+				RootId: int160.FromByteArray(cfg.NodeId),
+			}
+		}
+	}
+
 	cl, err := torrent.NewClient(cfg)
 	if err != nil {
 		log.Error("Error while create torrent client", "err", err)
