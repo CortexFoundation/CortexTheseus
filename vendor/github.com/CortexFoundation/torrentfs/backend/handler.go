@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	//"math"
 	"os"
 	"path/filepath"
@@ -556,10 +557,11 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 	cfg.DisableTCP = config.DisableTCP
 	cfg.DisableIPv6 = config.DisableIPv6
 
-	if blocklist, err := iplist.MMapPackedFile("packed-blocklist"); err != nil {
-		log.Warn("black list load err", "err", err)
-	} else {
-		//defer blocklist.Close()
+	cfg.IPBlocklist = iplist.New([]iplist.Range{
+		iplist.Range{First: net.ParseIP("10.0.0.1"), Last: net.ParseIP("10.0.0.255")}})
+
+	if blocklist, err := iplist.MMapPackedFile("packed-blocklist"); err == nil {
+		log.Info("Block list loaded")
 		cfg.IPBlocklist = blocklist
 	}
 
