@@ -36,6 +36,7 @@ require (
 	github.com/holiman/uint256 v1.2.1
 	github.com/huin/goupnp v1.0.4-0.20220613170603-23b555710578
 	github.com/influxdata/influxdb v1.10.0
+	github.com/influxdata/influxdb-client-go/v2 v2.4.0
 	github.com/jackpal/go-nat-pmp v1.0.2
 	github.com/jedisct1/go-minisign v0.0.0-20211028175153-1c139d1cc84b
 	github.com/julienschmidt/httprouter v1.3.0
@@ -150,7 +151,6 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.2 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/influxdata/flux v0.184.2 // indirect
-	github.com/influxdata/influxdb-client-go/v2 v2.4.0 // indirect
 	github.com/influxdata/influxql v1.1.1-0.20211004132434-7e7d61973256 // indirect
 	github.com/influxdata/line-protocol v0.0.0-20210311194329-9aa0e372d097 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
@@ -222,6 +222,7 @@ require (
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/api v0.103.0 // indirect
 	google.golang.org/genproto v0.0.0-20221202195650-67e5cbc046fd // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gotest.tools/v3 v3.3.0 // indirect
 )
