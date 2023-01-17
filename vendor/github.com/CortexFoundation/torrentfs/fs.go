@@ -77,7 +77,7 @@ type TorrentFS struct {
 	once     sync.Once
 	//worm     mapset.Set[string]
 
-	msg *ttlmap.Map
+	tunnel *ttlmap.Map
 
 	callback chan any
 }
@@ -223,7 +223,7 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 		},
 	}
 
-	inst.msg = ttlmap.New(options)
+	inst.tunnel = ttlmap.New(options)
 
 	inst.closeAll = make(chan struct{})
 
@@ -339,14 +339,16 @@ func (fs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 				}
 
 				if info.Size > 0 {
-					if progress, e := fs.progress(info.Hash); e == nil {
-						log.Debug("Nas msg received", "ih", info.Hash, "size", common.StorageSize(float64(info.Size)), "local", common.StorageSize(float64(progress)), "pid", p.id, "queue", fs.msg.Len(), "peers", len(fs.peers))
-						if err := fs.storage().Search(context.Background(), info.Hash, progress); err != nil {
-							log.Error("Nas "+params.ProtocolVersionStr+" error", "err", err)
-							return err
+					if _, err := fs.tunnel.Get(info.Hash); err != nil {
+						if progress, e := fs.progress(info.Hash); e == nil {
+							log.Debug("Nas msg received", "ih", info.Hash, "size", common.StorageSize(float64(info.Size)), "local", common.StorageSize(float64(progress)), "pid", p.id, "queue", fs.tunnel.Len(), "peers", len(fs.peers))
+							if err := fs.storage().Search(context.Background(), info.Hash, progress); err != nil {
+								log.Error("Nas "+params.ProtocolVersionStr+" error", "err", err)
+								return err
+							}
 						}
+						fs.nasCounter++
 					}
-					fs.nasCounter++
 				}
 			}
 		case params.MsgCode:
@@ -371,6 +373,7 @@ func (fs *TorrentFS) progress(ih string) (uint64, error) {
 }
 
 func (fs *TorrentFS) score(ih string) bool {
+	// TODO lock needed
 	if !common.IsHexAddress(ih) {
 		return false
 	}
@@ -410,7 +413,7 @@ func (tfs *TorrentFS) Start(server *p2p.Server) (err error) {
 		log.Warn("Storage fs init failed", "fs", tfs)
 		return
 	}
-	log.Info("Started nas", "config", tfs, "mode", tfs.config.Mode, "version", params.ProtocolVersion, "queue", tfs.msg.Len(), "peers", len(tfs.peers))
+	log.Info("Started nas", "config", tfs, "mode", tfs.config.Mode, "version", params.ProtocolVersion, "queue", tfs.tunnel.Len(), "peers", len(tfs.peers))
 
 	err = tfs.monitor.Start()
 	if err != nil {
@@ -466,8 +469,8 @@ func (tfs *TorrentFS) Stop() error {
 		tfs.nasCache.Purge()
 	}
 
-	if tfs.msg != nil {
-		tfs.msg.Drain()
+	if tfs.tunnel != nil {
+		tfs.tunnel.Drain()
 	}
 
 	//if tfs.queryCache != nil {
@@ -482,14 +485,14 @@ func (fs *TorrentFS) query(ih string, rawSize uint64) bool {
 		return false
 	}
 
-	if _, err := fs.msg.Get(ih); err == nil {
+	if _, err := fs.tunnel.Get(ih); err == nil {
 		return false
 	}
 
 	if rawSize > 0 {
 		log.Debug("Query added", "ih", ih, "size", rawSize)
 		//fs.nasCache.Add(ih, rawSize)
-		fs.msg.Set(ih, ttlmap.NewItem(rawSize, ttlmap.WithTTL(60*time.Second)), nil)
+		fs.tunnel.Set(ih, ttlmap.NewItem(rawSize, ttlmap.WithTTL(60*time.Second)), nil)
 	} else {
 		return false
 	}
@@ -548,7 +551,6 @@ func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSi
 		return nil, err
 	} else {
 		log.Debug("Get File directly", "ih", infohash, "size", rawSize, "path", subpath, "ret", len(ret))
-		//TODO t0 file
 		//fs.score(infohash)
 		return ret, nil
 	}
@@ -716,7 +718,7 @@ func (fs *TorrentFS) Tunnel(ctx context.Context, ih string) error {
 	}
 	/*s := fs.query(ih, 1024*1024*1024)
 	if s {
-		log.Info("Nas "+params.ProtocolVersionStr+" tunnel", "ih", ih, "queue", fs.msg.Len(), "peers", len(fs.peers))
+		log.Info("Nas "+params.ProtocolVersionStr+" tunnel", "ih", ih, "queue", fs.tunnel.Len(), "peers", len(fs.peers))
 	}*/
 	return nil
 }
@@ -744,7 +746,7 @@ func (fs *TorrentFS) download(ctx context.Context, ih string, request uint64) er
 		defer fs.wg.Done()
 		s := fs.query(ih, p)
 		if s {
-			log.Debug("Nas "+params.ProtocolVersionStr+" tunnel", "ih", ih, "request", common.StorageSize(float64(p)), "queue", fs.msg.Len(), "peers", len(fs.peers))
+			log.Debug("Nas "+params.ProtocolVersionStr+" tunnel", "ih", ih, "request", common.StorageSize(float64(p)), "queue", fs.tunnel.Len(), "peers", len(fs.peers))
 		}
 	}()
 	//}
@@ -822,5 +824,5 @@ func (fs *TorrentFS) Envelopes() *ttlmap.Map {
 	fs.peerMu.RLock()
 	defer fs.peerMu.RUnlock()
 
-	return fs.msg
+	return fs.tunnel
 }
