@@ -536,11 +536,16 @@ func (tm *TorrentManager) GlobalTrackers() [][]string {
 }
 
 func (tm *TorrentManager) updateInfoHash(t *Torrent, bytesRequested int64) {
-	t.lock.Lock()
-	defer t.lock.Unlock()
-	if t.bytesRequested < bytesRequested {
+	//t.lock.Lock()
+	//defer t.lock.Unlock()
+	if t.status != torrentSeeding && t.bytesRequested < bytesRequested {
+		if bytesRequested > t.Length() {
+			bytesRequested = t.Length()
+		}
+		t.lock.Lock()
 		t.bytesRequested = bytesRequested
 		t.bytesLimitation = tm.getLimitation(bytesRequested)
+		t.lock.Unlock()
 	} else {
 		atomic.AddInt64(&t.cited, 1)
 	}
@@ -846,7 +851,7 @@ func (tm *TorrentManager) pendingLoop() {
 				defer cancel()
 				select {
 				case <-t.GotInfo():
-					t.VerifyData()
+					//t.VerifyData()
 					//elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
 					//log.Info("Imported new seed", "ih", t.infohash, "elapsed", common.PrettyDuration(elapsed), "n", len(tm.pendingTorrents))
 					if b, err := bencode.Marshal(t.Torrent.Info()); err == nil {
@@ -869,6 +874,13 @@ func (tm *TorrentManager) pendingLoop() {
 						t.bytesRequested = t.Length()
 						t.bytesLimitation = tm.getLimitation(t.Length())
 						t.lock.Unlock()
+					} else {
+						if t.bytesRequested > t.Length() {
+							t.lock.Lock()
+							t.bytesRequested = t.Length()
+							t.bytesLimitation = tm.getLimitation(t.Length())
+							t.lock.Unlock()
+						}
 					}
 					tm.activeChan <- t
 					tm.pendingRemoveChan <- t.infohash
