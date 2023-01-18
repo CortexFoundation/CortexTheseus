@@ -34,7 +34,7 @@ require (
 	github.com/holiman/big v0.0.0-20221017200358-a027dc42d04e
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/holiman/uint256 v1.2.1
-	github.com/huin/goupnp v1.0.4-0.20220613170603-23b555710578
+	github.com/huin/goupnp v1.0.4-0.20230118085309-62bd5c75d875
 	github.com/influxdata/influxdb v1.10.0
 	github.com/influxdata/influxdb-client-go/v2 v2.4.0
 	github.com/jackpal/go-nat-pmp v1.0.2

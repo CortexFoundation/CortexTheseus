@@ -499,7 +499,7 @@ github.com/holiman/uint256
 # github.com/huandu/xstrings v1.4.0
 ## explicit; go 1.12
 github.com/huandu/xstrings
-# github.com/huin/goupnp v1.0.4-0.20220613170603-23b555710578
+# github.com/huin/goupnp v1.0.4-0.20230118085309-62bd5c75d875
 ## explicit; go 1.14
 github.com/huin/goupnp
 github.com/huin/goupnp/dcps/internetgateway1
