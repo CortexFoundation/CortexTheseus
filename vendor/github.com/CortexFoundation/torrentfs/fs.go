@@ -338,7 +338,13 @@ func (fs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 					return errors.New("invalid address")
 				}
 
-				if info.Size > 0 {
+				fs.wg.Add(1)
+				go func() {
+					defer fs.wg.Done()
+					fs.pub(info.Hash, info.Size)
+				}()
+
+				/*if info.Size > 0 {
 					if _, err := fs.tunnel.Get(info.Hash); err != nil {
 						if progress, e := fs.progress(info.Hash); e == nil {
 							log.Debug("Nas msg received", "ih", info.Hash, "size", common.StorageSize(float64(info.Size)), "local", common.StorageSize(float64(progress)), "pid", p.id, "queue", fs.tunnel.Len(), "peers", len(fs.peers))
@@ -349,7 +355,7 @@ func (fs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 						}
 						fs.nasCounter++
 					}
-				}
+				}*/
 			}
 		case params.MsgCode:
 			if params.ProtocolVersion > 4 {
@@ -370,6 +376,20 @@ func (fs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 
 func (fs *TorrentFS) progress(ih string) (uint64, error) {
 	return fs.chain().GetTorrentProgress(ih)
+}
+
+func (fs *TorrentFS) pub(ih string, size uint64) {
+	if size > 0 {
+		if _, err := fs.tunnel.Get(ih); err != nil {
+			if progress, e := fs.progress(ih); e == nil {
+				if err := fs.storage().Search(context.Background(), ih, progress); err != nil {
+					log.Error("Nas "+params.ProtocolVersionStr+" error", "err", err)
+					//return err
+				}
+			}
+			//fs.nasCounter++
+		}
+	}
 }
 
 func (fs *TorrentFS) score(ih string) bool {
@@ -480,7 +500,7 @@ func (tfs *TorrentFS) Stop() error {
 	return nil
 }
 
-func (fs *TorrentFS) query(ih string, rawSize uint64) bool {
+func (fs *TorrentFS) sub(ih string, rawSize uint64) bool {
 	if !common.IsHexAddress(ih) {
 		return false
 	}
@@ -744,7 +764,7 @@ func (fs *TorrentFS) download(ctx context.Context, ih string, request uint64) er
 	fs.wg.Add(1)
 	go func() {
 		defer fs.wg.Done()
-		s := fs.query(ih, p)
+		s := fs.sub(ih, p)
 		if s {
 			log.Debug("Nas "+params.ProtocolVersionStr+" tunnel", "ih", ih, "request", common.StorageSize(float64(p)), "queue", fs.tunnel.Len(), "peers", len(fs.peers))
 		}
