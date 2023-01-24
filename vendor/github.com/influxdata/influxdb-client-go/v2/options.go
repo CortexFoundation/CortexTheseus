@@ -56,7 +56,7 @@ func (o *Options) SetRetryInterval(retryIntervalMs uint) *Options {
 	return o
 }
 
-// MaxRetries returns maximum count of retry attempts of failed writes
+// MaxRetries returns maximum count of retry attempts of failed writes, default 5.
 func (o *Options) MaxRetries() uint {
 	return o.WriteOptions().MaxRetries()
 }
@@ -79,14 +79,36 @@ func (o *Options) SetRetryBufferLimit(retryBufferLimit uint) *Options {
 	return o
 }
 
-// MaxRetryInterval return maximum retry interval in ms. Default 5min.
+// MaxRetryInterval returns the maximum delay between each retry attempt in milliseconds, default 125,000.
 func (o *Options) MaxRetryInterval() uint {
 	return o.WriteOptions().MaxRetryInterval()
 }
 
-// SetMaxRetryInterval set maximum retry interval in ms
+// SetMaxRetryInterval sets the maximum delay between each retry attempt in millisecond.
 func (o *Options) SetMaxRetryInterval(maxRetryIntervalMs uint) *Options {
 	o.WriteOptions().SetMaxRetryInterval(maxRetryIntervalMs)
+	return o
+}
+
+// MaxRetryTime returns the maximum total retry timeout in millisecond, default 180,000.
+func (o *Options) MaxRetryTime() uint {
+	return o.WriteOptions().MaxRetryTime()
+}
+
+// SetMaxRetryTime sets the maximum total retry timeout in millisecond.
+func (o *Options) SetMaxRetryTime(maxRetryTimeMs uint) *Options {
+	o.WriteOptions().SetMaxRetryTime(maxRetryTimeMs)
+	return o
+}
+
+// ExponentialBase returns the base for the exponential retry delay. Default 2.
+func (o *Options) ExponentialBase() uint {
+	return o.WriteOptions().ExponentialBase()
+}
+
+// SetExponentialBase sets the base for the exponential retry delay.
+func (o *Options) SetExponentialBase(exponentialBase uint) *Options {
+	o.WriteOptions().SetExponentialBase(exponentialBase)
 	return o
 }
 
@@ -194,6 +216,17 @@ func (o *Options) HTTPOptions() *http.Options {
 // If a point already defines such a tag, it is left unchanged
 func (o *Options) AddDefaultTag(key, value string) *Options {
 	o.WriteOptions().AddDefaultTag(key, value)
+	return o
+}
+
+// ApplicationName returns application name used in the User-Agent HTTP header
+func (o *Options) ApplicationName() string {
+	return o.HTTPOptions().ApplicationName()
+}
+
+// SetApplicationName sets an application name to the User-Agent HTTP header
+func (o *Options) SetApplicationName(appName string) *Options {
+	o.HTTPOptions().SetApplicationName(appName)
 	return o
 }
 

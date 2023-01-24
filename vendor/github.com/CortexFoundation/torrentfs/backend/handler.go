@@ -547,7 +547,9 @@ func (tm *TorrentManager) updateInfoHash(t *Torrent, bytesRequested int64) {
 		t.bytesLimitation = tm.getLimitation(bytesRequested)
 		t.lock.Unlock()
 	} else {
-		atomic.AddInt64(&t.cited, 1)
+		if t.status != torrentPending {
+			atomic.AddInt64(&t.cited, 1)
+		}
 	}
 	updateMeter.Mark(1)
 }

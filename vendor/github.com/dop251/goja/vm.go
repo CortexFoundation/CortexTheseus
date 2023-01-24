@@ -66,10 +66,9 @@ type execCtx struct {
 func (vm *vm) suspend(ectx *execCtx, tryStackLen, iterStackLen, refStackLen uint32) {
 	vm.saveCtx(&ectx.context)
 	ectx.stack = append(ectx.stack[:0], vm.stack[vm.sb-1:vm.sp]...)
-	if tryStackLen > 0 {
-		l := len(vm.tryStack) - int(tryStackLen)
-		ectx.tryStack = append(ectx.tryStack[:0], vm.tryStack[l:]...)
-		vm.tryStack = vm.tryStack[:l]
+	if len(vm.tryStack) > int(tryStackLen) {
+		ectx.tryStack = append(ectx.tryStack[:0], vm.tryStack[tryStackLen:]...)
+		vm.tryStack = vm.tryStack[:tryStackLen]
 		sp := int32(vm.sb - 1)
 		for i := range ectx.tryStack {
 			tf := &ectx.tryStack[i]
@@ -78,15 +77,13 @@ func (vm *vm) suspend(ectx *execCtx, tryStackLen, iterStackLen, refStackLen uint
 			tf.sp -= sp
 		}
 	}
-	if iterStackLen > 0 {
-		l := len(vm.iterStack) - int(iterStackLen)
-		ectx.iterStack = append(ectx.iterStack[:0], vm.iterStack[l:]...)
-		vm.iterStack = vm.iterStack[:l]
+	if len(vm.iterStack) > int(iterStackLen) {
+		ectx.iterStack = append(ectx.iterStack[:0], vm.iterStack[iterStackLen:]...)
+		vm.iterStack = vm.iterStack[:iterStackLen]
 	}
-	if refStackLen > 0 {
-		l := len(vm.refStack) - int(refStackLen)
-		ectx.refStack = append(ectx.refStack[:0], vm.refStack[l:]...)
-		vm.refStack = vm.refStack[:l]
+	if len(vm.refStack) > int(refStackLen) {
+		ectx.refStack = append(ectx.refStack[:0], vm.refStack[refStackLen:]...)
+		vm.refStack = vm.refStack[:refStackLen]
 	}
 }
 
@@ -577,9 +574,7 @@ func (vm *vm) run() {
 		}
 		v.stack = vm.captureStack(nil, 0)
 		vm.interruptLock.Unlock()
-		panic(&uncatchableException{
-			err: v,
-		})
+		panic(v)
 	}
 }
 
@@ -806,9 +801,7 @@ func (vm *vm) pushCtx() {
 	if len(vm.callStack) > vm.maxCallStackSize {
 		ex := &StackOverflowError{}
 		ex.stack = vm.captureStack(nil, 0)
-		panic(&uncatchableException{
-			err: ex,
-		})
+		panic(ex)
 	}
 	vm.callStack = append(vm.callStack, context{})
 	ctx := &vm.callStack[len(vm.callStack)-1]

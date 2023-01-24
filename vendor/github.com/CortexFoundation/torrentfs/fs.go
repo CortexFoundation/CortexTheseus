@@ -264,7 +264,7 @@ func (fs *TorrentFS) MaxMessageSize() uint32 {
 	return params.DefaultMaxMessageSize
 }
 
-func (fs *TorrentFS) find(ih string) (*Peer, error) {
+/*func (fs *TorrentFS) find(ih string) (*Peer, error) {
 	for s, p := range fs.peers {
 		if p.seeding.Contains(ih) {
 			// TODO
@@ -275,7 +275,7 @@ func (fs *TorrentFS) find(ih string) (*Peer, error) {
 
 	log.Debug("Seed not found !!!", "neighbors", len(fs.peers), "ih", ih)
 	return nil, nil
-}
+}*/
 
 func (fs *TorrentFS) HandlePeer(peer *p2p.Peer, rw p2p.MsgReadWriter) error {
 	tfsPeer := newPeer(fmt.Sprintf("%x", peer.ID().Bytes()[:8]), fs, peer, rw)
