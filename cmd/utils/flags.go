@@ -19,6 +19,7 @@ package utils
 
 import (
 	"crypto/ecdsa"
+	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
@@ -1112,6 +1113,14 @@ func setCoinbase(ctx *cli.Context, ks *keystore.KeyStore, cfg *ctxc.Config) {
 	}
 	// Convert the coinbase into an address and configure it
 	if coinbase != "" {
+		if strings.HasPrefix(coinbase, "0x") || strings.HasPrefix(coinbase, "0X") {
+			coinbase = coinbase[2:]
+		}
+		b, err := hex.DecodeString(coinbase)
+		if err != nil || len(b) != common.AddressLength {
+			Fatalf("-%s: invalid coinbase address %q", MinerCoinbaseFlag.Name, coinbase)
+			return
+		}
 		account, err := MakeAddress(ks, coinbase)
 		if err != nil {
 			Fatalf("Invalid miner coinbase: %v", err)
