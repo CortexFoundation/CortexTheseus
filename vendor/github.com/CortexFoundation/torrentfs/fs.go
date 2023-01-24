@@ -462,6 +462,7 @@ func (tfs *TorrentFS) Start(server *p2p.Server) (err error) {
 	return
 }
 
+// download and pub
 func (fs *TorrentFS) bitsflow(ih string, size uint64) {
 	fs.callback <- types.NewBitsFlow(ih, size)
 }
@@ -512,6 +513,7 @@ func (fs *TorrentFS) sub(ih string, rawSize uint64) bool {
 	if rawSize > 0 {
 		log.Debug("Query added", "ih", ih, "size", rawSize)
 		//fs.nasCache.Add(ih, rawSize)
+		// TODO waiting if no neighbors found
 		fs.tunnel.Set(ih, ttlmap.NewItem(rawSize, ttlmap.WithTTL(60*time.Second)), nil)
 	} else {
 		return false
@@ -531,7 +533,7 @@ func (fs *TorrentFS) notify(infohash string) bool {
 }
 
 // Available is used to check the file status
-func (fs *TorrentFS) localCheck(ctx context.Context, infohash string, rawSize uint64) (bool, error) {
+func (fs *TorrentFS) available(ctx context.Context, infohash string, rawSize uint64) (bool, error) {
 	ret, _, _, err := fs.storage().Available(infohash, rawSize)
 	if err != nil {
 		if progress, e := fs.progress(infohash); e == nil {
@@ -546,7 +548,7 @@ func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSi
 	//fs.wg.Add(1)
 	//go func() {
 	///	defer fs.wg.Done()
-	//if ok, err := fs.localCheck(ctx, infohash, rawSize); err != nil || !ok {
+	//if ok, err := fs.available(ctx, infohash, rawSize); err != nil || !ok {
 	//	return nil, err
 	//}
 	//}()
@@ -564,7 +566,7 @@ func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSi
 
 	if ret, _, err := fs.storage().GetFile(infohash, subpath); err != nil {
 		//log.Warn("Get file failed", "ih", infohash, "size", rawSize, "path", subpath, "err", err)
-		if ok, err := fs.localCheck(ctx, infohash, rawSize); err != nil || !ok {
+		if ok, err := fs.available(ctx, infohash, rawSize); err != nil || !ok {
 			log.Debug("Get file failed", "ih", infohash, "size", rawSize, "path", subpath, "err", err)
 			return nil, err
 		}
