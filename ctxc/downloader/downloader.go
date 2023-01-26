@@ -29,7 +29,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
-	"github.com/CortexFoundation/CortexTheseus/core/vm"
+	//"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/log"
@@ -306,7 +306,7 @@ func (d *Downloader) Synchronise(id string, head common.Hash, td *big.Int, mode 
 	err := d.synchronise(id, head, td, mode)
 
 	switch err {
-	case nil, errBusy, errCanceled, vm.ErrRuntime:
+	case nil, errBusy, errCanceled:
 		return err
 	}
 
@@ -512,7 +512,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.I
 
 		fetchers = append(fetchers, func() error { return d.processFastSyncContent() })
 	} else if mode == FullSync {
-		fetchers = append(fetchers, d.processFullSyncContent)
+		fetchers = append(fetchers, func() error { return d.processFullSyncContent() })
 	}
 	return d.spawnSync(fetchers)
 }
@@ -551,6 +551,7 @@ func (d *Downloader) cancel() {
 	// Close the current cancel channel
 	d.cancelLock.Lock()
 	defer d.cancelLock.Unlock()
+
 	if d.cancelCh != nil {
 		select {
 		case <-d.cancelCh:
@@ -1633,9 +1634,9 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 			log.Debug("Downloaded item processing failed on sidechain import", "index", index, "err", err)
 		}
 
-		if errors.Is(err, vm.ErrRuntime) {
-			return err
-		}
+		//if errors.Is(err, vm.ErrRuntime) {
+		//	return err
+		//}
 		return fmt.Errorf("%w: %v", errInvalidChain, err)
 	}
 	return nil

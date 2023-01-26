@@ -37,6 +37,7 @@ const (
 	torrentPaused
 	torrentRunning
 	torrentSeeding
+	torrentSleeping
 )
 
 type Torrent struct {
