@@ -1028,7 +1028,7 @@ func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 
 // Prepare sets the current transaction hash and index and block hash which is
 // used when the CVM emits new state logs.
-func (s *StateDB) Prepare(thash common.Hash, ti int) {
+func (s *StateDB) SetTxContext(thash common.Hash, ti int) {
 	s.thash = thash
 	s.txIndex = ti
 }
