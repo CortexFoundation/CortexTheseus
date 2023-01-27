@@ -69,7 +69,7 @@ type TorrentFS struct {
 	sent     uint64
 
 	// global file hash & score
-	scoreTable map[string]int
+	//scoreTable map[string]int
 
 	//seedingNotify chan string
 	closeAll chan struct{}
@@ -146,7 +146,7 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 	inst.callback = _callback
 	//inst.queryCache, _ = lru.New(25)
 
-	inst.scoreTable = make(map[string]int)
+	//inst.scoreTable = make(map[string]int)
 	//inst.seedingNotify = make(chan string, 32)
 
 	//inst.worm = mapset.NewSet[string]()
@@ -177,7 +177,7 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 					"received":   inst.received,
 					"sent":       inst.sent,
 				},
-				"score": inst.scoreTable,
+				//"score": inst.scoreTable,
 			}
 		},
 		PeerInfo: func(id enode.ID) any {
@@ -361,21 +361,6 @@ func (fs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 
 func (fs *TorrentFS) progress(ih string) (uint64, error) {
 	return fs.chain().GetTorrentProgress(ih)
-}
-
-func (fs *TorrentFS) score(ih string) bool {
-	// TODO lock needed
-	if !common.IsHexAddress(ih) {
-		return false
-	}
-
-	if _, ok := fs.scoreTable[ih]; !ok {
-		fs.scoreTable[ih] = 1
-	} else {
-		fs.scoreTable[ih]++
-	}
-
-	return true
 }
 
 // Protocols implements the node.Service interface.
@@ -772,10 +757,6 @@ func (fs *TorrentFS) Candidate() int {
 
 func (fs *TorrentFS) NasCounter() uint64 {
 	return fs.nasCounter
-}
-
-func (fs *TorrentFS) ScoreTabler() map[string]int {
-	return fs.scoreTable
 }
 
 func (fs *TorrentFS) Nominee() int {
