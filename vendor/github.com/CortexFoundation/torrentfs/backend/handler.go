@@ -836,7 +836,6 @@ func (tm *TorrentManager) commit(ctx context.Context, hex string, request uint64
 
 func (tm *TorrentManager) mainLoop() {
 	defer tm.wg.Done()
-	var bytes int64
 	for {
 		select {
 		case msg := <-tm.taskChan:
@@ -845,13 +844,8 @@ func (tm *TorrentManager) mainLoop() {
 				continue
 			}
 
-			bytes = int64(meta.Request())
-			//if bytes == 0 && tm.mode != params.LAZY {
-			//	bytes = block
-			//}
-
-			if t := tm.addInfoHash(meta.InfoHash(), bytes); t == nil {
-				log.Error("Seed [create] failed", "ih", meta.InfoHash(), "request", bytes)
+			if t := tm.addInfoHash(meta.InfoHash(), int64(meta.Request())); t == nil {
+				log.Error("Seed [create] failed", "ih", meta.InfoHash(), "request", meta.Request())
 			}
 		case <-tm.closeAll:
 			return
@@ -868,7 +862,11 @@ func (tm *TorrentManager) pendingLoop() {
 			tm.wg.Add(1)
 			go func(t *Torrent) {
 				defer tm.wg.Done()
-				ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+				timeout := 15
+				if tm.mode == params.FULL {
+					timeout *= 2
+				}
+				ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Minute)
 				defer cancel()
 				select {
 				case <-t.GotInfo():
@@ -956,6 +954,10 @@ func (tm *TorrentManager) activeLoop() {
 				n += 10
 			}
 
+			if tm.mode == params.FULL {
+				n *= 2
+			}
+
 			// TODO n random salt
 			tm.wg.Add(1)
 			go func(i string, n int64) {
@@ -1019,6 +1021,7 @@ func (tm *TorrentManager) activeLoop() {
 					defer tm.wg.Done()
 					tm.updateGlobalTrackers()
 				}()
+				log_counter = 1
 			}
 			//timer.Reset(time.Second * queryTimeInterval)
 		case <-tm.closeAll:
