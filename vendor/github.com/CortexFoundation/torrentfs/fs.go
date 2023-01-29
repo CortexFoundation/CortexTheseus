@@ -40,7 +40,7 @@ import (
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/metainfo"
 	//mapset "github.com/deckarep/golang-set/v2"
-	lru "github.com/hashicorp/golang-lru"
+	//lru "github.com/hashicorp/golang-lru"
 	cp "github.com/otiai10/copy"
 
 	"github.com/ucwong/go-ttlmap"
@@ -61,7 +61,7 @@ type TorrentFS struct {
 
 	//queryChan chan Query
 
-	nasCache *lru.Cache
+	//nasCache *lru.Cache
 	//queryCache *lru.Cache
 	nasCounter uint64
 
@@ -142,7 +142,7 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 		//queryChan: make(chan Query, 128),
 	}
 
-	inst.nasCache, _ = lru.New(32)
+	//inst.nasCache, _ = lru.New(32)
 	inst.callback = _callback
 	//inst.queryCache, _ = lru.New(25)
 
@@ -442,9 +442,9 @@ func (tfs *TorrentFS) Stop() error {
 	tfs.monitor.Stop()
 	//tfs.monitor.lock.Unlock()
 
-	if tfs.nasCache != nil {
-		tfs.nasCache.Purge()
-	}
+	//if tfs.nasCache != nil {
+	//	tfs.nasCache.Purge()
+	//}
 
 	if tfs.tunnel != nil {
 		tfs.tunnel.Drain()
@@ -476,7 +476,7 @@ func (fs *TorrentFS) broadcast(ih string, rawSize uint64) bool {
 	return true
 }
 
-func (fs *TorrentFS) notify(infohash string) bool {
+/*func (fs *TorrentFS) notify(infohash string) bool {
 	if !common.IsHexAddress(infohash) {
 		return false
 	}
@@ -484,7 +484,7 @@ func (fs *TorrentFS) notify(infohash string) bool {
 	fs.nasCache.Add(infohash, SEED_SIG)
 
 	return true
-}
+}*/
 
 // Available is used to check the file status
 func (fs *TorrentFS) active(ih string, rawSize uint64) (bool, error) {
