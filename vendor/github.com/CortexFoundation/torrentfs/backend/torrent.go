@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	torrentPending = iota //2
+	torrentPending = iota + 1
 	torrentPaused
 	torrentRunning
 	torrentSeeding

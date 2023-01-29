@@ -128,7 +128,7 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 	}
 	log.Info("Fs manager initialized")
 
-	_callback := make(chan any, 64)
+	_callback := make(chan any, 1)
 	monitor, moErr := monitor.New(config, cache, compress, listen, db, handler, _callback)
 	if moErr != nil {
 		log.Error("Failed create monitor")
@@ -489,7 +489,7 @@ func (fs *TorrentFS) notify(infohash string) bool {
 // Available is used to check the file status
 func (fs *TorrentFS) active(ih string, rawSize uint64) (bool, error) {
 	ret, _, _, err := fs.storage().Available(ih, rawSize)
-	if err == backend.ErrInactiveTorrent {
+	if errors.Is(err, backend.ErrInactiveTorrent) {
 		//if _, err := fs.tunnel.Get(ih); err != nil {
 		if progress, e := fs.progress(ih); e == nil {
 			fs.bitsflow(ih, progress)
@@ -646,7 +646,7 @@ func (fs *TorrentFS) SeedingLocal(ctx context.Context, filePath string, isLinkMo
 	}
 
 	// 5. seeding
-	if err == nil || err == os.ErrExist {
+	if err == nil || errors.Is(err, os.ErrExist) {
 		log.Debug("SeedingLocal", "dest", linkDst, "err", err)
 		err = fs.storage().Search(context.Background(), ih.Hex(), 0)
 		if err == nil {
