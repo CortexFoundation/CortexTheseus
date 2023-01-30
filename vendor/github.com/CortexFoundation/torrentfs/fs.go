@@ -462,7 +462,7 @@ func (fs *TorrentFS) broadcast(ih string, rawSize uint64) bool {
 		return false
 	}
 
-	if _, err := fs.tunnel.Get(ih); err == nil {
+	if s, err := fs.tunnel.Get(ih); err == nil && s.Value().(uint64) >= rawSize {
 		return false
 	}
 
