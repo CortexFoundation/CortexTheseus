@@ -862,20 +862,20 @@ func (tm *TorrentManager) pendingLoop() {
 			tm.wg.Add(1)
 			go func(t *Torrent) {
 				defer tm.wg.Done()
-				var timeout time.Duration = 15
+				var timeout time.Duration = 10 + time.Duration(tm.slot%10)
 				if tm.mode == params.FULL {
-					timeout *= 2
+					//timeout *= 2
 				}
 				ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Minute)
 				defer cancel()
 				select {
 				case <-t.GotInfo():
-					//t.VerifyData()
-					//elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
-					//log.Info("Imported new seed", "ih", t.infohash, "elapsed", common.PrettyDuration(elapsed), "n", len(tm.pendingTorrents))
 					if b, err := bencode.Marshal(t.Torrent.Info()); err == nil {
 						log.Debug("Record full torrent in history", "ih", t.infohash, "info", len(b))
 						if tm.badger != nil && tm.badger.Get([]byte(SEED_PRE+t.infohash)) == nil {
+							elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
+							log.Info("Imported new seed", "ih", t.infohash, "elapsed", common.PrettyDuration(elapsed))
+
 							tm.badger.Set([]byte(SEED_PRE+t.infohash), b)
 						}
 					} else {
@@ -939,6 +939,10 @@ func (tm *TorrentManager) finish(ih string, t *Torrent) {
 	}
 }
 
+func (tm *TorrentManager) salt(n int) int64 {
+	return int64(tm.slot % n)
+}
+
 func (tm *TorrentManager) activeLoop() {
 	defer tm.wg.Done()
 	timer := time.NewTicker(time.Second * params.QueryTimeInterval)
@@ -950,19 +954,21 @@ func (tm *TorrentManager) activeLoop() {
 			t.status = torrentRunning
 			tm.activeTorrents[t.infohash] = t
 			n := tm.blockCaculate(t.Torrent.Length())
-			if n < 10 {
-				n += 10
+			if n < 300 {
+				n += 300
 			}
+
+			n += tm.salt(300)
 
 			if tm.mode == params.FULL {
-				n *= 2
+				//n *= 2
 			}
-
-			// TODO n random salt
+			//elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
+			//log.Info("Active seeding", "ih", t.infohash, "n", n, "elapsed", common.PrettyDuration(elapsed))
 			tm.wg.Add(1)
 			go func(i string, n int64) {
 				defer tm.wg.Done()
-				timer := time.NewTicker(time.Duration(n) * time.Minute)
+				timer := time.NewTicker(time.Duration(n) * time.Second)
 				defer timer.Stop()
 				for {
 					select {
