@@ -338,9 +338,9 @@ func (fs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 					return errors.New("invalid address")
 				}
 
-				if info.Size > 0 {
-					fs.active(info.Hash, info.Size)
-				}
+				//if info.Size > 0 {
+				fs.active(info.Hash, info.Size)
+				//}
 			}
 		case params.MsgCode:
 			if params.ProtocolVersion > 4 {
@@ -466,12 +466,12 @@ func (fs *TorrentFS) broadcast(ih string, rawSize uint64) bool {
 		return false
 	}
 
-	if rawSize > 0 {
-		log.Debug("Query added", "ih", ih, "size", rawSize)
-		fs.tunnel.Set(ih, ttlmap.NewItem(rawSize, ttlmap.WithTTL(60*time.Second)), nil)
-	} else {
-		return false
-	}
+	//if rawSize > 0 {
+	log.Debug("Query added", "ih", ih, "size", rawSize)
+	fs.tunnel.Set(ih, ttlmap.NewItem(rawSize, ttlmap.WithTTL(60*time.Second)), nil)
+	//} else {
+	//	return false
+	//}
 
 	return true
 }
@@ -512,6 +512,7 @@ func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSi
 		return nil, err
 	} else {
 		log.Debug("Get File directly", "ih", infohash, "size", rawSize, "path", subpath, "ret", len(ret))
+		// TODO t0 file found
 		return ret, nil
 	}
 }
