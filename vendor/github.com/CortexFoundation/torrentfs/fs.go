@@ -253,7 +253,9 @@ func (fs *TorrentFS) listen() {
 		select {
 		case msg := <-fs.callback:
 			meta := msg.(*types.BitsFlow)
-			fs.download(context.Background(), meta.InfoHash(), meta.Request())
+			if fs.config.Mode != params.LAZY || meta.Request() > 0 {
+				fs.download(context.Background(), meta.InfoHash(), meta.Request())
+			}
 		case <-fs.closeAll:
 			return
 		}
@@ -339,7 +341,7 @@ func (fs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 				}
 
 				//if info.Size > 0 {
-				fs.active(info.Hash, info.Size)
+				fs.active(context.Background(), info.Hash, info.Size)
 				//}
 			}
 		case params.MsgCode:
@@ -409,7 +411,7 @@ func (tfs *TorrentFS) Start(server *p2p.Server) (err error) {
 
 					//tfs.query(k, 1024*1024*1024)
 					//tfs.callback <- types.NewBitsFlow(k, 1024*1024*1024)
-					tfs.bitsflow(k, 1024*1024*1024)
+					tfs.bitsflow(context.Background(), k, 1024*1024*1024)
 					//tfs.seedingNotify <- k
 				}
 			}
@@ -419,8 +421,17 @@ func (tfs *TorrentFS) Start(server *p2p.Server) (err error) {
 }
 
 // download and pub
-func (fs *TorrentFS) bitsflow(ih string, size uint64) {
-	fs.callback <- types.NewBitsFlow(ih, size)
+func (fs *TorrentFS) bitsflow(ctx context.Context, ih string, size uint64) error {
+	if fs.config.Mode != params.LAZY || size > 0 {
+		log.Debug("bitsflow", "ih", ih, "size", size, "mode", fs.config.Mode)
+		select {
+		case fs.callback <- types.NewBitsFlow(ih, size):
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+
+	return nil
 }
 
 // Stop stops the data collection thread and the connection listener of the dashboard.
@@ -487,12 +498,12 @@ func (fs *TorrentFS) broadcast(ih string, rawSize uint64) bool {
 }*/
 
 // Available is used to check the file status
-func (fs *TorrentFS) active(ih string, rawSize uint64) (bool, error) {
+func (fs *TorrentFS) active(ctx context.Context, ih string, rawSize uint64) (bool, error) {
 	ret, _, _, err := fs.storage().Available(ih, rawSize)
 	if errors.Is(err, backend.ErrInactiveTorrent) {
 		//if _, err := fs.tunnel.Get(ih); err != nil {
 		if progress, e := fs.progress(ih); e == nil {
-			fs.bitsflow(ih, progress)
+			fs.bitsflow(ctx, ih, progress)
 		}
 		//}
 	}
@@ -507,7 +518,7 @@ func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSi
 		//	log.Debug("Get file failed", "ih", infohash, "size", rawSize, "path", subpath, "err", err)
 		//}
 
-		fs.active(infohash, rawSize)
+		fs.active(ctx, infohash, rawSize)
 
 		return nil, err
 	} else {
@@ -717,7 +728,8 @@ func (fs *TorrentFS) download(ctx context.Context, ih string, request uint64) er
 }
 
 func (fs *TorrentFS) Download(ctx context.Context, ih string, request uint64) error {
-	return fs.download(ctx, ih, request)
+	//return fs.download(ctx, ih, request)
+	return fs.bitsflow(ctx, ih, request)
 }
 
 func (fs *TorrentFS) Status(ctx context.Context, ih string) (int, error) {
