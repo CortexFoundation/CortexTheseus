@@ -213,7 +213,7 @@ func (eth *Cortex) stateAtTransaction(block *types.Block, txIndex int, reexec ui
 		}
 		// Not yet the searched for transaction, execute on top of the current state
 		vmenv := vm.NewCVM(context, txContext, statedb, eth.blockchain.Config(), vm.Config{})
-		statedb.Prepare(tx.Hash(), idx)
+		statedb.SetTxContext(tx.Hash(), idx)
 		if _, _, _, _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(tx.Gas()), new(core.QuotaPool).AddQuota(block.Quota())); err != nil {
 			return nil, vm.BlockContext{}, nil, nil, fmt.Errorf("transaction %#x failed: %v", tx.Hash(), err)
 		}

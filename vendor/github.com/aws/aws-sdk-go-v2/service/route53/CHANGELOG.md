@@ -1,3 +1,11 @@
+# v1.27.0 (2023-01-24)
+
+* **Feature**: Amazon Route 53 now supports the Asia Pacific (Melbourne) Region (ap-southeast-4) for latency records, geoproximity records, and private DNS for Amazon VPCs in that region.
+
+# v1.26.0 (2023-01-05)
+
+* **Feature**: Add `ErrorCodeOverride` field to all error structs (aws/smithy-go#401).
+
 # v1.25.2 (2022-12-15)
 
 * **Dependency Update**: Updated to the latest SDK module versions

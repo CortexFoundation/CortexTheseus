@@ -17,5 +17,5 @@
 package params
 
 const (
-	ClientVersion = "-COLA04-"
+	ClientVersion = "-COLA05-"
 )

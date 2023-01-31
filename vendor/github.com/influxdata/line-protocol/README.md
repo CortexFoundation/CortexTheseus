@@ -1,5 +1,7 @@
 # line-protocol
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/influxdata/line-protocol/v2.svg)](https://pkg.go.dev/github.com/influxdata/line-protocol/v2)
+
 This is an encoder for the influx [line protocol.](https://docs.influxdata.com/influxdb/latest/reference/syntax/line-protocol/)
 
 It has an interface similar to the standard library's `json.Encoder`.

@@ -33,10 +33,11 @@ import (
 )
 
 const (
-	torrentPending = iota //2
+	torrentPending = iota + 1
 	torrentPaused
 	torrentRunning
 	torrentSeeding
+	torrentSleeping
 )
 
 type Torrent struct {
@@ -81,10 +82,6 @@ func (t *Torrent) Ready() bool {
 	if _, ok := params.BadFiles[t.InfoHash()]; ok {
 		return false
 	}
-
-	//t.lock.Lock()
-	//t.cited += 1
-	//t.lock.Unlock()
 
 	ret := t.IsSeeding()
 	if !ret {

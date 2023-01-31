@@ -81,7 +81,7 @@ type DB struct {
 	NoFreelistSync bool
 
 	// FreelistType sets the backend freelist type. There are two options. Array which is simple but endures
-	// dramatic performance degradation if database is large and framentation in freelist is common.
+	// dramatic performance degradation if database is large and fragmentation in freelist is common.
 	// The alternative one is using hashmap, it is faster in almost all circumstances
 	// but it doesn't guarantee that it offers the smallest page id available. In normal case it is safe.
 	// The default type is array
@@ -464,6 +464,8 @@ func (db *DB) mmap(minsz int) error {
 	}
 
 	// Memory-map the data file as a byte slice.
+	// gofail: var mapError string
+	// return errors.New(mapError)
 	if err := mmap(db, size); err != nil {
 		return err
 	}
@@ -504,9 +506,12 @@ func (db *DB) invalidate() {
 func (db *DB) munmap() error {
 	defer db.invalidate()
 
+	// gofail: var unmapError string
+	// return errors.New(unmapError)
 	if err := munmap(db); err != nil {
 		return fmt.Errorf("unmap error: " + err.Error())
 	}
+
 	return nil
 }
 
@@ -1120,7 +1125,7 @@ func (db *DB) grow(sz int) error {
 
 	// If the data is smaller than the alloc size then only allocate what's needed.
 	// Once it goes over the allocation size then allocate in chunks.
-	if db.datasz < db.AllocSize {
+	if db.datasz <= db.AllocSize {
 		sz = db.datasz
 	} else {
 		sz += db.AllocSize
@@ -1207,7 +1212,7 @@ type Options struct {
 	PreLoadFreelist bool
 
 	// FreelistType sets the backend freelist type. There are two options. Array which is simple but endures
-	// dramatic performance degradation if database is large and framentation in freelist is common.
+	// dramatic performance degradation if database is large and fragmentation in freelist is common.
 	// The alternative one is using hashmap, it is faster in almost all circumstances
 	// but it doesn't guarantee that it offers the smallest page id available. In normal case it is safe.
 	// The default type is array

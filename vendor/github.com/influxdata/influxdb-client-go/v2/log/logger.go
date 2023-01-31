@@ -9,6 +9,7 @@ package log
 import (
 	"fmt"
 	"log"
+	"sync"
 )
 
 // Log is the library wide logger. Setting to nil disables logging.
@@ -49,60 +50,84 @@ type Logger interface {
 }
 
 // logger provides default implementation for Logger. It logs using Go log API
+// mutex is needed in cases when multiple clients run concurrently
 type logger struct {
 	prefix   string
 	logLevel uint
+	lock     sync.Mutex
 }
 
 func (l *logger) SetLogLevel(logLevel uint) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
 	l.logLevel = logLevel
 }
 
 func (l *logger) LogLevel() uint {
+	l.lock.Lock()
+	defer l.lock.Unlock()
 	return l.logLevel
 }
 
 func (l *logger) SetPrefix(prefix string) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
 	l.prefix = prefix
 }
 
 func (l *logger) Debugf(format string, v ...interface{}) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
 	if l.logLevel >= DebugLevel {
 		log.Print(l.prefix, " D! ", fmt.Sprintf(format, v...))
 	}
 }
 func (l *logger) Debug(msg string) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
 	if l.logLevel >= DebugLevel {
 		log.Print(l.prefix, " D! ", msg)
 	}
 }
 
 func (l *logger) Infof(format string, v ...interface{}) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
 	if l.logLevel >= InfoLevel {
 		log.Print(l.prefix, " I! ", fmt.Sprintf(format, v...))
 	}
 }
 func (l *logger) Info(msg string) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
 	if l.logLevel >= DebugLevel {
 		log.Print(l.prefix, " I! ", msg)
 	}
 }
 
 func (l *logger) Warnf(format string, v ...interface{}) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
 	if l.logLevel >= WarningLevel {
 		log.Print(l.prefix, " W! ", fmt.Sprintf(format, v...))
 	}
 }
 func (l *logger) Warn(msg string) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
 	if l.logLevel >= WarningLevel {
 		log.Print(l.prefix, " W! ", msg)
 	}
 }
 
 func (l *logger) Errorf(format string, v ...interface{}) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
 	log.Print(l.prefix, " E! ", fmt.Sprintf(format, v...))
 }
 
 func (l *logger) Error(msg string) {
-	log.Print(l.prefix, " [E]! ", msg)
+	l.lock.Lock()
+	defer l.lock.Unlock()
+	log.Print(l.prefix, " E! ", msg)
 }

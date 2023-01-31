@@ -148,9 +148,8 @@ clean-all: clean-clib clean
 # You need to put $GOBIN (or $GOPATH/bin) in your PATH to use 'go generate'.
 
 devtools:
-	env GOBIN= go get -u golang.org/x/tools/cmd/stringer
-	env GOBIN= go get -u github.com/fjl/gencodec
-	#env GOBIN= go get -u github.com/golang/protobuf/protoc-gen-go
+	env GOBIN= go get -u golang.org/x/tools/cmd/stringer@latest
+	env GOBIN= go get -u github.com/fjl/gencodec@latest
 	env GOGIN= go get -u google.golang.org/protobuf/cmd/protoc-gen-go@latest
 	env GOBIN= go install ./cmd/abigen
 	@type "npm" 2> /dev/null || echo 'Please install node.js and npm'

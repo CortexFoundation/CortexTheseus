@@ -9,6 +9,7 @@ package influxdb2
 import (
 	"context"
 	"errors"
+	httpnet "net/http"
 	"strings"
 	"sync"
 	"time"
@@ -29,11 +30,17 @@ type Client interface {
 	// and returns details about newly created entities along with the authorization object.
 	// Retention period of zero will result to infinite retention.
 	Setup(ctx context.Context, username, password, org, bucket string, retentionPeriodHours int) (*domain.OnboardingResponse, error)
-	// Ready checks InfluxDB server is running. It doesn't validate authentication params.
-	Ready(ctx context.Context) (bool, error)
+	// SetupWithToken sends request to initialise new InfluxDB server with user, org and bucket, data retention period and token
+	// and returns details about newly created entities along with the authorization object.
+	// Retention period of zero will result to infinite retention.
+	SetupWithToken(ctx context.Context, username, password, org, bucket string, retentionPeriodHours int, token string) (*domain.OnboardingResponse, error)
+	// Ready returns InfluxDB uptime info of server. It doesn't validate authentication params.
+	Ready(ctx context.Context) (*domain.Ready, error)
 	// Health returns an InfluxDB server health check result. Read the HealthCheck.Status field to get server status.
 	// Health doesn't validate authentication params.
 	Health(ctx context.Context) (*domain.HealthCheck, error)
+	// Ping validates whether InfluxDB server is running. It doesn't validate authentication params.
+	Ping(ctx context.Context) (bool, error)
 	// Close ensures all ongoing asynchronous write clients finish.
 	// Also closes all idle connections, in case of HTTP client was created internally.
 	Close()
@@ -66,6 +73,8 @@ type Client interface {
 	LabelsAPI() api.LabelsAPI
 	// TasksAPI returns Tasks API client
 	TasksAPI() api.TasksAPI
+
+	APIClient() *domain.Client
 }
 
 // clientImpl implements Client interface
@@ -76,7 +85,7 @@ type clientImpl struct {
 	syncWriteAPIs map[string]api.WriteAPIBlocking
 	lock          sync.Mutex
 	httpService   http.Service
-	apiClient     *domain.ClientWithResponses
+	apiClient     *domain.Client
 	authAPI       api.AuthorizationsAPI
 	orgAPI        api.OrganizationsAPI
 	usersAPI      api.UsersAPI
@@ -84,6 +93,10 @@ type clientImpl struct {
 	bucketsAPI    api.BucketsAPI
 	labelsAPI     api.LabelsAPI
 	tasksAPI      api.TasksAPI
+}
+
+type clientDoer struct {
+	service http.Service
 }
 
 // NewClient creates Client for connecting to given serverURL with provided authentication token, with the default options.
@@ -110,20 +123,38 @@ func NewClientWithOptions(serverURL string, authToken string, options *Options) 
 		authorization = "Token " + authToken
 	}
 	service := http.NewService(normServerURL, authorization, options.httpOptions)
+	doer := &clientDoer{service}
+
+	apiClient, _ := domain.NewClient(service.ServerURL(), doer)
+
 	client := &clientImpl{
 		serverURL:     serverURL,
 		options:       options,
 		writeAPIs:     make(map[string]api.WriteAPI, 5),
 		syncWriteAPIs: make(map[string]api.WriteAPIBlocking, 5),
 		httpService:   service,
-		apiClient:     domain.NewClientWithResponses(service),
+		apiClient:     apiClient,
 	}
 	if log.Log != nil {
 		log.Log.SetLogLevel(options.LogLevel())
 	}
-	ilog.Infof("Using URL '%s', token '%s'", serverURL, authToken)
+	if ilog.Level() >= log.InfoLevel {
+		tokenStr := ""
+		if len(authToken) > 0 {
+			tokenStr = ", token '******'"
+		}
+		ilog.Infof("Using URL '%s'%s", serverURL, tokenStr)
+	}
+	if options.ApplicationName() == "" {
+		ilog.Warn("Application name is not set")
+	}
 	return client
 }
+
+func (c *clientImpl) APIClient() *domain.Client {
+	return c.apiClient
+}
+
 func (c *clientImpl) Options() *Options {
 	return c.options
 }
@@ -136,28 +167,29 @@ func (c *clientImpl) HTTPService() http.Service {
 	return c.httpService
 }
 
-func (c *clientImpl) Ready(ctx context.Context) (bool, error) {
+func (c *clientDoer) Do(req *httpnet.Request) (*httpnet.Response, error) {
+	return c.service.DoHTTPRequestWithResponse(req, nil)
+}
+
+func (c *clientImpl) Ready(ctx context.Context) (*domain.Ready, error) {
 	params := &domain.GetReadyParams{}
-	response, err := c.apiClient.GetReadyWithResponse(ctx, params)
-	if err != nil {
-		return false, err
-	}
-	if response.JSONDefault != nil {
-		return false, domain.ErrorToHTTPError(response.JSONDefault, response.StatusCode())
-	}
-	return true, nil
+	return c.apiClient.GetReady(ctx, params)
 }
 
 func (c *clientImpl) Setup(ctx context.Context, username, password, org, bucket string, retentionPeriodHours int) (*domain.OnboardingResponse, error) {
+	return c.SetupWithToken(ctx, username, password, org, bucket, retentionPeriodHours, "")
+}
+
+func (c *clientImpl) SetupWithToken(ctx context.Context, username, password, org, bucket string, retentionPeriodHours int, token string) (*domain.OnboardingResponse, error) {
 	if username == "" || password == "" {
 		return nil, errors.New("a username and a password is required for a setup")
 	}
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	params := &domain.PostSetupParams{}
-	retentionPeriodSeconds := retentionPeriodHours * 3600
+	params := &domain.PostSetupAllParams{}
+	retentionPeriodSeconds := int64(retentionPeriodHours * 3600)
 	retentionPeriodHrs := int(time.Duration(retentionPeriodSeconds) * time.Second)
-	body := &domain.PostSetupJSONRequestBody{
+	params.Body = domain.PostSetupJSONRequestBody{
 		Bucket:                 bucket,
 		Org:                    org,
 		Password:               &password,
@@ -165,32 +197,23 @@ func (c *clientImpl) Setup(ctx context.Context, username, password, org, bucket 
 		RetentionPeriodHrs:     &retentionPeriodHrs,
 		Username:               username,
 	}
-	response, err := c.apiClient.PostSetupWithResponse(ctx, params, *body)
-	if err != nil {
-		return nil, err
+	if token != "" {
+		params.Body.Token = &token
 	}
-	if response.JSONDefault != nil {
-		return nil, domain.ErrorToHTTPError(response.JSONDefault, response.StatusCode())
-	}
-	c.httpService.SetAuthorization("Token " + *response.JSON201.Auth.Token)
-	return response.JSON201, nil
+	return c.apiClient.PostSetup(ctx, params)
 }
 
 func (c *clientImpl) Health(ctx context.Context) (*domain.HealthCheck, error) {
 	params := &domain.GetHealthParams{}
-	response, err := c.apiClient.GetHealthWithResponse(ctx, params)
-	if err != nil {
-		return nil, err
-	}
-	if response.JSONDefault != nil {
-		return nil, domain.ErrorToHTTPError(response.JSONDefault, response.StatusCode())
-	}
-	if response.JSON503 != nil {
-		//unhealthy server
-		return response.JSON503, nil
-	}
+	return c.apiClient.GetHealth(ctx, params)
+}
 
-	return response.JSON200, nil
+func (c *clientImpl) Ping(ctx context.Context) (bool, error) {
+	err := c.apiClient.GetPing(ctx)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func createKey(org, bucket string) string {
