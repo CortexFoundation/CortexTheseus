@@ -79,7 +79,7 @@ type TerminalStringer interface {
 // a terminal with color-coded level output and terser human friendly timestamp.
 // This format should only be used for interactive programs or while developing.
 //
-//	[LEVEL] [TIME] MESAGE key=value key=value ...
+//	[LEVEL] [TIME] MESSAGE key=value key=value ...
 //
 // Example:
 //
@@ -123,13 +123,13 @@ func TerminalFormat(usecolor bool) Format {
 
 			// Assemble and print the log heading
 			if color > 0 {
-				fmt.Fprintf(b, "\x1b[%dm%s\x1b[37m[%s|%s]\x1b[%dm%s %s \x1b[0m", color, lvl, r.Time.Format(termTimeFormat), location, color, padding, msg)
+				fmt.Fprintf(b, "\x1b[%dm%s\x1b[0m[%s|%s]%s %s ", color, lvl, r.Time.Format(termTimeFormat), location, padding, msg)
 			} else {
 				fmt.Fprintf(b, "%s[%s|%s]%s %s ", lvl, r.Time.Format(termTimeFormat), location, padding, msg)
 			}
 		} else {
 			if color > 0 {
-				fmt.Fprintf(b, "\x1b[%dm%s\x1b[37m[%s]\x1b[%dm %s \x1b[0m", color, lvl, r.Time.Format(termTimeFormat), color, msg)
+				fmt.Fprintf(b, "\x1b[%dm%s\x1b[0m[%s] %s ", color, lvl, r.Time.Format(termTimeFormat), msg)
 			} else {
 				fmt.Fprintf(b, "%s[%s] %s ", lvl, r.Time.Format(termTimeFormat), msg)
 			}
@@ -159,7 +159,6 @@ func LogfmtFormat() Format {
 }
 
 func logfmt(buf *bytes.Buffer, ctx []interface{}, color int, term bool) {
-	defer fmt.Fprintf(buf, "\x1b[0m")
 	for i := 0; i < len(ctx); i += 2 {
 		if i != 0 {
 			buf.WriteByte(' ')
@@ -187,7 +186,7 @@ func logfmt(buf *bytes.Buffer, ctx []interface{}, color int, term bool) {
 			fieldPaddingLock.Unlock()
 		}
 		if color > 0 {
-			fmt.Fprintf(buf, "\x1b[%dm%s=\x1b[37m", color, k)
+			fmt.Fprintf(buf, "\x1b[%dm%s\x1b[0m=", color, k)
 		} else {
 			buf.WriteString(k)
 			buf.WriteByte('=')
@@ -332,11 +331,20 @@ func formatLogfmtValue(value interface{}, term bool) string {
 		return "nil"
 	}
 
-	if t, ok := value.(time.Time); ok {
+	switch v := value.(type) {
+	case time.Time:
 		// Performance optimization: No need for escaping since the provided
 		// timeFormat doesn't have any escape characters, and escaping is
 		// expensive.
-		return t.Format(timeFormat)
+		return v.Format(timeFormat)
+
+	case *big.Int:
+		// Big ints get consumed by the Stringer clause so we need to handle
+		// them earlier on.
+		if v == nil {
+			return "<nil>"
+		}
+		return formatLogfmtBigInt(v)
 	}
 	if term {
 		if s, ok := value.(TerminalStringer); ok {
