@@ -1,3 +1,7 @@
+## 2.12.2 [2023-01-26]
+### Bug fixes
+- [#368](https://github.com/influxdata/influxdb-client-go/pull/368) Allowing proxy from environment variable
+
 ## 2.12.1 [2022-12-01]
 ### Bug fixes
 - [#363](https://github.com/influxdata/influxdb-client-go/pull/363) Generated server stubs return also error message from InfluxDB 1.x forward compatible API.
