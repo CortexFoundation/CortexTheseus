@@ -80,6 +80,7 @@ type TorrentFS struct {
 	tunnel *ttlmap.Map
 
 	callback chan any
+	ttlchan  chan any
 }
 
 func (t *TorrentFS) storage() *backend.TorrentManager {
@@ -144,6 +145,7 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 
 	//inst.nasCache, _ = lru.New(32)
 	inst.callback = _callback
+	inst.ttlchan = make(chan any, 1024)
 	//inst.queryCache, _ = lru.New(25)
 
 	//inst.scoreTable = make(map[string]int)
@@ -249,13 +251,42 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 
 func (fs *TorrentFS) listen() {
 	defer fs.wg.Done()
+	ttl := time.NewTimer(3 * time.Second)
+	defer ttl.Stop()
 	for {
 		select {
 		case msg := <-fs.callback:
 			meta := msg.(*types.BitsFlow)
-			if fs.config.Mode != params.LAZY || meta.Request() > 0 {
+			if meta.Request() > 0 || params.IsGood(meta.InfoHash()) {
+				fs.download(context.Background(), meta.InfoHash(), meta.Request())
+			} else {
+				//if fs.config.Mode != params.LAZY {
+				/*fs.wg.Add(1)
+				go func(ih string, size uint64) {
+					log.Debug("TTL seeding", "ih", ih, "size", size)
+					defer fs.wg.Done()
+					ttl := time.NewTimer(3 * time.Second)
+					defer ttl.Stop()
+					select {
+					case <-ttl.C:
+						log.Debug("TTL downloading", "ih", ih, "size", size)
+						fs.download(context.Background(), ih, size)
+					}
+				}(meta.InfoHash(), meta.Request())*/
+				//fs.wg.Add(1)
+				//go func(msg any) {
+				//	defer fs.wg.Done()
+				fs.ttlchan <- msg
+				//}(msg)
+				//}
+			}
+		case <-ttl.C:
+			if len(fs.ttlchan) > 0 {
+				msg := <-fs.ttlchan
+				meta := msg.(*types.BitsFlow)
 				fs.download(context.Background(), meta.InfoHash(), meta.Request())
 			}
+			ttl.Reset(2 * time.Second)
 		case <-fs.closeAll:
 			log.Info("Bitsflow listener stop")
 			return
@@ -423,14 +454,14 @@ func (tfs *TorrentFS) Start(server *p2p.Server) (err error) {
 
 // download and pub
 func (fs *TorrentFS) bitsflow(ctx context.Context, ih string, size uint64) error {
-	if fs.config.Mode != params.LAZY || size > 0 {
-		log.Debug("bitsflow", "ih", ih, "size", size, "mode", fs.config.Mode)
-		select {
-		case fs.callback <- types.NewBitsFlow(ih, size):
-		case <-ctx.Done():
-			return ctx.Err()
-		}
+	//	if fs.config.Mode != params.LAZY || size > 0 {
+	log.Debug("bitsflow", "ih", ih, "size", size, "mode", fs.config.Mode)
+	select {
+	case fs.callback <- types.NewBitsFlow(ih, size):
+	case <-ctx.Done():
+		return ctx.Err()
 	}
+	//	}
 
 	return nil
 }
