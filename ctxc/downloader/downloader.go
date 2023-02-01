@@ -604,7 +604,8 @@ func (d *Downloader) fetchHead(p *peerConnection) (head *types.Header, pivot *ty
 	go p.peer.RequestHeadersByHash(latest, fetch, fsMinFullBlocks-1, true)
 
 	ttl := d.peers.rates.TargetTimeout()
-	timeout := time.After(ttl)
+	timeout := time.NewTimer(ttl)
+	defer timeout.Stop()
 	for {
 		select {
 		case <-d.cancelCh:
@@ -643,7 +644,7 @@ func (d *Downloader) fetchHead(p *peerConnection) (head *types.Header, pivot *ty
 			}
 			return head, pivot, nil
 
-		case <-timeout:
+		case <-timeout.C:
 			p.log.Debug("Waiting for head header timed out", "elapsed", ttl)
 			return nil, nil, errTimeout
 
@@ -750,7 +751,8 @@ func (d *Downloader) findAncestorSpanSearch(p *peerConnection, mode SyncMode, re
 	number, hash := uint64(0), common.Hash{}
 
 	ttl := d.peers.rates.TargetTimeout()
-	timeout := time.After(ttl)
+	timeout := time.NewTimer(ttl)
+	defer timeout.Stop()
 
 	for finished := false; !finished; {
 		select {
@@ -803,7 +805,7 @@ func (d *Downloader) findAncestorSpanSearch(p *peerConnection, mode SyncMode, re
 				}
 			}
 
-		case <-timeout:
+		case <-timeout.C:
 			p.log.Debug("Waiting for head header timed out", "elapsed", ttl)
 			return 0, errTimeout
 
@@ -839,7 +841,8 @@ func (d *Downloader) findAncestorBinarySearch(p *peerConnection, mode SyncMode, 
 		check := (start + end) / 2
 
 		ttl := d.peers.rates.TargetTimeout()
-		timeout := time.After(ttl)
+		timeout := time.NewTimer(ttl)
+		defer timeout.Stop()
 		go p.peer.RequestHeadersByNumber(check, 1, 0, false)
 
 		// Wait until a reply arrives to this request
@@ -887,7 +890,7 @@ func (d *Downloader) findAncestorBinarySearch(p *peerConnection, mode SyncMode, 
 				start = check
 				hash = h
 
-			case <-timeout:
+			case <-timeout.C:
 				p.log.Debug("Waiting for search header timed out", "elapsed", ttl)
 				return 0, errTimeout
 
