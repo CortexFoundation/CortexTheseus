@@ -60,10 +60,10 @@ func (v *BlockValidator) ValidateBody(block *types.Block) error {
 		return err
 	}
 	if hash := types.CalcUncleHash(block.Uncles()); hash != header.UncleHash {
-		return fmt.Errorf("uncle root hash mismatch: have %x, want %x", hash, header.UncleHash)
+		return fmt.Errorf("uncle root hash mismatch (header value %x, calculated %x)", header.UncleHash, hash)
 	}
 	if hash := types.DeriveSha(block.Transactions(), trie.NewStackTrie(nil)); hash != header.TxHash {
-		return fmt.Errorf("transaction root hash mismatch: have %x, want %x", hash, header.TxHash)
+		return fmt.Errorf("transaction root hash mismatch (header value %x, calculated %x)", header.TxHash, hash)
 	}
 	if !v.bc.HasBlockAndState(block.ParentHash(), block.NumberU64()-1) {
 		if !v.bc.HasBlock(block.ParentHash(), block.NumberU64()-1) {
