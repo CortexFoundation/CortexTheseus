@@ -966,7 +966,7 @@ func (tm *TorrentManager) activeLoop() {
 	defer tm.wg.Done()
 	timer := time.NewTicker(time.Second * params.QueryTimeInterval)
 	defer timer.Stop()
-	var log_counter, counter uint64 = 1, 1
+	var log_counter uint64 = 1
 	for {
 		select {
 		case t := <-tm.activeChan:
@@ -1011,7 +1011,7 @@ func (tm *TorrentManager) activeLoop() {
 				}
 			}(t.infohash, n)
 		case <-timer.C:
-			counter++
+			//counter++
 			log_counter++
 
 			for ih, t := range tm.activeTorrents {
@@ -1036,10 +1036,10 @@ func (tm *TorrentManager) activeLoop() {
 				}
 			}
 
-			if counter >= 2*loops {
+			if log_counter%60 == 0 {
 				//log.Info("Fs status", "pending", len(tm.pendingTorrents), "downloading", len(tm.activeTorrents), "seeding", len(tm.seedingTorrents), "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*params.QueryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*params.QueryTimeInterval).String()+"/s", "metrics", common.PrettyDuration(tm.Updates))
 				log.Info("Fs status", "pending", len(tm.pendingTorrents), "downloading", len(tm.activeTorrents), "seeding", len(tm.seedingTorrents), "metrics", common.PrettyDuration(tm.Updates))
-				counter = 1
+				//counter = 1
 				//current_size = 0
 			}
 
