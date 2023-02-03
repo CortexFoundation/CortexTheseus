@@ -2,7 +2,7 @@
 # we would love to have you https://github.com/pion/webrtc/wiki/Contributing
 #
 # This file is auto generated, using git to list all individuals contributors.
-# see `.github/generate-authors.sh` for the scripting
+# see https://github.com/pion/.goassets/blob/master/scripts/generate-authors.sh for the scripting
 Aaron France <aaron.l.france@gmail.com>
 Adam Kiss <masterada@gmail.com>
 adwpc <adwpc@hotmail.com>
@@ -18,6 +18,7 @@ cnderrauber <zengjie9004@gmail.com>
 David Hamilton <davidhamiltron@gmail.com>
 David Zhao <david@davidzhao.com>
 David Zhao <dz@livekit.io>
+Genteure <github@genteure.com>
 Henry <cryptix@riseup.net>
 hexiang <hexiang.zhang@chukong-inc.com>
 hn8 <10730886+hn8@users.noreply.github.com>
@@ -38,6 +39,7 @@ Meelap Shah <meelapshah@gmail.com>
 Michael MacDonald <github@macdonald.cx>
 Michael MacDonald <mike.macdonald@savantsystems.com>
 Mikhail Bragin <misha@wiretrustee.com>
+Miroslav Šedivý <sedivy.miro@gmail.com>
 Nevio Vesic <nevio@subspace.com>
 Ori Bernstein <ori@eigenstate.org>
 Robert Eperjesi <eperjesi@uber.com>
@@ -53,3 +55,6 @@ Woodrow Douglass <wdouglass@carnegierobotics.com>
 Yutaka Takeda <yt0916@gmail.com>
 ZHENK <chengzhenyang@gmail.com>
 Zizheng Tai <me@zizheng.me>
+
+# List of contributors not appearing in Git history
+

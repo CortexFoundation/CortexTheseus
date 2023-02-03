@@ -22,6 +22,8 @@ all:
 clean:
 	go clean -cache
 	rm -rf $(GOBIN)/*
+	rm -rf workspace/test-torrent
+	rm -rf mnt
 format:
 	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "*/generated/*" | xargs gofmt -w -s
 test:

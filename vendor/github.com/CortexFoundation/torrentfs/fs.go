@@ -286,7 +286,7 @@ func (fs *TorrentFS) listen() {
 				meta := msg.(*types.BitsFlow)
 				fs.download(context.Background(), meta.InfoHash(), meta.Request())
 			}
-			ttl.Reset(2 * time.Second)
+			ttl.Reset(3 * time.Second)
 		case <-fs.closeAll:
 			log.Info("Bitsflow listener stop")
 			return
