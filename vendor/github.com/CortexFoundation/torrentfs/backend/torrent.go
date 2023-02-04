@@ -57,7 +57,7 @@ type Torrent struct {
 	//loop       int
 	maxPieces int
 	//isBoosting bool
-	fast  bool
+	//fast  bool
 	start mclock.AbsTime
 	//ch    chan bool
 

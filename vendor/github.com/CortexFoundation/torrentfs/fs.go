@@ -233,6 +233,7 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 	go inst.listen()
 	//inst.wg.Add(1)
 	//go inst.process()
+	inst.init()
 
 	return inst, nil
 }
@@ -430,26 +431,30 @@ func (tfs *TorrentFS) Start(server *p2p.Server) (err error) {
 		return
 	}
 
-	if tfs.config.Mode != params.LAZY {
-		//torrents, _ := tfs.chain().initTorrents()
+	/*if tfs.config.Mode != params.LAZY {
 		checkpoint := tfs.chain().GetRoot(395964)
-		//if len(torrents) == 0 {
 		if checkpoint == nil {
 			for k, ok := range params.ColaFiles {
 				if ok {
-					//if err := tfs.storage().Search(context.Background(), k, 0); err != nil {
-					//	return err
-					//}
-
-					//tfs.query(k, 1024*1024*1024)
-					//tfs.callback <- types.NewBitsFlow(k, 1024*1024*1024)
 					tfs.bitsflow(context.Background(), k, 1024*1024*1024)
-					//tfs.seedingNotify <- k
+				}
+			}
+		}
+	}*/
+	return
+}
+
+func (fs *TorrentFS) init() {
+	if fs.config.Mode != params.LAZY {
+		checkpoint := fs.chain().GetRoot(395964)
+		if checkpoint == nil {
+			for k, ok := range params.ColaFiles {
+				if ok {
+					fs.bitsflow(context.Background(), k, 1024*1024*1024)
 				}
 			}
 		}
 	}
-	return
 }
 
 // download and pub

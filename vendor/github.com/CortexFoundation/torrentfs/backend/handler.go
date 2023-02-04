@@ -55,6 +55,7 @@ import (
 	//xlog "github.com/anacrolix/log"
 	//"github.com/anacrolix/missinggo/v2/filecache"
 	"github.com/anacrolix/torrent"
+	"github.com/anacrolix/torrent/analysis"
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/iplist"
 	"github.com/anacrolix/torrent/metainfo"
@@ -280,7 +281,7 @@ func (tm *TorrentManager) register(t *torrent.Torrent, requested int64, status i
 		//loop:       0,
 		maxPieces: 0,
 		//isBoosting: false,
-		fast:  false,
+		//fast:  false,
 		start: mclock.Now(),
 	}
 
@@ -615,6 +616,7 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 	if err != nil {
 		return nil, err
 	}
+	fc.SetCapacity(10 << 30)
 	cfg.DefaultStorage = storage.NewResourcePieces(fc.AsResourceProvider())*/
 
 	cfg.DefaultStorage = storage.NewMMap(config.DataDir)
@@ -623,22 +625,25 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 	//cfg.DisableEncryption = true
 	//cfg.HTTPUserAgent = "Cortex"
 	cfg.Seed = true
-	//cfg.Debug=true
 
 	cfg.EstablishedConnsPerTorrent = int(math.Min(float64(runtime.NumCPU()*2), float64(50))) //4 //len(config.DefaultTrackers)
 	cfg.HalfOpenConnsPerTorrent = cfg.EstablishedConnsPerTorrent / 2
 
 	cfg.ListenPort = config.Port
-	if config.Quiet {
-		//cfg.Logger = xlog.Discard
+	if !config.Quiet {
+		var pieceOrdering analysis.PeerUploadOrder
+		pieceOrdering.Init()
+		pieceOrdering.Install(&cfg.Callbacks)
+
+		//cfg.Debug=true
 	}
-	//cfg.Debug = true
 	cfg.DropDuplicatePeerIds = true
 	cfg.Bep20 = params.ClientVersion //"-COLA01-"
 	//id := strconv.FormatUint(fsid, 16)[0:14]
 	//cfg.PeerID = "cortex" + id
 	//cfg.ListenHost = torrent.LoopbackListenHost
 	//cfg.DhtStartingNodes = dht.GlobalBootstrapAddrs //func() ([]dht.Addr, error) { return nil, nil }
+
 	cfg.ConfigureAnacrolixDhtServer = func(cfg *dht.ServerConfig) {
 		cfg.InitNodeId()
 		if cfg.PeerStore == nil {
@@ -966,7 +971,7 @@ func (tm *TorrentManager) activeLoop() {
 	defer tm.wg.Done()
 	timer := time.NewTicker(time.Second * params.QueryTimeInterval)
 	defer timer.Stop()
-	var log_counter uint64 = 1
+	var log_counter int = 1
 	for {
 		select {
 		case t := <-tm.activeChan:
