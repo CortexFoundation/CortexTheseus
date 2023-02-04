@@ -111,3 +111,5 @@ testdata/*
 *.golang-kv
 *.db-shm
 *.db-wal
+mnt
+test-torrent

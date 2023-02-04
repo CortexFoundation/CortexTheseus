@@ -114,7 +114,7 @@ func minInt(as ...int) int {
 }
 
 func Hash(path string) (ret string, err error) {
-	info := metainfo.Info{PieceLength: 256 * 1024}
+	info := metainfo.Info{PieceLength: 4 * 1024}
 	if err = info.BuildFromFilePath(path); err != nil {
 		return
 	}

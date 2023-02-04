@@ -17,12 +17,12 @@ var ErrFingerprintMismatch = errors.New("fingerprint check failed")
 //
 // Example:
 //
-//  m := New()
-//  Fingerprint.AddTo(m)
-var Fingerprint FingerprintAttr
+//	m := New()
+//	Fingerprint.AddTo(m)
+var Fingerprint FingerprintAttr // nolint:gochecknoglobals
 
 const (
-	fingerprintXORValue uint32 = 0x5354554e //nolint:staticcheck
+	fingerprintXORValue uint32 = 0x5354554e // nolint:staticcheck
 	fingerprintSize            = 4          // 32 bit
 )
 

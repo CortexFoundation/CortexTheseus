@@ -308,6 +308,10 @@ func (c *candidateBase) close() error {
 func (c *candidateBase) writeTo(raw []byte, dst Candidate) (int, error) {
 	n, err := c.conn.WriteTo(raw, dst.addr())
 	if err != nil {
+		// If the connection is closed, we should return the error
+		if errors.Is(err, io.ErrClosedPipe) {
+			return n, err
+		}
 		c.agent().log.Infof("%s: %v", errSendPacket, err)
 		return n, nil
 	}
@@ -344,7 +348,7 @@ func (c *candidateBase) Equal(other Candidate) bool {
 
 // String makes the candidateBase printable
 func (c *candidateBase) String() string {
-	return fmt.Sprintf("%s %s %s:%d%s", c.NetworkType(), c.Type(), c.Address(), c.Port(), c.relatedAddress)
+	return fmt.Sprintf("%s %s %s%s", c.NetworkType(), c.Type(), net.JoinHostPort(c.Address(), strconv.Itoa(c.Port())), c.relatedAddress)
 }
 
 // LastReceived returns a time.Time indicating the last time

@@ -1,4 +1,7 @@
-# Independent HTTP Service for file seeding
+## Torrentfs
+
+Torrentfs is a elastic file system, you can pull or push any files by following torrentfs protocol anywhere, anytime
+
 ## Server running
 https://github.com/CortexFoundation/torrentfs/pull/216
 ## Seeding or Sharing
@@ -30,28 +33,28 @@ downloaded ALL the torrents !!!!!!!!!!!!!!!!!!!
 
 ## How to use
 ```
-cd build/bin
-mkdir -p mnt/0803be8fc7309d155dfcee65a92a6254bd55a3d2
-echo "Hello torrent" > mnt/0803be8fc7309d155dfcee65a92a6254bd55a3d2/data
+cd torrentfs
+make
 ```
 #### Create torrent file
 ```
-./torrent-create mnt/0803be8fc7309d155dfcee65a92a6254bd55a3d2/data > mnt/0803be8fc7309d155dfcee65a92a6254bd55a3d2/torrent
+./build/bin/torrent-create test/data -p=4096 > test-torrent
 ```
 #### Load info hash from torrent file
 ```
-./torrent-magnet < mnt/0803be8fc7309d155dfcee65a92a6254bd55a3d2/torrent
-tree mnt
-0803be8fc7309d155dfcee65a92a6254bd55a3d2
-├── data
-└── torrent
+./build/bin/torrent-magnet < test-torrent
 ```
+magnet:?xt=urn:btih:91b709fdeaadd7dbb3c798fad493ac73e1c60d7c&dn=data&tr=udp%3A%2F%2Ftracker.cortexlabs.ai%3A5008
 #### Seed file to dht
-```./seeding -dataDir=mnt```
+```
+mkdir -p mnt/91b709fdeaadd7dbb3c798fad493ac73e1c60d7c/data
+cp test-torrent mnt/91b709fdeaadd7dbb3c798fad493ac73e1c60d7c/torrent
+cp -r testdata/data/* mnt/91b709fdeaadd7dbb3c798fad493ac73e1c60d7c/data
+./build/bin/seeding -dataDir=mnt
+```
 #### Download file
 ```
-./torrent download 'infohash:0803be8fc7309d155dfcee65a92a6254bd55a3d2'
-ls -alt data && md5sum data && cat data
+./build/bin/torrent download 'infohash:91b709fdeaadd7dbb3c798fad493ac73e1c60d7c'
 ```
 # Special thanks
 

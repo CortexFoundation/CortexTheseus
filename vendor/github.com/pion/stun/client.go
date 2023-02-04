@@ -79,8 +79,10 @@ func WithCollector(coll Collector) ClientOption {
 
 // WithNoConnClose prevents client from closing underlying connection when
 // the Close() method is called.
-var WithNoConnClose ClientOption = func(c *Client) {
-	c.closeConn = false
+func WithNoConnClose() ClientOption {
+	return func(c *Client) {
+		c.closeConn = false
+	}
 }
 
 // WithNoRetransmit disables retransmissions and sets RTO to
@@ -116,7 +118,7 @@ func NewClient(conn Connection, options ...ClientOption) (*Client, error) {
 	c := &Client{
 		close:       make(chan struct{}),
 		c:           conn,
-		clock:       systemClock,
+		clock:       systemClock(),
 		rto:         int64(defaultRTO),
 		rtoRate:     defaultTimeoutRate,
 		t:           make(map[transactionID]*clientTransaction, 100),
@@ -157,7 +159,7 @@ func clientFinalizer(c *Client) {
 		return
 	}
 	err := c.Close()
-	if err == ErrClientClosed {
+	if errors.Is(err, ErrClientClosed) {
 		return
 	}
 	if err == nil {
@@ -225,7 +227,7 @@ func (t *clientTransaction) handle(e Event) {
 	}
 }
 
-var clientTransactionPool = &sync.Pool{
+var clientTransactionPool = &sync.Pool{ // nolint:gochecknoglobals
 	New: func() interface{} {
 		return &clientTransaction{
 			raw: make([]byte, 1500),
@@ -234,7 +236,7 @@ var clientTransactionPool = &sync.Pool{
 }
 
 func acquireClientTransaction() *clientTransaction {
-	return clientTransactionPool.Get().(*clientTransaction)
+	return clientTransactionPool.Get().(*clientTransaction) //nolint:forcetypeassert
 }
 
 func putClientTransaction(t *clientTransaction) {
@@ -275,7 +277,9 @@ type systemClockService struct{}
 
 func (systemClockService) Now() time.Time { return time.Now() }
 
-var systemClock = systemClockService{}
+func systemClock() systemClockService {
+	return systemClockService{}
+}
 
 // SetRTO sets current RTO value.
 func (c *Client) SetRTO(rto time.Duration) {
@@ -284,6 +288,7 @@ func (c *Client) SetRTO(rto time.Duration) {
 
 // StopErr occurs when Client fails to stop transaction while
 // processing error.
+// nolint:errname
 type StopErr struct {
 	Err   error // value returned by Stop()
 	Cause error // error that caused Stop() call
@@ -294,6 +299,7 @@ func (e StopErr) Error() string {
 }
 
 // CloseErr indicates client close failure.
+// nolint:errname
 type CloseErr struct {
 	AgentErr      error
 	ConnectionErr error
@@ -301,7 +307,7 @@ type CloseErr struct {
 
 func sprintErr(err error) string {
 	if err == nil {
-		return "<nil>"
+		return "<nil>" // nolint:goconst
 	}
 	return err.Error()
 }
@@ -322,7 +328,7 @@ func (c *Client) readUntilClosed() {
 		}
 		_, err := m.ReadFrom(c.c)
 		if err == nil {
-			if pErr := c.a.Process(m); pErr == ErrAgentClosed {
+			if pErr := c.a.Process(m); errors.Is(pErr, ErrAgentClosed) {
 				return
 			}
 		}
@@ -330,7 +336,7 @@ func (c *Client) readUntilClosed() {
 }
 
 func closedOrPanic(err error) {
-	if err == nil || err == ErrAgentClosed {
+	if err == nil || errors.Is(err, ErrAgentClosed) {
 		return
 	}
 	panic(err) // nolint
@@ -455,7 +461,7 @@ func (s *callbackWaitHandler) setCallback(f func(event Event)) {
 	s.cond.L.Unlock()
 }
 
-var callbackWaitHandlerPool = sync.Pool{
+var callbackWaitHandlerPool = sync.Pool{ // nolint:gochecknoglobals
 	New: func() interface{} {
 		return &callbackWaitHandler{
 			cond: sync.NewCond(new(sync.Mutex)),
@@ -485,7 +491,7 @@ func (c *Client) Do(m *Message, f func(Event)) error {
 	if f == nil {
 		return c.Indicate(m)
 	}
-	h := callbackWaitHandlerPool.Get().(*callbackWaitHandler)
+	h := callbackWaitHandlerPool.Get().(*callbackWaitHandler) //nolint:forcetypeassert
 	h.setCallback(f)
 	defer func() {
 		callbackWaitHandlerPool.Put(h)
@@ -509,7 +515,7 @@ type buffer struct {
 	buf []byte
 }
 
-var bufferPool = &sync.Pool{
+var bufferPool = &sync.Pool{ // nolint:gochecknoglobals
 	New: func() interface{} {
 		return &buffer{buf: make([]byte, 2048)}
 	},
@@ -527,7 +533,7 @@ func (c *Client) handleAgentCallback(e Event) {
 	}
 	c.mux.Unlock()
 	if !found {
-		if c.handler != nil && e.Error != ErrTransactionStopped {
+		if c.handler != nil && !errors.Is(e.Error, ErrTransactionStopped) {
 			c.handler(e)
 		}
 		// Ignoring.
@@ -541,7 +547,7 @@ func (c *Client) handleAgentCallback(e Event) {
 	}
 	// Doing re-transmission.
 	t.attempt++
-	b := bufferPool.Get().(*buffer)
+	b := bufferPool.Get().(*buffer) //nolint:forcetypeassert
 	b.buf = b.buf[:copy(b.buf[:cap(b.buf)], t.raw)]
 	defer bufferPool.Put(b)
 	var (

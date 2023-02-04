@@ -64,7 +64,7 @@ func newPeer(id string, host *TorrentFS, remote *p2p.Peer, rw p2p.MsgReadWriter)
 		known:   mapset.NewSet[string](),
 		trusted: false,
 		quit:    make(chan struct{}),
-		msgChan: make(chan any, 10),
+		msgChan: make(chan any, 1),
 		seeding: mapset.NewSet[string](),
 	}
 	return &p
