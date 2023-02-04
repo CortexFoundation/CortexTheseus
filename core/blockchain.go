@@ -1725,6 +1725,13 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		blockWriteTimer.Update(time.Since(substart) - statedb.AccountCommits - statedb.StorageCommits - statedb.SnapshotCommits)
 		blockInsertTimer.UpdateSince(start)
 
+		// Report the import stats before returning the various results
+		stats.processed++
+		stats.usedGas += usedGas
+
+		dirty, _ := bc.stateCache.TrieDB().Size()
+		stats.report(chain, it.index, dirty)
+
 		switch status {
 		case CanonStatTy:
 			log.Debug("Inserted new block", "number", block.Number(), "hash", block.Hash(),
@@ -1751,15 +1758,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 				"txs", len(block.Transactions()), "gas", block.GasUsed(), "uncles", len(block.Uncles()),
 				"root", block.Root())
 		}
-		stats.processed++
-		stats.usedGas += usedGas
-
-		dirty, _ := bc.stateCache.TrieDB().Size()
-		stats.report(chain, it.index, dirty)
-
-		//if time.Now().Unix() <= bc.utcNow+params.SPROUT_TIME && bc.Viper {
-		//	log.Info("Blockchain is in sprout time", "left", params.SPROUT_TIME-time.Now().Unix()+bc.utcNow, "chain", len(chain), "index", it.index, "dirty", dirty, "viper", bc.Viper)
-		//}
 	}
 
 	offset := time.Now().Unix() - bc.utcNow
