@@ -193,7 +193,7 @@ func TestAddMod(t *testing.T) {
 	var (
 		env            = NewCVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
-		cvmInterpreter = NewCVMInterpreter(env, env.vmConfig)
+		cvmInterpreter = NewCVMInterpreter(env)
 		pc             = uint64(0)
 	)
 	tests := []struct {
@@ -282,7 +282,7 @@ func opBenchmark(bench *testing.B, op executionFunc, args ...string) {
 	var (
 		env            = NewCVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
-		cvmInterpreter = NewCVMInterpreter(env, env.vmConfig)
+		cvmInterpreter = NewCVMInterpreter(env)
 	)
 
 	env.interpreter = cvmInterpreter
@@ -517,7 +517,7 @@ func TestOpMstore(t *testing.T) {
 		env            = NewCVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
 		mem            = NewMemory()
-		cvmInterpreter = NewCVMInterpreter(env, env.vmConfig)
+		cvmInterpreter = NewCVMInterpreter(env)
 	)
 
 	env.interpreter = cvmInterpreter
@@ -541,7 +541,7 @@ func BenchmarkOpMstore(bench *testing.B) {
 		env            = NewCVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
 		mem            = NewMemory()
-		cvmInterpreter = NewCVMInterpreter(env, env.vmConfig)
+		cvmInterpreter = NewCVMInterpreter(env)
 	)
 
 	env.interpreter = cvmInterpreter
@@ -562,7 +562,7 @@ func BenchmarkOpSHA3(bench *testing.B) {
 		env            = NewCVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
 		mem            = NewMemory()
-		cvmInterpreter = NewCVMInterpreter(env, env.vmConfig)
+		cvmInterpreter = NewCVMInterpreter(env)
 	)
 	env.interpreter = cvmInterpreter
 	mem.Resize(32)
