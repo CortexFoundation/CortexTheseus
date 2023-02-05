@@ -153,10 +153,10 @@ func (hc *HeaderChain) writeHeaders(headers []*types.Header) (result *headerWrit
 		lastHeader    *types.Header
 		inserted      []numberHash // Ephemeral lookup of number/hash for the chain
 		firstInserted = -1         // Index of the first non-ignored header
+		parentKnown   = true       // Set to true to force hc.HasHeader check the first iteration
+		batch         = hc.chainDb.NewBatch()
 	)
 
-	batch := hc.chainDb.NewBatch()
-	parentKnown := true // Set to true to force hc.HasHeader check the first iteration
 	for i, header := range headers {
 		var hash common.Hash
 		// The headers have already been validated at this point, so we already
@@ -331,16 +331,15 @@ func (hc *HeaderChain) ValidateHeaderChain(chain []*types.Header, checkFreq int)
 
 	// Iterate over the headers and ensure they all check out
 	for i := range chain {
+		// If the chain is terminating, stop processing blocks
+		if hc.procInterrupt() {
+			log.Debug("Premature abort during headers verification")
+			return 0, errors.New("aborted")
+		}
 		// Otherwise wait for headers checks and ensure they pass
 		if err := <-results; err != nil {
 			return i, err
 		}
-	}
-
-	// If the chain is terminating, stop processing blocks
-	if hc.procInterrupt() {
-		log.Debug("Premature abort during headers verification")
-		return 0, errors.New("aborted")
 	}
 
 	return 0, nil
@@ -361,14 +360,14 @@ func (hc *HeaderChain) InsertHeaderChain(chain []*types.Header, start time.Time)
 		return 0, errors.New("aborted")
 	}
 	res, err := hc.writeHeaders(chain)
+	if err != nil {
+		return 0, err
+	}
 
 	// Report some public statistics so the user has a clue what's going on
 	context := []interface{}{
 		"count", res.imported,
 		"elapsed", common.PrettyDuration(time.Since(start)),
-	}
-	if err != nil {
-		context = append(context, "err", err)
 	}
 	if last := res.lastHeader; last != nil {
 		context = append(context, "number", last.Number, "hash", res.lastHash)
@@ -586,11 +585,42 @@ type (
 // SetHead rewinds the local chain to a new head. Everything above the new head
 // will be deleted and the new one set.
 func (hc *HeaderChain) SetHead(head uint64, updateFn UpdateHeadBlocksCallback, delFn DeleteBlockContentCallback) {
+	hc.setHead(head, 0, updateFn, delFn)
+}
+
+// SetHeadWithTimestamp rewinds the local chain to a new head timestamp. Everything
+// above the new head will be deleted and the new one set.
+func (hc *HeaderChain) SetHeadWithTimestamp(time uint64, updateFn UpdateHeadBlocksCallback, delFn DeleteBlockContentCallback) {
+	hc.setHead(0, time, updateFn, delFn)
+}
+
+// SetHead rewinds the local chain to a new head. Everything above the new head
+// will be deleted and the new one set.
+func (hc *HeaderChain) setHead(head uint64, headTime uint64, updateFn UpdateHeadBlocksCallback, delFn DeleteBlockContentCallback) {
+	// Sanity check that there's no attempt to undo the genesis block. This is
+	// a fairly synthetic case where someone enables a timestamp based fork
+	// below the genesis timestamp. It's nice to not allow that instead of the
+	// entire chain getting deleted.
+	if headTime > 0 && hc.genesisHeader.Time > headTime {
+		// Note, a critical error is quite brutal, but we should really not reach
+		// this point. Since pre-timestamp based forks it was impossible to have
+		// a fork before block 0, the setHead would always work. With timestamp
+		// forks it becomes possible to specify below the genesis. That said, the
+		// only time we setHead via timestamp is with chain config changes on the
+		// startup, so failing hard there is ok.
+		log.Crit("Rejecting genesis rewind via timestamp", "target", headTime, "genesis", hc.genesisHeader.Time)
+	}
 	var (
 		parentHash common.Hash
 		batch      = hc.chainDb.NewBatch()
 		origin     = true
 	)
+	done := func(header *types.Header) bool {
+		if headTime > 0 {
+			return header.Time <= headTime
+		}
+		return header.Number.Uint64() <= headBlock
+	}
 	for hdr := hc.CurrentHeader(); hdr != nil && hdr.Number.Uint64() > head; hdr = hc.CurrentHeader() {
 		num := hdr.Number.Uint64()
 
@@ -611,9 +641,9 @@ func (hc *HeaderChain) SetHead(head uint64, updateFn UpdateHeadBlocksCallback, d
 		markerBatch := hc.chainDb.NewBatch()
 		if updateFn != nil {
 			newHead, force := updateFn(markerBatch, parent)
-			if force && newHead < head {
-				log.Warn("Force rewinding till ancient limit", "head", newHead)
-				head = newHead
+			if force && ((headTime > 0 && newHead.Time < headTime) || (headTime == 0 && newHead.Number.Uint64() < headBlock)) {
+				log.Warn("Force rewinding till ancient limit", "head", newHead.Number.Uint64())
+				headBlock, headTime = newHead.Number.Uint64(), 0 // Target timestamp passed, continue rewind in block mode (cleaner)
 			}
 		}
 		// Update head header then.
