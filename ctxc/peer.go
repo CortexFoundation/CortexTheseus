@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/core/forkid"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/protocols/ctxc"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
@@ -59,10 +58,6 @@ const (
 	// dropping broadcasts. Similarly to block propagations, there's no point to queue
 	// above some healthy uncle limit, so use that.
 	maxQueuedBlockAnns = 4
-
-	handshakeTimeout = 5 * time.Second
-
-	maxTxPacketSize = 100 * 1024
 )
 
 // max is a helper function which returns the larger of the two given integers.
@@ -98,7 +93,6 @@ type peer struct {
 
 	head common.Hash
 	td   *big.Int
-	lock sync.RWMutex
 
 	knownBlocks     *knownCache                          // Set of block hashes known to be known by this peer
 	queuedBlocks    chan *propEvent                      // Queue of blocks to broadcast to the peer
@@ -108,182 +102,41 @@ type peer struct {
 	txAnnounce      chan []common.Hash                   // Channel used to queue transaction announcement requests
 	getPooledTx     func(common.Hash) *types.Transaction // Callback used to retrieve transaction from txpool
 
+	reqDispatch chan *request  // Dispatch channel to send requests and track then until fulfilment
+	reqCancel   chan *cancel   // Dispatch channel to cancel pending requests and untrack them
+	resDispatch chan *response // Dispatch channel to fulfil pending requests and untrack them
+
 	term chan struct{} // Termination channel to stop the broadcaster
+	lock sync.RWMutex
 }
 
 func newPeer(version uint, p *p2p.Peer, rw p2p.MsgReadWriter, getPooledTx func(hash common.Hash) *types.Transaction) *peer {
-	return &peer{
+	peer := &peer{
 		Peer:            p,
 		rw:              rw,
 		version:         version,
-		id:              fmt.Sprintf("%x", p.ID().Bytes()[:8]),
+		id:              p.ID().String(), //fmt.Sprintf("%x", p.ID().Bytes()[:8]),
 		knownTxs:        newKnownCache(maxKnownTxs),
 		knownBlocks:     newKnownCache(maxKnownBlocks),
 		queuedBlocks:    make(chan *propEvent, maxQueuedBlocks),
 		queuedBlockAnns: make(chan *types.Block, maxQueuedBlockAnns),
 		txBroadcast:     make(chan []common.Hash),
 		txAnnounce:      make(chan []common.Hash),
+		reqDispatch:     make(chan *request),
+		reqCancel:       make(chan *cancel),
+		resDispatch:     make(chan *response),
 		getPooledTx:     getPooledTx,
 		term:            make(chan struct{}),
 	}
-}
 
-// broadcastBlocks is a write loop that multiplexes blocks and block accouncements
-// to the remote peer. The goal is to have an async writer that does not lock up
-// node internals and at the same time rate limits queued data.
-func (p *peer) broadcastBlocks(removePeer func(string)) {
-	for {
-		select {
-		case prop := <-p.queuedBlocks:
-			if err := p.SendNewBlock(prop.block, prop.td); err != nil {
-				removePeer(p.id)
-				return
-			}
-			p.Log().Trace("Propagated block", "number", prop.block.Number(), "hash", prop.block.Hash(), "td", prop.td)
-
-		case block := <-p.queuedBlockAnns:
-			if err := p.SendNewBlockHashes([]common.Hash{block.Hash()}, []uint64{block.NumberU64()}); err != nil {
-				removePeer(p.id)
-				return
-			}
-			p.Log().Trace("Announced block", "number", block.Number(), "hash", block.Hash())
-
-		case <-p.term:
-			return
-		}
+	go peer.broadcastBlocks()
+	go peer.broadcastTransactions()
+	if peer.version >= ctxc65 {
+		go peer.announceTransactions()
 	}
-}
+	//go peer.dispatcher()
 
-// broadcastTransactions is a write loop that schedules transaction broadcasts
-// to the remote peer. The goal is to have an async writer that does not lock up
-// node internals and at the same time rate limits queued data.
-func (p *peer) broadcastTransactions(removePeer func(string)) {
-	var (
-		queue []common.Hash         // Queue of hashes to broadcast as full transactions
-		done  chan struct{}         // Non-nil if background broadcaster is running
-		fail  = make(chan error, 1) // Channel used to receive network error
-	)
-	for {
-		// If there's no in-flight broadcast running, check if a new one is needed
-		if done == nil && len(queue) > 0 {
-			// Pile transaction until we reach our allowed network limit
-			var (
-				hashesCount uint64
-				txs         []*types.Transaction
-				size        common.StorageSize
-			)
-			for i := 0; i < len(queue) && size < txsyncPackSize; i++ {
-				if tx := p.getPooledTx(queue[i]); tx != nil {
-					txs = append(txs, tx)
-					size += common.StorageSize(tx.Size())
-				}
-				hashesCount++
-			}
-			queue = queue[:copy(queue, queue[hashesCount:])]
-
-			// If there's anything available to transfer, fire up an async writer
-			if len(txs) > 0 {
-				done = make(chan struct{})
-				go func() {
-					if err := p.sendTransactions(txs); err != nil {
-						fail <- err
-						return
-					}
-					close(done)
-					p.Log().Trace("Sent transactions", "count", len(txs))
-				}()
-			}
-		}
-		// Transfer goroutine may or may not have been started, listen for events
-		select {
-		case hashes := <-p.txBroadcast:
-			// New batch of transactions to be broadcast, queue them (with cap)
-			queue = append(queue, hashes...)
-			if len(queue) > maxQueuedTxs {
-				// Fancy copy and resize to ensure buffer doesn't grow indefinitely
-				queue = queue[:copy(queue, queue[len(queue)-maxQueuedTxAnns:])]
-			}
-
-		case <-done:
-			done = nil
-
-		case <-fail:
-			removePeer(p.id)
-			return
-
-		case <-p.term:
-			return
-		}
-	}
-}
-
-// announceTransactions is a write loop that schedules transaction broadcasts
-// to the remote peer. The goal is to have an async writer that does not lock up
-// node internals and at the same time rate limits queued data.
-func (p *peer) announceTransactions(removePeer func(string)) {
-	var (
-		queue  []common.Hash         // Queue of hashes to announce as transaction stubs
-		done   chan struct{}         // Non-nil if background announcer is running
-		fail   = make(chan error, 1) // Channel used to receive network error
-		failed bool
-	)
-	for {
-		// If there's no in-flight announce running, check if a new one is needed
-		if done == nil && len(queue) > 0 {
-			// Pile transaction hashes until we reach our allowed network limit
-			var (
-				count   int
-				pending []common.Hash
-				size    common.StorageSize
-			)
-			for count = 0; count < len(queue) && size < maxTxPacketSize; count++ {
-				if p.getPooledTx(queue[count]) != nil {
-					pending = append(pending, queue[count])
-					size += common.HashLength
-				}
-			}
-			// Shift and trim queue
-			queue = queue[:copy(queue, queue[count:])]
-
-			// If there's anything available to transfer, fire up an async writer
-			if len(pending) > 0 {
-				done = make(chan struct{})
-				go func() {
-					if err := p.sendPooledTransactionHashes(pending); err != nil {
-						fail <- err
-						return
-					}
-					close(done)
-					p.Log().Trace("Sent transaction announcements", "count", len(pending))
-				}()
-			}
-		}
-		// Transfer goroutine may or may not have been started, listen for events
-		select {
-		case hashes := <-p.txAnnounce:
-			// If the connection failed, discard all transaction events
-			if failed {
-				continue
-			}
-			// New batch of transactions to be broadcast, queue them (with cap)
-			queue = append(queue, hashes...)
-			if len(queue) > maxQueuedTxAnns {
-				// Fancy copy and resize to ensure buffer doesn't grow indefinitely
-				queue = queue[:copy(queue, queue[len(queue)-maxQueuedTxAnns:])]
-			}
-
-		case <-done:
-			done = nil
-
-		case <-fail:
-			failed = true
-			removePeer(p.id)
-			return
-
-		case <-p.term:
-			return
-		}
-	}
+	return peer
 }
 
 // close signals the broadcast goroutine to terminate.
@@ -532,238 +385,11 @@ func (p *peer) RequestTxs(hashes []common.Hash) error {
 	return p2p.Send(p.rw, ctxc.GetPooledTransactionsMsg, hashes)
 }
 
-// Handshake executes the ctxc protocol handshake, negotiating version number,
-// network IDs, difficulties, head and genesis blocks.
-func (p *peer) Handshake(network uint64, td *big.Int, head common.Hash, genesis common.Hash, forkID forkid.ID, forkFilter forkid.Filter) error {
-	// Send out own handshake in a new thread
-
-	errc := make(chan error, 2)
-
-	var (
-		//status63 statusData63 // safe to read after two values have been received from errc
-		status statusData // safe to read after two values have been received from errc
-	)
-	go func() {
-		errc <- p2p.Send(p.rw, ctxc.StatusMsg, &statusData{
-			ProtocolVersion: uint32(p.version),
-			NetworkID:       network,
-			TD:              td,
-			Head:            head,
-			Genesis:         genesis,
-			ForkID:          forkID,
-		})
-	}()
-	go func() {
-		errc <- p.readStatus(network, &status, genesis, forkFilter)
-	}()
-	timeout := time.NewTimer(handshakeTimeout)
-	defer timeout.Stop()
-	for i := 0; i < 2; i++ {
-		select {
-		case err := <-errc:
-			if err != nil {
-				return err
-			}
-		case <-timeout.C:
-			return p2p.DiscReadTimeout
-		}
-	}
-	p.td, p.head = status.TD, status.Head
-	return nil
-}
-
-func (p *peer) readStatusLegacy(network uint64, status *statusData63, genesis common.Hash) error {
-	msg, err := p.rw.ReadMsg()
-	if err != nil {
-		return err
-	}
-	if msg.Code != ctxc.StatusMsg {
-		return errResp(ErrNoStatusMsg, "first msg has code %x (!= %x)", msg.Code, ctxc.StatusMsg)
-	}
-	if msg.Size > protocolMaxMsgSize {
-		return errResp(ErrMsgTooLarge, "%v > %v", msg.Size, protocolMaxMsgSize)
-	}
-	// Decode the handshake and make sure everything matches
-	if err := msg.Decode(&status); err != nil {
-		return errResp(ErrDecode, "msg %v: %v", msg, err)
-	}
-	if status.GenesisBlock != genesis {
-		return errResp(ErrGenesisMismatch, "%x (!= %x)", status.GenesisBlock[:8], genesis[:8])
-	}
-	if status.NetworkId != network {
-		return errResp(ErrNetworkIDMismatch, "%d (!= %d)", status.NetworkId, network)
-	}
-	if uint(status.ProtocolVersion) != p.version {
-		return errResp(ErrProtocolVersionMismatch, "%d (!= %d)", status.ProtocolVersion, p.version)
-	}
-	return nil
-}
-
-func (p *peer) readStatus(network uint64, status *statusData, genesis common.Hash, forkFilter forkid.Filter) error {
-	msg, err := p.rw.ReadMsg()
-	if err != nil {
-		return err
-	}
-	if msg.Code != ctxc.StatusMsg {
-		return errResp(ErrNoStatusMsg, "first msg has code %x (!= %x)", msg.Code, ctxc.StatusMsg)
-	}
-	if msg.Size > protocolMaxMsgSize {
-		return errResp(ErrMsgTooLarge, "%v > %v", msg.Size, protocolMaxMsgSize)
-	}
-	// Decode the handshake and make sure everything matches
-	if err := msg.Decode(&status); err != nil {
-		return errResp(ErrDecode, "msg %v: %v", msg, err)
-	}
-	if status.NetworkID != network {
-		return errResp(ErrNetworkIDMismatch, "%d (!= %d)", status.NetworkID, network)
-	}
-	if uint(status.ProtocolVersion) != p.version {
-		return errResp(ErrProtocolVersionMismatch, "%d (!= %d)", status.ProtocolVersion, p.version)
-	}
-	if status.Genesis != genesis {
-		return errResp(ErrGenesisMismatch, "%x (!= %x)", status.Genesis, genesis)
-	}
-	if err := forkFilter(status.ForkID); err != nil {
-		return errResp(ErrForkIDRejected, "%v", err)
-	}
-	return nil
-}
-
 // String implements fmt.Stringer.
 func (p *peer) String() string {
 	return fmt.Sprintf("Peer %s [%s]", p.id,
 		fmt.Sprintf("ctxc/%2d", p.version),
 	)
-}
-
-// peerSet represents the collection of active peers currently participating in
-// the Cortex sub-protocol.
-type peerSet struct {
-	peers  map[string]*peer
-	lock   sync.RWMutex
-	closed bool
-}
-
-// newPeerSet creates a new peer set to track the active participants.
-func newPeerSet() *peerSet {
-	return &peerSet{
-		peers: make(map[string]*peer),
-	}
-}
-
-// Register injects a new peer into the working set, or returns an error if the
-// peer is already known. If a new peer it registered, its broadcast loop is also
-// started.
-func (ps *peerSet) Register(p *peer, removePeer func(string)) error {
-	ps.lock.Lock()
-	defer ps.lock.Unlock()
-
-	if ps.closed {
-		return errClosed
-	}
-	if _, ok := ps.peers[p.id]; ok {
-		return errAlreadyRegistered
-	}
-	ps.peers[p.id] = p
-
-	go p.broadcastBlocks(removePeer)
-	go p.broadcastTransactions(removePeer)
-	if p.version >= ctxc65 {
-		go p.announceTransactions(removePeer)
-	}
-
-	return nil
-}
-
-// Unregister removes a remote peer from the active set, disabling any further
-// actions to/from that particular entity.
-func (ps *peerSet) Unregister(id string) error {
-	ps.lock.Lock()
-	defer ps.lock.Unlock()
-
-	p, ok := ps.peers[id]
-	if !ok {
-		return errNotRegistered
-	}
-	delete(ps.peers, id)
-	p.close()
-
-	return nil
-}
-
-// Peer retrieves the registered peer with the given id.
-func (ps *peerSet) Peer(id string) *peer {
-	ps.lock.RLock()
-	defer ps.lock.RUnlock()
-
-	return ps.peers[id]
-}
-
-// Len returns if the current number of peers in the set.
-func (ps *peerSet) Len() int {
-	ps.lock.RLock()
-	defer ps.lock.RUnlock()
-
-	return len(ps.peers)
-}
-
-// PeersWithoutBlock retrieves a list of peers that do not have a given block in
-// their set of known hashes.
-func (ps *peerSet) PeersWithoutBlock(hash common.Hash) []*peer {
-	ps.lock.RLock()
-	defer ps.lock.RUnlock()
-
-	list := make([]*peer, 0, len(ps.peers))
-	for _, p := range ps.peers {
-		if !p.knownBlocks.Contains(hash) {
-			list = append(list, p)
-		}
-	}
-	return list
-}
-
-// PeersWithoutTx retrieves a list of peers that do not have a given transaction
-// in their set of known hashes.
-func (ps *peerSet) PeersWithoutTx(hash common.Hash) []*peer {
-	ps.lock.RLock()
-	defer ps.lock.RUnlock()
-
-	list := make([]*peer, 0, len(ps.peers))
-	for _, p := range ps.peers {
-		if !p.knownTxs.Contains(hash) {
-			list = append(list, p)
-		}
-	}
-	return list
-}
-
-// BestPeer retrieves the known peer with the currently highest total difficulty.
-func (ps *peerSet) BestPeer() *peer {
-	ps.lock.RLock()
-	defer ps.lock.RUnlock()
-
-	var (
-		bestPeer *peer
-		bestTd   *big.Int
-	)
-	for _, p := range ps.peers {
-		if _, td := p.Head(); bestPeer == nil || td.Cmp(bestTd) > 0 {
-			bestPeer, bestTd = p, td
-		}
-	}
-	return bestPeer
-}
-
-// Close disconnects all peers.
-// No new peers can be registered after Close has returned.
-func (ps *peerSet) Close() {
-	ps.lock.Lock()
-	defer ps.lock.Unlock()
-
-	for _, p := range ps.peers {
-		p.Disconnect(p2p.DiscQuitting)
-	}
-	ps.closed = true
 }
 
 // knownCache is a cache for known hashes.
