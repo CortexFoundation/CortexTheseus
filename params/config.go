@@ -118,37 +118,41 @@ var (
 	}
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
-		ChainID:             big.NewInt(21), // If all gold available to men is melted into a cube, it's approx. 21mx21mx21m
-		HomesteadBlock:      big.NewInt(0),
-		DAOForkBlock:        big.NewInt(0),
-		DAOForkSupport:      false,
-		EIP150Block:         big.NewInt(0), // TangerineWhistle
-		EIP150Hash:          common.HexToHash("0x"),
-		EIP155Block:         big.NewInt(0), // SpuriousDragon
-		EIP158Block:         big.NewInt(0), // SpuriousDragon
-		ByzantiumBlock:      big.NewInt(0),
-		ConstantinopleBlock: big.NewInt(0),
-		PetersburgBlock:     big.NewInt(0),
-		IstanbulBlock:       big.NewInt(3_230_000),
-		NeoBlock:            big.NewInt(4_650_000),
-		Cuckoo:              new(CuckooConfig),
+		ChainID:                       big.NewInt(21), // If all gold available to men is melted into a cube, it's approx. 21mx21mx21m
+		HomesteadBlock:                big.NewInt(0),
+		DAOForkBlock:                  big.NewInt(0),
+		DAOForkSupport:                false,
+		EIP150Block:                   big.NewInt(0), // TangerineWhistle
+		EIP150Hash:                    common.HexToHash("0x"),
+		EIP155Block:                   big.NewInt(0), // SpuriousDragon
+		EIP158Block:                   big.NewInt(0), // SpuriousDragon
+		ByzantiumBlock:                big.NewInt(0),
+		ConstantinopleBlock:           big.NewInt(0),
+		PetersburgBlock:               big.NewInt(0),
+		IstanbulBlock:                 big.NewInt(3_230_000),
+		NeoBlock:                      big.NewInt(4_650_000),
+		TerminalTotalDifficulty:       nil,
+		TerminalTotalDifficultyPassed: false,
+		Cuckoo:                        new(CuckooConfig),
 	}
 
 	// TestnetChainConfig contains the chain parameters to run a node on the Bernard test network.
 	BernardChainConfig = &ChainConfig{
-		ChainID:             big.NewInt(42),
-		HomesteadBlock:      big.NewInt(0),
-		DAOForkBlock:        big.NewInt(0),
-		DAOForkSupport:      false,
-		EIP150Block:         big.NewInt(0),
-		EIP150Hash:          common.HexToHash("0x"),
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
-		ByzantiumBlock:      big.NewInt(0),
-		ConstantinopleBlock: big.NewInt(0),
-		PetersburgBlock:     big.NewInt(0),
-		IstanbulBlock:       big.NewInt(0),
-		NeoBlock:            big.NewInt(5_000_000),
+		ChainID:                       big.NewInt(42),
+		HomesteadBlock:                big.NewInt(0),
+		DAOForkBlock:                  big.NewInt(0),
+		DAOForkSupport:                false,
+		EIP150Block:                   big.NewInt(0),
+		EIP150Hash:                    common.HexToHash("0x"),
+		EIP155Block:                   big.NewInt(0),
+		EIP158Block:                   big.NewInt(0),
+		ByzantiumBlock:                big.NewInt(0),
+		ConstantinopleBlock:           big.NewInt(0),
+		PetersburgBlock:               big.NewInt(0),
+		IstanbulBlock:                 big.NewInt(0),
+		NeoBlock:                      big.NewInt(5_000_000),
+		TerminalTotalDifficulty:       nil,
+		TerminalTotalDifficultyPassed: false,
 		Clique: &CliqueConfig{
 			Period: 3,
 			Epoch:  30000,
@@ -157,37 +161,41 @@ var (
 
 	// TestnetChainConfig contains the chain parameters to run a node on the Dolores test network.
 	DoloresChainConfig = &ChainConfig{
-		ChainID:             big.NewInt(43),
-		HomesteadBlock:      big.NewInt(0),
-		DAOForkBlock:        big.NewInt(0),
-		DAOForkSupport:      false,
-		EIP150Block:         big.NewInt(0),
-		EIP150Hash:          common.HexToHash("0x"),
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
-		ByzantiumBlock:      big.NewInt(0),
-		ConstantinopleBlock: big.NewInt(0),
-		PetersburgBlock:     big.NewInt(0),
-		IstanbulBlock:       big.NewInt(0),
-		NeoBlock:            big.NewInt(0),
-		Cuckoo:              new(CuckooConfig),
+		ChainID:                       big.NewInt(43),
+		HomesteadBlock:                big.NewInt(0),
+		DAOForkBlock:                  big.NewInt(0),
+		DAOForkSupport:                false,
+		EIP150Block:                   big.NewInt(0),
+		EIP150Hash:                    common.HexToHash("0x"),
+		EIP155Block:                   big.NewInt(0),
+		EIP158Block:                   big.NewInt(0),
+		ByzantiumBlock:                big.NewInt(0),
+		ConstantinopleBlock:           big.NewInt(0),
+		PetersburgBlock:               big.NewInt(0),
+		IstanbulBlock:                 big.NewInt(0),
+		NeoBlock:                      big.NewInt(0),
+		TerminalTotalDifficulty:       nil,
+		TerminalTotalDifficultyPassed: false,
+		Cuckoo:                        new(CuckooConfig),
 	}
 
 	// TestnetChainConfig contains the chain parameters to run a node on the flood test network.
 	FloodChainConfig = &ChainConfig{
-		ChainID:             big.NewInt(44),
-		HomesteadBlock:      big.NewInt(0),
-		DAOForkBlock:        big.NewInt(0),
-		DAOForkSupport:      false,
-		EIP150Block:         big.NewInt(0),
-		EIP150Hash:          common.HexToHash("0x"),
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
-		ByzantiumBlock:      big.NewInt(0),
-		ConstantinopleBlock: big.NewInt(0),
-		PetersburgBlock:     big.NewInt(0),
-		IstanbulBlock:       big.NewInt(0),
-		NeoBlock:            big.NewInt(0),
+		ChainID:                       big.NewInt(44),
+		HomesteadBlock:                big.NewInt(0),
+		DAOForkBlock:                  big.NewInt(0),
+		DAOForkSupport:                false,
+		EIP150Block:                   big.NewInt(0),
+		EIP150Hash:                    common.HexToHash("0x"),
+		EIP155Block:                   big.NewInt(0),
+		EIP158Block:                   big.NewInt(0),
+		ByzantiumBlock:                big.NewInt(0),
+		ConstantinopleBlock:           big.NewInt(0),
+		PetersburgBlock:               big.NewInt(0),
+		IstanbulBlock:                 big.NewInt(0),
+		NeoBlock:                      big.NewInt(0),
+		TerminalTotalDifficulty:       nil,
+		TerminalTotalDifficultyPassed: false,
 		Clique: &CliqueConfig{
 			Period: 15,
 			Epoch:  30000,
@@ -200,30 +208,32 @@ var (
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
 	AllCuckooProtocolChanges = &ChainConfig{
-		ChainID:             big.NewInt(1337),
-		HomesteadBlock:      big.NewInt(0),
-		DAOForkBlock:        nil,
-		DAOForkSupport:      false,
-		EIP150Block:         big.NewInt(0),
-		EIP150Hash:          common.Hash{},
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
-		ByzantiumBlock:      nil,
-		ConstantinopleBlock: big.NewInt(0),
-		PetersburgBlock:     big.NewInt(0),
-		IstanbulBlock:       nil,
-		NeoBlock:            nil,
-		Cuckoo:              new(CuckooConfig),
-		Clique:              nil}
+		ChainID:                       big.NewInt(1337),
+		HomesteadBlock:                big.NewInt(0),
+		DAOForkBlock:                  nil,
+		DAOForkSupport:                false,
+		EIP150Block:                   big.NewInt(0),
+		EIP150Hash:                    common.Hash{},
+		EIP155Block:                   big.NewInt(0),
+		EIP158Block:                   big.NewInt(0),
+		ByzantiumBlock:                nil,
+		ConstantinopleBlock:           big.NewInt(0),
+		PetersburgBlock:               big.NewInt(0),
+		IstanbulBlock:                 nil,
+		NeoBlock:                      nil,
+		TerminalTotalDifficulty:       nil,
+		TerminalTotalDifficultyPassed: false,
+		Cuckoo:                        new(CuckooConfig),
+		Clique:                        nil}
 
 	// AllCliqueProtocolChanges contains every protocol change (EIPs) introduced
 	// and accepted by the Cortex core developers into the Clique consensus.
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllCliqueProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, nil, &CliqueConfig{Period: 0, Epoch: 30000}}
+	AllCliqueProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, nil, false, nil, &CliqueConfig{Period: 0, Epoch: 30000}}
 
-	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, new(CuckooConfig), nil}
+	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, nil, false, new(CuckooConfig), nil}
 	TestRules       = TestChainConfig.Rules(new(big.Int), false)
 )
 
@@ -259,6 +269,14 @@ type ChainConfig struct {
 	PetersburgBlock     *big.Int `json:"petersburgBlock,omitempty"`     // Petersburg switch block (nil = same as Constantinople)
 	IstanbulBlock       *big.Int `json:"istanbulBlock,omitempty"`       // Istanbul switch block (nil = no fork, 0 = already on istanbul)
 	NeoBlock            *big.Int `json:"neoBlock,omitempty"`
+	// TerminalTotalDifficulty is the amount of total difficulty reached by
+	// the network that triggers the consensus upgrade.
+	TerminalTotalDifficulty *big.Int `json:"terminalTotalDifficulty,omitempty"`
+
+	// TerminalTotalDifficultyPassed is a flag specifying that the network already
+	// passed the terminal total difficulty. Its purpose is to disable legacy sync
+	// even without having seen the TTD locally (safer long term).
+	TerminalTotalDifficultyPassed bool `json:"terminalTotalDifficultyPassed,omitempty"`
 	// Various consensus engines
 	Cuckoo *CuckooConfig `json:"cuckoo,omitempty"`
 	Clique *CliqueConfig `json:"clique,omitempty"`
@@ -358,6 +376,14 @@ func (c *ChainConfig) IsIstanbul(num *big.Int) bool {
 
 func (c *ChainConfig) IsNeo(num *big.Int) bool {
 	return isForked(c.NeoBlock, num)
+}
+
+// IsTerminalPoWBlock returns whether the given block is the last block of PoW stage.
+func (c *ChainConfig) IsTerminalPoWBlock(parentTotalDiff *big.Int, totalDiff *big.Int) bool {
+	if c.TerminalTotalDifficulty == nil {
+		return false
+	}
+	return parentTotalDiff.Cmp(c.TerminalTotalDifficulty) < 0 && totalDiff.Cmp(c.TerminalTotalDifficulty) >= 0
 }
 
 // GasTable returns the gas table corresponding to the current phase (homestead or homestead reprice).
