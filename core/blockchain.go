@@ -231,16 +231,19 @@ func NewBlockChain(db ctxcdb.Database, cacheConfig *CacheConfig, chainConfig *pa
 		cacheConfig = defaultCacheConfig
 	}
 
+	// Open trie database with provided config
+	triedb := state.NewDatabaseWithConfig(db, &trie.Config{
+		Cache:     cacheConfig.TrieCleanLimit,
+		Journal:   cacheConfig.TrieCleanJournal,
+		Preimages: cacheConfig.Preimages,
+	})
+
 	bc := &BlockChain{
-		chainConfig: chainConfig,
-		cacheConfig: cacheConfig,
-		db:          db,
-		triegc:      prque.New(nil),
-		stateCache: state.NewDatabaseWithConfig(db, &trie.Config{
-			Cache:     cacheConfig.TrieCleanLimit,
-			Journal:   cacheConfig.TrieCleanJournal,
-			Preimages: cacheConfig.Preimages,
-		}),
+		chainConfig:   chainConfig,
+		cacheConfig:   cacheConfig,
+		db:            db,
+		triegc:        prque.New(nil),
+		stateCache:    triedb,
 		quit:          make(chan struct{}),
 		chainmu:       syncx.NewClosableMutex(),
 		bodyCache:     lru.NewCache[common.Hash, *types.Body](bodyCacheLimit),
@@ -296,7 +299,7 @@ func NewBlockChain(db ctxcdb.Database, cacheConfig *CacheConfig, chainConfig *pa
 		if diskRoot != (common.Hash{}) {
 			log.Warn("Head state missing, repairing", "number", head.Number(), "hash", head.Hash(), "snaproot", diskRoot)
 
-			snapDisk, err := bc.setHeadBeyondRoot(head.NumberU64(), diskRoot, true)
+			snapDisk, err := bc.setHeadBeyondRoot(head.NumberU64(), 0, diskRoot, true)
 			if err != nil {
 				return nil, err
 			}
@@ -306,7 +309,7 @@ func NewBlockChain(db ctxcdb.Database, cacheConfig *CacheConfig, chainConfig *pa
 			}
 		} else {
 			log.Warn("Head state missing, repairing", "number", head.Number(), "hash", head.Hash())
-			if _, err := bc.setHeadBeyondRoot(head.NumberU64(), common.Hash{}, true); err != nil {
+			if _, err := bc.setHeadBeyondRoot(head.NumberU64(), 0, common.Hash{}, true); err != nil {
 				return nil, err
 			}
 		}
@@ -496,7 +499,20 @@ func (bc *BlockChain) loadLastState() error {
 // was fast synced or full synced and in which state, the method will try to
 // delete minimal data from disk whilst retaining chain consistency.
 func (bc *BlockChain) SetHead(head uint64) error {
-	if _, err := bc.setHeadBeyondRoot(head, common.Hash{}, false); err != nil {
+	if _, err := bc.setHeadBeyondRoot(head, 0, common.Hash{}, false); err != nil {
+		return err
+	}
+	// Send chain head event to update the transaction pool
+	bc.chainHeadFeed.Send(ChainHeadEvent{Block: bc.CurrentBlock()})
+	return nil
+}
+
+// SetHeadWithTimestamp rewinds the local chain to a new head that has at max
+// the given timestamp. Depending on whether the node was fast synced or full
+// synced and in which state, the method will try to delete minimal data from
+// disk whilst retaining chain consistency.
+func (bc *BlockChain) SetHeadWithTimestamp(timestamp uint64) error {
+	if _, err := bc.setHeadBeyondRoot(0, timestamp, common.Hash{}, false); err != nil {
 		return err
 	}
 	// Send chain head event to update the transaction pool
@@ -534,7 +550,7 @@ func (bc *BlockChain) SetSafe(block *types.Block) {
 // retaining chain consistency.
 //
 // The method returns the block number where the requested root cap was found.
-func (bc *BlockChain) setHeadBeyondRoot(head uint64, root common.Hash, repair bool) (uint64, error) {
+func (bc *BlockChain) setHeadBeyondRoot(head uint64, time uint64, root common.Hash, repair bool) (uint64, error) {
 	if !bc.chainmu.TryLock() {
 		return 0, errChainStopped
 	}
@@ -548,7 +564,7 @@ func (bc *BlockChain) setHeadBeyondRoot(head uint64, root common.Hash, repair bo
 	pivot := rawdb.ReadLastPivotNumber(bc.db)
 	frozen, _ := bc.db.Ancients()
 
-	updateFn := func(db ctxcdb.KeyValueWriter, header *types.Header) (uint64, bool) {
+	updateFn := func(db ctxcdb.KeyValueWriter, header *types.Header) (*types.Header, bool) {
 		// Rewind the block chain, ensuring we don't end up with a stateless head
 		// block. Note, depth equality is permitted to allow using SetHead as a
 		// chain reparation mechanism without deleting any data!
@@ -616,16 +632,18 @@ func (bc *BlockChain) setHeadBeyondRoot(head uint64, root common.Hash, repair bo
 			bc.currentFastBlock.Store(newHeadFastBlock)
 			headFastBlockGauge.Update(int64(newHeadFastBlock.NumberU64()))
 		}
-		head := bc.CurrentBlock().NumberU64()
-
+		var (
+			headHeader = bc.CurrentBlock().Header()
+			headNumber = headHeader.Number.Uint64()
+		)
 		// If setHead underflown the freezer threshold and the block processing
 		// intent afterwards is full block importing, delete the chain segment
 		// between the stateful-block and the sethead target.
 		var wipe bool
-		if head+1 < frozen {
-			wipe = pivot == nil || head >= *pivot
+		if headNumber+1 < frozen {
+			wipe = pivot == nil || headNumber >= *pivot
 		}
-		return head, wipe // Only force wipe if full synced
+		return headHeader, wipe // Only force wipe if full synced
 	}
 	// Rewind the header chain, deleting all block bodies until then
 	delFn := func(db ctxcdb.KeyValueWriter, hash common.Hash, num uint64) {
@@ -652,13 +670,18 @@ func (bc *BlockChain) setHeadBeyondRoot(head uint64, root common.Hash, repair bo
 	// touching the header chain altogether, unless the freezer is broken
 	if repair {
 		if target, force := updateFn(bc.db, bc.CurrentBlock().Header()); force {
-			bc.hc.SetHead(target, updateFn, delFn)
+			bc.hc.SetHead(target.Number.Uint64(), updateFn, delFn)
 		}
 	} else {
 		// Rewind the chain to the requested head and keep going backwards until a
 		// block with a state is found or fast sync pivot is passed
-		log.Warn("Rewinding blockchain", "target", head)
-		bc.hc.SetHead(head, updateFn, delFn)
+		if time > 0 {
+			log.Warn("Rewinding blockchain to timestamp", "target", time)
+			bc.hc.SetHeadWithTimestamp(time, updateFn, delFn)
+		} else {
+			log.Warn("Rewinding blockchain to block", "target", head)
+			bc.hc.SetHead(head, updateFn, delFn)
+		}
 	}
 	// Clear out any stale content from the caches
 	bc.bodyCache.Purge()
@@ -789,37 +812,35 @@ func (bc *BlockChain) ExportN(w io.Writer, first uint64, last uint64) error {
 //
 // Note, this function assumes that the `mu` mutex is held!
 func (bc *BlockChain) writeHeadBlock(block *types.Block) {
-	// If the block is on a side chain or an unknown one, force other heads onto it too
-	updateHeads := rawdb.ReadCanonicalHash(bc.db, block.NumberU64()) != block.Hash()
-
 	// Add the block to the canonical chain number scheme and mark as the head
 	batch := bc.db.NewBatch()
+	rawdb.WriteHeadHeaderHash(batch, block.Hash())
+	rawdb.WriteHeadFastBlockHash(batch, block.Hash())
 	rawdb.WriteCanonicalHash(batch, block.Hash(), block.NumberU64())
 	rawdb.WriteTxLookupEntriesByBlock(batch, block)
 	rawdb.WriteHeadBlockHash(batch, block.Hash())
 
-	// If the block is better than our head or is on a different chain, force update heads
-	if updateHeads {
-		rawdb.WriteHeadHeaderHash(batch, block.Hash())
-		rawdb.WriteHeadFastBlockHash(batch, block.Hash())
-	}
 	// Flush the whole batch into the disk, exit the node if failed
 	if err := batch.Write(); err != nil {
 		log.Crit("Failed to update chain indexes and markers", "err", err)
 	}
 	// Update all in-memory chain markers in the last step
-	if updateHeads {
-		bc.hc.SetCurrentHeader(block.Header())
-		bc.currentFastBlock.Store(block)
-		headFastBlockGauge.Update(int64(block.NumberU64()))
-	}
+	bc.hc.SetCurrentHeader(block.Header())
+
+	bc.currentFastBlock.Store(block)
+	headFastBlockGauge.Update(int64(block.NumberU64()))
+
 	bc.currentBlock.Store(block)
 	headBlockGauge.Update(int64(block.NumberU64()))
 }
 
-// Stop stops the blockchain service. If any imports are currently in progress
-// it will abort them using the procInterrupt.
-func (bc *BlockChain) Stop() {
+// stop stops the blockchain service. If any imports are currently in progress
+// it will abort them using the procInterrupt. This method stops all running
+// goroutines, but does not do all the post-stop work of persisting data.
+// OBS! It is generally recommended to use the Stop method!
+// This method has been exposed to allow tests to stop the blockchain while simulating
+// a crash.
+func (bc *BlockChain) stopWithoutSaving() {
 	if !atomic.CompareAndSwapInt32(&bc.running, 0, 1) {
 		return
 	}
@@ -839,6 +860,12 @@ func (bc *BlockChain) Stop() {
 	// returned.
 	bc.chainmu.Close()
 	bc.wg.Wait()
+}
+
+// Stop stops the blockchain service. If any imports are currently in progress
+// it will abort them using the procInterrupt.
+func (bc *BlockChain) Stop() {
+	bc.stopWithoutSaving()
 
 	// Ensure that the entirety of the state snapshot is journalled to disk.
 	var snapBase common.Hash
@@ -1405,6 +1432,10 @@ func (bc *BlockChain) addFutureBlock(block *types.Block) error {
 	max := uint64(time.Now().Unix() + maxTimeFutureBlocks)
 	if block.Time() > max {
 		return fmt.Errorf("future block timestamp %v > allowed %v", block.Time(), max)
+	}
+	if block.Difficulty().Cmp(common.Big0) == 0 {
+		// Never add PoS blocks into the future queue
+		return nil
 	}
 	bc.futureBlocks.Add(block.Hash(), block)
 	return nil
@@ -2252,11 +2283,9 @@ func (bc *BlockChain) reportBlock(block *types.Block, receipts types.Receipts, e
 	log.Error(fmt.Sprintf(`
 ########## BAD BLOCK #########
 Chain config: %v
-
 Number: %v
 Hash: 0x%x
 %v
-
 Error: %v
 ##############################
 `, bc.chainConfig, block.Number(), block.Hash(), receiptString, err))

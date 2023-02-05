@@ -575,7 +575,7 @@ type (
 	// before head header is updated. The method will return the actual block it
 	// updated the head to (missing state) and a flag if setHead should continue
 	// rewinding till that forcefully (exceeded ancient limits)
-	UpdateHeadBlocksCallback func(ctxcdb.KeyValueWriter, *types.Header) (uint64, bool)
+	UpdateHeadBlocksCallback func(ctxcdb.KeyValueWriter, *types.Header) (*types.Header, bool)
 
 	// DeleteBlockContentCallback is a callback function that is called by SetHead
 	// before each header is deleted.
@@ -596,7 +596,7 @@ func (hc *HeaderChain) SetHeadWithTimestamp(time uint64, updateFn UpdateHeadBloc
 
 // SetHead rewinds the local chain to a new head. Everything above the new head
 // will be deleted and the new one set.
-func (hc *HeaderChain) setHead(head uint64, headTime uint64, updateFn UpdateHeadBlocksCallback, delFn DeleteBlockContentCallback) {
+func (hc *HeaderChain) setHead(headBlock uint64, headTime uint64, updateFn UpdateHeadBlocksCallback, delFn DeleteBlockContentCallback) {
 	// Sanity check that there's no attempt to undo the genesis block. This is
 	// a fairly synthetic case where someone enables a timestamp based fork
 	// below the genesis timestamp. It's nice to not allow that instead of the
@@ -621,7 +621,7 @@ func (hc *HeaderChain) setHead(head uint64, headTime uint64, updateFn UpdateHead
 		}
 		return header.Number.Uint64() <= headBlock
 	}
-	for hdr := hc.CurrentHeader(); hdr != nil && hdr.Number.Uint64() > head; hdr = hc.CurrentHeader() {
+	for hdr := hc.CurrentHeader(); hdr != nil && !done(hdr); hdr = hc.CurrentHeader() {
 		num := hdr.Number.Uint64()
 
 		// Rewind block chain to new head.
