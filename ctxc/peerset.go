@@ -97,7 +97,7 @@ func (ps *peerSet) PeersWithoutBlock(hash common.Hash) []*peer {
 
 	list := make([]*peer, 0, len(ps.peers))
 	for _, p := range ps.peers {
-		if !p.knownBlocks.Contains(hash) {
+		if !p.KnownBlock(hash) {
 			list = append(list, p)
 		}
 	}
@@ -112,7 +112,7 @@ func (ps *peerSet) PeersWithoutTx(hash common.Hash) []*peer {
 
 	list := make([]*peer, 0, len(ps.peers))
 	for _, p := range ps.peers {
-		if !p.knownTxs.Contains(hash) {
+		if !p.KnownTransaction(hash) {
 			list = append(list, p)
 		}
 	}
