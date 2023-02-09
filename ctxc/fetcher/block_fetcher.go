@@ -107,12 +107,35 @@ type inject struct {
 	block  *types.Block
 }
 
+// blockOrHeaderInject represents a schedules import operation.
+type blockOrHeaderInject struct {
+	origin string
+	header *types.Header // Used for light mode fetcher which only cares about header.
+	block  *types.Block  // Used for normal mode fetcher which imports full block.
+}
+
+// number returns the block number of the injected object.
+func (inject *blockOrHeaderInject) number() uint64 {
+	if inject.header != nil {
+		return inject.header.Number.Uint64()
+	}
+	return inject.block.NumberU64()
+}
+
+// number returns the block hash of the injected object.
+func (inject *blockOrHeaderInject) hash() common.Hash {
+	if inject.header != nil {
+		return inject.header.Hash()
+	}
+	return inject.block.Hash()
+}
+
 // Fetcher is responsible for accumulating block announcements from various peers
 // and scheduling them for retrieval.
 type Fetcher struct {
 	// Various event channels
 	notify chan *announce
-	inject chan *inject
+	inject chan *blockOrHeaderInject
 
 	headerFilter chan chan *headerFilterTask
 	bodyFilter   chan chan *bodyFilterTask
@@ -128,9 +151,9 @@ type Fetcher struct {
 	completing map[common.Hash]*announce   // Blocks with headers, currently body-completing
 
 	// Block cache
-	queue  *prque.Prque            // Queue containing the import operations (block number sorted)
-	queues map[string]int          // Per peer block counts to prevent memory exhaustion
-	queued map[common.Hash]*inject // Set of already queued blocks (to dedupe imports)
+	queue  *prque.Prque[int64, *blockOrHeaderInject] // Queue containing the import operations (block number sorted)
+	queues map[string]int                            // Per peer block counts to prevent memory exhaustion
+	queued map[common.Hash]*blockOrHeaderInject      // Set of already queued blocks (to dedupe imports)
 
 	// Callbacks
 	getBlock       blockRetrievalFn   // Retrieves a block from the local chain
@@ -153,7 +176,7 @@ type Fetcher struct {
 func New(getBlock blockRetrievalFn, verifyHeader headerVerifierFn, broadcastBlock blockBroadcasterFn, chainHeight chainHeightFn, insertChain chainInsertFn, dropPeer peerDropFn) *Fetcher {
 	return &Fetcher{
 		notify:       make(chan *announce),
-		inject:       make(chan *inject),
+		inject:       make(chan *blockOrHeaderInject),
 		headerFilter: make(chan chan *headerFilterTask),
 		bodyFilter:   make(chan chan *bodyFilterTask),
 		done:         make(chan common.Hash),
@@ -163,9 +186,9 @@ func New(getBlock blockRetrievalFn, verifyHeader headerVerifierFn, broadcastBloc
 		fetching:     make(map[common.Hash]*announce),
 		fetched:      make(map[common.Hash][]*announce),
 		completing:   make(map[common.Hash]*announce),
-		queue:        prque.New(nil),
+		queue:        prque.New[int64, *blockOrHeaderInject](nil),
 		queues:       make(map[string]int),
-		queued:       make(map[common.Hash]*inject),
+		queued:       make(map[common.Hash]*blockOrHeaderInject),
 		getBlock:     getBlock,
 		// This can be replaced this with a more optimized lookup
 		hasBlock:       func(hash common.Hash) bool { return getBlock(hash) != nil },
@@ -222,7 +245,7 @@ func (f *Fetcher) Enqueue(peer string, block *types.Block) error {
 		propBroadcastUsefulMeter.Mark(1)
 		return nil
 	}
-	op := &inject{
+	op := &blockOrHeaderInject{
 		origin: peer,
 		block:  block,
 	}
@@ -314,7 +337,7 @@ func (f *Fetcher) loop() {
 		// Import any queued blocks that could potentially fit
 		height := f.chainHeight()
 		for !f.queue.Empty() {
-			op := f.queue.PopItem().(*inject)
+			op := f.queue.PopItem()
 			hash := op.block.Hash()
 			if f.queueChangeHook != nil {
 				f.queueChangeHook(hash, false)
@@ -651,7 +674,7 @@ func (f *Fetcher) enqueue(peer string, block *types.Block) {
 	}
 	// Schedule the block for future importing
 	if _, ok := f.queued[hash]; !ok {
-		op := &inject{
+		op := &blockOrHeaderInject{
 			origin: peer,
 			block:  block,
 		}
