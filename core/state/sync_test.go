@@ -165,7 +165,7 @@ func testIterativeStateSync(t *testing.T, count int, commit bool, bypath bool) {
 	// Create a random state to copy
 	srcDb, srcRoot, srcAccounts := makeTestState()
 	if commit {
-		srcDb.TrieDB().Commit(srcRoot, false, nil)
+		srcDb.TrieDB().Commit(srcRoot, false)
 	}
 	srcTrie, _ := trie.New(srcRoot, srcDb.TrieDB())
 

@@ -503,7 +503,7 @@ func VerifyRangeProof(rootHash common.Hash, firstKey []byte, lastKey []byte, key
 		if _, err := tr.Commit(nil); err != nil {
 			return nil, nil, nil, false, err
 		}
-		if err := triedb.Commit(rootHash, false, nil); err != nil {
+		if err := triedb.Commit(rootHash, false); err != nil {
 			return nil, nil, nil, false, err
 		}
 		return diskdb, tr, notary, false, nil // No more elements
@@ -598,7 +598,7 @@ func VerifyRangeProof(rootHash common.Hash, firstKey []byte, lastKey []byte, key
 	/*if _, err := tr.Commit(nil); err != nil {
 		return nil, nil, nil, false, err
 	}
-	if err := triedb.Commit(rootHash, false, nil); err != nil {
+	if err := triedb.Commit(rootHash, false); err != nil {
 		return nil, nil, nil, false, err
 	}*/
 	return diskdb, tr, notary, hasRightElement(tr.root, keys[len(keys)-1]), nil
