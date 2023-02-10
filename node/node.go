@@ -659,11 +659,30 @@ func (n *Node) EventMux() *event.TypeMux {
 // OpenDatabase opens an existing database with the given name (or creates one if no
 // previous can be found) from within the node's instance directory. If the node is
 // ephemeral, a memory database is returned.
-func (n *Node) OpenDatabase(name string, cache, handles int, namespace string) (ctxcdb.Database, error) {
-	if n.config.DataDir == "" {
-		return rawdb.NewMemoryDatabase(), nil
+func (n *Node) OpenDatabase(name string, cache, handles int, namespace string, readonly bool) (ctxcdb.Database, error) {
+	if n.state == closedState {
+		return nil, ErrNodeStopped
 	}
-	return rawdb.NewLevelDBDatabase(n.config.ResolvePath(name), cache, handles, namespace, false)
+
+	var db ctxcdb.Database
+	var err error
+	if n.config.DataDir == "" {
+		db = rawdb.NewMemoryDatabase()
+	} else {
+		db, err = rawdb.Open(rawdb.OpenOptions{
+			Type:      n.config.DBEngine,
+			Directory: n.ResolvePath(name),
+			Namespace: namespace,
+			Cache:     cache,
+			Handles:   handles,
+			ReadOnly:  readonly,
+		})
+	}
+
+	if err == nil {
+		db = n.wrapDatabase(db)
+	}
+	return db, err
 }
 
 // OpenDatabaseWithFreezer opens an existing database with the given name (or
@@ -684,7 +703,15 @@ func (n *Node) OpenDatabaseWithFreezer(name string, cache, handles int, ancient 
 	if n.config.DataDir == "" {
 		db = rawdb.NewMemoryDatabase()
 	} else {
-		db, err = rawdb.NewLevelDBDatabaseWithFreezer(n.ResolvePath(name), cache, handles, n.ResolveAncient(name, ancient), namespace, readonly)
+		db, err = rawdb.Open(rawdb.OpenOptions{
+			Type:              n.config.DBEngine,
+			Directory:         n.ResolvePath(name),
+			AncientsDirectory: n.ResolveAncient(name, ancient),
+			Namespace:         namespace,
+			Cache:             cache,
+			Handles:           handles,
+			ReadOnly:          readonly,
+		})
 	}
 	if err == nil {
 		db = n.wrapDatabase(db)

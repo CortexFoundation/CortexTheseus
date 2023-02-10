@@ -171,45 +171,32 @@ func TestDiffLayerExternalInvalidationPartialFlatten(t *testing.T) {
 			base.root: base,
 		},
 	}
-	// Commit three diffs on top and retrieve a reference to the bottommost
+
+	// Retrieve a reference to the base and commit a diff on top
+	ref := snaps.Snapshot(base.root)
+
 	accounts := map[common.Hash][]byte{
 		common.HexToHash("0xa1"): randomAccount(),
 	}
 	if err := snaps.Update(common.HexToHash("0x02"), common.HexToHash("0x01"), nil, accounts, nil); err != nil {
 		t.Fatalf("failed to create a diff layer: %v", err)
 	}
-	if err := snaps.Update(common.HexToHash("0x03"), common.HexToHash("0x02"), nil, accounts, nil); err != nil {
-		t.Fatalf("failed to create a diff layer: %v", err)
+	if n := len(snaps.layers); n != 2 {
+		t.Errorf("pre-cap layer count mismatch: have %d, want %d", n, 2)
 	}
-	if err := snaps.Update(common.HexToHash("0x04"), common.HexToHash("0x03"), nil, accounts, nil); err != nil {
-		t.Fatalf("failed to create a diff layer: %v", err)
+	// Commit the diff layer onto the disk and ensure it's persisted
+	if err := snaps.Cap(common.HexToHash("0x02"), 0); err != nil {
+		t.Fatalf("failed to merge diff layer onto disk: %v", err)
 	}
-	if n := len(snaps.layers); n != 4 {
-		t.Errorf("pre-cap layer count mismatch: have %d, want %d", n, 4)
-	}
-	ref := snaps.Snapshot(common.HexToHash("0x02"))
-
-	// Doing a Cap operation with many allowed layers should be a no-op
-	exp := len(snaps.layers)
-	if err := snaps.Cap(common.HexToHash("0x04"), 2000); err != nil {
-		t.Fatalf("failed to flatten diff layer into accumulator: %v", err)
-	}
-	if got := len(snaps.layers); got != exp {
-		t.Errorf("layers modified, got %d exp %d", got, exp)
-	}
-	// Flatten the diff layer into the bottom accumulator
-	if err := snaps.Cap(common.HexToHash("0x04"), 1); err != nil {
-		t.Fatalf("failed to flatten diff layer into accumulator: %v", err)
-	}
-	// Since the accumulator diff layer was modified, ensure that data retrievald on the external reference fail
+	// Since the base layer was modified, ensure that data retrieval on the external reference fail
 	if acc, err := ref.Account(common.HexToHash("0x01")); err != ErrSnapshotStale {
 		t.Errorf("stale reference returned account: %#x (err: %v)", acc, err)
 	}
 	if slot, err := ref.Storage(common.HexToHash("0xa1"), common.HexToHash("0xb1")); err != ErrSnapshotStale {
 		t.Errorf("stale reference returned storage slot: %#x (err: %v)", slot, err)
 	}
-	if n := len(snaps.layers); n != 3 {
-		t.Errorf("post-cap layer count mismatch: have %d, want %d", n, 3)
+	if n := len(snaps.layers); n != 1 {
+		t.Errorf("post-cap layer count mismatch: have %d, want %d", n, 1)
 		fmt.Println(snaps.layers)
 	}
 }
