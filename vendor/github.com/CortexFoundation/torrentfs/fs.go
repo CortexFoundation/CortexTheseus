@@ -212,6 +212,8 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 		s, err := client.NewIterator([]string{params1.KnownDNSNetwork(params1.MainnetGenesisHash, "all")}...)
 		if err == nil {
 			inst.protocol.DialCandidates = s
+		} else {
+			log.Warn("Protocol dial candidates failed", "err", err)
 		}
 	}
 
@@ -261,25 +263,7 @@ func (fs *TorrentFS) listen() {
 			if meta.Request() > 0 || params.IsGood(meta.InfoHash()) {
 				fs.download(context.Background(), meta.InfoHash(), meta.Request())
 			} else {
-				//if fs.config.Mode != params.LAZY {
-				/*fs.wg.Add(1)
-				go func(ih string, size uint64) {
-					log.Debug("TTL seeding", "ih", ih, "size", size)
-					defer fs.wg.Done()
-					ttl := time.NewTimer(3 * time.Second)
-					defer ttl.Stop()
-					select {
-					case <-ttl.C:
-						log.Debug("TTL downloading", "ih", ih, "size", size)
-						fs.download(context.Background(), ih, size)
-					}
-				}(meta.InfoHash(), meta.Request())*/
-				//fs.wg.Add(1)
-				//go func(msg any) {
-				//	defer fs.wg.Done()
 				fs.ttlchan <- msg
-				//}(msg)
-				//}
 			}
 		case <-ttl.C:
 			if len(fs.ttlchan) > 0 {
@@ -374,7 +358,7 @@ func (fs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 				}
 
 				//if info.Size > 0 {
-				fs.active(context.Background(), info.Hash, info.Size)
+				fs.wakeup(context.Background(), info.Hash, info.Size)
 				//}
 			}
 		case params.MsgCode:
@@ -427,20 +411,7 @@ func (tfs *TorrentFS) Start(server *p2p.Server) (err error) {
 	log.Info("Started nas", "config", tfs, "mode", tfs.config.Mode, "version", params.ProtocolVersion, "queue", tfs.tunnel.Len(), "peers", len(tfs.peers))
 
 	err = tfs.monitor.Start()
-	if err != nil {
-		return
-	}
 
-	/*if tfs.config.Mode != params.LAZY {
-		checkpoint := tfs.chain().GetRoot(395964)
-		if checkpoint == nil {
-			for k, ok := range params.ColaFiles {
-				if ok {
-					tfs.bitsflow(context.Background(), k, 1024*1024*1024)
-				}
-			}
-		}
-	}*/
 	return
 }
 
@@ -459,14 +430,12 @@ func (fs *TorrentFS) init() {
 
 // download and pub
 func (fs *TorrentFS) bitsflow(ctx context.Context, ih string, size uint64) error {
-	//	if fs.config.Mode != params.LAZY || size > 0 {
 	log.Debug("bitsflow", "ih", ih, "size", size, "mode", fs.config.Mode)
 	select {
 	case fs.callback <- types.NewBitsFlow(ih, size):
 	case <-ctx.Done():
 		return ctx.Err()
 	}
-	//	}
 
 	return nil
 }
@@ -514,12 +483,7 @@ func (fs *TorrentFS) broadcast(ih string, rawSize uint64) bool {
 		return false
 	}
 
-	//if rawSize > 0 {
-	log.Debug("Query added", "ih", ih, "size", rawSize)
 	fs.tunnel.Set(ih, ttlmap.NewItem(rawSize, ttlmap.WithTTL(60*time.Second)), nil)
-	//} else {
-	//	return false
-	//}
 
 	return true
 }
@@ -535,14 +499,12 @@ func (fs *TorrentFS) broadcast(ih string, rawSize uint64) bool {
 }*/
 
 // Available is used to check the file status
-func (fs *TorrentFS) active(ctx context.Context, ih string, rawSize uint64) (bool, error) {
+func (fs *TorrentFS) wakeup(ctx context.Context, ih string, rawSize uint64) (bool, error) {
 	ret, _, _, err := fs.storage().Available(ih, rawSize)
 	if errors.Is(err, backend.ErrInactiveTorrent) {
-		//if _, err := fs.tunnel.Get(ih); err != nil {
 		if progress, e := fs.progress(ih); e == nil {
 			fs.bitsflow(ctx, ih, progress)
 		}
-		//}
 	}
 	return ret, err
 }
@@ -550,13 +512,7 @@ func (fs *TorrentFS) active(ctx context.Context, ih string, rawSize uint64) (boo
 func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSize uint64, subpath string) ([]byte, error) {
 	log.Debug("Get file with size", "ih", infohash, "size", rawSize, "path", subpath)
 	if ret, _, err := fs.storage().GetFile(infohash, subpath); err != nil {
-		// local file not found
-		//if ok, err := fs.active(infohash, rawSize); err != nil || !ok {
-		//	log.Debug("Get file failed", "ih", infohash, "size", rawSize, "path", subpath, "err", err)
-		//}
-
-		fs.active(ctx, infohash, rawSize)
-
+		fs.wakeup(ctx, infohash, rawSize)
 		return nil, err
 	} else {
 		log.Debug("Get File directly", "ih", infohash, "size", rawSize, "path", subpath, "ret", len(ret))
@@ -748,13 +704,13 @@ func (fs *TorrentFS) download(ctx context.Context, ih string, request uint64) er
 	}
 
 	fs.wg.Add(1)
-	go func() {
+	go func(ih string, p uint64) {
 		defer fs.wg.Done()
 		s := fs.broadcast(ih, p)
 		if s {
 			log.Debug("Nas "+params.ProtocolVersionStr+" tunnel", "ih", ih, "request", common.StorageSize(float64(p)), "queue", fs.tunnel.Len(), "peers", len(fs.peers))
 		}
-	}()
+	}(ih, p)
 
 	// local search
 	if err := fs.storage().Search(ctx, ih, p); err != nil {
@@ -765,7 +721,6 @@ func (fs *TorrentFS) download(ctx context.Context, ih string, request uint64) er
 }
 
 func (fs *TorrentFS) Download(ctx context.Context, ih string, request uint64) error {
-	//return fs.download(ctx, ih, request)
 	return fs.bitsflow(ctx, ih, request)
 }
 

@@ -891,7 +891,7 @@ func (tm *TorrentManager) pendingLoop() {
 						log.Debug("Record full torrent in history", "ih", t.infohash, "info", len(b))
 						if tm.badger != nil && tm.badger.Get([]byte(SEED_PRE+t.infohash)) == nil {
 							elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
-							log.Info("Imported new seed", "ih", t.infohash, "request", common.StorageSize(t.bytesRequested), "good", params.IsGood(t.infohash), "elapsed", common.PrettyDuration(elapsed))
+							log.Info("Imported new seed", "ih", t.infohash, "request", common.StorageSize(t.Length()), "good", params.IsGood(t.infohash), "elapsed", common.PrettyDuration(elapsed))
 
 							tm.badger.Set([]byte(SEED_PRE+t.infohash), b)
 						}
