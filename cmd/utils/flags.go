@@ -1727,7 +1727,7 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *params1.Config) {
 func RegisterCortexService(stack *node.Node, cfg *ctxc.Config) {
 	var err error
 	err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		fullNode, err := ctxc.New(ctx, stack, cfg)
+		fullNode, err := ctxc.New(stack, cfg)
 		return fullNode, err
 	})
 
