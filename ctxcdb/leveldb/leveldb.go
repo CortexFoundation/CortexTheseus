@@ -166,6 +166,7 @@ func configureOptions(customizeFn func(*opt.Options)) *opt.Options {
 // Close stops the metrics collection, flushes any pending data to disk and closes
 // all io accesses to the underlying key-value store.
 func (db *Database) Close() error {
+	log.Warn("leveldb close")
 	db.quitLock.Lock()
 	defer db.quitLock.Unlock()
 

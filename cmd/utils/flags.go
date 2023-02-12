@@ -1727,8 +1727,7 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *params1.Config) {
 func RegisterCortexService(stack *node.Node, cfg *ctxc.Config) {
 	var err error
 	err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		fullNode, err := ctxc.New(ctx, cfg)
-		//go stack.RegisterAPIs(tracers.APIs(fullNode.APIBackend))
+		fullNode, err := ctxc.New(ctx, stack, cfg)
 		return fullNode, err
 	})
 
@@ -1852,7 +1851,7 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 // MakeChain creates a chain manager from set command line flags.
 func MakeChain(ctx *cli.Context, stack *node.Node, readOnly bool) (chain *core.BlockChain, chainDb ctxcdb.Database) {
 	var err error
-	chainDb = MakeChainDatabase(ctx, stack, false)
+	chainDb = MakeChainDatabase(ctx, stack, readOnly)
 
 	config, _, err := core.SetupGenesisBlock(chainDb, MakeGenesis(ctx))
 	if err != nil {

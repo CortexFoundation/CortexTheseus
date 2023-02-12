@@ -215,6 +215,7 @@ func New(file string, cache int, handles int, namespace string, readonly bool) (
 // Close stops the metrics collection, flushes any pending data to disk and closes
 // all io accesses to the underlying key-value store.
 func (d *Database) Close() error {
+	log.Warn("pebble close")
 	d.quitLock.Lock()
 	defer d.quitLock.Unlock()
 

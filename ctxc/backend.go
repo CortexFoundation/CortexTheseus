@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"math/big"
 	"runtime"
-	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -101,7 +100,7 @@ type Cortex struct {
 
 // New creates a new Cortex object (including the
 // initialisation of the common Cortex object)
-func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
+func New(ctx *node.ServiceContext, stack *node.Node, config *Config) (*Cortex, error) {
 	// Ensure configuration values are compatible and sane
 	if !config.SyncMode.IsValid() {
 		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)
@@ -122,7 +121,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 	log.Info("Allocated trie memory caches", "clean", common.StorageSize(config.TrieCleanCache)*1024*1024, "dirty", common.StorageSize(config.TrieDirtyCache)*1024*1024, "snapshot", common.StorageSize(config.SnapshotCache)*1024*1024, "NoPruning", config.NoPruning)
 
 	// Assemble the Cortex object
-	chainDb, err := ctx.OpenDatabaseWithFreezer("chaindata", config.DatabaseCache, config.DatabaseHandles, config.DatabaseFreezer, "ctxc/db/chaindata/", false)
+	chainDb, err := stack.OpenDatabaseWithFreezer("chaindata", config.DatabaseCache, config.DatabaseHandles, config.DatabaseFreezer, "ctxc/db/chaindata/", false)
 	if err != nil {
 		return nil, err
 	}
@@ -131,20 +130,12 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		return nil, genesisErr
 	}
 
-	log.Info("")
-	log.Info(strings.Repeat("-", 153))
-	for _, line := range strings.Split(chainConfig.String(), "\n") {
-		log.Info(line)
-	}
-	log.Info(strings.Repeat("-", 153))
-	log.Info("")
-
 	ctxc := &Cortex{
 		config:            config,
 		chainDb:           chainDb,
 		chainConfig:       chainConfig,
-		eventMux:          ctx.EventMux,
-		accountManager:    ctx.AccountManager,
+		eventMux:          stack.EventMux(),
+		accountManager:    stack.AccountManager(),
 		engine:            CreateConsensusEngine(ctx, chainConfig, &config.Cuckoo, config.Miner.Notify, config.Miner.Noverify, chainDb),
 		closeBloomHandler: make(chan struct{}),
 		networkID:         config.NetworkId,
