@@ -176,7 +176,7 @@ func newTestBackend(t *testing.T) (*node.Node, []*types.Block) {
 	n.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 		config := &ctxc.Config{Genesis: genesis}
 		config.Cuckoo.PowMode = cuckoo.ModeFake
-		ctxcservice, err = ctxc.New(ctx, config)
+		ctxcservice, err = ctxc.New(n, config)
 		return ctxcservice, err
 	})
 

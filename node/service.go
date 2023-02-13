@@ -19,8 +19,8 @@ package node
 import (
 	"reflect"
 
-	"github.com/CortexFoundation/CortexTheseus/accounts"
-	"github.com/CortexFoundation/CortexTheseus/event"
+	//"github.com/CortexFoundation/CortexTheseus/accounts"
+	//"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 )
@@ -29,10 +29,10 @@ import (
 // the protocol stack, that is passed to all constructors to be optionally used;
 // as well as utility methods to operate on the service environment.
 type ServiceContext struct {
-	services       map[reflect.Type]Service // Index of the already constructed services
-	Config         Config
-	EventMux       *event.TypeMux    // Event multiplexer used for decoupled notifications
-	AccountManager *accounts.Manager // Account manager created by the node.
+	services map[reflect.Type]Service // Index of the already constructed services
+	//Config         Config
+	//EventMux       *event.TypeMux    // Event multiplexer used for decoupled notifications
+	//AccountManager *accounts.Manager // Account manager created by the node.
 }
 
 // OpenDatabase opens an existing database with the given name (or creates one
@@ -84,9 +84,9 @@ func (ctx *ServiceContext) Service(service interface{}) error {
 
 // ExtRPCEnabled returns the indicator whether node enables the external
 // RPC(http, ws or graphql).
-func (ctx *ServiceContext) ExtRPCEnabled() bool {
-	return ctx.Config.ExtRPCEnabled()
-}
+//func (ctx *ServiceContext) ExtRPCEnabled() bool {
+//	return ctx.Config.ExtRPCEnabled()
+//}
 
 // ServiceConstructor is the function signature of the constructors needed to be
 // registered for service instantiation.
