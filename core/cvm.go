@@ -57,7 +57,7 @@ func NewCVMBlockContext(header *types.Header, chain ChainContext, author *common
 		GetHash:     GetHashFn(header, chain),
 		Coinbase:    beneficiary,
 		BlockNumber: new(big.Int).Set(header.Number),
-		Time:        new(big.Int).SetUint64(header.Time),
+		Time:        header.Time,
 		Difficulty:  new(big.Int).Set(header.Difficulty),
 		GasLimit:    header.GasLimit,
 		Quota:       header.Quota,

@@ -353,12 +353,6 @@ func (pm *ProtocolManager) runPeer(p *peer) error {
 	}
 	pm.peerWG.Add(1)
 	defer pm.peerWG.Done()
-	return pm.handle(p)
-}
-
-// handle is the callback invoked to manage the life cycle of an ctxc peer. When
-// this function terminates, the peer is disconnected.
-func (pm *ProtocolManager) handle(p *peer) error {
 	// Ignore maxPeers if this is a trusted peer
 	if pm.peers.Len() >= pm.maxPeers && !p.Peer.Info().Network.Trusted {
 		return p2p.DiscTooManyPeers
@@ -384,8 +378,13 @@ func (pm *ProtocolManager) handle(p *peer) error {
 	}
 	defer pm.unregisterPeer(p.id)
 
+	if pm.peers.Peer(p.id) == nil {
+		return errors.New("peer dropped during handling")
+	}
+
 	// Register the peer in the downloader. If the downloader considers it banned, we disconnect
 	if err := pm.downloader.RegisterPeer(p.id, p.version, p); err != nil {
+		p.Log().Error("Failed to register peer in syncer", "err", err)
 		return err
 	}
 	pm.chainSync.handlePeerEvent(p)

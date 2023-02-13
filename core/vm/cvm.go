@@ -97,7 +97,7 @@ type BlockContext struct {
 	GasLimit    uint64         // Provides information for GASLIMIT
 	Quota       uint64
 	BlockNumber *big.Int     // Provides information for NUMBER
-	Time        *big.Int     // Provides information for TIME
+	Time        uint64       // Provides information for TIME
 	Difficulty  *big.Int     // Provides information for DIFFICULTY
 	Random      *common.Hash // Provides information for RANDOM
 }
@@ -161,11 +161,10 @@ func NewCVM(blockCtx BlockContext, txCtx TxContext, statedb StateDB, chainConfig
 		vmConfig:    vmConfig,
 		chainConfig: chainConfig,
 		category:    Category{},
-		chainRules:  chainConfig.Rules(blockCtx.BlockNumber, blockCtx.Random != nil),
-		//Fs:           fileFs,
+		chainRules:  chainConfig.Rules(blockCtx.BlockNumber, blockCtx.Random != nil, blockCtx.Time),
 	}
 
-	cvm.interpreter = NewCVMInterpreter(cvm, vmConfig)
+	cvm.interpreter = NewCVMInterpreter(cvm)
 
 	return cvm
 }
@@ -194,6 +193,18 @@ func (cvm *CVM) Interpreter() *CVMInterpreter {
 
 func (cvm *CVM) Config() Config {
 	return cvm.vmConfig
+}
+
+func (cvm *CVM) SetExtraEips(extraEips []int) {
+	cvm.vmConfig.ExtraEips = extraEips
+}
+
+// SetBlockContext updates the block context of the CVM.
+func (cvm *CVM) SetBlockContext(blockCtx BlockContext) {
+	cvm.Context = blockCtx
+	num := blockCtx.BlockNumber
+	timestamp := blockCtx.Time
+	cvm.chainRules = cvm.chainConfig.Rules(num, blockCtx.Random != nil, timestamp)
 }
 
 // Call executes the contract associated with the addr with the given input as

@@ -50,8 +50,6 @@ type Config struct {
 	DebugInferVM bool
 	StorageDir   string
 	// Storagefs    torrentfs.CVMStorage
-	//JumpTable [256]*operation // CVM instruction table, automatically populated if unset
-	JumpTable *JumpTable // CVM instruction table, automatically populated if unset
 
 	ExtraEips []int // Additional EIPS that are to be enabled
 }
@@ -72,7 +70,7 @@ type ScopeContext struct {
 // CVMInterpreter represents an CVM interpreter
 type CVMInterpreter struct {
 	cvm      *CVM
-	cfg      Config
+	table    *JumpTable
 	gasTable params.GasTable
 
 	hasher    crypto.KeccakState // Keccak256 hasher instance shared across opcodes
@@ -87,48 +85,48 @@ type CVMInterpreter struct {
 }
 
 // NewCVMInterpreter returns a new instance of the Interpreter.
-func NewCVMInterpreter(cvm *CVM, cfg Config) *CVMInterpreter {
+func NewCVMInterpreter(cvm *CVM) *CVMInterpreter {
 	// If jump table was not initialised we set the default one.
-	if cfg.JumpTable == nil {
-		switch {
-		case cvm.chainRules.IsMerge:
-			cfg.JumpTable = &mergeInstructionSet
-		case cvm.chainRules.IsNeo:
-			cfg.JumpTable = &neoInstructionSet
-		case cvm.chainRules.IsIstanbul:
-			cfg.JumpTable = &istanbulInstructionSet
-		case cvm.chainRules.IsConstantinople:
-			cfg.JumpTable = &constantinopleInstructionSet
-		case cvm.chainRules.IsByzantium:
-			cfg.JumpTable = &byzantiumInstructionSet
-		case cvm.chainRules.IsEIP158:
-			cfg.JumpTable = &spuriousDragonInstructionSet
-		case cvm.chainRules.IsEIP150:
-			cfg.JumpTable = &tangerineWhistleInstructionSet
-		case cvm.chainRules.IsHomestead:
-			cfg.JumpTable = &homesteadInstructionSet
-		default:
-			cfg.JumpTable = &frontierInstructionSet
-		}
-		var extraEips []int
-		if len(cfg.ExtraEips) > 0 {
-			// Deep-copy jumptable to prevent modification of opcodes in other tables
-			cfg.JumpTable = copyJumpTable(cfg.JumpTable)
-		}
-		for _, eip := range cfg.ExtraEips {
-			if err := EnableEIP(eip, cfg.JumpTable); err != nil {
-				// Disable it, so caller can check if it's activated or not
-				log.Error("EIP activation failed", "eip", eip, "error", err)
-			} else {
-				extraEips = append(extraEips, eip)
-			}
-		}
-		cfg.ExtraEips = extraEips
+	var table *JumpTable
+	switch {
+	case cvm.chainRules.IsMerge:
+		table = &mergeInstructionSet
+	case cvm.chainRules.IsNeo:
+		table = &neoInstructionSet
+	case cvm.chainRules.IsIstanbul:
+		table = &istanbulInstructionSet
+	case cvm.chainRules.IsConstantinople:
+		table = &constantinopleInstructionSet
+	case cvm.chainRules.IsByzantium:
+		table = &byzantiumInstructionSet
+	case cvm.chainRules.IsEIP158:
+		table = &spuriousDragonInstructionSet
+	case cvm.chainRules.IsEIP150:
+		table = &tangerineWhistleInstructionSet
+	case cvm.chainRules.IsHomestead:
+		table = &homesteadInstructionSet
+	default:
+		table = &frontierInstructionSet
 	}
+	var extraEips []int
+	if len(cvm.Config().ExtraEips) > 0 {
+		// Deep-copy jumptable to prevent modification of opcodes in other tables
+		table = copyJumpTable(table)
+	}
+	for _, eip := range cvm.Config().ExtraEips {
+		if err := EnableEIP(eip, table); err != nil {
+			// Disable it, so caller can check if it's activated or not
+			log.Error("EIP activation failed", "eip", eip, "error", err)
+		} else {
+			extraEips = append(extraEips, eip)
+		}
+	}
+	//cvm.Config().ExtraEips = extraEips
+	cvm.SetExtraEips(extraEips)
 
 	return &CVMInterpreter{
 		cvm:      cvm,
-		cfg:      cfg,
+		table:    table,
 		gasTable: cvm.ChainConfig().GasTable(cvm.Context.BlockNumber),
 	}
 }
@@ -342,13 +340,13 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	contract.Input = input
 
 	// Reclaim the stack as an int pool when the execution stops
-	if in.cfg.Debug {
+	if in.cvm.Config().Debug {
 		defer func() {
 			if err != nil {
 				if !logged {
-					in.cfg.Tracer.CaptureState(pcCopy, op, gasCopy, cost, callContext, in.returnData, in.cvm.depth, err)
+					in.cvm.Config().Tracer.CaptureState(pcCopy, op, gasCopy, cost, callContext, in.returnData, in.cvm.depth, err)
 				} else {
-					in.cfg.Tracer.CaptureFault(pcCopy, op, gasCopy, cost, callContext, in.cvm.depth, err)
+					in.cvm.Config().Tracer.CaptureFault(pcCopy, op, gasCopy, cost, callContext, in.cvm.depth, err)
 				}
 			}
 		}()
@@ -364,7 +362,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	cgas := uint64(0)
 	//for atomic.LoadInt32(&in.cvm.abort) == 0 {
 	for {
-		if in.cfg.Debug {
+		if in.cvm.Config().Debug {
 			// Capture pre-execution values for tracing.
 			logged, pcCopy, gasCopy = false, pc, contract.Gas
 		}
@@ -372,7 +370,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		// Get the operation from the jump table and validate the stack to ensure there are
 		// enough stack items available to perform the operation.
 		op = contract.GetOp(pc)
-		operation := in.cfg.JumpTable[op]
+		operation := in.table[op]
 		//if operation == nil {
 		//	return nil, fmt.Errorf("invalid opcode 0x%x", int(op))
 		//}
@@ -437,8 +435,8 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			mem.Resize(memorySize)
 		}
 
-		if in.cfg.Debug {
-			in.cfg.Tracer.CaptureState(pc, op, gasCopy, cost, callContext, in.returnData, in.cvm.depth, err)
+		if in.cvm.Config().Debug {
+			in.cvm.Config().Tracer.CaptureState(pc, op, gasCopy, cost, callContext, in.returnData, in.cvm.depth, err)
 			logged = true
 		}
 

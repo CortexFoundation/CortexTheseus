@@ -484,8 +484,7 @@ func opCoinbase(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeConte
 }
 
 func opTimestamp(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	v, _ := uint256.FromBig(interpreter.cvm.Context.Time)
-	callContext.Stack.push(v)
+	callContext.Stack.push(new(uint256.Int).SetUint64(interpreter.cvm.Context.Time))
 	return nil, nil
 }
 

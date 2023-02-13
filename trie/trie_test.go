@@ -93,7 +93,7 @@ func testMissingNode(t *testing.T, memonly bool) {
 	updateString(trie, "123456", "asdfasdfasdfasdfasdfasdfasdfasdf")
 	root, _ := trie.Commit(nil)
 	if !memonly {
-		triedb.Commit(root, true, nil)
+		triedb.Commit(root, false)
 	}
 
 	trie, _ = New(root, triedb)
@@ -775,16 +775,12 @@ func (b *spongeBatch) Replay(w ctxcdb.KeyValueWriter) error { return nil }
 // to check whether changes to the trie modifies the write order or data in any way.
 func TestCommitSequence(t *testing.T) {
 	for i, tc := range []struct {
-		count              int
-		expWriteSeqHash    []byte
-		expCallbackSeqHash []byte
+		count           int
+		expWriteSeqHash []byte
 	}{
-		{20, common.FromHex("f9083ec8b3373477558cad81a110453c7f7ade7a6126e3c92b127d074df8762a"),
-			common.FromHex("bcf2980e0851a69c96a223069b914c7f46c2a14f3d931630b0860fe152c76fd1")},
-		{200, common.FromHex("216320bbfcb52aab6fcce96a24898b4569d4fe2c1a5edb7852a836b8fa8eae5c"),
-			common.FromHex("9b1466fad4c026d307aea6856327e674213c8e3b85764229dc7d8887128600ec")},
-		{2000, common.FromHex("c08d07ae54ff4f14f8a87fbaeae90052ed41fdf83008ae3961ede9260ea9f54d"),
-			common.FromHex("ea52682b267f6b6b6eb4ae55f6ee52967111657775c5124037e69b2674cbe68d")},
+		{20, common.FromHex("f9083ec8b3373477558cad81a110453c7f7ade7a6126e3c92b127d074df8762a")},
+		{200, common.FromHex("216320bbfcb52aab6fcce96a24898b4569d4fe2c1a5edb7852a836b8fa8eae5c")},
+		{2000, common.FromHex("c08d07ae54ff4f14f8a87fbaeae90052ed41fdf83008ae3961ede9260ea9f54d")},
 	} {
 		addresses, accounts := makeAccounts(tc.count)
 		// This spongeDb is used to check the sequence of disk-db-writes
@@ -792,7 +788,6 @@ func TestCommitSequence(t *testing.T) {
 		db := NewDatabase(s)
 		trie, _ := New(common.Hash{}, db)
 		// Another sponge is used to check the callback-sequence
-		callbackSponge := sha3.NewLegacyKeccak256()
 		// Fill the trie with elements
 		for i := 0; i < tc.count; i++ {
 			trie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
@@ -800,15 +795,9 @@ func TestCommitSequence(t *testing.T) {
 		// Flush trie -> database
 		root, _ := trie.Commit(nil)
 		// Flush memdb -> disk (sponge)
-		db.Commit(root, false, func(c common.Hash) {
-			// And spongify the callback-order
-			callbackSponge.Write(c[:])
-		})
+		db.Commit(root, false)
 		if got, exp := s.sponge.Sum(nil), tc.expWriteSeqHash; !bytes.Equal(got, exp) {
 			t.Errorf("test %d, disk write sequence wrong:\ngot %x exp %x\n", i, got, exp)
-		}
-		if got, exp := callbackSponge.Sum(nil), tc.expCallbackSeqHash; !bytes.Equal(got, exp) {
-			t.Errorf("test %d, call back sequence wrong:\ngot: %x exp %x\n", i, got, exp)
 		}
 	}
 }
@@ -817,24 +806,18 @@ func TestCommitSequence(t *testing.T) {
 // but uses random blobs instead of 'accounts'
 func TestCommitSequenceRandomBlobs(t *testing.T) {
 	for i, tc := range []struct {
-		count              int
-		expWriteSeqHash    []byte
-		expCallbackSeqHash []byte
+		count           int
+		expWriteSeqHash []byte
 	}{
-		{20, common.FromHex("8e4a01548551d139fa9e833ebc4e66fc1ba40a4b9b7259d80db32cff7b64ebbc"),
-			common.FromHex("450238d73bc36dc6cc6f926987e5428535e64be403877c4560e238a52749ba24")},
-		{200, common.FromHex("6869b4e7b95f3097a19ddb30ff735f922b915314047e041614df06958fc50554"),
-			common.FromHex("0ace0b03d6cb8c0b82f6289ef5b1a1838306b455a62dafc63cada8e2924f2550")},
-		{2000, common.FromHex("444200e6f4e2df49f77752f629a96ccf7445d4698c164f962bbd85a0526ef424"),
-			common.FromHex("117d30dafaa62a1eed498c3dfd70982b377ba2b46dd3e725ed6120c80829e518")},
+		{20, common.FromHex("8e4a01548551d139fa9e833ebc4e66fc1ba40a4b9b7259d80db32cff7b64ebbc")},
+		{200, common.FromHex("6869b4e7b95f3097a19ddb30ff735f922b915314047e041614df06958fc50554")},
+		{2000, common.FromHex("444200e6f4e2df49f77752f629a96ccf7445d4698c164f962bbd85a0526ef424")},
 	} {
 		prng := rand.New(rand.NewSource(int64(i)))
 		// This spongeDb is used to check the sequence of disk-db-writes
 		s := &spongeDb{sponge: sha3.NewLegacyKeccak256()}
 		db := NewDatabase(s)
 		trie, _ := New(common.Hash{}, db)
-		// Another sponge is used to check the callback-sequence
-		callbackSponge := sha3.NewLegacyKeccak256()
 		// Fill the trie with elements
 		for i := 0; i < tc.count; i++ {
 			key := make([]byte, 32)
@@ -852,15 +835,9 @@ func TestCommitSequenceRandomBlobs(t *testing.T) {
 		// Flush trie -> database
 		root, _ := trie.Commit(nil)
 		// Flush memdb -> disk (sponge)
-		db.Commit(root, false, func(c common.Hash) {
-			// And spongify the callback-order
-			callbackSponge.Write(c[:])
-		})
+		db.Commit(root, false)
 		if got, exp := s.sponge.Sum(nil), tc.expWriteSeqHash; !bytes.Equal(got, exp) {
 			t.Fatalf("test %d, disk write sequence wrong:\ngot %x exp %x\n", i, got, exp)
-		}
-		if got, exp := callbackSponge.Sum(nil), tc.expCallbackSeqHash; !bytes.Equal(got, exp) {
-			t.Fatalf("test %d, call back sequence wrong:\ngot: %x exp %x\n", i, got, exp)
 		}
 	}
 }
@@ -894,7 +871,7 @@ func TestCommitSequenceStackTrie(t *testing.T) {
 		// Flush trie -> database
 		root, _ := trie.Commit(nil)
 		// Flush memdb -> disk (sponge)
-		db.Commit(root, false, nil)
+		db.Commit(root, false)
 		// And flush stacktrie -> disk
 		stRoot, err := stTrie.Commit()
 		if err != nil {
@@ -939,7 +916,7 @@ func TestCommitSequenceSmallRoot(t *testing.T) {
 	// Flush trie -> database
 	root, _ := trie.Commit(nil)
 	// Flush memdb -> disk (sponge)
-	db.Commit(root, false, nil)
+	db.Commit(root, false)
 	// And flush stacktrie -> disk
 	stRoot, err := stTrie.Commit()
 	if err != nil {

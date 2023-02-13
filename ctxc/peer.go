@@ -179,6 +179,16 @@ func (p *peer) SetHead(hash common.Hash, td *big.Int) {
 	p.td.Set(td)
 }
 
+// KnownBlock returns whether peer is known to already have a block.
+func (p *peer) KnownBlock(hash common.Hash) bool {
+	return p.knownBlocks.Contains(hash)
+}
+
+// KnownTransaction returns whether peer is known to already have a transaction.
+func (p *peer) KnownTransaction(hash common.Hash) bool {
+	return p.knownTxs.Contains(hash)
+}
+
 // MarkBlock marks a block as known for the peer, ensuring that the block will
 // never be propagated to this particular peer.
 func (p *peer) MarkBlock(hash common.Hash) {

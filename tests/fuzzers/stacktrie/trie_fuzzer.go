@@ -182,7 +182,7 @@ func (f *fuzzer) fuzz() int {
 		panic(err)
 	}
 	// Flush memdb -> disk (sponge)
-	dbA.Commit(rootA, false, nil)
+	dbA.Commit(rootA, false)
 
 	// Stacktrie requires sorted insertion
 	sort.Sort(vals)

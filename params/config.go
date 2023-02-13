@@ -234,7 +234,7 @@ var (
 	AllCliqueProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, nil, false, nil, &CliqueConfig{Period: 0, Epoch: 30000}}
 
 	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, nil, false, new(CuckooConfig), nil}
-	TestRules       = TestChainConfig.Rules(new(big.Int), false)
+	TestRules       = TestChainConfig.Rules(new(big.Int), false, 0)
 )
 
 // NetworkNames are user friendly names to use in the chain spec banner.
@@ -577,7 +577,7 @@ type Rules struct {
 }
 
 // Rules ensures c's ChainID is not nil.
-func (c *ChainConfig) Rules(num *big.Int, isMerge bool) Rules {
+func (c *ChainConfig) Rules(num *big.Int, isMerge bool, timestamp uint64) Rules {
 	chainID := c.ChainID
 	if chainID == nil {
 		chainID = new(big.Int)
