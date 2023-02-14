@@ -126,7 +126,7 @@ type Sync struct {
 	membatch *syncMemBatch            // Memory buffer to avoid frequent database writes
 	nodeReqs map[common.Hash]*request // Pending requests pertaining to a trie node hash
 	codeReqs map[common.Hash]*request // Pending requests pertaining to a code hash
-	queue    *prque.Prque             // Priority queue with the pending requests
+	queue    *prque.Prque[int64, any] // Priority queue with the pending requests
 	fetches  map[int]int              // Number of active fetches per trie node depth
 	bloom    *SyncBloom               // Bloom filter for fast state existence checks
 }
@@ -138,7 +138,7 @@ func NewSync(root common.Hash, database ctxcdb.KeyValueReader, callback LeafCall
 		membatch: newSyncMemBatch(),
 		nodeReqs: make(map[common.Hash]*request),
 		codeReqs: make(map[common.Hash]*request),
-		queue:    prque.New(nil),
+		queue:    prque.New[int64, any](nil),
 		fetches:  make(map[int]int),
 		bloom:    bloom,
 	}
