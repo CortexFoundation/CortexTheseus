@@ -1750,7 +1750,7 @@ func RegisterShhService(stack *node.Node, cfg *whisper.Config) {
 func RegisterStorageService(stack *node.Node, cfg *params1.Config) {
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 		//return torrentfs.New(cfg, true, false, downloader.FastSync == mode)
-		return torrentfs.New(cfg, false, false, false)
+		return torrentfs.New(cfg, true, false, false)
 	}); err != nil {
 		Fatalf("Failed to register the storage service: %v", err)
 	}
