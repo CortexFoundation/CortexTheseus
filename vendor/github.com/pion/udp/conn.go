@@ -9,8 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/pion/transport/deadline"
-	"github.com/pion/transport/packetio"
+	"github.com/pion/transport/v2/deadline"
+	"github.com/pion/transport/v2/packetio"
 	pkgSync "github.com/pion/udp/pkg/sync"
 )
 

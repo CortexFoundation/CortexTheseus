@@ -19,6 +19,7 @@ import (
 	"github.com/ucwong/golang-kv/badger"
 	"github.com/ucwong/golang-kv/bolt"
 	"github.com/ucwong/golang-kv/leveldb"
+	"github.com/ucwong/golang-kv/pebble"
 )
 
 func Badger(path string, opt ...badger.BadgerOption) Bucket {
@@ -31,4 +32,8 @@ func Bolt(path string, opt ...bolt.BoltOption) Bucket {
 
 func LevelDB(path string, opt ...leveldb.LevelDBOption) Bucket {
 	return leveldb.Open(path, opt...)
+}
+
+func Pebble(path string, opt ...pebble.PebbleOption) Bucket {
+	return pebble.Open(path, opt...)
 }

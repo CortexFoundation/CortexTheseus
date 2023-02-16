@@ -98,9 +98,9 @@ func (b *Bolt) Get(k []byte) (v []byte) {
 }
 
 func (b *Bolt) Set(k, v []byte) (err error) {
-	if _, err = b.ttl_map.Delete(string(k)); err != nil {
-		return
-	}
+	//if _, err = b.ttl_map.Delete(string(k)); err != nil {
+	//	return
+	//}
 
 	err = b.engine.Update(func(tx *bolt.Tx) error {
 		buk, e := tx.CreateBucketIfNotExists([]byte(GLOBAL))

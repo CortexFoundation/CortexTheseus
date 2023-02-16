@@ -45,6 +45,11 @@ ldb := kv.LevelDB("")
 defer ldb.Close()
 
 ...
+
+peb := kv.Pebble("")
+defer peb.Close()
+
+...
 ```
 ## Test
 ```
