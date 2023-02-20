@@ -51,6 +51,9 @@ type Node struct {
 	serverConfig p2p.Config
 	server       *p2p.Server // Currently running P2P networking layer
 
+	startStopLock sync.Mutex // Start/Stop are protected by an additional lock
+	state         int        // Tracks state of node lifecycle
+
 	serviceFuncs []ServiceConstructor     // Service constructors (in dependency order)
 	services     map[reflect.Type]Service // Currently running services
 
@@ -74,8 +77,6 @@ type Node struct {
 
 	stop chan struct{} // Channel to wait for termination notifications
 	lock sync.RWMutex
-
-	state int // Tracks state of node lifecycle
 
 	log       log.Logger
 	databases map[*closeTrackingDB]struct{} // All open databases
@@ -132,6 +133,7 @@ func New(conf *Config) (*Node, error) {
 		wsEndpoint:        conf.WSEndpoint(),
 		eventmux:          new(event.TypeMux),
 		log:               conf.Logger,
+		databases:         make(map[*closeTrackingDB]struct{}),
 	}, nil
 }
 
@@ -173,6 +175,9 @@ func (n *Node) Register(constructor ServiceConstructor) error {
 
 // Start creates a live P2P node and starts running it.
 func (n *Node) Start() error {
+	n.startStopLock.Lock()
+	defer n.startStopLock.Unlock()
+
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
@@ -207,10 +212,10 @@ func (n *Node) Start() error {
 	for _, constructor := range n.serviceFuncs {
 		// Create a new context for the particular service
 		ctx := &ServiceContext{
-			Config:         *n.config,
-			services:       make(map[reflect.Type]Service),
-			EventMux:       n.eventmux,
-			AccountManager: n.accman,
+			//Config:         *n.config,
+			services: make(map[reflect.Type]Service),
+			//EventMux:       n.eventmux,
+			//AccountManager: n.accman,
 		}
 		for kind, s := range services { // copy needed for threaded access
 			ctx.services[kind] = s
@@ -480,8 +485,10 @@ func (n *Node) stopWS() {
 // Stop terminates a running node along with all it's services. In the node was
 // not started, an error is returned.
 func (n *Node) Stop() error {
-	n.lock.Lock()
-	defer n.lock.Unlock()
+	n.startStopLock.Lock()
+	defer n.startStopLock.Unlock()
+	//n.lock.Lock()
+	//defer n.lock.Unlock()
 
 	// Short circuit if the node's not running
 	if n.server == nil {
@@ -659,11 +666,30 @@ func (n *Node) EventMux() *event.TypeMux {
 // OpenDatabase opens an existing database with the given name (or creates one if no
 // previous can be found) from within the node's instance directory. If the node is
 // ephemeral, a memory database is returned.
-func (n *Node) OpenDatabase(name string, cache, handles int, namespace string) (ctxcdb.Database, error) {
-	if n.config.DataDir == "" {
-		return rawdb.NewMemoryDatabase(), nil
+func (n *Node) OpenDatabase(name string, cache, handles int, namespace string, readonly bool) (ctxcdb.Database, error) {
+	if n.state == closedState {
+		return nil, ErrNodeStopped
 	}
-	return rawdb.NewLevelDBDatabase(n.config.ResolvePath(name), cache, handles, namespace, false)
+
+	var db ctxcdb.Database
+	var err error
+	if n.config.DataDir == "" {
+		db = rawdb.NewMemoryDatabase()
+	} else {
+		db, err = rawdb.Open(rawdb.OpenOptions{
+			Type:      n.config.DBEngine,
+			Directory: n.ResolvePath(name),
+			Namespace: namespace,
+			Cache:     cache,
+			Handles:   handles,
+			ReadOnly:  readonly,
+		})
+	}
+
+	if err == nil {
+		db = n.wrapDatabase(db)
+	}
+	return db, err
 }
 
 // OpenDatabaseWithFreezer opens an existing database with the given name (or
@@ -672,8 +698,8 @@ func (n *Node) OpenDatabase(name string, cache, handles int, namespace string) (
 // database to immutable append-only files. If the node is an ephemeral one, a
 // memory database is returned.
 func (n *Node) OpenDatabaseWithFreezer(name string, cache, handles int, ancient string, namespace string, readonly bool) (ctxcdb.Database, error) {
-	n.lock.Lock()
-	defer n.lock.Unlock()
+	//n.lock.Lock()
+	//defer n.lock.Unlock()
 	if n.state == closedState {
 		return nil, ErrNodeStopped
 	}
@@ -684,7 +710,15 @@ func (n *Node) OpenDatabaseWithFreezer(name string, cache, handles int, ancient 
 	if n.config.DataDir == "" {
 		db = rawdb.NewMemoryDatabase()
 	} else {
-		db, err = rawdb.NewLevelDBDatabaseWithFreezer(n.ResolvePath(name), cache, handles, n.ResolveAncient(name, ancient), namespace, readonly)
+		db, err = rawdb.Open(rawdb.OpenOptions{
+			Type:              n.config.DBEngine,
+			Directory:         n.ResolvePath(name),
+			AncientsDirectory: n.ResolveAncient(name, ancient),
+			Namespace:         namespace,
+			Cache:             cache,
+			Handles:           handles,
+			ReadOnly:          readonly,
+		})
 	}
 	if err == nil {
 		db = n.wrapDatabase(db)
@@ -786,5 +820,5 @@ func (n *Node) closeDatabases() (errors []error) {
 			errors = append(errors, err)
 		}
 	}
-	return nil
+	return errors
 }

@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/p2p/dnsdisc"
@@ -39,7 +40,7 @@ import (
 	"github.com/CortexFoundation/torrentfs/types"
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/metainfo"
-	//mapset "github.com/deckarep/golang-set/v2"
+	mapset "github.com/deckarep/golang-set/v2"
 	//lru "github.com/hashicorp/golang-lru"
 	cp "github.com/otiai10/copy"
 
@@ -75,7 +76,7 @@ type TorrentFS struct {
 	closeAll chan struct{}
 	wg       sync.WaitGroup
 	once     sync.Once
-	//worm     mapset.Set[string]
+	worm     mapset.Set[string]
 
 	tunnel *ttlmap.Map
 
@@ -151,7 +152,7 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 	//inst.scoreTable = make(map[string]int)
 	//inst.seedingNotify = make(chan string, 32)
 
-	//inst.worm = mapset.NewSet[string]()
+	inst.worm = mapset.NewSet[string]()
 
 	inst.protocol = p2p.Protocol{
 		Name:    params.ProtocolName,
@@ -180,6 +181,7 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 					"sent":       inst.sent,
 				},
 				//"score": inst.scoreTable,
+				"worm": inst.worm,
 			}
 		},
 		PeerInfo: func(id enode.ID) any {
@@ -260,6 +262,7 @@ func (fs *TorrentFS) listen() {
 		select {
 		case msg := <-fs.callback:
 			meta := msg.(*types.BitsFlow)
+			//if meta.Request() > 0 || (params.IsGood(meta.InfoHash()) && fs.config.Mode != params.LAZY) {
 			if meta.Request() > 0 || params.IsGood(meta.InfoHash()) {
 				fs.download(context.Background(), meta.InfoHash(), meta.Request())
 			} else {
@@ -445,8 +448,10 @@ func (fs *TorrentFS) bitsflow(ctx context.Context, ih string, size uint64) error
 func (tfs *TorrentFS) Stop() error {
 	if tfs == nil || tfs.monitor == nil {
 		log.Info("Cortex fs engine is already stopped")
-		return nil
+		return errors.New("fs has been stopped")
 	}
+
+	tfs.monitor.Stop()
 
 	tfs.once.Do(func() {
 		close(tfs.closeAll)
@@ -454,22 +459,9 @@ func (tfs *TorrentFS) Stop() error {
 
 	tfs.wg.Wait()
 
-	// Wait until every goroutine terminates.
-	//tfs.monitor.lock.Lock()
-	tfs.monitor.Stop()
-	//tfs.monitor.lock.Unlock()
-
-	//if tfs.nasCache != nil {
-	//	tfs.nasCache.Purge()
-	//}
-
 	if tfs.tunnel != nil {
 		tfs.tunnel.Drain()
 	}
-
-	//if tfs.queryCache != nil {
-	//	tfs.queryCache.Purge()
-	//}
 	log.Info("Cortex fs engine stopped")
 	return nil
 }
@@ -498,26 +490,72 @@ func (fs *TorrentFS) broadcast(ih string, rawSize uint64) bool {
 	return true
 }*/
 
+func (fs *TorrentFS) IsActive(err error) bool {
+	return !errors.Is(err, backend.ErrInactiveTorrent)
+}
+
 // Available is used to check the file status
 func (fs *TorrentFS) wakeup(ctx context.Context, ih string, rawSize uint64) (bool, error) {
-	ret, _, _, err := fs.storage().Available(ih, rawSize)
-	if errors.Is(err, backend.ErrInactiveTorrent) {
+	exist, _, _, err := fs.storage().Exists(ih, rawSize)
+	if !fs.IsActive(err) {
+		// to active
 		if progress, e := fs.progress(ih); e == nil {
-			fs.bitsflow(ctx, ih, progress)
+			fs.bitsflow(ctx, ih, progress) // to be downloaded
 		}
 	}
-	return ret, err
+	return exist, err
 }
 
 func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSize uint64, subpath string) ([]byte, error) {
-	log.Debug("Get file with size", "ih", infohash, "size", rawSize, "path", subpath)
-	if ret, _, err := fs.storage().GetFile(infohash, subpath); err != nil {
-		fs.wakeup(ctx, infohash, rawSize)
+	log.Debug("Get file with size", "ih", infohash, "size", common.StorageSize(rawSize), "path", subpath)
+	if ret, err := fs.storage().GetFile(ctx, infohash, subpath); err != nil {
+		fs.wg.Add(1)
+		go func() {
+			defer fs.wg.Done()
+			fs.wakeup(ctx, infohash, rawSize)
+		}()
+		//if fs.config.Mode == params.LAZY && params.IsGood(infohash) {
+		if params.IsGood(infohash) {
+			start := mclock.Now()
+			log.Info("Downloading ... ...", "ih", infohash, "size", common.StorageSize(rawSize))
+			t := time.NewTimer(500 * time.Millisecond)
+			defer t.Stop()
+			for {
+				select {
+				case <-t.C:
+					if ret, err := fs.storage().GetFile(ctx, infohash, subpath); err != nil {
+						log.Debug("File downloading ... ...", "ih", infohash, "size", common.StorageSize(rawSize), "path", subpath, "err", err)
+						t.Reset(100 * time.Millisecond)
+					} else {
+						elapsed := time.Duration(mclock.Now()) - time.Duration(start)
+						log.Info("Downloaded", "ih", infohash, "size", common.StorageSize(rawSize), "elapsed", common.PrettyDuration(elapsed))
+						if uint64(len(ret)) > rawSize {
+							return nil, backend.ErrInvalidRawSize
+						}
+						return ret, err
+					}
+				case <-ctx.Done():
+					log.Warn("Timeout", "ih", infohash, "size", common.StorageSize(rawSize), "err", ctx.Err())
+					return nil, ctx.Err()
+				}
+			}
+		}
 		return nil, err
 	} else {
-		log.Debug("Get File directly", "ih", infohash, "size", rawSize, "path", subpath, "ret", len(ret))
-		// TODO t0 file found
+		if uint64(len(ret)) > rawSize {
+			return nil, backend.ErrInvalidRawSize
+		}
+		log.Debug("Get File directly", "ih", infohash, "size", common.StorageSize(rawSize), "path", subpath, "ret", len(ret))
+		if !params.IsGood(infohash) {
+			go fs.encounter(infohash)
+		}
 		return ret, nil
+	}
+}
+
+func (fs *TorrentFS) encounter(ih string) {
+	if !fs.worm.Contains(ih) {
+		fs.worm.Add(ih)
 	}
 }
 
@@ -695,23 +733,23 @@ func (fs *TorrentFS) Drop(ih string) error {
 	return nil
 }
 
-// Download is used to download file with request
+// Download is used to download file with request, broadcast when not found locally
 func (fs *TorrentFS) download(ctx context.Context, ih string, request uint64) error {
 	ih = strings.ToLower(ih)
 	_, p, err := fs.chain().SetTorrentProgress(ih, request)
 	if err != nil {
 		return err
 	}
-
-	fs.wg.Add(1)
-	go func(ih string, p uint64) {
-		defer fs.wg.Done()
-		s := fs.broadcast(ih, p)
-		if s {
-			log.Debug("Nas "+params.ProtocolVersionStr+" tunnel", "ih", ih, "request", common.StorageSize(float64(p)), "queue", fs.tunnel.Len(), "peers", len(fs.peers))
-		}
-	}(ih, p)
-
+	if exist, _, _, _ := fs.storage().Exists(ih, request); !exist {
+		fs.wg.Add(1)
+		go func(ih string, p uint64) {
+			defer fs.wg.Done()
+			s := fs.broadcast(ih, p)
+			if s {
+				log.Debug("Nas "+params.ProtocolVersionStr+" tunnel", "ih", ih, "request", common.StorageSize(float64(p)), "queue", fs.tunnel.Len(), "peers", len(fs.peers))
+			}
+		}(ih, p)
+	}
 	// local search
 	if err := fs.storage().Search(ctx, ih, p); err != nil {
 		return err

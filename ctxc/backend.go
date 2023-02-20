@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"math/big"
 	"runtime"
-	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -101,7 +100,7 @@ type Cortex struct {
 
 // New creates a new Cortex object (including the
 // initialisation of the common Cortex object)
-func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
+func New(stack *node.Node, config *Config) (*Cortex, error) {
 	// Ensure configuration values are compatible and sane
 	if !config.SyncMode.IsValid() {
 		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)
@@ -122,7 +121,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 	log.Info("Allocated trie memory caches", "clean", common.StorageSize(config.TrieCleanCache)*1024*1024, "dirty", common.StorageSize(config.TrieDirtyCache)*1024*1024, "snapshot", common.StorageSize(config.SnapshotCache)*1024*1024, "NoPruning", config.NoPruning)
 
 	// Assemble the Cortex object
-	chainDb, err := ctx.OpenDatabaseWithFreezer("chaindata", config.DatabaseCache, config.DatabaseHandles, config.DatabaseFreezer, "ctxc/db/chaindata/", false)
+	chainDb, err := stack.OpenDatabaseWithFreezer("chaindata", config.DatabaseCache, config.DatabaseHandles, config.DatabaseFreezer, "ctxc/db/chaindata/", false)
 	if err != nil {
 		return nil, err
 	}
@@ -131,21 +130,15 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		return nil, genesisErr
 	}
 
-	log.Info("")
-	log.Info(strings.Repeat("-", 153))
-	for _, line := range strings.Split(chainConfig.String(), "\n") {
-		log.Info(line)
-	}
-	log.Info(strings.Repeat("-", 153))
-	log.Info("")
+	engine := CreateConsensusEngine(stack, chainConfig, &config.Cuckoo, config.Miner.Notify, config.Miner.Noverify, chainDb)
 
 	ctxc := &Cortex{
 		config:            config,
 		chainDb:           chainDb,
 		chainConfig:       chainConfig,
-		eventMux:          ctx.EventMux,
-		accountManager:    ctx.AccountManager,
-		engine:            CreateConsensusEngine(ctx, chainConfig, &config.Cuckoo, config.Miner.Notify, config.Miner.Noverify, chainDb),
+		eventMux:          stack.EventMux(),
+		accountManager:    stack.AccountManager(),
+		engine:            engine,
 		closeBloomHandler: make(chan struct{}),
 		networkID:         config.NetworkId,
 		gasPrice:          config.Miner.GasPrice,
@@ -191,7 +184,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 		}
 		cacheConfig = &core.CacheConfig{
 			TrieCleanLimit:      config.TrieCleanCache,
-			TrieCleanJournal:    ctx.ResolvePath(config.TrieCleanCacheJournal),
+			TrieCleanJournal:    stack.ResolvePath(config.TrieCleanCacheJournal),
 			TrieCleanRejournal:  config.TrieCleanCacheRejournal,
 			TrieCleanNoPrefetch: config.NoPrefetch,
 			TrieDirtyDisabled:   config.NoPruning,
@@ -217,7 +210,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 	ctxc.bloomIndexer.Start(ctxc.blockchain)
 
 	if config.TxPool.Journal != "" {
-		config.TxPool.Journal = ctx.ResolvePath(config.TxPool.Journal)
+		config.TxPool.Journal = stack.ResolvePath(config.TxPool.Journal)
 	}
 	ctxc.txPool = txpool.NewTxPool(config.TxPool, ctxc.chainConfig, ctxc.blockchain)
 
@@ -230,7 +223,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cortex, error) {
 	ctxc.miner = miner.New(ctxc, &config.Miner, ctxc.chainConfig, ctxc.EventMux(), ctxc.engine, ctxc.isLocalBlock)
 	ctxc.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
 
-	ctxc.APIBackend = &CortexAPIBackend{ctx.Config.AllowUnprotectedTxs, ctxc, nil}
+	ctxc.APIBackend = &CortexAPIBackend{stack.Config().AllowUnprotectedTxs, ctxc, nil}
 	if ctxc.APIBackend.allowUnprotectedTxs {
 		log.Info("Unprotected transactions allowed")
 	}
@@ -269,7 +262,7 @@ func makeExtraData(extra []byte) []byte {
 
 // CreateConsensusEngine creates the required type of consensus engine instance for an Cortex service
 // func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainConfig, config *cuckoo.Config, notify []string, db ctxcdb.Database) consensus.Engine {
-func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainConfig, config *cuckoo.Config, notify []string, noverify bool, db ctxcdb.Database) consensus.Engine {
+func CreateConsensusEngine(ctx *node.Node, chainConfig *params.ChainConfig, config *cuckoo.Config, notify []string, noverify bool, db ctxcdb.Database) consensus.Engine {
 	// If proof-of-authority is requested, set it up
 	if chainConfig.Clique != nil {
 		return clique.New(chainConfig.Clique, db)

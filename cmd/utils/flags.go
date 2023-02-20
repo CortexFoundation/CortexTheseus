@@ -137,6 +137,11 @@ var (
 		Usage: "Data directory for the databases and keystore",
 		Value: DirectoryString{node.DefaultDataDir()},
 	}
+	DBEngineFlag = &cli.StringFlag{
+		Name:  "db.engine",
+		Usage: "Backing database implementation to use ('leveldb' or 'pebble')",
+		Value: "leveldb",
+	}
 	AncientFlag = DirectoryFlag{
 		Name:  "datadir.ancient",
 		Usage: "Data directory for ancient chain segments (default = inside chaindata)",
@@ -1221,6 +1226,14 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	if ctx.GlobalIsSet(InsecureUnlockAllowedFlag.Name) {
 		cfg.InsecureUnlockAllowed = ctx.GlobalBool(InsecureUnlockAllowedFlag.Name)
 	}
+	if ctx.IsSet(DBEngineFlag.Name) {
+		dbEngine := ctx.String(DBEngineFlag.Name)
+		if dbEngine != "leveldb" && dbEngine != "pebble" {
+			Fatalf("Invalid choice for db.engine '%s', allowed 'leveldb' or 'pebble'", dbEngine)
+		}
+		log.Info(fmt.Sprintf("Using %s as db engine", dbEngine))
+		cfg.DBEngine = dbEngine
+	}
 }
 
 func setGPO(ctx *cli.Context, cfg *gasprice.Config) {
@@ -1714,8 +1727,7 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *params1.Config) {
 func RegisterCortexService(stack *node.Node, cfg *ctxc.Config) {
 	var err error
 	err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		fullNode, err := ctxc.New(ctx, cfg)
-		//go stack.RegisterAPIs(tracers.APIs(fullNode.APIBackend))
+		fullNode, err := ctxc.New(stack, cfg)
 		return fullNode, err
 	})
 
@@ -1738,7 +1750,7 @@ func RegisterShhService(stack *node.Node, cfg *whisper.Config) {
 func RegisterStorageService(stack *node.Node, cfg *params1.Config) {
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 		//return torrentfs.New(cfg, true, false, downloader.FastSync == mode)
-		return torrentfs.New(cfg, false, false, false)
+		return torrentfs.New(cfg, true, false, false)
 	}); err != nil {
 		Fatalf("Failed to register the storage service: %v", err)
 	}
@@ -1839,7 +1851,7 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 // MakeChain creates a chain manager from set command line flags.
 func MakeChain(ctx *cli.Context, stack *node.Node, readOnly bool) (chain *core.BlockChain, chainDb ctxcdb.Database) {
 	var err error
-	chainDb = MakeChainDatabase(ctx, stack, false)
+	chainDb = MakeChainDatabase(ctx, stack, readOnly)
 
 	config, _, err := core.SetupGenesisBlock(chainDb, MakeGenesis(ctx))
 	if err != nil {

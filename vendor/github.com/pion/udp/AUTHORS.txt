@@ -2,7 +2,7 @@
 # we would love to have you https://github.com/pion/webrtc/wiki/Contributing
 #
 # This file is auto generated, using git to list all individuals contributors.
-# see `.github/generate-authors.sh` for the scripting
+# see https://github.com/pion/.goassets/blob/master/scripts/generate-authors.sh for the scripting
 Atsushi Watanabe <atsushi.w@ieee.org>
 Daniel Beseda <daniel.beseda@energomonitor.cz>
 Jozef Kralik <jojo.lwin@gmail.com>
@@ -10,3 +10,6 @@ Mathias Fredriksson <mafredri@gmail.com>
 Michiel De Backker <mail@backkem.me>
 sterling.deng <sterling.deng@getcruise.com>
 ZHENK <chengzhenyang@gmail.com>
+
+# List of contributors not appearing in Git history
+

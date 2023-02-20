@@ -26,4 +26,6 @@ var (
 	ErrUnfinished = errors.New("download not completed")
 
 	ErrTorrentNotFound = errors.New("torrent not found")
+
+	ErrInvalidRawSize = errors.New("invalid raw size")
 )

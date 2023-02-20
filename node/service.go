@@ -17,13 +17,10 @@
 package node
 
 import (
-	"path/filepath"
 	"reflect"
 
-	"github.com/CortexFoundation/CortexTheseus/accounts"
-	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
-	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
-	"github.com/CortexFoundation/CortexTheseus/event"
+	//"github.com/CortexFoundation/CortexTheseus/accounts"
+	//"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 )
@@ -32,28 +29,28 @@ import (
 // the protocol stack, that is passed to all constructors to be optionally used;
 // as well as utility methods to operate on the service environment.
 type ServiceContext struct {
-	services       map[reflect.Type]Service // Index of the already constructed services
-	Config         Config
-	EventMux       *event.TypeMux    // Event multiplexer used for decoupled notifications
-	AccountManager *accounts.Manager // Account manager created by the node.
+	services map[reflect.Type]Service // Index of the already constructed services
+	//Config         Config
+	//EventMux       *event.TypeMux    // Event multiplexer used for decoupled notifications
+	//AccountManager *accounts.Manager // Account manager created by the node.
 }
 
 // OpenDatabase opens an existing database with the given name (or creates one
 // if no previous can be found) from within the node's data directory. If the
 // node is an ephemeral one, a memory database is returned.
-func (ctx *ServiceContext) OpenDatabase(name string, cache int, handles int, namespace string) (ctxcdb.Database, error) {
+/*func (ctx *ServiceContext) OpenDatabase(name string, cache int, handles int, namespace string) (ctxcdb.Database, error) {
 	if ctx.Config.DataDir == "" {
 		return rawdb.NewMemoryDatabase(), nil
 	}
 	return rawdb.NewLevelDBDatabase(ctx.Config.ResolvePath(name), cache, handles, namespace, false)
-}
+}*/
 
 // OpenDatabaseWithFreezer opens an existing database with the given name (or
 // creates one if no previous can be found) from within the node's data directory,
 // also attaching a chain freezer to it that moves ancient chain data from the
 // database to immutable append-only files. If the node is an ephemeral one, a
 // memory database is returned.
-func (ctx *ServiceContext) OpenDatabaseWithFreezer(name string, cache int, handles int, freezer string, namespace string, readonly bool) (ctxcdb.Database, error) {
+/*func (ctx *ServiceContext) OpenDatabaseWithFreezer(name string, cache int, handles int, freezer string, namespace string, readonly bool) (ctxcdb.Database, error) {
 	if ctx.Config.DataDir == "" {
 		return rawdb.NewMemoryDatabase(), nil
 	}
@@ -66,14 +63,14 @@ func (ctx *ServiceContext) OpenDatabaseWithFreezer(name string, cache int, handl
 		freezer = ctx.Config.ResolvePath(freezer)
 	}
 	return rawdb.NewLevelDBDatabaseWithFreezer(root, cache, handles, freezer, namespace, readonly)
-}
+}*/
 
 // ResolvePath resolves a user path into the data directory if that was relative
 // and if the user actually uses persistent storage. It will return an empty string
 // for emphemeral storage and the user's own input for absolute paths.
-func (ctx *ServiceContext) ResolvePath(path string) string {
-	return ctx.Config.ResolvePath(path)
-}
+//func (ctx *ServiceContext) ResolvePath(path string) string {
+//	return ctx.Config.ResolvePath(path)
+//}
 
 // Service retrieves a currently running service registered of a specific type.
 func (ctx *ServiceContext) Service(service interface{}) error {
@@ -87,9 +84,9 @@ func (ctx *ServiceContext) Service(service interface{}) error {
 
 // ExtRPCEnabled returns the indicator whether node enables the external
 // RPC(http, ws or graphql).
-func (ctx *ServiceContext) ExtRPCEnabled() bool {
-	return ctx.Config.ExtRPCEnabled()
-}
+//func (ctx *ServiceContext) ExtRPCEnabled() bool {
+//	return ctx.Config.ExtRPCEnabled()
+//}
 
 // ServiceConstructor is the function signature of the constructors needed to be
 // registered for service instantiation.

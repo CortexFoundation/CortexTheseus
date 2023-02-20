@@ -90,7 +90,7 @@ func newTester(t *testing.T, confOverride func(*ctxc.Config)) *tester {
 	if confOverride != nil {
 		confOverride(ctxcConf)
 	}
-	if err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) { return ctxc.New(ctx, ctxcConf) }); err != nil {
+	if err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) { return ctxc.New(stack, ctxcConf) }); err != nil {
 		t.Fatalf("failed to register Cortex protocol: %v", err)
 	}
 	// Start the node and assemble the JavaScript console around it
