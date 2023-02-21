@@ -1193,9 +1193,6 @@ func (tm *TorrentManager) Drop(ih string) error {
 */
 func (tm *TorrentManager) Exists(ih string, rawSize uint64) (bool, uint64, mclock.AbsTime, error) {
 	availableMeter.Mark(1)
-	//if rawSize <= 0 {
-	//	return false, 0, 0, errors.New("raw size is zero or negative")
-	//}
 
 	if !common.IsHexAddress(ih) {
 		return false, 0, 0, errors.New("invalid infohash format")

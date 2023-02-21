@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
 	github.com/CortexFoundation/inference v1.0.2-0.20230214063856-1a3b697a8ebb
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.41-0.20230216040336-979264a8d13a
+	github.com/CortexFoundation/torrentfs v1.0.41-0.20230217001311-9fc59601bfcb
 	github.com/VictoriaMetrics/fastcache v1.12.0
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.17.3
@@ -17,11 +17,11 @@ require (
 	github.com/cespare/cp v1.1.1
 	github.com/charmbracelet/bubbletea v0.23.1
 	github.com/cloudflare/cloudflare-go v0.57.1
-	github.com/cockroachdb/pebble v0.0.0-20230216002728-9b1142a5070e
+	github.com/cockroachdb/pebble v0.0.0-20230216145016-ebc640d19e50
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/deckarep/golang-set/v2 v2.1.0
 	github.com/docker/docker v23.0.0+incompatible
-	github.com/dop251/goja v0.0.0-20230203172422-5460598cfa32
+	github.com/dop251/goja v0.0.0-20230216180835-5937a312edda
 	github.com/fjl/gencodec v0.0.0-20220412091415-8bb9e558978c
 	github.com/fjl/memsize v0.0.1
 	github.com/fogleman/ease v0.0.0-20170301025033-8da417bf1776
@@ -214,7 +214,7 @@ require (
 	github.com/tklauser/numcpus v0.6.0 // indirect
 	github.com/uber/jaeger-client-go v2.30.0+incompatible // indirect
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
-	github.com/ucwong/filecache v1.0.2 // indirect
+	github.com/ucwong/filecache v1.0.3-0.20230217000133-fcd6fd01cb2d // indirect
 	github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb // indirect
 	github.com/ucwong/golang-kv v1.0.14 // indirect
 	github.com/xlab/treeprint v1.1.0 // indirect

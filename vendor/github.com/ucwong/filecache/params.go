@@ -21,5 +21,5 @@ var (
 	DefaultEvery      int   = 60 // 1 minute
 
 	// Mumber of items to buffer adding to the file cache.
-	NewCachePipeSize int = runtime.NumCPU()
+	NewCachePipeSize int = runtime.NumCPU() * 8
 )

@@ -18,7 +18,7 @@ type FileCache struct {
 	in         chan *CacheInfo
 	mutex      sync.RWMutex
 	shutdown   chan any
-	wait       sync.WaitGroup
+	wg       sync.WaitGroup
 	MaxItems   int   // Maximum number of files to cache
 	MaxSize    int64 // Maximum file size to store
 	ExpireItem int   // Seconds a file should be cached for
@@ -89,14 +89,15 @@ func (cache *FileCache) addItem(name string, content []byte) (err error) {
 
 func (cache *FileCache) deleteItem(name string) {
 	cache.mutex.Lock()
+	defer cache.mutex.Unlock()
+
 	delete(cache.items, name)
-	cache.mutex.Unlock()
 }
 
 // itemListener is a goroutine that listens for incoming files and caches
 // them.
 func (cache *FileCache) itemListener() {
-	defer cache.wait.Done()
+	defer cache.wg.Done()
 	for {
 		select {
 		case c := <-cache.in:
@@ -130,7 +131,7 @@ func (cache *FileCache) expireOldest(force bool) {
 // It runs periodically, every cache.Every seconds. If cache.Every is set
 // to 0, it will not run.
 func (cache *FileCache) vacuum() {
-	defer cache.wait.Done()
+	defer cache.wg.Done()
 	if cache.Every < 1 {
 		return
 	}
@@ -361,7 +362,7 @@ func (cache *FileCache) Start() error {
 	cache.in = make(chan *CacheInfo, NewCachePipeSize)
 	cache.shutdown = make(chan any)
 
-	cache.wait.Add(2)
+	cache.wg.Add(2)
 	go cache.itemListener()
 	go cache.vacuum()
 	return nil
@@ -375,7 +376,7 @@ func (cache *FileCache) Start() error {
 func (cache *FileCache) Stop() {
 	close(cache.shutdown)
 
-	cache.wait.Wait()
+	cache.wg.Wait()
 
 	if cache.items != nil {
 		items := cache.StoredFiles()
