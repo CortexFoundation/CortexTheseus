@@ -199,7 +199,7 @@ func resolveChainFreezerDir(ancient string) string {
 // storage.
 func NewDatabaseWithFreezer(db ctxcdb.KeyValueStore, ancient string, namespace string, readonly bool) (ctxcdb.Database, error) {
 	// Create the idle freezer instance
-	frdb, err := newChainFreezer(resolveChainFreezerDir(ancient), namespace, readonly, freezerTableSize, chainFreezerNoSnappy)
+	frdb, err := newChainFreezer(resolveChainFreezerDir(ancient), namespace, readonly)
 	if err != nil {
 		return nil, err
 	}
