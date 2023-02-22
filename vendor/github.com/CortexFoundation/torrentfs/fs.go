@@ -361,7 +361,8 @@ func (fs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 				}
 
 				//if info.Size > 0 {
-				fs.wakeup(context.Background(), info.Hash, info.Size)
+				//fs.wakeup(context.Background(), info.Hash, info.Size)
+				fs.wakeup(context.Background(), info.Hash)
 				//}
 			}
 		case params.MsgCode:
@@ -433,7 +434,6 @@ func (fs *TorrentFS) init() {
 
 // download and pub
 func (fs *TorrentFS) bitsflow(ctx context.Context, ih string, size uint64) error {
-	log.Debug("bitsflow", "ih", ih, "size", size, "mode", fs.config.Mode)
 	select {
 	case fs.callback <- types.NewBitsFlow(ih, size):
 	case <-ctx.Done():
@@ -495,25 +495,32 @@ func (fs *TorrentFS) IsActive(err error) bool {
 }
 
 // Available is used to check the file status
-func (fs *TorrentFS) wakeup(ctx context.Context, ih string, rawSize uint64) (bool, error) {
-	exist, _, _, err := fs.storage().Exists(ih, rawSize)
-	if !fs.IsActive(err) {
-		// to active
-		if progress, e := fs.progress(ih); e == nil {
-			fs.bitsflow(ctx, ih, progress) // to be downloaded
-		}
+// func (fs *TorrentFS) wakeup(ctx context.Context, ih string, rawSize uint64) { //(bool, error) {
+func (fs *TorrentFS) wakeup(ctx context.Context, ih string) {
+	//	exist, _, _, err := fs.storage().Exists(ih, rawSize)
+	//	if !fs.IsActive(err) {
+	if p, e := fs.progress(ih); e == nil {
+		//fs.bitsflow(ctx, ih, p) // to be downloaded
+		//if err := fs.storage().Search(ctx, ih, p); err != nil {
+		//return err
+		//	log.Warn("Wake up failed", "ih", ih)
+		//}
+		fs.storage().Search(ctx, ih, p)
 	}
-	return exist, err
+	//	}
+	//
+	// return exist, err
 }
 
 func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSize uint64, subpath string) ([]byte, error) {
 	log.Debug("Get file with size", "ih", infohash, "size", common.StorageSize(rawSize), "path", subpath)
 	if ret, err := fs.storage().GetFile(ctx, infohash, subpath); err != nil {
 		fs.wg.Add(1)
-		go func() {
+		go func(ctx context.Context, ih string) {
 			defer fs.wg.Done()
-			fs.wakeup(ctx, infohash, rawSize)
-		}()
+			//fs.wakeup(ctx, infohash, rawSize)
+			fs.wakeup(ctx, ih)
+		}(ctx, infohash)
 		//if fs.config.Mode == params.LAZY && params.IsGood(infohash) {
 		if params.IsGood(infohash) {
 			start := mclock.Now()
@@ -760,6 +767,7 @@ func (fs *TorrentFS) download(ctx context.Context, ih string, request uint64) er
 
 func (fs *TorrentFS) Download(ctx context.Context, ih string, request uint64) error {
 	return fs.bitsflow(ctx, ih, request)
+	//return fs.download(ctx, ih, request)
 }
 
 func (fs *TorrentFS) Status(ctx context.Context, ih string) (int, error) {
