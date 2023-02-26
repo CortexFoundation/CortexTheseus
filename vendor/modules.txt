@@ -582,8 +582,8 @@ github.com/holiman/big
 # github.com/holiman/bloomfilter/v2 v2.0.3
 ## explicit; go 1.15
 github.com/holiman/bloomfilter/v2
-# github.com/holiman/uint256 v1.2.1
-## explicit; go 1.13
+# github.com/holiman/uint256 v1.2.2-0.20230219192149-89e7a3ba25bc
+## explicit; go 1.18
 github.com/holiman/uint256
 # github.com/huandu/xstrings v1.4.0
 ## explicit; go 1.12

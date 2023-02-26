@@ -35,7 +35,7 @@ require (
 	github.com/hashicorp/golang-lru v0.5.5-0.20221011183528-d4900dc688bf
 	github.com/holiman/big v0.0.0-20221017200358-a027dc42d04e
 	github.com/holiman/bloomfilter/v2 v2.0.3
-	github.com/holiman/uint256 v1.2.1
+	github.com/holiman/uint256 v1.2.2-0.20230219192149-89e7a3ba25bc
 	github.com/huin/goupnp v1.1.0
 	github.com/influxdata/influxdb v1.10.1
 	github.com/influxdata/influxdb-client-go/v2 v2.12.2
