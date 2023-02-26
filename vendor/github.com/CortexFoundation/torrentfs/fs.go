@@ -82,6 +82,8 @@ type TorrentFS struct {
 
 	callback chan any
 	ttlchan  chan any
+
+	net *p2p.Server
 }
 
 func (t *TorrentFS) storage() *backend.TorrentManager {
@@ -407,11 +409,17 @@ func (fs *TorrentFS) Version() uint {
 
 // Start starts the data collection thread and the listening server of the dashboard.
 // Implements the node.Service interface.
-func (tfs *TorrentFS) Start(server *p2p.Server) (err error) {
+func (tfs *TorrentFS) Start(srvr *p2p.Server) (err error) {
 	if tfs == nil || tfs.monitor == nil {
 		log.Warn("Storage fs init failed", "fs", tfs)
 		return
 	}
+
+	// Figure out a max peers count based on the server limits
+	if srvr != nil {
+		tfs.net = srvr
+	}
+
 	log.Info("Started nas", "config", tfs, "mode", tfs.config.Mode, "version", params.ProtocolVersion, "queue", tfs.tunnel.Len(), "peers", len(tfs.peers))
 
 	err = tfs.monitor.Start()
@@ -524,7 +532,7 @@ func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSi
 		//if fs.config.Mode == params.LAZY && params.IsGood(infohash) {
 		if params.IsGood(infohash) {
 			start := mclock.Now()
-			log.Info("Downloading ... ...", "ih", infohash, "size", common.StorageSize(rawSize))
+			log.Info("Downloading ... ...", "ih", infohash, "size", common.StorageSize(rawSize), "neighbors", len(fs.peers))
 			t := time.NewTimer(500 * time.Millisecond)
 			defer t.Stop()
 			for {
@@ -535,7 +543,7 @@ func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSi
 						t.Reset(100 * time.Millisecond)
 					} else {
 						elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-						log.Info("Downloaded", "ih", infohash, "size", common.StorageSize(rawSize), "elapsed", common.PrettyDuration(elapsed))
+						log.Info("Downloaded", "ih", infohash, "size", common.StorageSize(rawSize), "neighbors", len(fs.peers), "elapsed", common.PrettyDuration(elapsed))
 						if uint64(len(ret)) > rawSize {
 							return nil, backend.ErrInvalidRawSize
 						}

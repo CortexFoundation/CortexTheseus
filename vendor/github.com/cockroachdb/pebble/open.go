@@ -238,10 +238,6 @@ func Open(dirname string, opts *Options) (db *DB, _ error) {
 		if err := d.mu.versions.load(dirname, opts, manifestFileNum, manifestMarker, setCurrent, &d.mu.Mutex); err != nil {
 			return nil, err
 		}
-		curVersion := d.mu.versions.currentVersion()
-		if err := curVersion.CheckConsistency(dirname, opts.FS); err != nil {
-			return nil, err
-		}
 		if opts.ErrorIfNotPristine {
 			liveFileNums := make(map[FileNum]struct{})
 			d.mu.versions.addLiveFileNums(liveFileNums)
@@ -284,6 +280,13 @@ func Open(dirname string, opts *Options) (db *DB, _ error) {
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	if manifestExists {
+		curVersion := d.mu.versions.currentVersion()
+		if err := checkConsistency(curVersion, dirname, d.objProvider); err != nil {
+			return nil, err
+		}
 	}
 
 	tableCacheSize := TableCacheSize(opts.MaxOpenFiles)
@@ -975,3 +978,36 @@ var ErrDBAlreadyExists = errors.New("pebble: database already exists")
 //
 // Note that errors can be wrapped with more details; use errors.Is().
 var ErrDBNotPristine = errors.New("pebble: database already exists and is not pristine")
+
+func checkConsistency(v *manifest.Version, dirname string, objProvider *objstorage.Provider) error {
+	var buf bytes.Buffer
+	var args []interface{}
+
+	for level, files := range v.Levels {
+		iter := files.Iter()
+		for f := iter.First(); f != nil; f = iter.Next() {
+			meta, err := objProvider.Lookup(base.FileTypeTable, f.FileNum)
+			var size int64
+			if err == nil {
+				size, err = objProvider.Size(meta)
+			}
+			if err != nil {
+				buf.WriteString("L%d: %s: %v\n")
+				args = append(args, errors.Safe(level), errors.Safe(f.FileNum), err)
+				continue
+			}
+
+			if size != int64(f.Size) {
+				buf.WriteString("L%d: %s: object size mismatch (%s): %d (disk) != %d (MANIFEST)\n")
+				args = append(args, errors.Safe(level), errors.Safe(f.FileNum), objProvider.Path(meta),
+					errors.Safe(size), errors.Safe(f.Size))
+				continue
+			}
+		}
+	}
+
+	if buf.Len() == 0 {
+		return nil
+	}
+	return errors.Errorf(buf.String(), args...)
+}

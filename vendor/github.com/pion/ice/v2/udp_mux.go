@@ -10,7 +10,8 @@ import (
 
 	"github.com/pion/logging"
 	"github.com/pion/stun"
-	"github.com/pion/transport/vnet"
+	"github.com/pion/transport/v2"
+	"github.com/pion/transport/v2/stdnet"
 )
 
 // UDPMux allows multiple connections to go over a single UDP port
@@ -49,6 +50,11 @@ const maxAddrSize = 512
 type UDPMuxParams struct {
 	Logger  logging.LeveledLogger
 	UDPConn net.PacketConn
+
+	// Required for gathering local addresses
+	// in case a un UDPConn is passed which does not
+	// bind to a specific local address.
+	Net transport.Net
 }
 
 // NewUDPMuxDefault creates an implementation of UDPMux
@@ -77,8 +83,14 @@ func NewUDPMuxDefault(params UDPMuxParams) *UDPMuxDefault {
 			params.Logger.Errorf("LocalAddr expected IPV4 or IPV6, got %T", params.UDPConn.LocalAddr())
 		}
 		if len(networks) > 0 {
-			muxNet := vnet.NewNet(nil)
-			ips, err := localInterfaces(muxNet, nil, nil, networks, true)
+			if params.Net == nil {
+				var err error
+				if params.Net, err = stdnet.NewNet(); err != nil {
+					params.Logger.Errorf("failed to get create network: %v", err)
+				}
+			}
+
+			ips, err := localInterfaces(params.Net, nil, nil, networks, true)
 			if err == nil {
 				for _, ip := range ips {
 					localAddrsForUnspecified = append(localAddrsForUnspecified, &net.UDPAddr{IP: ip, Port: addr.Port})

@@ -1023,7 +1023,8 @@ func (tm *TorrentManager) activeLoop() {
 								return
 							} else {
 								atomic.AddInt64(&t.cited, -1)
-								log.Info("Seed cited has been decreased", "ih", i, "cited", t.cited, "n", n, "status", t.status)
+								elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
+								log.Info("Seed cited has been decreased", "ih", i, "cited", t.cited, "n", n, "status", t.status, "elapsed", common.PrettyDuration(elapsed))
 							}
 						} else {
 							return
@@ -1120,7 +1121,8 @@ func (tm *TorrentManager) droppingLoop() {
 
 				tm.removeTorrent(t)
 
-				log.Info("Seed has been dropped", "ih", ih, "cited", t.cited, "status", t.status)
+				elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
+				log.Info("Seed has been dropped", "ih", ih, "cited", t.cited, "status", t.status, "elapsed", common.PrettyDuration(elapsed))
 			} else {
 				log.Warn("Drop seed not found", "ih", ih)
 			}

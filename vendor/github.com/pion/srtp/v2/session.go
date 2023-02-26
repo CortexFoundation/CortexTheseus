@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/pion/logging"
-	"github.com/pion/transport/packetio"
+	"github.com/pion/transport/v2/packetio"
 )
 
 type streamSession interface {

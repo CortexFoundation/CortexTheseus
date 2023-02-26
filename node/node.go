@@ -36,7 +36,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
-	"github.com/ucwong/tsdb/fileutil"
+	"github.com/gofrs/flock"
 )
 
 // Node is a container on which services can be registered.
@@ -45,8 +45,8 @@ type Node struct {
 	config   *Config
 	accman   *accounts.Manager
 
-	ephemeralKeystore string            // if non-empty, the key directory that will be removed by Stop
-	instanceDirLock   fileutil.Releaser // prevents concurrent use of instance directory
+	ephemeralKeystore string       // if non-empty, the key directory that will be removed by Stop
+	dirLock           *flock.Flock // prevents concurrent use of instance directory
 
 	serverConfig p2p.Config
 	server       *p2p.Server // Currently running P2P networking layer
@@ -297,12 +297,22 @@ func (n *Node) openDataDir() error {
 	}
 	// Lock the instance directory to prevent concurrent use by another instance as well as
 	// accidental use of the instance directory as a database.
-	release, _, err := fileutil.Flock(filepath.Join(instdir, "LOCK"))
-	if err != nil {
-		return convertFileLockError(err)
+	n.dirLock = flock.New(filepath.Join(instdir, "LOCK"))
+
+	if locked, err := n.dirLock.TryLock(); err != nil {
+		return err
+	} else if !locked {
+		return ErrDatadirUsed
 	}
-	n.instanceDirLock = release
 	return nil
+}
+
+func (n *Node) closeDataDir() {
+	// Release instance directory lock.
+	if n.dirLock != nil && n.dirLock.Locked() {
+		n.dirLock.Unlock()
+		n.dirLock = nil
+	}
 }
 
 // startRPC is a helper method to start all the various RPC endpoints during node
@@ -511,14 +521,6 @@ func (n *Node) Stop() error {
 	n.server.Stop()
 	n.services = nil
 	n.server = nil
-
-	// Release instance directory lock.
-	if n.instanceDirLock != nil {
-		if err := n.instanceDirLock.Release(); err != nil {
-			n.log.Error("Can't release datadir lock", "err", err)
-		}
-		n.instanceDirLock = nil
-	}
 
 	// unblock n.Wait
 	close(n.stop)
@@ -802,6 +804,9 @@ func (db *closeTrackingDB) Close() error {
 	db.n.lock.Lock()
 	delete(db.n.databases, db)
 	db.n.lock.Unlock()
+
+	db.n.closeDataDir()
+
 	return db.Database.Close()
 }
 

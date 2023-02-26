@@ -184,7 +184,15 @@ func sequence(contents string, term string, c Clipboard) string {
 		// Here, we split the encoded string into 76 bytes chunks and then join the
 		// chunks with <end-dsc><start-dsc> sequences. Finally, wrap the whole thing in
 		// <start-dsc><start-osc52><joined-chunks><end-osc52><end-dsc>.
-		s := strings.SplitN(contents, "", 76)
+		s := make([]string, 0, len(contents)/76+1)
+		for i := 0; i < len(contents); i += 76 {
+			end := i + 76
+			if end > len(contents) {
+				end = len(contents)
+			}
+			s = append(s, contents[i:end])
+		}
+
 		seq.WriteString(strings.Join(s, "\x1b\\\x1bP"))
 	default:
 		seq.WriteString(contents)
