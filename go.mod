@@ -217,7 +217,7 @@ require (
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
 	github.com/ucwong/filecache v1.0.3 // indirect
 	github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb // indirect
-	github.com/ucwong/golang-kv v1.0.15-0.20230301175406-a949223e26a1 // indirect
+	github.com/ucwong/golang-kv v1.0.16-0.20230301175608-00dc03f904ba // indirect
 	github.com/xlab/treeprint v1.1.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	go.etcd.io/bbolt v1.3.7 // indirect
