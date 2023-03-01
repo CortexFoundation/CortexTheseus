@@ -243,6 +243,12 @@ var (
 		Value: params1.DefaultConfig.Port,
 	}
 
+	StorageEngineFlag = cli.StringFlag{
+		Name:  "storage.engine",
+		Usage: "Torrent storage engine (badger, pebble, leveldb, bolt)",
+		Value: params1.DefaultConfig.Engine,
+	}
+
 	StorageMaxSeedingFlag = cli.IntFlag{
 		Name:  "storage.max_seeding",
 		Usage: "The maximum number of seeding tasks in the same time",
@@ -1700,6 +1706,7 @@ func SetTorrentFsConfig(ctx *cli.Context, cfg *params1.Config) {
 		IPCPath := ctx.GlobalString(IPCPathFlag.Name)
 		cfg.IpcPath = filepath.Join(path, IPCPath)
 	}
+	cfg.Engine = ctx.GlobalString(StorageEngineFlag.Name)
 	cfg.RpcURI = ctx.GlobalString(StorageRpcFlag.Name)
 
 	trackers := ctx.GlobalString(StorageTrackerFlag.Name)

@@ -169,3 +169,7 @@ func (ldb *LevelDB) BatchSet(kvs map[string][]byte) error {
 	}
 	return ldb.engine.Write(ldb.wb, nil)
 }
+
+func (ldb *LevelDB) Name() string {
+	return "leveldb"
+}

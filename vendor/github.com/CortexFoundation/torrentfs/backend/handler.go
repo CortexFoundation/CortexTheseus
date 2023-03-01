@@ -355,6 +355,7 @@ func (tm *TorrentManager) Close() error {
 	//}
 
 	if tm.kvdb != nil {
+		log.Info("Nas engine close", "engine", tm.kvdb.Name())
 		tm.kvdb.Close()
 	}
 	//if tm.hotCache != nil {
@@ -699,14 +700,31 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 		activeChan:  make(chan *Torrent, torrentChanSize),
 		pendingChan: make(chan *Torrent, torrentChanSize),
 		//pendingRemoveChan: make(chan string, torrentChanSize),
-		droppingChan: make(chan string, 1),
+		droppingChan: make(chan string),
 		mode:         config.Mode,
 		//boost:             config.Boost,
 		id:             fsid,
 		slot:           int(fsid % bucket),
 		localSeedFiles: make(map[string]bool),
 		//seedingNotify:  notify,
-		kvdb: kv.Badger(config.DataDir),
+		//kvdb: kv.Badger(config.DataDir),
+	}
+
+	switch config.Engine {
+	case "pebble":
+		log.Info("Using [pebble] as nas db engine")
+		torrentManager.kvdb = kv.Pebble(config.DataDir)
+	case "leveldb":
+		log.Info("Using [leveldb] as nas db engine")
+		torrentManager.kvdb = kv.LevelDB(config.DataDir)
+	case "badger":
+		log.Info("Using [badge]r as nas db engine")
+		torrentManager.kvdb = kv.Badger(config.DataDir)
+	case "bolt":
+		log.Info("Using [bolt] as nas db engine")
+		torrentManager.kvdb = kv.Bolt(config.DataDir)
+	default:
+		panic("Invalid nas engine " + config.Engine)
 	}
 
 	if cache {
@@ -940,11 +958,6 @@ func (tm *TorrentManager) pendingLoop() {
 					tm.pending_lock.Lock()
 					delete(tm.pendingTorrents, t.infohash)
 					tm.pending_lock.Unlock()
-					//tm.pendingRemoveChan <- t.infohash
-					//} else {
-					//	log.Error("Write torrent info to file failed", "ih", t.infohash, "err", err)
-					//	tm.Drop(t.infohash)
-					//}
 				case <-t.Closed():
 				case <-tm.closeAll:
 				case <-ctx.Done():
@@ -988,8 +1001,11 @@ func (tm *TorrentManager) salt(n int) int64 {
 func (tm *TorrentManager) activeLoop() {
 	defer tm.wg.Done()
 	timer := time.NewTicker(time.Second * params.QueryTimeInterval)
+	timer_1 := time.NewTicker(time.Second * params.QueryTimeInterval * 60)
+	timer_2 := time.NewTicker(time.Second * params.QueryTimeInterval * 3600 * 24)
 	defer timer.Stop()
-	var log_counter int = 1
+	defer timer_1.Stop()
+	defer timer_2.Stop()
 	for {
 		select {
 		case t := <-tm.activeChan:
@@ -1003,12 +1019,6 @@ func (tm *TorrentManager) activeLoop() {
 			}
 
 			n += tm.salt(300)
-
-			if tm.mode == params.FULL {
-				//n *= 2
-			}
-			//elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
-			//log.Info("Active seeding", "ih", t.infohash, "n", n, "elapsed", common.PrettyDuration(elapsed))
 			tm.wg.Add(1)
 			go func(i string, n int64) {
 				defer tm.wg.Done()
@@ -1034,14 +1044,13 @@ func (tm *TorrentManager) activeLoop() {
 					}
 				}
 			}(t.infohash, n)
+		case <-timer_1.C:
+			log.Info("Fs status", "pending", len(tm.pendingTorrents), "downloading", len(tm.activeTorrents), "seeding", len(tm.seedingTorrents), "metrics", common.PrettyDuration(tm.Updates))
+		case <-timer_2.C:
+			go tm.updateGlobalTrackers()
 		case <-timer.C:
-			//counter++
-			log_counter++
-
 			for ih, t := range tm.activeTorrents {
 				if t.BytesCompleted() > t.bytesCompleted {
-					//total_size += uint64(t.BytesCompleted() - t.bytesCompleted)
-					//current_size += uint64(t.BytesCompleted() - t.bytesCompleted)
 					t.bytesCompleted = t.BytesCompleted()
 				}
 
@@ -1050,32 +1059,10 @@ func (tm *TorrentManager) activeLoop() {
 					continue
 				}
 
-				if log_counter%60 == 0 {
-					elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
-					log.Debug(ProgressBar(t.bytesCompleted, t.Torrent.Length(), ""), "ih", ih, "complete", common.StorageSize(t.bytesCompleted), "limit", common.StorageSize(t.bytesLimitation), "total", common.StorageSize(t.Torrent.Length()), "want", t.maxPieces, "max", t.Torrent.NumPieces(), "speed", common.StorageSize(float64(t.bytesCompleted*1000*1000*1000)/float64(elapsed)).String()+"/s", "elapsed", common.PrettyDuration(elapsed))
-				}
-
 				if t.bytesCompleted < t.bytesLimitation { //&& !t.isBoosting {
 					t.Run(tm.slot)
 				}
 			}
-
-			if log_counter%60 == 0 {
-				//log.Info("Fs status", "pending", len(tm.pendingTorrents), "downloading", len(tm.activeTorrents), "seeding", len(tm.seedingTorrents), "size", common.StorageSize(total_size), "speed_a", common.StorageSize(total_size/log_counter*params.QueryTimeInterval).String()+"/s", "speed_b", common.StorageSize(current_size/counter*params.QueryTimeInterval).String()+"/s", "metrics", common.PrettyDuration(tm.Updates))
-				log.Info("Fs status", "pending", len(tm.pendingTorrents), "downloading", len(tm.activeTorrents), "seeding", len(tm.seedingTorrents), "metrics", common.PrettyDuration(tm.Updates))
-				//counter = 1
-				//current_size = 0
-			}
-
-			if log_counter%(3600*24) == 0 {
-				tm.wg.Add(1)
-				go func() {
-					defer tm.wg.Done()
-					tm.updateGlobalTrackers()
-				}()
-				log_counter = 1
-			}
-			//timer.Reset(time.Second * queryTimeInterval)
 		case <-tm.closeAll:
 			log.Info("Active seed loop closed")
 			return

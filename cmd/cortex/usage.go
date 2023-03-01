@@ -219,6 +219,7 @@ var AppHelpFlagGroups = []flagGroup{
 			//utils.StorageEnabledFlag,
 			utils.StorageDirFlag,
 			utils.StorageRpcFlag,
+			utils.StorageEngineFlag,
 			utils.StoragePortFlag,
 			utils.StorageMaxSeedingFlag,
 			utils.StorageMaxActiveFlag,

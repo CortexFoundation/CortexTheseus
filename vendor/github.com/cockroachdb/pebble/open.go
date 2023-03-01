@@ -268,8 +268,7 @@ func Open(dirname string, opts *Options) (db *DB, _ error) {
 		}
 		ls = append(ls, ls2...)
 	}
-
-	d.objProvider, err = objstorage.Open(objstorage.Settings{
+	providerSettings := objstorage.Settings{
 		Logger:              opts.Logger,
 		FS:                  opts.FS,
 		FSDirName:           dirname,
@@ -277,7 +276,10 @@ func Open(dirname string, opts *Options) (db *DB, _ error) {
 		FSCleaner:           opts.Cleaner,
 		NoSyncOnClose:       opts.NoSyncOnClose,
 		BytesPerSync:        opts.BytesPerSync,
-	})
+	}
+	providerSettings.Shared.Storage = opts.Experimental.SharedStorage
+
+	d.objProvider, err = objstorage.Open(providerSettings)
 	if err != nil {
 		return nil, err
 	}
@@ -707,7 +709,7 @@ func (d *DB) replayWAL(
 			1 /* base level */, toFlush)
 		newVE, _, err := d.runCompaction(jobID, c)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "running compaction during WAL replay")
 		}
 		ve.NewFiles = append(ve.NewFiles, newVE.NewFiles...)
 		return nil
