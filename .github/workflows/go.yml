@@ -43,21 +43,13 @@ jobs:
           make -C solution cpu
           go vet $(go list ./... | grep -v /cvm-runtime/)
 
-    - name: Get dependencies
-      run: |
-        go get -v -t -d ./...
-        if [ -f Gopkg.toml ]; then
-            curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-            dep ensure
-        fi
-
     - name: Build
       run: make clean && make all -j$(nproc)
       
     - name: CodeCov
       run: |
         export LD_LIBRARY_PATH=$PWD:$PWD/plugins:$LD_LIBRARY_PATH
-        GO111MODULE=on && go test $(go list ./... | grep -v /cvm-runtime/) -mod=vendor -coverprofile=coverage.txt -covermode=atomic
+        GO111MODULE=on && go mod vendor && go test $(go list ./... | grep -v /cvm-runtime/) -mod=vendor -coverprofile=coverage.txt -covermode=atomic
         if [ -f coverage.txt ]; then
             bash <(curl -s https://codecov.io/bash)
         fi
