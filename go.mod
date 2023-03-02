@@ -1,6 +1,6 @@
 module github.com/CortexFoundation/CortexTheseus
 
-go 1.20
+go 1.19
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
