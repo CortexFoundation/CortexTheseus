@@ -57,7 +57,7 @@ jobs:
     - name: CodeCov
       run: |
         export LD_LIBRARY_PATH=$PWD:$PWD/plugins:$LD_LIBRARY_PATH
-        GO111MODULE=on && go test $(go list ./... | grep -v /cvm-runtime/) -mod=vendor -coverprofile=coverage.txt -covermode=atomic
+        GO111MODULE=on && go mod vendor && go test $(go list ./... | grep -v /cvm-runtime/) -mod=vendor -coverprofile=coverage.txt -covermode=atomic
         if [ -f coverage.txt ]; then
             bash <(curl -s https://codecov.io/bash)
         fi
