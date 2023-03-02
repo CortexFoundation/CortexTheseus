@@ -1761,6 +1761,9 @@ func (d *DB) Metrics() *Metrics {
 	if d.mu.compact.flushing {
 		metrics.Flush.NumInProgress = 1
 	}
+	for i := 0; i < numLevels; i++ {
+		metrics.Levels[i].Additional.ValueBlocksSize = valueBlocksSizeForLevel(vers, i)
+	}
 
 	d.mu.Unlock()
 
@@ -2283,4 +2286,17 @@ func firstError(err0, err1 error) error {
 		return err0
 	}
 	return err1
+}
+
+// SetCreatorID sets the CreatorID which is needed in order to use shared objects.
+// Shared object usage is disabled until this method is called the first time.
+// Once set, the Creator ID is persisted and cannot change.
+//
+// Does nothing if SharedStorage was not set in the options when the DB was
+// opened or if the DB is in read-only mode.
+func (d *DB) SetCreatorID(creatorID uint64) error {
+	if d.opts.Experimental.SharedStorage == nil || d.opts.ReadOnly {
+		return nil
+	}
+	return d.objProvider.SetCreatorID(objstorage.CreatorID(creatorID))
 }

@@ -4,17 +4,22 @@ package ice
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	atomicx "github.com/pion/ice/v2/internal/atomic"
+	stunx "github.com/pion/ice/v2/internal/stun"
 	"github.com/pion/logging"
 	"github.com/pion/mdns"
 	"github.com/pion/stun"
-	"github.com/pion/transport/packetio"
-	"github.com/pion/transport/vnet"
+	"github.com/pion/transport/v2"
+	"github.com/pion/transport/v2/packetio"
+	"github.com/pion/transport/v2/stdnet"
+	"github.com/pion/transport/v2/vnet"
 	"golang.org/x/net/proxy"
 )
 
@@ -111,7 +116,7 @@ type Agent struct {
 	// State for closing
 	done         chan struct{}
 	taskLoopDone chan struct{}
-	err          atomicError
+	err          atomicx.Error
 
 	gatherCandidateCancel func()
 	gatherCandidateDone   chan struct{}
@@ -123,7 +128,7 @@ type Agent struct {
 	loggerFactory logging.LoggerFactory
 	log           logging.LeveledLogger
 
-	net         *vnet.Net
+	net         transport.Net
 	tcpMux      TCPMux
 	udpMux      UDPMux
 	udpMuxSrflx UniversalUDPMux
@@ -262,21 +267,6 @@ func NewAgent(config *AgentConfig) (*Agent, error) { //nolint:gocognit
 	}
 	log := loggerFactory.NewLogger("ice")
 
-	var mDNSConn *mdns.Conn
-	mDNSConn, mDNSMode, err = createMulticastDNS(mDNSMode, mDNSName, log)
-	// Opportunistic mDNS: If we can't open the connection, that's ok: we
-	// can continue without it.
-	if err != nil {
-		log.Warnf("Failed to initialize mDNS %s: %v", mDNSName, err)
-	}
-	closeMDNSConn := func() {
-		if mDNSConn != nil {
-			if mdnsCloseErr := mDNSConn.Close(); mdnsCloseErr != nil {
-				log.Warnf("Failed to close mDNS: %v", mdnsCloseErr)
-			}
-		}
-	}
-
 	startedCtx, startedFn := context.WithCancel(context.Background())
 
 	a := &Agent{
@@ -307,7 +297,6 @@ func NewAgent(config *AgentConfig) (*Agent, error) { //nolint:gocognit
 
 		mDNSMode: mDNSMode,
 		mDNSName: mDNSName,
-		mDNSConn: mDNSConn,
 
 		gatherCandidateCancel: func() {},
 
@@ -330,11 +319,27 @@ func NewAgent(config *AgentConfig) (*Agent, error) { //nolint:gocognit
 	a.udpMuxSrflx = config.UDPMuxSrflx
 
 	if a.net == nil {
-		a.net = vnet.NewNet(nil)
-	} else if a.net.IsVirtual() {
-		a.log.Warn("vnet is enabled")
+		a.net, err = stdnet.NewNet()
+		if err != nil {
+			return nil, fmt.Errorf("failed to create network: %w", err)
+		}
+	} else if _, isVirtual := a.net.(*vnet.Net); isVirtual {
+		a.log.Warn("virtual network is enabled")
 		if a.mDNSMode != MulticastDNSModeDisabled {
-			a.log.Warn("vnet does not support mDNS yet")
+			a.log.Warn("virtual network does not support mDNS yet")
+		}
+	}
+
+	// Opportunistic mDNS: If we can't open the connection, that's ok: we
+	// can continue without it.
+	if a.mDNSConn, a.mDNSMode, err = createMulticastDNS(a.net, mDNSMode, mDNSName, log); err != nil {
+		log.Warnf("Failed to initialize mDNS %s: %v", mDNSName, err)
+	}
+	closeMDNSConn := func() {
+		if a.mDNSConn != nil {
+			if mdnsCloseErr := a.mDNSConn.Close(); mdnsCloseErr != nil {
+				log.Warnf("Failed to close mDNS: %v", mdnsCloseErr)
+			}
 		}
 	}
 
@@ -588,14 +593,12 @@ func (a *Agent) setSelectedPair(p *CandidatePair) {
 	a.updateConnectionState(ConnectionStateConnected)
 
 	// Notify when the selected pair changes
-	if p != nil {
-		a.afterRun(func(ctx context.Context) {
-			select {
-			case a.chanCandidatePair <- p:
-			case <-ctx.Done():
-			}
-		})
-	}
+	a.afterRun(func(ctx context.Context) {
+		select {
+		case a.chanCandidatePair <- p:
+		case <-ctx.Done():
+		}
+	})
 
 	// Signal connected
 	a.onConnectedOnce.Do(func() { close(a.onConnected) })
@@ -1073,7 +1076,7 @@ func (a *Agent) handleInbound(m *stun.Message, local Candidate, remote net.Addr)
 
 	remoteCandidate := a.findRemoteCandidate(local.NetworkType(), remote)
 	if m.Type.Class == stun.ClassSuccessResponse {
-		if err = assertInboundMessageIntegrity(m, []byte(a.remotePwd)); err != nil {
+		if err = stun.MessageIntegrity([]byte(a.remotePwd)).Check(m); err != nil {
 			a.log.Warnf("discard message from (%s), %v", remote, err)
 			return
 		}
@@ -1085,10 +1088,10 @@ func (a *Agent) handleInbound(m *stun.Message, local Candidate, remote net.Addr)
 
 		a.selector.HandleSuccessResponse(m, local, remoteCandidate, remote)
 	} else if m.Type.Class == stun.ClassRequest {
-		if err = assertInboundUsername(m, a.localUfrag+":"+a.remoteUfrag); err != nil {
+		if err = stunx.AssertUsername(m, a.localUfrag+":"+a.remoteUfrag); err != nil {
 			a.log.Warnf("discard message from (%s), %v", remote, err)
 			return
-		} else if err = assertInboundMessageIntegrity(m, []byte(a.localPwd)); err != nil {
+		} else if err = stun.MessageIntegrity([]byte(a.localPwd)).Check(m); err != nil {
 			a.log.Warnf("discard message from (%s), %v", remote, err)
 			return
 		}

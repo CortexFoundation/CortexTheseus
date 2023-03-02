@@ -233,6 +233,9 @@ func (fs *ChainDB) addLeaf(block *types.Block, mes bool, dup bool) error {
 		if err := fs.tree.AddNode(leaf); err != nil {
 			return err
 		}
+
+		// TODO
+
 		if number > fs.checkPoint {
 			fs.checkPoint = number
 		}

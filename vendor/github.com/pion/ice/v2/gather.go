@@ -5,12 +5,15 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"reflect"
 	"sync"
 	"time"
 
 	"github.com/pion/dtls/v2"
+	"github.com/pion/ice/v2/internal/fakenet"
+	stunx "github.com/pion/ice/v2/internal/stun"
 	"github.com/pion/logging"
 	"github.com/pion/turn/v2"
 )
@@ -19,12 +22,8 @@ const (
 	stunGatherTimeout = time.Second * 5
 )
 
-type closeable interface {
-	Close() error
-}
-
 // Close a net.Conn and log if we have a failure
-func closeConnAndLog(c closeable, log logging.LeveledLogger, msg string) {
+func closeConnAndLog(c io.Closer, log logging.LeveledLogger, msg string) {
 	if c == nil || (reflect.ValueOf(c).Kind() == reflect.Ptr && reflect.ValueOf(c).IsNil()) {
 		log.Warnf("Conn is not allocated (%s)", msg)
 		return
@@ -34,25 +33,6 @@ func closeConnAndLog(c closeable, log logging.LeveledLogger, msg string) {
 	if err := c.Close(); err != nil {
 		log.Warnf("Failed to close conn: %v", err)
 	}
-}
-
-// fakePacketConn wraps a net.Conn and emulates net.PacketConn
-type fakePacketConn struct {
-	nextConn net.Conn
-}
-
-func (f *fakePacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
-	n, err = f.nextConn.Read(p)
-	addr = f.nextConn.RemoteAddr()
-	return
-}
-func (f *fakePacketConn) Close() error                       { return f.nextConn.Close() }
-func (f *fakePacketConn) LocalAddr() net.Addr                { return f.nextConn.LocalAddr() }
-func (f *fakePacketConn) SetDeadline(t time.Time) error      { return f.nextConn.SetDeadline(t) }
-func (f *fakePacketConn) SetReadDeadline(t time.Time) error  { return f.nextConn.SetReadDeadline(t) }
-func (f *fakePacketConn) SetWriteDeadline(t time.Time) error { return f.nextConn.SetWriteDeadline(t) }
-func (f *fakePacketConn) WriteTo(p []byte, addr net.Addr) (n int, err error) {
-	return f.nextConn.Write(p)
 }
 
 // GatherCandidates initiates the trickle based gathering process.
@@ -487,7 +467,7 @@ func (a *Agent) gatherCandidatesSrflx(ctx context.Context, urls []*URL, networkT
 					}
 				}()
 
-				xorAddr, err := getXORMappedAddr(conn, serverAddr, stunGatherTimeout)
+				xorAddr, err := stunx.GetXORMappedAddr(conn, serverAddr, stunGatherTimeout)
 				if err != nil {
 					closeConnAndLog(conn, a.log, fmt.Sprintf("could not get server reflexive address %s %s: %v", network, url, err))
 					return
@@ -579,13 +559,13 @@ func (a *Agent) gatherCandidatesRelay(ctx context.Context, urls []*URL) { //noli
 				locConn = turn.NewSTUNConn(conn)
 
 			case url.Proto == ProtoTypeTCP && url.Scheme == SchemeTypeTURN:
-				tcpAddr, connectErr := net.ResolveTCPAddr(NetworkTypeTCP4.String(), TURNServerAddr)
+				tcpAddr, connectErr := a.net.ResolveTCPAddr(NetworkTypeTCP4.String(), TURNServerAddr)
 				if connectErr != nil {
 					a.log.Warnf("Failed to resolve TCP Addr %s: %v", TURNServerAddr, connectErr)
 					return
 				}
 
-				conn, connectErr := net.DialTCP(NetworkTypeTCP4.String(), nil, tcpAddr)
+				conn, connectErr := a.net.DialTCP(NetworkTypeTCP4.String(), nil, tcpAddr)
 				if connectErr != nil {
 					a.log.Warnf("Failed to Dial TCP Addr %s: %v", TURNServerAddr, connectErr)
 					return
@@ -596,33 +576,57 @@ func (a *Agent) gatherCandidatesRelay(ctx context.Context, urls []*URL) { //noli
 				relayProtocol = tcp
 				locConn = turn.NewSTUNConn(conn)
 			case url.Proto == ProtoTypeUDP && url.Scheme == SchemeTypeTURNS:
-				udpAddr, connectErr := net.ResolveUDPAddr(network, TURNServerAddr)
+				udpAddr, connectErr := a.net.ResolveUDPAddr(network, TURNServerAddr)
 				if connectErr != nil {
 					a.log.Warnf("Failed to resolve UDP Addr %s: %v", TURNServerAddr, connectErr)
 					return
 				}
 
-				conn, connectErr := dtls.Dial(network, udpAddr, &dtls.Config{ //nolint:contextcheck
+				udpConn, dialErr := a.net.DialUDP("udp", nil, udpAddr)
+				if dialErr != nil {
+					a.log.Warnf("Failed to dial DTLS Address %s: %v", TURNServerAddr, dialErr)
+					return
+				}
+
+				conn, connectErr := dtls.ClientWithContext(ctx, udpConn, &dtls.Config{
 					ServerName:         url.Host,
 					InsecureSkipVerify: a.insecureSkipVerify, //nolint:gosec
 				})
 				if connectErr != nil {
-					a.log.Warnf("Failed to Dial DTLS Addr %s: %v", TURNServerAddr, connectErr)
+					a.log.Warnf("Failed to create DTLS client: %v", TURNServerAddr, connectErr)
 					return
 				}
 
 				RelAddr = conn.LocalAddr().(*net.UDPAddr).IP.String() //nolint:forcetypeassert
 				RelPort = conn.LocalAddr().(*net.UDPAddr).Port        //nolint:forcetypeassert
 				relayProtocol = "dtls"
-				locConn = &fakePacketConn{conn}
+				locConn = &fakenet.PacketConn{Conn: conn}
 			case url.Proto == ProtoTypeTCP && url.Scheme == SchemeTypeTURNS:
-				conn, connectErr := tls.Dial(NetworkTypeTCP4.String(), TURNServerAddr, &tls.Config{
-					InsecureSkipVerify: a.insecureSkipVerify, //nolint:gosec
-				})
-				if connectErr != nil {
-					a.log.Warnf("Failed to Dial TLS Addr %s: %v", TURNServerAddr, connectErr)
+				tcpAddr, resolvErr := a.net.ResolveTCPAddr(NetworkTypeTCP4.String(), TURNServerAddr)
+				if resolvErr != nil {
+					a.log.Warnf("Failed to resolve relay address %s: %v", TURNServerAddr, resolvErr)
 					return
 				}
+
+				tcpConn, dialErr := a.net.DialTCP(NetworkTypeTCP4.String(), nil, tcpAddr)
+				if dialErr != nil {
+					a.log.Warnf("Failed to connect to relay: %v", dialErr)
+					return
+				}
+
+				conn := tls.Client(tcpConn, &tls.Config{
+					ServerName:         url.Host,
+					InsecureSkipVerify: a.insecureSkipVerify, //nolint:gosec
+				})
+
+				if hsErr := conn.HandshakeContext(ctx); hsErr != nil {
+					if closeErr := tcpConn.Close(); closeErr != nil {
+						a.log.Errorf("Failed to close relay connection: %v", closeErr)
+					}
+					a.log.Warnf("Failed to connect to relay: %v", hsErr)
+					return
+				}
+
 				RelAddr = conn.LocalAddr().(*net.TCPAddr).IP.String() //nolint:forcetypeassert
 				RelPort = conn.LocalAddr().(*net.TCPAddr).Port        //nolint:forcetypeassert
 				relayProtocol = "tls"

@@ -21,10 +21,37 @@ import (
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/metainfo"
 
+	"github.com/jedib0t/go-pretty/v6/progress"
+	"github.com/jedib0t/go-pretty/v6/text"
+
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
 )
+
+var messageColors = []text.Color{
+	text.FgRed,
+	text.FgGreen,
+	text.FgYellow,
+	text.FgBlue,
+	text.FgMagenta,
+	text.FgCyan,
+	text.FgWhite,
+}
+
+func GetMessage(idx int64, units *progress.Units) string {
+	var message string
+	switch units {
+	case &progress.UnitsBytes:
+		message = fmt.Sprintf("Downloading File    #%3d", idx)
+	case &progress.UnitsCurrencyDollar, &progress.UnitsCurrencyEuro, &progress.UnitsCurrencyPound:
+		message = fmt.Sprintf("Transferring Amount #%3d", idx)
+	default:
+		message = fmt.Sprintf("Calculating Total   #%3d", idx)
+	}
+	return message
+}
 
 func ProgressBar(x, y int64, desc string) string {
 	if y == 0 {
@@ -41,7 +68,7 @@ func ProgressBar(x, y int64, desc string) string {
 
 	prog := float64(x*100) / float64(y)
 	f := strconv.FormatFloat(prog, 'f', 4, 64)
-	return "[ " + progress + " ] " + f + "% " + desc
+	return desc + " [ " + progress + " ] " + f + "% "
 }
 
 const (

@@ -17,7 +17,6 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/cockroachdb/pebble/internal/base"
 	"github.com/cockroachdb/pebble/internal/invariants"
-	"github.com/cockroachdb/pebble/vfs"
 )
 
 // Compare exports the base.Compare type.
@@ -42,7 +41,8 @@ type TableInfo struct {
 	LargestSeqNum uint64
 }
 
-// TableStats contains statistics on a table used for compaction heuristics.
+// TableStats contains statistics on a table used for compaction heuristics,
+// and export via Metrics.
 type TableStats struct {
 	// The total number of entries in the table.
 	NumEntries uint64
@@ -64,6 +64,8 @@ type TableStats struct {
 	// if snapshots or move compactions prevented the elision of their range
 	// tombstones.
 	RangeDeletionsBytesEstimate uint64
+	// Total size of value blocks and value index block.
+	ValueBlocksSize uint64
 }
 
 // boundType represents the type of key (point or range) present as the smallest
@@ -1091,37 +1093,6 @@ func (v *Version) CheckOrdering(cmp Compare, format base.FormatKey) error {
 		}
 	}
 	return nil
-}
-
-// CheckConsistency checks that all of the files listed in the version exist
-// and their on-disk sizes match the sizes listed in the version.
-func (v *Version) CheckConsistency(dirname string, fs vfs.FS) error {
-	var buf bytes.Buffer
-	var args []interface{}
-
-	for level, files := range v.Levels {
-		iter := files.Iter()
-		for f := iter.First(); f != nil; f = iter.Next() {
-			path := base.MakeFilepath(fs, dirname, base.FileTypeTable, f.FileNum)
-			info, err := fs.Stat(path)
-			if err != nil {
-				buf.WriteString("L%d: %s: %v\n")
-				args = append(args, errors.Safe(level), errors.Safe(f.FileNum), err)
-				continue
-			}
-			if info.Size() != int64(f.Size) {
-				buf.WriteString("L%d: %s: file size mismatch (%s): %d (disk) != %d (MANIFEST)\n")
-				args = append(args, errors.Safe(level), errors.Safe(f.FileNum), path,
-					errors.Safe(info.Size()), errors.Safe(f.Size))
-				continue
-			}
-		}
-	}
-
-	if buf.Len() == 0 {
-		return nil
-	}
-	return errors.Errorf(buf.String(), args...)
 }
 
 // VersionList holds a list of versions. The versions are ordered from oldest

@@ -99,6 +99,11 @@ var (
 		Usage: "Time limit for the crawl.",
 		Value: 30 * time.Minute,
 	}
+	crawlParallelismFlag = &cli.IntFlag{
+		Name:  "parallel",
+		Usage: "How many parallel discoveries to attempt.",
+		Value: 16,
+	}
 	testPatternFlag = cli.StringFlag{
 		Name:  "run",
 		Usage: "Pattern of test suite(s) to run",
@@ -175,7 +180,7 @@ func discv4ResolveJSON(ctx *cli.Context) error {
 	defer disc.Close()
 	c := newCrawler(inputSet, disc, enode.IterNodes(nodeargs))
 	c.revalidateInterval = 0
-	output := c.run(0)
+	output := c.run(0, 1)
 	writeNodesJSON(nodesFile, output)
 	return nil
 }
@@ -194,7 +199,7 @@ func discv4Crawl(ctx *cli.Context) error {
 	defer disc.Close()
 	c := newCrawler(inputSet, disc, disc.RandomNodes())
 	c.revalidateInterval = 10 * time.Minute
-	output := c.run(ctx.Duration(crawlTimeoutFlag.Name))
+	output := c.run(ctx.Duration(crawlTimeoutFlag.Name), ctx.Int(crawlParallelismFlag.Name))
 	writeNodesJSON(nodesFile, output)
 	return nil
 }

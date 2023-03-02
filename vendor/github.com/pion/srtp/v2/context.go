@@ -3,7 +3,7 @@ package srtp
 import (
 	"fmt"
 
-	"github.com/pion/transport/replaydetector"
+	"github.com/pion/transport/v2/replaydetector"
 )
 
 const (
@@ -201,7 +201,8 @@ func (c *Context) ROC(ssrc uint32) (uint32, bool) {
 // SetROC sets SRTP rollover counter value of specified SSRC.
 func (c *Context) SetROC(ssrc uint32, roc uint32) {
 	s := c.getSRTPSSRCState(ssrc)
-	s.index = uint64(roc)<<16 | (s.index & (seqNumMax - 1))
+	s.index = uint64(roc) << 16
+	s.rolloverHasProcessed = false
 }
 
 // Index returns SRTCP index value of specified SSRC.

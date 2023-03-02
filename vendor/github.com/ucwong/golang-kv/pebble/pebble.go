@@ -186,3 +186,7 @@ func (peb *Pebble) BatchSet(kvs map[string][]byte) error {
 	peb.engine.Apply(peb.wb, nil)
 	return peb.wb.SyncWait()
 }
+
+func (peb *Pebble) Name() string {
+	return "pebble"
+}

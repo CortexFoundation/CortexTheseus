@@ -41,6 +41,18 @@ func AddTag(ctx context.Context, key string, value interface{}) context.Context 
 	return WithTags(ctx, b.Add(key, value))
 }
 
+// RemoveTag returns a context that has the tags in the given context except the
+// tag with key `key`. If such a tag does not exist, the given context is
+// returned.
+func RemoveTag(ctx context.Context, key string) context.Context {
+	b := FromContext(ctx)
+	newB, ok := b.Remove(key)
+	if !ok {
+		return ctx
+	}
+	return WithTags(ctx, newB)
+}
+
 // AddTags returns a context that has the tags in the given context plus another
 // set of tags. Tags are deduplicated (see Buffer.AddTags).
 func AddTags(ctx context.Context, tags *Buffer) context.Context {

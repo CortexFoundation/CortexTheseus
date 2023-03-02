@@ -55,7 +55,7 @@ type Monitor struct {
 	config *params.Config
 	cl     *rpc.Client
 	fs     *backend.ChainDB
-	dl     *backend.TorrentManager
+	//dl     *backend.TorrentManager
 
 	exitCh        chan struct{}
 	terminated    int32
@@ -88,7 +88,8 @@ type Monitor struct {
 // Once Ipcpath is settle, this method prefers to build socket connection in order to
 // get higher communicating performance.
 // IpcPath is unavailable on windows.
-func New(flag *params.Config, cache, compress, listen bool, fs *backend.ChainDB, tMana *backend.TorrentManager, callback chan any) (*Monitor, error) {
+// func New(flag *params.Config, cache, compress, listen bool, fs *backend.ChainDB, tMana *backend.TorrentManager, callback chan any) (*Monitor, error) {
+func New(flag *params.Config, cache, compress, listen bool, fs *backend.ChainDB, callback chan any) (*Monitor, error) {
 	/*fs, fsErr := NewChainDB(flag)
 	if fsErr != nil {
 		log.Error("file storage failed", "err", fsErr)
@@ -104,10 +105,10 @@ func New(flag *params.Config, cache, compress, listen bool, fs *backend.ChainDB,
 	log.Info("Fs manager initialized")*/
 
 	m := &Monitor{
-		config:        flag,
-		cl:            nil,
-		fs:            fs,
-		dl:            tMana,
+		config: flag,
+		cl:     nil,
+		fs:     fs,
+		//dl:            tMana,
 		exitCh:        make(chan struct{}),
 		terminated:    0,
 		lastNumber:    uint64(0),
@@ -121,10 +122,10 @@ func New(flag *params.Config, cache, compress, listen bool, fs *backend.ChainDB,
 	m.listen = listen
 	m.callback = callback
 
-	if err := m.dl.Start(); err != nil {
-		log.Warn("Fs start error")
-		return nil, err
-	}
+	//if err := m.dl.Start(); err != nil {
+	//	log.Warn("Fs start error")
+	//	return nil, err
+	//}
 
 	m.mode = flag.Mode
 
@@ -145,13 +146,9 @@ func New(flag *params.Config, cache, compress, listen bool, fs *backend.ChainDB,
 	return m, nil
 }
 
-func (m *Monitor) DL() *backend.TorrentManager {
-	return m.dl
-}
-
-func (m *Monitor) DB() *backend.ChainDB {
-	return m.fs
-}
+//func (m *Monitor) DB() *backend.ChainDB {
+//	return m.fs
+//}
 
 func (m *Monitor) CurrentNumber() uint64 {
 	return m.currentNumber
@@ -507,14 +504,14 @@ func (m *Monitor) Stop() {
 	m.blockCache.Purge()
 	m.sizeCache.Purge()
 
-	log.Info("Fs client listener synchronizing closing")
-	if err := m.dl.Close(); err != nil {
-		log.Error("Monitor Fs Manager closed", "error", err)
-	}
+	//log.Info("Fs client listener synchronizing closing")
+	//if err := m.dl.Close(); err != nil {
+	//	log.Error("Monitor Fs Manager closed", "error", err)
+	//}
 
-	if err := m.fs.Close(); err != nil {
-		log.Error("Monitor File Storage closed", "error", err)
-	}
+	//if err := m.fs.Close(); err != nil {
+	//	log.Error("Monitor File Storage closed", "error", err)
+	//}
 	log.Info("Fs listener synchronizing closed")
 	//})
 }

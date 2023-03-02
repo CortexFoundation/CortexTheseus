@@ -165,3 +165,7 @@ func (b *Badger) BatchSet(kvs map[string][]byte) error {
 	}
 	return b.wb.Flush()
 }
+
+func (b *Badger) Name() string {
+	return "badger"
+}

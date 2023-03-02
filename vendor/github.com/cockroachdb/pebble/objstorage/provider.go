@@ -7,11 +7,14 @@ package objstorage
 import (
 	"io"
 	"os"
+	"sort"
 	"sync"
 
 	"github.com/cockroachdb/errors"
 	"github.com/cockroachdb/errors/oserror"
 	"github.com/cockroachdb/pebble/internal/base"
+	"github.com/cockroachdb/pebble/objstorage/shared"
+	"github.com/cockroachdb/pebble/objstorage/sharedobjcat"
 	"github.com/cockroachdb/pebble/vfs"
 )
 
@@ -31,8 +34,20 @@ type Provider struct {
 
 	fsDir vfs.File
 
+	shared sharedSubsystem
+
 	mu struct {
 		sync.RWMutex
+
+		shared struct {
+			// catalogBatch accumulates shared object creations and deletions until
+			// Sync is called.
+			catalogBatch sharedobjcat.Batch
+		}
+
+		// localObjectsChanged is set if non-shared objects were created or deleted
+		// but Sync was not yet called.
+		localObjectsChanged bool
 
 		// knownObjects maintains information about objects that are known to the provider.
 		// It is initialized with the list of files in the manifest when we open a DB.
@@ -80,6 +95,11 @@ type Writable interface {
 	io.Writer
 	io.Closer
 
+	// Sync makes the data durable and must be called unless we are giving up on
+	// using this object. Sync may be called at most once (before Close); Write
+	// can no longer be called after Sync.
+	// TODO(radu): clean this API up; maybe Close should internally Sync (but we
+	// have to be careful about tests that are using vfs.File as a Writable).
 	Sync() error
 }
 
@@ -114,9 +134,16 @@ type Settings struct {
 	// is used to avoid latency spikes if the OS automatically decides to write
 	// out a large chunk of dirty filesystem buffers.
 	BytesPerSync int
+
+	// Fields here are set only if the provider is to support shared objects
+	// (experimental).
+	Shared struct {
+		Storage shared.Storage
+	}
 }
 
-// DefaultSettings initializes default settings, suitable for tests and tools.
+// DefaultSettings initializes default settings (with no shared storage),
+// suitable for tests and tools.
 func DefaultSettings(fs vfs.FS, dirName string) Settings {
 	return Settings{
 		Logger:        base.DefaultLogger,
@@ -132,13 +159,25 @@ func DefaultSettings(fs vfs.FS, dirName string) Settings {
 type ObjectMetadata struct {
 	FileNum  base.FileNum
 	FileType base.FileType
-	// TODO(radu): this will also contain shared object metadata.
+
+	// The fields below are only set if the object is on shared storage.
+	Shared struct {
+		// CreatorID identifies the DB instance that originally created the object.
+		CreatorID CreatorID
+		// CreatorFileNum is the identifier for the object within the context of the
+		// DB instance that originally created the object.
+		CreatorFileNum base.FileNum
+	}
 }
 
+// CreatorID identifies the DB instance that originally created a shared object.
+// This ID is incorporated in backing object names.
+// Must be non-zero.
+type CreatorID = sharedobjcat.CreatorID
+
 // IsShared returns true if the object is on shared storage.
-func (m *ObjectMetadata) IsShared() bool {
-	// TODO(radu)
-	return false
+func (meta *ObjectMetadata) IsShared() bool {
+	return meta.Shared.CreatorID.IsSet()
 }
 
 // Open creates the Provider.
@@ -161,17 +200,13 @@ func Open(settings Settings) (p *Provider, _ error) {
 	p.mu.knownObjects = make(map[base.FileNum]ObjectMetadata)
 
 	// Add local FS objects.
-	listing := settings.FSDirInitialListing
-	if listing == nil {
-		var err error
-		listing, err = p.st.FS.List(p.st.FSDirName)
-		if err != nil {
-			return nil, errors.Wrapf(err, "pebble: could not list store directory")
-		}
+	if err := p.vfsInit(); err != nil {
+		return nil, err
 	}
-	objects := p.vfsFindExisting(listing)
-	for _, o := range objects {
-		p.mu.knownObjects[o.FileNum] = o
+
+	// Initialize shared subsystem (if configured) and add shared objects.
+	if err := p.sharedInit(); err != nil {
+		return nil, err
 	}
 
 	return p, nil
@@ -179,11 +214,12 @@ func Open(settings Settings) (p *Provider, _ error) {
 
 // Close the provider.
 func (p *Provider) Close() error {
+	var err error
 	if p.fsDir != nil {
-		return p.fsDir.Close()
+		err = p.fsDir.Close()
+		p.fsDir = nil
 	}
-	p.fsDir = nil
-	return nil
+	return err
 }
 
 // OpenForReading opens an existing object.
@@ -196,8 +232,7 @@ func (p *Provider) OpenForReading(fileType base.FileType, fileNum base.FileNum) 
 	if !meta.IsShared() {
 		return p.vfsOpenForReading(fileType, fileNum, false /* mustExist */)
 	}
-
-	panic("unimplemented")
+	return p.sharedOpenForReading(meta)
 }
 
 // OpenForReadingMustExist is a variant of OpenForReading which causes a fatal
@@ -216,7 +251,15 @@ func (p *Provider) OpenForReadingMustExist(
 		return p.vfsOpenForReading(fileType, fileNum, true /* mustExist */)
 	}
 
-	panic("unimplemented")
+	// TODO(radu): implement "must exist" behavior.
+	return p.sharedOpenForReading(meta)
+}
+
+// CreateOptions contains optional arguments for Create.
+type CreateOptions struct {
+	// PreferSharedStorage causes the object to be created on shared storage if
+	// the provider has shared storage configured.
+	PreferSharedStorage bool
 }
 
 // Create creates a new object and opens it for writing.
@@ -224,17 +267,17 @@ func (p *Provider) OpenForReadingMustExist(
 // The object is not guaranteed to be durable (accessible in case of crashes)
 // until Sync is called.
 func (p *Provider) Create(
-	fileType base.FileType, fileNum base.FileNum,
-) (Writable, ObjectMetadata, error) {
-	w, err := p.vfsCreate(fileType, fileNum)
+	fileType base.FileType, fileNum base.FileNum, opts CreateOptions,
+) (w Writable, meta ObjectMetadata, err error) {
+	if opts.PreferSharedStorage && p.st.Shared.Storage != nil {
+		w, meta, err = p.sharedCreate(fileType, fileNum)
+	} else {
+		w, meta, err = p.vfsCreate(fileType, fileNum)
+	}
 	if err != nil {
+		err = errors.Wrapf(err, "creating object %s", errors.Safe(fileNum))
 		return nil, ObjectMetadata{}, err
 	}
-	meta := ObjectMetadata{
-		FileNum:  fileNum,
-		FileType: fileType,
-	}
-
 	p.addMetadata(meta)
 	return w, meta, nil
 }
@@ -250,14 +293,14 @@ func (p *Provider) Remove(fileType base.FileType, fileNum base.FileNum) error {
 
 	if !meta.IsShared() {
 		err = p.vfsRemove(fileType, fileNum)
-	} else {
-		panic("unimplemented")
 	}
+	// TODO(radu): implement shared object removal (i.e. deref).
+
 	if err != nil && !IsNotExistError(err) {
 		// We want to be able to retry a Remove, so we keep the object in our list.
 		// TODO(radu): we should mark the object as "zombie" and not allow any other
 		// operations.
-		return err
+		return errors.Wrapf(err, "removing object %s", errors.Safe(fileNum))
 	}
 	p.removeMetadata(fileNum)
 	return err
@@ -271,7 +314,13 @@ func IsNotExistError(err error) bool {
 
 // Sync flushes the metadata from creation or removal of objects since the last Sync.
 func (p *Provider) Sync() error {
-	return p.fsDir.Sync()
+	if err := p.vfsSync(); err != nil {
+		return err
+	}
+	if err := p.sharedSync(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // LinkOrCopyFromLocal creates a new object that is either a copy of a given
@@ -306,15 +355,6 @@ func (p *Provider) LinkOrCopyFromLocal(
 	panic("unimplemented")
 }
 
-// Path returns an internal, implementation-dependent path for the object. It is
-// meant to be used for informational purposes (like logging).
-func (p *Provider) Path(meta ObjectMetadata) string {
-	if !meta.IsShared() {
-		return p.vfsPath(meta.FileType, meta.FileNum)
-	}
-	panic("unimplemented")
-}
-
 // Lookup returns the metadata of an object that is already known to the Provider.
 // Does not perform any I/O.
 func (p *Provider) Lookup(fileType base.FileType, fileNum base.FileNum) (ObjectMetadata, error) {
@@ -337,14 +377,65 @@ func (p *Provider) Lookup(fileType base.FileType, fileNum base.FileNum) (ObjectM
 	return meta, nil
 }
 
+// Path returns an internal, implementation-dependent path for the object. It is
+// meant to be used for informational purposes (like logging).
+func (p *Provider) Path(meta ObjectMetadata) string {
+	if !meta.IsShared() {
+		return p.vfsPath(meta.FileType, meta.FileNum)
+	}
+	return p.sharedPath(meta)
+}
+
+// Size returns the size of the object.
+func (p *Provider) Size(meta ObjectMetadata) (int64, error) {
+	if !meta.IsShared() {
+		return p.vfsSize(meta.FileType, meta.FileNum)
+	}
+	return p.sharedSize(meta)
+}
+
+// List returns the objects currently known to the provider. Does not perform any I/O.
+func (p *Provider) List() []ObjectMetadata {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	res := make([]ObjectMetadata, 0, len(p.mu.knownObjects))
+	for _, meta := range p.mu.knownObjects {
+		res = append(res, meta)
+	}
+	sort.Slice(res, func(i, j int) bool {
+		return res[i].FileNum < res[j].FileNum
+	})
+	return res
+}
+
 func (p *Provider) addMetadata(meta ObjectMetadata) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.mu.knownObjects[meta.FileNum] = meta
+	if meta.IsShared() {
+		p.mu.shared.catalogBatch.AddObject(sharedobjcat.SharedObjectMetadata{
+			FileNum:        meta.FileNum,
+			FileType:       meta.FileType,
+			CreatorID:      meta.Shared.CreatorID,
+			CreatorFileNum: meta.Shared.CreatorFileNum,
+		})
+	} else {
+		p.mu.localObjectsChanged = true
+	}
 }
 
 func (p *Provider) removeMetadata(fileNum base.FileNum) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+
+	meta, ok := p.mu.knownObjects[fileNum]
+	if !ok {
+		return
+	}
 	delete(p.mu.knownObjects, fileNum)
+	if meta.IsShared() {
+		p.mu.shared.catalogBatch.DeleteObject(fileNum)
+	} else {
+		p.mu.localObjectsChanged = true
+	}
 }

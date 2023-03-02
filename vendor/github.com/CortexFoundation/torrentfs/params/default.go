@@ -34,13 +34,14 @@ type Config struct {
 	MaxSeedingNum   int      `toml:",omitempty"`
 	MaxActiveNum    int      `toml:",omitempty"`
 	//FullSeed        bool     `toml:",omitempty"`
-	Boost        bool `toml:",omitempty"`
-	Quiet        bool `toml:",omitempty"`
-	UploadRate   int  `toml:",omitempty"`
-	DownloadRate int  `toml:",omitempty"`
-	Metrics      bool `toml:",omitempty"`
-	Server       bool `toml:",omitempty"`
-	Wormhole     bool `toml:",omitempty"`
+	Boost        bool   `toml:",omitempty"`
+	Quiet        bool   `toml:",omitempty"`
+	UploadRate   int    `toml:",omitempty"`
+	DownloadRate int    `toml:",omitempty"`
+	Metrics      bool   `toml:",omitempty"`
+	Server       bool   `toml:",omitempty"`
+	Wormhole     bool   `toml:",omitempty"`
+	Engine       string `toml:",omitempty"`
 }
 
 // DefaultConfig contains default settings for the storage.
@@ -63,6 +64,7 @@ var DefaultConfig = Config{
 	Metrics:      true,
 	Server:       false,
 	Wormhole:     false,
+	Engine:       "badger",
 }
 
 const (

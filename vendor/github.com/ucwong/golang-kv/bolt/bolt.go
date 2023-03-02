@@ -230,3 +230,7 @@ func (b *Bolt) BatchSet(kvs map[string][]byte) error {
 		return nil
 	})
 }
+
+func (b *Bolt) Name() string {
+	return "bolt"
+}
