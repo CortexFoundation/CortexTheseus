@@ -68,7 +68,7 @@ func ProgressBar(x, y int64, desc string) string {
 
 	prog := float64(x*100) / float64(y)
 	f := strconv.FormatFloat(prog, 'f', 4, 64)
-	return desc + " [ " + progress + " ] " + f + "% "
+	return desc + " [ " + progress + " ] " + f + "%"
 }
 
 const (
@@ -76,6 +76,9 @@ const (
 )
 
 func ScaleBar(from, to, sum int) string {
+	if from > to || to > sum || from > sum {
+		return ""
+	}
 	if sum < ScaleBarLen {
 		from = from * ScaleBarLen / sum
 		to = to * ScaleBarLen / sum
@@ -94,11 +97,14 @@ func ScaleBar(from, to, sum int) string {
 		} else if i < f {
 			bar = bar + " "
 		} else {
-			bar = bar + "."
+			bar = bar + ">"
 		}
 	}
 
-	return "[ " + bar + " ]"
+	prog := float64((to-from)*100) / float64(sum)
+	ff := strconv.FormatFloat(prog, 'f', 2, 64)
+
+	return "[ " + bar + " ] " + ff + "%"
 }
 
 func max(as ...int64) int64 {
