@@ -1,8 +1,8 @@
 Immutable ![release](https://img.shields.io/github/release/benbjohnson/immutable.svg) ![test](https://github.com/benbjohnson/immutable/workflows/test/badge.svg) ![coverage](https://img.shields.io/codecov/c/github/benbjohnson/immutable/master.svg) ![license](https://img.shields.io/github/license/benbjohnson/immutable.svg)
 =========
 
-This repository contains *generic* immutable collection types for Go. It includes
-`List`, `Map`, `SortedMap`, `Set` and `SortedSet` implementations. Immutable collections can
+This repository contains immutable collection types for Go. It includes
+`List`, `Map`, and `SortedMap` implementations. Immutable collections can
 provide efficient, lock free sharing of data by requiring that edits to the
 collections return new collections.
 
@@ -34,7 +34,7 @@ prepending is as efficient as appending.
 
 ```go
 // Create a list with 3 elements.
-l := immutable.NewList[string]()
+l := immutable.NewList()
 l = l.Append("foo")
 l = l.Append("bar")
 l = l.Prepend("baz")
@@ -46,7 +46,7 @@ fmt.Println(l.Get(2)) // "bar"
 ```
 
 Note that each change to the list results in a new list being created. These
-lists are all snapshots at that point in time and cannot be changed so they
+lists are all snapshots at that point in time and cannot be changed so they 
 are safe to share between multiple goroutines.
 
 ### Updating list elements
@@ -57,7 +57,7 @@ new list to a new variable. You can see that our old `l` variable retains a
 snapshot of the original value.
 
 ```go
-l := immutable.NewList[string]()
+l := immutable.NewList()
 l = l.Append("foo")
 l = l.Append("bar")
 newList := l.Set(2, "baz")
@@ -95,7 +95,7 @@ Below is an example of iterating over all elements of our list from above:
 ```go
 itr := l.Iterator()
 for !itr.Done() {
-	index, value, _ := itr.Next()
+	index, value := itr.Next()
 	fmt.Printf("Index %d equals %v\n", index, value)
 }
 
@@ -115,7 +115,7 @@ a list in-place until you are ready to use it. This can improve bulk list
 building by 10x or more.
 
 ```go
-b := immutable.NewListBuilder[string]()
+b := immutable.NewListBuilder()
 b.Append("foo")
 b.Append("bar")
 b.Set(2, "baz")
@@ -135,9 +135,10 @@ is implemented to act similarly to the built-in Go `map` type. It is implemented
 as a [Hash-Array Mapped Trie](https://lampwww.epfl.ch/papers/idealhashtrees.pdf).
 
 Maps require a `Hasher` to hash keys and check for equality. There are built-in
-hasher implementations for most primitive types such as `int`, `uint`, and
-`string` keys. You may pass in a `nil` hasher to `NewMap()` if you are using
+hasher implementations for most primitive types such as `int`, `uint`, `string`,
+and `[]byte` keys. You may pass in a `nil` hasher to `NewMap()` if you are using
 one of these key types.
+
 
 ### Setting map key/value pairs
 
@@ -150,7 +151,7 @@ the value as well as a flag indicating if the key existed. The flag is useful
 to check if a `nil` value was set for a key versus a key did not exist.
 
 ```go
-m := immutable.NewMap[string,int](nil)
+m := immutable.NewMap(nil)
 m = m.Set("jane", 100)
 m = m.Set("susy", 200)
 m = m.Set("jane", 300) // overwrite
@@ -174,7 +175,7 @@ Keys may be removed from the map by using the `Delete()` method. If the key does
 not exist then the original map is returned instead of a new one.
 
 ```go
-m := immutable.NewMap[string,int](nil)
+m := immutable.NewMap(nil)
 m = m.Set("jane", 100)
 m = m.Delete("jane")
 
@@ -192,7 +193,7 @@ pairs in the collection. Unlike Go maps, iterators are deterministic when
 iterating over key/value pairs.
 
 ```go
-m := immutable.NewMap[string,int](nil)
+m := immutable.NewMap(nil)
 m = m.Set("jane", 100)
 m = m.Set("susy", 200)
 
@@ -214,11 +215,11 @@ keys generate the same hash.
 ### Efficiently building maps
 
 If you are executing multiple mutations on a map, it can be much more efficient
-to use the `MapBuilder`. It uses nearly the same API as `Map` except that it
-updates a map in-place until you are ready to use it.
+to use the `MapBuilder`. It uses nearly the same API as `Map` except that it 
+updates a map in-place until you are ready to use it. 
 
 ```go
-b := immutable.NewMapBuilder[string,int](nil)
+b := immutable.NewMapBuilder(immutable.NewMap(nil))
 b.Set("foo", 100)
 b.Set("bar", 200)
 b.Set("foo", 300)
@@ -233,17 +234,17 @@ Builders are invalid after the call to `Map()`.
 
 ### Implementing a custom Hasher
 
-If you need to use a key type besides `int`, `uint`, or `string` then you'll
-need to create a custom `Hasher` implementation and pass it to `NewMap()` on
-creation.
+If you need to use a key type besides `int`, `uint`, `string`, or `[]byte` then
+you'll need to create a custom `Hasher` implementation and pass it to `NewMap()`
+on creation.
 
 Hashers are fairly simple. They only need to generate hashes for a given key
 and check equality given two keys.
 
 ```go
-type Hasher[K any] interface {
-	Hash(key K) uint32
-	Equal(a, b K) bool
+type Hasher interface {
+	Hash(key interface{}) uint32
+	Equal(a, b interface{}) bool
 }
 ```
 
@@ -258,9 +259,9 @@ Unlike the `Map`, however, keys can be iterated over in-order. It is implemented
 as a B+tree.
 
 Sorted maps require a `Comparer` to sort keys and check for equality. There are
-built-in comparer implementations for `int`, `uint`, and `string` keys. You may
-pass a `nil` comparer to `NewSortedMap()` if you are using one of these key
-types.
+built-in comparer implementations for `int`, `uint`, `string`, and `[]byte` keys.
+You may pass a `nil` comparer to `NewSortedMap()` if you are using one of these
+key types.
 
 The API is identical to the `Map` implementation. The sorted map also has a
 companion `SortedMapBuilder` for more efficiently building maps.
@@ -268,8 +269,8 @@ companion `SortedMapBuilder` for more efficiently building maps.
 
 ### Implementing a custom Comparer
 
-If you need to use a key type besides `int`, `uint`, or `string` or derived types, then you'll
-need to create a custom `Comparer` implementation and pass it to
+If you need to use a key type besides `int`, `uint`, `string`, or `[]byte`
+then you'll need to create a custom `Comparer` implementation and pass it to
 `NewSortedMap()` on creation.
 
 Comparers on have one method—`Compare()`. It works the same as the
@@ -277,36 +278,14 @@ Comparers on have one method—`Compare()`. It works the same as the
 `1` if a is greater than `b`, and returns `0` if `a` is equal to `b`.
 
 ```go
-type Comparer[K any] interface {
-	Compare(a, b K) int
+type Comparer interface {
+	Compare(a, b interface{}) int
 }
 ```
 
-Please see the internal `defaultComparer` for an example, bearing in mind that it works for several types.
+Please see the internal `intComparer`, `uintComparer`, `stringComparer`, and
+`byteSliceComparer` for examples.
 
-## Set
-
-The `Set` represents a collection of unique values, and it is implemented as a
-wrapper around a `Map[T, struct{}]`.
-
-Like Maps, Sets require a `Hasher` to hash keys and check for equality. There are built-in
-hasher implementations for most primitive types such as `int`, `uint`, and
-`string` keys. You may pass in a `nil` hasher to `NewMap()` if you are using
-one of these key types.
-
-
-## Sorted Set
-
-The `SortedSet` represents a sorted collection of unique values.
-Unlike the `Set`, however, keys can be iterated over in-order. It is implemented
-as a B+tree.
-
-Sorted sets require a `Comparer` to sort values and check for equality. There are
-built-in comparer implementations for `int`, `uint`, and `string` keys. You may
-pass a `nil` comparer to `NewSortedSet()` if you are using one of these key
-types.
-
-The API is identical to the `Set` implementation.
 
 
 ## Contributing
