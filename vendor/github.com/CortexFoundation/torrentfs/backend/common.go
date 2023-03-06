@@ -72,7 +72,7 @@ func ProgressBar(x, y int64, desc string) string {
 }
 
 const (
-	ScaleBarLen = 10
+	ScaleBarLen = 15
 )
 
 func ScaleBar(from, to, sum int) string {

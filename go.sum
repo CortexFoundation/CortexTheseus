@@ -90,8 +90,8 @@ github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66/go.mod h1:
 github.com/CortexFoundation/torrentfs v1.0.13-0.20200623060705-ce027f43f2f8/go.mod h1:Ma+tGhPPvz4CEZHaqEJQMOEGOfHeQBiAoNd1zyc/w3Q=
 github.com/CortexFoundation/torrentfs v1.0.14-0.20200703071639-3fcabcabf274/go.mod h1:qnb3YlIJmuetVBtC6Lsejr0Xru+1DNmDCdTqnwy7lhk=
 github.com/CortexFoundation/torrentfs v1.0.20-0.20200810031954-d36d26f82fcc/go.mod h1:N5BsicP5ynjXIi/Npl/SRzlJ630n1PJV2sRj0Z0t2HA=
-github.com/CortexFoundation/torrentfs v1.0.41-0.20230305144925-095cf60b6276 h1:XpOrbBJ0aQYjPztmRMftH5iG3SUdQY/08K14MBkAEFI=
-github.com/CortexFoundation/torrentfs v1.0.41-0.20230305144925-095cf60b6276/go.mod h1:NvGcZJQT6w/SN2eJLjYnLxNAz3cXlmCJagVjkj0SdWk=
+github.com/CortexFoundation/torrentfs v1.0.41-0.20230306005410-322b8bef907c h1:VE7llyd6VrkiC1BrbGafubHp67no+YI4l6JEj6H0leg=
+github.com/CortexFoundation/torrentfs v1.0.41-0.20230306005410-322b8bef907c/go.mod h1:tmWHcj4AcRohg1qV/pBQHXlD1sj+RSdEfaRfukOQ4qU=
 github.com/DATA-DOG/go-sqlmock v1.3.3/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
 github.com/DATA-DOG/go-sqlmock v1.4.1 h1:ThlnYciV1iM/V0OSF/dtkqWb6xo5qITT1TJBG1MRDJM=
 github.com/DataDog/zstd v1.5.2 h1:vUG4lAyuPCXO0TLbXvPv7EB7cNK1QV/luu55UHLrrn8=
@@ -423,8 +423,8 @@ github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/deckarep/golang-set/v2 v2.1.0 h1:g47V4Or+DUdzbs8FxCCmgb6VYd+ptPAngjM6dtGktsI=
-github.com/deckarep/golang-set/v2 v2.1.0/go.mod h1:VAky9rY/yGXJOLEDv3OMci+7wtDpOF4IN+y82NBOac4=
+github.com/deckarep/golang-set/v2 v2.2.0 h1:2pMQd3Soi6qfw7E5MMKaEh5W5ES18bW3AbFFnGl6LgQ=
+github.com/deckarep/golang-set/v2 v2.2.0/go.mod h1:VAky9rY/yGXJOLEDv3OMci+7wtDpOF4IN+y82NBOac4=
 github.com/decred/dcrd/crypto/blake256 v1.0.0 h1:/8DMNYp9SGi5f0w7uCm6d6M4OU2rGFK09Y2A4Xv7EE0=
 github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 h1:HbphB4TFFXpv7MNrT52FGrrgVXF1owhMVTHFZIlnvd4=
 github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0/go.mod h1:DZGJHZMqrU4JJqFAWUS2UO1+lbSKsdiOoYi9Zzey7Fc=

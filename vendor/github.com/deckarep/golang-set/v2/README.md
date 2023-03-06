@@ -1,15 +1,16 @@
 ![example workflow](https://github.com/deckarep/golang-set/actions/workflows/ci.yml/badge.svg)
-[![Go Report Card](https://goreportcard.com/badge/github.com/deckarep/golang-set)](https://goreportcard.com/report/github.com/deckarep/golang-set)
-[![GoDoc](https://godoc.org/github.com/deckarep/golang-set?status.svg)](http://godoc.org/github.com/deckarep/golang-set)
+[![Go Report Card](https://goreportcard.com/badge/github.com/deckarep/golang-set/v2)](https://goreportcard.com/report/github.com/deckarep/golang-set/v2)
+[![GoDoc](https://godoc.org/github.com/deckarep/golang-set/v2?status.svg)](http://godoc.org/github.com/deckarep/golang-set/v2)
 
 # golang-set
 
 The missing `generic` set collection for the Go language.  Until Go has sets built-in...use this.
 
-## Update 3/26/2022
-* Packaged version: `2.0.0` release for generics support with breaking changes.
+## Update 3/5/2023
+* Packaged version: `2.2.0` release includes a refactor to minimize pointer indirection, better method documentation standards and a few constructor convenience methods to increase ergonomics when appending items `Append` or creating a new set from an exist `Map`.
 * supports `new generic` syntax
 * Go `1.18.0` or higher
+* Workflow tested on Go `1.20`
 
 ![With Generics](new_improved.jpeg)
 
@@ -34,6 +35,11 @@ This package is trusted by many companies and thousands of open-source packages.
   * Docker
   * 1Password
   * Hashicorp
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=deckarep/golang-set&type=Date)](https://star-history.com/#deckarep/golang-set&Date)
+
 
 ## Usage
 
@@ -76,7 +82,7 @@ package main
 
 import (
   "fmt"
-  mapset "github.com/deckarep/golang-set"
+  mapset "github.com/deckarep/golang-set/v2"
 )
 
 func main() {

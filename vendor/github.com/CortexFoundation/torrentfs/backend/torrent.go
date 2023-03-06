@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -52,7 +53,7 @@ type Torrent struct {
 	status   int
 	infohash string
 	filepath string
-	cited    int64
+	cited    int32
 	//weight     int
 	//loop       int
 	maxPieces int
@@ -64,6 +65,17 @@ type Torrent struct {
 	lock sync.RWMutex
 }
 
+func NewTorrent(t *torrent.Torrent, requested int64, ih string, path string) *Torrent {
+	return &Torrent{
+		Torrent:        t,
+		bytesRequested: requested,
+		status:         torrentPending,
+		infohash:       ih,
+		filepath:       path,
+		start:          mclock.Now(),
+	}
+}
+
 /*func (t *Torrent) BytesLeft() int64 {
 	if t.bytesRequested < t.bytesCompleted {
 		return 0
@@ -73,6 +85,22 @@ type Torrent struct {
 
 func (t *Torrent) InfoHash() string {
 	return t.infohash
+}
+
+func (t *Torrent) Status() int {
+	return t.status
+}
+
+func (t *Torrent) Cited() int32 {
+	return t.cited
+}
+
+func (t *Torrent) CitedInc() {
+	atomic.AddInt32(&t.cited, 1)
+}
+
+func (t *Torrent) CitedDec() {
+	atomic.AddInt32(&t.cited, -1)
 }
 
 func (t *Torrent) Ready() bool {
@@ -178,6 +206,10 @@ func (t *Torrent) Run(slot int) {
 		return
 	}
 
+	if t.status != torrentRunning {
+		t.status = torrentRunning
+	}
+
 	limitPieces := int((t.bytesRequested*int64(t.Torrent.NumPieces()) + t.Length() - 1) / t.Length())
 	if limitPieces > t.Torrent.NumPieces() {
 		limitPieces = t.Torrent.NumPieces()
@@ -199,7 +231,6 @@ func (t *Torrent) Run(slot int) {
 	//	}
 	//}
 	if limitPieces > t.maxPieces {
-		t.status = torrentRunning
 		t.maxPieces = limitPieces
 		t.download(limitPieces, slot)
 	}
@@ -225,7 +256,7 @@ func (t *Torrent) download(p, slot int) {
 	}
 
 	e = s + p
-	log.Info("Pieces "+ScaleBar(s, e, t.Torrent.NumPieces()), "ih", t.Torrent.InfoHash(), "slot", slot, "s", s, "e", e, "p", p, "total", t.Torrent.NumPieces())
+	log.Info(ScaleBar(s, e, t.Torrent.NumPieces()), "ih", t.Torrent.InfoHash(), "slot", slot, "s", s, "e", e, "p", p, "total", t.Torrent.NumPieces())
 	go t.Torrent.DownloadPieces(s, e)
 }
 
