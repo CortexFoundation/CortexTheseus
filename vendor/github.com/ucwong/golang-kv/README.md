@@ -17,6 +17,8 @@ type Bucket interface {
 
 	// BatchSet write & flush
 	BatchSet(kvs map[string][]byte) error
+	
+	Name() string
 }
 ```
 

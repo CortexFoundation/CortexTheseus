@@ -76,6 +76,26 @@ func NewTorrent(t *torrent.Torrent, requested int64, ih string, path string) *To
 	}
 }
 
+func (t *Torrent) Birth() mclock.AbsTime {
+	return t.start
+}
+
+func (t *Torrent) Lock() {
+	t.lock.Lock()
+}
+
+func (t *Torrent) Unlock() {
+	t.lock.Unlock()
+}
+
+func (t *Torrent) RLock() {
+	t.lock.RLock()
+}
+
+func (t *Torrent) RUnlock() {
+	t.lock.RUnlock()
+}
+
 /*func (t *Torrent) BytesLeft() int64 {
 	if t.bytesRequested < t.bytesCompleted {
 		return 0
@@ -101,6 +121,16 @@ func (t *Torrent) CitedInc() {
 
 func (t *Torrent) CitedDec() {
 	atomic.AddInt32(&t.cited, -1)
+}
+
+func (t *Torrent) BytesRequested() int64 {
+	return t.bytesRequested
+}
+
+func (t *Torrent) SetBytesRequested(bytesRequested int64) {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	t.bytesRequested = bytesRequested
 }
 
 func (t *Torrent) Ready() bool {
@@ -169,7 +199,7 @@ func (t *Torrent) Seed() bool {
 		//if active, ok := params.GoodFiles[t.InfoHash()]; !ok {
 		//	log.Info("New active nas found", "ih", t.InfoHash(), "ok", ok, "active", active, "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "peers", t.currentConns, "status", t.status, "elapsed", common.PrettyDuration(elapsed))
 		//} else {
-		log.Info("Imported new nas segment", "ih", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "status", t.status, "elapsed", common.PrettyDuration(elapsed), "speed", common.StorageSize(float64(t.BytesCompleted()*1000*1000*1000)/float64(elapsed)).String()+"/s")
+		log.Info("Imported new nas segment", "ih", t.InfoHash(), "size", common.StorageSize(t.Torrent.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "status", t.status, "elapsed", common.PrettyDuration(elapsed), "speed", common.StorageSize(float64(t.Torrent.BytesCompleted()*1000*1000*1000)/float64(elapsed)).String()+"/s")
 		//}
 		return true
 	}

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/pion/dtls/v2"
+	dtlsElliptic "github.com/pion/dtls/v2/pkg/crypto/elliptic"
 	"github.com/pion/ice/v2"
 	"github.com/pion/logging"
 	"github.com/pion/transport/v2"
@@ -56,7 +57,9 @@ type SettingEngine struct {
 		SRTCP *uint
 	}
 	dtls struct {
-		retransmissionInterval time.Duration
+		insecureSkipHelloVerify bool
+		retransmissionInterval  time.Duration
+		ellipticCurves          []dtlsElliptic.Curve
 	}
 	sctp struct {
 		maxReceiveBufferSize uint32
@@ -194,7 +197,7 @@ func (e *SettingEngine) SetIPFilter(filter func(net.IP) bool) {
 //
 // ICECandidateTypeSrflx:
 //
-//  A server reflexive candidate with the given public IP address will be added to the SDP.
+//	A server reflexive candidate with the given public IP address will be added to the SDP.
 //
 // Please note that if you choose ICECandidateTypeHost, then the private IP address
 // won't be advertised with the peer. Also, this option cannot be used along with mDNS.
@@ -347,6 +350,19 @@ func (e *SettingEngine) SetReceiveMTU(receiveMTU uint) {
 // SetDTLSRetransmissionInterval sets the retranmission interval for DTLS.
 func (e *SettingEngine) SetDTLSRetransmissionInterval(interval time.Duration) {
 	e.dtls.retransmissionInterval = interval
+}
+
+// SetDTLSInsecureSkipHelloVerify sets the skip HelloVerify flag for DTLS.
+// If true and when acting as DTLS server, will allow client to skip hello verify phase and
+// receive ServerHello after initial ClientHello. This will mean faster connect times,
+// but will have lower DoS attack resistance.
+func (e *SettingEngine) SetDTLSInsecureSkipHelloVerify(skip bool) {
+	e.dtls.insecureSkipHelloVerify = skip
+}
+
+// SetDTLSEllipticCurves sets the elliptic curves for DTLS.
+func (e *SettingEngine) SetDTLSEllipticCurves(ellipticCurves ...dtlsElliptic.Curve) {
+	e.dtls.ellipticCurves = ellipticCurves
 }
 
 // SetSCTPMaxReceiveBufferSize sets the maximum receive buffer size.

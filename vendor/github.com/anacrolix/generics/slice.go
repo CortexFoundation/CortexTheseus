@@ -41,3 +41,17 @@ func ConvertToSliceOfAny[T any](ts []T) (ret []any) {
 	}
 	return
 }
+
+func ReverseSlice[T any](slice []T) {
+	for i := 0; i < len(slice)/2; i++ {
+		slice[i], slice[len(slice)-1-i] = slice[len(slice)-1-i], slice[i]
+	}
+}
+
+func SliceTake[T any](n int, slice []T) []T {
+	return slice[:Min(n, len(slice))]
+}
+
+func SliceDrop[T any](n int, slice []T) []T {
+	return slice[Min(n, len(slice)):]
+}
