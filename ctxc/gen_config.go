@@ -41,6 +41,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		Coinbase                common.Address `toml:",omitempty"`
 		InferDeviceType         string
 		InferDeviceId           int
+		SynapseTimeout          int
 		InferMemoryUsage        int64
 		Cuckoo                  cuckoo.Config
 		TxPool                  txpool.Config
@@ -79,6 +80,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.Coinbase = c.Coinbase
 	enc.InferDeviceType = c.InferDeviceType
 	enc.InferDeviceId = c.InferDeviceId
+	enc.SynapseTimeout = c.SynapseTimeout
 	enc.InferMemoryUsage = c.InferMemoryUsage
 	enc.Cuckoo = c.Cuckoo
 	enc.TxPool = c.TxPool
@@ -121,6 +123,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		Coinbase                *common.Address `toml:",omitempty"`
 		InferDeviceType         *string
 		InferDeviceId           *int
+		SynapseTimeout          *int
 		InferMemoryUsage        *int64
 		Cuckoo                  *cuckoo.Config
 		TxPool                  *txpool.Config
@@ -207,6 +210,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.InferDeviceId != nil {
 		c.InferDeviceId = *dec.InferDeviceId
+	}
+	if dec.SynapseTimeout != nil {
+		c.SynapseTimeout = *dec.SynapseTimeout
 	}
 	if dec.InferMemoryUsage != nil {
 		c.InferMemoryUsage = *dec.InferMemoryUsage

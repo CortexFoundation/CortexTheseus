@@ -61,6 +61,7 @@ type Torrent struct {
 	//fast  bool
 	start mclock.AbsTime
 	//ch    chan bool
+	wg sync.WaitGroup
 
 	lock sync.RWMutex
 }
@@ -287,7 +288,11 @@ func (t *Torrent) download(p, slot int) {
 
 	e = s + p
 	log.Info(ScaleBar(s, e, t.Torrent.NumPieces()), "ih", t.Torrent.InfoHash(), "slot", slot, "s", s, "e", e, "p", p, "total", t.Torrent.NumPieces())
-	go t.Torrent.DownloadPieces(s, e)
+	t.wg.Add(1)
+	go func() {
+		defer t.wg.Done()
+		t.Torrent.DownloadPieces(s, e)
+	}()
 }
 
 func (t *Torrent) Running() bool {
@@ -298,9 +303,9 @@ func (t *Torrent) Pending() bool {
 	return t.status == torrentPending
 }
 
-//func (t *Torrent) setCurrentConns(c int) {
-//t.lock.Lock()
-//defer t.lock.Unlock()
+func (t *Torrent) Stop() {
+	t.wg.Wait()
+	t.Torrent.Drop()
 
-//	t.currentConns = c
-//}
+	log.Info(ProgressBar(t.BytesCompleted(), t.Torrent.Length(), ""), "ih", t.InfoHash(), "total", common.StorageSize(t.Torrent.Length()), "req", common.StorageSize(t.BytesRequested()), "finish", common.StorageSize(t.Torrent.BytesCompleted()), "status", t.Status())
+}

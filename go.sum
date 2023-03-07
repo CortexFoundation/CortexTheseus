@@ -81,8 +81,8 @@ github.com/CortexFoundation/CortexTheseus v1.10.3-0.20200704025058-f0885ec2bd83/
 github.com/CortexFoundation/CortexTheseus v1.10.8/go.mod h1:BxMcNBe5UuA9WWMLBdHP5JqpFKyCBZza+6FLSMx7Nhk=
 github.com/CortexFoundation/cvm-runtime v0.0.0-20221117094012-b5a251885572 h1:flP0APyj5dlVhNsPIz7+SiB4/N2564+GBy7avBV71gY=
 github.com/CortexFoundation/cvm-runtime v0.0.0-20221117094012-b5a251885572/go.mod h1:oLEQaJbHT0SAIVjY90BYPYVikGylXHrPyf1yTPS7HZg=
-github.com/CortexFoundation/inference v1.0.2-0.20230214063856-1a3b697a8ebb h1:urQk6cXFfRM62L4puRyDWaRahlP4+SHqzpRMY4Od0d0=
-github.com/CortexFoundation/inference v1.0.2-0.20230214063856-1a3b697a8ebb/go.mod h1:bOltdY1SJLm2IQ0wk58NLh1t82FREqxRUz83nIc3Bwk=
+github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8 h1:W/iuMZd13mB6OSIEd9ahMHFAeQ8zLv+peIFYcMirvag=
+github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8/go.mod h1:Doj3mBNzdjCDvKVwysKaHEPbS20A7RRaQY0bHtEVz88=
 github.com/CortexFoundation/merkletree v0.0.0-20221028235943-b8196eb55fbc h1:BA/WIV/GiVsCu7owpo1OxUngISzACrHghk2ww28pEWE=
 github.com/CortexFoundation/merkletree v0.0.0-20221028235943-b8196eb55fbc/go.mod h1:vzfymt57IXS5VRO+KzDc4uRNSUs9TFdH8MCSx5aU/zs=
 github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66 h1:yJbN4DFvpStCShXOVxNV64aawsPqizLuXZhrnhCr2fY=
@@ -90,8 +90,8 @@ github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66/go.mod h1:
 github.com/CortexFoundation/torrentfs v1.0.13-0.20200623060705-ce027f43f2f8/go.mod h1:Ma+tGhPPvz4CEZHaqEJQMOEGOfHeQBiAoNd1zyc/w3Q=
 github.com/CortexFoundation/torrentfs v1.0.14-0.20200703071639-3fcabcabf274/go.mod h1:qnb3YlIJmuetVBtC6Lsejr0Xru+1DNmDCdTqnwy7lhk=
 github.com/CortexFoundation/torrentfs v1.0.20-0.20200810031954-d36d26f82fcc/go.mod h1:N5BsicP5ynjXIi/Npl/SRzlJ630n1PJV2sRj0Z0t2HA=
-github.com/CortexFoundation/torrentfs v1.0.41-0.20230306233147-a7045466003f h1:nhxtCAM0D5Aw2AruFWQ0MfuXjFVNyPSZh8GlywLykw0=
-github.com/CortexFoundation/torrentfs v1.0.41-0.20230306233147-a7045466003f/go.mod h1:seUzaFbkbWEy417FZS8ACMt8yVuh3qyJ4wYcNNfGXQs=
+github.com/CortexFoundation/torrentfs v1.0.41-0.20230307161816-5cb5d6842c65 h1:HVRttYkjN+Af8DHXJiLSrNCT2OSH5pQ/fV7GSL5KrEw=
+github.com/CortexFoundation/torrentfs v1.0.41-0.20230307161816-5cb5d6842c65/go.mod h1:seUzaFbkbWEy417FZS8ACMt8yVuh3qyJ4wYcNNfGXQs=
 github.com/DATA-DOG/go-sqlmock v1.3.3/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
 github.com/DATA-DOG/go-sqlmock v1.4.1 h1:ThlnYciV1iM/V0OSF/dtkqWb6xo5qITT1TJBG1MRDJM=
 github.com/DataDog/zstd v1.5.2 h1:vUG4lAyuPCXO0TLbXvPv7EB7cNK1QV/luu55UHLrrn8=
@@ -347,10 +347,10 @@ github.com/bradfitz/iter v0.0.0-20190303215204-33e6a9893b0c/go.mod h1:PyRFw1Lt2w
 github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8 h1:GKTyiRCL6zVf5wWaqKnf+7Qs6GbEPfd4iMOitWzXJx8=
 github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8/go.mod h1:spo1JLcs67NmW1aVLEgtA8Yy1elc+X8y5SRW1sFW4Og=
 github.com/btcsuite/btcd v0.20.1-beta/go.mod h1:wVuoA8VJLEcwgqHBwHmzLRazpKxTv13Px/pDuV7OomQ=
+github.com/btcsuite/btcd v0.23.4 h1:IzV6qqkfwbItOS/sg/aDfPDsjPP8twrCOE2R93hxMlQ=
 github.com/btcsuite/btcd/btcec/v2 v2.3.2 h1:5n0X6hX0Zk+6omWcihdYvdAlGf2DfasC0GMf7DClJ3U=
 github.com/btcsuite/btcd/btcec/v2 v2.3.2/go.mod h1:zYzJ8etWJQIv1Ogk7OzpWjowwOdXY1W/17j2MW85J04=
 github.com/btcsuite/btcd/chaincfg/chainhash v1.0.2-0.20220413172512-bf64c8bdbbbf h1:x2qACX+i7TMsmaE1YPYyRISOAPKnVlOW+E+vJJz2vSo=
-github.com/btcsuite/btcd/chaincfg/chainhash v1.0.2-0.20220413172512-bf64c8bdbbbf/go.mod h1:7SFka0XMvUgj3hfZtydOrQY2mwhPclbT2snogU7SQQc=
 github.com/btcsuite/btclog v0.0.0-20170628155309-84c8d2346e9f/go.mod h1:TdznJufoqS23FtqVCzL0ZqgP5MqXbb4fg/WgDys70nA=
 github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d/go.mod h1:+5NJ2+qvTyV9exUAL/rxXi3DcLg2Ts+ymUAY5y4NvMg=
 github.com/btcsuite/go-socks v0.0.0-20170105172521-4720035b7bfd/go.mod h1:HHNXQzUsZCxOoE+CPiyCTO6x34Zs86zZUiwtpXoGdtg=

@@ -57,22 +57,33 @@ func ProgressBar(x, y int64, desc string) string {
 	if y == 0 {
 		return "[            ] 0%"
 	}
-	progress := ""
-	for i := 10; i > 0; i-- {
+	//var buffer bytes.Buffer
+	var buffer strings.Builder
+	buffer.WriteString(desc)
+	buffer.WriteString(" [ ")
+	//progress := ""
+	for i := ProgressBarLen; i > 0; i-- {
 		if int64(i) > (10*x)/y {
-			progress = progress + " "
+			//progress = progress + " "
+			buffer.WriteString(" ")
 		} else {
-			progress = progress + "<"
+			//progress = progress + "<"
+			buffer.WriteString("<")
 		}
 	}
 
 	prog := float64(x*100) / float64(y)
-	f := strconv.FormatFloat(prog, 'f', 4, 64)
-	return desc + " [ " + progress + " ] " + f + "%"
+	f := strconv.FormatFloat(prog, 'f', 2, 64)
+	buffer.WriteString(" ] ")
+	buffer.WriteString(f)
+	buffer.WriteString("%")
+	return buffer.String()
+	//return desc + " [ " + buffer.String() + " ] " + f + "%"
 }
 
 const (
-	ScaleBarLen = 15
+	ProgressBarLen = 10
+	ScaleBarLen    = 15
 )
 
 func ScaleBar(from, to, sum int) string {
@@ -90,21 +101,30 @@ func ScaleBar(from, to, sum int) string {
 	f := from / per
 	t := to / per
 
-	bar := ""
+	var buffer strings.Builder
+	buffer.WriteString("[ ")
+	//bar := ""
 	for i := 0; i < ScaleBarLen; i++ {
 		if i > t {
-			bar = bar + " "
+			//bar = bar + " "
+			buffer.WriteString(" ")
 		} else if i < f {
-			bar = bar + " "
+			//bar = bar + " "
+			buffer.WriteString(" ")
 		} else {
-			bar = bar + ">"
+			//bar = bar + ">"
+			buffer.WriteString(">")
 		}
 	}
 
 	prog := float64((to-from)*100) / float64(sum)
 	ff := strconv.FormatFloat(prog, 'f', 2, 64)
+	buffer.WriteString(" ] ")
+	buffer.WriteString(ff)
+	buffer.WriteString("%")
 
-	return "[ " + bar + " ] " + ff + "%"
+	return buffer.String()
+	//return "[ " + buffer.String() + " ] " + ff + "%"
 }
 
 func max(as ...int64) int64 {

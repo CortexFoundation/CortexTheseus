@@ -14,7 +14,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/cvm-runtime/kernel"
 	"github.com/CortexFoundation/inference"
-	"time"
+	//"time"
 
 	gopsutil "github.com/shirou/gopsutil/mem"
 )
@@ -32,7 +32,7 @@ var (
 	simpleCacheHitMeter  = metrics.NewRegisteredMeter("synapse/simplecache/hit", nil)
 	simpleCacheMissMeter = metrics.NewRegisteredMeter("synapse/simplecache/miss", nil)
 
-	call_timeout = 10 * time.Second
+	//call_timeout = 10 * time.Second
 )
 
 func getReturnByStatusCode(ret interface{}, status int) (interface{}, error) {
@@ -72,7 +72,7 @@ func (s *Synapse) getGasByInfoHashWithSize(modelInfoHash string, modelSize uint6
 		gasCacheHitMeter.Mark(1)
 		return v.(uint64), nil
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), call_timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), s.config.Timeout)
 	defer cancel()
 	modelJson, modelJson_err := s.config.Storagefs.GetFileWithSize(ctx, modelHash, modelSize, SYMBOL_PATH)
 	if modelJson_err != nil || modelJson == nil {
@@ -133,7 +133,7 @@ func (s *Synapse) infer(modelInfoHash, inputInfoHash string, inputContent []byte
 		return v.([]byte), nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), call_timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), s.config.Timeout)
 	defer cancel()
 
 	if inputContent == nil {
@@ -257,7 +257,7 @@ func (s *Synapse) download(infohash string, request uint64) error {
 		return KERNEL_RUNTIME_ERROR //errors.New("Invalid infohash format")
 	}
 	ih := strings.TrimPrefix(strings.ToLower(infohash), common.Prefix)
-	ctx, cancel := context.WithTimeout(context.Background(), call_timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), s.config.Timeout)
 	defer cancel()
 	err := s.config.Storagefs.Download(ctx, ih, request)
 	if err != nil {
@@ -268,7 +268,7 @@ func (s *Synapse) download(infohash string, request uint64) error {
 }
 
 func (s *Synapse) seedingLocal(filePath string, isLinkMode bool) (ih string, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), call_timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), s.config.Timeout)
 	defer cancel()
 	ih, err = s.config.Storagefs.SeedingLocal(ctx, filePath, isLinkMode)
 	if err != nil {
@@ -280,7 +280,7 @@ func (s *Synapse) seedingLocal(filePath string, isLinkMode bool) (ih string, err
 }
 
 func (s *Synapse) pauseLocalSeedFile(ih string) (err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), call_timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), s.config.Timeout)
 	defer cancel()
 	err = s.config.Storagefs.PauseLocalSeed(ctx, ih)
 	if err != nil {
@@ -292,7 +292,7 @@ func (s *Synapse) pauseLocalSeedFile(ih string) (err error) {
 }
 
 func (s *Synapse) resumeLocalSeedFile(ih string) (err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), call_timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), s.config.Timeout)
 	defer cancel()
 	err = s.config.Storagefs.ResumeLocalSeed(ctx, ih)
 	if err != nil {
@@ -304,7 +304,7 @@ func (s *Synapse) resumeLocalSeedFile(ih string) (err error) {
 }
 
 func (s *Synapse) listAllTorrents() map[string]map[string]int {
-	ctx, cancel := context.WithTimeout(context.Background(), call_timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), s.config.Timeout)
 	defer cancel()
 	return s.config.Storagefs.ListAllTorrents(ctx)
 }

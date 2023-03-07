@@ -323,7 +323,8 @@ func (tm *TorrentManager) removeTorrent(t *Torrent) {
 	//t.lock.Lock()
 	//defer t.lock.Unlock()
 
-	defer t.Torrent.Drop()
+	//defer t.Torrent.Drop()
+	defer t.Stop()
 
 	//t.Status() = torrentSleeping
 	//tm.torrents[ih] = t
@@ -348,6 +349,14 @@ func (tm *TorrentManager) removeTorrent(t *Torrent) {
 }
 
 func (tm *TorrentManager) Close() error {
+	tm.lock.Lock()
+	defer tm.lock.Unlock()
+
+	log.Info("Current running torrents", "size", len(tm.torrents))
+	for _, t := range tm.torrents {
+		t.Stop()
+	}
+
 	tm.client.Close()
 	tm.client.WaitAll()
 	close(tm.closeAll)
