@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -37,22 +38,22 @@ const (
 	torrentPaused
 	torrentRunning
 	torrentSeeding
-	torrentSleeping
+	//torrentSleeping
 )
 
 type Torrent struct {
 	*torrent.Torrent
-	maxEstablishedConns int
-	minEstablishedConns int
-	currentConns        int
-	bytesRequested      int64
-	bytesLimitation     int64
-	bytesCompleted      int64
+	//maxEstablishedConns int
+	//minEstablishedConns int
+	//currentConns        int
+	bytesRequested int64
+	//bytesLimitation int64
+	//bytesCompleted int64
 	//bytesMissing        int64
 	status   int
 	infohash string
 	filepath string
-	cited    int64
+	cited    int32
 	//weight     int
 	//loop       int
 	maxPieces int
@@ -64,15 +65,72 @@ type Torrent struct {
 	lock sync.RWMutex
 }
 
-func (t *Torrent) BytesLeft() int64 {
+func NewTorrent(t *torrent.Torrent, requested int64, ih string, path string) *Torrent {
+	return &Torrent{
+		Torrent:        t,
+		bytesRequested: requested,
+		status:         torrentPending,
+		infohash:       ih,
+		filepath:       path,
+		start:          mclock.Now(),
+	}
+}
+
+func (t *Torrent) Birth() mclock.AbsTime {
+	return t.start
+}
+
+func (t *Torrent) Lock() {
+	t.lock.Lock()
+}
+
+func (t *Torrent) Unlock() {
+	t.lock.Unlock()
+}
+
+func (t *Torrent) RLock() {
+	t.lock.RLock()
+}
+
+func (t *Torrent) RUnlock() {
+	t.lock.RUnlock()
+}
+
+/*func (t *Torrent) BytesLeft() int64 {
 	if t.bytesRequested < t.bytesCompleted {
 		return 0
 	}
 	return t.bytesRequested - t.bytesCompleted
-}
+}*/
 
 func (t *Torrent) InfoHash() string {
 	return t.infohash
+}
+
+func (t *Torrent) Status() int {
+	return t.status
+}
+
+func (t *Torrent) Cited() int32 {
+	return t.cited
+}
+
+func (t *Torrent) CitedInc() {
+	atomic.AddInt32(&t.cited, 1)
+}
+
+func (t *Torrent) CitedDec() {
+	atomic.AddInt32(&t.cited, -1)
+}
+
+func (t *Torrent) BytesRequested() int64 {
+	return t.bytesRequested
+}
+
+func (t *Torrent) SetBytesRequested(bytesRequested int64) {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	t.bytesRequested = bytesRequested
 }
 
 func (t *Torrent) Ready() bool {
@@ -128,10 +186,10 @@ func (t *Torrent) Seed() bool {
 		log.Debug("Torrent status is", "status", t.status, "ih", t.InfoHash())
 		return true
 	}
-	if t.currentConns <= t.minEstablishedConns {
-		//t.setCurrentConns(t.maxEstablishedConns)
-		//t.Torrent.SetMaxEstablishedConns(t.currentConns)
-	}
+	//if t.currentConns <= t.minEstablishedConns {
+	//t.setCurrentConns(t.maxEstablishedConns)
+	//t.Torrent.SetMaxEstablishedConns(t.currentConns)
+	//}
 	if t.Torrent.Seeding() {
 		t.lock.Lock()
 		t.status = torrentSeeding
@@ -141,7 +199,7 @@ func (t *Torrent) Seed() bool {
 		//if active, ok := params.GoodFiles[t.InfoHash()]; !ok {
 		//	log.Info("New active nas found", "ih", t.InfoHash(), "ok", ok, "active", active, "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "peers", t.currentConns, "status", t.status, "elapsed", common.PrettyDuration(elapsed))
 		//} else {
-		log.Info("Imported new nas segment", "ih", t.InfoHash(), "size", common.StorageSize(t.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "peers", t.currentConns, "status", t.status, "elapsed", common.PrettyDuration(elapsed), "speed", common.StorageSize(float64(t.BytesCompleted()*1000*1000*1000)/float64(elapsed)).String()+"/s")
+		log.Info("Imported new nas segment", "ih", t.InfoHash(), "size", common.StorageSize(t.Torrent.BytesCompleted()), "files", len(t.Files()), "pieces", t.Torrent.NumPieces(), "seg", len(t.Torrent.PieceStateRuns()), "status", t.status, "elapsed", common.PrettyDuration(elapsed), "speed", common.StorageSize(float64(t.Torrent.BytesCompleted()*1000*1000*1000)/float64(elapsed)).String()+"/s")
 		//}
 		return true
 	}
@@ -154,10 +212,10 @@ func (t *Torrent) IsSeeding() bool {
 }
 
 func (t *Torrent) Pause() {
-	if t.currentConns > t.minEstablishedConns {
-		//t.setCurrentConns(t.minEstablishedConns)
-		//t.Torrent.SetMaxEstablishedConns(t.minEstablishedConns)
-	}
+	//if t.currentConns > t.minEstablishedConns {
+	//t.setCurrentConns(t.minEstablishedConns)
+	//t.Torrent.SetMaxEstablishedConns(t.minEstablishedConns)
+	//}
 	if t.status != torrentPaused {
 		t.status = torrentPaused
 		t.maxPieces = 0 //t.minEstablishedConns
@@ -173,6 +231,15 @@ func (t *Torrent) Run(slot int) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
+	// Make sure the torrent info exists
+	if t.Torrent.Info() == nil {
+		return
+	}
+
+	if t.status != torrentRunning {
+		t.status = torrentRunning
+	}
+
 	limitPieces := int((t.bytesRequested*int64(t.Torrent.NumPieces()) + t.Length() - 1) / t.Length())
 	if limitPieces > t.Torrent.NumPieces() {
 		limitPieces = t.Torrent.NumPieces()
@@ -183,18 +250,17 @@ func (t *Torrent) Run(slot int) {
 	//}
 
 	//if t.fast {
-	if t.currentConns <= t.minEstablishedConns {
-		//t.setCurrentConns(t.maxEstablishedConns)
-		//t.Torrent.SetMaxEstablishedConns(t.currentConns)
-	}
+	//if t.currentConns <= t.minEstablishedConns {
+	//t.setCurrentConns(t.maxEstablishedConns)
+	//t.Torrent.SetMaxEstablishedConns(t.currentConns)
+	//}
 	//} else {
 	//	if t.currentConns > t.minEstablishedConns {
 	//		t.setCurrentConns(t.minEstablishedConns)
 	//		t.Torrent.SetMaxEstablishedConns(t.currentConns)
 	//	}
 	//}
-	if limitPieces != t.maxPieces {
-		t.status = torrentRunning
+	if limitPieces > t.maxPieces {
 		t.maxPieces = limitPieces
 		t.download(limitPieces, slot)
 	}
@@ -220,8 +286,8 @@ func (t *Torrent) download(p, slot int) {
 	}
 
 	e = s + p
-	log.Debug("Donwloaded pieces "+ScaleBar(s, e, t.Torrent.NumPieces()), "ih", t.Torrent.InfoHash(), "slot", slot, "s", s, "e", e, "p", p, "total", t.Torrent.NumPieces())
-	t.Torrent.DownloadPieces(s, e)
+	log.Info(ScaleBar(s, e, t.Torrent.NumPieces()), "ih", t.Torrent.InfoHash(), "slot", slot, "s", s, "e", e, "p", p, "total", t.Torrent.NumPieces())
+	go t.Torrent.DownloadPieces(s, e)
 }
 
 func (t *Torrent) Running() bool {
@@ -232,9 +298,9 @@ func (t *Torrent) Pending() bool {
 	return t.status == torrentPending
 }
 
-func (t *Torrent) setCurrentConns(c int) {
-	//t.lock.Lock()
-	//defer t.lock.Unlock()
+//func (t *Torrent) setCurrentConns(c int) {
+//t.lock.Lock()
+//defer t.lock.Unlock()
 
-	t.currentConns = c
-}
+//	t.currentConns = c
+//}

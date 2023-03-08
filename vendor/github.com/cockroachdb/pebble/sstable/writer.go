@@ -1670,16 +1670,14 @@ func (w *Writer) writeCompressedBlock(block []byte, blockTrailerBuf []byte) (Blo
 	}
 
 	// Write the bytes to the file.
-	n, err := w.writable.Write(block)
-	if err != nil {
+	if err := w.writable.Write(block); err != nil {
 		return BlockHandle{}, err
 	}
-	w.meta.Size += uint64(n)
-	n, err = w.writable.Write(blockTrailerBuf[:blockTrailerLen])
-	if err != nil {
+	w.meta.Size += uint64(len(block))
+	if err := w.writable.Write(blockTrailerBuf[:blockTrailerLen]); err != nil {
 		return BlockHandle{}, err
 	}
-	w.meta.Size += uint64(n)
+	w.meta.Size += blockTrailerLen
 
 	return bh, nil
 }
@@ -1698,7 +1696,10 @@ func (w *Writer) Write(blockWithTrailer []byte) (n int, err error) {
 		w.cache.Delete(w.cacheID, w.fileNum, offset)
 	}
 	w.meta.Size += uint64(len(blockWithTrailer))
-	return w.writable.Write(blockWithTrailer)
+	if err := w.writable.Write(blockWithTrailer); err != nil {
+		return 0, err
+	}
+	return len(blockWithTrailer), nil
 }
 
 func (w *Writer) writeBlock(
@@ -1746,21 +1747,22 @@ func (w *Writer) Close() (err error) {
 			// the same object to a sync.Pool.
 			w.valueBlockWriter = nil
 		}
-		if w.writable == nil {
-			return
+		if w.writable != nil {
+			w.writable.Abort()
+			w.writable = nil
 		}
-		err1 := w.writable.Close()
-		if err == nil {
-			err = err1
+		// Record any error in the writer (so we can exit early if Close is called
+		// again).
+		if err != nil {
+			w.err = err
 		}
-		w.writable = nil
 	}()
 
 	// finish must be called before we check for an error, because finish will
 	// block until every single task added to the writeQueue has been processed,
 	// and an error could be encountered while any of those tasks are processed.
-	if err = w.coordination.writeQueue.finish(); err != nil {
-		w.err = err
+	if err := w.coordination.writeQueue.finish(); err != nil {
+		return err
 	}
 
 	if w.err != nil {
@@ -1786,17 +1788,14 @@ func (w *Writer) Close() (err error) {
 	if w.dataBlockBuf.dataBlock.nEntries > 0 || w.indexBlock.block.nEntries == 0 {
 		bh, err := w.writeBlock(w.dataBlockBuf.dataBlock.finish(), w.compression, &w.dataBlockBuf.blockBuf)
 		if err != nil {
-			w.err = err
-			return w.err
+			return err
 		}
-		var bhp BlockHandleWithProperties
-		if bhp, err = w.maybeAddBlockPropertiesToBlockHandle(bh); err != nil {
-			w.err = err
+		bhp, err := w.maybeAddBlockPropertiesToBlockHandle(bh)
+		if err != nil {
 			return err
 		}
 		prevKey := base.DecodeInternalKey(w.dataBlockBuf.dataBlock.curKey)
-		if err = w.addIndexEntrySync(prevKey, InternalKey{}, bhp, w.dataBlockBuf.tmp[:]); err != nil {
-			w.err = err
+		if err := w.addIndexEntrySync(prevKey, InternalKey{}, bhp, w.dataBlockBuf.tmp[:]); err != nil {
 			return err
 		}
 	}
@@ -1808,13 +1807,11 @@ func (w *Writer) Close() (err error) {
 	if w.filter != nil {
 		b, err := w.filter.finish()
 		if err != nil {
-			w.err = err
-			return w.err
+			return err
 		}
 		bh, err := w.writeBlock(b, NoCompression, &w.blockBuf)
 		if err != nil {
-			w.err = err
-			return w.err
+			return err
 		}
 		n := encodeBlockHandle(w.blockBuf.tmp[:], bh)
 		metaindex.add(InternalKey{UserKey: []byte(w.filter.metaName())}, w.blockBuf.tmp[:n])
@@ -1828,8 +1825,7 @@ func (w *Writer) Close() (err error) {
 		// Write the two level index block.
 		indexBH, err = w.writeTwoLevelIndex()
 		if err != nil {
-			w.err = err
-			return w.err
+			return err
 		}
 	} else {
 		w.props.IndexType = binarySearchIndex
@@ -1842,8 +1838,7 @@ func (w *Writer) Close() (err error) {
 		// Write the single level index block.
 		indexBH, err = w.writeBlock(w.indexBlock.finish(), w.compression, &w.blockBuf)
 		if err != nil {
-			w.err = err
-			return w.err
+			return err
 		}
 	}
 
@@ -1868,8 +1863,7 @@ func (w *Writer) Close() (err error) {
 		}
 		rangeDelBH, err = w.writeBlock(w.rangeDelBlock.finish(), NoCompression, &w.blockBuf)
 		if err != nil {
-			w.err = err
-			return w.err
+			return err
 		}
 	}
 
@@ -1883,8 +1877,7 @@ func (w *Writer) Close() (err error) {
 		kind := key.Kind()
 		endKey, _, ok := rangekey.DecodeEndKey(kind, w.rangeKeyBlock.curValue)
 		if !ok {
-			w.err = errors.Newf("invalid end key: %s", w.rangeKeyBlock.curValue)
-			return w.err
+			return errors.Newf("invalid end key: %s", w.rangeKeyBlock.curValue)
 		}
 		k := base.MakeExclusiveSentinelKey(kind, endKey).Clone()
 		w.meta.SetLargestRangeKey(k)
@@ -1893,8 +1886,7 @@ func (w *Writer) Close() (err error) {
 		// enable compression on this block.
 		rangeKeyBH, err = w.writeBlock(w.rangeKeyBlock.finish(), NoCompression, &w.blockBuf)
 		if err != nil {
-			w.err = err
-			return w.err
+			return err
 		}
 	}
 
@@ -1925,7 +1917,6 @@ func (w *Writer) Close() (err error) {
 		userProps := make(map[string]string)
 		for i := range w.propCollectors {
 			if err := w.propCollectors[i].Finish(userProps); err != nil {
-				w.err = err
 				return err
 			}
 		}
@@ -1933,10 +1924,8 @@ func (w *Writer) Close() (err error) {
 			scratch := w.blockPropsEncoder.getScratchForProp()
 			// Place the shortID in the first byte.
 			scratch = append(scratch, byte(i))
-			buf, err :=
-				w.blockPropCollectors[i].FinishTable(scratch)
+			buf, err := w.blockPropCollectors[i].FinishTable(scratch)
 			if err != nil {
-				w.err = err
 				return err
 			}
 			var prop string
@@ -1962,8 +1951,7 @@ func (w *Writer) Close() (err error) {
 		w.props.save(&raw)
 		bh, err := w.writeBlock(raw.finish(), NoCompression, &w.blockBuf)
 		if err != nil {
-			w.err = err
-			return w.err
+			return err
 		}
 		n := encodeBlockHandle(w.blockBuf.tmp[:], bh)
 		metaindex.add(InternalKey{UserKey: []byte(metaPropertiesName)}, w.blockBuf.tmp[:n])
@@ -1989,8 +1977,7 @@ func (w *Writer) Close() (err error) {
 	// expect the meta-index block to not be compressed.
 	metaindexBH, err := w.writeBlock(metaindex.blockWriter.finish(), NoCompression, &w.blockBuf)
 	if err != nil {
-		w.err = err
-		return w.err
+		return err
 	}
 
 	// Write the table footer.
@@ -2000,25 +1987,24 @@ func (w *Writer) Close() (err error) {
 		metaindexBH: metaindexBH,
 		indexBH:     indexBH,
 	}
-	var n int
-	if n, err = w.writable.Write(footer.encode(w.blockBuf.tmp[:])); err != nil {
-		w.err = err
-		return w.err
+	encoded := footer.encode(w.blockBuf.tmp[:])
+	if err := w.writable.Write(footer.encode(w.blockBuf.tmp[:])); err != nil {
+		return err
 	}
-	w.meta.Size += uint64(n)
+	w.meta.Size += uint64(len(encoded))
 	w.meta.Properties = w.props
 
 	// Check that the features present in the table are compatible with the format
 	// configured for the table.
 	if err = w.assertFormatCompatibility(); err != nil {
-		w.err = err
-		return w.err
-	}
-
-	if err := w.writable.Sync(); err != nil {
-		w.err = err
 		return err
 	}
+
+	if err := w.writable.Finish(); err != nil {
+		w.writable = nil
+		return err
+	}
+	w.writable = nil
 
 	w.dataBlockBuf.clear()
 	dataBlockBufPool.Put(w.dataBlockBuf)
@@ -2028,9 +2014,6 @@ func (w *Writer) Close() (err error) {
 	w.indexBlock = nil
 
 	// Make any future calls to Set or Close return an error.
-	if w.err != nil {
-		return w.err
-	}
 	w.err = errWriterClosed
 	return nil
 }
