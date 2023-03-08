@@ -53,7 +53,7 @@ github.com/CortexFoundation/merkletree
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit; go 1.16
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.41-0.20230307183942-458218a5cdf6
+# github.com/CortexFoundation/torrentfs v1.0.41-0.20230308054105-e6b1c0ad2b97
 ## explicit; go 1.19
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/backend
@@ -577,9 +577,6 @@ github.com/hashicorp/go-retryablehttp
 ## explicit; go 1.12
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
-# github.com/holiman/big v0.0.0-20221017200358-a027dc42d04e
-## explicit; go 1.18
-github.com/holiman/big
 # github.com/holiman/bloomfilter/v2 v2.0.3
 ## explicit; go 1.15
 github.com/holiman/bloomfilter/v2
@@ -1049,7 +1046,7 @@ golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/exp v0.0.0-20230306221820-f0f767cdffd6
+# golang.org/x/exp v0.0.0-20230307190834-24139beb5833
 ## explicit; go 1.18
 golang.org/x/exp/constraints
 golang.org/x/exp/rand

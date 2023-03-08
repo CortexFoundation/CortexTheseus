@@ -29,7 +29,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/crypto/bls12381"
 	"github.com/CortexFoundation/CortexTheseus/crypto/bn256"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	big2 "github.com/holiman/big"
 	"golang.org/x/crypto/ripemd160"
 )
 
@@ -389,9 +388,9 @@ func (c *bigModExp) Run(input []byte) ([]byte, error) {
 	}
 	// Retrieve the operands and execute the exponentiation
 	var (
-		base = new(big2.Int).SetBytes(getData(input, 0, baseLen))
-		exp  = new(big2.Int).SetBytes(getData(input, baseLen, expLen))
-		mod  = new(big2.Int).SetBytes(getData(input, baseLen+expLen, modLen))
+		base = new(big.Int).SetBytes(getData(input, 0, baseLen))
+		exp  = new(big.Int).SetBytes(getData(input, baseLen, expLen))
+		mod  = new(big.Int).SetBytes(getData(input, baseLen+expLen, modLen))
 		v    []byte
 	)
 	switch {
