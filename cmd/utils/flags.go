@@ -1597,6 +1597,7 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	}
 
 	cfg.InferDeviceId = ctx.GlobalInt(InferDeviceIdFlag.Name)
+	cfg.SynapseTimeout = 10 // TODO flags
 	mem, err = gopsutil.VirtualMemory()
 	if err == nil {
 		if 32<<(^uintptr(0)>>63) == 32 && mem.Total > 2*1024*1024*1024 {

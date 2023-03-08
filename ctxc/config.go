@@ -118,6 +118,7 @@ type Config struct {
 	Coinbase         common.Address `toml:",omitempty"`
 	InferDeviceType  string
 	InferDeviceId    int
+	SynapseTimeout   int
 	InferMemoryUsage int64
 
 	Cuckoo cuckoo.Config

@@ -23,6 +23,7 @@ import (
 	"runtime"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -175,6 +176,7 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 		InferURI:       config.InferURI,
 		IsNotCache:     false,
 		Storagefs:      torrentfs.GetStorage(), //torrentfs.Torrentfs_handle,
+		Timeout:        time.Duration(config.SynapseTimeout) * time.Second,
 	})
 
 	var (

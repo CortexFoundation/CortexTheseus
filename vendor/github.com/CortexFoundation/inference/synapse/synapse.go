@@ -12,6 +12,7 @@ import (
 	"math/big"
 	//"strconv"
 	"sync"
+	"time"
 )
 
 var (
@@ -26,6 +27,7 @@ var (
 		InferURI:       "",
 		Debug:          false,
 		MaxMemoryUsage: 4 * 1024 * 1024 * 1024,
+		Timeout:        10 * time.Second,
 	}
 )
 
@@ -46,6 +48,7 @@ type Config struct {
 	Debug          bool   `toml:",omitempty"`
 	MaxMemoryUsage int64
 	Storagefs      torrentfs.CortexStorage
+	Timeout        time.Duration
 }
 
 type Synapse struct {
