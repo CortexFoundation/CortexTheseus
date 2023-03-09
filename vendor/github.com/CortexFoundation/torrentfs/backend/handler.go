@@ -600,7 +600,7 @@ func (tm *TorrentManager) updateInfoHash(t *Torrent, bytesRequested int64) {
 			t.SetBytesRequested(bytesRequested)
 
 			if t.Status() == torrentRunning {
-				t.Run(tm.slot)
+				t.Start(tm.slot)
 			}
 		}
 	} else if t.Cited() < 10 {
@@ -943,7 +943,7 @@ func (tm *TorrentManager) pendingLoop() {
 						if tm.kvdb != nil && tm.kvdb.Get([]byte(SEED_PRE+t.InfoHash())) == nil {
 							elapsed := time.Duration(mclock.Now()) - time.Duration(t.Birth())
 							log.Info("Imported new seed", "ih", t.InfoHash(), "request", common.StorageSize(t.Length()), "ts", common.StorageSize(len(b)), "good", params.IsGood(t.InfoHash()), "elapsed", common.PrettyDuration(elapsed))
-
+							go t.WriteTorrent()
 							tm.kvdb.Set([]byte(SEED_PRE+t.InfoHash()), b)
 						}
 						//t.lock.Lock()
@@ -955,9 +955,9 @@ func (tm *TorrentManager) pendingLoop() {
 						return
 					}
 
-					if err := t.WriteTorrent(); err != nil {
-						log.Warn("Write torrent file error", "ih", t.InfoHash(), "err", err)
-					}
+					//if err := t.WriteTorrent(); err != nil {
+					//	log.Warn("Write torrent file error", "ih", t.InfoHash(), "err", err)
+					//}
 
 					if params.IsGood(t.InfoHash()) || tm.mode == params.FULL { //|| tm.colaList.Contains(t.InfoHash()) {
 						//t.lock.Lock()
@@ -976,10 +976,11 @@ func (tm *TorrentManager) pendingLoop() {
 							t.SetBytesRequested(t.Length())
 						}
 					}
-					tm.activeChan <- t
 					tm.pending_lock.Lock()
 					delete(tm.pendingTorrents, t.InfoHash())
 					tm.pending_lock.Unlock()
+
+					tm.activeChan <- t
 				case <-t.Closed():
 				case <-tm.closeAll:
 				case <-ctx.Done():
@@ -1038,7 +1039,7 @@ func (tm *TorrentManager) activeLoop() {
 			tm.activeTorrents[t.InfoHash()] = t
 			tm.active_lock.Unlock()
 
-			t.Run(tm.slot)
+			t.Start(tm.slot)
 
 			n := tm.blockCaculate(t.Torrent.Length())
 			if n < 300 {
@@ -1084,7 +1085,7 @@ func (tm *TorrentManager) activeLoop() {
 				}
 
 				if t.Torrent.BytesCompleted() < t.BytesRequested() {
-					t.Run(tm.slot)
+					t.Start(tm.slot)
 				}
 			}
 		case <-tm.closeAll:
