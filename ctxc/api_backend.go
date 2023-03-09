@@ -226,7 +226,7 @@ func (b *CortexAPIBackend) GetTd(ctx context.Context, blockHash common.Hash) *bi
 	return b.ctxc.blockchain.GetTdByHash(blockHash)
 }
 
-func (b *CortexAPIBackend) GetCVM(ctx context.Context, msg core.Message, state *state.StateDB, header *types.Header, vmCfg vm.Config) (*vm.CVM, func() error, error) {
+func (b *CortexAPIBackend) GetCVM(ctx context.Context, msg *core.Message, state *state.StateDB, header *types.Header, vmCfg vm.Config) (*vm.CVM, func() error, error) {
 
 	txContext := core.NewCVMTxContext(msg)
 	context := core.NewCVMBlockContext(header, b.ctxc.BlockChain(), nil)
@@ -361,6 +361,6 @@ func (b *CortexAPIBackend) StateAtBlock(ctx context.Context, block *types.Block,
 	return b.ctxc.StateAtBlock(block, reexec, base, readOnly, preferDisk)
 }
 
-func (b *CortexAPIBackend) StateAtTransaction(ctx context.Context, block *types.Block, txIndex int, reexec uint64) (core.Message, vm.BlockContext, *state.StateDB, tracers.StateReleaseFunc, error) {
+func (b *CortexAPIBackend) StateAtTransaction(ctx context.Context, block *types.Block, txIndex int, reexec uint64) (*core.Message, vm.BlockContext, *state.StateDB, tracers.StateReleaseFunc, error) {
 	return b.ctxc.stateAtTransaction(block, txIndex, reexec)
 }

@@ -66,10 +66,10 @@ func NewCVMBlockContext(header *types.Header, chain ChainContext, author *common
 }
 
 // NewCVMTxContext creates a new transaction context for a single transaction.
-func NewCVMTxContext(msg Message) vm.TxContext {
+func NewCVMTxContext(msg *Message) vm.TxContext {
 	return vm.TxContext{
-		Origin:   msg.From(),
-		GasPrice: new(big.Int).Set(msg.GasPrice()),
+		Origin:   msg.From,
+		GasPrice: new(big.Int).Set(msg.GasPrice),
 	}
 }
 

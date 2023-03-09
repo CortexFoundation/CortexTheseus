@@ -777,7 +777,7 @@ func (s *PublicBlockChainAPI) GetSolidityBytes(ctx context.Context, address comm
 			break
 		}
 		header := block.Header()
-		msg, err := tx.AsMessage(types.MakeSigner(s.b.ChainConfig(), block.Number()))
+		msg, err := core.TransactionToMessage(tx, types.MakeSigner(s.b.ChainConfig(), block.Number()))
 		cvm, _, err := s.b.GetCVM(ctx, msg, state, header, vm.Config{})
 		if err != nil {
 			return nil, err
@@ -812,7 +812,7 @@ type CallArgs struct {
 	Data     hexutil.Bytes   `json:"data"`
 }
 
-func (args *CallArgs) ToMessage(globalGasCap uint64, baseFee *big.Int) (types.Message, error) {
+func (args *CallArgs) ToMessage(globalGasCap uint64, baseFee *big.Int) (*core.Message, error) {
 	// Reject invalid combinations of pre- and post-1559 fee styles
 	//if args.GasPrice != nil && (args.MaxFeePerGas != nil || args.MaxPriorityFeePerGas != nil) {
 	//	return types.Message{}, errors.New("both gasPrice and (maxFeePerGas or maxPriorityFeePerGas) specified")
@@ -839,8 +839,17 @@ func (args *CallArgs) ToMessage(globalGasCap uint64, baseFee *big.Int) (types.Me
 	}
 
 	// Create new call message
-	msg := types.NewMessage(addr, args.To, 0, args.Value.ToInt(), gas, gasPrice, args.Data, false)
+	msg := &core.Message{
+		From:       addr,
+		To:         args.To,
+		Value:      args.Value.ToInt(),
+		GasLimit:   gas,
+		GasPrice:   gasPrice,
+		Data:       args.Data,
+		CheckNonce: true,
+	}
 	return msg, nil
+
 }
 
 func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr rpc.BlockNumber, vmCfg vm.Config, timeout time.Duration) ([]byte, uint64, bool, error) {

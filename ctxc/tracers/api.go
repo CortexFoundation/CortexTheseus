@@ -82,7 +82,7 @@ type Backend interface {
 	Engine() consensus.Engine
 	ChainDb() ctxcdb.Database
 	StateAtBlock(ctx context.Context, block *types.Block, reexec uint64, base *state.StateDB, readOnly bool, preferDisk bool) (*state.StateDB, StateReleaseFunc, error)
-	StateAtTransaction(ctx context.Context, block *types.Block, txIndex int, reexec uint64) (core.Message, vm.BlockContext, *state.StateDB, StateReleaseFunc, error)
+	StateAtTransaction(ctx context.Context, block *types.Block, txIndex int, reexec uint64) (*core.Message, vm.BlockContext, *state.StateDB, StateReleaseFunc, error)
 }
 
 // API is the collection of tracing APIs exposed over the private debugging endpoint.
@@ -312,7 +312,7 @@ func (api *API) traceChain(start, end *types.Block, config *TraceConfig, closed 
 				)
 				// Trace all the transactions contained within
 				for i, tx := range task.block.Transactions() {
-					msg, _ := tx.AsMessage(signer)
+					msg, _ := core.TransactionToMessage(tx, signer)
 					txctx := &Context{
 						BlockHash: task.block.Hash(),
 						TxIndex:   i,
@@ -560,12 +560,12 @@ func (api *API) IntermediateRoots(ctx context.Context, hash common.Hash, config 
 	)
 	for i, tx := range block.Transactions() {
 		var (
-			msg, _    = tx.AsMessage(signer)
+			msg, _    = core.TransactionToMessage(tx, signer)
 			txContext = core.NewCVMTxContext(msg)
 			vmenv     = vm.NewCVM(vmctx, txContext, statedb, chainConfig, vm.Config{})
 		)
 		statedb.SetTxContext(tx.Hash(), i)
-		if _, _, _, _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(msg.Gas()), new(core.QuotaPool).AddQuota(block.Quota())); err != nil {
+		if _, _, _, _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(msg.GasLimit), new(core.QuotaPool).AddQuota(block.Quota())); err != nil {
 			log.Warn("Tracing intermediate roots did not complete", "txindex", i, "txhash", tx.Hash(), "err", err)
 			// We intentionally don't return the error here: if we do, then the RPC server will not
 			// return the roots. Most likely, the caller already knows that a certain transaction fails to
@@ -635,7 +635,7 @@ func (api *API) traceBlock(ctx context.Context, block *types.Block, config *Trac
 			defer pend.Done()
 			// Fetch and execute the next transaction trace tasks
 			for task := range jobs {
-				msg, _ := txs[task.index].AsMessage(signer)
+				msg, _ := core.TransactionToMessage(txs[task.index], signer)
 				txctx := &Context{
 					BlockHash: blockHash,
 					TxIndex:   task.index,
@@ -658,10 +658,10 @@ func (api *API) traceBlock(ctx context.Context, block *types.Block, config *Trac
 		jobs <- &txTraceTask{statedb: statedb.Copy(), index: i}
 
 		// Generate the next state snapshot fast without tracing
-		msg, _ := tx.AsMessage(signer)
+		msg, _ := core.TransactionToMessage(tx, signer)
 		statedb.SetTxContext(tx.Hash(), i)
 		vmenv := vm.NewCVM(blockCtx, core.NewCVMTxContext(msg), statedb, api.backend.ChainConfig(), vm.Config{})
-		if _, _, _, _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(msg.Gas()), new(core.QuotaPool).AddQuota(block.Quota())); err != nil {
+		if _, _, _, _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(msg.GasLimit), new(core.QuotaPool).AddQuota(block.Quota())); err != nil {
 			failed = err
 			break
 		}
@@ -741,7 +741,7 @@ func (api *API) standardTraceBlockToFile(ctx context.Context, block *types.Block
 	for i, tx := range block.Transactions() {
 		// Prepare the transaction for un-traced execution
 		var (
-			msg, _    = tx.AsMessage(signer)
+			msg, _    = core.TransactionToMessage(tx, signer)
 			txContext = core.NewCVMTxContext(msg)
 			vmConf    vm.Config
 			dump      *os.File
@@ -772,7 +772,7 @@ func (api *API) standardTraceBlockToFile(ctx context.Context, block *types.Block
 		// Execute the transaction and flush any traces to disk
 		vmenv := vm.NewCVM(vmctx, txContext, statedb, chainConfig, vmConf)
 		statedb.SetTxContext(tx.Hash(), i)
-		_, _, _, _, err = core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(msg.Gas()), new(core.QuotaPool).AddQuota(block.Quota()))
+		_, _, _, _, err = core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(msg.GasLimit), new(core.QuotaPool).AddQuota(block.Quota()))
 		if writer != nil {
 			writer.Flush()
 		}
@@ -906,7 +906,7 @@ func (api *API) TraceCall(ctx context.Context, args ctxcapi.CallArgs, blockNrOrH
 // traceTx configures a new tracer according to the provided configuration, and
 // executes the given message in the provided environment. The return value will
 // be tracer dependent.
-func (api *API) traceTx(ctx context.Context, message core.Message, txctx *Context, vmctx vm.BlockContext, statedb *state.StateDB, config *TraceConfig) (interface{}, error) {
+func (api *API) traceTx(ctx context.Context, message *core.Message, txctx *Context, vmctx vm.BlockContext, statedb *state.StateDB, config *TraceConfig) (interface{}, error) {
 	var (
 		tracer    Tracer
 		err       error
@@ -945,7 +945,7 @@ func (api *API) traceTx(ctx context.Context, message core.Message, txctx *Contex
 	// Run the transaction with tracing enabled.
 	// Call Prepare to clear out the statedb access list
 	statedb.SetTxContext(txctx.TxHash, txctx.TxIndex)
-	if _, _, _, _, err = core.ApplyMessage(vmenv, message, new(core.GasPool).AddGas(message.Gas()), new(core.QuotaPool).AddQuota(vmctx.Quota)); err != nil {
+	if _, _, _, _, err = core.ApplyMessage(vmenv, message, new(core.GasPool).AddGas(message.GasLimit), new(core.QuotaPool).AddQuota(vmctx.Quota)); err != nil {
 		return nil, fmt.Errorf("tracing failed: %w", err)
 	}
 	return tracer.GetResult()
