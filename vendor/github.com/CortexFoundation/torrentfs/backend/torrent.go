@@ -18,6 +18,7 @@ package backend
 
 import (
 	//"bytes"
+	"context"
 	"os"
 	"path/filepath"
 	"sync"
@@ -129,14 +130,14 @@ func (t *Torrent) BytesRequested() int64 {
 }
 
 func (t *Torrent) SetBytesRequested(bytesRequested int64) {
-	t.lock.Lock()
-	defer t.lock.Unlock()
+	t.Lock()
+	defer t.Unlock()
 	t.bytesRequested = bytesRequested
 }
 
 func (t *Torrent) Ready() bool {
-	t.lock.RLock()
-	defer t.lock.RUnlock()
+	t.RLock()
+	defer t.RUnlock()
 
 	if _, ok := params.BadFiles[t.InfoHash()]; ok {
 		return false
@@ -151,6 +152,8 @@ func (t *Torrent) Ready() bool {
 }
 
 func (t *Torrent) WriteTorrent() error {
+	t.Lock()
+	defer t.Unlock()
 	if _, err := os.Stat(filepath.Join(t.filepath, TORRENT)); err == nil {
 		//t.Pause()
 		return nil
@@ -192,9 +195,9 @@ func (t *Torrent) Seed() bool {
 	//t.Torrent.SetMaxEstablishedConns(t.currentConns)
 	//}
 	if t.Torrent.Seeding() {
-		t.lock.Lock()
+		t.Lock()
 		t.status = torrentSeeding
-		t.lock.Unlock()
+		t.Unlock()
 
 		elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
 		//if active, ok := params.GoodFiles[t.InfoHash()]; !ok {
@@ -228,14 +231,14 @@ func (t *Torrent) Paused() bool {
 	return t.status == torrentPaused
 }
 
-func (t *Torrent) Run(slot int) {
-	t.lock.Lock()
-	defer t.lock.Unlock()
-
+func (t *Torrent) Start(slot int) {
 	// Make sure the torrent info exists
 	if t.Torrent.Info() == nil {
 		return
 	}
+
+	t.Lock()
+	defer t.Unlock()
 
 	if t.status != torrentRunning {
 		t.status = torrentRunning
@@ -262,13 +265,15 @@ func (t *Torrent) Run(slot int) {
 	//	}
 	//}
 	if limitPieces > t.maxPieces {
-		t.maxPieces = limitPieces
-		t.download(limitPieces, slot)
+		//t.maxPieces = limitPieces
+		if err := t.download(limitPieces, slot); err == nil {
+			t.maxPieces = limitPieces
+		}
 	}
 }
 
 // Find out the start and end
-func (t *Torrent) download(p, slot int) {
+func (t *Torrent) download(p, slot int) error {
 	var s, e int
 	s = (t.Torrent.NumPieces() * slot) / bucket
 	/*if s < t.Torrent.NumPieces()/n {
@@ -287,12 +292,27 @@ func (t *Torrent) download(p, slot int) {
 	}
 
 	e = s + p
-	log.Info(ScaleBar(s, e, t.Torrent.NumPieces()), "ih", t.Torrent.InfoHash(), "slot", slot, "s", s, "e", e, "p", p, "total", t.Torrent.NumPieces())
+	log.Info(ScaleBar(s, e, t.Torrent.NumPieces()), "ih", t.InfoHash(), "slot", slot, "s", s, "e", e, "p", p, "total", t.Torrent.NumPieces())
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	ex := make(chan any, 1)
 	t.wg.Add(1)
 	go func() {
 		defer t.wg.Done()
 		t.Torrent.DownloadPieces(s, e)
+		ex <- struct{}{}
 	}()
+
+	select {
+	case <-ex:
+	case <-ctx.Done():
+		log.Warn("Piece download timeout", "ih", t.InfoHash(), "slot", slot, "s", s, "e", e, "p", p, "total", t.Torrent.NumPieces())
+		return ctx.Err()
+	}
+
+	return nil
 }
 
 func (t *Torrent) Running() bool {
@@ -304,8 +324,11 @@ func (t *Torrent) Pending() bool {
 }
 
 func (t *Torrent) Stop() {
+	t.Lock()
+	defer t.Unlock()
+
 	t.wg.Wait()
 	t.Torrent.Drop()
 
-	log.Info(ProgressBar(t.BytesCompleted(), t.Torrent.Length(), ""), "ih", t.InfoHash(), "total", common.StorageSize(t.Torrent.Length()), "req", common.StorageSize(t.BytesRequested()), "finish", common.StorageSize(t.Torrent.BytesCompleted()), "status", t.Status())
+	log.Info(ProgressBar(t.BytesCompleted(), t.Torrent.Length(), ""), "ih", t.InfoHash(), "total", common.StorageSize(t.Torrent.Length()), "req", common.StorageSize(t.BytesRequested()), "finish", common.StorageSize(t.Torrent.BytesCompleted()), "status", t.Status(), "cited", t.Cited())
 }
