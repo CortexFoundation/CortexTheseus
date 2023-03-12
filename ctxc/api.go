@@ -387,7 +387,7 @@ func (api *PrivateDebugAPI) StorageRangeAt(ctx context.Context, blockHash common
 }
 
 // computeTxEnv returns the execution environment of a certain transaction.
-func (api *PrivateDebugAPI) computeTxEnv(blockHash common.Hash, txIndex int, reexec uint64) (core.Message, vm.BlockContext, *state.StateDB, error) {
+func (api *PrivateDebugAPI) computeTxEnv(blockHash common.Hash, txIndex int, reexec uint64) (*core.Message, vm.BlockContext, *state.StateDB, error) {
 	// Create the parent state database
 	block := api.ctxc.blockchain.GetBlockByHash(blockHash)
 	if block == nil {
@@ -411,7 +411,7 @@ func (api *PrivateDebugAPI) computeTxEnv(blockHash common.Hash, txIndex int, ree
 
 	for idx, tx := range block.Transactions() {
 		// Assemble the transaction call message and return if the requested offset
-		msg, _ := tx.AsMessage(signer)
+		msg, _ := core.TransactionToMessage(tx, signer)
 		txContext := core.NewCVMTxContext(msg)
 		context := core.NewCVMBlockContext(block.Header(), api.ctxc.blockchain, nil)
 		if idx == txIndex {

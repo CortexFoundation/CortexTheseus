@@ -24,6 +24,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	math2 "github.com/CortexFoundation/CortexTheseus/common/math"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
@@ -64,30 +65,45 @@ var (
 type StateTransition struct {
 	gp         *GasPool
 	qp         *QuotaPool
-	msg        Message
+	msg        *Message
 	gas        uint64
-	gasPrice   *big.Int
 	initialGas uint64
-	value      *big.Int
-	data       []byte
 	state      vm.StateDB
 	cvm        *vm.CVM
 	modelGas   map[common.Address]uint64
 }
 
-// Message represents a message sent to a contract.
-type Message interface {
-	From() common.Address
-	//FromFrontier() (common.Address, error)
-	To() *common.Address
+type Message struct {
+	To         *common.Address
+	From       common.Address
+	Nonce      uint64
+	Value      *big.Int
+	GasLimit   uint64
+	GasPrice   *big.Int
+	Data       []byte
+	CheckNonce bool
+}
 
-	GasPrice() *big.Int
-	Gas() uint64
-	Value() *big.Int
+// AsMessage returns the transaction as a core.Message.
+//
+// AsMessage requires a signer to derive the sender.
+//
+// XXX Rename message to something less arbitrary?
+// TransactionToMessage converts a transaction into a Message.
+func TransactionToMessage(tx *types.Transaction, s types.Signer) (*Message, error) {
+	msg := &Message{
+		Nonce:      tx.Nonce(),
+		GasLimit:   tx.Gas(),
+		GasPrice:   new(big.Int).Set(tx.GasPrice()),
+		To:         tx.To(),
+		Value:      tx.Value(),
+		Data:       tx.Data(),
+		CheckNonce: true,
+	}
 
-	Nonce() uint64
-	CheckNonce() bool
-	Data() []byte
+	var err error
+	msg.From, err = types.Sender(s, tx)
+	return msg, err
 }
 
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
@@ -132,16 +148,13 @@ func IntrinsicGas(data []byte, contractCreation, upload, isHomestead, isEIP2028 
 }
 
 // NewStateTransition initialises and returns a new state transition object.
-func NewStateTransition(cvm *vm.CVM, msg Message, gp *GasPool, qp *QuotaPool) *StateTransition {
+func NewStateTransition(cvm *vm.CVM, msg *Message, gp *GasPool, qp *QuotaPool) *StateTransition {
 	return &StateTransition{
-		gp:       gp,
-		qp:       qp,
-		cvm:      cvm,
-		msg:      msg,
-		gasPrice: msg.GasPrice(),
-		value:    msg.Value(),
-		data:     msg.Data(),
-		state:    cvm.StateDB,
+		gp:    gp,
+		qp:    qp,
+		cvm:   cvm,
+		msg:   msg,
+		state: cvm.StateDB,
 	}
 }
 
@@ -152,16 +165,16 @@ func NewStateTransition(cvm *vm.CVM, msg Message, gp *GasPool, qp *QuotaPool) *S
 // the gas used (which includes gas refunds) and an error if it failed. An error always
 // indicates a core error meaning that the message would always fail for that particular
 // state and would never be accepted within a block.
-func ApplyMessage(cvm *vm.CVM, msg Message, gp *GasPool, qp *QuotaPool) ([]byte, uint64, uint64, bool, error) {
+func ApplyMessage(cvm *vm.CVM, msg *Message, gp *GasPool, qp *QuotaPool) ([]byte, uint64, uint64, bool, error) {
 	return NewStateTransition(cvm, msg, gp, qp).TransitionDb()
 }
 
 // to returns the recipient of the message.
 func (st *StateTransition) to() common.Address {
-	if st.msg == nil || st.msg.To() == nil /* contract creation */ {
+	if st.msg == nil || st.msg.To == nil /* contract creation */ {
 		return common.Address{}
 	}
-	return *st.msg.To()
+	return *st.msg.To
 }
 
 //func (st *StateTransition) useGas(amount uint64) error {
@@ -174,31 +187,31 @@ func (st *StateTransition) to() common.Address {
 //}
 
 func (st *StateTransition) buyGas() error {
-	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
-	if have, want := st.state.GetBalance(st.msg.From()), mgval; have.Cmp(want) < 0 {
-		return fmt.Errorf("%w: address %v have %v want %v gas %v price %v", errInsufficientBalanceForGas, st.msg.From().Hex(), have, want, st.msg.Gas(), st.gasPrice)
+	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.GasLimit), st.msg.GasPrice)
+	if have, want := st.state.GetBalance(st.msg.From), mgval; have.Cmp(want) < 0 {
+		return fmt.Errorf("%w: address %v have %v want %v gas %v price %v", errInsufficientBalanceForGas, st.msg.From.Hex(), have, want, st.msg.GasLimit, st.msg.GasPrice)
 	}
-	if err := st.gp.SubGas(st.msg.Gas()); err != nil {
+	if err := st.gp.SubGas(st.msg.GasLimit); err != nil {
 		return err
 	}
-	st.gas += st.msg.Gas()
+	st.gas += st.msg.GasLimit
 
-	st.initialGas = st.msg.Gas()
-	st.state.SubBalance(st.msg.From(), mgval)
+	st.initialGas = st.msg.GasLimit
+	st.state.SubBalance(st.msg.From, mgval)
 	return nil
 }
 
 // var confirmTime = params.CONFIRM_TIME * time.Second //-3600 * 24 * 30 * time.Second
 func (st *StateTransition) preCheck() error {
 	// Make sure this transaction's nonce is correct.
-	if st.msg.CheckNonce() {
-		stNonce := st.state.GetNonce(st.msg.From())
-		if msgNonce := st.msg.Nonce(); stNonce < msgNonce {
-			return fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooHigh, st.msg.From().Hex(), msgNonce, stNonce)
+	if st.msg.CheckNonce {
+		stNonce := st.state.GetNonce(st.msg.From)
+		if msgNonce := st.msg.Nonce; stNonce < msgNonce {
+			return fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooHigh, st.msg.From.Hex(), msgNonce, stNonce)
 		} else if stNonce > msgNonce {
-			return fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooLow, st.msg.From().Hex(), msgNonce, stNonce)
+			return fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooLow, st.msg.From.Hex(), msgNonce, stNonce)
 		} else if stNonce+1 < stNonce {
-			return fmt.Errorf("%w: address %v, nonce: %d", ErrNonceMax, st.msg.From().Hex(), stNonce)
+			return fmt.Errorf("%w: address %v, nonce: %d", ErrNonceMax, st.msg.From.Hex(), stNonce)
 		}
 	}
 
@@ -292,11 +305,11 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	}
 
 	msg := st.msg
-	sender := vm.AccountRef(msg.From())
+	sender := vm.AccountRef(msg.From)
 	homestead := st.cvm.ChainConfig().IsHomestead(st.cvm.Context.BlockNumber)
 	istanbul := st.cvm.ChainConfig().IsIstanbul(st.cvm.Context.BlockNumber)
 	//matureBlockNumber := st.cvm.ChainConfig().GetMatureBlock()
-	contractCreation := msg.To() == nil
+	contractCreation := msg.To == nil
 
 	/*if st.uploading() {
 		if st.qp.Cmp(st.state.Upload(st.to())) < 0 {
@@ -305,7 +318,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	}*/
 
 	// Pay intrinsic gas
-	gas, err := IntrinsicGas(st.data, contractCreation, st.uploading(), homestead, istanbul)
+	gas, err := IntrinsicGas(msg.Data, contractCreation, st.uploading(), homestead, istanbul)
 	if err != nil {
 		return nil, 0, 0, false, err
 	}
@@ -314,13 +327,13 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	}
 	st.gas -= gas
 
-	if msg.Value().Sign() > 0 && !st.cvm.Context.CanTransfer(st.state, msg.From(), msg.Value()) {
-		return nil, 0, 0, false, fmt.Errorf("%w: address %v", ErrInsufficientFundsForTransfer, msg.From().Hex())
+	if msg.Value.Sign() > 0 && !st.cvm.Context.CanTransfer(st.state, msg.From, msg.Value) {
+		return nil, 0, 0, false, fmt.Errorf("%w: address %v", ErrInsufficientFundsForTransfer, msg.From.Hex())
 	}
 
-	if blocked, num := security.IsBlocked(msg.From()); blocked && st.cvm.Context.BlockNumber.Cmp(big.NewInt(num)) >= 0 {
-		log.Debug("Bad address encounter!!", "addr", msg.From(), "number", num)
-		return nil, 0, 0, false, fmt.Errorf("%w: address %v", errors.New("Bad address encounter"), msg.From().Hex())
+	if blocked, num := security.IsBlocked(msg.From); blocked && st.cvm.Context.BlockNumber.Cmp(big.NewInt(num)) >= 0 {
+		log.Debug("Bad address encounter!!", "addr", msg.From, "number", num)
+		return nil, 0, 0, false, fmt.Errorf("%w: address %v", errors.New("Bad address encounter"), msg.From.Hex())
 	}
 
 	var (
@@ -331,26 +344,22 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 		vmerr error
 	)
 	if contractCreation {
-		ret, _, st.gas, st.modelGas, vmerr = st.cvm.Create(sender, st.data, st.gas, st.value)
+		ret, _, st.gas, st.modelGas, vmerr = st.cvm.Create(sender, msg.Data, st.gas, msg.Value)
 	} else {
 		// Increment the nonce for the next transaction
 		//if pool.config.NoInfers && asm.HasInferOp(tx.Data()) {
 		//	fmt.Println("Has INFER operation !!! continue ...")
 		//}
-		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
-		ret, st.gas, st.modelGas, vmerr = st.cvm.Call(sender, st.to(), st.data, st.gas, st.value)
+		st.state.SetNonce(msg.From, st.state.GetNonce(sender.Address())+1)
+		ret, st.gas, st.modelGas, vmerr = st.cvm.Call(sender, st.to(), msg.Data, st.gas, msg.Value)
 	}
 
 	if vmerr != nil {
-		//log.Warn("VM returned with error", "err", vmerr)
-
-		//log.Warn("VM returned with error", "err", vmerr, "number", cvm.BlockNumber, "from", msg.From().Hex())
-
 		if vmerr == vm.ErrRuntime {
 			return nil, 0, 0, false, vmerr
 		}
 
-		log.Debug("VM returned with error", "err", vmerr, "number", cvm.Context.BlockNumber, "from", msg.From().Hex())
+		log.Debug("VM returned with error", "err", vmerr, "number", cvm.Context.BlockNumber, "from", msg.From.Hex())
 
 		// The only possible consensus-error would be if there wasn't
 		// sufficient balance to make the transfer happen. The first
@@ -381,14 +390,14 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 			}
 
 			gu -= mgas
-			reward := new(big.Int).Mul(new(big.Int).SetUint64(mgas), st.gasPrice)
+			reward := new(big.Int).Mul(new(big.Int).SetUint64(mgas), msg.GasPrice)
 			log.Debug("Model author reward", "author", addr.Hex(), "reward", reward, "number", cvm.Context.BlockNumber)
 			st.state.AddBalance(addr, reward)
 		}
 	}
 
 	//normal gas
-	st.state.AddBalance(st.cvm.Context.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(gu), st.gasPrice))
+	st.state.AddBalance(st.cvm.Context.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(gu), msg.GasPrice))
 
 	quota := uint64(0) //default used 4 k quota every tx for testing
 	if vmerr == nil && st.uploading() {
@@ -406,7 +415,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 			//if !st.state.Uploading(st.to()) {
 			if remain == 0 {
 				st.state.SetNum(st.to(), st.cvm.Context.BlockNumber)
-				log.Debug("Upload OK", "address", st.to().Hex(), "number", cvm.Context.BlockNumber, "nonce", st.msg.Nonce())
+				log.Debug("Upload OK", "address", st.to().Hex(), "number", cvm.Context.BlockNumber, "nonce", st.msg.Nonce)
 				//todo block maturing log
 			} else {
 				//remain = st.state.Upload(st.to()).Uint64()
@@ -447,8 +456,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 
 // vote to model
 func (st *StateTransition) uploading() bool {
-	//log.Trace("Vote tx", "to", st.msg.To(), "sign", st.value.Sign(), "uploading", st.state.Uploading(st.to()), "gas", st.gas, "limit", params.UploadGas)
-	return st.msg != nil && st.msg.To() != nil && st.value.Sign() == 0 && st.state.Uploading(st.to()) // && st.gas >= params.UploadGas
+	return st.msg != nil && st.msg.To != nil && st.msg.Value.Sign() == 0 && st.state.Uploading(st.to()) // && st.gas >= params.UploadGas
 }
 
 func (st *StateTransition) refundGas() {
@@ -460,8 +468,8 @@ func (st *StateTransition) refundGas() {
 	st.gas += refund
 
 	// Return ETH for remaining gas, exchanged at the original rate.
-	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
-	st.state.AddBalance(st.msg.From(), remaining)
+	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.msg.GasPrice)
+	st.state.AddBalance(st.msg.From, remaining)
 
 	// Also return remaining gas to the block gas counter so it is
 	// available for the next transaction.
