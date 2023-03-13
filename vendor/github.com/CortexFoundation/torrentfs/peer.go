@@ -285,6 +285,7 @@ func (peer *Peer) stop() error {
 	peer.wg.Wait()
 	return nil
 }
+
 func (peer *Peer) ID() []byte {
 	id := peer.peer.ID()
 	return id[:]

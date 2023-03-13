@@ -293,7 +293,7 @@ func (fs *TorrentFS) listen() {
 			}
 			ttl.Reset(3 * time.Second)
 		case <-ticker.C:
-			log.Info("Bitsflow status", "neighbors", fs.Neighbors(), "current", fs.monitor.CurrentNumber(), "rev", fs.received, "sent", fs.sent, "in", fs.in, "out", fs.out)
+			log.Info("Bitsflow status", "neighbors", fs.Neighbors(), "current", fs.monitor.CurrentNumber(), "rev", fs.received, "sent", fs.sent, "in", fs.in, "out", fs.out, "nocola", fs.out+uint64(fs.Neighbors())-fs.in)
 		case <-fs.closeAll:
 			log.Info("Bitsflow listener stop")
 			return
