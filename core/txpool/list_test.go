@@ -1,18 +1,18 @@
-// Copyright 2018 The CortexTheseus Authors
-// This file is part of the CortexFoundation library.
+// Copyright 2016 The CortexTheseus Authors
+// This file is part of the CortexTheseus library.
 //
-// The CortexFoundation library is free software: you can redistribute it and/or modify
+// The CortexTheseus library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexFoundation library is distributed in the hope that it will be useful,
+// The CortexTheseus library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
+// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
 package txpool
 
@@ -51,7 +51,7 @@ func TestStrictListAdd(t *testing.T) {
 	}
 }
 
-func BenchmarkListAdd(t *testing.B) {
+func BenchmarkListAdd(b *testing.B) {
 	// Generate a list of transactions to insert
 	key, _ := crypto.GenerateKey()
 
@@ -60,11 +60,13 @@ func BenchmarkListAdd(t *testing.B) {
 		txs[i] = transaction(uint64(i), 0, key)
 	}
 	// Insert the transactions in a random order
-	list := newList(true)
 	priceLimit := big.NewInt(int64(DefaultConfig.PriceLimit))
-	t.ResetTimer()
-	for _, v := range rand.Perm(len(txs)) {
-		list.Add(txs[v], DefaultConfig.PriceBump)
-		list.Filter(priceLimit, DefaultConfig.PriceBump)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		list := newList(true)
+		for _, v := range rand.Perm(len(txs)) {
+			list.Add(txs[v], DefaultConfig.PriceBump)
+			list.Filter(priceLimit, DefaultConfig.PriceBump)
+		}
 	}
 }

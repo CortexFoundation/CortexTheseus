@@ -84,10 +84,6 @@ type Message struct {
 	CheckNonce bool
 }
 
-// AsMessage returns the transaction as a core.Message.
-//
-// AsMessage requires a signer to derive the sender.
-//
 // XXX Rename message to something less arbitrary?
 // TransactionToMessage converts a transaction into a Message.
 func TransactionToMessage(tx *types.Transaction, s types.Signer) (*Message, error) {
