@@ -41,6 +41,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/torrentfs/compress"
 	"github.com/CortexFoundation/torrentfs/params"
+	"github.com/CortexFoundation/torrentfs/tool"
 	"github.com/CortexFoundation/torrentfs/types"
 	"github.com/CortexFoundation/torrentfs/wormhole"
 
@@ -1049,7 +1050,7 @@ func (tm *TorrentManager) activeLoop() {
 				n += 300
 			}
 
-			n += tm.salt(300)
+			n += tool.Rand(300)
 			tm.wg.Add(1)
 			go func(i string, n int64) {
 				defer tm.wg.Done()
