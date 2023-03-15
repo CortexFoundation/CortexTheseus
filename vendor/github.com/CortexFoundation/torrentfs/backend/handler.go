@@ -606,6 +606,7 @@ func (tm *TorrentManager) updateInfoHash(t *Torrent, bytesRequested int64) {
 	} else if t.Cited() < 10 {
 		// call seeding t
 		//atomic.AddInt32(&t.Cited(), 1)
+		log.Info("Already seeding", "ih", t.InfoHash(), "cited", t.Cited())
 		t.CitedInc()
 	}
 	updateMeter.Mark(1)
@@ -895,6 +896,8 @@ func (tm *TorrentManager) commit(ctx context.Context, hex string, request uint64
 	case tm.taskChan <- types.NewBitsFlow(hex, request):
 	case <-ctx.Done():
 		return ctx.Err()
+	case <-tm.closeAll:
+		return nil
 	}
 
 	return nil

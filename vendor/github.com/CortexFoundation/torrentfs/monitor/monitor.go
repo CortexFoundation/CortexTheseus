@@ -622,7 +622,7 @@ func (m *Monitor) syncLatestBlock() {
 						m.fs.Flush()
 						//go m.exit()
 						elapsed := time.Duration(mclock.Now()) - time.Duration(m.start)
-						log.Warn("Finish sync, listener will be paused", "current", m.currentNumber, "elapsed", common.PrettyDuration(elapsed), "progress", progress, "end", end, "last", m.lastNumber)
+						log.Info("Finish sync, listener will be paused", "current", m.currentNumber, "elapsed", common.PrettyDuration(elapsed), "progress", progress, "end", end, "last", m.lastNumber)
 						//return
 						timer.Reset(time.Millisecond * 1000 * 180)
 						end = false

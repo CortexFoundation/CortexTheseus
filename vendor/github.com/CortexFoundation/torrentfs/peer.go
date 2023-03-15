@@ -42,6 +42,8 @@ type Peer struct {
 
 	msgChan chan any
 	seeding mapset.Set[string]
+
+	once sync.Once
 }
 
 type PeerInfo struct {
@@ -281,8 +283,10 @@ func (peer *Peer) readStatus() error {
 }
 
 func (peer *Peer) stop() error {
-	close(peer.quit)
-	peer.wg.Wait()
+	peer.once.Do(func() {
+		close(peer.quit)
+		peer.wg.Wait()
+	})
 	return nil
 }
 

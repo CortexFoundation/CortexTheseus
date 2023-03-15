@@ -65,6 +65,8 @@ type Torrent struct {
 	wg sync.WaitGroup
 
 	lock sync.RWMutex
+
+	//closeAll chan any
 }
 
 func NewTorrent(t *torrent.Torrent, requested int64, ih string, path string) *Torrent {
@@ -75,6 +77,7 @@ func NewTorrent(t *torrent.Torrent, requested int64, ih string, path string) *To
 		infohash:       ih,
 		filepath:       path,
 		start:          mclock.Now(),
+		//closeAll:       make(chan any),
 	}
 }
 
@@ -310,6 +313,8 @@ func (t *Torrent) download(p, slot int) error {
 	case <-ctx.Done():
 		log.Warn("Piece download timeout", "ih", t.InfoHash(), "slot", slot, "s", s, "e", e, "p", p, "total", t.Torrent.NumPieces())
 		return ctx.Err()
+		//case <-t.closeAll:
+		//	return nil
 	}
 
 	return nil
@@ -326,6 +331,8 @@ func (t *Torrent) Pending() bool {
 func (t *Torrent) Stop() {
 	t.Lock()
 	defer t.Unlock()
+
+	//close(t.closeAll)
 
 	t.wg.Wait()
 	t.Torrent.Drop()
