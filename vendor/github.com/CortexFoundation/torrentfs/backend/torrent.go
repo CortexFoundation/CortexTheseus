@@ -117,7 +117,7 @@ func (t *Torrent) Status() int {
 }
 
 func (t *Torrent) Cited() int32 {
-	return t.cited
+	return atomic.LoadInt32(&t.cited)
 }
 
 func (t *Torrent) CitedInc() {
