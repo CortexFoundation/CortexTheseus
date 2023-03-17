@@ -32,7 +32,7 @@ func init() {
 	}
 }
 
-var tests = []string{"uints", "nil", "rawvalue", "optional", "bigint"}
+var tests = []string{"uints", "nil", "rawvalue", "optional", "bigint", "uint256"}
 
 func TestOutput(t *testing.T) {
 	for _, test := range tests {
