@@ -41,6 +41,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/torrentfs/compress"
 	"github.com/CortexFoundation/torrentfs/params"
+	"github.com/CortexFoundation/torrentfs/tool"
 	"github.com/CortexFoundation/torrentfs/types"
 	"github.com/CortexFoundation/torrentfs/wormhole"
 
@@ -606,6 +607,7 @@ func (tm *TorrentManager) updateInfoHash(t *Torrent, bytesRequested int64) {
 	} else if t.Cited() < 10 {
 		// call seeding t
 		//atomic.AddInt32(&t.Cited(), 1)
+		log.Info("Already seeding", "ih", t.InfoHash(), "cited", t.Cited())
 		t.CitedInc()
 	}
 	updateMeter.Mark(1)
@@ -895,6 +897,8 @@ func (tm *TorrentManager) commit(ctx context.Context, hex string, request uint64
 	case tm.taskChan <- types.NewBitsFlow(hex, request):
 	case <-ctx.Done():
 		return ctx.Err()
+	case <-tm.closeAll:
+		return nil
 	}
 
 	return nil
@@ -1046,7 +1050,7 @@ func (tm *TorrentManager) activeLoop() {
 				n += 300
 			}
 
-			n += tm.salt(300)
+			n += tool.Rand(300)
 			tm.wg.Add(1)
 			go func(i string, n int64) {
 				defer tm.wg.Done()

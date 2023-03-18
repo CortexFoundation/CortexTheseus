@@ -37,6 +37,7 @@ import (
 	"github.com/CortexFoundation/torrentfs/backend"
 	"github.com/CortexFoundation/torrentfs/monitor"
 	"github.com/CortexFoundation/torrentfs/params"
+	"github.com/CortexFoundation/torrentfs/tool"
 	"github.com/CortexFoundation/torrentfs/types"
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/metainfo"
@@ -78,7 +79,7 @@ type TorrentFS struct {
 	//scoreTable map[string]int
 
 	//seedingNotify chan string
-	closeAll chan struct{}
+	closeAll chan any
 	wg       sync.WaitGroup
 	once     sync.Once
 	worm     mapset.Set[string]
@@ -243,7 +244,7 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 
 	inst.tunnel = ttlmap.New(options)
 
-	inst.closeAll = make(chan struct{})
+	inst.closeAll = make(chan any)
 
 	inst.wg.Add(1)
 	go inst.listen()
@@ -294,11 +295,37 @@ func (fs *TorrentFS) listen() {
 			ttl.Reset(3 * time.Second)
 		case <-ticker.C:
 			log.Info("Bitsflow status", "neighbors", fs.Neighbors(), "current", fs.monitor.CurrentNumber(), "rev", fs.received, "sent", fs.sent, "in", fs.in, "out", fs.out, "nocola", fs.out+uint64(fs.Neighbors())-fs.in)
+			fs.wakeup(context.Background(), fs.sampling())
 		case <-fs.closeAll:
 			log.Info("Bitsflow listener stop")
 			return
 		}
 	}
+}
+
+func (fs *TorrentFS) sampling() (s string) {
+	records := fs.Records()
+	pos := tool.Rand(int64(len(records)))
+	i := int64(0)
+	for ih, p := range records {
+		if i == pos {
+			if p > 0 {
+				s = ih
+				log.Info("Random seeding", "ih", ih, "prog", common.StorageSize(p), "pos", pos)
+				return
+			} else {
+				log.Info("Next pos ->", "ih", ih, "prog", common.StorageSize(p), "pos", pos)
+				pos++
+			}
+		}
+		i++
+	}
+
+	log.Warn("No random seeding founded")
+
+	//s = fs.sampling()
+
+	return
 }
 
 func (fs *TorrentFS) MaxMessageSize() uint32 {
@@ -345,67 +372,81 @@ func (fs *TorrentFS) HandlePeer(peer *p2p.Peer, rw p2p.MsgReadWriter) error {
 
 	return fs.runMessageLoop(tfsPeer, rw)
 }
+
 func (fs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
 	for {
-		// fetch the next packet
-		packet, err := rw.ReadMsg()
-		if err != nil {
-			log.Debug("message loop", "peer", p.peer.ID(), "err", err)
+		if err := fs.handleMsg(p, rw); err != nil {
 			return err
 		}
-
-		if packet.Size > fs.MaxMessageSize() {
-			log.Warn("oversized message received", "peer", p.peer.ID())
-			return errors.New("oversized message received")
-		}
-
-		log.Debug("Nas "+params.ProtocolVersionStr+" package", "size", packet.Size, "code", packet.Code)
-		//fs.received++
-
-		switch packet.Code {
-		case params.StatusCode:
-			var info *PeerInfo
-			if err := packet.Decode(&info); err != nil {
-				log.Warn("failed to decode peer state, peer will be disconnected", "peer", p.peer.ID(), "err", err)
-				return errors.New("invalid peer state")
-			}
-			p.peerInfo = info
-		case params.QueryCode:
-			if params.ProtocolVersion >= 4 {
-				var info *Query
-				if err := packet.Decode(&info); err != nil {
-					log.Warn("failed to decode msg, peer will be disconnected", "peer", p.peer.ID(), "err", err)
-					return errors.New("invalid msg")
-				}
-
-				if !common.IsHexAddress(info.Hash) {
-					return errors.New("invalid address")
-				}
-
-				//if info.Size > 0 {
-				//fs.wakeup(context.Background(), info.Hash, info.Size)
-				fs.wakeup(context.Background(), info.Hash)
-				//}
-			}
-		case params.MsgCode:
-			if params.ProtocolVersion > 4 {
-				var info *MsgInfo
-				if err := packet.Decode(&info); err != nil {
-					log.Warn("failed to decode msg, peer will be disconnected", "peer", p.peer.ID(), "err", err)
-					return errors.New("invalid msg")
-				}
-				log.Warn("Nas msg testing", "code", params.MsgCode, "desc", info.Desc)
-			}
-		default:
-			log.Warn("Encounter package code", "code", packet.Code)
-			return errors.New("invalid code")
-		}
-		packet.Discard()
 	}
+}
+
+func (fs *TorrentFS) handleMsg(p *Peer, rw p2p.MsgReadWriter) error {
+	// fetch the next packet
+	packet, err := rw.ReadMsg()
+	if err != nil {
+		log.Debug("message loop", "peer", p.peer.ID(), "err", err)
+		return err
+	}
+
+	if packet.Size > fs.MaxMessageSize() {
+		log.Warn("oversized message received", "peer", p.peer.ID())
+		return errors.New("oversized message received")
+	}
+
+	defer packet.Discard()
+
+	log.Debug("Nas "+params.ProtocolVersionStr+" package", "size", packet.Size, "code", packet.Code)
+
+	switch packet.Code {
+	case params.StatusCode:
+		var info *PeerInfo
+		if err := packet.Decode(&info); err != nil {
+			log.Warn("failed to decode peer state, peer will be disconnected", "peer", p.peer.ID(), "err", err)
+			return errors.New("invalid peer state")
+		}
+		p.peerInfo = info
+	case params.QueryCode:
+		if params.ProtocolVersion >= 4 {
+			var info *Query
+			if err := packet.Decode(&info); err != nil {
+				log.Warn("failed to decode msg, peer will be disconnected", "peer", p.peer.ID(), "err", err)
+				return errors.New("invalid msg")
+			}
+
+			if !common.IsHexAddress(info.Hash) {
+				return errors.New("invalid address")
+			}
+
+			fs.wakeup(context.Background(), info.Hash)
+		}
+	case params.MsgCode:
+		if params.ProtocolVersion > 4 {
+			var info *MsgInfo
+			if err := packet.Decode(&info); err != nil {
+				log.Warn("failed to decode msg, peer will be disconnected", "peer", p.peer.ID(), "err", err)
+				return errors.New("invalid msg")
+			}
+			log.Warn("Nas msg testing", "code", params.MsgCode, "desc", info.Desc)
+		}
+	default:
+		log.Warn("Encounter package code", "code", packet.Code)
+		return errors.New("invalid code")
+	}
+
+	return nil
 }
 
 func (fs *TorrentFS) progress(ih string) (uint64, error) {
 	return fs.chain().GetTorrentProgress(ih)
+}
+
+func (fs *TorrentFS) Records() map[string]uint64 {
+	if progs, err := fs.chain().InitTorrents(); err == nil {
+		return progs
+	}
+
+	return nil
 }
 
 // Protocols implements the node.Service interface.
@@ -429,29 +470,29 @@ func (fs *TorrentFS) Version() uint {
 
 // Start starts the data collection thread and the listening server of the dashboard.
 // Implements the node.Service interface.
-func (tfs *TorrentFS) Start(srvr *p2p.Server) (err error) {
+func (fs *TorrentFS) Start(srvr *p2p.Server) (err error) {
 	log.Info("Fs server starting ... ...")
-	if tfs == nil || tfs.monitor == nil {
-		log.Warn("Storage fs init failed", "fs", tfs)
+	if fs == nil || fs.monitor == nil {
+		log.Warn("Storage fs init failed", "fs", fs)
 		return
 	}
 
 	// Figure out a max peers count based on the server limits
 	if srvr != nil {
 		log.Info("P2p net bounded")
-		tfs.net = srvr
+		fs.net = srvr
 	}
 
-	log.Info("Started nas", "config", tfs, "mode", tfs.config.Mode, "version", params.ProtocolVersion, "queue", tfs.tunnel.Len(), "peers", tfs.Neighbors())
+	log.Info("Started nas", "config", fs, "mode", fs.config.Mode, "version", params.ProtocolVersion, "queue", fs.tunnel.Len(), "peers", fs.Neighbors())
 
-	err = tfs.handler.Start()
+	err = fs.handler.Start()
 	if err != nil {
 		return
 	}
 
-	err = tfs.monitor.Start()
+	err = fs.monitor.Start()
 
-	tfs.init()
+	fs.init()
 
 	return
 }
@@ -478,6 +519,8 @@ func (fs *TorrentFS) bitsflow(ctx context.Context, ih string, size uint64) error
 	case fs.callback <- types.NewBitsFlow(ih, size):
 	case <-ctx.Done():
 		return ctx.Err()
+	case <-fs.closeAll:
+		return nil
 	}
 
 	return nil
@@ -485,31 +528,48 @@ func (fs *TorrentFS) bitsflow(ctx context.Context, ih string, size uint64) error
 
 // Stop stops the data collection thread and the connection listener of the dashboard.
 // Implements the node.Service interface.
-func (tfs *TorrentFS) Stop() error {
-	if tfs == nil {
+func (fs *TorrentFS) Stop() error {
+	if fs == nil {
 		log.Info("Cortex fs engine is already stopped")
 		return errors.New("fs has been stopped")
 	}
 
-	tfs.once.Do(func() {
-		log.Info("Fs client listener synchronizing closing")
-		if tfs.handler != nil {
-			tfs.handler.Close()
+	fs.once.Do(func() {
+		log.Info("Fs client listener synchronizing closing ... ...")
+		if fs.handler != nil {
+			fs.handler.Close()
 		}
-		if tfs.db != nil {
-			tfs.db.Close()
+
+		if fs.monitor != nil {
+			log.Info("Monior stopping ... ...")
+			fs.monitor.Stop()
 		}
-		if tfs.monitor != nil {
-			tfs.monitor.Stop()
+
+		if fs.db != nil {
+			log.Info("Chain DB closing ... ...")
+			fs.db.Close()
 		}
-		close(tfs.closeAll)
+
+		close(fs.closeAll)
+
+		fs.wg.Wait()
+
+		for _, p := range fs.peers {
+			p.stop()
+		}
+
+		if fs.tunnel != nil {
+			fs.tunnel.Drain()
+		}
 	})
 
-	tfs.wg.Wait()
-
-	if tfs.tunnel != nil {
-		tfs.tunnel.Drain()
+	/*for _, p := range fs.peers {
+		p.stop()
 	}
+
+	if fs.tunnel != nil {
+		fs.tunnel.Drain()
+	}*/
 	log.Info("Cortex fs engine stopped")
 	return nil
 }
@@ -592,6 +652,8 @@ func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSi
 				case <-ctx.Done():
 					log.Warn("Timeout", "ih", infohash, "size", common.StorageSize(rawSize), "err", ctx.Err())
 					return nil, ctx.Err()
+				case <-fs.closeAll:
+					return nil, nil
 				}
 			}
 		}
