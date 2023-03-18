@@ -295,7 +295,6 @@ func (t *Torrent) download(p, slot int) error {
 	}
 
 	e = s + p
-	log.Info(ScaleBar(s, e, t.Torrent.NumPieces()), "ih", t.InfoHash(), "slot", slot, "s", s, "e", e, "p", p, "total", t.Torrent.NumPieces())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -310,6 +309,7 @@ func (t *Torrent) download(p, slot int) error {
 
 	select {
 	case <-ex:
+		log.Info(ScaleBar(s, e, t.Torrent.NumPieces()), "ih", t.InfoHash(), "slot", slot, "s", s, "e", e, "p", p, "total", t.Torrent.NumPieces())
 	case <-ctx.Done():
 		log.Warn("Piece download timeout", "ih", t.InfoHash(), "slot", slot, "s", s, "e", e, "p", p, "total", t.Torrent.NumPieces())
 		return ctx.Err()

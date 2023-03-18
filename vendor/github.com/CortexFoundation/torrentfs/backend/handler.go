@@ -1099,8 +1099,7 @@ func (tm *TorrentManager) activeLoop() {
 							} else {
 								//atomic.AddInt32(&t.Cited(), -1)
 								t.CitedDec()
-								elapsed := time.Duration(mclock.Now()) - time.Duration(t.Birth())
-								log.Debug("Seed cited has been decreased", "ih", i, "cited", t.Cited(), "n", n, "status", t.Status(), "elapsed", common.PrettyDuration(elapsed))
+								log.Debug("Seed cited has been decreased", "ih", i, "cited", t.Cited(), "n", n, "status", t.Status(), "elapsed", common.PrettyDuration(time.Duration(mclock.Now())-time.Duration(t.Birth())))
 							}
 						} else {
 							return
@@ -1315,8 +1314,7 @@ func (tm *TorrentManager) GetFile(ctx context.Context, infohash, subpath string)
 		start := mclock.Now()
 		//if data, err = tm.fc.ReadFileContext(ctx, dir); err == nil {
 		if data, err = tm.fc.ReadFile(dir); err == nil {
-			elapsed := time.Duration(mclock.Now() - start)
-			log.Debug("Load data from file cache", "ih", infohash, "dir", dir, "elapsed", common.PrettyDuration(elapsed))
+			log.Debug("Load data from file cache", "ih", infohash, "dir", dir, "elapsed", common.PrettyDuration(time.Duration(mclock.Now()-start)))
 		}
 	} else {
 		data, err = os.ReadFile(dir)
