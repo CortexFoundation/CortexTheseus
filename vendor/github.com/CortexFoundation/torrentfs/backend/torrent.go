@@ -82,8 +82,8 @@ func NewTorrent(t *torrent.Torrent, requested int64, ih string, path string) *To
 }
 
 func (t *Torrent) QuotaFull() bool {
-	t.RLock()
-	defer t.RUnlock()
+	//t.RLock()
+	//defer t.RUnlock()
 
 	return t.Info() != nil && t.bytesRequested >= t.Length()
 }
@@ -136,8 +136,8 @@ func (t *Torrent) CitedDec() {
 }
 
 func (t *Torrent) BytesRequested() int64 {
-	t.RLock()
-	defer t.RUnlock()
+	//t.RLock()
+	//defer t.RUnlock()
 
 	return t.bytesRequested
 }
