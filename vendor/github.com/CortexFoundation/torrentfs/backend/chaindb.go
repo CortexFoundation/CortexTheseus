@@ -821,7 +821,7 @@ func (fs *ChainDB) InitTorrents() (map[string]uint64, error) {
 				}
 				fs.torrents[string(k)] = size
 			}
-			log.Info("Torrent initializing ... ...", "torrents", len(fs.torrents))
+			log.Debug("Torrent initializing ... ...", "torrents", len(fs.torrents))
 			return nil
 		}
 	})
