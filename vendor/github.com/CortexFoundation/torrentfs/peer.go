@@ -25,7 +25,6 @@ import (
 	"github.com/CortexFoundation/torrentfs/params"
 	mapset "github.com/deckarep/golang-set/v2"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -176,7 +175,7 @@ func (peer *Peer) broadcast() error {
 				if err := p2p.Send(peer.ws, params.QueryCode, &query); err != nil {
 					return err
 				}
-				atomic.AddUint64(&peer.host.sent, 1)
+				peer.host.sent.Add(1)
 				peer.mark(k.Interface().(string))
 			}
 		}

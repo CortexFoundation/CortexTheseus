@@ -58,11 +58,11 @@ type Monitor struct {
 	//dl     *backend.TorrentManager
 
 	exitCh        chan struct{}
-	terminated    int32
+	terminated    atomic.Int32
 	lastNumber    uint64
 	startNumber   uint64
 	scope         uint64
-	currentNumber uint64
+	currentNumber atomic.Uint64
 	wg            sync.WaitGroup
 	rpcWg         sync.WaitGroup
 
@@ -109,14 +109,14 @@ func New(flag *params.Config, cache, compress, listen bool, fs *backend.ChainDB,
 		cl:     nil,
 		fs:     fs,
 		//dl:            tMana,
-		exitCh:        make(chan struct{}),
-		terminated:    0,
-		lastNumber:    uint64(0),
-		scope:         uint64(math.Min(float64(runtime.NumCPU()), float64(8))),
-		currentNumber: uint64(0),
+		exitCh:     make(chan struct{}),
+		lastNumber: uint64(0),
+		scope:      uint64(math.Min(float64(runtime.NumCPU()), float64(8))),
 		//taskCh:        make(chan *types.Block, batch),
 		//start: mclock.Now(),
 	}
+	m.currentNumber.Store(0)
+	m.terminated.Store(0)
 	m.blockCache, _ = lru.New(delay)
 	m.sizeCache, _ = lru.New(batch)
 	m.listen = listen
@@ -151,7 +151,7 @@ func New(flag *params.Config, cache, compress, listen bool, fs *backend.ChainDB,
 //}
 
 func (m *Monitor) CurrentNumber() uint64 {
-	return atomic.LoadUint64(&m.currentNumber)
+	return m.currentNumber.Load()
 }
 
 func (m *Monitor) loadHistory() error {
@@ -180,7 +180,7 @@ func (m *Monitor) download(k string, v uint64) {
 }
 
 func (m *Monitor) indexCheck() error {
-	log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber(), "checkpoint", m.fs.CheckPoint(), "root", m.fs.Root(), "version", m.fs.Version(), "current", m.currentNumber)
+	log.Info("Loading storage data ... ...", "latest", m.fs.LastListenBlockNumber(), "checkpoint", m.fs.CheckPoint(), "root", m.fs.Root(), "version", m.fs.Version(), "current", m.currentNumber.Load())
 	genesis, err := m.rpcBlockByNumber(0)
 	if err != nil {
 		return err
@@ -272,21 +272,21 @@ func (m *Monitor) indexInit() error {
 // SetConnection method builds connection to remote or local communicator.
 func (m *Monitor) buildConnection(ipcpath string, rpcuri string) (*rpc.Client, error) {
 
-	log.Debug("Building connection", "terminated", m.terminated)
+	log.Debug("Building connection", "terminated", m.terminated.Load())
 
 	if len(ipcpath) > 0 {
 		for i := 0; i < 30; i++ {
 			time.Sleep(time.Second * params.QueryTimeInterval * 2)
 			cl, err := rpc.Dial(ipcpath)
 			if err != nil {
-				log.Warn("Building internal ipc connection ... ", "ipc", ipcpath, "rpc", rpcuri, "error", err, "terminated", m.terminated)
+				log.Warn("Building internal ipc connection ... ", "ipc", ipcpath, "rpc", rpcuri, "error", err, "terminated", m.terminated.Load())
 			} else {
 				m.local = true
 				log.Info("Internal ipc connection established", "ipc", ipcpath, "rpc", rpcuri, "local", m.local)
 				return cl, nil
 			}
 
-			if atomic.LoadInt32(&(m.terminated)) == 1 {
+			if m.terminated.Load() == 1 {
 				log.Info("Connection builder break")
 				return nil, errors.New("ipc connection terminated")
 			}
@@ -297,7 +297,7 @@ func (m *Monitor) buildConnection(ipcpath string, rpcuri string) (*rpc.Client, e
 
 	cl, err := rpc.Dial(rpcuri)
 	if err != nil {
-		log.Warn("Building internal rpc connection ... ", "ipc", ipcpath, "rpc", rpcuri, "error", err, "terminated", m.terminated)
+		log.Warn("Building internal rpc connection ... ", "ipc", ipcpath, "rpc", rpcuri, "error", err, "terminated", m.terminated.Load())
 	} else {
 		log.Info("Internal rpc connection established", "ipc", ipcpath, "rpc", rpcuri, "local", m.local)
 		return cl, nil
@@ -494,10 +494,10 @@ func (m *Monitor) Stop() {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	//m.closeOnce.Do(func() {
-	if atomic.LoadInt32(&(m.terminated)) == 1 {
+	if m.terminated.Load() == 1 {
 		return
 	}
-	atomic.StoreInt32(&(m.terminated), 1)
+	m.terminated.Store(1)
 
 	m.exit()
 	log.Info("Monitor is waiting to be closed")
@@ -554,7 +554,7 @@ func (m *Monitor) run() error {
 
 	m.lastNumber = m.fs.LastListenBlockNumber()
 	m.currentBlock()
-	m.startNumber = uint64(math.Min(float64(m.fs.LastListenBlockNumber()), float64(m.currentNumber))) // ? m.currentNumber:m.fs.LastListenBlockNumber
+	m.startNumber = uint64(math.Min(float64(m.fs.LastListenBlockNumber()), float64(m.currentNumber.Load()))) // ? m.currentNumber:m.fs.LastListenBlockNumber
 
 	if err := m.indexCheck(); err != nil {
 		return err
@@ -613,7 +613,7 @@ func (m *Monitor) syncLatestBlock() {
 				timer.Reset(time.Millisecond * 3000)
 			} else {
 				if !m.listen {
-					if (m.ckp != nil && m.currentNumber >= m.ckp.TfsCheckPoint) || (m.ckp == nil && m.currentNumber > 0) {
+					if (m.ckp != nil && m.currentNumber.Load() >= m.ckp.TfsCheckPoint) || (m.ckp == nil && m.currentNumber.Load() > 0) {
 						if !end {
 							end = true
 							timer.Reset(time.Millisecond * 15000)
@@ -622,7 +622,7 @@ func (m *Monitor) syncLatestBlock() {
 						m.fs.Flush()
 						//go m.exit()
 						elapsed := time.Duration(mclock.Now()) - time.Duration(m.start)
-						log.Info("Finish sync, listener will be paused", "current", m.currentNumber, "elapsed", common.PrettyDuration(elapsed), "progress", progress, "end", end, "last", m.lastNumber)
+						log.Info("Finish sync, listener will be paused", "current", m.currentNumber.Load(), "elapsed", common.PrettyDuration(elapsed), "progress", progress, "end", end, "last", m.lastNumber)
 						//return
 						timer.Reset(time.Millisecond * 1000 * 180)
 						end = false
@@ -633,7 +633,7 @@ func (m *Monitor) syncLatestBlock() {
 			}
 			counter++
 			if counter%10 == 0 {
-				log.Info(backend.ProgressBar(int64(m.lastNumber), int64(m.currentNumber), ""), "blocks", progress, "current", m.currentNumber, "latest", m.lastNumber, "end", end, "txs", m.fs.Txs(), "ckp", m.fs.CheckPoint(), "last", m.fs.LastListenBlockNumber())
+				log.Info(backend.ProgressBar(int64(m.lastNumber), int64(m.CurrentNumber()), ""), "blocks", progress, "current", m.CurrentNumber(), "latest", m.lastNumber, "end", end, "txs", m.fs.Txs(), "ckp", m.fs.CheckPoint(), "last", m.fs.LastListenBlockNumber())
 				counter = 0
 			}
 			m.fs.Flush()
@@ -652,8 +652,8 @@ func (m *Monitor) currentBlock() (uint64, error) {
 		log.Error("Call ipc method ctxc_blockNumber failed", "error", err)
 		return 0, err
 	}
-	if m.currentNumber != uint64(currentNumber) {
-		atomic.StoreUint64(&m.currentNumber, uint64(currentNumber))
+	if m.CurrentNumber() != uint64(currentNumber) {
+		m.currentNumber.Store(uint64(currentNumber))
 	}
 
 	return uint64(currentNumber), nil
@@ -674,7 +674,6 @@ func (m *Monitor) skip(i uint64) bool {
 }
 
 func (m *Monitor) syncLastBlock() uint64 {
-	//currentNumber := atomic.LoadUint64(&(m.currentNumber))
 	currentNumber, err := m.currentBlock()
 	if err != nil {
 		return 0
@@ -713,7 +712,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 	}
 	//start := mclock.Now()
 	for i := minNumber; i <= maxNumber; { // i++ {
-		if atomic.LoadInt32(&(m.terminated)) == 1 {
+		if m.terminated.Load() == 1 {
 			log.Warn("Fs scan terminated", "number", i)
 			maxNumber = i - 1
 			break
@@ -782,7 +781,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 	//if maxNumber-minNumber > batch-1 {
 	if maxNumber-minNumber > delay {
 		elapsedA := time.Duration(mclock.Now()) - time.Duration(m.start)
-		log.Debug("Chain segment frozen", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(m.currentNumber), "progress", float64(maxNumber)/float64(m.currentNumber), "last", m.lastNumber, "bps", float64(maxNumber)*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA))
+		log.Debug("Chain segment frozen", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(m.CurrentNumber()), "progress", float64(maxNumber)/float64(m.CurrentNumber()), "last", m.lastNumber, "bps", float64(maxNumber)*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA))
 	}
 	return uint64(maxNumber - minNumber)
 }
@@ -792,7 +791,7 @@ func (m *Monitor) solve(block *types.Block) error {
 	if i%65536 == 0 {
 		defer func() {
 			elapsedA := time.Duration(mclock.Now()) - time.Duration(m.start)
-			log.Info(backend.ProgressBar(int64(i), int64(m.currentNumber), "Nas monitor"), "start", m.startNumber, "max", uint64(m.currentNumber), "last", m.lastNumber, "cur", i, "bps", math.Abs(float64(i)-float64(m.startNumber))*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA), "scope", m.scope, "db", common.PrettyDuration(m.fs.Metrics()), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "root", m.fs.Root())
+			log.Info(backend.ProgressBar(int64(i), int64(m.CurrentNumber()), "Nas monitor"), "start", m.startNumber, "max", uint64(m.CurrentNumber()), "last", m.lastNumber, "cur", i, "bps", math.Abs(float64(i)-float64(m.startNumber))*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA), "scope", m.scope, "db", common.PrettyDuration(m.fs.Metrics()), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "root", m.fs.Root())
 			m.fs.SkipPrint()
 		}()
 	}
