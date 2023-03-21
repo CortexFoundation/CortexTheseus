@@ -24,6 +24,7 @@ import (
 	"reflect"
 
 	"github.com/CortexFoundation/CortexTheseus/rlp/internal/rlpstruct"
+	"github.com/holiman/uint256"
 )
 
 var (
@@ -141,6 +142,10 @@ func makeWriter(typ reflect.Type, ts rlpstruct.Tags) (writer, error) {
 		return writeBigIntPtr, nil
 	case typ.AssignableTo(bigInt):
 		return writeBigIntNoPtr, nil
+	case typ == reflect.PtrTo(u256Int):
+		return writeU256IntPtr, nil
+	case typ == u256Int:
+		return writeU256IntNoPtr, nil
 	case kind == reflect.Ptr:
 		return makePtrWriter(typ, ts)
 	case reflect.PtrTo(typ).Implements(encoderInterface):
@@ -200,6 +205,22 @@ func writeBigIntNoPtr(val reflect.Value, w *encBuffer) error {
 		return ErrNegativeBigInt
 	}
 	w.writeBigInt(&i)
+	return nil
+}
+
+func writeU256IntPtr(val reflect.Value, w *encBuffer) error {
+	ptr := val.Interface().(*uint256.Int)
+	if ptr == nil {
+		w.str = append(w.str, 0x80)
+		return nil
+	}
+	w.writeUint256(ptr)
+	return nil
+}
+
+func writeU256IntNoPtr(val reflect.Value, w *encBuffer) error {
+	i := val.Interface().(uint256.Int)
+	w.writeUint256(&i)
 	return nil
 }
 
