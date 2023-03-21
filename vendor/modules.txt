@@ -581,7 +581,7 @@ github.com/hashicorp/golang-lru/simplelru
 # github.com/holiman/bloomfilter/v2 v2.0.3
 ## explicit; go 1.15
 github.com/holiman/bloomfilter/v2
-# github.com/holiman/uint256 v1.2.2-0.20230219192149-89e7a3ba25bc
+# github.com/holiman/uint256 v1.2.2-0.20230321075855-87b91420868c
 ## explicit; go 1.18
 github.com/holiman/uint256
 # github.com/huandu/xstrings v1.4.0
