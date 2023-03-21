@@ -24,7 +24,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"sync/atomic"
 	"testing"
 	"testing/quick"
 	"time"
@@ -196,7 +195,7 @@ func TestFreezerRepairDanglingHeadLarge(t *testing.T) {
 		writeChunks(t, f, 255, 15)
 
 		// The last item should be there
-		if _, err = f.Retrieve(f.items - 1); err != nil {
+		if _, err = f.Retrieve(f.items.Load() - 1); err != nil {
 			t.Fatal(err)
 		}
 		f.Close()
@@ -322,7 +321,7 @@ func TestFreezerRepairDanglingIndex(t *testing.T) {
 		writeChunks(t, f, 9, 15)
 
 		// The last item should be there
-		if _, err = f.Retrieve(f.items - 1); err != nil {
+		if _, err = f.Retrieve(f.items.Load() - 1); err != nil {
 			f.Close()
 			t.Fatal(err)
 		}
@@ -355,8 +354,8 @@ func TestFreezerRepairDanglingIndex(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer f.Close()
-		if f.items != 7 {
-			t.Fatalf("expected %d items, got %d", 7, f.items)
+		if f.items.Load() != 7 {
+			t.Fatalf("expected %d items, got %d", 7, f.items.Load())
 		}
 		if err := assertFileSize(fileToCrop, 15); err != nil {
 			t.Fatal(err)
@@ -379,7 +378,7 @@ func TestFreezerTruncate(t *testing.T) {
 		writeChunks(t, f, 30, 15)
 
 		// The last item should be there
-		if _, err = f.Retrieve(f.items - 1); err != nil {
+		if _, err = f.Retrieve(f.items.Load() - 1); err != nil {
 			t.Fatal(err)
 		}
 		f.Close()
@@ -393,8 +392,8 @@ func TestFreezerTruncate(t *testing.T) {
 		}
 		defer f.Close()
 		f.truncateHead(10) // 150 bytes
-		if f.items != 10 {
-			t.Fatalf("expected %d items, got %d", 10, f.items)
+		if f.items.Load() != 10 {
+			t.Fatalf("expected %d items, got %d", 10, f.items.Load())
 		}
 		// 45, 45, 45, 15 -- bytes should be 15
 		if f.headBytes != 15 {
@@ -449,9 +448,9 @@ func TestFreezerRepairFirstFile(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if f.items != 1 {
+		if f.items.Load() != 1 {
 			f.Close()
-			t.Fatalf("expected %d items, got %d", 0, f.items)
+			t.Fatalf("expected %d items, got %d", 0, f.items.Load())
 		}
 
 		// Write 40 bytes
@@ -488,7 +487,7 @@ func TestFreezerReadAndTruncate(t *testing.T) {
 		writeChunks(t, f, 30, 15)
 
 		// The last item should be there
-		if _, err = f.Retrieve(f.items - 1); err != nil {
+		if _, err = f.Retrieve(f.items.Load() - 1); err != nil {
 			t.Fatal(err)
 		}
 		f.Close()
@@ -500,9 +499,9 @@ func TestFreezerReadAndTruncate(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if f.items != 30 {
+		if f.items.Load() != 30 {
 			f.Close()
-			t.Fatalf("expected %d items, got %d", 0, f.items)
+			t.Fatalf("expected %d items, got %d", 0, f.items.Load())
 		}
 		for y := byte(0); y < 30; y++ {
 			f.Retrieve(uint64(y))
@@ -1215,13 +1214,13 @@ func runRandTest(rt randTest) bool {
 				rt[i].err = fmt.Errorf("failed to reload table %v", err)
 			}
 		case opCheckAll:
-			tail := atomic.LoadUint64(&f.itemHidden)
-			head := atomic.LoadUint64(&f.items)
+			tail := f.itemHidden.Load()
+			head := f.items.Load()
 
 			if tail == head {
 				continue
 			}
-			got, err := f.RetrieveItems(atomic.LoadUint64(&f.itemHidden), head-tail, 100000)
+			got, err := f.RetrieveItems(f.itemHidden.Load(), head-tail, 100000)
 			if err != nil {
 				rt[i].err = err
 			} else {
@@ -1243,7 +1242,7 @@ func runRandTest(rt randTest) bool {
 			if len(step.items) == 0 {
 				continue
 			}
-			tail := atomic.LoadUint64(&f.itemHidden)
+			tail := f.itemHidden.Load()
 			for i := 0; i < len(step.items); i++ {
 				blobs = append(blobs, values[step.items[i]-tail])
 			}
@@ -1259,7 +1258,7 @@ func runRandTest(rt randTest) bool {
 		case opTruncateHead:
 			f.truncateHead(step.target)
 
-			length := atomic.LoadUint64(&f.items) - atomic.LoadUint64(&f.itemHidden)
+			length := f.items.Load() - f.itemHidden.Load()
 			values = values[:length]
 
 		case opTruncateHeadAll:
@@ -1267,10 +1266,10 @@ func runRandTest(rt randTest) bool {
 			values = nil
 
 		case opTruncateTail:
-			prev := atomic.LoadUint64(&f.itemHidden)
+			prev := f.itemHidden.Load()
 			f.truncateTail(step.target)
 
-			truncated := atomic.LoadUint64(&f.itemHidden) - prev
+			truncated := f.itemHidden.Load() - prev
 			values = values[truncated:]
 
 		case opTruncateTailAll:
