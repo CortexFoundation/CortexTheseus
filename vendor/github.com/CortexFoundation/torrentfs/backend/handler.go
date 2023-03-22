@@ -29,7 +29,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	//"sync/atomic"
+	"sync/atomic"
 	//"strconv"
 	"math"
 	"runtime"
@@ -163,6 +163,8 @@ type TorrentManager struct {
 	//colaList mapset.Set[string]
 
 	fc *filecache.FileCache
+
+	seconds uint64
 }
 
 // can only call by fs.go: 'SeedingLocal()'
@@ -607,7 +609,7 @@ func (tm *TorrentManager) updateInfoHash(t *Torrent, bytesRequested int64) {
 	} else if t.Cited() < 10 {
 		// call seeding t
 		//atomic.AddInt32(&t.Cited(), 1)
-		log.Info("Already seeding", "ih", t.InfoHash(), "cited", t.Cited())
+		log.Debug("Already seeding", "ih", t.InfoHash(), "cited", t.Cited())
 		t.CitedInc()
 	}
 	updateMeter.Mark(1)
@@ -728,6 +730,7 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 		localSeedFiles: make(map[string]bool),
 		//seedingNotify:  notify,
 		//kvdb: kv.Badger(config.DataDir),
+		seconds: 1,
 	}
 
 	switch config.Engine {
@@ -1003,6 +1006,7 @@ func (tm *TorrentManager) pendingLoop() {
 func (tm *TorrentManager) finish(ih string, t *Torrent) {
 	t.Lock()
 	defer t.Unlock()
+
 	if _, err := os.Stat(filepath.Join(tm.DataDir, ih)); err == nil {
 		tm.active_lock.Lock()
 		delete(tm.activeTorrents, ih)
@@ -1025,6 +1029,35 @@ func (tm *TorrentManager) finish(ih string, t *Torrent) {
 
 func (tm *TorrentManager) salt(n int) int64 {
 	return int64(tm.slot % n)
+}
+
+var _cache uint64
+
+func (tm *TorrentManager) total() (ret uint64) {
+	tm.lock.RLock()
+	defer tm.lock.RUnlock()
+
+	for _, t := range tm.torrents {
+		if t.Torrent.Info() != nil {
+			ret += uint64(t.Torrent.BytesCompleted())
+		}
+	}
+
+	if _cache > ret {
+		ret = _cache
+	} else {
+		_cache = ret
+	}
+
+	return
+}
+
+func (tm *TorrentManager) dur() uint64 {
+	return atomic.LoadUint64(&tm.seconds)
+}
+
+func (tm *TorrentManager) cost(s uint64) {
+	atomic.AddUint64(&tm.seconds, s)
 }
 
 func (tm *TorrentManager) activeLoop() {
@@ -1067,7 +1100,7 @@ func (tm *TorrentManager) activeLoop() {
 								//atomic.AddInt32(&t.Cited(), -1)
 								t.CitedDec()
 								elapsed := time.Duration(mclock.Now()) - time.Duration(t.Birth())
-								log.Info("Seed cited has been decreased", "ih", i, "cited", t.Cited(), "n", n, "status", t.Status(), "elapsed", common.PrettyDuration(elapsed))
+								log.Debug("Seed cited has been decreased", "ih", i, "cited", t.Cited(), "n", n, "status", t.Status(), "elapsed", common.PrettyDuration(elapsed))
 							}
 						} else {
 							return
@@ -1078,15 +1111,23 @@ func (tm *TorrentManager) activeLoop() {
 				}
 			}(t.InfoHash(), n)
 		case <-timer_1.C:
-			log.Info("Fs status", "pending", len(tm.pendingTorrents), "downloading", len(tm.activeTorrents), "seeding", len(tm.seedingTorrents), "metrics", common.PrettyDuration(tm.Updates))
+
+			// TODO
+
+			if tm.dur() > 0 {
+				log.Info("Fs status", "pending", len(tm.pendingTorrents), "downloading", len(tm.activeTorrents), "seeding", len(tm.seedingTorrents), "metrics", common.PrettyDuration(tm.Updates), "total", common.StorageSize(tm.total()), "cost", common.PrettyDuration(time.Duration(tm.dur())), "speed", common.StorageSize(float64(tm.total()*1000*1000*1000)/float64(tm.dur())).String()+"/s")
+			}
 		case <-timer_2.C:
 			go tm.updateGlobalTrackers()
 		case <-timer.C:
 			for ih, t := range tm.activeTorrents {
 				if t.BytesMissing() == 0 {
 					tm.finish(ih, t)
+					tm.cost(uint64(time.Duration(mclock.Now()) - time.Duration(t.start)))
 					continue
 				}
+
+				// TODO
 
 				if t.Torrent.BytesCompleted() < t.BytesRequested() {
 					t.Start(tm.slot)

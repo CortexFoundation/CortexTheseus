@@ -151,7 +151,7 @@ func New(flag *params.Config, cache, compress, listen bool, fs *backend.ChainDB,
 //}
 
 func (m *Monitor) CurrentNumber() uint64 {
-	return m.currentNumber
+	return atomic.LoadUint64(&m.currentNumber)
 }
 
 func (m *Monitor) loadHistory() error {
@@ -653,7 +653,7 @@ func (m *Monitor) currentBlock() (uint64, error) {
 		return 0, err
 	}
 	if m.currentNumber != uint64(currentNumber) {
-		atomic.StoreUint64(&(m.currentNumber), uint64(currentNumber))
+		atomic.StoreUint64(&m.currentNumber, uint64(currentNumber))
 	}
 
 	return uint64(currentNumber), nil
