@@ -31,6 +31,8 @@ const (
 	StatusCode = 0
 	QueryCode  = 1
 	MsgCode    = 2
+	PollCode   = 3
+	VoteCode   = 4
 
 	PeerStateCycle = time.Second * 300
 

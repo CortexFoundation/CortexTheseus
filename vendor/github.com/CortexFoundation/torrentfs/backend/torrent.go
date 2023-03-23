@@ -81,6 +81,13 @@ func NewTorrent(t *torrent.Torrent, requested int64, ih string, path string) *To
 	}
 }
 
+func (t *Torrent) QuotaFull() bool {
+	//t.RLock()
+	//defer t.RUnlock()
+
+	return t.Info() != nil && t.bytesRequested >= t.Length()
+}
+
 func (t *Torrent) Birth() mclock.AbsTime {
 	return t.start
 }
@@ -129,6 +136,9 @@ func (t *Torrent) CitedDec() {
 }
 
 func (t *Torrent) BytesRequested() int64 {
+	//t.RLock()
+	//defer t.RUnlock()
+
 	return t.bytesRequested
 }
 
@@ -295,7 +305,6 @@ func (t *Torrent) download(p, slot int) error {
 	}
 
 	e = s + p
-	log.Info(ScaleBar(s, e, t.Torrent.NumPieces()), "ih", t.InfoHash(), "slot", slot, "s", s, "e", e, "p", p, "total", t.Torrent.NumPieces())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -310,6 +319,7 @@ func (t *Torrent) download(p, slot int) error {
 
 	select {
 	case <-ex:
+		log.Info(ScaleBar(s, e, t.Torrent.NumPieces()), "ih", t.InfoHash(), "slot", slot, "s", s, "e", e, "p", p, "total", t.Torrent.NumPieces())
 	case <-ctx.Done():
 		log.Warn("Piece download timeout", "ih", t.InfoHash(), "slot", slot, "s", s, "e", e, "p", p, "total", t.Torrent.NumPieces())
 		return ctx.Err()

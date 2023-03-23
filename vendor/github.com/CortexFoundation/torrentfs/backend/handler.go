@@ -602,9 +602,11 @@ func (tm *TorrentManager) updateInfoHash(t *Torrent, bytesRequested int64) {
 
 			t.SetBytesRequested(bytesRequested)
 
-			if t.Status() == torrentRunning {
+			//if t.Status() == torrentRunning {
+			if t.QuotaFull() { //t.Length() <= t.BytesRequested() {
 				t.Start(tm.slot)
 			}
+			//}
 		}
 	} else if t.Cited() < 10 {
 		// call seeding t
@@ -798,6 +800,12 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 
 func (tm *TorrentManager) Start() (err error) {
 	tm.startOnce.Do(func() {
+		if tm.fc != nil {
+			if err := tm.fc.Start(); err != nil {
+				log.Error("File cache start", "err", err)
+			}
+		}
+
 		tm.wg.Add(1)
 		go tm.droppingLoop()
 		tm.wg.Add(1)
@@ -811,11 +819,6 @@ func (tm *TorrentManager) Start() (err error) {
 		go tm.mainLoop()
 
 		//err = tm.init()
-		if tm.fc != nil {
-			if err := tm.fc.Start(); err != nil {
-				log.Error("File cache start", "err", err)
-			}
-		}
 	})
 
 	return
@@ -898,6 +901,7 @@ func (tm *TorrentManager) Search(ctx context.Context, hex string, request uint64
 func (tm *TorrentManager) commit(ctx context.Context, hex string, request uint64) error {
 	select {
 	case tm.taskChan <- types.NewBitsFlow(hex, request):
+		// TODO
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-tm.closeAll:
@@ -1076,7 +1080,9 @@ func (tm *TorrentManager) activeLoop() {
 			tm.activeTorrents[t.InfoHash()] = t
 			tm.active_lock.Unlock()
 
-			t.Start(tm.slot)
+			if t.QuotaFull() { //t.Length() <= t.BytesRequested() {
+				t.Start(tm.slot)
+			}
 
 			n := tm.blockCaculate(t.Torrent.Length())
 			if n < 300 {
@@ -1099,8 +1105,7 @@ func (tm *TorrentManager) activeLoop() {
 							} else {
 								//atomic.AddInt32(&t.Cited(), -1)
 								t.CitedDec()
-								elapsed := time.Duration(mclock.Now()) - time.Duration(t.Birth())
-								log.Debug("Seed cited has been decreased", "ih", i, "cited", t.Cited(), "n", n, "status", t.Status(), "elapsed", common.PrettyDuration(elapsed))
+								log.Debug("Seed cited has been decreased", "ih", i, "cited", t.Cited(), "n", n, "status", t.Status(), "elapsed", common.PrettyDuration(time.Duration(mclock.Now())-time.Duration(t.Birth())))
 							}
 						} else {
 							return
@@ -1315,8 +1320,7 @@ func (tm *TorrentManager) GetFile(ctx context.Context, infohash, subpath string)
 		start := mclock.Now()
 		//if data, err = tm.fc.ReadFileContext(ctx, dir); err == nil {
 		if data, err = tm.fc.ReadFile(dir); err == nil {
-			elapsed := time.Duration(mclock.Now() - start)
-			log.Debug("Load data from file cache", "ih", infohash, "dir", dir, "elapsed", common.PrettyDuration(elapsed))
+			log.Debug("Load data from file cache", "ih", infohash, "dir", dir, "elapsed", common.PrettyDuration(time.Duration(mclock.Now()-start)))
 		}
 	} else {
 		data, err = os.ReadFile(dir)

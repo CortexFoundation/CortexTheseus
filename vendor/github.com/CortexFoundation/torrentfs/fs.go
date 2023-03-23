@@ -19,11 +19,11 @@ package torrentfs
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -200,7 +200,7 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 		PeerInfo: func(id enode.ID) any {
 			inst.peerMu.RLock()
 			defer inst.peerMu.RUnlock()
-			if p := inst.peers[fmt.Sprintf("%x", id[:8])]; p != nil {
+			if p := inst.peers[id.String()]; p != nil {
 				if p.Info() != nil {
 					return map[string]any{
 						"version": p.version,
@@ -294,7 +294,7 @@ func (fs *TorrentFS) listen() {
 			}
 			ttl.Reset(3 * time.Second)
 		case <-ticker.C:
-			log.Info("Bitsflow status", "neighbors", fs.Neighbors(), "current", fs.monitor.CurrentNumber(), "rev", fs.received, "sent", fs.sent, "in", fs.in, "out", fs.out, "nocola", fs.out+uint64(fs.Neighbors())-fs.in)
+			log.Info("Bitsflow status", "neighbors", fs.Neighbors(), "current", fs.monitor.CurrentNumber(), "rev", fs.received, "sent", fs.sent, "in", fs.in, "out", fs.out, "nocola", fs.out+uint64(fs.Neighbors())-fs.in, "tunnel", fs.tunnel.Len())
 			fs.wakeup(context.Background(), fs.sampling())
 		case <-fs.closeAll:
 			log.Info("Bitsflow listener stop")
@@ -305,13 +305,14 @@ func (fs *TorrentFS) listen() {
 
 func (fs *TorrentFS) sampling() (s string) {
 	records := fs.Records()
-	pos := tool.Rand(int64(len(records)))
+	total := len(records)
+	pos := tool.Rand(int64(total))
 	i := int64(0)
 	for ih, p := range records {
 		if i == pos {
 			if p > 0 {
 				s = ih
-				log.Info("Random seeding", "ih", ih, "prog", common.StorageSize(p), "pos", pos)
+				log.Info("Random seeding", "ih", ih, "prog", common.StorageSize(p), "pos", pos, "total", total)
 				return
 			} else {
 				log.Info("Next pos ->", "ih", ih, "prog", common.StorageSize(p), "pos", pos)
@@ -370,20 +371,19 @@ func (fs *TorrentFS) HandlePeer(peer *p2p.Peer, rw p2p.MsgReadWriter) error {
 		tfsPeer.stop()
 	}()
 
-	return fs.runMessageLoop(tfsPeer, rw)
+	return fs.runMessageLoop(tfsPeer)
 }
 
-func (fs *TorrentFS) runMessageLoop(p *Peer, rw p2p.MsgReadWriter) error {
+func (fs *TorrentFS) runMessageLoop(p *Peer) error {
 	for {
-		if err := fs.handleMsg(p, rw); err != nil {
+		if err := fs.handleMsg(p); err != nil {
 			return err
 		}
 	}
 }
 
-func (fs *TorrentFS) handleMsg(p *Peer, rw p2p.MsgReadWriter) error {
-	// fetch the next packet
-	packet, err := rw.ReadMsg()
+func (fs *TorrentFS) handleMsg(p *Peer) error {
+	packet, err := p.ws.ReadMsg()
 	if err != nil {
 		log.Debug("message loop", "peer", p.peer.ID(), "err", err)
 		return err
@@ -418,7 +418,15 @@ func (fs *TorrentFS) handleMsg(p *Peer, rw p2p.MsgReadWriter) error {
 				return errors.New("invalid address")
 			}
 
-			fs.wakeup(context.Background(), info.Hash)
+			if ok := fs.collapse(info.Hash, info.Size); ok {
+				return nil
+			}
+
+			if err := fs.wakeup(context.Background(), info.Hash); err == nil {
+				if err := fs.traverse(info.Hash, info.Size); err == nil {
+					atomic.AddUint64(&fs.received, 1)
+				}
+			}
 		}
 	case params.MsgCode:
 		if params.ProtocolVersion > 4 {
@@ -433,6 +441,8 @@ func (fs *TorrentFS) handleMsg(p *Peer, rw p2p.MsgReadWriter) error {
 		log.Warn("Encounter package code", "code", packet.Code)
 		return errors.New("invalid code")
 	}
+
+	// TODO
 
 	return nil
 }
@@ -517,6 +527,7 @@ func (fs *TorrentFS) init() {
 func (fs *TorrentFS) bitsflow(ctx context.Context, ih string, size uint64) error {
 	select {
 	case fs.callback <- types.NewBitsFlow(ih, size):
+		// TODO
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-fs.closeAll:
@@ -574,16 +585,37 @@ func (fs *TorrentFS) Stop() error {
 	return nil
 }
 
+func (fs *TorrentFS) collapse(ih string, rawSize uint64) bool {
+	if s, err := fs.tunnel.Get(ih); err == nil && s.Value().(uint64) >= rawSize {
+		return true
+	}
+
+	return false
+}
+
+func (fs *TorrentFS) traverse(ih string, rawSize uint64) error {
+	if err := fs.tunnel.Set(ih, ttlmap.NewItem(rawSize, ttlmap.WithTTL(60*time.Second)), nil); err == nil {
+		log.Trace("Wormhole traverse", "ih", ih, "size", common.StorageSize(rawSize))
+	} else {
+		return err
+	}
+	return nil
+}
+
 func (fs *TorrentFS) broadcast(ih string, rawSize uint64) bool {
 	if !common.IsHexAddress(ih) {
 		return false
 	}
 
-	if s, err := fs.tunnel.Get(ih); err == nil && s.Value().(uint64) >= rawSize {
+	//if s, err := fs.tunnel.Get(ih); err == nil && s.Value().(uint64) >= rawSize {
+	if fs.collapse(ih, rawSize) {
 		return false
 	}
 
-	fs.tunnel.Set(ih, ttlmap.NewItem(rawSize, ttlmap.WithTTL(60*time.Second)), nil)
+	//fs.tunnel.Set(ih, ttlmap.NewItem(rawSize, ttlmap.WithTTL(60*time.Second)), nil)
+	if err := fs.traverse(ih, rawSize); err != nil {
+		return false
+	}
 
 	return true
 }
@@ -604,20 +636,12 @@ func (fs *TorrentFS) IsActive(err error) bool {
 
 // Available is used to check the file status
 // func (fs *TorrentFS) wakeup(ctx context.Context, ih string, rawSize uint64) { //(bool, error) {
-func (fs *TorrentFS) wakeup(ctx context.Context, ih string) {
-	//	exist, _, _, err := fs.storage().Exists(ih, rawSize)
-	//	if !fs.IsActive(err) {
+func (fs *TorrentFS) wakeup(ctx context.Context, ih string) error {
 	if p, e := fs.progress(ih); e == nil {
-		//fs.bitsflow(ctx, ih, p) // to be downloaded
-		//if err := fs.storage().Search(ctx, ih, p); err != nil {
-		//return err
-		//	log.Warn("Wake up failed", "ih", ih)
-		//}
-		fs.storage().Search(ctx, ih, p)
+		return fs.storage().Search(ctx, ih, p)
+	} else {
+		return e
 	}
-	//	}
-	//
-	// return exist, err
 }
 
 func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSize uint64, subpath string) ([]byte, error) {
@@ -626,7 +650,6 @@ func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSi
 		fs.wg.Add(1)
 		go func(ctx context.Context, ih string) {
 			defer fs.wg.Done()
-			//fs.wakeup(ctx, infohash, rawSize)
 			fs.wakeup(ctx, ih)
 		}(ctx, infohash)
 		//if fs.config.Mode == params.LAZY && params.IsGood(infohash) {
@@ -859,7 +882,7 @@ func (fs *TorrentFS) download(ctx context.Context, ih string, request uint64) er
 			defer fs.wg.Done()
 			s := fs.broadcast(ih, p)
 			if s {
-				log.Debug("Nas "+params.ProtocolVersionStr+" tunnel", "ih", ih, "request", common.StorageSize(float64(p)), "queue", fs.tunnel.Len(), "peers", fs.Neighbors())
+				log.Debug("Nas "+params.ProtocolVersionStr+" tunnel", "ih", ih, "request", common.StorageSize(float64(p)), "tunnel", fs.tunnel.Len(), "peers", fs.Neighbors())
 			}
 		}(ih, p)
 	}
