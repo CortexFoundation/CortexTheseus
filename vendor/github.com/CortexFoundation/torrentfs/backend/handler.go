@@ -293,7 +293,7 @@ func (tm *TorrentManager) register(t *torrent.Torrent, requested int64, ih strin
 	}*/
 
 	tt := NewTorrent(t, requested, ih, filepath.Join(tm.TmpDataDir, ih), tm.slot)
-
+	//tt.Start()
 	tm.setTorrent(ih, tt)
 
 	tm.pendingChan <- tt
@@ -603,9 +603,9 @@ func (tm *TorrentManager) updateInfoHash(t *Torrent, bytesRequested int64) {
 			t.SetBytesRequested(bytesRequested)
 
 			//if t.Status() == torrentRunning {
-			if t.QuotaFull() { //t.Length() <= t.BytesRequested() {
-				t.Leech()
-			}
+			//if t.QuotaFull() {
+			//t.Leech()
+			//}
 			//}
 		}
 	} else if t.Cited() < 10 {
@@ -965,6 +965,8 @@ func (tm *TorrentManager) pendingLoop() {
 						tm.Drop(t.InfoHash())
 						return
 					}
+
+					t.Start()
 
 					//if err := t.WriteTorrent(); err != nil {
 					//	log.Warn("Write torrent file error", "ih", t.InfoHash(), "err", err)
