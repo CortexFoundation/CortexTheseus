@@ -20,6 +20,12 @@ func TestReward(t *testing.T) {
 	t.Log(reward)
 	reward = calculateRewardByNumber(big.NewInt(8409600*4), uint64(21))
 	t.Log(reward)
+	reward = calculateRewardByNumber(big.NewInt(8409600*5), uint64(21))
+	t.Log(reward)
+	reward = calculateRewardByNumber(big.NewInt(8409600*6), uint64(21))
+	t.Log(reward)
+	reward = calculateRewardByNumber(big.NewInt(8409600*7), uint64(21))
+	t.Log(reward)
 }
 
 func TestDifficultyCalculators(t *testing.T) {

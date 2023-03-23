@@ -413,7 +413,7 @@ func (i *singleLevelIterator) init(
 		_ = i.index.Close()
 		return err
 	}
-	i.dataRH = r.readable.NewReadHandle()
+	i.dataRH = r.readable.NewReadHandle(ctx)
 	if r.tableFormat == TableFormatPebblev3 {
 		if r.Properties.NumValueBlocks > 0 {
 			// NB: we cannot avoid this ~248 byte allocation, since valueBlockReader
@@ -433,7 +433,7 @@ func (i *singleLevelIterator) init(
 				stats:  stats,
 			}
 			i.data.lazyValueHandling.vbr = i.vbReader
-			i.vbRH = r.readable.NewReadHandle()
+			i.vbRH = r.readable.NewReadHandle(ctx)
 		}
 		i.data.lazyValueHandling.hasValuePrefix = true
 	}
@@ -1702,7 +1702,7 @@ func (i *twoLevelIterator) init(
 		_ = i.topLevelIndex.Close()
 		return err
 	}
-	i.dataRH = r.readable.NewReadHandle()
+	i.dataRH = r.readable.NewReadHandle(ctx)
 	if r.tableFormat == TableFormatPebblev3 {
 		if r.Properties.NumValueBlocks > 0 {
 			i.vbReader = &valueBlockReader{
@@ -1713,7 +1713,7 @@ func (i *twoLevelIterator) init(
 				stats:  stats,
 			}
 			i.data.lazyValueHandling.vbr = i.vbReader
-			i.vbRH = r.readable.NewReadHandle()
+			i.vbRH = r.readable.NewReadHandle(ctx)
 		}
 		i.data.lazyValueHandling.hasValuePrefix = true
 	}
@@ -2808,7 +2808,7 @@ func (r *Reader) readBlock(
 ) (handle cache.Handle, _ error) {
 	if h := r.opts.Cache.Get(r.cacheID, r.fileNum, bh.Offset); h.Get() != nil {
 		if readHandle != nil {
-			readHandle.RecordCacheHit(int64(bh.Offset), int64(bh.Length+blockTrailerLen))
+			readHandle.RecordCacheHit(ctx, int64(bh.Offset), int64(bh.Length+blockTrailerLen))
 		}
 		if stats != nil {
 			stats.BlockBytes += bh.Length
@@ -2822,9 +2822,9 @@ func (r *Reader) readBlock(
 	readStartTime := time.Now()
 	var err error
 	if readHandle != nil {
-		_, err = readHandle.ReadAt(b, int64(bh.Offset))
+		_, err = readHandle.ReadAt(ctx, b, int64(bh.Offset))
 	} else {
-		_, err = r.readable.ReadAt(b, int64(bh.Offset))
+		_, err = r.readable.ReadAt(ctx, b, int64(bh.Offset))
 	}
 	readDuration := time.Since(readStartTime)
 	// TODO(sumeer): should the threshold be configurable.
@@ -3166,7 +3166,7 @@ func (r *Reader) ValidateBlockChecksums() error {
 
 	// Check all blocks sequentially. Make use of read-ahead, given we are
 	// scanning the entire file from start to end.
-	rh := r.readable.NewReadHandle()
+	rh := r.readable.NewReadHandle(context.TODO())
 	defer rh.Close()
 
 	for _, bh := range blocks {
@@ -3433,6 +3433,7 @@ type Layout struct {
 func (l *Layout) Describe(
 	w io.Writer, verbose bool, r *Reader, fmtRecord func(key *base.InternalKey, value []byte),
 ) {
+	ctx := context.TODO()
 	type block struct {
 		BlockHandle
 		name string
@@ -3494,7 +3495,7 @@ func (l *Layout) Describe(
 
 		if b.name == "footer" || b.name == "leveldb-footer" {
 			trailer, offset := make([]byte, b.Length), b.Offset
-			_, _ = r.readable.ReadAt(trailer, int64(offset))
+			_, _ = r.readable.ReadAt(ctx, trailer, int64(offset))
 
 			if b.name == "footer" {
 				checksumType := ChecksumType(trailer[0])
@@ -3567,7 +3568,7 @@ func (l *Layout) Describe(
 		formatTrailer := func() {
 			trailer := make([]byte, blockTrailerLen)
 			offset := int64(b.Offset + b.Length)
-			_, _ = r.readable.ReadAt(trailer, offset)
+			_, _ = r.readable.ReadAt(ctx, trailer, offset)
 			bt := blockType(trailer[0])
 			checksum := binary.LittleEndian.Uint32(trailer[1:])
 			fmt.Fprintf(w, "%10d    [trailer compression=%s checksum=0x%04x]\n", offset, bt, checksum)
@@ -3696,8 +3697,8 @@ func (l *Layout) Describe(
 	fmt.Fprintf(w, "%10d  EOF\n", last.Offset+last.Length)
 }
 
-// ReadableFile describes the smallest subset of objstorage.Readable that is
-// required for reading SSTs.
+// ReadableFile describes the smallest subset of vfs.File that is required for
+// reading SSTs.
 type ReadableFile interface {
 	io.ReaderAt
 	io.Closer
@@ -3711,21 +3712,32 @@ func NewSimpleReadable(r ReadableFile) (objstorage.Readable, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &simpleReadable{
-		ReadableFile: r,
-		size:         info.Size(),
-		rh:           objstorage.MakeNoopReadHandle(r),
-	}, nil
+	res := &simpleReadable{
+		f:    r,
+		size: info.Size(),
+	}
+	res.rh = objstorage.MakeNoopReadHandle(res)
+	return res, nil
 }
 
 // simpleReadable wraps a ReadableFile to implement objstorage.Readable.
 type simpleReadable struct {
-	ReadableFile
+	f    ReadableFile
 	size int64
 	rh   objstorage.NoopReadHandle
 }
 
 var _ objstorage.Readable = (*simpleReadable)(nil)
+
+// ReadAt is part of the objstorage.Readable interface.
+func (s *simpleReadable) ReadAt(_ context.Context, p []byte, off int64) (n int, err error) {
+	return s.f.ReadAt(p, off)
+}
+
+// Close is part of the objstorage.Readable interface.
+func (s *simpleReadable) Close() error {
+	return s.f.Close()
+}
 
 // Size is part of the objstorage.Readable interface.
 func (s *simpleReadable) Size() int64 {
@@ -3733,6 +3745,6 @@ func (s *simpleReadable) Size() int64 {
 }
 
 // NewReaddHandle is part of the objstorage.Readable interface.
-func (s *simpleReadable) NewReadHandle() objstorage.ReadHandle {
+func (s *simpleReadable) NewReadHandle(_ context.Context) objstorage.ReadHandle {
 	return &s.rh
 }

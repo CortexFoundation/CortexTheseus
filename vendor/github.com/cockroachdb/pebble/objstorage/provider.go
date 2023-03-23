@@ -5,7 +5,7 @@
 package objstorage
 
 import (
-	"io"
+	"context"
 	"os"
 	"sort"
 	"sync"
@@ -57,8 +57,24 @@ type Provider struct {
 
 // Readable is the handle for an object that is open for reading.
 type Readable interface {
-	io.ReaderAt
-	io.Closer
+	// ReadAt reads len(p) bytes into p starting at offset off. It returns the
+	// number of bytes read (0 <= n <= len(p)) and any error encountered.
+	//
+	// When ReadAt returns n < len(p), it returns a non-nil error explaining why
+	// more bytes were not returned.
+	//
+	// Even if ReadAt returns n < len(p), it may use all of p as scratch space
+	// during the call. If some data is available but not len(p) bytes, ReadAt
+	// blocks until either all the data is available or an error occurs.
+	//
+	// If the n = len(p) bytes returned by ReadAt are at the end of the input
+	// source, ReadAt may return either err == EOF or err == nil.
+	//
+	// Clients of ReadAt can execute parallel ReadAt calls on the
+	// same input source.
+	ReadAt(ctx context.Context, p []byte, off int64) (n int, err error)
+
+	Close() error
 
 	// Size returns the size of the object.
 	Size() int64
@@ -69,14 +85,30 @@ type Readable interface {
 	// The ReadHandle must be closed before the Readable is closed.
 	//
 	// Multiple separate ReadHandles can be used.
-	NewReadHandle() ReadHandle
+	NewReadHandle(ctx context.Context) ReadHandle
 }
 
 // ReadHandle is used to perform reads that are related and might benefit from
 // optimizations like read-ahead.
 type ReadHandle interface {
-	io.ReaderAt
-	io.Closer
+	// ReadAt reads len(p) bytes into p starting at offset off. It returns the
+	// number of bytes read (0 <= n <= len(p)) and any error encountered.
+	//
+	// When ReadAt returns n < len(p), it returns a non-nil error explaining why
+	// more bytes were not returned.
+	//
+	// Even if ReadAt returns n < len(p), it may use all of p as scratch space
+	// during the call. If some data is available but not len(p) bytes, ReadAt
+	// blocks until either all the data is available or an error occurs.
+	//
+	// If the n = len(p) bytes returned by ReadAt are at the end of the input
+	// source, ReadAt may return either err == EOF or err == nil.
+	//
+	// Clients of ReadAt can execute parallel ReadAt calls on the
+	// same input source.
+	ReadAt(ctx context.Context, p []byte, off int64) (n int, err error)
+
+	Close() error
 
 	// MaxReadahead configures the implementation to expect large sequential
 	// reads. Used to skip any initial read-ahead ramp-up.
@@ -84,7 +116,7 @@ type ReadHandle interface {
 
 	// RecordCacheHit informs the implementation that we were able to retrieve a
 	// block from cache.
-	RecordCacheHit(offset, size int64)
+	RecordCacheHit(ctx context.Context, offset, size int64)
 }
 
 // Writable is the handle for an object that is open for writing.
@@ -228,23 +260,25 @@ func (p *Provider) Close() error {
 }
 
 // OpenForReading opens an existing object.
-func (p *Provider) OpenForReading(fileType base.FileType, fileNum base.FileNum) (Readable, error) {
+func (p *Provider) OpenForReading(
+	ctx context.Context, fileType base.FileType, fileNum base.FileNum,
+) (Readable, error) {
 	meta, err := p.Lookup(fileType, fileNum)
 	if err != nil {
 		return nil, err
 	}
 
 	if !meta.IsShared() {
-		return p.vfsOpenForReading(fileType, fileNum, false /* mustExist */)
+		return p.vfsOpenForReading(ctx, fileType, fileNum, false /* mustExist */)
 	}
-	return p.sharedOpenForReading(meta)
+	return p.sharedOpenForReading(ctx, meta)
 }
 
 // OpenForReadingMustExist is a variant of OpenForReading which causes a fatal
 // error if the file does not exist. The fatal error message contains
 // information helpful for debugging.
 func (p *Provider) OpenForReadingMustExist(
-	fileType base.FileType, fileNum base.FileNum,
+	ctx context.Context, fileType base.FileType, fileNum base.FileNum,
 ) (Readable, error) {
 	meta, err := p.Lookup(fileType, fileNum)
 	if err != nil {
@@ -253,11 +287,11 @@ func (p *Provider) OpenForReadingMustExist(
 	}
 
 	if !meta.IsShared() {
-		return p.vfsOpenForReading(fileType, fileNum, true /* mustExist */)
+		return p.vfsOpenForReading(ctx, fileType, fileNum, true /* mustExist */)
 	}
 
 	// TODO(radu): implement "must exist" behavior.
-	return p.sharedOpenForReading(meta)
+	return p.sharedOpenForReading(ctx, meta)
 }
 
 // CreateOptions contains optional arguments for Create.
@@ -272,12 +306,12 @@ type CreateOptions struct {
 // The object is not guaranteed to be durable (accessible in case of crashes)
 // until Sync is called.
 func (p *Provider) Create(
-	fileType base.FileType, fileNum base.FileNum, opts CreateOptions,
+	ctx context.Context, fileType base.FileType, fileNum base.FileNum, opts CreateOptions,
 ) (w Writable, meta ObjectMetadata, err error) {
 	if opts.PreferSharedStorage && p.st.Shared.Storage != nil {
-		w, meta, err = p.sharedCreate(fileType, fileNum)
+		w, meta, err = p.sharedCreate(ctx, fileType, fileNum)
 	} else {
-		w, meta, err = p.vfsCreate(fileType, fileNum)
+		w, meta, err = p.vfsCreate(ctx, fileType, fileNum)
 	}
 	if err != nil {
 		err = errors.Wrapf(err, "creating object %s", errors.Safe(fileNum))

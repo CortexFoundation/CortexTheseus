@@ -5,6 +5,7 @@
 package objstorage
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -133,7 +134,7 @@ func sharedObjectName(meta ObjectMetadata) string {
 }
 
 func (p *Provider) sharedCreate(
-	fileType base.FileType, fileNum base.FileNum,
+	_ context.Context, fileType base.FileType, fileNum base.FileNum,
 ) (Writable, ObjectMetadata, error) {
 	if err := p.sharedCheckInitialized(); err != nil {
 		return nil, ObjectMetadata{}, err
@@ -155,7 +156,9 @@ func (p *Provider) sharedCreate(
 	}, meta, nil
 }
 
-func (p *Provider) sharedOpenForReading(meta ObjectMetadata) (Readable, error) {
+func (p *Provider) sharedOpenForReading(
+	ctx context.Context, meta ObjectMetadata,
+) (Readable, error) {
 	if err := p.sharedCheckInitialized(); err != nil {
 		return nil, err
 	}

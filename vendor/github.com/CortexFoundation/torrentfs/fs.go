@@ -72,8 +72,8 @@ type TorrentFS struct {
 	received atomic.Uint64
 	sent     atomic.Uint64
 
-	in  uint64
-	out uint64
+	in  atomic.Uint64
+	out atomic.Uint64
 
 	// global file hash & score
 	//scoreTable map[string]int
@@ -294,7 +294,7 @@ func (fs *TorrentFS) listen() {
 			}
 			ttl.Reset(3 * time.Second)
 		case <-ticker.C:
-			log.Info("Bitsflow status", "neighbors", fs.Neighbors(), "current", fs.monitor.CurrentNumber(), "rev", fs.received.Load(), "sent", fs.sent.Load(), "in", fs.in, "out", fs.out, "nocola", fs.out+uint64(fs.Neighbors())-fs.in, "tunnel", fs.tunnel.Len())
+			log.Info("Bitsflow status", "neighbors", fs.Neighbors(), "current", fs.monitor.CurrentNumber(), "rev", fs.received.Load(), "sent", fs.sent.Load(), "in", fs.in.Load(), "out", fs.out.Load(), "tunnel", fs.tunnel.Len())
 			fs.wakeup(context.Background(), fs.sampling())
 		case <-fs.closeAll:
 			log.Info("Bitsflow listener stop")
@@ -352,13 +352,13 @@ func (fs *TorrentFS) HandlePeer(peer *p2p.Peer, rw p2p.MsgReadWriter) error {
 
 	fs.peerMu.Lock()
 	fs.peers[tfsPeer.id] = tfsPeer
-	fs.in++
+	fs.in.Add(1)
 	fs.peerMu.Unlock()
 
 	defer func() {
 		fs.peerMu.Lock()
 		delete(fs.peers, tfsPeer.id)
-		fs.out++
+		fs.out.Add(1)
 		fs.peerMu.Unlock()
 	}()
 

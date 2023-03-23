@@ -5,6 +5,7 @@
 package objstorage
 
 import (
+	"context"
 	"io"
 
 	"github.com/cockroachdb/pebble/objstorage/shared"
@@ -33,8 +34,8 @@ func newSharedReadable(storage shared.Storage, objName string, size int64) *shar
 	return r
 }
 
-func (r *sharedReadable) ReadAt(p []byte, offset int64) (n int, err error) {
-	return r.rh.ReadAt(p, offset)
+func (r *sharedReadable) ReadAt(ctx context.Context, p []byte, offset int64) (n int, err error) {
+	return r.rh.ReadAt(ctx, p, offset)
 }
 
 func (r *sharedReadable) Close() error {
@@ -47,7 +48,7 @@ func (r *sharedReadable) Size() int64 {
 	return r.size
 }
 
-func (r *sharedReadable) NewReadHandle() ReadHandle {
+func (r *sharedReadable) NewReadHandle(_ context.Context) ReadHandle {
 	// TODO(radu): use a pool.
 	return &sharedReadHandle{readable: r}
 }
@@ -60,7 +61,7 @@ type sharedReadHandle struct {
 
 var _ ReadHandle = (*sharedReadHandle)(nil)
 
-func (r *sharedReadHandle) ReadAt(p []byte, offset int64) (n int, err error) {
+func (r *sharedReadHandle) ReadAt(_ context.Context, p []byte, offset int64) (n int, err error) {
 	// See if this continues the previous read so that we can reuse the last reader.
 	if r.lastReader == nil || r.lastOffset != offset {
 		// We need to create a new reader.
@@ -94,4 +95,4 @@ func (r *sharedReadHandle) Close() error {
 
 func (r *sharedReadHandle) MaxReadahead() {}
 
-func (r *sharedReadHandle) RecordCacheHit(offset, size int64) {}
+func (r *sharedReadHandle) RecordCacheHit(_ context.Context, offset, size int64) {}
