@@ -22,7 +22,6 @@ import (
 	"math/big"
 	"sort"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -380,7 +379,7 @@ func (pool *TxPool) loop() {
 			pool.mu.RLock()
 			pending, queued := pool.stats()
 			pool.mu.RUnlock()
-			stales := int(atomic.LoadInt64(&pool.priced.stales))
+			stales := int(pool.priced.stales.Load())
 
 			if pending != prevPending || queued != prevQueued || stales != prevStales {
 				log.Debug("Transaction pool status report", "executable", pending, "queued", queued, "stales", stales)
