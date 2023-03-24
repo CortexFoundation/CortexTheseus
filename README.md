@@ -107,10 +107,10 @@ sudo ln -sf /opt/cmake-3.11/bin/*  /usr/bin/
 
 sudo apt-get install make
  ```
-- go 1.19.+
+- go 1.20.+
 ```
-wget https://go.dev/dl/go1.19.1.linux-amd64.tar.gz
-sudo tar -C /usr/local -xzf go1.19.1.linux-amd64.tar.gz
+wget https://go.dev/dl/go1.20.2.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.20.2.linux-amd64.tar.gz
 echo 'export PATH="$PATH:/usr/local/go/bin"' >> ~/.bashrc
 source ~/.bashrc
 ```
