@@ -216,7 +216,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 		}
 		if b.engine != nil {
 			// Finalize and seal the block
-			block, err := b.engine.FinalizeAndAssemble(chainreader, b.header, statedb, b.txs, b.uncles, b.receipts)
+			block, err := b.engine.FinalizeWithoutParent(chainreader, b.header, statedb, b.txs, b.uncles, b.receipts)
 			if block == nil {
 				panic(err)
 			}
