@@ -69,8 +69,8 @@ type TorrentFS struct {
 	//queryCache *lru.Cache
 	nasCounter uint64
 
-	received uint64
-	sent     uint64
+	received atomic.Uint64
+	sent     atomic.Uint64
 
 	in  uint64
 	out uint64
@@ -190,8 +190,8 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 					//					"listen":         monitor.listen,
 					"metrics":    inst.NasCounter(),
 					"neighbours": inst.Neighbors(),
-					"received":   inst.received,
-					"sent":       inst.sent,
+					"received":   inst.received.Load(),
+					"sent":       inst.sent.Load(),
 				},
 				//"score": inst.scoreTable,
 				"worm": inst.worm,
@@ -294,7 +294,7 @@ func (fs *TorrentFS) listen() {
 			}
 			ttl.Reset(3 * time.Second)
 		case <-ticker.C:
-			log.Info("Bitsflow status", "neighbors", fs.Neighbors(), "current", fs.monitor.CurrentNumber(), "rev", fs.received, "sent", fs.sent, "in", fs.in, "out", fs.out, "nocola", fs.out+uint64(fs.Neighbors())-fs.in, "tunnel", fs.tunnel.Len())
+			log.Info("Bitsflow status", "neighbors", fs.Neighbors(), "current", fs.monitor.CurrentNumber(), "rev", fs.received.Load(), "sent", fs.sent.Load(), "in", fs.in, "out", fs.out, "nocola", fs.out+uint64(fs.Neighbors())-fs.in, "tunnel", fs.tunnel.Len())
 			fs.wakeup(context.Background(), fs.sampling())
 		case <-fs.closeAll:
 			log.Info("Bitsflow listener stop")
@@ -424,7 +424,7 @@ func (fs *TorrentFS) handleMsg(p *Peer) error {
 
 			if err := fs.wakeup(context.Background(), info.Hash); err == nil {
 				if err := fs.traverse(info.Hash, info.Size); err == nil {
-					atomic.AddUint64(&fs.received, 1)
+					fs.received.Add(1)
 				}
 			}
 		}
