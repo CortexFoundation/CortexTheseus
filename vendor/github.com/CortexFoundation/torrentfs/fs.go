@@ -83,6 +83,7 @@ type TorrentFS struct {
 	wg       sync.WaitGroup
 	once     sync.Once
 	worm     mapset.Set[string]
+	history  mapset.Set[string]
 
 	tunnel *ttlmap.Map
 
@@ -166,6 +167,7 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 	//inst.seedingNotify = make(chan string, 32)
 
 	inst.worm = mapset.NewSet[string]()
+	inst.history = mapset.NewSet[string]()
 
 	inst.protocol = p2p.Protocol{
 		Name:    params.ProtocolName,
@@ -294,7 +296,7 @@ func (fs *TorrentFS) listen() {
 			}
 			ttl.Reset(3 * time.Second)
 		case <-ticker.C:
-			log.Info("Bitsflow status", "neighbors", fs.Neighbors(), "current", fs.monitor.CurrentNumber(), "rev", fs.received.Load(), "sent", fs.sent.Load(), "in", fs.in.Load(), "out", fs.out.Load(), "tunnel", fs.tunnel.Len())
+			log.Info("Bitsflow status", "neighbors", fs.Neighbors(), "current", fs.monitor.CurrentNumber(), "rev", fs.received.Load(), "sent", fs.sent.Load(), "in", fs.in.Load(), "out", fs.out.Load(), "tunnel", fs.tunnel.Len(), "history", fs.history.Cardinality())
 			fs.wakeup(context.Background(), fs.sampling())
 		case <-fs.closeAll:
 			log.Info("Bitsflow listener stop")
@@ -365,6 +367,8 @@ func (fs *TorrentFS) HandlePeer(peer *p2p.Peer, rw p2p.MsgReadWriter) error {
 	if err := tfsPeer.handshake(); err != nil {
 		return err
 	}
+
+	fs.record(peer.ID().String())
 
 	tfsPeer.start()
 	defer func() {
@@ -696,6 +700,12 @@ func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSi
 func (fs *TorrentFS) encounter(ih string) {
 	if !fs.worm.Contains(ih) {
 		fs.worm.Add(ih)
+	}
+}
+
+func (fs *TorrentFS) record(id string) {
+	if !fs.history.Contains(id) {
+		fs.history.Add(id)
 	}
 }
 
