@@ -292,7 +292,7 @@ func (tm *TorrentManager) register(t *torrent.Torrent, requested int64, ih strin
 		start: mclock.Now(),
 	}*/
 
-	tt := NewTorrent(t, requested, ih, filepath.Join(tm.TmpDataDir, ih))
+	tt := NewTorrent(t, requested, ih, filepath.Join(tm.TmpDataDir, ih), tm.slot)
 
 	tm.setTorrent(ih, tt)
 
@@ -604,7 +604,7 @@ func (tm *TorrentManager) updateInfoHash(t *Torrent, bytesRequested int64) {
 
 			//if t.Status() == torrentRunning {
 			if t.QuotaFull() { //t.Length() <= t.BytesRequested() {
-				t.Start(tm.slot)
+				t.Leech()
 			}
 			//}
 		}
@@ -1031,10 +1031,6 @@ func (tm *TorrentManager) finish(ih string, t *Torrent) {
 	}
 }
 
-func (tm *TorrentManager) salt(n int) int64 {
-	return int64(tm.slot % n)
-}
-
 var _cache uint64
 
 func (tm *TorrentManager) total() (ret uint64) {
@@ -1081,7 +1077,7 @@ func (tm *TorrentManager) activeLoop() {
 			tm.active_lock.Unlock()
 
 			if t.QuotaFull() { //t.Length() <= t.BytesRequested() {
-				t.Start(tm.slot)
+				t.Leech()
 			}
 
 			n := tm.blockCaculate(t.Torrent.Length())
@@ -1134,7 +1130,7 @@ func (tm *TorrentManager) activeLoop() {
 				// TODO
 
 				if t.Torrent.BytesCompleted() < t.BytesRequested() {
-					t.Start(tm.slot)
+					t.Leech()
 				}
 			}
 		case <-tm.closeAll:

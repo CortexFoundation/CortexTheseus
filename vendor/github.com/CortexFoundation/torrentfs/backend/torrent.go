@@ -69,6 +69,8 @@ type Torrent struct {
 	closeAll chan any
 
 	taskCh chan task
+
+	slot int
 }
 
 type task struct {
@@ -76,7 +78,7 @@ type task struct {
 	end   int
 }
 
-func NewTorrent(t *torrent.Torrent, requested int64, ih string, path string) *Torrent {
+func NewTorrent(t *torrent.Torrent, requested int64, ih string, path string, slot int) *Torrent {
 	tor := Torrent{
 		Torrent:        t,
 		bytesRequested: requested,
@@ -86,6 +88,7 @@ func NewTorrent(t *torrent.Torrent, requested int64, ih string, path string) *To
 		start:          mclock.Now(),
 		taskCh:         make(chan task, 1),
 		closeAll:       make(chan any),
+		slot:           slot,
 	}
 
 	tor.wg.Add(1)
@@ -257,7 +260,7 @@ func (t *Torrent) Paused() bool {
 	return t.status == torrentPaused
 }
 
-func (t *Torrent) Start(slot int) {
+func (t *Torrent) Leech() {
 	// Make sure the torrent info exists
 	if t.Torrent.Info() == nil {
 		return
@@ -292,16 +295,16 @@ func (t *Torrent) Start(slot int) {
 	//}
 	if limitPieces > t.maxPieces {
 		//t.maxPieces = limitPieces
-		if err := t.download(limitPieces, slot); err == nil {
+		if err := t.download(limitPieces); err == nil {
 			t.maxPieces = limitPieces
 		}
 	}
 }
 
 // Find out the start and end
-func (t *Torrent) download(p, slot int) error {
+func (t *Torrent) download(p int) error {
 	var s, e int
-	s = (t.Torrent.NumPieces() * slot) / bucket
+	s = (t.Torrent.NumPieces() * t.slot) / bucket
 	/*if s < t.Torrent.NumPieces()/n {
 		s = s - p
 
@@ -341,7 +344,7 @@ func (t *Torrent) download(p, slot int) error {
 	}*/
 
 	t.taskCh <- task{s, e}
-	log.Info(ScaleBar(s, e, t.Torrent.NumPieces()), "ih", t.InfoHash(), "slot", slot, "s", s, "e", e, "p", p, "total", t.Torrent.NumPieces())
+	log.Info(ScaleBar(s, e, t.Torrent.NumPieces()), "ih", t.InfoHash(), "slot", t.slot, "s", s, "e", e, "p", p, "total", t.Torrent.NumPieces())
 	return nil
 }
 

@@ -701,8 +701,10 @@ func (fs *ChainDB) Flush() error {
 }
 
 func (fs *ChainDB) SkipPrint() {
-	var str string
-	var from uint64
+	var (
+		str  string
+		from uint64
+	)
 	for _, b := range fs.blocks {
 		//		if b.Number < 395964 {
 		//			continue
