@@ -2045,9 +2045,10 @@ func (d *DB) flush1() (bytesFlushed uint64, err error) {
 		d.updateReadStateLocked(d.opts.DebugCheck)
 		d.updateTableStatsLocked(ve.NewFiles)
 		if ingest {
+			d.mu.versions.metrics.Flush.AsIngestCount++
 			for _, l := range c.metrics {
 				d.mu.versions.metrics.Flush.AsIngestBytes += l.BytesIngested
-				d.mu.versions.metrics.Flush.AsIngestCount += l.TablesIngested
+				d.mu.versions.metrics.Flush.AsIngestTableCount += l.TablesIngested
 			}
 		}
 	}
@@ -2747,7 +2748,7 @@ func (d *DB) runCompaction(
 		pendingOutputs = append(pendingOutputs, fileMeta)
 		d.mu.Unlock()
 
-		writable, objMeta, err := d.objProvider.Create(fileTypeTable, fileNum, objstorage.CreateOptions{} /* TODO */)
+		writable, objMeta, err := d.objProvider.Create(context.TODO(), fileTypeTable, fileNum, objstorage.CreateOptions{} /* TODO */)
 		if err != nil {
 			return err
 		}
