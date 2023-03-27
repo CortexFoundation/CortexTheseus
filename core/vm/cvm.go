@@ -142,7 +142,7 @@ type CVM struct {
 	interpreter *CVMInterpreter
 	// abort is used to abort the CVM calling operations
 	// NOTE: must be set atomically
-	abort int32
+	abort atomic.Bool
 	// callGasTemp holds the gas available for the current call. This is needed because the
 	// available gas is calculated in gasCall* according to the 63/64 rule and later
 	// applied in opCall*.
@@ -179,11 +179,11 @@ func (cvm *CVM) Reset(txCtx TxContext, statedb StateDB) {
 // Cancel cancels any running CVM operation. This may be called concurrently and
 // it's safe to be called multiple times.
 func (cvm *CVM) Cancel() {
-	atomic.StoreInt32(&cvm.abort, 1)
+	cvm.abort.Store(true)
 }
 
 func (cvm *CVM) Cancelled() bool {
-	return atomic.LoadInt32(&cvm.abort) == 1
+	return cvm.abort.Load()
 }
 
 // Interpreter returns the current interpreter
