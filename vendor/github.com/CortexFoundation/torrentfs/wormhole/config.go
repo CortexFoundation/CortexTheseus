@@ -21,5 +21,5 @@ var Wormholes = []string{
 }
 
 const (
-	CAP = 5
+	CAP = 20
 )

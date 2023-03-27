@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
+	"runtime/trace"
 	"strings"
 
 	"github.com/anacrolix/log"
@@ -39,6 +40,7 @@ func writeHeapProfile() {
 func Stop() {
 	// Should we check if CPU profiling was initiated through this package?
 	pprof.StopCPUProfile()
+	trace.Stop()
 	if heap {
 		// Can or should we do this concurrently with stopping CPU profiling?
 		writeHeapProfile()
@@ -120,6 +122,18 @@ func init() {
 			// Taken from Safe Rate at
 			// https://github.com/DataDog/go-profiler-notes/blob/main/guide/README.md#go-profilers.
 			runtime.SetMutexProfileFraction(100)
+		case "trace":
+			f, err := ioutil.TempFile(pprofDir, "trace")
+			if err != nil {
+				log.Printf("error creating trace file: %v", err)
+				break
+			}
+			err = trace.Start(f)
+			if err != nil {
+				log.Printf("error starting tracing: %v", err)
+				break
+			}
+			log.Printf("tracing to file %q", f.Name())
 		default:
 			log.Printf("unexpected GOPPROF key %q", key)
 		}
