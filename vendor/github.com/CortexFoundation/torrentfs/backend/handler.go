@@ -293,7 +293,6 @@ func (tm *TorrentManager) register(t *torrent.Torrent, requested int64, ih strin
 	}*/
 
 	tt := NewTorrent(t, requested, ih, filepath.Join(tm.TmpDataDir, ih), tm.slot)
-	//tt.Start()
 	tm.setTorrent(ih, tt)
 
 	tm.pendingChan <- tt
