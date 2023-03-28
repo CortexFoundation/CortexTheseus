@@ -19,7 +19,6 @@ package vm
 import (
 	"errors"
 	"fmt"
-	"sync/atomic"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
@@ -556,7 +555,7 @@ func opSstore(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext
 }
 
 func opJump(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	if atomic.LoadInt32(&interpreter.cvm.abort) != 0 {
+	if interpreter.cvm.abort.Load() {
 		return nil, errStopToken
 	}
 	pos := callContext.Stack.pop()
@@ -568,7 +567,7 @@ func opJump(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) 
 }
 
 func opJumpi(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	if atomic.LoadInt32(&interpreter.cvm.abort) != 0 {
+	if interpreter.cvm.abort.Load() {
 		return nil, errStopToken
 	}
 	pos, cond := callContext.Stack.pop(), callContext.Stack.pop()
