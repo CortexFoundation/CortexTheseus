@@ -132,7 +132,7 @@ Recommend:
 ```
 yum install cmake3
 ```
-- go 1.17.+
+- go 1.20.+
 - gcc/g++ 5.4+ reference: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#system-requirements
 ```
 sudo yum install centos-release-scl
