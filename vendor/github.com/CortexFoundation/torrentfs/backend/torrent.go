@@ -17,6 +17,7 @@
 package backend
 
 import (
+	"errors"
 	//"bytes"
 	//"context"
 	"os"
@@ -262,17 +263,17 @@ func (t *Torrent) Paused() bool {
 	return t.status == torrentPaused
 }
 
-func (t *Torrent) Leech() {
+func (t *Torrent) Leech() error {
 	// Make sure the torrent info exists
 	if t.Torrent.Info() == nil {
-		return
+		return errors.New("info is nil")
 	}
 
 	t.Lock()
 	defer t.Unlock()
 
 	if t.status != torrentRunning {
-		return
+		return errors.New("torrent is not running")
 	}
 
 	limitPieces := int((t.bytesRequested*int64(t.Torrent.NumPieces()) + t.Length() - 1) / t.Length())
@@ -299,8 +300,12 @@ func (t *Torrent) Leech() {
 		//t.maxPieces = limitPieces
 		if err := t.download(limitPieces); err == nil {
 			t.maxPieces = limitPieces
+		} else {
+			return err
 		}
 	}
+
+	return nil
 }
 
 // Find out the start and end
