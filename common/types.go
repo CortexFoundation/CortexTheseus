@@ -378,7 +378,7 @@ func (ma *MixedcaseAddress) UnmarshalJSON(input []byte) error {
 }
 
 // MarshalJSON marshals the original value
-func (ma *MixedcaseAddress) MarshalJSON() ([]byte, error) {
+func (ma MixedcaseAddress) MarshalJSON() ([]byte, error) {
 	if strings.HasPrefix(ma.original, Prefix) || strings.HasPrefix(ma.original, Prefix_caps) {
 		return json.Marshal(fmt.Sprintf(Prefix+"%s", ma.original[2:]))
 	}
