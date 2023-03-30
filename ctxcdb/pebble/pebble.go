@@ -75,14 +75,14 @@ type Database struct {
 
 	log log.Logger // Contextual logger tracking the database path
 
-	activeComp          int       // Current number of active compactions
-	compStartTime       time.Time // The start time of the earliest currently-active compaction
-	compTime            int64     // Total time spent in compaction in ns
-	level0Comp          uint32    // Total number of level-zero compactions
-	nonLevel0Comp       uint32    // Total number of non level-zero compactions
-	writeDelayStartTime time.Time // The start time of the latest write stall
-	writeDelayCount     int64     // Total number of write stall counts
-	writeDelayTime      int64     // Total time spent in write stalls
+	activeComp          int           // Current number of active compactions
+	compStartTime       time.Time     // The start time of the earliest currently-active compaction
+	compTime            atomic.Int64  // Total time spent in compaction in ns
+	level0Comp          atomic.Uint32 // Total number of level-zero compactions
+	nonLevel0Comp       atomic.Uint32 // Total number of non level-zero compactions
+	writeDelayStartTime time.Time     // The start time of the latest write stall
+	writeDelayCount     atomic.Int64  // Total number of write stall counts
+	writeDelayTime      atomic.Int64  // Total time spent in write stalls
 }
 
 func (d *Database) onCompactionBegin(info pebble.CompactionInfo) {
@@ -91,16 +91,16 @@ func (d *Database) onCompactionBegin(info pebble.CompactionInfo) {
 	}
 	l0 := info.Input[0]
 	if l0.Level == 0 {
-		atomic.AddUint32(&d.level0Comp, 1)
+		d.level0Comp.Add(1)
 	} else {
-		atomic.AddUint32(&d.nonLevel0Comp, 1)
+		d.nonLevel0Comp.Add(1)
 	}
 	d.activeComp++
 }
 
 func (d *Database) onCompactionEnd(info pebble.CompactionInfo) {
 	if d.activeComp == 1 {
-		atomic.AddInt64(&d.compTime, int64(time.Since(d.compStartTime)))
+		d.compTime.Add(int64(time.Since(d.compStartTime)))
 	} else if d.activeComp == 0 {
 		panic("should not happen")
 	}
@@ -112,7 +112,7 @@ func (d *Database) onWriteStallBegin(b pebble.WriteStallBeginInfo) {
 }
 
 func (d *Database) onWriteStallEnd() {
-	atomic.AddInt64(&d.writeDelayTime, int64(time.Since(d.writeDelayStartTime)))
+	d.writeDelayTime.Add(int64(time.Since(d.writeDelayStartTime)))
 }
 
 // New returns a wrapped pebble DB object. The namespace is the prefix that the
@@ -131,7 +131,7 @@ func New(file string, cache int, handles int, namespace string, readonly bool) (
 	// The max memtable size is limited by the uint32 offsets stored in
 	// internal/arenaskl.node, DeferredBatchOp, and flushableBatchEntry.
 	// Taken from https://github.com/cockroachdb/pebble/blob/master/open.go#L38
-	maxMemTableSize := 4<<30 - 1 // 4 GB
+	maxMemTableSize := 4<<30 - 1 // Capped by 4 GB
 
 	// Two memory tables is configured which is identical to leveldb,
 	// including a frozen memory table and another live one.
@@ -156,6 +156,8 @@ func New(file string, cache int, handles int, namespace string, readonly bool) (
 		// Note, there may have more than two memory tables in the system.
 		MemTableSize: memTableSize,
 
+		// MemTableStopWritesThreshold places a hard limit on the size
+		// of the existent MemTables(including the frozen one).
 		// Note, this must be the number of tables not the size of all memtables
 		// according to https://github.com/cockroachdb/pebble/blob/master/options.go#L738-L742
 		// and to https://github.com/cockroachdb/pebble/blob/master/db.go#L1892-L1903.
@@ -217,7 +219,6 @@ func New(file string, cache int, handles int, namespace string, readonly bool) (
 // Close stops the metrics collection, flushes any pending data to disk and closes
 // all io accesses to the underlying key-value store.
 func (d *Database) Close() error {
-	log.Warn("pebble close")
 	d.quitLock.Lock()
 	defer d.quitLock.Unlock()
 
@@ -275,7 +276,9 @@ func (d *Database) NewBatch() ctxcdb.Batch {
 }
 
 // NewBatchWithSize creates a write-only database batch with pre-allocated buffer.
-// TODO can't do this with pebble.  Batches are allocated in a pool so maybe this doesn't matter?
+// It's not supported by pebble, but pebble has better memory allocation strategy
+// which turns out a lot faster than leveldb. It's performant enough to construct
+// batch object without any pre-allocated space.
 func (d *Database) NewBatchWithSize(_ int) ctxcdb.Batch {
 	return &batch{
 		b: d.db.NewBatch(),
@@ -404,11 +407,11 @@ func (d *Database) meter(refresh time.Duration) {
 			nWrite    int64
 
 			metrics            = d.db.Metrics()
-			compTime           = atomic.LoadInt64(&d.compTime)
-			writeDelayCount    = atomic.LoadInt64(&d.writeDelayCount)
-			writeDelayTime     = atomic.LoadInt64(&d.writeDelayTime)
-			nonLevel0CompCount = int64(atomic.LoadUint32(&d.nonLevel0Comp))
-			level0CompCount    = int64(atomic.LoadUint32(&d.level0Comp))
+			compTime           = d.compTime.Load()
+			writeDelayCount    = d.writeDelayCount.Load()
+			writeDelayTime     = d.writeDelayTime.Load()
+			nonLevel0CompCount = int64(d.nonLevel0Comp.Load())
+			level0CompCount    = int64(d.level0Comp.Load())
 		)
 		writeDelayTimes[i%2] = writeDelayTime
 		writeDelayCounts[i%2] = writeDelayCount
