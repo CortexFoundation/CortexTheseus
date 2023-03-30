@@ -846,7 +846,7 @@ func (args *CallArgs) ToMessage(globalGasCap uint64, baseFee *big.Int) (*core.Me
 		GasLimit:   gas,
 		GasPrice:   gasPrice,
 		Data:       args.Data,
-		CheckNonce: true,
+		CheckNonce: false,
 	}
 	return msg, nil
 

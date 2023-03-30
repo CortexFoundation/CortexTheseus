@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"sync/atomic"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
@@ -225,6 +224,55 @@ func (t *Tree) waitBuild() {
 	// Wait until the snapshot is generated
 	if done != nil {
 		<-done
+	}
+}
+
+// Disable interrupts any pending snapshot generator, deletes all the snapshot
+// layers in memory and marks snapshots disabled globally. In order to resume
+// the snapshot functionality, the caller must invoke Rebuild.
+func (t *Tree) Disable() {
+	// Interrupt any live snapshot layers
+	t.lock.Lock()
+	defer t.lock.Unlock()
+
+	for _, layer := range t.layers {
+		switch layer := layer.(type) {
+		case *diskLayer:
+			// If the base layer is generating, abort it
+			if layer.genAbort != nil {
+				abort := make(chan *generatorStats)
+				layer.genAbort <- abort
+				<-abort
+			}
+			// Layer should be inactive now, mark it as stale
+			layer.lock.Lock()
+			layer.stale = true
+			layer.lock.Unlock()
+
+		case *diffLayer:
+			// If the layer is a simple diff, simply mark as stale
+			layer.lock.Lock()
+			layer.stale.Store(true)
+			layer.lock.Unlock()
+
+		default:
+			panic(fmt.Sprintf("unknown layer type: %T", layer))
+		}
+	}
+	t.layers = map[common.Hash]snapshot{}
+
+	// Delete all snapshot liveness information from the database
+	batch := t.diskdb.NewBatch()
+
+	rawdb.WriteSnapshotDisabled(batch)
+	rawdb.DeleteSnapshotRoot(batch)
+	rawdb.DeleteSnapshotJournal(batch)
+	rawdb.DeleteSnapshotGenerator(batch)
+	rawdb.DeleteSnapshotRecoveryNumber(batch)
+	// Note, we don't delete the sync progress
+
+	if err := batch.Write(); err != nil {
+		log.Crit("Failed to disable snapshots", "err", err)
 	}
 }
 
@@ -700,7 +748,7 @@ func (t *Tree) Rebuild(root common.Hash) {
 		case *diffLayer:
 			// If the layer is a simple diff, simply mark as stale
 			layer.lock.Lock()
-			atomic.StoreUint32(&layer.stale, 1)
+			layer.stale.Store(true)
 			layer.lock.Unlock()
 
 		default:

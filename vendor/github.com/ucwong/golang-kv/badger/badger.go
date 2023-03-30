@@ -21,7 +21,7 @@ import (
 	"path/filepath"
 	"time"
 
-	badger "github.com/dgraph-io/badger/v3"
+	badger "github.com/dgraph-io/badger/v4"
 	//"github.com/dgraph-io/badger/v3/options"
 	"github.com/ucwong/golang-kv/common"
 )
