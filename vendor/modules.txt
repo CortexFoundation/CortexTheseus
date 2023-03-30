@@ -53,7 +53,7 @@ github.com/CortexFoundation/merkletree
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit; go 1.16
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.43-0.20230329040128-aca9dc8c6f1b
+# github.com/CortexFoundation/torrentfs v1.0.43-0.20230330014113-ca15e7a5296e
 ## explicit; go 1.20
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/backend
@@ -510,8 +510,8 @@ github.com/go-logr/stdr
 ## explicit; go 1.12
 github.com/go-ole/go-ole
 github.com/go-ole/go-ole/oleutil
-# github.com/go-resty/resty/v2 v2.7.0
-## explicit; go 1.11
+# github.com/go-resty/resty/v2 v2.7.1-0.20230321093543-15cedd4f9ee3
+## explicit; go 1.16
 github.com/go-resty/resty/v2
 # github.com/go-sourcemap/sourcemap v2.1.3+incompatible
 ## explicit
