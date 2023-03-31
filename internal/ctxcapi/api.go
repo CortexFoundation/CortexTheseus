@@ -840,13 +840,13 @@ func (args *CallArgs) ToMessage(globalGasCap uint64, baseFee *big.Int) (*core.Me
 
 	// Create new call message
 	msg := &core.Message{
-		From:       addr,
-		To:         args.To,
-		Value:      args.Value.ToInt(),
-		GasLimit:   gas,
-		GasPrice:   gasPrice,
-		Data:       args.Data,
-		CheckNonce: false,
+		From:              addr,
+		To:                args.To,
+		Value:             args.Value.ToInt(),
+		GasLimit:          gas,
+		GasPrice:          gasPrice,
+		Data:              args.Data,
+		SkipAccountChecks: true,
 	}
 	return msg, nil
 
