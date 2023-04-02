@@ -11,8 +11,15 @@ import (
 
 func TestReward(t *testing.T) {
 	for i := int64(1); i < 10; i++ {
-		reward := calculateRewardByNumber(big.NewInt(8409600*i-1), uint64(21))
-		t.Log("Period:", i, "reward:", reward)
+		b := 8409600*i - 1
+		reward := calculateRewardByNumber(big.NewInt(b), uint64(21))
+		t.Log("block:", b, "period:", i, "reward:", reward)
+		b += 100
+		reward_1 := calculateRewardByNumber(big.NewInt(b), uint64(21))
+		t.Log("block:", b, "period:", i+1, "reward:", reward_1)
+		if reward_1.Cmp(new(big.Int).Div(reward, big.NewInt(2))) != 0 {
+			t.Fatalf("failed")
+		}
 	}
 }
 
