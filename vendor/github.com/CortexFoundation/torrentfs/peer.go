@@ -124,7 +124,6 @@ func (peer *Peer) update() {
 				log.Trace("state broadcast failed", "reason", err, "peer", peer.ID())
 				return
 			}
-
 		case <-peer.quit:
 			return
 		}

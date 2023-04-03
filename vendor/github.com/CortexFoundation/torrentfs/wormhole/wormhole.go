@@ -54,7 +54,7 @@ func BestTrackers() (ret []string) {
 
 		str := strings.Split(resp.String(), "\n\n")
 		for _, s := range str {
-			if len(ret) < CAP && strings.HasPrefix(s, "udp") {
+			if len(ret) < CAP { //&& strings.HasPrefix(s, "udp") {
 				log.Debug("Global best trackers", "url", s)
 				ret = append(ret, s)
 			}

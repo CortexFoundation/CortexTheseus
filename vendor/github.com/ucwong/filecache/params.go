@@ -15,10 +15,16 @@ const (
 var (
 	SquelchItemNotInCache bool = true
 
-	DefaultExpireItem int   = 300 // 5 minutes
-	DefaultMaxSize    int64 = 16 * Megabyte
-	DefaultMaxItems   int   = 32
-	DefaultEvery      int   = 60 // 1 minute
+	DefaultExpireItem int = 300 // 5 minutes
+
+	// Max size for each item
+	DefaultMaxSize int64 = 16 * Megabyte
+
+	// Max amount of items
+	DefaultMaxItems int = 32
+
+	// Check interval by seconds
+	DefaultEvery int = 60 // 1 minute
 
 	// Mumber of items to buffer adding to the file cache.
 	NewCachePipeSize int = runtime.NumCPU() * 8

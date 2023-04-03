@@ -754,6 +754,8 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 	if cache {
 		torrentManager.fc = filecache.NewDefaultCache()
 		torrentManager.fc.MaxSize = 256 * filecache.Megabyte
+		//torrentManager.fc.MaxItems = 8
+		//torrentManager.fc.Every = 30
 		/*conf := bigcache.Config{
 			Shards:             1024,
 			LifeWindow:         600 * time.Second,
@@ -1065,7 +1067,7 @@ func (tm *TorrentManager) activeLoop() {
 	defer tm.wg.Done()
 	timer := time.NewTicker(time.Second * params.QueryTimeInterval)
 	timer_1 := time.NewTicker(time.Second * params.QueryTimeInterval * 60)
-	timer_2 := time.NewTicker(time.Second * params.QueryTimeInterval * 3600 * 24)
+	timer_2 := time.NewTicker(time.Second * params.QueryTimeInterval * 3600 * 18)
 	defer timer.Stop()
 	defer timer_1.Stop()
 	defer timer_2.Stop()
@@ -1087,6 +1089,9 @@ func (tm *TorrentManager) activeLoop() {
 			}
 
 			n += tool.Rand(300)
+			if tm.mode == params.FULL {
+				n *= 2
+			}
 			tm.wg.Add(1)
 			go func(i string, n int64) {
 				defer tm.wg.Done()
@@ -1114,6 +1119,13 @@ func (tm *TorrentManager) activeLoop() {
 		case <-timer_1.C:
 
 			// TODO
+
+			log.Info("Cache status", "total", common.StorageSize(tm.fc.FileSize()), "itms", tm.fc.Size())
+			if tm.mode == params.LAZY {
+				for _, itm := range tm.fc.MostAccessed(4) {
+					log.Info("Cache status", "key", itm.Key(), "acc", itm.AccessCount, "dur", common.PrettyDuration(itm.Dur()))
+				}
+			}
 
 			if tm.dur() > 0 {
 				log.Info("Fs status", "pending", len(tm.pendingTorrents), "downloading", len(tm.activeTorrents), "seeding", len(tm.seedingTorrents), "metrics", common.PrettyDuration(tm.Updates), "total", common.StorageSize(tm.total()), "cost", common.PrettyDuration(time.Duration(tm.dur())), "speed", common.StorageSize(float64(tm.total()*1000*1000*1000)/float64(tm.dur())).String()+"/s")
@@ -1314,11 +1326,11 @@ func (tm *TorrentManager) GetFile(ctx context.Context, infohash, subpath string)
 	dir := filepath.Join(tm.DataDir, key)
 	if tm.fc != nil && tm.fc.Active() {
 		start := mclock.Now()
-		//if data, err = tm.fc.ReadFileContext(ctx, dir); err == nil {
 		if data, err = tm.fc.ReadFile(dir); err == nil {
 			log.Debug("Load data from file cache", "ih", infohash, "dir", dir, "elapsed", common.PrettyDuration(time.Duration(mclock.Now()-start)))
 		}
 	} else {
+		// local read
 		data, err = os.ReadFile(dir)
 	}
 

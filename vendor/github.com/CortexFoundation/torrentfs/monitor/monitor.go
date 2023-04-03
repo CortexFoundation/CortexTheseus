@@ -57,7 +57,7 @@ type Monitor struct {
 	fs     *backend.ChainDB
 	//dl     *backend.TorrentManager
 
-	exitCh        chan struct{}
+	exitCh        chan any
 	terminated    atomic.Int32
 	lastNumber    uint64
 	startNumber   uint64
@@ -109,7 +109,7 @@ func New(flag *params.Config, cache, compress, listen bool, fs *backend.ChainDB,
 		cl:     nil,
 		fs:     fs,
 		//dl:            tMana,
-		exitCh:     make(chan struct{}),
+		exitCh:     make(chan any),
 		lastNumber: uint64(0),
 		scope:      uint64(math.Min(float64(runtime.NumCPU()), float64(8))),
 		//taskCh:        make(chan *types.Block, batch),

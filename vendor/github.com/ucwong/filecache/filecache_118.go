@@ -21,6 +21,7 @@ func cacheFile(path string, maxSize int64, c []byte) (itm *cacheItem, err error)
 
 	if len(c) > 0 {
 		itm = &cacheItem{
+			name:       path,
 			content:    c,
 			Size:       fi.Size(),
 			Modified:   fi.ModTime(),
@@ -34,6 +35,7 @@ func cacheFile(path string, maxSize int64, c []byte) (itm *cacheItem, err error)
 	}
 
 	itm = &cacheItem{
+		name:       path,
 		content:    content,
 		Size:       fi.Size(),
 		Modified:   fi.ModTime(),

@@ -14,7 +14,7 @@ endif
 format:
 	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "*/generated/*" | xargs gofmt -w -s
 test:
-	go test ./... -v -race -cpu=1,2,4,8 -coverprofile=coverage.txt -covermode=atomic -benchmem -bench .
+	go test ./... -v -race -cpu=1,2 -coverprofile=coverage.txt -covermode=atomic -benchmem -bench .
 clean:
 	rm -rf coverage.txt
 	go clean -cache

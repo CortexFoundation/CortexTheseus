@@ -48,10 +48,6 @@ import (
 	"github.com/ucwong/go-ttlmap"
 )
 
-const (
-	SEED_SIG uint64 = 0
-)
-
 // TorrentFS contains the torrent file system internals.
 type TorrentFS struct {
 	protocol p2p.Protocol // Protocol description and parameters
@@ -306,10 +302,13 @@ func (fs *TorrentFS) listen() {
 }
 
 func (fs *TorrentFS) sampling() (s string) {
-	records := fs.Records()
-	total := len(records)
-	pos := tool.Rand(int64(total))
-	i := int64(0)
+	var (
+		records = fs.Records()
+		total   = len(records)
+		pos     = tool.Rand(int64(total))
+		i       = int64(0)
+	)
+
 	for ih, p := range records {
 		if i == pos {
 			if p > 0 {
