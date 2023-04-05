@@ -74,27 +74,27 @@ type StateTransition struct {
 }
 
 type Message struct {
-	To         *common.Address
-	From       common.Address
-	Nonce      uint64
-	Value      *big.Int
-	GasLimit   uint64
-	GasPrice   *big.Int
-	Data       []byte
-	CheckNonce bool
+	To                *common.Address
+	From              common.Address
+	Nonce             uint64
+	Value             *big.Int
+	GasLimit          uint64
+	GasPrice          *big.Int
+	Data              []byte
+	SkipAccountChecks bool
 }
 
 // XXX Rename message to something less arbitrary?
 // TransactionToMessage converts a transaction into a Message.
 func TransactionToMessage(tx *types.Transaction, s types.Signer) (*Message, error) {
 	msg := &Message{
-		Nonce:      tx.Nonce(),
-		GasLimit:   tx.Gas(),
-		GasPrice:   new(big.Int).Set(tx.GasPrice()),
-		To:         tx.To(),
-		Value:      tx.Value(),
-		Data:       tx.Data(),
-		CheckNonce: true,
+		Nonce:             tx.Nonce(),
+		GasLimit:          tx.Gas(),
+		GasPrice:          new(big.Int).Set(tx.GasPrice()),
+		To:                tx.To(),
+		Value:             tx.Value(),
+		Data:              tx.Data(),
+		SkipAccountChecks: false,
 	}
 
 	var err error
@@ -200,7 +200,7 @@ func (st *StateTransition) buyGas() error {
 // var confirmTime = params.CONFIRM_TIME * time.Second //-3600 * 24 * 30 * time.Second
 func (st *StateTransition) preCheck() error {
 	// Make sure this transaction's nonce is correct.
-	if st.msg.CheckNonce {
+	if !st.msg.SkipAccountChecks {
 		stNonce := st.state.GetNonce(st.msg.From)
 		if msgNonce := st.msg.Nonce; stNonce < msgNonce {
 			return fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooHigh, st.msg.From.Hex(), msgNonce, stNonce)
