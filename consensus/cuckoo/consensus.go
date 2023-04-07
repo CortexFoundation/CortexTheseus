@@ -797,8 +797,8 @@ var (
 	//bigMaxReward  = big.NewInt(0).Mul(big.NewInt(19687500000), big.NewInt(1000000000))
 )
 
-func calculateRewardByNumber(num *big.Int, chainId uint64) *big.Int {
-	blockReward := big.NewInt(0).Set(FrontierBlockReward)
+func calculateRewardByNumber(num *big.Int, chainId uint64) (blockReward *big.Int) {
+	blockReward = big.NewInt(0).Set(FrontierBlockReward)
 
 	if chainId == 21 {
 		if num.Cmp(params.CortexBlockRewardPeriod) >= 0 {
@@ -826,7 +826,7 @@ func calculateRewardByNumber(num *big.Int, chainId uint64) *big.Int {
 		}
 	}
 
-	return blockReward
+	return
 }
 
 // AccumulateRewards credits the coinbase of the given block with the mining
