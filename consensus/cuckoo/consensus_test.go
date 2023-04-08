@@ -38,8 +38,8 @@ func TestDifficultyCalculators(t *testing.T) {
 		}
 
 		if i > 25 {
-                        timeDelta = uint64(18)
-                }
+			timeDelta = uint64(18)
+		}
 
 		header := &types.Header{
 			Difficulty: diff,
