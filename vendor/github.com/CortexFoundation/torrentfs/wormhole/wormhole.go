@@ -19,6 +19,8 @@ package wormhole
 import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/torrentfs/params"
+	"net"
+	"net/url"
 
 	resty "github.com/go-resty/resty/v2"
 
@@ -44,8 +46,8 @@ func Tunnel(hash string) error {
 }
 
 func BestTrackers() (ret []string) {
-	for _, url := range params.BestTrackerUrl {
-		resp, err := client.R().Get(url)
+	for _, ur := range params.BestTrackerUrl {
+		resp, err := client.R().Get(ur)
 
 		if err != nil {
 			log.Warn("Global tracker lost", "err", err)
@@ -56,7 +58,28 @@ func BestTrackers() (ret []string) {
 		for _, s := range str {
 			if len(ret) < CAP { //&& strings.HasPrefix(s, "udp") {
 				log.Debug("Global best trackers", "url", s)
-				ret = append(ret, s)
+				if strings.HasPrefix(s, "http") || strings.HasPrefix(s, "https") {
+					response, err := client.R().Post(s)
+					if err != nil || response == nil {
+						log.Warn("tracker failed", "err", err)
+					} else {
+						ret = append(ret, s)
+					}
+				} else if strings.HasPrefix(s, "udp") {
+					u, err := url.Parse(s)
+					if err != nil {
+						continue
+					}
+					if host, port, err := net.SplitHostPort(u.Host); err == nil {
+						if err := ping(host, port); err == nil {
+							ret = append(ret, s)
+						} else {
+							log.Warn("UDP ping err", "s", s, "err", err)
+						}
+					}
+				} else {
+					log.Warn("Other protocols trackers", "s", s)
+				}
 			}
 		}
 
@@ -87,4 +110,13 @@ func ColaList() mapset.Set[string] {
 	}
 
 	return m
+}
+
+func ping(host string, port string) error {
+	address := net.JoinHostPort(host, port)
+	conn, err := net.DialTimeout("udp", address, 1*time.Second)
+	if conn != nil {
+		defer conn.Close()
+	}
+	return err
 }

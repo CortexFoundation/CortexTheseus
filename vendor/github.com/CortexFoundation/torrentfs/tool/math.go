@@ -17,12 +17,22 @@
 package tool
 
 import (
+	"math/rand"
 	"time"
 )
+
+//var smallRandTable = [16]int64{
+//	0, 1, 1, 3, 0, 5, 3, 7, 3, 7, 5, 11, 7, 13, 11, 15,
+//}
 
 func Rand(s int64) int64 {
 	if s == 0 {
 		return 0
 	}
-	return time.Now().UnixNano() % s
+	rand.Seed(time.Now().UnixNano())
+	//	if s < int64(len(smallRandTable)) {
+	//		return smallRandTable[s]
+	//	}
+	return rand.Int63n(s)
+	//return time.Now().UnixNano() & (s - 1)
 }

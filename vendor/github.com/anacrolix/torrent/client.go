@@ -23,7 +23,7 @@ import (
 	"github.com/anacrolix/chansync/events"
 	"github.com/anacrolix/dht/v2"
 	"github.com/anacrolix/dht/v2/krpc"
-	"github.com/anacrolix/generics"
+	g "github.com/anacrolix/generics"
 	. "github.com/anacrolix/generics"
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo/perf"
@@ -195,7 +195,7 @@ func (cl *Client) announceKey() int32 {
 // Initializes a bare minimum Client. *Client and *ClientConfig must not be nil.
 func (cl *Client) init(cfg *ClientConfig) {
 	cl.config = cfg
-	generics.MakeMap(&cl.dopplegangerAddrs)
+	g.MakeMap(&cl.dopplegangerAddrs)
 	cl.torrents = make(map[metainfo.Hash]*Torrent)
 	cl.dialRateLimiter = rate.NewLimiter(10, 10)
 	cl.activeAnnounceLimiter.SlotsPerKey = 2
@@ -1259,9 +1259,8 @@ func (cl *Client) AddTorrentInfoHashWithStorage(infoHash metainfo.Hash, specStor
 	return
 }
 
-// Adds a torrent by InfoHash with a custom Storage implementation.
-// If the torrent already exists then this Storage is ignored and the
-// existing torrent returned with `new` set to `false`
+// Adds a torrent by InfoHash with a custom Storage implementation. If the torrent already exists
+// then this Storage is ignored and the existing torrent returned with `new` set to `false`.
 func (cl *Client) AddTorrentOpt(opts AddTorrentOpts) (t *Torrent, new bool) {
 	infoHash := opts.InfoHash
 	cl.lock()
@@ -1279,6 +1278,7 @@ func (cl *Client) AddTorrentOpt(opts AddTorrentOpts) (t *Torrent, new bool) {
 		}
 	})
 	cl.torrents[infoHash] = t
+	t.setInfoBytesLocked(opts.InfoBytes)
 	cl.clearAcceptLimits()
 	t.updateWantPeersEvent()
 	// Tickle Client.waitAccept, new torrent may want conns.
@@ -1290,6 +1290,7 @@ type AddTorrentOpts struct {
 	InfoHash  infohash.T
 	Storage   storage.ClientImpl
 	ChunkSize pp.Integer
+	InfoBytes []byte
 }
 
 // Add or merge a torrent spec. Returns new if the torrent wasn't already in the client. See also
@@ -1312,13 +1313,6 @@ func (cl *Client) AddTorrentSpec(spec *TorrentSpec) (t *Torrent, new bool, err e
 	}
 	return
 }
-
-type stringAddr string
-
-var _ net.Addr = stringAddr("")
-
-func (stringAddr) Network() string   { return "" }
-func (me stringAddr) String() string { return string(me) }
 
 // The trackers will be merged with the existing ones. If the Info isn't yet known, it will be set.
 // spec.DisallowDataDownload/Upload will be read and applied
@@ -1344,7 +1338,7 @@ func (t *Torrent) MergeSpec(spec *TorrentSpec) error {
 	}
 	for _, peerAddr := range spec.PeerAddrs {
 		t.addPeer(PeerInfo{
-			Addr:    stringAddr(peerAddr),
+			Addr:    StringAddr(peerAddr),
 			Source:  PeerSourceDirect,
 			Trusted: true,
 		})
@@ -1467,7 +1461,7 @@ func (cl *Client) banPeerIP(ip net.IP) {
 	if !ok {
 		panic(ip)
 	}
-	generics.MakeMapIfNilAndSet(&cl.badPeerIPs, ipAddr, struct{}{})
+	g.MakeMapIfNilAndSet(&cl.badPeerIPs, ipAddr, struct{}{})
 	for _, t := range cl.torrents {
 		t.iterPeers(func(p *Peer) {
 			if p.remoteIp().Equal(ip) {

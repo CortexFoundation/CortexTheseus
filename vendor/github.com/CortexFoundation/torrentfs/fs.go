@@ -67,6 +67,7 @@ type TorrentFS struct {
 
 	received atomic.Uint64
 	sent     atomic.Uint64
+	retry    atomic.Uint64
 
 	in  atomic.Uint64
 	out atomic.Uint64
@@ -77,7 +78,7 @@ type TorrentFS struct {
 	//seedingNotify chan string
 	closeAll chan any
 	wg       sync.WaitGroup
-	once     sync.Once
+	stopOnce sync.Once
 	worm     mapset.Set[string]
 	history  mapset.Set[string]
 
@@ -98,8 +99,9 @@ func (t *TorrentFS) chain() *backend.ChainDB {
 }
 
 var (
-	inst *TorrentFS = nil
-	mut  sync.RWMutex
+	inst     *TorrentFS = nil
+	mut      sync.RWMutex
+	initOnce sync.Once
 )
 
 func GetStorage() CortexStorage {
@@ -114,9 +116,21 @@ func GetStorage() CortexStorage {
 }
 
 // New creates a new torrentfs instance with the given configuration.
-func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error) {
-	mut.Lock()
-	defer mut.Unlock()
+func New(config *params.Config, cache, compress, listen bool) (t *TorrentFS, err error) {
+	initOnce.Do(func() {
+		mut.Lock()
+		defer mut.Unlock()
+		t, err = create(config, cache, compress, listen)
+	})
+
+	if t == nil {
+		t = inst
+	}
+
+	return
+}
+
+func create(config *params.Config, cache, compress, listen bool) (*TorrentFS, error) {
 	if inst != nil {
 		log.Warn("Storage has been already inited", "storage", inst, "config", config, "cache", cache, "compress", compress, "listen", listen)
 		return inst, nil
@@ -165,6 +179,9 @@ func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error
 	inst.worm = mapset.NewSet[string]()
 	inst.history = mapset.NewSet[string]()
 
+	inst.sent.Store(0)
+	inst.received.Store(0)
+	inst.retry.Store(0)
 	inst.protocol = p2p.Protocol{
 		Name:    params.ProtocolName,
 		Version: uint(params.ProtocolVersion),
@@ -271,7 +288,7 @@ func (fs *TorrentFS) listen() {
 	log.Info("Bitsflow listener starting ...")
 	defer fs.wg.Done()
 	ttl := time.NewTimer(3 * time.Second)
-	ticker := time.NewTicker(60 * time.Second)
+	ticker := time.NewTimer(300 * time.Second)
 	defer ttl.Stop()
 	defer ticker.Stop()
 	for {
@@ -292,8 +309,9 @@ func (fs *TorrentFS) listen() {
 			}
 			ttl.Reset(3 * time.Second)
 		case <-ticker.C:
-			log.Info("Bitsflow status", "neighbors", fs.Neighbors(), "current", fs.monitor.CurrentNumber(), "rev", fs.received.Load(), "sent", fs.sent.Load(), "in", fs.in.Load(), "out", fs.out.Load(), "tunnel", fs.tunnel.Len(), "history", fs.history.Cardinality())
+			log.Info("Bitsflow status", "neighbors", fs.Neighbors(), "current", fs.monitor.CurrentNumber(), "rev", fs.received.Load(), "sent", fs.sent.Load(), "in", fs.in.Load(), "out", fs.out.Load(), "tunnel", fs.tunnel.Len(), "history", fs.history.Cardinality(), "retry", fs.retry.Load())
 			fs.wakeup(context.Background(), fs.sampling())
+			ticker.Reset(60 * time.Second)
 		case <-fs.closeAll:
 			log.Info("Bitsflow listener stop")
 			return
@@ -323,7 +341,7 @@ func (fs *TorrentFS) sampling() (s string) {
 		i++
 	}
 
-	log.Warn("No random seeding founded")
+	log.Warn("No random seeding founded", "pos", pos, "total", total)
 
 	//s = fs.sampling()
 
@@ -548,7 +566,7 @@ func (fs *TorrentFS) Stop() error {
 		return errors.New("fs has been stopped")
 	}
 
-	fs.once.Do(func() {
+	fs.stopOnce.Do(func() {
 		log.Info("Fs client listener synchronizing closing ... ...")
 		if fs.handler != nil {
 			fs.handler.Close()
@@ -565,7 +583,6 @@ func (fs *TorrentFS) Stop() error {
 		}
 
 		close(fs.closeAll)
-
 		fs.wg.Wait()
 
 		for _, p := range fs.peers {
@@ -575,6 +592,8 @@ func (fs *TorrentFS) Stop() error {
 		if fs.tunnel != nil {
 			fs.tunnel.Drain()
 		}
+
+		log.Info("Cortex fs engine stopped")
 	})
 
 	/*for _, p := range fs.peers {
@@ -584,7 +603,6 @@ func (fs *TorrentFS) Stop() error {
 	if fs.tunnel != nil {
 		fs.tunnel.Drain()
 	}*/
-	log.Info("Cortex fs engine stopped")
 	return nil
 }
 
@@ -676,7 +694,8 @@ func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSi
 						return ret, err
 					}
 				case <-ctx.Done():
-					log.Warn("Timeout", "ih", infohash, "size", common.StorageSize(rawSize), "err", ctx.Err())
+					fs.retry.Add(1)
+					log.Warn("Timeout", "ih", infohash, "size", common.StorageSize(rawSize), "err", ctx.Err(), "retry", fs.retry.Load())
 					return nil, ctx.Err()
 				case <-fs.closeAll:
 					return nil, nil
@@ -934,10 +953,6 @@ func (fs *TorrentFS) LocalPort() int {
 
 func (fs *TorrentFS) Congress() int {
 	return fs.storage().Congress()
-}
-
-func (fs *TorrentFS) FullSeed() map[string]*backend.Torrent {
-	return fs.storage().FullSeed()
 }
 
 func (fs *TorrentFS) Candidate() int {

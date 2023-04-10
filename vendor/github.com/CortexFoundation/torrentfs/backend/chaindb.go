@@ -810,7 +810,6 @@ func (fs *ChainDB) GetTorrentProgress(ih string) (progress uint64, err error) {
 }
 
 func (fs *ChainDB) InitTorrents() (map[string]uint64, error) {
-	//torrents := make(map[string]uint64)
 	err := fs.db.Update(func(tx *bolt.Tx) error {
 		if buk, err := tx.CreateBucketIfNotExists([]byte(TORRENT_ + fs.version)); err != nil {
 			return err
