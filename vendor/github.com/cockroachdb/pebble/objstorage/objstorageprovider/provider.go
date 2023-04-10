@@ -13,7 +13,9 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/cockroachdb/errors/oserror"
 	"github.com/cockroachdb/pebble/internal/base"
+	"github.com/cockroachdb/pebble/internal/invariants"
 	"github.com/cockroachdb/pebble/objstorage"
+	"github.com/cockroachdb/pebble/objstorage/objstorageprovider/objiotracing"
 	"github.com/cockroachdb/pebble/objstorage/objstorageprovider/sharedobjcat"
 	"github.com/cockroachdb/pebble/objstorage/shared"
 	"github.com/cockroachdb/pebble/vfs"
@@ -24,6 +26,8 @@ type provider struct {
 	st Settings
 
 	fsDir vfs.File
+
+	tracer *objiotracing.Tracer
 
 	shared sharedSubsystem
 
@@ -43,6 +47,10 @@ type provider struct {
 		// knownObjects maintains information about objects that are known to the provider.
 		// It is initialized with the list of files in the manifest when we open a DB.
 		knownObjects map[base.FileNum]objstorage.ObjectMetadata
+
+		// protectedObjects are objects that cannot be unreferenced because they
+		// have outstanding SharedObjectBackingHandles. The value is a count of outstanding handles
+		protectedObjects map[base.FileNum]int
 	}
 }
 
@@ -104,6 +112,7 @@ func DefaultSettings(fs vfs.FS, dirName string) Settings {
 func Open(settings Settings) (objstorage.Provider, error) {
 	return open(settings)
 }
+
 func open(settings Settings) (p *provider, _ error) {
 	fsDir, err := settings.FS.OpenDir(settings.FSDirName)
 	if err != nil {
@@ -121,6 +130,11 @@ func open(settings Settings) (p *provider, _ error) {
 		fsDir: fsDir,
 	}
 	p.mu.knownObjects = make(map[base.FileNum]objstorage.ObjectMetadata)
+	p.mu.protectedObjects = make(map[base.FileNum]int)
+
+	if objiotracing.Enabled {
+		p.tracer = objiotracing.Open(settings.FS, settings.FSDirName)
+	}
 
 	// Add local FS objects.
 	if err := p.vfsInit(); err != nil {
@@ -142,6 +156,12 @@ func (p *provider) Close() error {
 		err = p.fsDir.Close()
 		p.fsDir = nil
 	}
+	if objiotracing.Enabled {
+		if p.tracer != nil {
+			p.tracer.Close()
+			p.tracer = nil
+		}
+	}
 	return err
 }
 
@@ -157,10 +177,19 @@ func (p *provider) OpenForReading(
 		return nil, err
 	}
 
+	var r objstorage.Readable
 	if !meta.IsShared() {
-		return p.vfsOpenForReading(ctx, fileType, fileNum, opts)
+		r, err = p.vfsOpenForReading(ctx, fileType, fileNum, opts)
+	} else {
+		r, err = p.sharedOpenForReading(ctx, meta)
 	}
-	return p.sharedOpenForReading(ctx, meta)
+	if err != nil {
+		return nil, err
+	}
+	if objiotracing.Enabled {
+		r = p.tracer.WrapReadable(ctx, r, fileNum)
+	}
+	return r, nil
 }
 
 // Create creates a new object and opens it for writing.
@@ -171,7 +200,7 @@ func (p *provider) Create(
 	ctx context.Context, fileType base.FileType, fileNum base.FileNum, opts objstorage.CreateOptions,
 ) (w objstorage.Writable, meta objstorage.ObjectMetadata, err error) {
 	if opts.PreferSharedStorage && p.st.Shared.Storage != nil {
-		w, meta, err = p.sharedCreate(ctx, fileType, fileNum)
+		w, meta, err = p.sharedCreate(ctx, fileType, fileNum, opts)
 	} else {
 		w, meta, err = p.vfsCreate(ctx, fileType, fileNum)
 	}
@@ -180,10 +209,17 @@ func (p *provider) Create(
 		return nil, objstorage.ObjectMetadata{}, err
 	}
 	p.addMetadata(meta)
+	if objiotracing.Enabled {
+		w = p.tracer.WrapWritable(ctx, w, fileNum)
+	}
 	return w, meta, nil
 }
 
 // Remove removes an object.
+//
+// Note that if the object is shared, the object is only (conceptually) removed
+// from this provider. If other providers have references on the shared object,
+// it will not be removed.
 //
 // The object is not guaranteed to be durably removed until Sync is called.
 func (p *provider) Remove(fileType base.FileType, fileNum base.FileNum) error {
@@ -194,15 +230,17 @@ func (p *provider) Remove(fileType base.FileType, fileNum base.FileNum) error {
 
 	if !meta.IsShared() {
 		err = p.vfsRemove(fileType, fileNum)
+	} else {
+		// TODO(radu): implement shared object removal (i.e. deref).
+		err = p.sharedUnref(meta)
 	}
-	// TODO(radu): implement shared object removal (i.e. deref).
-
 	if err != nil && !p.IsNotExistError(err) {
 		// We want to be able to retry a Remove, so we keep the object in our list.
 		// TODO(radu): we should mark the object as "zombie" and not allow any other
 		// operations.
 		return errors.Wrapf(err, "removing object %s", errors.Safe(fileNum))
 	}
+
 	p.removeMetadata(fileNum)
 	return err
 }
@@ -318,6 +356,7 @@ func (p *provider) addMetadata(meta objstorage.ObjectMetadata) {
 			FileType:       meta.FileType,
 			CreatorID:      meta.Shared.CreatorID,
 			CreatorFileNum: meta.Shared.CreatorFileNum,
+			CleanupMethod:  meta.Shared.CleanupMethod,
 		})
 	} else {
 		p.mu.localObjectsChanged = true
@@ -338,4 +377,34 @@ func (p *provider) removeMetadata(fileNum base.FileNum) {
 	} else {
 		p.mu.localObjectsChanged = true
 	}
+}
+
+// protectObject prevents the unreferencing of a shared object until
+// unprotectObject is called.
+func (p *provider) protectObject(fileNum base.FileNum) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.mu.protectedObjects[fileNum] = p.mu.protectedObjects[fileNum] + 1
+}
+
+func (p *provider) unprotectObject(fileNum base.FileNum) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	v := p.mu.protectedObjects[fileNum]
+	if invariants.Enabled && v == 0 {
+		panic("invalid protection count")
+	}
+	if v > 1 {
+		p.mu.protectedObjects[fileNum] = v - 1
+	} else {
+		delete(p.mu.protectedObjects, fileNum)
+		// TODO(radu): check if the object is still in knownObject; if not, unref it
+		// now.
+	}
+}
+
+func (p *provider) isProtected(fileNum base.FileNum) bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.mu.protectedObjects[fileNum] > 0
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -18,7 +19,7 @@ type FileCache struct {
 	in         chan *CacheInfo
 	mutex      sync.RWMutex
 	shutdown   chan any
-	wg       sync.WaitGroup
+	wg         sync.WaitGroup
 	MaxItems   int   // Maximum number of files to cache
 	MaxSize    int64 // Maximum file size to store
 	ExpireItem int   // Seconds a file should be cached for
@@ -74,7 +75,7 @@ func (cache *FileCache) addItem(name string, content []byte) (err error) {
 
 	itm, err := cacheFile(name, cache.MaxSize, content)
 	cache.mutex.Lock()
-	if cache.items != nil && itm != nil {
+	if cache.items != nil && itm != nil && err == nil {
 		cache.items[name] = itm
 		cache.mutex.Unlock()
 	} else {
@@ -113,8 +114,10 @@ func (cache *FileCache) itemListener() {
 // entry; for example, if a large number of files are cached at once, none
 // may appear older than another.
 func (cache *FileCache) expireOldest(force bool) {
-	oldest := time.Now()
-	oldestName := ""
+	var (
+		oldest     = time.Now()
+		oldestName = ""
+	)
 
 	for name, itm := range cache.items {
 		if (force && oldestName == "") || itm.Lastaccess.Before(oldest) {
@@ -176,7 +179,7 @@ func (cache *FileCache) changed(name string) bool {
 // Expired returns true if the item has not been accessed recently.
 func (cache *FileCache) expired(name string) bool {
 	itm, ok := cache.getItem(name)
-	if !ok {
+	if !ok || itm == nil {
 		return true
 	}
 	dur := itm.Dur()
@@ -250,7 +253,7 @@ func (cache *FileCache) InCache(name string) bool {
 // WriteItem writes the cache item to the specified io.Writer.
 func (cache *FileCache) WriteItem(w io.Writer, name string) (err error) {
 	itm, ok := cache.getItem(name)
-	if !ok {
+	if !ok || itm == nil {
 		if !SquelchItemNotInCache {
 			err = ItemNotInCache
 		}
@@ -276,7 +279,7 @@ func (cache *FileCache) WriteItem(w io.Writer, name string) (err error) {
 // or if you want to use the cache only.
 func (cache *FileCache) GetItem(name string) (content []byte, ok bool) {
 	itm, ok := cache.getItem(name)
-	if !ok {
+	if !ok || itm == nil {
 		return
 	}
 	content = itm.Access()
@@ -286,7 +289,7 @@ func (cache *FileCache) GetItem(name string) (content []byte, ok bool) {
 // GetItemString is the same as GetItem, except returning a string.
 func (cache *FileCache) GetItemString(name string) (content string, ok bool) {
 	itm, ok := cache.getItem(name)
-	if !ok {
+	if !ok || itm == nil {
 		return
 	}
 	content = string(itm.Access())
@@ -403,4 +406,36 @@ func (cache *FileCache) Remove(name string) (ok bool, err error) {
 		ok = false
 	}
 	return
+}
+
+// MostAccessed returns the most accessed items in this cache cache
+func (cache *FileCache) MostAccessed(count int64) []*cacheItem {
+	cache.mutex.RLock()
+	defer cache.mutex.RUnlock()
+
+	var (
+		p = make(CacheItemPairList, len(cache.items))
+		i = 0
+		r []*cacheItem
+		c = int64(0)
+	)
+
+	for k, v := range cache.items {
+		p[i] = CacheItemPair{k, v.AccessCount}
+		i++
+	}
+	sort.Sort(p)
+
+	for _, v := range p {
+		if c >= count {
+			break
+		}
+
+		if item, ok := cache.items[v.Key]; ok && item != nil {
+			r = append(r, item)
+		}
+		c++
+	}
+
+	return r
 }
