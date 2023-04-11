@@ -22,6 +22,7 @@ import (
 	"math/big"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -249,11 +250,11 @@ type TxPool struct {
 	signer      types.Signer
 	mu          sync.RWMutex
 
-	istanbul bool // Fork indicator whether we are in the istanbul stage.
+	istanbul atomic.Bool // Fork indicator whether we are in the istanbul stage.
 
 	currentState  *state.StateDB // Current state in the blockchain head
 	pendingNonces *noncer        // Pending state tracking virtual nonces
-	currentMaxGas uint64         // Current gas limit for transaction caps
+	currentMaxGas atomic.Uint64  // Current gas limit for transaction caps
 
 	locals  *accountSet // Set of local transaction to exempt from eviction rules
 	journal *journal    // Journal of local transaction to back up to disk
@@ -569,9 +570,11 @@ func (pool *TxPool) local() map[common.Address]types.Transactions {
 	return txs
 }
 
-// validateTx checks whether a transaction is valid according to the consensus
-// rules and adheres to some heuristic limits of the local node (price and size).
-func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
+// validateTxBasics checks whether a transaction is valid according to the consensus
+// rules, but does not check state-dependent validation such as sufficient balance.
+// This check is meant as an early check which only needs to be performed once,
+// and does not require the pool mutex to be held.
+func (pool *TxPool) validateTxBasics(tx *types.Transaction, local bool) error {
 	// Reject transactions over defined size to prevent DOS attacks
 	if tx.Size() > txMaxSize {
 		return ErrOversizedData
@@ -582,18 +585,33 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrNegativeValue
 	}
 	// Ensure the transaction doesn't exceed the current block limit gas.
-	if pool.currentMaxGas < tx.Gas() {
+	if pool.currentMaxGas.Load() < tx.Gas() {
 		return ErrGasLimit
 	}
-	// Make sure the transaction is signed properly
-	from, err := types.Sender(pool.signer, tx)
-	if err != nil {
-		return core.ErrInvalidSender
+	// Make sure the transaction is signed properly.
+	if _, err := types.Sender(pool.signer, tx); err != nil {
+		return ErrInvalidSender
 	}
 	// Drop non-local transactions under our own minimal accepted gas price
 	if !local && tx.GasPriceIntCmp(pool.gasPrice) < 0 {
 		return ErrUnderpriced
 	}
+	// Ensure the transaction has more gas than the basic tx fee.
+	intrGas, err := core.IntrinsicGas(tx.Data(), tx.To() == nil, tx != nil && tx.To() != nil && tx.Value().Sign() == 0 && pool.currentState.Uploading(*tx.To()), true, pool.istanbul.Load())
+	if err != nil {
+		return err
+	}
+	if tx.Gas() < intrGas {
+		return core.ErrIntrinsicGas
+	}
+	return nil
+}
+
+// validateTx checks whether a transaction is valid according to the consensus
+// rules and adheres to some heuristic limits of the local node (price and size).
+func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
+	// Signature has been checked already, this cannot error.
+	from, _ := types.Sender(pool.signer, tx)
 	// Ensure the transaction adheres to nonce ordering
 	if pool.currentState.GetNonce(from) > tx.Nonce() {
 		return core.ErrNonceTooLow
@@ -616,14 +634,6 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 			log.Trace("Replacing transactions would overdraft", "sender", from, "balance", pool.currentState.GetBalance(from), "required", sum)
 			return ErrOverdraft
 		}
-	}
-	// Ensure the transaction has more gas than the basic tx fee.
-	intrGas, err := core.IntrinsicGas(tx.Data(), tx.To() == nil, tx != nil && tx.To() != nil && tx.Value().Sign() == 0 && pool.currentState.Uploading(*tx.To()), true, pool.istanbul)
-	if err != nil {
-		return err
-	}
-	if tx.Gas() < intrGas {
-		return core.ErrIntrinsicGas
 	}
 	return nil
 }
@@ -919,12 +929,12 @@ func (pool *TxPool) addTxs(txs []*types.Transaction, local, sync bool) []error {
 			knownTxMeter.Mark(1)
 			continue
 		}
-		// Exclude transactions with invalid signatures as soon as
-		// possible and cache senders in transactions before
-		// obtaining lock
-		_, err := types.Sender(pool.signer, tx)
-		if err != nil {
-			errs[i] = core.ErrInvalidSender
+		// Exclude transactions with basic errors, e.g invalid signatures and
+		// insufficient intrinsic gas as soon as possible and cache senders
+		// in transactions before obtaining lock
+
+		if err := pool.validateTxBasics(tx, local); err != nil {
+			errs[i] = err
 			invalidTxMeter.Mark(1)
 			continue
 		}
@@ -1307,7 +1317,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	}
 	pool.currentState = statedb
 	pool.pendingNonces = newNoncer(statedb)
-	pool.currentMaxGas = newHead.GasLimit
+	pool.currentMaxGas.Store(newHead.GasLimit)
 
 	// Inject any transactions discarded due to reorgs
 	log.Debug("Reinjecting stale transactions", "count", len(reinject))
@@ -1316,7 +1326,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 
 	// Update all fork indicator by next pending block number.
 	next := new(big.Int).Add(newHead.Number, big.NewInt(1))
-	pool.istanbul = pool.chainconfig.IsIstanbul(next)
+	pool.istanbul.Store(pool.chainconfig.IsIstanbul(next))
 }
 
 // promoteExecutables moves transactions that have become processable from the
@@ -1340,7 +1350,7 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) []*types.Trans
 		}
 		log.Trace("Removed old queued transactions", "count", len(forwards))
 		// Drop all transactions that are too costly (low balance or out of gas)
-		drops, _ := list.Filter(pool.currentState.GetBalance(addr), pool.currentMaxGas)
+		drops, _ := list.Filter(pool.currentState.GetBalance(addr), pool.currentMaxGas.Load())
 		for _, tx := range drops {
 			hash := tx.Hash()
 			pool.all.Remove(hash)
@@ -1533,7 +1543,7 @@ func (pool *TxPool) demoteUnexecutables() {
 			log.Trace("Removed old pending transaction", "hash", hash)
 		}
 		// Drop all transactions that are too costly (low balance or out of gas), and queue any invalids back for later
-		drops, invalids := list.Filter(pool.currentState.GetBalance(addr), pool.currentMaxGas)
+		drops, invalids := list.Filter(pool.currentState.GetBalance(addr), pool.currentMaxGas.Load())
 		for _, tx := range drops {
 			hash := tx.Hash()
 			log.Trace("Removed unpayable pending transaction", "hash", hash)
