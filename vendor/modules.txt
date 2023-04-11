@@ -53,7 +53,7 @@ github.com/CortexFoundation/merkletree
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit; go 1.16
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.43-0.20230410182145-271f16fb0864
+# github.com/CortexFoundation/torrentfs v1.0.43-0.20230411172635-4bb9f0b6d9d3
 ## explicit; go 1.20
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/backend
@@ -356,7 +356,7 @@ github.com/cockroachdb/errors/withstack
 # github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b
 ## explicit; go 1.16
 github.com/cockroachdb/logtags
-# github.com/cockroachdb/pebble v0.0.0-20230406223121-124486b0f85d
+# github.com/cockroachdb/pebble v0.0.0-20230411154528-23c3eabc394b
 ## explicit; go 1.19
 github.com/cockroachdb/pebble
 github.com/cockroachdb/pebble/bloom
@@ -433,7 +433,7 @@ github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa
 ## explicit; go 1.18
 github.com/deepmap/oapi-codegen/pkg/runtime
 github.com/deepmap/oapi-codegen/pkg/types
-# github.com/dgraph-io/badger/v4 v4.0.2-0.20230404180821-cfe4314daf20
+# github.com/dgraph-io/badger/v4 v4.0.2-0.20230411083900-1bbd08dd2637
 ## explicit; go 1.19
 github.com/dgraph-io/badger/v4
 github.com/dgraph-io/badger/v4/fb
@@ -1003,7 +1003,7 @@ github.com/ucwong/filecache
 # github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb
 ## explicit; go 1.19
 github.com/ucwong/go-ttlmap
-# github.com/ucwong/golang-kv v1.0.16-0.20230409003856-5e45225062df
+# github.com/ucwong/golang-kv v1.0.16-0.20230411171529-f805c762c87b
 ## explicit; go 1.20
 github.com/ucwong/golang-kv
 github.com/ucwong/golang-kv/badger
