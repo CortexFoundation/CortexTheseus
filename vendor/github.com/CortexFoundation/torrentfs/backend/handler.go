@@ -866,20 +866,18 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 
 	switch config.Engine {
 	case "pebble":
-		log.Info("Using [pebble] as nas db engine")
 		torrentManager.kvdb = kv.Pebble(config.DataDir)
 	case "leveldb":
-		log.Info("Using [leveldb] as nas db engine")
 		torrentManager.kvdb = kv.LevelDB(config.DataDir)
 	case "badger":
-		log.Info("Using [badge]r as nas db engine")
 		torrentManager.kvdb = kv.Badger(config.DataDir)
 	case "bolt":
-		log.Info("Using [bolt] as nas db engine")
 		torrentManager.kvdb = kv.Bolt(config.DataDir)
 	default:
 		panic("Invalid nas engine " + config.Engine)
 	}
+
+	log.Info("Using ["+config.Engine+"] as nas db engine", "engine", torrentManager.kvdb.Name())
 
 	if cache {
 		torrentManager.fc = filecache.NewDefaultCache()
@@ -934,6 +932,7 @@ func (tm *TorrentManager) Start() (err error) {
 		if tm.fc != nil {
 			if err := tm.fc.Start(); err != nil {
 				log.Error("File cache start", "err", err)
+				return
 			}
 		}
 
@@ -1093,8 +1092,6 @@ func (tm *TorrentManager) mainLoop() {
 					} else {
 						log.Warn("Nas recovery failed", "ih", t.InfoHash(), "status", t.Status(), "complete", common.StorageSize(t.Torrent.BytesCompleted()), "err", err)
 					}
-				} else {
-					// TODO
 				}
 			}
 		case <-timer.C:

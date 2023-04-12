@@ -90,7 +90,7 @@ type Monitor struct {
 // get higher communicating performance.
 // IpcPath is unavailable on windows.
 // func New(flag *params.Config, cache, compress, listen bool, fs *backend.ChainDB, tMana *backend.TorrentManager, callback chan any) (*Monitor, error) {
-func New(flag *params.Config, cache, compress, listen bool, fs *backend.ChainDB, callback chan any) (*Monitor, error) {
+func New(flag *params.Config, cache, compress, listen bool, fs *backend.ChainDB, callback chan any) (m *Monitor, err error) {
 	/*fs, fsErr := NewChainDB(flag)
 	if fsErr != nil {
 		log.Error("file storage failed", "err", fsErr)
@@ -105,7 +105,7 @@ func New(flag *params.Config, cache, compress, listen bool, fs *backend.ChainDB,
 	}
 	log.Info("Fs manager initialized")*/
 
-	m := &Monitor{
+	m = &Monitor{
 		config: flag,
 		cl:     nil,
 		fs:     fs,
