@@ -69,6 +69,8 @@ type ChainDB struct {
 	torrents map[string]uint64
 	lock     sync.RWMutex
 	//rootCache *lru.Cache
+
+	initOnce sync.Once
 }
 
 func NewChainDB(config *params.Config) (*ChainDB, error) {
@@ -100,7 +102,7 @@ func NewChainDB(config *params.Config) (*ChainDB, error) {
 
 	//fs.rootCache, _ = lru.New(8)
 
-	if err := fs.initBlockNumber(); err != nil {
+	/*if err := fs.initBlockNumber(); err != nil {
 		log.Error("Init block error", "err", err)
 		return nil, err
 	}
@@ -122,13 +124,38 @@ func NewChainDB(config *params.Config) (*ChainDB, error) {
 	if err := fs.initID(); err != nil {
 		log.Error("Init node id error", "err", err)
 		return nil, err
-	}
+	}*/
 
 	//fs.history()
 
 	log.Info("Storage ID generated", "id", fs.id, "version", fs.version)
 
 	return fs, nil
+}
+
+func (fs *ChainDB) Init() (err error) {
+	fs.initOnce.Do(func() {
+		if err = fs.initBlockNumber(); err != nil {
+			log.Error("Init block error", "err", err)
+			//return err
+		}
+
+		if err = fs.initFiles(); err != nil {
+			log.Error("Init files error", "err", err)
+			//return err
+		}
+		if err = fs.initMerkleTree(); err != nil {
+			log.Error("Init mkt error", "err", err)
+			//return err
+		}
+
+		if err = fs.initID(); err != nil {
+			log.Error("Init node id error", "err", err)
+			//return err
+		}
+	})
+
+	return
 }
 
 func (fs *ChainDB) Files() []*types.FileInfo {

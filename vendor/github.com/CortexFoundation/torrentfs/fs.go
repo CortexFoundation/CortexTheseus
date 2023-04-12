@@ -88,6 +88,8 @@ type TorrentFS struct {
 	ttlchan  chan any
 
 	net *p2p.Server
+
+	initOnce sync.Once
 }
 
 func (t *TorrentFS) storage() *backend.TorrentManager {
@@ -99,9 +101,9 @@ func (t *TorrentFS) chain() *backend.ChainDB {
 }
 
 var (
-	inst     *TorrentFS = nil
-	mut      sync.RWMutex
-	initOnce sync.Once
+	inst    *TorrentFS = nil
+	mut     sync.RWMutex
+	newOnce sync.Once
 )
 
 func GetStorage() CortexStorage {
@@ -117,7 +119,7 @@ func GetStorage() CortexStorage {
 
 // New creates a new torrentfs instance with the given configuration.
 func New(config *params.Config, cache, compress, listen bool) (t *TorrentFS, err error) {
-	initOnce.Do(func() {
+	newOnce.Do(func() {
 		mut.Lock()
 		defer mut.Unlock()
 		t, err = create(config, cache, compress, listen)
@@ -150,7 +152,7 @@ func create(config *params.Config, cache, compress, listen bool) (*TorrentFS, er
 	}
 	log.Info("Fs manager initialized")
 
-	_callback := make(chan any, 1)
+	_callback := make(chan any, 1024)
 	monitor, err := monitor.New(config, cache, compress, listen, db, _callback)
 	if err != nil {
 		log.Error("Failed create monitor", "err", err)
@@ -261,8 +263,8 @@ func create(config *params.Config, cache, compress, listen bool) (*TorrentFS, er
 
 	inst.closeAll = make(chan any)
 
-	inst.wg.Add(1)
-	go inst.listen()
+	//inst.wg.Add(1)
+	//go inst.listen()
 	//inst.wg.Add(1)
 	//go inst.process()
 	//inst.init()
@@ -516,12 +518,20 @@ func (fs *TorrentFS) Start(srvr *p2p.Server) (err error) {
 
 	log.Info("Started nas", "config", fs, "mode", fs.config.Mode, "version", params.ProtocolVersion, "queue", fs.tunnel.Len(), "peers", fs.Neighbors())
 
+	err = fs.db.Init()
+	if err != nil {
+		return
+	}
+
 	err = fs.handler.Start()
 	if err != nil {
 		return
 	}
 
 	err = fs.monitor.Start()
+	if err != nil {
+		return
+	}
 
 	fs.init()
 
@@ -529,19 +539,24 @@ func (fs *TorrentFS) Start(srvr *p2p.Server) (err error) {
 }
 
 func (fs *TorrentFS) init() {
-	if fs.config.Mode != params.LAZY {
-		checkpoint := fs.chain().GetRoot(395964)
-		log.Info("Checkpoint loaded")
-		if checkpoint == nil {
-			for k, ok := range params.ColaFiles {
-				if ok {
-					fs.bitsflow(context.Background(), k, 1024*1024*1024)
+	fs.initOnce.Do(func() {
+		inst.wg.Add(1)
+		go inst.listen()
+
+		if fs.config.Mode != params.LAZY {
+			checkpoint := fs.chain().GetRoot(395964)
+			log.Info("Checkpoint loaded")
+			if checkpoint == nil {
+				for k, ok := range params.ColaFiles {
+					if ok {
+						fs.bitsflow(context.Background(), k, 1024*1024*1024)
+					}
 				}
 			}
 		}
-	}
 
-	log.Info("Init finished")
+		log.Info("Init finished")
+	})
 }
 
 // download and pub
