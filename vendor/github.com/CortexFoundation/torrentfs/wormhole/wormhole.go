@@ -17,10 +17,14 @@
 package wormhole
 
 import (
+	"errors"
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/torrentfs/params"
 	"net"
 	"net/url"
+	"time"
 	//"sync"
 
 	resty "github.com/go-resty/resty/v2"
@@ -28,7 +32,6 @@ import (
 	mapset "github.com/deckarep/golang-set/v2"
 
 	"strings"
-	"time"
 )
 
 var (
@@ -54,35 +57,60 @@ func BestTrackers() (ret []string) {
 			log.Warn("Global tracker lost", "err", err)
 			continue
 		}
+		client.SetTimeout(time.Second * 2)
 
+		retCh := make(chan string)
+		//var wg sync.WaitGroup
 		str := strings.Split(resp.String(), "\n\n")
+		start := mclock.Now()
 		for _, s := range str {
-			if len(ret) < CAP {
-				log.Debug("Global best trackers", "url", s)
-				switch {
-				case strings.HasPrefix(s, "http"), strings.HasPrefix(s, "https"):
-					if _, err := client.R().Post(s); err != nil {
-						log.Warn("tracker failed", "err", err)
-					} else {
-						ret = append(ret, s)
-					}
-				case strings.HasPrefix(s, "udp"):
-					if u, err := url.Parse(s); err == nil {
-						if host, port, err := net.SplitHostPort(u.Host); err == nil {
-							if err := ping(host, port); err == nil {
-								ret = append(ret, s)
-							} else {
-								log.Warn("UDP ping err", "s", s, "err", err)
-							}
+			//if len(ret) < CAP {
+			//	wg.Add(1)
+			go func(ss string) {
+				//		defer wg.Done()
+				if err := HealthCheck(ss); err == nil {
+					//ret = append(ret, s)
+					retCh <- ss
+				} else {
+					retCh <- ""
+				}
+			}(s)
+			/*switch {
+			case strings.HasPrefix(s, "http"), strings.HasPrefix(s, "https"):
+				if _, err := client.R().Post(s); err != nil {
+					log.Warn("tracker failed", "err", err)
+				} else {
+					ret = append(ret, s)
+				}
+			case strings.HasPrefix(s, "udp"):
+				if u, err := url.Parse(s); err == nil {
+					if host, port, err := net.SplitHostPort(u.Host); err == nil {
+						if err := ping(host, port); err == nil {
+							ret = append(ret, s)
+						} else {
+							log.Warn("UDP ping err", "s", s, "err", err)
 						}
 					}
-				default:
-					log.Warn("Other protocols trackers", "s", s)
 				}
-			} else {
-				break
+			default:
+				log.Warn("Other protocols trackers", "s", s)
+			}*/
+			//} else {
+			//	break
+			//}
+		}
+
+		for i := 0; i < len(str); i++ {
+			select {
+			case x := <-retCh:
+				if len(x) > 0 {
+					log.Info("Healthy tracker", "url", x, "latency", common.PrettyDuration(time.Duration(mclock.Now())-time.Duration(start)))
+					ret = append(ret, x)
+				}
 			}
 		}
+
+		//wg.Wait()
 
 		if len(ret) > 0 {
 			return
@@ -90,6 +118,39 @@ func BestTrackers() (ret []string) {
 	}
 
 	return
+}
+
+func HealthCheck(s string) error {
+	log.Debug("Global best trackers", "url", s)
+	switch {
+	case strings.HasPrefix(s, "http"), strings.HasPrefix(s, "https"):
+		if _, err := client.R().Post(s); err != nil {
+			log.Warn("tracker failed", "err", err)
+			return err
+		} else {
+			//ret = append(ret, s)
+			return nil
+		}
+	case strings.HasPrefix(s, "udp"):
+		if u, err := url.Parse(s); err == nil {
+			if host, port, err := net.SplitHostPort(u.Host); err == nil {
+				if err := ping(host, port); err == nil {
+					//ret = append(ret, s)
+					return nil
+				} else {
+					log.Warn("UDP ping err", "s", s, "err", err)
+					return err
+				}
+			}
+		} else {
+			return err
+		}
+	default:
+		log.Warn("Other protocols trackers", "s", s)
+		return errors.New("invalid url protocol")
+	}
+
+	return errors.New("unhealthy url")
 }
 
 func ColaList() mapset.Set[string] {
