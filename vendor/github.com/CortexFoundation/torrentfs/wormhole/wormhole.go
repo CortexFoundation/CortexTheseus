@@ -50,19 +50,23 @@ func Tunnel(hash string) error {
 }
 
 func BestTrackers() (ret []string) {
+	defer client.SetTimeout(time.Second * 10)
+
 	for _, ur := range params.BestTrackerUrl {
 		resp, err := client.R().Get(ur)
 
-		if err != nil {
+		if err != nil || resp == nil || len(resp.String()) == 0 {
 			log.Warn("Global tracker lost", "err", err)
 			continue
 		}
 		client.SetTimeout(time.Second * 2)
 
-		retCh := make(chan string)
 		//var wg sync.WaitGroup
-		str := strings.Split(resp.String(), "\n\n")
-		start := mclock.Now()
+		var (
+			str   = strings.Split(resp.String(), "\n\n")
+			retCh = make(chan string, len(str))
+			start = mclock.Now()
+		)
 		for _, s := range str {
 			//if len(ret) < CAP {
 			//	wg.Add(1)
