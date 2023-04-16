@@ -232,25 +232,17 @@ func (d defaultCPUWorkGranter) CPUWorkDone(_ CPUWorkHandle) {}
 //		Comparer: myComparer,
 //	})
 type DB struct {
-	// WARNING: The following struct `atomic` contains fields which are accessed
-	// atomically.
-	//
-	// Go allocations are guaranteed to be 64-bit aligned which we take advantage
-	// of by placing the 64-bit fields which we access atomically at the beginning
-	// of the DB struct. For more information, see https://golang.org/pkg/sync/atomic/#pkg-note-BUG.
-	atomic struct {
-		// The count and size of referenced memtables. This includes memtables
-		// present in DB.mu.mem.queue, as well as memtables that have been flushed
-		// but are still referenced by an inuse readState.
-		memTableCount    int64
-		memTableReserved int64 // number of bytes reserved in the cache for memtables
+	// The count and size of referenced memtables. This includes memtables
+	// present in DB.mu.mem.queue, as well as memtables that have been flushed
+	// but are still referenced by an inuse readState.
+	memTableCount    atomic.Int64
+	memTableReserved atomic.Int64 // number of bytes reserved in the cache for memtables
 
-		// The size of the current log file (i.e. db.mu.log.queue[len(queue)-1].
-		logSize uint64
+	// The size of the current log file (i.e. db.mu.log.queue[len(queue)-1].
+	logSize atomic.Uint64
 
-		// The number of bytes available on disk.
-		diskAvailBytes uint64
-	}
+	// The number of bytes available on disk.
+	diskAvailBytes atomic.Uint64
 
 	cacheID        uint64
 	dirname        string
@@ -539,7 +531,7 @@ func (d *DB) getInternal(key []byte, b *Batch, s *Snapshot) ([]byte, io.Closer, 
 	if s != nil {
 		seqNum = s.seqNum
 	} else {
-		seqNum = atomic.LoadUint64(&d.mu.versions.atomic.visibleSeqNum)
+		seqNum = d.mu.versions.visibleSeqNum.Load()
 	}
 
 	buf := getIterAllocPool.Get().(*getIterAlloc)
@@ -772,7 +764,7 @@ func (d *DB) applyInternal(batch *Batch, opts *WriteOptions, noSyncWait bool) er
 	if err := d.closed.Load(); err != nil {
 		panic(err)
 	}
-	if atomic.LoadUint32(&batch.applied) != 0 {
+	if batch.applied.Load() {
 		panic("pebble: batch already applied")
 	}
 	if d.opts.ReadOnly {
@@ -922,7 +914,7 @@ func (d *DB) commitWrite(b *Batch, syncWG *sync.WaitGroup, syncErr *error) (*mem
 		}
 	}
 
-	atomic.StoreUint64(&d.atomic.logSize, uint64(size))
+	d.logSize.Store(uint64(size))
 	return mem, err
 }
 
@@ -978,7 +970,7 @@ func (d *DB) newIter(ctx context.Context, batch *Batch, s *Snapshot, o *IterOpti
 	if s != nil {
 		seqNum = s.seqNum
 	} else {
-		seqNum = atomic.LoadUint64(&d.mu.versions.atomic.visibleSeqNum)
+		seqNum = d.mu.versions.visibleSeqNum.Load()
 	}
 
 	// Bundle various structures under a single umbrella in order to allocate
@@ -1158,7 +1150,7 @@ func (d *DB) newInternalIter(s *Snapshot, o *IterOptions) *scanInternalIterator 
 	// memtables) above.
 	var seqNum uint64
 	if s == nil {
-		seqNum = atomic.LoadUint64(&d.mu.versions.atomic.visibleSeqNum)
+		seqNum = d.mu.versions.visibleSeqNum.Load()
 	} else {
 		seqNum = s.seqNum
 	}
@@ -1392,7 +1384,7 @@ func (d *DB) NewSnapshot() *Snapshot {
 	d.mu.Lock()
 	s := &Snapshot{
 		db:     d,
-		seqNum: atomic.LoadUint64(&d.mu.versions.atomic.visibleSeqNum),
+		seqNum: d.mu.versions.visibleSeqNum.Load(),
 	}
 	d.mu.snapshots.pushBack(s)
 	d.mu.Unlock()
@@ -1490,7 +1482,7 @@ func (d *DB) Close() error {
 		// replay.
 		mem.readerUnrefLocked(false)
 	}
-	if reserved := atomic.LoadInt64(&d.atomic.memTableReserved); reserved != 0 {
+	if reserved := d.memTableReserved.Load(); reserved != 0 {
 		err = firstError(err, errors.Errorf("leaked memtable reservation: %d", errors.Safe(reserved)))
 	}
 
@@ -1720,7 +1712,7 @@ func (d *DB) Metrics() *Metrics {
 	vers := d.mu.versions.currentVersion()
 	*metrics = d.mu.versions.metrics
 	metrics.Compact.EstimatedDebt = d.mu.versions.picker.estimatedCompactionDebt(0)
-	metrics.Compact.InProgressBytes = atomic.LoadInt64(&d.mu.versions.atomic.atomicInProgressBytes)
+	metrics.Compact.InProgressBytes = d.mu.versions.atomicInProgressBytes.Load()
 	metrics.Compact.NumInProgress = int64(d.mu.compact.compactingCount)
 	metrics.Compact.MarkedFiles = vers.Stats.MarkedForCompaction
 	for _, m := range d.mu.mem.queue {
@@ -1733,11 +1725,11 @@ func (d *DB) Metrics() *Metrics {
 	metrics.Snapshots.PinnedKeys = d.mu.snapshots.cumulativePinnedCount
 	metrics.Snapshots.PinnedSize = d.mu.snapshots.cumulativePinnedSize
 	metrics.MemTable.Count = int64(len(d.mu.mem.queue))
-	metrics.MemTable.ZombieCount = atomic.LoadInt64(&d.atomic.memTableCount) - metrics.MemTable.Count
-	metrics.MemTable.ZombieSize = uint64(atomic.LoadInt64(&d.atomic.memTableReserved)) - metrics.MemTable.Size
+	metrics.MemTable.ZombieCount = d.memTableCount.Load() - metrics.MemTable.Count
+	metrics.MemTable.ZombieSize = uint64(d.memTableReserved.Load()) - metrics.MemTable.Size
 	metrics.WAL.ObsoleteFiles = int64(recycledLogsCount)
 	metrics.WAL.ObsoletePhysicalSize = recycledLogSize
-	metrics.WAL.Size = atomic.LoadUint64(&d.atomic.logSize)
+	metrics.WAL.Size = d.logSize.Load()
 	// The current WAL size (d.atomic.logSize) is the current logical size,
 	// which may be less than the WAL's physical size if it was recycled.
 	// The file sizes in d.mu.log.queue are updated to the physical size
@@ -1964,8 +1956,8 @@ func (d *DB) newMemTable(logNum FileNum, logSeqNum uint64) (*memTable, *flushabl
 		}
 	}
 
-	atomic.AddInt64(&d.atomic.memTableCount, 1)
-	atomic.AddInt64(&d.atomic.memTableReserved, int64(size))
+	d.memTableCount.Add(1)
+	d.memTableReserved.Add(int64(size))
 	releaseAccountingReservation := d.opts.Cache.Reserve(size)
 
 	mem := newMemTable(memTableOptions{
@@ -1981,8 +1973,8 @@ func (d *DB) newMemTable(logNum FileNum, logSeqNum uint64) (*memTable, *flushabl
 	entry.releaseMemAccounting = func() {
 		manual.Free(mem.arenaBuf)
 		mem.arenaBuf = nil
-		atomic.AddInt64(&d.atomic.memTableCount, -1)
-		atomic.AddInt64(&d.atomic.memTableReserved, -int64(size))
+		d.memTableCount.Add(-1)
+		d.memTableReserved.Add(-int64(size))
 		releaseAccountingReservation()
 	}
 	return mem, entry
@@ -2120,7 +2112,7 @@ func (d *DB) makeRoomForWrite(b *Batch) error {
 				logSeqNum += uint64(b.Count())
 			}
 		} else {
-			logSeqNum = atomic.LoadUint64(&d.mu.versions.atomic.logSeqNum)
+			logSeqNum = d.mu.versions.logSeqNum.Load()
 		}
 		d.rotateMemtable(newLogNum, logSeqNum, immMem)
 		force = false

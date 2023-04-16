@@ -76,6 +76,7 @@ type Monitor struct {
 	local  bool
 	listen bool
 
+	startOnce sync.Once
 	closeOnce sync.Once
 	mode      string
 
@@ -523,13 +524,15 @@ func (m *Monitor) Start() error {
 	//return nil
 	//}
 
-	m.wg.Add(1)
-	go func() {
-		defer m.wg.Done()
-		if err := m.run(); err != nil {
-			log.Error("Fs monitor start failed", "err", err)
-		}
-	}()
+	m.startOnce.Do(func() {
+		m.wg.Add(1)
+		go func() {
+			defer m.wg.Done()
+			if err := m.run(); err != nil {
+				log.Error("Fs monitor start failed", "err", err)
+			}
+		}()
+	})
 	return nil
 }
 
