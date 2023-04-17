@@ -804,8 +804,6 @@ func (fs *ChainDB) GetTorrentProgress(ih string) (progress uint64, err error) {
 		return 0, err
 	}
 
-	//fs.torrents[ih] = progress
-
 	return progress, nil
 }
 

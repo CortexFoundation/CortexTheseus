@@ -21,6 +21,7 @@ import (
 	"github.com/CortexFoundation/torrentfs/params"
 	"net"
 	"net/url"
+	//"sync"
 
 	resty "github.com/go-resty/resty/v2"
 
@@ -56,30 +57,30 @@ func BestTrackers() (ret []string) {
 
 		str := strings.Split(resp.String(), "\n\n")
 		for _, s := range str {
-			if len(ret) < CAP { //&& strings.HasPrefix(s, "udp") {
+			if len(ret) < CAP {
 				log.Debug("Global best trackers", "url", s)
-				if strings.HasPrefix(s, "http") || strings.HasPrefix(s, "https") {
-					response, err := client.R().Post(s)
-					if err != nil || response == nil {
+				switch {
+				case strings.HasPrefix(s, "http"), strings.HasPrefix(s, "https"):
+					if _, err := client.R().Post(s); err != nil {
 						log.Warn("tracker failed", "err", err)
 					} else {
 						ret = append(ret, s)
 					}
-				} else if strings.HasPrefix(s, "udp") {
-					u, err := url.Parse(s)
-					if err != nil {
-						continue
-					}
-					if host, port, err := net.SplitHostPort(u.Host); err == nil {
-						if err := ping(host, port); err == nil {
-							ret = append(ret, s)
-						} else {
-							log.Warn("UDP ping err", "s", s, "err", err)
+				case strings.HasPrefix(s, "udp"):
+					if u, err := url.Parse(s); err == nil {
+						if host, port, err := net.SplitHostPort(u.Host); err == nil {
+							if err := ping(host, port); err == nil {
+								ret = append(ret, s)
+							} else {
+								log.Warn("UDP ping err", "s", s, "err", err)
+							}
 						}
 					}
-				} else {
+				default:
 					log.Warn("Other protocols trackers", "s", s)
 				}
+			} else {
+				break
 			}
 		}
 
