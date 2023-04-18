@@ -58,7 +58,7 @@ type Monitor struct {
 	//dl     *backend.TorrentManager
 
 	exitCh        chan any
-	terminated    atomic.Int32
+	terminated    atomic.Bool
 	lastNumber    uint64
 	startNumber   uint64
 	scope         uint64
@@ -117,7 +117,7 @@ func New(flag *params.Config, cache, compress, listen bool, fs *backend.ChainDB,
 		//start: mclock.Now(),
 	}
 	m.currentNumber.Store(0)
-	m.terminated.Store(0)
+	m.terminated.Store(false)
 	m.blockCache, _ = lru.New(delay)
 	m.sizeCache, _ = lru.New(batch)
 	m.listen = listen
@@ -287,7 +287,7 @@ func (m *Monitor) buildConnection(ipcpath string, rpcuri string) (*rpc.Client, e
 				return cl, nil
 			}
 
-			if m.terminated.Load() == 1 {
+			if m.terminated.Load() {
 				log.Info("Connection builder break")
 				return nil, errors.New("ipc connection terminated")
 			}
@@ -495,10 +495,10 @@ func (m *Monitor) Stop() {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	//m.closeOnce.Do(func() {
-	if m.terminated.Load() == 1 {
+	if m.terminated.Load() {
 		return
 	}
-	m.terminated.Store(1)
+	m.terminated.Store(true)
 
 	m.exit()
 	log.Info("Monitor is waiting to be closed")
@@ -715,7 +715,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 	}
 	//start := mclock.Now()
 	for i := minNumber; i <= maxNumber; { // i++ {
-		if m.terminated.Load() == 1 {
+		if m.terminated.Load() {
 			log.Warn("Fs scan terminated", "number", i)
 			maxNumber = i - 1
 			break

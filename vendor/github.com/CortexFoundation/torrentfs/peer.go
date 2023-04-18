@@ -220,14 +220,20 @@ func (peer *Peer) handshake() error {
 			Files:  uint64(peer.host.Congress()),
 			Leafs:  uint64(len(peer.host.chain().Blocks())),
 		}
-		errc <- p2p.SendItems(peer.ws, params.StatusCode, params.ProtocolVersion, &info)
+		select {
+		case errc <- p2p.SendItems(peer.ws, params.StatusCode, params.ProtocolVersion, &info):
+		case <-peer.quit:
+		}
 		log.Debug("Nas send items OK", "status", params.StatusCode, "version", params.ProtocolVersion, "len", len(errc))
 	}()
 	// Fetch the remote status packet and verify protocol match
 	peer.wg.Add(1)
 	go func() {
 		defer peer.wg.Done()
-		errc <- peer.readStatus()
+		select {
+		case errc <- peer.readStatus():
+		case <-peer.quit:
+		}
 	}()
 
 	timeout := time.NewTimer(params.HandshakeTimeout)
@@ -241,6 +247,8 @@ func (peer *Peer) handshake() error {
 		case <-timeout.C:
 			log.Info("Handshake timeout")
 			return fmt.Errorf("peer [%x] timeout", peer.ID())
+		case <-peer.quit:
+			return nil
 		}
 	}
 
