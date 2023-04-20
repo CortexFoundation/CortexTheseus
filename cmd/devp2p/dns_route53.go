@@ -195,7 +195,13 @@ func (c *route53Client) computeChanges(name string, records map[string]string, e
 	}
 	records = lrecords
 
-	var changes []types.Change
+	var (
+		changes []types.Change
+		inserts int
+		upserts int
+		skips   int
+	)
+
 	for path, newValue := range records {
 		prevRecords, exists := existing[path]
 		prevValue := strings.Join(prevRecords.values, "")
@@ -211,14 +217,17 @@ func (c *route53Client) computeChanges(name string, records map[string]string, e
 
 		if !exists {
 			// Entry is unknown, push a new one
-			log.Info(fmt.Sprintf("Creating %s = %s", path, newValue))
+			log.Debug(fmt.Sprintf("Creating %s = %s", path, newValue))
 			changes = append(changes, newTXTChange("CREATE", path, ttl, newValue))
+			inserts++
 		} else if prevValue != newValue || prevRecords.ttl != ttl {
 			// Entry already exists, only change its content.
 			log.Info(fmt.Sprintf("Updating %s from %s to %s", path, prevValue, newValue))
 			changes = append(changes, newTXTChange("UPSERT", path, ttl, newValue))
+			upserts++
 		} else {
 			log.Debug(fmt.Sprintf("Skipping %s = %s", path, newValue))
+			skips++
 		}
 	}
 
