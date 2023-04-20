@@ -469,7 +469,7 @@ func (s *StateDB) AddBalance(addr common.Address, amount *big.Int) {
 }
 
 func (s *StateDB) Upload(addr common.Address) *big.Int {
-	stateObject := s.GetOrNewStateObject(addr)
+	stateObject := s.getStateObject(addr)
 	if stateObject != nil {
 		return stateObject.Upload()
 	}
@@ -534,7 +534,7 @@ func (s *StateDB) SetCode(addr common.Address, code []byte) {
 	}
 }
 func (s *StateDB) Uploading(addr common.Address) bool {
-	stateObject := s.GetOrNewStateObject(addr)
+	stateObject := s.getStateObject(addr)
 	if stateObject != nil {
 		return stateObject.Upload().Sign() > 0
 	}
