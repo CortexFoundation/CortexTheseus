@@ -11,7 +11,7 @@ endif
 ifeq ($(OS), Darwin)
 endif
 
-all: format
+all:
 	mkdir -p $(GOBIN)
 	go build -v -o $(GOBIN)/torrent cmd/torrent/*.go
 	go build -v -o $(GOBIN)/torrent-create cmd/torrent-create/*.go
