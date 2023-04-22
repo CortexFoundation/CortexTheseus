@@ -18,7 +18,7 @@
 //
 // In order to add a native tracer and have it compiled into the binary, a new
 // file needs to be added to this folder, containing an implementation of the
-// `eth.tracers.Tracer` interface.
+// `ctxc.tracers.Tracer` interface.
 //
 // Aside from implementing the tracer, it also needs to register itself, using the
 // `register` method -- and this needs to be done in the package initialization.
