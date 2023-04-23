@@ -53,6 +53,7 @@ func BestTrackers() (ret []string) {
 	defer client.SetTimeout(time.Second * 10)
 
 	for _, ur := range params.BestTrackerUrl {
+		log.Info("Fetch trackers", "url", ur)
 		resp, err := client.R().Get(ur)
 
 		if err != nil || resp == nil || len(resp.String()) == 0 {
@@ -119,6 +120,7 @@ func BestTrackers() (ret []string) {
 		if len(ret) > 0 {
 			return
 		}
+		client.SetTimeout(time.Second * 10)
 	}
 
 	return
