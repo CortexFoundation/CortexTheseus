@@ -1,8 +1,11 @@
 package vnet
 
 import (
+	"math"
 	"sync"
 	"time"
+
+	"github.com/pion/logging"
 )
 
 const (
@@ -17,17 +20,20 @@ const (
 // TokenBucketFilter implements a token bucket rate limit algorithm.
 type TokenBucketFilter struct {
 	NIC
-	currentTokensInBucket int
+	currentTokensInBucket float64
 	c                     chan Chunk
 	queue                 *chunkQueue
 	queueSize             int // in bytes
 
-	mutex    sync.Mutex
-	rate     int
-	maxBurst int
+	mutex             sync.Mutex
+	rate              int
+	maxBurst          int
+	minRefillDuration time.Duration
 
 	wg   sync.WaitGroup
 	done chan struct{}
+
+	log logging.LeveledLogger
 }
 
 // TBFOption is the option type to configure a TokenBucketFilter
@@ -84,9 +90,11 @@ func NewTokenBucketFilter(n NIC, opts ...TBFOption) (*TokenBucketFilter, error) 
 		queueSize:             50000,
 		mutex:                 sync.Mutex{},
 		rate:                  1 * MBit,
-		maxBurst:              2 * KBit,
+		maxBurst:              8 * KBit,
+		minRefillDuration:     100 * time.Millisecond,
 		wg:                    sync.WaitGroup{},
 		done:                  make(chan struct{}),
+		log:                   logging.NewDefaultLoggerFactory().NewLogger("tbf"),
 	}
 	tbf.Set(opts...)
 	tbf.queue = newChunkQueue(0, tbf.queueSize)
@@ -101,28 +109,33 @@ func (t *TokenBucketFilter) onInboundChunk(c Chunk) {
 
 func (t *TokenBucketFilter) run() {
 	defer t.wg.Done()
-	ticker := time.NewTicker(1 * time.Millisecond)
+
+	t.refillTokens(t.minRefillDuration)
+	lastRefill := time.Now()
 
 	for {
 		select {
 		case <-t.done:
-			ticker.Stop()
 			t.drainQueue()
 			return
-		case <-ticker.C:
-			t.mutex.Lock()
-			if t.currentTokensInBucket < t.maxBurst {
-				// add (bitrate * S) / 1000 converted to bytes (divide by 8) S
-				// is the update interval in milliseconds
-				t.currentTokensInBucket += (t.rate / 1000) / 8
-			}
-			t.mutex.Unlock()
-			t.drainQueue()
 		case chunk := <-t.c:
+			if time.Since(lastRefill) > t.minRefillDuration {
+				t.refillTokens(time.Since(lastRefill))
+				lastRefill = time.Now()
+			}
 			t.queue.push(chunk)
 			t.drainQueue()
 		}
 	}
+}
+
+func (t *TokenBucketFilter) refillTokens(dt time.Duration) {
+	m := 1000.0 / float64(dt.Milliseconds())
+	add := (float64(t.rate) / m) / 8.0
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+	t.currentTokensInBucket = math.Min(float64(t.maxBurst), t.currentTokensInBucket+add)
+	t.log.Tracef("add=(%v / %v) / 8 = %v, currentTokensInBucket=%v, maxBurst=%v", t.rate, m, add, t.currentTokensInBucket, t.maxBurst)
 }
 
 func (t *TokenBucketFilter) drainQueue() {
@@ -131,10 +144,12 @@ func (t *TokenBucketFilter) drainQueue() {
 		if next == nil {
 			break
 		}
-		tokens := len(next.UserData())
+		tokens := float64(len(next.UserData()))
 		if t.currentTokensInBucket < tokens {
+			t.log.Tracef("currentTokensInBucket=%v, tokens=%v, stop drain", t.currentTokensInBucket, tokens)
 			break
 		}
+		t.log.Tracef("currentTokensInBucket=%v, tokens=%v, pop chunk", t.currentTokensInBucket, tokens)
 		t.queue.pop()
 		t.NIC.onInboundChunk(next)
 		t.currentTokensInBucket -= tokens

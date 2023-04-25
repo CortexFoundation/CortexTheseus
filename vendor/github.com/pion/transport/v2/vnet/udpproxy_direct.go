@@ -20,7 +20,7 @@ func (v *UDPProxy) Deliver(sourceAddr, destAddr net.Addr, b []byte) (nn int, err
 	return
 }
 
-func (v *aUDPProxyWorker) Deliver(sourceAddr, destAddr net.Addr, b []byte) (nn int, err error) {
+func (v *aUDPProxyWorker) Deliver(sourceAddr, _ net.Addr, b []byte) (nn int, err error) {
 	addr, ok := sourceAddr.(*net.UDPAddr)
 	if !ok {
 		return 0, fmt.Errorf("invalid addr %v", sourceAddr) // nolint:goerr113

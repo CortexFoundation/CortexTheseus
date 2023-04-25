@@ -5,7 +5,8 @@
 // Modifications copyright 2022 The Pion Authors, governed by
 // the MIT license.
 
-//go:build !amd64 && !ppc64 && !ppc64le && !arm64 && !arm
+//go:build (!amd64 && !ppc64 && !ppc64le && !arm64 && !arm) || gccgo
+// +build !amd64,!ppc64,!ppc64le,!arm64,!arm gccgo
 
 // Package xor provides utility functions used by other Pion
 // packages. Generic arch.
@@ -25,6 +26,7 @@ func isAligned(a *byte) bool {
 
 // XorBytes xors the bytes in a and b. The destination should have enough
 // space, otherwise xorBytes will panic. Returns the number of bytes xor'd.
+//
 //revive:disable-next-line
 func XorBytes(dst, a, b []byte) int {
 	n := len(a)

@@ -268,7 +268,7 @@ func (v *Net) Dial(network string, address string) (net.Conn, error) {
 }
 
 // ResolveIPAddr returns an address of IP end point.
-func (v *Net) ResolveIPAddr(network, address string) (*net.IPAddr, error) {
+func (v *Net) ResolveIPAddr(_, address string) (*net.IPAddr, error) {
 	var err error
 
 	// Check if host is a domain name
@@ -588,12 +588,12 @@ func NewNet(config *NetConfig) (*Net, error) {
 }
 
 // DialTCP acts like Dial for TCP networks.
-func (v *Net) DialTCP(network string, laddr, raddr *net.TCPAddr) (transport.TCPConn, error) {
+func (v *Net) DialTCP(string, *net.TCPAddr, *net.TCPAddr) (transport.TCPConn, error) {
 	return nil, transport.ErrNotSupported
 }
 
 // ListenTCP acts like Listen for TCP networks.
-func (v *Net) ListenTCP(network string, laddr *net.TCPAddr) (transport.TCPListener, error) {
+func (v *Net) ListenTCP(string, *net.TCPAddr) (transport.TCPListener, error) {
 	return nil, transport.ErrNotSupported
 }
 

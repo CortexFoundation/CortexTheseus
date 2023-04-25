@@ -2,12 +2,16 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build !gccgo
+// +build !gccgo
+
 // Package xor provides utility functions used by other Pion
 // packages. AMD64 arch.
 package xor
 
 // XorBytes xors the bytes in a and b. The destination should have enough
 // space, otherwise xorBytes will panic. Returns the number of bytes xor'd.
+//
 //revive:disable-next-line
 func XorBytes(dst, a, b []byte) int {
 	n := len(a)

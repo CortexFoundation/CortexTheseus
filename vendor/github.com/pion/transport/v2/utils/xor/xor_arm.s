@@ -2,6 +2,9 @@
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
 
+// go:build !gccgo
+// +build !gccgo
+
 #include "textflag.h"
 
 // func xorBytesARM32(dst, a, b *byte, n int)
