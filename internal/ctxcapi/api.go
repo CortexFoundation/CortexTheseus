@@ -777,7 +777,7 @@ func (s *PublicBlockChainAPI) GetSolidityBytes(ctx context.Context, address comm
 			break
 		}
 		header := block.Header()
-		msg, err := core.TransactionToMessage(tx, types.MakeSigner(s.b.ChainConfig(), block.Number()))
+		msg, err := core.TransactionToMessage(tx, types.MakeSigner(s.b.ChainConfig(), block.Number(), block.Time()))
 		cvm, _, err := s.b.GetCVM(ctx, msg, state, header, vm.Config{})
 		if err != nil {
 			return nil, err
@@ -1457,7 +1457,7 @@ func submitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (c
 		return common.Hash{}, err
 	}
 	if tx.To() == nil {
-		signer := types.MakeSigner(b.ChainConfig(), b.CurrentBlock().Number())
+		signer := types.MakeSigner(b.ChainConfig(), b.CurrentBlock().Number(), b.CurrentBlock().Time())
 		from, err := types.Sender(signer, tx)
 		if err != nil {
 			return common.Hash{}, err
