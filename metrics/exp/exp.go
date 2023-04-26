@@ -100,6 +100,11 @@ func (exp *exp) publishCounter(name string, metric metrics.Counter) {
 	v.Set(metric.Count())
 }
 
+func (exp *exp) publishCounterFloat64(name string, metric metrics.CounterFloat64) {
+	v := exp.getFloat(name)
+	v.Set(metric.Count())
+}
+
 func (exp *exp) publishGauge(name string, metric metrics.Gauge) {
 	v := exp.getInt(name)
 	v.Set(metric.Value())
@@ -128,7 +133,7 @@ func (exp *exp) publishMeter(name string, metric metrics.Meter) {
 	exp.getInt(name + ".count").Set(m.Count())
 	exp.getFloat(name + ".one-minute").Set(m.Rate1())
 	exp.getFloat(name + ".five-minute").Set(m.Rate5())
-	exp.getFloat(name + ".fifteen-minute").Set((m.Rate15()))
+	exp.getFloat(name + ".fifteen-minute").Set(m.Rate15())
 	exp.getFloat(name + ".mean").Set(m.RateMean())
 }
 
@@ -167,6 +172,8 @@ func (exp *exp) syncToExpvar() {
 		switch i := i.(type) {
 		case metrics.Counter:
 			exp.publishCounter(name, i)
+		case metrics.CounterFloat64:
+			exp.publishCounterFloat64(name, i)
 		case metrics.Gauge:
 			exp.publishGauge(name, i)
 		case metrics.GaugeFloat64:

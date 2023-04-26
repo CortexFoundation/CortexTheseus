@@ -1,5 +1,7 @@
 package multiless
 
+import "golang.org/x/exp/constraints"
+
 type (
 	// A helper for long chains of "less-than" comparisons, where later comparisons are only
 	// required if earlier ones haven't resolved the comparison.
@@ -116,5 +118,20 @@ func (me Computation) OrderingInt() int {
 		}
 	} else {
 		return 0
+	}
+}
+
+// Applies builtin ordering if necessary. Not a method on Computation because methods can't
+// introduce new type parameters.
+func EagerOrdered[T constraints.Ordered](start Computation, l, r T) Computation {
+	if start.ok {
+		return start
+	}
+	if l == r {
+		return Computation{}
+	}
+	return Computation{
+		ok:   true,
+		less: l < r,
 	}
 }

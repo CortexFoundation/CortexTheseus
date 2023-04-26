@@ -25,7 +25,15 @@ type Msg struct {
 	E        *Error   `bencode:"e,omitempty"` // ERROR type only
 	IP       NodeAddr `bencode:"ip,omitempty"`
 	ReadOnly bool     `bencode:"ro,omitempty"` // BEP 43. Sender does not respond to queries.
+	// https://www.libtorrent.org/dht_extensions.html
+	ClientId string `bencode:"v,omitempty"`
 }
+
+const (
+	YQuery    = "q"
+	YResponse = "r"
+	YError    = "e"
+)
 
 type MsgArgs struct {
 	ID       ID `bencode:"id"`                  // ID of the querying Node
@@ -43,12 +51,14 @@ type MsgArgs struct {
 
 	// I don't know if we should use bencode.Bytes for this. If we unmarshalled bytes that didn't
 	// marshal back the same, our hashes will not match. But this might also serve to prevent abuse.
-	V    interface{} `bencode:"v,omitempty"`
-	Seq  *int64      `bencode:"seq,omitempty"`
-	Cas  int64       `bencode:"cas,omitempty"`
-	K    [32]byte    `bencode:"k,omitempty"`
-	Salt []byte      `bencode:"salt,omitempty"`
-	Sig  [64]byte    `bencode:"sig,omitempty"`
+	V interface{} `bencode:"v,omitempty"`
+	// Why is this optional? Because I think we need to know if it wasn't set rather than use a
+	// default value.
+	Seq  *int64   `bencode:"seq,omitempty"`
+	Cas  int64    `bencode:"cas,omitempty"`
+	K    [32]byte `bencode:"k,omitempty"`
+	Salt []byte   `bencode:"salt,omitempty"`
+	Sig  [64]byte `bencode:"sig,omitempty"`
 }
 
 type Want string
