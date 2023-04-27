@@ -102,8 +102,8 @@ type ProtocolManager struct {
 	networkID  uint64
 	forkFilter forkid.Filter // Fork ID filter, constant across the lifetime of the node
 
-	fastSync  uint32 // Flag whether fast sync is enabled (gets disabled if we already have blocks)
-	acceptTxs uint32 // Flag whether we're considered synchronised (enables transaction processing)
+	fastSync  atomic.Bool // Flag whether fast sync is enabled (gets disabled if we already have blocks)
+	acceptTxs atomic.Bool // Flag whether we're considered synchronised (enables transaction processing)
 
 	checkpointNumber uint64      // Block number for the sync progress validator to cross reference
 	checkpointHash   common.Hash // Block hash for the sync progress validator to cross reference
@@ -171,7 +171,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		// In these cases however it's safe to reenable fast sync.
 		fullBlock, fastBlock := blockchain.CurrentBlock(), blockchain.CurrentFastBlock()
 		if fullBlock.NumberU64() == 0 && fastBlock.NumberU64() > 0 {
-			manager.fastSync = uint32(1)
+			manager.fastSync.Store(true)
 			log.Warn("Switch sync mode from full sync to fast sync")
 		}
 	} else {
@@ -180,7 +180,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 			log.Warn("Switch sync mode from fast sync to full sync")
 		} else {
 			// If fast sync was requested and our database is empty, grant it
-			manager.fastSync = uint32(1)
+			manager.fastSync.Store(true)
 		}
 	}
 
@@ -195,7 +195,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 	}
 	// Initiate a sub-protocol for every implemented version we can handle
 	var stateBloom *trie.SyncBloom
-	if atomic.LoadUint32(&manager.fastSync) == 1 {
+	if manager.fastSync.Load() {
 		stateBloom = trie.NewSyncBloom(uint64(cacheLimit), chaindb)
 	}
 	manager.downloader = downloader.New(manager.checkpointNumber, chaindb, stateBloom, manager.eventMux, blockchain, manager.removePeer)
@@ -223,13 +223,13 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		// accept each others' blocks until a restart. Unfortunately we haven't figured
 		// out a way yet where nodes can decide unilaterally whether the network is new
 		// or not. This should be fixed if we figure out a solution.
-		if atomic.LoadUint32(&manager.fastSync) == 1 {
+		if manager.fastSync.Load() {
 			log.Warn("Fast syncing, discarded propagated block", "number", blocks[0].Number(), "hash", blocks[0].Hash())
 			return 0, nil
 		}
 		n, err := manager.blockchain.InsertChain(blocks)
 		if err == nil {
-			atomic.StoreUint32(&manager.acceptTxs, 1) // Mark initial sync done on any fetcher import
+			manager.acceptTxs.Store(true)
 		}
 		return n, err
 	}
@@ -560,7 +560,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			// If we're doing a fast sync, we must enforce the checkpoint block to avoid
 			// eclipse attacks. Unsynced nodes are welcome to connect after we're done
 			// joining the network
-			if atomic.LoadUint32(&pm.fastSync) == 1 {
+			if pm.fastSync.Load() {
 				p.Log().Warn("Dropping unsynced node during fast sync", "addr", p.RemoteAddr(), "type", p.Name())
 				return errors.New("unsynced node cannot serve fast sync")
 			}
@@ -808,7 +808,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 	case msg.Code == ctxc.NewPooledTransactionHashesMsg && p.version >= ctxc65:
 		// New transaction announcement arrived, make sure we have
 		// a valid and fresh chain to handle them
-		if atomic.LoadUint32(&pm.acceptTxs) == 0 {
+		if !pm.acceptTxs.Load() {
 			break
 		}
 		var hashes []common.Hash
@@ -859,7 +859,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 
 	case msg.Code == ctxc.TransactionMsg || (msg.Code == ctxc.PooledTransactionsMsg && p.version >= ctxc65):
 		// Transactions arrived, make sure we have a valid and fresh chain to handle them
-		if atomic.LoadUint32(&pm.acceptTxs) == 0 {
+		if !pm.acceptTxs.Load() {
 			break
 		}
 		// Transactions can be processed, parse all of them and deliver to the pool

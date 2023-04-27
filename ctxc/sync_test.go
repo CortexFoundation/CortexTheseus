@@ -17,7 +17,6 @@
 package ctxc
 
 import (
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -37,12 +36,12 @@ func testFastSyncDisabling(t *testing.T, protocol int) {
 
 	// Create a pristine protocol manager, check that fast sync is left enabled
 	pmEmpty, _ := newTestProtocolManagerMust(t, downloader.FastSync, 0, nil, nil)
-	if atomic.LoadUint32(&pmEmpty.fastSync) == 0 {
+	if !pmEmpty.fastSync.Load() {
 		t.Fatalf("fast sync disabled on pristine blockchain")
 	}
 	// Create a full protocol manager, check that fast sync gets disabled
 	pmFull, _ := newTestProtocolManagerMust(t, downloader.FastSync, 1024, nil, nil)
-	if atomic.LoadUint32(&pmFull.fastSync) == 1 {
+	if pmFull.fastSync.Load() {
 		t.Fatalf("fast sync not disabled on non-empty blockchain")
 	}
 
@@ -58,7 +57,7 @@ func testFastSyncDisabling(t *testing.T, protocol int) {
 	}
 
 	// Check that fast sync was disabled
-	if atomic.LoadUint32(&pmEmpty.fastSync) == 1 {
+	if pmEmpty.fastSync.Load() {
 		t.Fatalf("fast sync not disabled after successful synchronisation")
 	}
 }

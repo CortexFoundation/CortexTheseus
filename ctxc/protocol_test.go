@@ -19,7 +19,6 @@ package ctxc
 import (
 	"fmt"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -197,7 +196,7 @@ func TestRecvTransactions65(t *testing.T) { testRecvTransactions(t, 65) }
 func testRecvTransactions(t *testing.T, protocol int) {
 	txAdded := make(chan []*types.Transaction)
 	pm, _ := newTestProtocolManagerMust(t, downloader.FullSync, 0, nil, txAdded)
-	pm.acceptTxs = 1 // mark synced to accept transactions
+	pm.acceptTxs.Store(true)
 	p, _ := newTestPeer("peer", protocol, pm, true)
 	defer pm.Stop()
 	defer p.close()
@@ -331,7 +330,7 @@ func testSyncTransaction(t *testing.T, propagtion bool) {
 
 	time.Sleep(250 * time.Millisecond)
 	pmFetcher.doSync(peerToSyncOp(downloader.FullSync, pmFetcher.peers.BestPeer()))
-	atomic.StoreUint32(&pmFetcher.acceptTxs, 1)
+	pmFetcher.acceptTxs.Store(true)
 
 	newTxs := make(chan core.NewTxsEvent, 1024)
 	sub := pmFetcher.txpool.SubscribeNewTxsEvent(newTxs)

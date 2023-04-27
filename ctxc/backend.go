@@ -22,7 +22,6 @@ import (
 	"math/big"
 	"runtime"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/accounts"
@@ -503,7 +502,7 @@ func (s *Cortex) StartMining(threads int) error {
 		}
 		// If mining is started, we can disable the transaction rejection mechanism
 		// introduced to speed sync times.
-		atomic.StoreUint32(&s.protocolManager.acceptTxs, 1)
+		s.protocolManager.acceptTxs.Store(true)
 
 		go s.miner.Start(eb)
 	}
@@ -537,7 +536,7 @@ func (s *Cortex) IsListening() bool                  { return true } // Always l
 func (s *Cortex) CortexVersion() int                 { return int(ProtocolVersions[0]) }
 func (s *Cortex) NetVersion() uint64                 { return s.networkID }
 func (s *Cortex) Downloader() *downloader.Downloader { return s.protocolManager.downloader }
-func (s *Cortex) Synced() bool                       { return atomic.LoadUint32(&s.protocolManager.acceptTxs) == 1 }
+func (s *Cortex) Synced() bool                       { return s.protocolManager.acceptTxs.Load() }
 func (s *Cortex) ArchiveMode() bool                  { return s.config.NoPruning }
 func (s *Cortex) CheckPoint() uint64                 { return s.protocolManager.checkpointNumber }
 func (s *Cortex) CheckPointName() string             { return s.protocolManager.checkpointName }

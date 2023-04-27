@@ -19,7 +19,6 @@ package ctxc
 import (
 	"math/big"
 	"math/rand"
-	"sync/atomic"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -273,7 +272,7 @@ func peerToSyncOp(mode downloader.SyncMode, p *peer) *chainSyncOp {
 
 func (cs *chainSyncer) modeAndLocalHead() (downloader.SyncMode, *big.Int) {
 	// If we're in fast sync mode, return that directly
-	if atomic.LoadUint32(&cs.pm.fastSync) == 1 {
+	if cs.pm.fastSync.Load() {
 		block := cs.pm.blockchain.CurrentFastBlock()
 		td := cs.pm.blockchain.GetTdByHash(block.Hash())
 		return downloader.FastSync, td
@@ -324,9 +323,9 @@ func (pm *ProtocolManager) doSync(op *chainSyncOp) error {
 	if err != nil {
 		return err
 	}
-	if atomic.LoadUint32(&pm.fastSync) == 1 {
+	if pm.fastSync.Load() {
 		log.Info("Fast sync complete, auto disabling")
-		atomic.StoreUint32(&pm.fastSync, 0)
+		pm.fastSync.Store(false)
 	}
 
 	// If we've successfully finished a sync cycle and passed any required checkpoint,
@@ -336,7 +335,7 @@ func (pm *ProtocolManager) doSync(op *chainSyncOp) error {
 		// Checkpoint passed, sanity check the timestamp to have a fallback mechanism
 		// for non-checkpointed (number = 0) private networks.
 		if head.Time() >= uint64(time.Now().AddDate(0, -1, 0).Unix()) {
-			atomic.StoreUint32(&pm.acceptTxs, 1)
+			pm.acceptTxs.Store(true)
 		}
 	}
 
