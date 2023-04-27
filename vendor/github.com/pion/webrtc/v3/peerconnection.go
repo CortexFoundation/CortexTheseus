@@ -805,7 +805,7 @@ func (pc *PeerConnection) createICETransport() *ICETransport {
 }
 
 // CreateAnswer starts the PeerConnection and generates the localDescription
-func (pc *PeerConnection) CreateAnswer(options *AnswerOptions) (SessionDescription, error) {
+func (pc *PeerConnection) CreateAnswer(*AnswerOptions) (SessionDescription, error) {
 	useIdentity := pc.idpLoginURL != nil
 	remoteDesc := pc.RemoteDescription()
 	switch {
@@ -1340,6 +1340,7 @@ func (pc *PeerConnection) configureRTPReceivers(isRenegotiation bool, remoteDesc
 				continue
 			}
 
+			mid := t.Mid()
 			receiverNeedsStopped := false
 			func() {
 				for _, t := range tracks {
@@ -1347,7 +1348,7 @@ func (pc *PeerConnection) configureRTPReceivers(isRenegotiation bool, remoteDesc
 					defer t.mu.Unlock()
 
 					if t.rid != "" {
-						if details := trackDetailsForRID(incomingTracks, t.rid); details != nil {
+						if details := trackDetailsForRID(incomingTracks, mid, t.rid); details != nil {
 							t.id = details.id
 							t.streamID = details.streamID
 							continue
@@ -1485,6 +1486,8 @@ func (pc *PeerConnection) handleUndeclaredSSRC(ssrc SSRC, remoteDescription *Ses
 	onlyMediaSection := remoteDescription.parsed.MediaDescriptions[0]
 	streamID := ""
 	id := ""
+	hasRidAttribute := false
+	hasSSRCAttribute := false
 
 	for _, a := range onlyMediaSection.Attributes {
 		switch a.Key {
@@ -1494,10 +1497,16 @@ func (pc *PeerConnection) handleUndeclaredSSRC(ssrc SSRC, remoteDescription *Ses
 				id = split[1]
 			}
 		case sdp.AttrKeySSRC:
-			return false, errPeerConnSingleMediaSectionHasExplicitSSRC
+			hasSSRCAttribute = true
 		case sdpAttributeRid:
-			return false, nil
+			hasRidAttribute = true
 		}
+	}
+
+	if hasRidAttribute {
+		return false, nil
+	} else if hasSSRCAttribute {
+		return false, errPeerConnSingleMediaSectionHasExplicitSSRC
 	}
 
 	incoming := trackDetails{
@@ -1514,6 +1523,7 @@ func (pc *PeerConnection) handleUndeclaredSSRC(ssrc SSRC, remoteDescription *Ses
 		Direction: RTPTransceiverDirectionSendrecv,
 	})
 	if err != nil {
+		// nolint
 		return false, fmt.Errorf("%w: %d: %s", errPeerConnRemoteSSRCAddTransceiver, ssrc, err)
 	}
 
@@ -2011,7 +2021,7 @@ func (pc *PeerConnection) CreateDataChannel(label string, options *DataChannelIn
 }
 
 // SetIdentityProvider is used to configure an identity provider to generate identity assertions
-func (pc *PeerConnection) SetIdentityProvider(provider string) error {
+func (pc *PeerConnection) SetIdentityProvider(string) error {
 	return errPeerConnSetIdentityProviderNotImplemented
 }
 

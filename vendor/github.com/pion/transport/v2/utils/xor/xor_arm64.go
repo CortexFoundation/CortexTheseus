@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build !gccgo
+// +build !gccgo
+
 // Package xor provides utility functions used by other Pion
 // packages. ARM64 arch.
 package xor

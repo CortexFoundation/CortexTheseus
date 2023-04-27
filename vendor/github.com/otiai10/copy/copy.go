@@ -15,20 +15,20 @@ type timespec struct {
 }
 
 // Copy copies src to dest, doesn't matter if src is a directory or a file.
-func Copy(src, dest string, opt ...Options) error {
+func Copy(src, dest string, opts ...Options) error {
+	opt := assureOptions(src, dest, opts...)
 	info, err := os.Lstat(src)
 	if err != nil {
-		return err
+		return onError(src, dest, err, opt)
 	}
-	return switchboard(src, dest, info, assureOptions(src, dest, opt...))
+	return switchboard(src, dest, info, opt)
 }
 
 // switchboard switches proper copy functions regarding file type, etc...
 // If there would be anything else here, add a case to this switchboard.
 func switchboard(src, dest string, info os.FileInfo, opt Options) (err error) {
-
 	if info.Mode()&os.ModeDevice != 0 && !opt.Specials {
-		return err
+		return onError(src, dest, err, opt)
 	}
 
 	switch {
@@ -42,7 +42,7 @@ func switchboard(src, dest string, info os.FileInfo, opt Options) (err error) {
 		err = fcopy(src, dest, info, opt)
 	}
 
-	return err
+	return onError(src, dest, err, opt)
 }
 
 // copyNextOrSkip decide if this src should be copied or not.
@@ -65,6 +65,14 @@ func copyNextOrSkip(src, dest string, info os.FileInfo, opt Options) error {
 // with considering existence of parent directory
 // and file permission.
 func fcopy(src, dest string, info os.FileInfo, opt Options) (err error) {
+	s, err := os.Open(src)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return
+	}
+	defer fclose(s, &err)
 
 	if err = os.MkdirAll(filepath.Dir(dest), os.ModePerm); err != nil {
 		return
@@ -81,12 +89,6 @@ func fcopy(src, dest string, info os.FileInfo, opt Options) (err error) {
 		return err
 	}
 	chmodfunc(&err)
-
-	s, err := os.Open(src)
-	if err != nil {
-		return
-	}
-	defer fclose(s, &err)
 
 	var buf []byte = nil
 	var w io.Writer = f
@@ -130,7 +132,6 @@ func fcopy(src, dest string, info os.FileInfo, opt Options) (err error) {
 // with scanning contents inside the directory
 // and pass everything to "copy" recursively.
 func dcopy(srcdir, destdir string, info os.FileInfo, opt Options) (err error) {
-
 	if skip, err := onDirExists(opt, srcdir, destdir); err != nil {
 		return err
 	} else if skip {
@@ -146,6 +147,9 @@ func dcopy(srcdir, destdir string, info os.FileInfo, opt Options) (err error) {
 
 	contents, err := ioutil.ReadDir(srcdir)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
 		return
 	}
 
@@ -222,6 +226,9 @@ func onsymlink(src, dest string, opt Options) error {
 func lcopy(src, dest string) error {
 	src, err := os.Readlink(src)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
 		return err
 	}
 	return os.Symlink(src, dest)
@@ -234,4 +241,14 @@ func fclose(f *os.File, reported *error) {
 	if err := f.Close(); *reported == nil {
 		*reported = err
 	}
+}
+
+// onError lets caller to handle errors
+// occured when copying a file.
+func onError(src, dest string, err error, opt Options) error {
+	if opt.OnError == nil {
+		return err
+	}
+
+	return opt.OnError(src, dest, err)
 }

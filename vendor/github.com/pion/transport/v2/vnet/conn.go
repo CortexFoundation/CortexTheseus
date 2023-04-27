@@ -125,7 +125,7 @@ func (c *UDPConn) SetReadDeadline(t time.Time) error {
 // Even if write times out, it may return n > 0, indicating that
 // some of the data was successfully written.
 // A zero value for t means WriteTo will not time out.
-func (c *UDPConn) SetWriteDeadline(t time.Time) error {
+func (c *UDPConn) SetWriteDeadline(time.Time) error {
 	// Write never blocks.
 	return nil
 }
@@ -207,7 +207,7 @@ func (c *UDPConn) ReadFromUDP(b []byte) (int, *net.UDPAddr, error) {
 //
 // The packages golang.org/x/net/ipv4 and golang.org/x/net/ipv6 can be
 // used to manipulate IP-level socket options in oob.
-func (c *UDPConn) ReadMsgUDP(b, oob []byte) (n, oobn, flags int, addr *net.UDPAddr, err error) {
+func (c *UDPConn) ReadMsgUDP([]byte, []byte) (n, oobn, flags int, addr *net.UDPAddr, err error) {
 	return -1, -1, -1, nil, transport.ErrNotSupported
 }
 
@@ -264,19 +264,19 @@ func (c *UDPConn) WriteToUDP(b []byte, addr *net.UDPAddr) (int, error) {
 //
 // The packages golang.org/x/net/ipv4 and golang.org/x/net/ipv6 can be
 // used to manipulate IP-level socket options in oob.
-func (c *UDPConn) WriteMsgUDP(b, oob []byte, addr *net.UDPAddr) (n, oobn int, err error) {
+func (c *UDPConn) WriteMsgUDP([]byte, []byte, *net.UDPAddr) (n, oobn int, err error) {
 	return -1, -1, transport.ErrNotSupported
 }
 
 // SetReadBuffer sets the size of the operating system's
 // receive buffer associated with the connection.
-func (c *UDPConn) SetReadBuffer(bytes int) error {
+func (c *UDPConn) SetReadBuffer(int) error {
 	return transport.ErrNotSupported
 }
 
 // SetWriteBuffer sets the size of the operating system's
 // transmit buffer associated with the connection.
-func (c *UDPConn) SetWriteBuffer(bytes int) error {
+func (c *UDPConn) SetWriteBuffer(int) error {
 	return transport.ErrNotSupported
 }
 

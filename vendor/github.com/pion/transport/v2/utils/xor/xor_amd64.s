@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// go:build !gccgo
+// +build !gccgo
+
 #include "textflag.h"
 
 // func xorBytesSSE2(dst, a, b *byte, n int)

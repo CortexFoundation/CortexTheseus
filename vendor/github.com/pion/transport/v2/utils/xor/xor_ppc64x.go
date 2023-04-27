@@ -2,7 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build ppc64 || ppc64le
+//go:build (ppc64 && !gccgo) || (ppc64le && !gccgo)
+// +build ppc64,!gccgo ppc64le,!gccgo
 
 // Package xor provides utility functions used by other Pion
 // packages. PPC64 arch.
@@ -10,6 +11,7 @@ package xor
 
 // XorBytes xors the bytes in a and b. The destination should have enough
 // space, otherwise xorBytes will panic. Returns the number of bytes xor'd.
+//
 //revive:disable-next-line
 func XorBytes(dst, a, b []byte) int {
 	n := len(a)
