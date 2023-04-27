@@ -597,10 +597,17 @@ func (pool *TxPool) validateTxBasics(tx *types.Transaction, local bool) error {
 		return ErrUnderpriced
 	}
 	// Ensure the transaction has more gas than the basic tx fee.
-	intrGas, err := core.IntrinsicGas(tx.Data(), tx.To() == nil, tx != nil && tx.To() != nil && tx.Value().Sign() == 0 && pool.currentState.Uploading(*tx.To()), true, pool.istanbul.Load())
+	var uploading bool = false
+	if tx != nil && tx.To() != nil && tx.Value().Sign() == 0 {
+		pool.mu.Lock()
+		uploading = pool.currentState.Uploading(*tx.To())
+		pool.mu.Unlock()
+	}
+	intrGas, err := core.IntrinsicGas(tx.Data(), tx.To() == nil, uploading, true, pool.istanbul.Load())
 	if err != nil {
 		return err
 	}
+
 	if tx.Gas() < intrGas {
 		return core.ErrIntrinsicGas
 	}
