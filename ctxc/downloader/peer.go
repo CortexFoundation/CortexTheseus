@@ -49,10 +49,10 @@ var (
 type peerConnection struct {
 	id string // Unique identifier of the peer
 
-	headerIdle  int32 // Current header activity state of the peer (idle = 0, active = 1)
-	blockIdle   int32 // Current block activity state of the peer (idle = 0, active = 1)
-	receiptIdle int32 // Current receipt activity state of the peer (idle = 0, active = 1)
-	stateIdle   int32 // Current node data activity state of the peer (idle = 0, active = 1)
+	headerIdle  atomic.Bool // Current header activity state of the peer (idle = 0, active = 1)
+	blockIdle   atomic.Bool // Current block activity state of the peer (idle = 0, active = 1)
+	receiptIdle atomic.Bool // Current receipt activity state of the peer (idle = 0, active = 1)
+	stateIdle   atomic.Bool // Current node data activity state of the peer (idle = 0, active = 1)
 
 	headerStarted  time.Time // Time instance when the last header fetch was started
 	blockStarted   time.Time // Time instance when the last block (body) fetch was started
@@ -96,10 +96,10 @@ func (p *peerConnection) Reset() {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
-	atomic.StoreInt32(&p.headerIdle, 0)
-	atomic.StoreInt32(&p.blockIdle, 0)
-	atomic.StoreInt32(&p.receiptIdle, 0)
-	atomic.StoreInt32(&p.stateIdle, 0)
+	p.headerIdle.Store(false)
+	p.blockIdle.Store(false)
+	p.receiptIdle.Store(false)
+	p.stateIdle.Store(false)
 
 	p.lacking = make(map[common.Hash]struct{})
 }
@@ -111,7 +111,7 @@ func (p *peerConnection) FetchHeaders(from uint64, count int) error {
 		panic(fmt.Sprintf("header fetch [ctxc/62+] requested on ctxc/%d", p.version))
 	}
 	// Short circuit if the peer is already fetching
-	if !atomic.CompareAndSwapInt32(&p.headerIdle, 0, 1) {
+	if !p.headerIdle.CompareAndSwap(false, true) {
 		return errAlreadyFetching
 	}
 	p.headerStarted = time.Now()
@@ -129,7 +129,7 @@ func (p *peerConnection) FetchBodies(request *fetchRequest) error {
 		panic(fmt.Sprintf("body fetch [ctxc/62+] requested on ctxc/%d", p.version))
 	}
 	// Short circuit if the peer is already fetching
-	if !atomic.CompareAndSwapInt32(&p.blockIdle, 0, 1) {
+	if !p.blockIdle.CompareAndSwap(false, true) {
 		return errAlreadyFetching
 	}
 	p.blockStarted = time.Now()
@@ -153,7 +153,7 @@ func (p *peerConnection) FetchReceipts(request *fetchRequest) error {
 		panic(fmt.Sprintf("body fetch [ctxc/63+] requested on ctxc/%d", p.version))
 	}
 	// Short circuit if the peer is already fetching
-	if !atomic.CompareAndSwapInt32(&p.receiptIdle, 0, 1) {
+	if !p.receiptIdle.CompareAndSwap(false, true) {
 		return errAlreadyFetching
 	}
 	p.receiptStarted = time.Now()
@@ -177,7 +177,7 @@ func (p *peerConnection) FetchNodeData(hashes []common.Hash) error {
 		panic(fmt.Sprintf("node data fetch [ctxc/63+] requested on ctxc/%d", p.version))
 	}
 	// Short circuit if the peer is already fetching
-	if !atomic.CompareAndSwapInt32(&p.stateIdle, 0, 1) {
+	if !p.stateIdle.CompareAndSwap(false, true) {
 		return errAlreadyFetching
 	}
 	p.stateStarted = time.Now()
@@ -192,7 +192,7 @@ func (p *peerConnection) FetchNodeData(hashes []common.Hash) error {
 // just now.
 func (p *peerConnection) SetHeadersIdle(delivered int, deliveryTime time.Time) {
 	p.rates.Update(ctxc.BlockHeadersMsg, deliveryTime.Sub(p.headerStarted), delivered)
-	atomic.StoreInt32(&p.headerIdle, 0)
+	p.headerIdle.Store(false)
 }
 
 // SetBlocksIdle sets the peer to idle, allowing it to execute new block retrieval
@@ -207,7 +207,7 @@ func (p *peerConnection) SetHeadersIdle(delivered int, deliveryTime time.Time) {
 // just now.
 func (p *peerConnection) SetBodiesIdle(delivered int, deliveryTime time.Time) {
 	p.rates.Update(ctxc.BlockBodiesMsg, deliveryTime.Sub(p.blockStarted), delivered)
-	atomic.StoreInt32(&p.blockIdle, 0)
+	p.blockIdle.Store(false)
 }
 
 // SetReceiptsIdle sets the peer to idle, allowing it to execute new receipt
@@ -215,7 +215,7 @@ func (p *peerConnection) SetBodiesIdle(delivered int, deliveryTime time.Time) {
 // with that measured just now.
 func (p *peerConnection) SetReceiptsIdle(delivered int, deliveryTime time.Time) {
 	p.rates.Update(ctxc.ReceiptsMsg, deliveryTime.Sub(p.receiptStarted), delivered)
-	atomic.StoreInt32(&p.receiptIdle, 0)
+	p.receiptIdle.Store(false)
 }
 
 // SetNodeDataIdle sets the peer to idle, allowing it to execute new state trie
@@ -223,7 +223,7 @@ func (p *peerConnection) SetReceiptsIdle(delivered int, deliveryTime time.Time) 
 // with that measured just now.
 func (p *peerConnection) SetNodeDataIdle(delivered int, deliveryTime time.Time) {
 	p.rates.Update(ctxc.NodeDataMsg, deliveryTime.Sub(p.stateStarted), delivered)
-	atomic.StoreInt32(&p.stateIdle, 0)
+	p.stateIdle.Store(false)
 }
 
 // HeaderCapacity retrieves the peers header download allowance based on its
@@ -405,7 +405,7 @@ func (ps *peerSet) AllPeers() []*peerConnection {
 // within the active peer set, ordered by their reputation.
 func (ps *peerSet) HeaderIdlePeers() ([]*peerConnection, int) {
 	idle := func(p *peerConnection) bool {
-		return atomic.LoadInt32(&p.headerIdle) == 0
+		return !p.headerIdle.Load()
 	}
 	throughput := func(p *peerConnection) int {
 		return p.rates.Capacity(ctxc.BlockHeadersMsg, time.Second)
@@ -417,7 +417,7 @@ func (ps *peerSet) HeaderIdlePeers() ([]*peerConnection, int) {
 // the active peer set, ordered by their reputation.
 func (ps *peerSet) BodyIdlePeers() ([]*peerConnection, int) {
 	idle := func(p *peerConnection) bool {
-		return atomic.LoadInt32(&p.blockIdle) == 0
+		return !p.blockIdle.Load()
 	}
 	throughput := func(p *peerConnection) int {
 		return p.rates.Capacity(ctxc.BlockBodiesMsg, time.Second)
@@ -429,7 +429,7 @@ func (ps *peerSet) BodyIdlePeers() ([]*peerConnection, int) {
 // within the active peer set, ordered by their reputation.
 func (ps *peerSet) ReceiptIdlePeers() ([]*peerConnection, int) {
 	idle := func(p *peerConnection) bool {
-		return atomic.LoadInt32(&p.receiptIdle) == 0
+		return !p.receiptIdle.Load()
 	}
 	throughput := func(p *peerConnection) int {
 		return p.rates.Capacity(ctxc.NodeDataMsg, time.Second)
@@ -441,7 +441,7 @@ func (ps *peerSet) ReceiptIdlePeers() ([]*peerConnection, int) {
 // peers within the active peer set, ordered by their reputation.
 func (ps *peerSet) NodeDataIdlePeers() ([]*peerConnection, int) {
 	idle := func(p *peerConnection) bool {
-		return atomic.LoadInt32(&p.stateIdle) == 0
+		return !p.stateIdle.Load()
 	}
 	throughput := func(p *peerConnection) int {
 		return p.rates.Capacity(ctxc.NodeDataMsg, time.Second)
