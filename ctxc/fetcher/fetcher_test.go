@@ -277,6 +277,7 @@ func verifyImportDone(t *testing.T, imported chan *types.Block) {
 func TestSequentialAnnouncements62(t *testing.T) { testSequentialAnnouncements(t, 62) }
 func TestSequentialAnnouncements63(t *testing.T) { testSequentialAnnouncements(t, 63) }
 func TestSequentialAnnouncements64(t *testing.T) { testSequentialAnnouncements(t, 64) }
+func TestSequentialAnnouncements65(t *testing.T) { testSequentialAnnouncements(t, 65) }
 
 func testSequentialAnnouncements(t *testing.T, protocol int) {
 	// Create a chain of blocks to import
@@ -303,6 +304,7 @@ func testSequentialAnnouncements(t *testing.T, protocol int) {
 func TestConcurrentAnnouncements62(t *testing.T) { testConcurrentAnnouncements(t, 62) }
 func TestConcurrentAnnouncements63(t *testing.T) { testConcurrentAnnouncements(t, 63) }
 func TestConcurrentAnnouncements64(t *testing.T) { testConcurrentAnnouncements(t, 64) }
+func TestConcurrentAnnouncements65(t *testing.T) { testConcurrentAnnouncements(t, 65) }
 
 func testConcurrentAnnouncements(t *testing.T, protocol int) {
 	// Create a chain of blocks to import
@@ -348,6 +350,7 @@ func testConcurrentAnnouncements(t *testing.T, protocol int) {
 func TestOverlappingAnnouncements62(t *testing.T) { testOverlappingAnnouncements(t, 62) }
 func TestOverlappingAnnouncements63(t *testing.T) { testOverlappingAnnouncements(t, 63) }
 func TestOverlappingAnnouncements64(t *testing.T) { testOverlappingAnnouncements(t, 64) }
+func TestOverlappingAnnouncements65(t *testing.T) { testOverlappingAnnouncements(t, 65) }
 
 func testOverlappingAnnouncements(t *testing.T, protocol int) {
 	// Create a chain of blocks to import
@@ -382,6 +385,7 @@ func testOverlappingAnnouncements(t *testing.T, protocol int) {
 func TestPendingDeduplication62(t *testing.T) { testPendingDeduplication(t, 62) }
 func TestPendingDeduplication63(t *testing.T) { testPendingDeduplication(t, 63) }
 func TestPendingDeduplication64(t *testing.T) { testPendingDeduplication(t, 64) }
+func TestPendingDeduplication65(t *testing.T) { testPendingDeduplication(t, 65) }
 
 func testPendingDeduplication(t *testing.T, protocol int) {
 	// Create a hash and corresponding block
@@ -425,6 +429,7 @@ func testPendingDeduplication(t *testing.T, protocol int) {
 func TestRandomArrivalImport62(t *testing.T) { testRandomArrivalImport(t, 62) }
 func TestRandomArrivalImport63(t *testing.T) { testRandomArrivalImport(t, 63) }
 func TestRandomArrivalImport64(t *testing.T) { testRandomArrivalImport(t, 64) }
+func TestRandomArrivalImport65(t *testing.T) { testRandomArrivalImport(t, 65) }
 
 func testRandomArrivalImport(t *testing.T, protocol int) {
 	// Create a chain of blocks to import, and choose one to delay
@@ -456,6 +461,7 @@ func testRandomArrivalImport(t *testing.T, protocol int) {
 func TestQueueGapFill62(t *testing.T) { testQueueGapFill(t, 62) }
 func TestQueueGapFill63(t *testing.T) { testQueueGapFill(t, 63) }
 func TestQueueGapFill64(t *testing.T) { testQueueGapFill(t, 64) }
+func TestQueueGapFill65(t *testing.T) { testQueueGapFill(t, 65) }
 
 func testQueueGapFill(t *testing.T, protocol int) {
 	// Create a chain of blocks to import, and choose one to not announce at all
@@ -487,6 +493,7 @@ func testQueueGapFill(t *testing.T, protocol int) {
 func TestImportDeduplication62(t *testing.T) { testImportDeduplication(t, 62) }
 func TestImportDeduplication63(t *testing.T) { testImportDeduplication(t, 63) }
 func TestImportDeduplication64(t *testing.T) { testImportDeduplication(t, 64) }
+func TestImportDeduplication65(t *testing.T) { testImportDeduplication(t, 65) }
 
 func testImportDeduplication(t *testing.T, protocol int) {
 	// Create two blocks to import (one for duplication, the other for stalling)
@@ -562,6 +569,7 @@ func TestDistantPropagationDiscarding(t *testing.T) {
 func TestDistantAnnouncementDiscarding62(t *testing.T) { testDistantAnnouncementDiscarding(t, 62) }
 func TestDistantAnnouncementDiscarding63(t *testing.T) { testDistantAnnouncementDiscarding(t, 63) }
 func TestDistantAnnouncementDiscarding64(t *testing.T) { testDistantAnnouncementDiscarding(t, 64) }
+func TestDistantAnnouncementDiscarding65(t *testing.T) { testDistantAnnouncementDiscarding(t, 65) }
 
 func testDistantAnnouncementDiscarding(t *testing.T, protocol int) {
 	// Create a long chain to import and define the discard boundaries
@@ -605,6 +613,7 @@ func testDistantAnnouncementDiscarding(t *testing.T, protocol int) {
 func TestInvalidNumberAnnouncement62(t *testing.T) { testInvalidNumberAnnouncement(t, 62) }
 func TestInvalidNumberAnnouncement63(t *testing.T) { testInvalidNumberAnnouncement(t, 63) }
 func TestInvalidNumberAnnouncement64(t *testing.T) { testInvalidNumberAnnouncement(t, 64) }
+func TestInvalidNumberAnnouncement65(t *testing.T) { testInvalidNumberAnnouncement(t, 65) }
 
 func testInvalidNumberAnnouncement(t *testing.T, protocol int) {
 	// Create a single block to import and check numbers against
@@ -650,6 +659,7 @@ func testInvalidNumberAnnouncement(t *testing.T, protocol int) {
 func TestEmptyBlockShortCircuit62(t *testing.T) { testEmptyBlockShortCircuit(t, 62) }
 func TestEmptyBlockShortCircuit63(t *testing.T) { testEmptyBlockShortCircuit(t, 63) }
 func TestEmptyBlockShortCircuit64(t *testing.T) { testEmptyBlockShortCircuit(t, 64) }
+func TestEmptyBlockShortCircuit65(t *testing.T) { testEmptyBlockShortCircuit(t, 65) }
 
 func testEmptyBlockShortCircuit(t *testing.T, protocol int) {
 	// Create a chain of blocks to import
@@ -691,6 +701,7 @@ func testEmptyBlockShortCircuit(t *testing.T, protocol int) {
 func TestHashMemoryExhaustionAttack62(t *testing.T) { testHashMemoryExhaustionAttack(t, 62) }
 func TestHashMemoryExhaustionAttack63(t *testing.T) { testHashMemoryExhaustionAttack(t, 63) }
 func TestHashMemoryExhaustionAttack64(t *testing.T) { testHashMemoryExhaustionAttack(t, 64) }
+func TestHashMemoryExhaustionAttack65(t *testing.T) { testHashMemoryExhaustionAttack(t, 65) }
 
 func testHashMemoryExhaustionAttack(t *testing.T, protocol int) {
 	// Create a tester with instrumented import hooks
