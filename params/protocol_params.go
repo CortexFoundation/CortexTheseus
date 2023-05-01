@@ -196,7 +196,7 @@ const (
 	SeedingBlks = 6   // TESTING: for torrent seed spreading
 	MatureBlks  = 100 // Blocks between model uploading tx and model ready for use.
 	// For the full node to synchronize the models
-	BernardMatureBlks = 10                  // TESTING: For the full node to synchronize the models, in dolores testnet
+	BernardMatureBlks = 10                  // TESTING: For the full node to synchronize the models, in bernard testnet
 	DoloresMatureBlks = 1                   // TESTING: For the full node to synchronize the models, in dolores testnet
 	ExpiredBlks       = 1000000000000000000 // TESTING: Model expire blocks. Not effective. 8409600
 

@@ -8,11 +8,14 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"sort"
+	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/cockroachdb/pebble/internal/base"
+	"github.com/cockroachdb/pebble/internal/invariants"
 )
 
 // TODO(peter): describe the MANIFEST file format, independently of the C++
@@ -394,6 +397,48 @@ func (v *VersionEdit) Decode(r io.Reader) error {
 		}
 	}
 	return nil
+}
+
+// String implements fmt.Stringer for a VersionEdit.
+func (v *VersionEdit) String() string {
+	var buf bytes.Buffer
+	if v.ComparerName != "" {
+		fmt.Fprintf(&buf, "  comparer:     %s", v.ComparerName)
+	}
+	if v.MinUnflushedLogNum != 0 {
+		fmt.Fprintf(&buf, "  log-num:       %d\n", v.MinUnflushedLogNum)
+	}
+	if v.ObsoletePrevLogNum != 0 {
+		fmt.Fprintf(&buf, "  prev-log-num:  %d\n", v.ObsoletePrevLogNum)
+	}
+	if v.NextFileNum != 0 {
+		fmt.Fprintf(&buf, "  next-file-num: %d\n", v.NextFileNum)
+	}
+	if v.LastSeqNum != 0 {
+		fmt.Fprintf(&buf, "  last-seq-num:  %d\n", v.LastSeqNum)
+	}
+	entries := make([]DeletedFileEntry, 0, len(v.DeletedFiles))
+	for df := range v.DeletedFiles {
+		entries = append(entries, df)
+	}
+	sort.Slice(entries, func(i, j int) bool {
+		if entries[i].Level != entries[j].Level {
+			return entries[i].Level < entries[j].Level
+		}
+		return entries[i].FileNum < entries[j].FileNum
+	})
+	for _, df := range entries {
+		fmt.Fprintf(&buf, "  deleted:       L%d %s\n", df.Level, df.FileNum)
+	}
+	for _, nf := range v.NewFiles {
+		fmt.Fprintf(&buf, "  added:         L%d %s", nf.Level, nf.Meta.String())
+		if nf.Meta.CreationTime != 0 {
+			fmt.Fprintf(&buf, " (%s)",
+				time.Unix(nf.Meta.CreationTime, 0).UTC().Format(time.RFC3339))
+		}
+		fmt.Fprintln(&buf)
+	}
+	return buf.String()
 }
 
 // Encode encodes an edit to the specified writer.
@@ -922,6 +967,16 @@ func (b *BulkVersionEdit) Apply(
 				v.L0Sublevels, err = curr.L0Sublevels.AddL0Files(addedFiles, flushSplitBytes, &v.Levels[0])
 				if errors.Is(err, errInvalidL0SublevelsOpt) {
 					err = v.InitL0Sublevels(cmp, formatKey, flushSplitBytes)
+				} else if invariants.Enabled && err == nil {
+					copyOfSublevels, err := NewL0Sublevels(&v.Levels[0], cmp, formatKey, flushSplitBytes)
+					if err != nil {
+						panic(fmt.Sprintf("error when regenerating sublevels: %s", err))
+					}
+					s1 := describeSublevels(base.DefaultFormatter, false /* verbose */, copyOfSublevels.Levels)
+					s2 := describeSublevels(base.DefaultFormatter, false /* verbose */, v.L0Sublevels.Levels)
+					if s1 != s2 {
+						panic(fmt.Sprintf("incremental L0 sublevel generation produced different output than regeneration: %s != %s", s1, s2))
+					}
 				}
 				if err != nil {
 					return nil, errors.Wrap(err, "pebble: internal error")
