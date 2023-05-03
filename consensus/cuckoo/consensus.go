@@ -883,7 +883,6 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 		//}
 
 		if len(uncles) > 0 {
-
 			for _, uncle := range uncles {
 				r.Add(uncle.Number, big8)
 				r.Sub(r, header.Number)

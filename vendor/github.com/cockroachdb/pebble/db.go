@@ -264,7 +264,7 @@ type DB struct {
 	// objProvider is used to access and manage SSTs.
 	objProvider objstorage.Provider
 
-	fileLock io.Closer
+	fileLock *Lock
 	dataDir  vfs.File
 	walDir   vfs.File
 
@@ -369,9 +369,6 @@ type DB struct {
 		}
 
 		mem struct {
-			// Condition variable used to serialize memtable switching. See
-			// DB.makeRoomForWrite().
-			cond sync.Cond
 			// The current mutable memTable.
 			mutable *memTable
 			// Queue of flushables (the mutable memtable is at end). Elements are
@@ -2265,7 +2262,6 @@ func (d *DB) recycleWAL() (newLogNum FileNum, prevLogSize uint64) {
 	})
 
 	d.mu.Lock()
-	d.mu.mem.cond.Broadcast()
 
 	d.mu.versions.metrics.WAL.Files++
 
@@ -2359,4 +2355,10 @@ func (d *DB) SetCreatorID(creatorID uint64) error {
 		return nil
 	}
 	return d.objProvider.SetCreatorID(objstorage.CreatorID(creatorID))
+}
+
+// ObjProvider returns the objstorage.Provider for this database. Meant to be
+// used for internal purposes only.
+func (d *DB) ObjProvider() objstorage.Provider {
+	return d.objProvider
 }
