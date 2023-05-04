@@ -19,7 +19,6 @@ package core
 
 import (
 	"context"
-	"sync"
 
 	"github.com/CortexFoundation/CortexTheseus/internal/ctxcapi"
 	"github.com/CortexFoundation/CortexTheseus/log"
@@ -27,8 +26,7 @@ import (
 )
 
 type StdIOUI struct {
-	client rpc.Client
-	mu     sync.Mutex
+	client *rpc.Client
 }
 
 func NewStdIOUI() *StdIOUI {
@@ -37,7 +35,8 @@ func NewStdIOUI() *StdIOUI {
 	if err != nil {
 		log.Crit("Could not create stdio client", "err", err)
 	}
-	return &StdIOUI{client: *client}
+	ui := &StdIOUI{client: client}
+	return ui
 }
 
 // dispatch sends a request over the stdio
