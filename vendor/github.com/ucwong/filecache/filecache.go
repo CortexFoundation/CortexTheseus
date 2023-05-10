@@ -408,34 +408,38 @@ func (cache *FileCache) Remove(name string) (ok bool, err error) {
 	return
 }
 
-// MostAccessed returns the most accessed items in this cache cache
+// MostAccessed returns a slice of the "count" most frequently accessed cache items.
+// The cache mutex is locked while this method executes.
 func (cache *FileCache) MostAccessed(count int64) []*cacheItem {
-	cache.mutex.RLock()
-	defer cache.mutex.RUnlock()
+	cache.mutex.RLock()         // Lock the cache mutex to prevent other goroutines from accessing the cache while this method executes.
+	defer cache.mutex.RUnlock() // Unlock the cache mutex when this method returns (even in the case of an error).
 
 	var (
-		p = make(CacheItemPairList, len(cache.items))
-		i = 0
-		r []*cacheItem
-		c = int64(0)
+		p = make(CacheItemPairList, len(cache.items)) // Create a slice of CacheItemPairs to hold the cache items and their access counts.
+		i = 0                                         // Counter variable for populating the CacheItemPairList.
+		r []*cacheItem                                // Create a slice to hold the "count" most frequently accessed cache items.
+		c = int64(0)                                  // Counter variable for determining when "count" most frequently accessed cache items have been found.
 	)
 
+	// Populate the CacheItemPairList with the cache items and their access counts.
 	for k, v := range cache.items {
 		p[i] = CacheItemPair{k, v.AccessCount}
 		i++
 	}
-	sort.Sort(p)
+	sort.Sort(p) // Sort the CacheItemPairList by access count in ascending order.
 
+	// Add the "count" most frequently accessed cache items to the return slice.
 	for _, v := range p {
-		if c >= count {
+		if c >= count { // If we've already added the "count" most frequently accessed cache items, exit the loop.
 			break
 		}
 
+		// Check that the cache item exists and is not nil, and add it to the return slice.
 		if item, ok := cache.items[v.Key]; ok && item != nil {
 			r = append(r, item)
 		}
-		c++
+		c++ // Increment the counter for the number of items added to the return slice.
 	}
 
-	return r
+	return r // Return the slice of the "count" most frequently accessed cache items.
 }
