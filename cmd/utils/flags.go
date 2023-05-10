@@ -41,6 +41,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/txpool"
+	"github.com/CortexFoundation/CortexTheseus/crypto/kzg4844"
 	//"github.com/CortexFoundation/CortexTheseus/ctxc/tracers"
 	whisper "github.com/CortexFoundation/CortexTheseus/whisper/whisperv6"
 	gopsutil "github.com/shirou/gopsutil/mem"
@@ -429,6 +430,11 @@ var (
 		Usage: "Number of trie node generations to keep in memory",
 		//Value: int(state.MaxTrieCacheGen),
 		Value: 0,
+	}
+	CryptoKZGFlag = &cli.StringFlag{
+		Name:  "crypto.kzg",
+		Usage: "KZG library implementation to use; gokzg (recommended) or ckzg",
+		Value: "gokzg",
 	}
 	// Miner settings
 	MiningEnabledFlag = cli.BoolFlag{
@@ -1667,9 +1673,17 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 			setDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
 		}
 	}
-	// TODO(fjl): move trie cache generations into config
 	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {
 		//state.MaxTrieCacheGen = uint16(gen)
+	}
+
+	// Set any dangling config values
+	if ctx.String(CryptoKZGFlag.Name) != "gokzg" && ctx.String(CryptoKZGFlag.Name) != "ckzg" {
+		Fatalf("--%s flag must be 'gokzg' or 'ckzg'", CryptoKZGFlag.Name)
+	}
+	log.Info("Initializing the KZG library", "backend", ctx.String(CryptoKZGFlag.Name))
+	if err := kzg4844.UseCKZG(ctx.String(CryptoKZGFlag.Name) == "ckzg"); err != nil {
+		Fatalf("Failed to set KZG library implementation to %s: %v", ctx.String(CryptoKZGFlag.Name), err)
 	}
 }
 
