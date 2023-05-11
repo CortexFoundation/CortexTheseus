@@ -3,7 +3,6 @@ package torrent
 import (
 	"net"
 	"sync"
-	"time"
 
 	"github.com/anacrolix/dht/v2/krpc"
 
@@ -145,8 +144,8 @@ func (me *pexMsgFactory) append(event pexEvent) {
 	}
 }
 
-func (me *pexMsgFactory) PexMsg() pp.PexMsg {
-	return me.msg
+func (me *pexMsgFactory) PexMsg() *pp.PexMsg {
+	return &me.msg
 }
 
 // Convert an arbitrary torrent peer Addr into one that can be represented by the compact addr
@@ -162,7 +161,6 @@ type pexState struct {
 	sync.RWMutex
 	tail *pexEvent     // event feed list
 	hold []pexEvent    // delayed drops
-	rest time.Time     // cooldown deadline on inbound
 	nc   int           // net number of alive conns
 	msg0 pexMsgFactory // initial message
 }
@@ -174,7 +172,6 @@ func (s *pexState) Reset() {
 	s.tail = nil
 	s.hold = nil
 	s.nc = 0
-	s.rest = time.Time{}
 	s.msg0 = pexMsgFactory{}
 }
 
@@ -225,7 +222,7 @@ func (s *pexState) Genmsg(start *pexEvent) (pp.PexMsg, *pexEvent) {
 	s.RLock()
 	defer s.RUnlock()
 	if start == nil {
-		return s.msg0.PexMsg(), s.tail
+		return *s.msg0.PexMsg(), s.tail
 	}
 	var msg pexMsgFactory
 	last := start
@@ -236,5 +233,18 @@ func (s *pexState) Genmsg(start *pexEvent) (pp.PexMsg, *pexEvent) {
 		msg.append(*e)
 		last = e
 	}
-	return msg.PexMsg(), last
+	return *msg.PexMsg(), last
+}
+
+// The same as Genmsg but just counts up the distinct events that haven't been sent.
+func (s *pexState) numPending(start *pexEvent) (num int) {
+	s.RLock()
+	defer s.RUnlock()
+	if start == nil {
+		return s.msg0.PexMsg().Len()
+	}
+	for e := start.next; e != nil; e = e.next {
+		num++
+	}
+	return
 }

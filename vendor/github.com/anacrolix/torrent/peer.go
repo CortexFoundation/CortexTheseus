@@ -21,7 +21,7 @@ import (
 	"github.com/anacrolix/torrent/mse"
 	pp "github.com/anacrolix/torrent/peer_protocol"
 	request_strategy "github.com/anacrolix/torrent/request-strategy"
-	"github.com/anacrolix/torrent/typed-roaring"
+	typedRoaring "github.com/anacrolix/torrent/typed-roaring"
 )
 
 type (
@@ -86,7 +86,6 @@ type (
 		peerChoking           bool
 		peerRequests          map[Request]*peerRequestState
 		PeerPrefersEncryption bool // as indicated by 'e' field in extension handshake
-		PeerListenPort        int
 		// The highest possible number of pieces the torrent could have based on
 		// communication with the peer. Generally only useful until we have the
 		// torrent info.
@@ -117,6 +116,7 @@ type (
 )
 
 const (
+	PeerSourceUtHolepunch     = "C"
 	PeerSourceTracker         = "Tr"
 	PeerSourceIncoming        = "I"
 	PeerSourceDhtGetPeers     = "Hg" // Peers we found by searching a DHT.
@@ -275,7 +275,7 @@ func (cn *Peer) iterContiguousPieceRequests(f func(piece pieceIndex, count int))
 	next(None[pieceIndex]())
 }
 
-func (cn *Peer) writeStatus(w io.Writer, t *Torrent) {
+func (cn *Peer) writeStatus(w io.Writer) {
 	// \t isn't preserved in <pre> blocks?
 	if cn.closed.IsSet() {
 		fmt.Fprint(w, "CLOSED: ")

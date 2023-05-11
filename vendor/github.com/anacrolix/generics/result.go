@@ -22,3 +22,10 @@ func (r Result[T]) Unwrap() T {
 	}
 	return r.Ok
 }
+
+func (r Result[T]) ToOption() Option[T] {
+	return Option[T]{
+		Ok:    r.Err == nil,
+		Value: r.Ok,
+	}
+}

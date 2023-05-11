@@ -258,7 +258,7 @@ func (tm *TorrentManager) ListAllTorrents() map[string]map[string]int {
 	defer tm.lock.RUnlock()
 	defer tm.localSeedLock.RUnlock()
 
-	tts := make(map[string]map[string]int)
+	tts := make(map[string]map[string]int, tm.torrents.Len())
 	/*for ih, tt := range tm.torrents {
 		tType := torrentTypeOnChain
 		if _, ok := tm.localSeedFiles[ih]; ok {

@@ -6,7 +6,7 @@ type Option[V any] struct {
 	Value V
 }
 
-func (me *Option[V]) UnwrapOrZeroValue() (_ V) {
+func (me Option[V]) UnwrapOrZeroValue() (_ V) {
 	if me.Ok {
 		return me.Value
 	}
