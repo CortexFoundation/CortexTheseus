@@ -530,7 +530,7 @@ func (w *worker) mainLoop() {
 				coinbase := w.coinbase
 				w.mu.RUnlock()
 
-				txs := make(map[common.Address]types.Transactions)
+				txs := make(map[common.Address]types.Transactions, len(ev.Txs))
 				for _, tx := range ev.Txs {
 					acc, _ := types.Sender(w.current.signer, tx)
 					txs[acc] = append(txs[acc], tx)
