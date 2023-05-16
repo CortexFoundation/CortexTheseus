@@ -333,7 +333,7 @@ func NewNodeStateMachine(db ctxcdb.KeyValueStore, dbKey []byte, clock mclock.Clo
 		fields:    make([]*fieldInfo, len(setup.fields)),
 	}
 	ns.opWait = sync.NewCond(&ns.lock)
-	stateNameMap := make(map[string]int)
+	stateNameMap := make(map[string]int, len(setup.flags))
 	for index, flag := range setup.flags {
 		if _, ok := stateNameMap[flag.name]; ok {
 			panic("Node state flag name collision: " + flag.name)
@@ -343,7 +343,7 @@ func NewNodeStateMachine(db ctxcdb.KeyValueStore, dbKey []byte, clock mclock.Clo
 			ns.saveFlags |= bitMask(1) << uint(index)
 		}
 	}
-	fieldNameMap := make(map[string]int)
+	fieldNameMap := make(map[string]int, len(setup.fields))
 	for index, field := range setup.fields {
 		if _, ok := fieldNameMap[field.name]; ok {
 			panic("Node field name collision: " + field.name)
