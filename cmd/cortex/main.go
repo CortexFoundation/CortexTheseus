@@ -97,6 +97,7 @@ var (
 		utils.CachePreimagesFlag,
 		utils.TrieCacheGenFlag,
 		utils.FDLimitFlag,
+		utils.CryptoKZGFlag,
 		utils.ListenPortFlag,
 		utils.DiscoveryPortFlag,
 		utils.MaxPeersFlag,
