@@ -435,7 +435,7 @@ func (i *singleLevelIterator) init(
 		return err
 	}
 	i.dataRH = objstorageprovider.UsePreallocatedReadHandle(ctx, r.readable, &i.dataRHPrealloc)
-	if r.tableFormat == TableFormatPebblev3 {
+	if r.tableFormat >= TableFormatPebblev3 {
 		if r.Properties.NumValueBlocks > 0 {
 			// NB: we cannot avoid this ~248 byte allocation, since valueBlockReader
 			// can outlive the singleLevelIterator due to be being embedded in a
@@ -1874,7 +1874,7 @@ func (i *twoLevelIterator) init(
 		return err
 	}
 	i.dataRH = r.readable.NewReadHandle(ctx)
-	if r.tableFormat == TableFormatPebblev3 {
+	if r.tableFormat >= TableFormatPebblev3 {
 		if r.Properties.NumValueBlocks > 0 {
 			i.vbReader = &valueBlockReader{
 				ctx:    ctx,
@@ -2892,14 +2892,10 @@ func MakeVirtualReader(reader *Reader, meta manifest.VirtualFileMeta) VirtualRea
 		reader: reader,
 	}
 
-	if meta.Stats.NumEntries == 0 {
-		panic("pebble: TableStats.NumEntries not set for virtual sstable")
-	}
-
 	v.Properties.RawKeySize =
-		(reader.Properties.RawKeySize * meta.Stats.NumEntries) / reader.Properties.NumEntries
+		(reader.Properties.RawKeySize * meta.Size) / meta.FileBacking.Size
 	v.Properties.RawValueSize =
-		(reader.Properties.RawValueSize * meta.Stats.NumEntries) / reader.Properties.NumEntries
+		(reader.Properties.RawValueSize * meta.Size) / meta.FileBacking.Size
 
 	return v
 }
@@ -4067,7 +4063,7 @@ func (l *Layout) Describe(
 				formatIsRestart(iter.data, iter.restarts, iter.numRestarts, iter.offset)
 				if fmtRecord != nil {
 					fmt.Fprintf(w, "              ")
-					if l.Format != TableFormatPebblev3 {
+					if l.Format < TableFormatPebblev3 {
 						fmtRecord(key, value.InPlaceValue())
 					} else {
 						// InPlaceValue() will succeed even for data blocks where the
