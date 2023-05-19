@@ -98,6 +98,9 @@ func StartNode(ctx *cli.Context, stack *node.Node) {
 }
 
 func monitorFreeDiskSpace(sigc chan os.Signal, path string, freeDiskSpaceCritical uint64) {
+	if path == "" {
+		return
+	}
 	for {
 		freeSpace, err := getFreeDiskSpace(path)
 		if err != nil {
