@@ -8,13 +8,9 @@ import (
 // handlers is the right choice yet, but it's better than having your messages vanish if you forget
 // to configure them.
 func NewLogger(names ...string) Logger {
-	return Logger{
-		loggerCore{
-			nonZero:  true,
-			names:    names,
-			Handlers: Default.Handlers,
-		},
-	}
+	l := Default
+	l.names = nil
+	return l.WithNames(names...)
 }
 
 // Logger handles logging in a specific context. It includes a bunch of helpers and compatibility

@@ -18,7 +18,7 @@ func alwaysLevel(level Level) Rule {
 
 func stringSliceContains(s string, ss []string) bool {
 	for _, sss := range ss {
-		if s == sss {
+		if strings.Contains(sss, s) {
 			return true
 		}
 	}
@@ -87,13 +87,16 @@ func levelFromString(s string) (level Level, ok bool, err error) {
 	return
 }
 
-func levelFromRules(names []string) (_ Level, ok bool) {
-	// Later rules take precedence
+func levelFromRules(names []string) (level Level, ok bool) {
+	defer func() {
+		reportLevelFromRules(level, ok, names)
+	}()
+	// Later rules take precedence, so work backwards
 	for i := len(rules) - 1; i >= 0; i-- {
 		r := rules[i]
-		level, ok := r(names)
+		level, ok = r(names)
 		if ok {
-			return level, true
+			return
 		}
 	}
 	return

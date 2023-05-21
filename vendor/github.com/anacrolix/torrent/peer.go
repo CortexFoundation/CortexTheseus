@@ -324,6 +324,9 @@ func (p *Peer) close() {
 	if p.updateRequestsTimer != nil {
 		p.updateRequestsTimer.Stop()
 	}
+	for _, prs := range p.peerRequests {
+		prs.allocReservation.Drop()
+	}
 	p.peerImpl.onClose()
 	if p.t != nil {
 		p.t.decPeerPieceAvailability(p)
@@ -519,7 +522,7 @@ func (cn *Peer) peerPiecesChanged() {
 func (cn *Peer) postHandshakeStats(f func(*ConnStats)) {
 	t := cn.t
 	f(&t.stats)
-	f(&t.cl.stats)
+	f(&t.cl.connStats)
 }
 
 // All ConnStats that include this connection. Some objects are not known
