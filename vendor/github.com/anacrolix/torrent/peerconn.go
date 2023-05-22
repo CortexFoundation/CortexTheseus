@@ -9,15 +9,18 @@ import (
 	"io"
 	"math/rand"
 	"net"
+	"net/netip"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/RoaringBitmap/roaring"
+	"github.com/anacrolix/generics"
 	. "github.com/anacrolix/generics"
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo/v2/bitmap"
 	"github.com/anacrolix/multiless"
+	"golang.org/x/exp/maps"
 	"golang.org/x/time/rate"
 
 	"github.com/anacrolix/torrent/bencode"
@@ -25,6 +28,7 @@ import (
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/anacrolix/torrent/mse"
 	pp "github.com/anacrolix/torrent/peer_protocol"
+	utHolepunch "github.com/anacrolix/torrent/peer_protocol/ut-holepunch"
 )
 
 // Maintains the state of a BitTorrent-protocol based connection with a peer.
@@ -38,6 +42,7 @@ type PeerConn struct {
 	// See BEP 3 etc.
 	PeerID             PeerID
 	PeerExtensionBytes pp.PeerExtensionBits
+	PeerListenPort     int
 
 	// The actual Conn, used for closing, and setting socket options. Do not use methods on this
 	// while holding any mutexes.
@@ -59,10 +64,48 @@ type PeerConn struct {
 	peerSentHaveAll bool
 
 	peerRequestDataAllocLimiter alloclim.Limiter
+
+	outstandingHolepunchingRendezvous map[netip.AddrPort]struct{}
+}
+
+func (cn *PeerConn) pexStatus() string {
+	if !cn.bitExtensionEnabled(pp.ExtensionBitExtended) {
+		return "extended protocol disabled"
+	}
+	if cn.PeerExtensionIDs == nil {
+		return "pending extended handshake"
+	}
+	if !cn.supportsExtension(pp.ExtensionNamePex) {
+		return "unsupported"
+	}
+	if true {
+		return fmt.Sprintf(
+			"%v conns, %v unsent events",
+			len(cn.pex.remoteLiveConns),
+			cn.pex.numPending(),
+		)
+	} else {
+		// This alternative branch prints out the remote live conn addresses.
+		return fmt.Sprintf(
+			"%v conns, %v unsent events",
+			strings.Join(generics.SliceMap(
+				maps.Keys(cn.pex.remoteLiveConns),
+				func(from netip.AddrPort) string {
+					return from.String()
+				}), ","),
+			cn.pex.numPending(),
+		)
+
+	}
 }
 
 func (cn *PeerConn) peerImplStatusLines() []string {
-	return []string{fmt.Sprintf("%+-55q %s %s", cn.PeerID, cn.PeerExtensionBytes, cn.connString)}
+	return []string{
+		cn.connString,
+		fmt.Sprintf("peer id: %+q", cn.PeerID),
+		fmt.Sprintf("extensions: %v", cn.PeerExtensionBytes),
+		fmt.Sprintf("pex: %s", cn.pexStatus()),
+	}
 }
 
 // Returns true if the connection is over IPv6.
@@ -74,10 +117,12 @@ func (cn *PeerConn) ipv6() bool {
 	return len(ip) == net.IPv6len
 }
 
-// Returns true the if the dialer/initiator has the lower client peer ID. TODO: Find the
-// specification for this.
+// Returns true the if the dialer/initiator has the higher client peer ID. See
+// https://github.com/arvidn/libtorrent/blame/272828e1cc37b042dfbbafa539222d8533e99755/src/bt_peer_connection.cpp#L3536-L3557.
+// As far as I can tell, Transmission just keeps the oldest connection.
 func (cn *PeerConn) isPreferredDirection() bool {
-	return bytes.Compare(cn.t.cl.peerID[:], cn.PeerID[:]) < 0 == cn.outgoing
+	// True if our client peer ID is higher than the remote's peer ID.
+	return bytes.Compare(cn.PeerID[:], cn.t.cl.peerID[:]) < 0 == cn.outgoing
 }
 
 // Returns whether the left connection should be preferred over the right one,
@@ -848,6 +893,7 @@ func (c *PeerConn) onReadExtendedMsg(id pp.ExtensionNumber, payload []byte) (err
 		c.requestPendingMetadata()
 		if !t.cl.config.DisablePEX {
 			t.pex.Add(c) // we learnt enough now
+			// This checks the extension is supported internally.
 			c.pex.Init(c)
 		}
 		return nil
@@ -861,7 +907,20 @@ func (c *PeerConn) onReadExtendedMsg(id pp.ExtensionNumber, payload []byte) (err
 		if !c.pex.IsEnabled() {
 			return nil // or hang-up maybe?
 		}
-		return c.pex.Recv(payload)
+		err = c.pex.Recv(payload)
+		if err != nil {
+			err = fmt.Errorf("receiving pex message: %w", err)
+		}
+		return
+	case utHolepunchExtendedId:
+		var msg utHolepunch.Msg
+		err = msg.UnmarshalBinary(payload)
+		if err != nil {
+			err = fmt.Errorf("unmarshalling ut_holepunch message: %w", err)
+			return
+		}
+		err = c.t.handleReceivedUtHolepunchMsg(msg, c)
+		return
 	default:
 		return fmt.Errorf("unexpected extended message ID: %v", id)
 	}
@@ -1007,6 +1066,8 @@ func (c *PeerConn) dialAddr() PeerRemoteAddr {
 			dialAddr := *addr
 			dialAddr.Port = c.PeerListenPort
 			return &dialAddr
+		default:
+			panic(addr)
 		}
 	}
 	return c.RemoteAddr
@@ -1032,4 +1093,19 @@ func (cn *PeerConn) PeerPieces() *roaring.Bitmap {
 
 func (pc *PeerConn) remoteIsTransmission() bool {
 	return bytes.HasPrefix(pc.PeerID[:], []byte("-TR")) && pc.PeerID[7] == '-'
+}
+
+func (pc *PeerConn) remoteAddrPort() Option[netip.AddrPort] {
+	return Some(pc.conn.RemoteAddr().(interface {
+		AddrPort() netip.AddrPort
+	}).AddrPort())
+}
+
+func (pc *PeerConn) remoteDialAddrPort() (netip.AddrPort, error) {
+	dialAddr := pc.dialAddr()
+	return addrPortFromPeerRemoteAddr(dialAddr)
+}
+
+func (pc *PeerConn) bitExtensionEnabled(bit pp.ExtensionBit) bool {
+	return pc.t.cl.config.Extensions.GetBit(bit) && pc.PeerExtensionBytes.GetBit(bit)
 }

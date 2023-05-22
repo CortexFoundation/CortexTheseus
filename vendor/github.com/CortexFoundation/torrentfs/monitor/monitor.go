@@ -213,7 +213,7 @@ func (m *Monitor) indexCheck() error {
 }
 
 func (m *Monitor) indexInit() error {
-	fileMap := make(map[string]*types.FileInfo)
+	fileMap := make(map[string]*types.FileInfo, len(m.fs.Files()))
 	for _, file := range m.fs.Files() {
 		if f, ok := fileMap[file.Meta.InfoHash]; ok {
 			if f.LeftSize > file.LeftSize {
