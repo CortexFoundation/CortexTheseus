@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.43-0.20230521105017-4fd80819b44b
+	github.com/CortexFoundation/torrentfs v1.0.43-0.20230522072007-f68147279321
 	github.com/VictoriaMetrics/fastcache v1.12.1
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.17.7
@@ -99,7 +99,7 @@ require (
 	github.com/anacrolix/multiless v0.3.1-0.20221221005021-2d12701f83f7 // indirect
 	github.com/anacrolix/stm v0.5.0 // indirect
 	github.com/anacrolix/sync v0.4.0 // indirect
-	github.com/anacrolix/torrent v1.51.1-0.20230519042334-e6a38b1cd194 // indirect
+	github.com/anacrolix/torrent v1.51.2-0.20230522052828-a8ab0baec81a // indirect
 	github.com/anacrolix/upnp v0.1.3-0.20220123035249-922794e51c96 // indirect
 	github.com/anacrolix/utp v0.1.0 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
@@ -119,6 +119,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.7.0 // indirect
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8 // indirect
+	github.com/bwmarrin/snowflake v0.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cockroachdb/errors v1.9.1 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
@@ -170,6 +171,7 @@ require (
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
+	github.com/nutsdb/nutsdb v0.12.3-0.20230521084054-b0a6e1ba0c39 // indirect
 	github.com/onsi/gomega v1.20.0 // indirect
 	github.com/otiai10/copy v1.11.0 // indirect
 	github.com/pion/datachannel v1.5.5 // indirect
@@ -209,9 +211,11 @@ require (
 	github.com/tklauser/numcpus v0.6.0 // indirect
 	github.com/ucwong/filecache v1.0.6-0.20230405163841-810d53ced4bd // indirect
 	github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb // indirect
-	github.com/ucwong/golang-kv v1.0.18-0.20230422174549-58fd9504744b // indirect
+	github.com/ucwong/golang-kv v1.0.18 // indirect
 	github.com/ucwong/shard v1.0.1-0.20230505153952-911e99b5f0c2 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
+	github.com/xujiajun/mmap-go v1.0.1 // indirect
+	github.com/xujiajun/utils v0.0.0-20220904132955-5f7c5b914235 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	github.com/zeebo/xxh3 v1.0.3-0.20230105190837-8b1e819c6d4d // indirect
 	go.etcd.io/bbolt v1.3.7 // indirect

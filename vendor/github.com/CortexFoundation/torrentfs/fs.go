@@ -290,9 +290,9 @@ func (fs *TorrentFS) listen() {
 	log.Info("Bitsflow listener starting ...")
 	defer fs.wg.Done()
 	ttl := time.NewTimer(3 * time.Second)
-	ticker := time.NewTimer(300 * time.Second)
+	//ticker := time.NewTimer(300 * time.Second)
 	defer ttl.Stop()
-	defer ticker.Stop()
+	//defer ticker.Stop()
 	for {
 		select {
 		case msg := <-fs.callback:
@@ -310,10 +310,10 @@ func (fs *TorrentFS) listen() {
 				fs.download(context.Background(), meta.InfoHash(), meta.Request())
 			}
 			ttl.Reset(3 * time.Second)
-		case <-ticker.C:
-			log.Info("Bitsflow status", "neighbors", fs.Neighbors(), "current", fs.monitor.CurrentNumber(), "rev", fs.received.Load(), "sent", fs.sent.Load(), "in", fs.in.Load(), "out", fs.out.Load(), "tunnel", fs.tunnel.Len(), "history", fs.history.Cardinality(), "retry", fs.retry.Load())
-			fs.wakeup(context.Background(), fs.sampling())
-			ticker.Reset(60 * time.Second)
+		/*case <-ticker.C:
+		log.Info("Bitsflow status", "neighbors", fs.Neighbors(), "current", fs.monitor.CurrentNumber(), "rev", fs.received.Load(), "sent", fs.sent.Load(), "in", fs.in.Load(), "out", fs.out.Load(), "tunnel", fs.tunnel.Len(), "history", fs.history.Cardinality(), "retry", fs.retry.Load())
+		fs.wakeup(context.Background(), fs.sampling())
+		ticker.Reset(60 * time.Second)*/
 		case <-fs.closeAll:
 			log.Info("Bitsflow listener stop")
 			return
