@@ -48,7 +48,8 @@ func Open(path string, opts ...NutsdbOption) *NutsDB {
 	for _, opt := range opts {
 		option = opt(option)
 	}
-	if db, err := nutsdb.Open(nutsdb.DefaultOptions, nutsdb.WithDir(filepath.Join(path, ".nuts"))); err == nil {
+	//if db, err := nutsdb.Open(nutsdb.DefaultOptions, nutsdb.WithDir(filepath.Join(path, ".nuts"))); err == nil {
+	if db, err := nutsdb.Open(nutsdb.DefaultOptions, nutsdb.WithDir(path)); err == nil {
 		b.engine = db
 	} else {
 		//panic(err)

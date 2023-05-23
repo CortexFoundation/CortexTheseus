@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023 The Pion community <https://pion.ly>
+// SPDX-License-Identifier: MIT
+
 //go:build !js
 // +build !js
 
@@ -1991,7 +1994,7 @@ func (pc *PeerConnection) CreateDataChannel(label string, options *DataChannelIn
 		}
 	}
 
-	d, err := pc.api.newDataChannel(params, pc.log)
+	d, err := pc.api.newDataChannel(params, nil, pc.log)
 	if err != nil {
 		return nil, err
 	}

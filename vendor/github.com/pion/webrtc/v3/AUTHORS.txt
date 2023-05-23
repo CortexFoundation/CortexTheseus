@@ -87,6 +87,7 @@ Jason <jabrady42@gmail.com>
 Jeff Tchang <jeff.tchang@gmail.com>
 jeremija
 Jerko Steiner <jerko.steiner@gmail.com>
+Jerry Tao <taojay315@gmail.com>
 jinleileiking <jinleileiking@gmail.com>
 John Berthels <john.berthels@gmail.com>
 John Bradley <jrb@turrettech.com>
@@ -107,6 +108,7 @@ Kuzmin Vladimir <vova-kyzmin@yandex.ru>
 lawl <github@dumbinter.net>
 Len <len@hpcnt.com>
 Leslie Wang <wqyuwss@gmail.com>
+lisa yan <lisa.yan@nokia-sbell.com>
 Lukas Herman <lherman.cs@gmail.com>
 Luke <luke@street.dev>
 Luke Curley <kixelated@gmail.com>
@@ -145,6 +147,7 @@ Patrice Ferlet <patrice.ferlet@smile.fr>
 Patrick Lange <mail@langep.com>
 Patryk Rogalski <digitalix4@gmail.com>
 Pieere Pi <pihuibin@hotmail.com>
+Pouget-Abadie <thomas.pougetabadie@gmail.com>
 q191201771 <191201771@qq.com>
 Quentin Renard <contact@asticode.com>
 Rafael Viscarra <rafael@viscarra.dev>
@@ -179,6 +182,7 @@ soolaugust <soolaugust@gmail.com>
 spaceCh1mp <drimboat@gmail.com>
 Steffen Vogel <post@steffenvogel.de>
 stephanrotolante <stephanrotolante@gmail.com>
+streamer45 <cstcld91@gmail.com>
 Suhas Gaddam <suhas.g.2011@gmail.com>
 Suzuki Takeo <takeo@stko.info>
 sylba2050 <masataka.hisasue@optim.co.jp>

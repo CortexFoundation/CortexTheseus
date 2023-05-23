@@ -1,12 +1,18 @@
---- format.go.orig	2021-06-18 16:45:51.065116000 +0200
-+++ format.go	2021-06-18 17:30:58.628179000 +0200
-@@ -1,3 +1,6 @@
+--- format.go.orig	2022-01-07 15:25:57.762807000 +0100
++++ format.go	2022-01-07 15:26:16.154491000 +0100
+@@ -1,8 +1,11 @@
 +// Code generated from the Go standard library. DO NOT EDIT
 +// GENERATED FILE DO NOT EDIT
 +//
  // Copyright 2009 The Go Authors. All rights reserved.
  // Use of this source code is governed by a BSD-style
  // license that can be found in the LICENSE file.
+ 
+-package fmt
++package rfmt
+ 
+ import (
+ 	"strconv"
 @@ -65,25 +68,17 @@
  	if n <= 0 { // No padding bytes needed.
  		return

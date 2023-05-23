@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023 The Pion community <https://pion.ly>
+// SPDX-License-Identifier: MIT
+
 //go:build !js
 // +build !js
 
@@ -55,8 +58,7 @@ type mediaEngineHeaderExtension struct {
 }
 
 // A MediaEngine defines the codecs supported by a PeerConnection, and the
-// configuration of those codecs. A MediaEngine must not be shared between
-// PeerConnections.
+// configuration of those codecs.
 type MediaEngine struct {
 	// If we have attempted to negotiate a codec type yet.
 	negotiatedVideo, negotiatedAudio bool
