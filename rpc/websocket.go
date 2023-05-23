@@ -211,6 +211,7 @@ func DialWebsocket(ctx context.Context, endpoint, origin string) (*Client, error
 		ReadBufferSize:  wsReadBuffer,
 		WriteBufferSize: wsWriteBuffer,
 		WriteBufferPool: wsBufferPool,
+		Proxy:           http.ProxyFromEnvironment,
 	}
 	return DialWebsocketWithDialer(ctx, endpoint, origin, dialer)
 }
