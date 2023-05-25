@@ -307,7 +307,8 @@ func (d *Database) NewBatch() ctxcdb.Batch {
 // batch object without any pre-allocated space.
 func (d *Database) NewBatchWithSize(_ int) ctxcdb.Batch {
 	return &batch{
-		b: d.db.NewBatch(),
+		b:  d.db.NewBatch(),
+		db: d,
 	}
 }
 
