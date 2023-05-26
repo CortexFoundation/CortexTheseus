@@ -121,4 +121,5 @@ func (l loggerCore) WithNames(names ...string) Logger {
 // seems to fit here.
 func (l *loggerCore) SetHandlers(h ...Handler) {
 	l.Handlers = h
+	l.nonZero = true
 }
