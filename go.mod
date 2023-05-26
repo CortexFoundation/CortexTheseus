@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.43-0.20230511153028-45240ab0a27a
+	github.com/CortexFoundation/torrentfs v1.0.43-0.20230518014108-c8fd3e2888b5
 	github.com/VictoriaMetrics/fastcache v1.12.1
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.17.7
@@ -17,7 +17,7 @@ require (
 	github.com/cespare/cp v1.1.1
 	github.com/charmbracelet/bubbletea v0.23.2
 	github.com/cloudflare/cloudflare-go v0.57.1
-	github.com/cockroachdb/pebble v0.0.0-20230510135629-fe7ae7a62e0f
+	github.com/cockroachdb/pebble v0.0.0-20230517202617-f6eaf9a696e6
 	github.com/consensys/gnark-crypto v0.10.0
 	github.com/crate-crypto/go-kzg-4844 v0.2.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc

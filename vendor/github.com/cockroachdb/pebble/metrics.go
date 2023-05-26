@@ -179,6 +179,9 @@ type Metrics struct {
 		// compaction. Such files are compacted in a rewrite compaction
 		// when no other compactions are picked.
 		MarkedFiles int
+		// Duration records the cumulative duration of all compactions since the
+		// database was opened.
+		Duration time.Duration
 	}
 
 	Flush struct {
@@ -256,6 +259,8 @@ type Metrics struct {
 
 	// Count of the number of open sstable iterators.
 	TableIters int64
+	// Uptime is the total time since this DB was opened.
+	Uptime time.Duration
 
 	WAL struct {
 		// Number of live WAL files.

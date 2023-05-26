@@ -218,12 +218,12 @@ func rewriteBlocks(
 			copy(scratch.UserKey, key.UserKey[:si])
 			copy(scratch.UserKey[si:], to)
 
-			// NB: for TableFormatPebblev3, since
+			// NB: for TableFormatPebblev3 and higher, since
 			// !iter.lazyValueHandling.hasValuePrefix, it will return the raw value
 			// in the block, which includes the 1-byte prefix. This is fine since bw
 			// also does not know about the prefix and will preserve it in bw.add.
 			v := val.InPlaceValue()
-			if invariants.Enabled && r.tableFormat == TableFormatPebblev3 &&
+			if invariants.Enabled && r.tableFormat >= TableFormatPebblev3 &&
 				key.Kind() == InternalKeyKindSet {
 				if len(v) < 1 {
 					return errors.Errorf("value has no prefix")
