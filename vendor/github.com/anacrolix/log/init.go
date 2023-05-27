@@ -11,10 +11,12 @@ func init() {
 		panic(err)
 	}
 	Default = loggerCore{
-		nonZero:     true,
-		filterLevel: Error,
+		nonZero: true,
+		// This is the level if no rules apply, unless overridden in this logger, or any derived
+		// loggers.
+		filterLevel: Warning,
 		Handlers:    []Handler{DefaultHandler},
-	}.withFilterLevelFromRules()
+	}.asLogger()
 	Default.defaultLevel, _, err = levelFromString(os.Getenv("GO_LOG_DEFAULT_LEVEL"))
 	if err != nil {
 		panic(err)

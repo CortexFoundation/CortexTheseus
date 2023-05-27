@@ -16,6 +16,9 @@ import (
 type Readable interface {
 	// ReadAt reads len(p) bytes into p starting at offset off.
 	//
+	// Does not return partial results; if off + len(p) is past the end of the
+	// object, an error is returned.
+	//
 	// Clients of ReadAt can execute parallel ReadAt calls on the
 	// same Readable.
 	ReadAt(ctx context.Context, p []byte, off int64) error
@@ -39,14 +42,18 @@ type Readable interface {
 type ReadHandle interface {
 	// ReadAt reads len(p) bytes into p starting at offset off.
 	//
+	// Does not return partial results; if off + len(p) is past the end of the
+	// object, an error is returned.
+	//
 	// Parallel ReadAt calls on the same ReadHandle are not allowed.
 	ReadAt(ctx context.Context, p []byte, off int64) error
 
 	Close() error
 
-	// MaxReadahead configures the implementation to expect large sequential
-	// reads. Used to skip any initial read-ahead ramp-up.
-	MaxReadahead()
+	// SetupForCompaction informs the implementation that the read handle will
+	// be used to read data blocks for a compaction. The implementation can expect
+	// sequential reads, and can decide to not retain data in any caches.
+	SetupForCompaction()
 
 	// RecordCacheHit informs the implementation that we were able to retrieve a
 	// block from cache. This is useful for example when the implementation is
@@ -208,6 +215,11 @@ type Provider interface {
 	//
 	// Cannot be called if shared storage is not configured for the provider.
 	SetCreatorID(creatorID CreatorID) error
+
+	// IsForeign returns whether this object is owned by a different node. Return
+	// value undefined if creator ID is not set yet, or if this object does not
+	// exist in this provider.
+	IsForeign(meta ObjectMetadata) bool
 
 	// SharedObjectBacking encodes the shared object metadata.
 	SharedObjectBacking(meta *ObjectMetadata) (SharedObjectBackingHandle, error)

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023 The Pion community <https://pion.ly>
+// SPDX-License-Identifier: MIT
+
 // Package ice ...
 //
 //nolint:dupl
@@ -21,6 +24,7 @@ type CandidatePeerReflexiveConfig struct {
 	Foundation  string
 	RelAddr     string
 	RelPort     int
+	TCPType     TCPType
 }
 
 // NewCandidatePeerReflexive creates a new peer reflective candidate
@@ -46,6 +50,7 @@ func NewCandidatePeerReflexive(config *CandidatePeerReflexiveConfig) (*Candidate
 			id:                 candidateID,
 			networkType:        networkType,
 			candidateType:      CandidateTypePeerReflexive,
+			tcpType:            config.TCPType,
 			address:            config.Address,
 			port:               config.Port,
 			resolvedAddr:       createAddr(networkType, ip, config.Port),
@@ -56,6 +61,7 @@ func NewCandidatePeerReflexive(config *CandidatePeerReflexiveConfig) (*Candidate
 				Address: config.RelAddr,
 				Port:    config.RelPort,
 			},
+			remoteCandidateCaches: map[AddrPort]Candidate{},
 		},
 	}, nil
 }

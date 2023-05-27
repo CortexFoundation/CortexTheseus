@@ -93,6 +93,21 @@ type Settings struct {
 	// (experimental).
 	Shared struct {
 		Storage shared.Storage
+
+		// CacheSizeBytes is the size of the on-disk block cache for objects
+		// on shared storage. If it is 0, no cache is used.
+		CacheSizeBytes int64
+
+		// CacheBlockSize is the block size of the cache; if 0, the default of 32KB is used.
+		CacheBlockSize int
+
+		// The number of independent shards the cache leverages. Each shard is the same size,
+		// and a hash of filenum & offset map a read to a certain shard. If set to 0,
+		// 2*runtime.GOMAXPROCS is used as the shard count.
+		CacheShardCount int
+
+		// TODO(radu): allow the cache to live on another FS/location (e.g. to use
+		// instance-local SSD).
 	}
 }
 

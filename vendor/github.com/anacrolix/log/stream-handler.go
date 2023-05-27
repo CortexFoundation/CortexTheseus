@@ -3,9 +3,7 @@ package log
 import (
 	"fmt"
 	"io"
-	"os"
-	"runtime"
-	"time"
+	"path/filepath"
 )
 
 type StreamHandler struct {
@@ -20,32 +18,13 @@ func (me StreamHandler) Handle(r Record) {
 
 type ByteFormatter func(Record) []byte
 
-var timeFmt string
-
-func init() {
-	var ok bool
-	timeFmt, ok = os.LookupEnv("GO_LOG_TIME_FMT")
-	if !ok {
-		timeFmt = "2006-01-02T15:04:05-0700"
-	}
-	if timeFmt != "" {
-		timeFmt += " "
-	}
-}
-
 func LineFormatter(msg Record) []byte {
-	names := msg.Names
-	if true || len(names) == 0 {
-		var pc [1]uintptr
-		msg.Callers(1, pc[:])
-		names = pcNames(pc[0], names)
-	}
 	ret := []byte(fmt.Sprintf(
-		"%s%s %s: %s",
-		time.Now().Format(timeFmt),
+		"[%s %s] %s %s",
+		DefaultTimeFormatter(),
 		msg.Level.LogString(),
-		names,
 		msg.Text(),
+		msg.Names,
 	))
 	if ret[len(ret)-1] != '\n' {
 		ret = append(ret, '\n')
@@ -53,21 +32,14 @@ func LineFormatter(msg Record) []byte {
 	return ret
 }
 
-func pcNames(pc uintptr, names []string) []string {
+func pcName(pc uintptr) string {
 	if pc == 0 {
 		panic(pc)
 	}
-	funcName, file, line := func() (string, string, int) {
-		if false {
-			// This seems to result in one less allocation, but doesn't handle inlining?
-			func_ := runtime.FuncForPC(pc)
-			file, line := func_.FileLine(pc)
-			return func_.Name(), file, line
-		} else {
-			f, _ := runtime.CallersFrames([]uintptr{pc}).Next()
-			return f.Function, f.File, f.Line
-		}
-	}()
-	_ = file
-	return append(names, fmt.Sprintf("%s:%v", funcName, line))
+	loc := locFromPc(pc)
+	return fmt.Sprintf("%v:%v:%v", loc.Package, filepath.Base(loc.File), loc.Line)
+}
+
+func pcNames(pc uintptr, names []string) []string {
+	return append(names, pcName(pc))
 }

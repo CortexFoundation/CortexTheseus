@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023 The Pion community <https://pion.ly>
+// SPDX-License-Identifier: MIT
+
 //go:build !js
 // +build !js
 
@@ -331,6 +334,7 @@ func (t *DTLSTransport) Start(remoteParameters DTLSParameters) error {
 	dtlsConfig.FlightInterval = t.api.settingEngine.dtls.retransmissionInterval
 	dtlsConfig.InsecureSkipVerifyHello = t.api.settingEngine.dtls.insecureSkipHelloVerify
 	dtlsConfig.EllipticCurves = t.api.settingEngine.dtls.ellipticCurves
+	dtlsConfig.ConnectContextMaker = t.api.settingEngine.dtls.connectContextMaker
 
 	// Connect as DTLS Client/Server, function is blocking and we
 	// must not hold the DTLSTransport lock
@@ -358,6 +362,8 @@ func (t *DTLSTransport) Start(remoteParameters DTLSParameters) error {
 	switch srtpProfile {
 	case dtls.SRTP_AEAD_AES_128_GCM:
 		t.srtpProtectionProfile = srtp.ProtectionProfileAeadAes128Gcm
+	case dtls.SRTP_AEAD_AES_256_GCM:
+		t.srtpProtectionProfile = srtp.ProtectionProfileAeadAes256Gcm
 	case dtls.SRTP_AES128_CM_HMAC_SHA1_80:
 		t.srtpProtectionProfile = srtp.ProtectionProfileAes128CmHmacSha1_80
 	default:

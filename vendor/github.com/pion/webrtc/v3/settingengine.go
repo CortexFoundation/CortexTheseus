@@ -1,9 +1,13 @@
+// SPDX-FileCopyrightText: 2023 The Pion community <https://pion.ly>
+// SPDX-License-Identifier: MIT
+
 //go:build !js
 // +build !js
 
 package webrtc
 
 import (
+	"context"
 	"io"
 	"net"
 	"time"
@@ -60,6 +64,7 @@ type SettingEngine struct {
 		insecureSkipHelloVerify bool
 		retransmissionInterval  time.Duration
 		ellipticCurves          []dtlsElliptic.Curve
+		connectContextMaker     func() (context.Context, func())
 	}
 	sctp struct {
 		maxReceiveBufferSize uint32
@@ -144,6 +149,9 @@ func (e *SettingEngine) SetRelayAcceptanceMinWait(t time.Duration) {
 // SetEphemeralUDPPortRange limits the pool of ephemeral ports that
 // ICE UDP connections can allocate from. This affects both host candidates,
 // and the local address of server reflexive candidates.
+//
+// When portMin and portMax are left to the 0 default value, pion/ice candidate
+// gatherer replaces them and uses 1 for portMin and 65535 for portMax.
 func (e *SettingEngine) SetEphemeralUDPPortRange(portMin, portMax uint16) error {
 	if portMax < portMin {
 		return ice.ErrPort
@@ -363,6 +371,17 @@ func (e *SettingEngine) SetDTLSInsecureSkipHelloVerify(skip bool) {
 // SetDTLSEllipticCurves sets the elliptic curves for DTLS.
 func (e *SettingEngine) SetDTLSEllipticCurves(ellipticCurves ...dtlsElliptic.Curve) {
 	e.dtls.ellipticCurves = ellipticCurves
+}
+
+// SetDTLSConnectContextMaker sets the context used during the DTLS Handshake.
+// It can be used to extend or reduce the timeout on the DTLS Handshake.
+// If nil, the default dtls.ConnectContextMaker is used. It can be implemented as following.
+//
+//	func ConnectContextMaker() (context.Context, func()) {
+//		return context.WithTimeout(context.Background(), 30*time.Second)
+//	}
+func (e *SettingEngine) SetDTLSConnectContextMaker(connectContextMaker func() (context.Context, func())) {
+	e.dtls.connectContextMaker = connectContextMaker
 }
 
 // SetSCTPMaxReceiveBufferSize sets the maximum receive buffer size.

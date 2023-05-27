@@ -52,6 +52,10 @@ peb := kv.Pebble("")
 defer peb.Close()
 
 ...
+
+nut := kv.NutsDB("")
+defer nut.Close()
+...
 ```
 ## Test
 ```

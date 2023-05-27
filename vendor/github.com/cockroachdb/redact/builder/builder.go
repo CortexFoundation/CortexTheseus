@@ -67,6 +67,24 @@ func (b *StringBuilder) Write(s []byte) (int, error) {
 	return b.Buffer.Write(s)
 }
 
+// WriteString shadows the ib.Buffer.WriteString method.
+func (b *StringBuilder) WriteString(s string) (int, error) {
+	b.SetMode(ib.UnsafeEscaped)
+	return b.Buffer.WriteString(s)
+}
+
+// WriteByte shadows the ib.Buffer.WriteByte method.
+func (b *StringBuilder) WriteByte(c byte) error {
+	b.SetMode(ib.UnsafeEscaped)
+	return b.Buffer.WriteByte(c)
+}
+
+// WriteRune shadows the ib.Buffer.WriteRune method.
+func (b *StringBuilder) WriteRune(r rune) error {
+	b.SetMode(ib.UnsafeEscaped)
+	return b.Buffer.WriteRune(r)
+}
+
 // StringBuilder implements SafeWriter.
 var _ i.SafeWriter = (*StringBuilder)(nil)
 

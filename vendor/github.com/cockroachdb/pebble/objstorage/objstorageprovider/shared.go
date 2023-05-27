@@ -6,6 +6,7 @@ package objstorageprovider
 
 import (
 	"context"
+	"runtime"
 	"sync"
 	"sync/atomic"
 
@@ -21,6 +22,7 @@ import (
 // All fields remain unset if shared storage is not configured.
 type sharedSubsystem struct {
 	catalog *sharedobjcat.Catalog
+	cache   *sharedCache
 
 	// checkRefsOnOpen controls whether we check the ref marker file when opening
 	// an object. Normally this is true when invariants are enabled (but the provider
@@ -65,6 +67,24 @@ func (p *provider) sharedInit() error {
 		p.st.Logger.Infof("shared storage configured; no creatorID yet")
 	}
 
+	if p.st.Shared.CacheSizeBytes > 0 {
+		const defaultBlockSize = 32 * 1024
+		blockSize := p.st.Shared.CacheBlockSize
+		if blockSize == 0 {
+			blockSize = defaultBlockSize
+		}
+
+		numShards := p.st.Shared.CacheShardCount
+		if numShards == 0 {
+			numShards = 2 * runtime.GOMAXPROCS(0)
+		}
+
+		p.shared.cache, err = openSharedCache(p.st.FS, p.st.FSDirName, blockSize, p.st.Shared.CacheSizeBytes, numShards)
+		if err != nil {
+			return errors.Wrapf(err, "pebble: could not open shared object cache")
+		}
+	}
+
 	for _, meta := range contents.Objects {
 		o := objstorage.ObjectMetadata{
 			DiskFileNum: meta.FileNum,
@@ -93,6 +113,14 @@ func (p *provider) SetCreatorID(creatorID objstorage.CreatorID) error {
 		p.shared.init(creatorID)
 	}
 	return nil
+}
+
+// IsForeign is part of the objstorage.Provider interface.
+func (p *provider) IsForeign(meta objstorage.ObjectMetadata) bool {
+	if !p.shared.initialized.Load() {
+		return false
+	}
+	return meta.IsShared() && p.shared.creatorID != meta.Shared.CreatorID
 }
 
 func (p *provider) sharedCheckInitialized() error {

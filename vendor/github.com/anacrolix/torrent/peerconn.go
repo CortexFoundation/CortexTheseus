@@ -12,6 +12,7 @@ import (
 	"net/netip"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/RoaringBitmap/roaring"
@@ -54,8 +55,10 @@ type PeerConn struct {
 
 	messageWriter peerConnMsgWriter
 
-	uploadTimer *time.Timer
-	pex         pexConnState
+	PeerExtensionIDs map[pp.ExtensionName]pp.ExtensionNumber
+	PeerClientName   atomic.Value
+	uploadTimer      *time.Timer
+	pex              pexConnState
 
 	// The pieces the peer has claimed to have.
 	_peerPieces roaring.Bitmap
@@ -69,7 +72,7 @@ type PeerConn struct {
 }
 
 func (cn *PeerConn) pexStatus() string {
-	if !cn.bitExtensionEnabled(pp.ExtensionBitExtended) {
+	if !cn.bitExtensionEnabled(pp.ExtensionBitLtep) {
 		return "extended protocol disabled"
 	}
 	if cn.PeerExtensionIDs == nil {
@@ -95,7 +98,6 @@ func (cn *PeerConn) pexStatus() string {
 				}), ","),
 			cn.pex.numPending(),
 		)
-
 	}
 }
 
@@ -104,6 +106,7 @@ func (cn *PeerConn) peerImplStatusLines() []string {
 		cn.connString,
 		fmt.Sprintf("peer id: %+q", cn.PeerID),
 		fmt.Sprintf("extensions: %v", cn.PeerExtensionBytes),
+		fmt.Sprintf("ltep extensions: %v", cn.PeerExtensionIDs),
 		fmt.Sprintf("pex: %s", cn.pexStatus()),
 	}
 }
@@ -1056,31 +1059,35 @@ func (c *PeerConn) pexPeerFlags() pp.PexPeerFlags {
 // This returns the address to use if we want to dial the peer again. It incorporates the peer's
 // advertised listen port.
 func (c *PeerConn) dialAddr() PeerRemoteAddr {
-	if !c.outgoing && c.PeerListenPort != 0 {
-		switch addr := c.RemoteAddr.(type) {
-		case *net.TCPAddr:
-			dialAddr := *addr
-			dialAddr.Port = c.PeerListenPort
-			return &dialAddr
-		case *net.UDPAddr:
-			dialAddr := *addr
-			dialAddr.Port = c.PeerListenPort
-			return &dialAddr
-		default:
-			panic(addr)
-		}
+	if c.outgoing || c.PeerListenPort == 0 {
+		return c.RemoteAddr
 	}
-	return c.RemoteAddr
+	addrPort, err := addrPortFromPeerRemoteAddr(c.RemoteAddr)
+	if err != nil {
+		c.logger.Levelf(
+			log.Warning,
+			"error parsing %q for alternate dial port: %v",
+			c.RemoteAddr,
+			err,
+		)
+		return c.RemoteAddr
+	}
+	return netip.AddrPortFrom(addrPort.Addr(), uint16(c.PeerListenPort))
 }
 
-func (c *PeerConn) pexEvent(t pexEventType) pexEvent {
+func (c *PeerConn) pexEvent(t pexEventType) (_ pexEvent, err error) {
 	f := c.pexPeerFlags()
-	addr := c.dialAddr()
-	return pexEvent{t, addr, f, nil}
+	dialAddr := c.dialAddr()
+	addr, err := addrPortFromPeerRemoteAddr(dialAddr)
+	if err != nil || !addr.IsValid() {
+		err = fmt.Errorf("parsing dial addr %q: %w", dialAddr, err)
+		return
+	}
+	return pexEvent{t, addr, f, nil}, nil
 }
 
 func (c *PeerConn) String() string {
-	return fmt.Sprintf("%T %p [id=%q, exts=%v, v=%q]", c, c, c.PeerID, c.PeerExtensionBytes, c.PeerClientName.Load())
+	return fmt.Sprintf("%T %p [id=%+q, exts=%v, v=%q]", c, c, c.PeerID, c.PeerExtensionBytes, c.PeerClientName.Load())
 }
 
 // Returns the pieces the peer could have based on their claims. If we don't know how many pieces
@@ -1095,12 +1102,6 @@ func (pc *PeerConn) remoteIsTransmission() bool {
 	return bytes.HasPrefix(pc.PeerID[:], []byte("-TR")) && pc.PeerID[7] == '-'
 }
 
-func (pc *PeerConn) remoteAddrPort() Option[netip.AddrPort] {
-	return Some(pc.conn.RemoteAddr().(interface {
-		AddrPort() netip.AddrPort
-	}).AddrPort())
-}
-
 func (pc *PeerConn) remoteDialAddrPort() (netip.AddrPort, error) {
 	dialAddr := pc.dialAddr()
 	return addrPortFromPeerRemoteAddr(dialAddr)
@@ -1108,4 +1109,27 @@ func (pc *PeerConn) remoteDialAddrPort() (netip.AddrPort, error) {
 
 func (pc *PeerConn) bitExtensionEnabled(bit pp.ExtensionBit) bool {
 	return pc.t.cl.config.Extensions.GetBit(bit) && pc.PeerExtensionBytes.GetBit(bit)
+}
+
+func (cn *PeerConn) peerPiecesChanged() {
+	cn.t.maybeDropMutuallyCompletePeer(cn)
+}
+
+// Returns whether the connection could be useful to us. We're seeding and
+// they want data, we don't have metainfo and they can provide it, etc.
+func (c *PeerConn) useful() bool {
+	t := c.t
+	if c.closed.IsSet() {
+		return false
+	}
+	if !t.haveInfo() {
+		return c.supportsExtension("ut_metadata")
+	}
+	if t.seeding() && c.peerInterested {
+		return true
+	}
+	if c.peerHasWantedPieces() {
+		return true
+	}
+	return false
 }
