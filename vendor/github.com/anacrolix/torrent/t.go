@@ -100,7 +100,10 @@ func (t *Torrent) Drop() {
 	defer wg.Wait()
 	t.cl.lock()
 	defer t.cl.unlock()
-	t.cl.dropTorrent(t.infoHash, &wg)
+	err := t.cl.dropTorrent(t.infoHash, &wg)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // Number of bytes of the entire torrent we have completed. This is the sum of
@@ -232,8 +235,8 @@ func (t *Torrent) Files() []*File {
 
 func (t *Torrent) AddPeers(pp []PeerInfo) (n int) {
 	t.cl.lock()
+	defer t.cl.unlock()
 	n = t.addPeers(pp)
-	t.cl.unlock()
 	return
 }
 

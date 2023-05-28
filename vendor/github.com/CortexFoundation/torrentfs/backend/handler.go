@@ -429,7 +429,7 @@ func (tm *TorrentManager) Close() error {
 	return array
 }*/
 
-func mmapFile(name string) (mm mmap.MMap, err error) {
+/*func mmapFile(name string) (mm mmap.MMap, err error) {
 	f, err := os.Open(name)
 	if err != nil {
 		return
@@ -443,6 +443,30 @@ func mmapFile(name string) (mm mmap.MMap, err error) {
 		return
 	}
 	return mmap.MapRegion(f, -1, mmap.RDONLY, mmap.COPY, 0)
+}*/
+
+func mmapFile(name string) (mm storage.FileMapping, err error) {
+	f, err := os.Open(name)
+	if err != nil {
+		return
+	}
+	defer func() {
+		if err != nil {
+			f.Close()
+		}
+	}()
+	fi, err := f.Stat()
+	if err != nil {
+		return
+	}
+	if fi.Size() == 0 {
+		return
+	}
+	reg, err := mmap.MapRegion(f, -1, mmap.RDONLY, mmap.COPY, 0)
+	if err != nil {
+		return
+	}
+	return storage.WrapFileMapping(reg, f), nil
 }
 
 func (tm *TorrentManager) verifyTorrent(info *metainfo.Info, root string) error {
@@ -453,8 +477,8 @@ func (tm *TorrentManager) verifyTorrent(info *metainfo.Info, root string) error 
 		if err != nil {
 			return err
 		}
-		if int64(len(mm)) != file.Length {
-			return fmt.Errorf("file %q has wrong length, %d / %d", filename, int64(len(mm)), file.Length)
+		if int64(len(mm.Bytes())) != file.Length {
+			return fmt.Errorf("file %q has wrong length", filename)
 		}
 		span.Append(mm)
 	}
