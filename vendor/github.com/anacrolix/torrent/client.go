@@ -301,6 +301,7 @@ func NewClient(cfg *ClientConfig) (cl *Client, err error) {
 		},
 		Proxy:                      cl.config.HTTPProxy,
 		WebsocketTrackerHttpHeader: cl.config.WebsocketTrackerHttpHeader,
+		ICEServers:                 cl.config.ICEServers,
 		DialContext:                cl.config.TrackerDialContext,
 		OnConn: func(dc datachannel.ReadWriteCloser, dcc webtorrent.DataChannelContext) {
 			cl.lock()
@@ -497,6 +498,22 @@ func (cl *Client) acceptConnections(l Listener) {
 	for {
 		conn, err := l.Accept()
 		torrent.Add("client listener accepts", 1)
+		if err == nil {
+			holepunchAddr, holepunchErr := addrPortFromPeerRemoteAddr(conn.RemoteAddr())
+			if holepunchErr == nil {
+				cl.lock()
+				if g.MapContains(cl.undialableWithoutHolepunch, holepunchAddr) {
+					setAdd(&cl.accepted, holepunchAddr)
+				}
+				if g.MapContains(
+					cl.undialableWithoutHolepunchDialedAfterHolepunchConnect,
+					holepunchAddr,
+				) {
+					setAdd(&cl.probablyOnlyConnectedDueToHolepunch, holepunchAddr)
+				}
+				cl.unlock()
+			}
+		}
 		conn = pproffd.WrapNetConn(conn)
 		cl.rLock()
 		closed := cl.closed.IsSet()
@@ -514,20 +531,6 @@ func (cl *Client) acceptConnections(l Listener) {
 		if err != nil {
 			log.Fmsg("error accepting connection: %s", err).LogLevel(log.Debug, cl.logger)
 			continue
-		}
-		{
-			holepunchAddr, holepunchErr := addrPortFromPeerRemoteAddr(conn.RemoteAddr())
-			if holepunchErr == nil {
-				cl.lock()
-				if g.MapContains(
-					cl.undialableWithoutHolepunchDialedAfterHolepunchConnect,
-					holepunchAddr,
-				) {
-					g.MakeMapIfNil(&cl.probablyOnlyConnectedDueToHolepunch)
-					g.MapInsert(cl.probablyOnlyConnectedDueToHolepunch, holepunchAddr, struct{}{})
-				}
-				cl.unlock()
-			}
 		}
 		go func() {
 			if reject != nil {
@@ -760,17 +763,6 @@ func (cl *Client) dialAndCompleteHandshake(opts outgoingConnOpts) (c *PeerConn, 
 		}
 	}
 	holepunchAddr, holepunchAddrErr := addrPortFromPeerRemoteAddr(addr)
-	if holepunchAddrErr == nil && opts.receivedHolepunchConnect {
-		cl.lock()
-		if g.MapContains(cl.undialableWithoutHolepunch, holepunchAddr) {
-			g.MakeMapIfNilAndSet(
-				&cl.undialableWithoutHolepunchDialedAfterHolepunchConnect,
-				holepunchAddr,
-				struct{}{},
-			)
-		}
-		cl.unlock()
-	}
 	headerObfuscationPolicy := opts.HeaderObfuscationPolicy
 	obfuscatedHeaderFirst := headerObfuscationPolicy.Preferred
 	firstDialResult := dialPool.getFirst()
