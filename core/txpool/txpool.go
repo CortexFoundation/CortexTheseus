@@ -244,7 +244,7 @@ type TxPool struct {
 	config      Config
 	chainconfig *params.ChainConfig
 	chain       blockChain
-	gasPrice    *big.Int
+	gasPrice    atomic.Pointer[big.Int]
 	txFeed      event.Feed
 	scope       event.SubscriptionScope
 	signer      types.Signer
@@ -305,8 +305,8 @@ func NewTxPool(config Config, chainconfig *params.ChainConfig, chain blockChain)
 		reorgDoneCh:     make(chan chan struct{}),
 		reorgShutdownCh: make(chan struct{}),
 		initDoneCh:      make(chan struct{}),
-		gasPrice:        new(big.Int).SetUint64(config.PriceLimit),
 	}
+	pool.gasPrice.Store(new(big.Int).SetUint64(config.PriceLimit))
 	pool.locals = newAccountSet(pool.signer)
 	for _, addr := range config.Locals {
 		log.Info("Setting new local account", "address", addr)
@@ -440,22 +440,14 @@ func (pool *TxPool) SubscribeNewTxsEvent(ch chan<- core.NewTxsEvent) event.Subsc
 	return pool.scope.Track(pool.txFeed.Subscribe(ch))
 }
 
-// GasPrice returns the current gas price enforced by the transaction pool.
-func (pool *TxPool) GasPrice() *big.Int {
-	pool.mu.RLock()
-	defer pool.mu.RUnlock()
-
-	return new(big.Int).Set(pool.gasPrice)
-}
-
 // SetGasPrice updates the minimum price required by the transaction pool for a
 // new transaction, and drops all transactions below this threshold.
 func (pool *TxPool) SetGasPrice(price *big.Int) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	old := pool.gasPrice
-	pool.gasPrice = price
+	old := pool.gasPrice.Load()
+	pool.gasPrice.Store(new(big.Int).Set(price))
 	if price.Cmp(old) > 0 {
 		// pool.priced is sorted by GasFeeCap, so we have to iterate through pool.all instead
 		drop := pool.all.RemotesBelowTip(price)
@@ -593,7 +585,7 @@ func (pool *TxPool) validateTxBasics(tx *types.Transaction, local bool) error {
 		return ErrInvalidSender
 	}
 	// Drop non-local transactions under our own minimal accepted gas price
-	if !local && tx.GasPriceIntCmp(pool.gasPrice) < 0 {
+	if !local && tx.GasPriceIntCmp(pool.gasPrice.Load()) < 0 {
 		return ErrUnderpriced
 	}
 	// Ensure the transaction has more gas than the basic tx fee.

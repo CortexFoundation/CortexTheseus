@@ -302,7 +302,7 @@ func TestInvalidTransactions(t *testing.T) {
 	}
 
 	tx = transaction(1, 100000, key)
-	pool.gasPrice = big.NewInt(1000)
+	pool.gasPrice.Store(big.NewInt(1000))
 	if err, want := pool.AddRemote(tx), ErrUnderpriced; !errors.Is(err, want) {
 		t.Errorf("want %v have %v", want, err)
 	}
