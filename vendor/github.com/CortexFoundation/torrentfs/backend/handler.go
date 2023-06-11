@@ -396,10 +396,10 @@ func (tm *TorrentManager) Close() error {
 
 	tm.closeOnce.Do(func() {
 		log.Info("Current running torrents", "size", tm.torrents.Len())
-		tm.torrents.Range(func(_ string, t *Torrent) bool {
-			t.Close()
-			return true
-		})
+		//tm.torrents.Range(func(_ string, t *Torrent) bool {
+		//	t.Close()
+		//	return true
+		//})
 
 		tm.client.Close()
 		tm.client.WaitAll()
