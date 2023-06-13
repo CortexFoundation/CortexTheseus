@@ -15,6 +15,16 @@
 
 package common
 
+//func SafeCopy(des, src []byte) []byte {
+//	return append(des[:0], src...)
+//}
+
 func SafeCopy(des, src []byte) []byte {
-	return append(des[:0], src...)
+	if len(des) < len(src) {
+		des = make([]byte, len(src))
+	} else {
+		des = des[:len(src)]
+	}
+	copy(des, src)
+	return des
 }

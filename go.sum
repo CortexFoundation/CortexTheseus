@@ -67,8 +67,8 @@ github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66/go.mod h1:
 github.com/CortexFoundation/torrentfs v1.0.13-0.20200623060705-ce027f43f2f8/go.mod h1:Ma+tGhPPvz4CEZHaqEJQMOEGOfHeQBiAoNd1zyc/w3Q=
 github.com/CortexFoundation/torrentfs v1.0.14-0.20200703071639-3fcabcabf274/go.mod h1:qnb3YlIJmuetVBtC6Lsejr0Xru+1DNmDCdTqnwy7lhk=
 github.com/CortexFoundation/torrentfs v1.0.20-0.20200810031954-d36d26f82fcc/go.mod h1:N5BsicP5ynjXIi/Npl/SRzlJ630n1PJV2sRj0Z0t2HA=
-github.com/CortexFoundation/torrentfs v1.0.43-0.20230610094635-8a398feaf70c h1:+Zmd7MRPC/TziVQmFTbvrT9/FF8CGjoFmaK5GyCUP/4=
-github.com/CortexFoundation/torrentfs v1.0.43-0.20230610094635-8a398feaf70c/go.mod h1:xRVjCStdG1vhYYd6OSzioGon08CwpMYJfAzzf12j2Oc=
+github.com/CortexFoundation/torrentfs v1.0.43-0.20230612102341-9eff98330554 h1:0YufDkAxJ2UTnwqG1+3r8YxcqjSkrewfdy5TAqVq53E=
+github.com/CortexFoundation/torrentfs v1.0.43-0.20230612102341-9eff98330554/go.mod h1:VvjheGra22V15ijgyyq0RRXHpaE3Qn7LJZT8z7uTo8o=
 github.com/DATA-DOG/go-sqlmock v1.3.3/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
 github.com/DataDog/zstd v1.5.5 h1:oWf5W7GtOLgp6bciQYDmhHHjdhYkALu6S/5Ni9ZgSvQ=
 github.com/DataDog/zstd v1.5.5/go.mod h1:g4AWEaM3yOg3HYfnJ3YIawPnVdXJh9QME85blwSAmyw=
@@ -400,8 +400,8 @@ github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0/go.mod h1:v57UDF4pDQJcEfFUCRop3
 github.com/deepmap/oapi-codegen v1.12.4 h1:pPmn6qI9MuOtCz82WY2Xaw46EQjgvxednXXrP7g5Q2s=
 github.com/deepmap/oapi-codegen v1.12.4/go.mod h1:3lgHGMu6myQ2vqbbTXH2H1o4eXFTGnFiDaOaKKl5yas=
 github.com/dgraph-io/badger v1.6.0/go.mod h1:zwt7syl517jmP8s94KqSxTlM6IMsdhYy6psNgSztDR4=
-github.com/dgraph-io/badger/v4 v4.0.2-0.20230608034636-d85287bfd1be h1:RO2eeooIGn/tSSgtGDC3ZVv23uYA2/PjLEmevOYfwX8=
-github.com/dgraph-io/badger/v4 v4.0.2-0.20230608034636-d85287bfd1be/go.mod h1:P50u28d39ibBRmIJuQC/NSdBOg46HnHw7al2SW5QRHg=
+github.com/dgraph-io/badger/v4 v4.0.2-0.20230612050215-907dd6578d56 h1:tleGQQ8pfQZTkNJcJWp+NY8IMWyCzZJfMli1pS2uoeo=
+github.com/dgraph-io/badger/v4 v4.0.2-0.20230612050215-907dd6578d56/go.mod h1:P50u28d39ibBRmIJuQC/NSdBOg46HnHw7al2SW5QRHg=
 github.com/dgraph-io/ristretto v0.1.1 h1:6CWw5tJNgpegArSHpNHJKldNeq03FQCwYvfMVWajOK8=
 github.com/dgraph-io/ristretto v0.1.1/go.mod h1:S1GPSBCYCIhmVNfcth17y2zZtQT6wzkzgwUve0VDWWA=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
@@ -1269,8 +1269,8 @@ github.com/ucwong/filecache v1.0.6-0.20230405163841-810d53ced4bd h1:gBtlvLAsgLk+
 github.com/ucwong/filecache v1.0.6-0.20230405163841-810d53ced4bd/go.mod h1:ddwX+NCjMZPdpzcGh1fcEbNTUTCtKgt2hC2rqvmLKgA=
 github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb h1:dVZH3AH9f7zB3VBmsjn25B7lfcAyMP4QxdFYTrfj7tg=
 github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb/go.mod h1:3yswsBsVuwsOjDvFfC5Na9XSEf4HC7mj3W3g6jvSY/s=
-github.com/ucwong/golang-kv v1.0.20-0.20230610084455-364e6383ecda h1:tEj3gHIIGnjCuzBozn2mszzAaLkHQFzaAGMk2MDB/CQ=
-github.com/ucwong/golang-kv v1.0.20-0.20230610084455-364e6383ecda/go.mod h1:9aNWp+DfKQ+cU0rHH/wNGnQJxKQDyxP59Quq7G/8p5k=
+github.com/ucwong/golang-kv v1.0.20-0.20230612093743-b34c03efe1f2 h1:Yh6JL0vWeCeQekAzakzpO2mqDbk6hFYD/1tBCgiPkVM=
+github.com/ucwong/golang-kv v1.0.20-0.20230612093743-b34c03efe1f2/go.mod h1:p9I/J4UTLjVclrHId1JgEsGJYXONDGWHHnEkUkJ2uRE=
 github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43/go.mod h1:xu0FaiQFGbBcFZj2o7udZ5rbA8jRTsv47hkPoG5qQNM=
 github.com/ucwong/goleveldb v1.0.3-0.20200508074755-578cba616f37/go.mod h1:dgJUTtDxq/ne6/JzZhHzF24OL/uqILz9IWk8HmT4V2g=
 github.com/ucwong/goleveldb v1.0.3-0.20200618184106-f1c6bc3a428b/go.mod h1:7Sq6w7AfEZuB/a6mrlvHCSXCSkqojCMMrM3Ei12QAT0=
