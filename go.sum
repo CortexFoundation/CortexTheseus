@@ -67,8 +67,8 @@ github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66/go.mod h1:
 github.com/CortexFoundation/torrentfs v1.0.13-0.20200623060705-ce027f43f2f8/go.mod h1:Ma+tGhPPvz4CEZHaqEJQMOEGOfHeQBiAoNd1zyc/w3Q=
 github.com/CortexFoundation/torrentfs v1.0.14-0.20200703071639-3fcabcabf274/go.mod h1:qnb3YlIJmuetVBtC6Lsejr0Xru+1DNmDCdTqnwy7lhk=
 github.com/CortexFoundation/torrentfs v1.0.20-0.20200810031954-d36d26f82fcc/go.mod h1:N5BsicP5ynjXIi/Npl/SRzlJ630n1PJV2sRj0Z0t2HA=
-github.com/CortexFoundation/torrentfs v1.0.43-0.20230612102341-9eff98330554 h1:0YufDkAxJ2UTnwqG1+3r8YxcqjSkrewfdy5TAqVq53E=
-github.com/CortexFoundation/torrentfs v1.0.43-0.20230612102341-9eff98330554/go.mod h1:VvjheGra22V15ijgyyq0RRXHpaE3Qn7LJZT8z7uTo8o=
+github.com/CortexFoundation/torrentfs v1.0.43-0.20230613082956-e6106884df61 h1:NTYW7nSou9Z++GbE21WEhFD2OQrZFcV0YfbNM19Izng=
+github.com/CortexFoundation/torrentfs v1.0.43-0.20230613082956-e6106884df61/go.mod h1:DJ1E6RRfB79Jb82qfgVDeSjp0wejoxVqrHJ/g67IYW8=
 github.com/DATA-DOG/go-sqlmock v1.3.3/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
 github.com/DataDog/zstd v1.5.5 h1:oWf5W7GtOLgp6bciQYDmhHHjdhYkALu6S/5Ni9ZgSvQ=
 github.com/DataDog/zstd v1.5.5/go.mod h1:g4AWEaM3yOg3HYfnJ3YIawPnVdXJh9QME85blwSAmyw=
