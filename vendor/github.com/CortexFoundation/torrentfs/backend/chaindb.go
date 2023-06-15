@@ -226,6 +226,10 @@ func (fs *ChainDB) addLeaf(block *types.Block, mes bool, dup bool) error {
 	number := block.Number
 	leaf := merkletree.NewContent(block.Hash.String(), number)
 
+	if fs.tree == nil {
+		return errors.New("mkt is nil")
+	}
+
 	l, e := fs.tree.VerifyContent(leaf)
 	if !l {
 		if !dup {
