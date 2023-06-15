@@ -22,6 +22,7 @@ import (
 	"github.com/cockroachdb/pebble/internal/manifest"
 	"github.com/cockroachdb/pebble/internal/manual"
 	"github.com/cockroachdb/pebble/objstorage"
+	"github.com/cockroachdb/pebble/rangekey"
 	"github.com/cockroachdb/pebble/record"
 	"github.com/cockroachdb/pebble/sstable"
 	"github.com/cockroachdb/pebble/vfs"
@@ -1183,7 +1184,7 @@ func (d *DB) ScanInternal(
 	lower, upper []byte,
 	visitPointKey func(key *InternalKey, value LazyValue) error,
 	visitRangeDel func(start, end []byte, seqNum uint64) error,
-	visitRangeKey func(start, end []byte, keys []keyspan.Key) error,
+	visitRangeKey func(start, end []byte, keys []rangekey.Key) error,
 	visitSharedFile func(sst *SharedSSTMeta) error,
 ) error {
 	iter := d.newInternalIter(nil /* snapshot */, &scanInternalOptions{
@@ -1876,6 +1877,10 @@ func (d *DB) Metrics() *Metrics {
 type sstablesOptions struct {
 	// set to true will return the sstable properties in TableInfo
 	withProperties bool
+
+	// if set, return sstables that overlap the key range (end-exclusive)
+	start []byte
+	end   []byte
 }
 
 // SSTablesOption set optional parameter used by `DB.SSTables`.
@@ -1888,6 +1893,15 @@ type SSTablesOption func(*sstablesOptions)
 func WithProperties() SSTablesOption {
 	return func(opt *sstablesOptions) {
 		opt.withProperties = true
+	}
+}
+
+// WithKeyRangeFilter ensures returned sstables overlap start and end (end-exclusive)
+// if start and end are both nil these properties have no effect
+func WithKeyRangeFilter(start, end []byte) SSTablesOption {
+	return func(opt *sstablesOptions) {
+		opt.end = end
+		opt.start = start
 	}
 }
 
@@ -1936,6 +1950,9 @@ func (d *DB) SSTables(opts ...SSTablesOption) ([][]SSTableInfo, error) {
 		iter := srcLevels[i].Iter()
 		j := 0
 		for m := iter.First(); m != nil; m = iter.Next() {
+			if opt.start != nil && opt.end != nil && !m.Overlaps(d.opts.Comparer.Compare, opt.start, opt.end, true /* exclusive end */) {
+				continue
+			}
 			destTables[j] = SSTableInfo{TableInfo: m.TableInfo()}
 			if opt.withProperties {
 				p, err := d.tableCache.getTableProperties(
@@ -1953,6 +1970,7 @@ func (d *DB) SSTables(opts ...SSTablesOption) ([][]SSTableInfo, error) {
 		destLevels[i] = destTables[:j]
 		destTables = destTables[j:]
 	}
+
 	return destLevels, nil
 }
 

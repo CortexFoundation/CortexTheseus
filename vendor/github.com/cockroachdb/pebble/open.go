@@ -297,7 +297,9 @@ func Open(dirname string, opts *Options) (db *DB, _ error) {
 		NoSyncOnClose:       opts.NoSyncOnClose,
 		BytesPerSync:        opts.BytesPerSync,
 	}
-	providerSettings.Shared.Storage = opts.Experimental.SharedStorage
+	providerSettings.Shared.StorageFactory = opts.Experimental.SharedStorage
+	providerSettings.Shared.CreateOnShared = opts.Experimental.CreateOnShared
+	providerSettings.Shared.CreateOnSharedLocator = opts.Experimental.CreateOnSharedLocator
 
 	d.objProvider, err = objstorageprovider.Open(providerSettings)
 	if err != nil {
@@ -804,13 +806,12 @@ func (d *DB) replayWAL(
 					paths[i] = base.MakeFilepath(d.opts.FS, d.dirname, fileTypeTable, n)
 				}
 
-				var meta []*manifest.FileMetadata
-				meta, _, err = ingestLoad(
-					d.opts, d.mu.formatVers.vers, paths, d.cacheID, fileNums,
-				)
+				var lr ingestLoadResult
+				lr, err = ingestLoad(d.opts, d.mu.formatVers.vers, paths, nil, d.cacheID, fileNums)
 				if err != nil {
 					return nil, 0, err
 				}
+				meta := lr.localMeta
 
 				if uint32(len(meta)) != b.Count() {
 					panic("pebble: couldn't load all files in WAL entry.")

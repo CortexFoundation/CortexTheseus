@@ -1333,10 +1333,10 @@ func (c *compaction) newInputIter(
 	// internal iterator interface). The resulting merged rangedel iterator is
 	// then included with the point levels in a single mergingIter.
 	newRangeDelIter := func(
-		f manifest.LevelFile, _ *IterOptions, bytesIterated *uint64,
+		f manifest.LevelFile, _ *IterOptions, l manifest.Level, bytesIterated *uint64,
 	) (keyspan.FragmentIterator, error) {
 		iter, rangeDelIter, err := newIters(context.Background(), f.FileMetadata,
-			nil /* iter options */, internalIterOpts{bytesIterated: &c.bytesIterated})
+			&IterOptions{level: l}, internalIterOpts{bytesIterated: &c.bytesIterated})
 		if err == nil {
 			// TODO(peter): It is mildly wasteful to open the point iterator only to
 			// immediately close it. One way to solve this would be to add new
@@ -1459,7 +1459,7 @@ func (c *compaction) newInputIter(
 		// mergingIter.
 		iter := level.files.Iter()
 		for f := iter.First(); f != nil; f = iter.Next() {
-			rangeDelIter, err := newRangeDelIter(iter.Take(), nil, &c.bytesIterated)
+			rangeDelIter, err := newRangeDelIter(iter.Take(), nil, l, &c.bytesIterated)
 			if err != nil {
 				// The error will already be annotated with the BackingFileNum, so
 				// we annotate it with the FileNum.
@@ -1501,7 +1501,7 @@ func (c *compaction) newInputIter(
 				}
 				return iter, err
 			}
-			li.Init(keyspan.SpanIterOptions{}, c.cmp, newRangeKeyIterWrapper, level.files.Iter(), l, manifest.KeyTypeRange)
+			li.Init(keyspan.SpanIterOptions{Level: l}, c.cmp, newRangeKeyIterWrapper, level.files.Iter(), l, manifest.KeyTypeRange)
 			rangeKeyIters = append(rangeKeyIters, li)
 		}
 		return nil
@@ -2072,6 +2072,7 @@ func (d *DB) flush1() (bytesFlushed uint64, err error) {
 	bytesFlushed = c.bytesIterated
 	d.mu.snapshots.cumulativePinnedCount += stats.cumulativePinnedKeys
 	d.mu.snapshots.cumulativePinnedSize += stats.cumulativePinnedSize
+	d.mu.versions.metrics.Keys.MissizedTombstonesCount += stats.countMissizedDels
 
 	d.maybeUpdateDeleteCompactionHints(c)
 	d.clearCompactingState(c, err != nil)
@@ -2564,9 +2565,20 @@ func (d *DB) compact1(c *compaction, errChannel chan error) (err error) {
 	info.Duration = d.timeNow().Sub(startTime)
 	if err == nil {
 		d.mu.versions.logLock()
-		err = d.mu.versions.logAndApply(jobID, ve, c.metrics, false /* forceRotation */, func() []compactionInfo {
-			return d.getInProgressCompactionInfoLocked(c)
-		})
+		// Confirm if any of this compaction's inputs were deleted while this
+		// compaction was ongoing.
+		for i := range c.inputs {
+			c.inputs[i].files.Each(func(m *manifest.FileMetadata) {
+				if m.Deleted {
+					err = firstError(err, errors.New("pebble: file deleted by a concurrent operation, will retry compaction"))
+				}
+			})
+		}
+		if err == nil {
+			err = d.mu.versions.logAndApply(jobID, ve, c.metrics, false /* forceRotation */, func() []compactionInfo {
+				return d.getInProgressCompactionInfoLocked(c)
+			})
+		}
 		if err != nil {
 			// TODO(peter): untested.
 			for _, f := range pendingOutputs {
@@ -2622,6 +2634,7 @@ func (d *DB) compact1(c *compaction, errChannel chan error) (err error) {
 type compactStats struct {
 	cumulativePinnedKeys uint64
 	cumulativePinnedSize uint64
+	countMissizedDels    uint64
 }
 
 // runCompactions runs a compaction that produces new on-disk tables from
@@ -3294,6 +3307,11 @@ func (d *DB) runCompaction(
 			}] = f
 		}
 	}
+
+	// The compaction iterator keeps track of a count of the number of DELSIZED
+	// keys that encoded an incorrect size. Propagate it up as a part of
+	// compactStats.
+	stats.countMissizedDels = iter.stats.countMissizedDels
 
 	if err := d.objProvider.Sync(); err != nil {
 		return nil, pendingOutputs, stats, err

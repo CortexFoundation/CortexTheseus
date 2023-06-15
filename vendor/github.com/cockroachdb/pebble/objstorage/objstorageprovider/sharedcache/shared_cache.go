@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math/bits"
 	"sync"
 	"sync/atomic"
 
@@ -29,13 +30,23 @@ type Cache struct {
 	shards []shard
 	logger base.Logger
 
-	blockSize int
+	bm blockMath
 
-	writeBackWaitGroup sync.WaitGroup
 	// TODO(josh): Have a dedicated metrics struct. Right now, this
 	// is just for testing.
 	misses atomic.Int32
+
+	writeWorkers writeWorkers
 }
+
+const (
+	// writeWorkersPerShard is used to establish the number of worker goroutines
+	// that perform writes to the cache.
+	writeWorkersPerShard = 4
+	// writeTaskPerWorker is used to establish how many tasks can be queued up
+	// until we have to block.
+	writeTasksPerWorker = 4
+)
 
 // Open opens a cache. If there is no existing cache at fsDir, a new one
 // is created.
@@ -48,8 +59,8 @@ func Open(
 	}
 
 	sc := &Cache{
-		logger:    logger,
-		blockSize: blockSize,
+		logger: logger,
+		bm:     makeBlockMath(blockSize),
 	}
 	sc.shards = make([]shard, numShards)
 	blocksPerShard := sizeBytes / int64(numShards) / int64(blockSize)
@@ -58,13 +69,14 @@ func Open(
 			return nil, err
 		}
 	}
+	sc.writeWorkers.Start(sc, numShards*writeWorkersPerShard)
 	return sc, nil
 }
 
 // Close closes the cache. Methods such as ReadAt should not be called after Close is
 // called.
 func (c *Cache) Close() error {
-	c.writeBackWaitGroup.Wait()
+	c.writeWorkers.Stop()
 
 	var retErr error
 	for i := range c.shards {
@@ -91,8 +103,15 @@ func (c *Cache) ReadAt(
 	p []byte,
 	ofs int64,
 	objReader shared.ObjectReader,
+	objSize int64,
 	flags ReadFlags,
 ) error {
+	if ofs >= objSize {
+		if invariants.Enabled {
+			panic("invalid ReadAt offset")
+		}
+		return io.EOF
+	}
 	// TODO(radu): for compaction reads, we may not want to read from the cache at
 	// all.
 	{
@@ -111,7 +130,7 @@ func (c *Cache) ReadAt(
 		p = p[n:]
 
 		if invariants.Enabled {
-			if n != 0 && ofs%int64(c.blockSize) != 0 {
+			if n != 0 && c.bm.Remainder(ofs) != 0 {
 				panic(fmt.Sprintf("after non-zero read from cache, ofs is not block-aligned: %v %v", ofs, n))
 			}
 		}
@@ -125,40 +144,27 @@ func (c *Cache) ReadAt(
 
 	// We must do reads with offset & size that are multiples of the block size. Else
 	// later cache hits may return incorrect zeroed results from the cache.
-	firstBlockInd := ofs / int64(c.blockSize)
-	adjustedOfs := firstBlockInd * int64(c.blockSize)
+	firstBlockInd := c.bm.Block(ofs)
+	adjustedOfs := c.bm.BlockOffset(firstBlockInd)
 
 	// Take the length of what is left to read plus the length of the adjustment of
 	// the offset plus the size of a block minus one and divide by the size of a block
 	// to get the number of blocks to read from the object.
 	sizeOfOffAdjustment := int(ofs - adjustedOfs)
-	numBlocksToRead := ((len(p) + sizeOfOffAdjustment) + (c.blockSize - 1)) / c.blockSize
-	adjustedLen := numBlocksToRead * c.blockSize
+	adjustedLen := int(c.bm.RoundUp(int64(len(p) + sizeOfOffAdjustment)))
 	adjustedP := make([]byte, adjustedLen)
 
-	// Read the rest from the object.
-	// TODO(josh): To have proper EOF handling, we will need to use the Size method of the
-	// readable to limit the size of a read when at the end of a file. For now, the cache
-	// just swallows all io.EOF errors.
-	if err := objReader.ReadAt(ctx, adjustedP, adjustedOfs); err != nil && err != io.EOF {
+	// Read the rest from the object. We may need to cap the length to avoid past EOF reads.
+	eofCap := int64(adjustedLen)
+	if adjustedOfs+eofCap > objSize {
+		eofCap = objSize - adjustedOfs
+	}
+	if err := objReader.ReadAt(ctx, adjustedP[:eofCap], adjustedOfs); err != nil {
 		return err
 	}
 	copy(p, adjustedP[sizeOfOffAdjustment:])
 
-	// TODO(josh): For writing back to the cache, we may want a concurrency-limited approach
-	// that does batching, instead of what is below. I think it's reasonable though to
-	// run a production experiment with what is below, before making adjustments. Note that
-	// the writes being done are in multiples of the filesystem block size. The filesystem
-	// might do okay with them.
-	c.writeBackWaitGroup.Add(1)
-	go func() {
-		defer c.writeBackWaitGroup.Done()
-		if err := c.set(fileNum, adjustedP, adjustedOfs); err != nil {
-			// TODO(josh): Would like to log at error severity, but base.Logger doesn't
-			// have error severity.
-			c.logger.Infof("writing back to cache after miss failed: %v", err)
-		}
-	}()
+	c.writeWorkers.QueueWrite(fileNum, adjustedP, adjustedOfs)
 	return nil
 }
 
@@ -202,7 +208,7 @@ func (c *Cache) get(fileNum base.DiskFileNum, p []byte, ofs int64) (n int, _ err
 // If all of p is not written to the shard, set returns a non-nil error.
 func (c *Cache) set(fileNum base.DiskFileNum, p []byte, ofs int64) error {
 	if invariants.Enabled {
-		if ofs%int64(c.blockSize) != 0 || len(p)%c.blockSize != 0 {
+		if c.bm.Remainder(ofs) != 0 || c.bm.Remainder(int64(len(p))) != 0 {
 			panic(fmt.Sprintf("set with ofs & len not multiples of block size: %v %v", ofs, len(p)))
 		}
 	}
@@ -221,7 +227,7 @@ func (c *Cache) set(fileNum base.DiskFileNum, p []byte, ofs int64) error {
 		if err != nil {
 			return err
 		}
-		// set returns an error if cappedLen bytes aren't written the the shard.
+		// set returns an error if cappedLen bytes aren't written to the shard.
 		n += cappedLen
 		if n == len(p) {
 			// We are done.
@@ -244,7 +250,7 @@ func (c *Cache) getShard(fileNum base.DiskFileNum, ofs int64) *shard {
 type shard struct {
 	file         vfs.File
 	sizeInBlocks int64
-	blockSize    int
+	bm           blockMath
 	mu           struct {
 		sync.Mutex
 		// TODO(josh): None of these datastructures are space-efficient.
@@ -260,12 +266,9 @@ type shard struct {
 type whereMap map[logicalBlockID]cacheBlockIndex
 
 type logicalBlockID struct {
-	filenum base.DiskFileNum
-	// Offset into the file, in units of shard.BlockSize.
-	offsetInUnitsOfBlocks int64
+	filenum       base.DiskFileNum
+	cacheBlockIdx cacheBlockIndex
 }
-
-type cacheBlockIndex int64
 
 type lockState int64
 
@@ -290,7 +293,7 @@ func (s *shard) init(
 	if blockSize < 1024 || shardingBlockSize%blockSize != 0 {
 		return errors.Newf("invalid block size %d (must divide %d)", blockSize, shardingBlockSize)
 	}
-	s.blockSize = blockSize
+	s.bm = makeBlockMath(blockSize)
 	file, err := fs.OpenReadWrite(fs.PathJoin(fsDir, fmt.Sprintf("SHARED-CACHE-%03d", shardIdx)))
 	if err != nil {
 		return err
@@ -348,11 +351,11 @@ func (s *shard) get(fileNum base.DiskFileNum, p []byte, ofs int64) (n int, _ err
 	// in units of sstable block size.
 	for {
 		k := logicalBlockID{
-			filenum:               fileNum,
-			offsetInUnitsOfBlocks: (ofs + int64(n)) / int64(s.blockSize),
+			filenum:       fileNum,
+			cacheBlockIdx: s.bm.Block(ofs + int64(n)),
 		}
 		s.mu.Lock()
-		cacheBlockInd, ok := s.mu.where[k]
+		cacheBlockIdx, ok := s.mu.where[k]
 		// TODO(josh): Multiple reads within the same few milliseconds (anything that is smaller
 		// than blob storage read latency) that miss on the same logical block ID will not necessarily
 		// be rare. We may want to do only one read, with the later readers blocking on the first read
@@ -362,33 +365,31 @@ func (s *shard) get(fileNum base.DiskFileNum, p []byte, ofs int64) (n int, _ err
 			s.mu.Unlock()
 			return n, nil
 		}
-		if s.mu.locks[cacheBlockInd] == writeLockTaken {
+		if s.mu.locks[cacheBlockIdx] == writeLockTaken {
 			// In practice, if we have two reads of the same SST block in close succession, we
 			// would expect the second to hit in the in-memory block cache. So it's not worth
 			// optimizing this case here.
 			s.mu.Unlock()
 			return n, nil
 		}
-		s.mu.locks[cacheBlockInd] += readLockTakenInc
+		s.mu.locks[cacheBlockIdx] += readLockTakenInc
 		s.mu.Unlock()
 
-		readAt := int64(cacheBlockInd) * int64(s.blockSize)
+		readAt := s.bm.BlockOffset(cacheBlockIdx)
+		readSize := s.bm.BlockSize()
 		if n == 0 { // if first read
-			readAt += ofs % int64(s.blockSize)
-		}
-		readSize := s.blockSize
-		if n == 0 { // if first read
-			// Cast to int safe since ofs is modded by block size.
-			readSize -= int(ofs % int64(s.blockSize))
+			rem := s.bm.Remainder(ofs)
+			readAt += rem
+			readSize -= int(rem)
 		}
 
 		if len(p[n:]) <= readSize {
 			numRead, err := s.file.ReadAt(p[n:], readAt)
-			s.dropReadLock(cacheBlockInd)
+			s.dropReadLock(cacheBlockIdx)
 			return n + numRead, err
 		}
 		numRead, err := s.file.ReadAt(p[n:n+readSize], readAt)
-		s.dropReadLock(cacheBlockInd)
+		s.dropReadLock(cacheBlockIdx)
 		if err != nil {
 			return 0, err
 		}
@@ -408,7 +409,7 @@ func (s *shard) set(fileNum base.DiskFileNum, p []byte, ofs int64) error {
 		if ofs/shardingBlockSize != (ofs+int64(len(p))-1)/shardingBlockSize {
 			panic(fmt.Sprintf("set crosses shard boundary: %v %v", ofs, len(p)))
 		}
-		if ofs%int64(s.blockSize) != 0 || len(p)%s.blockSize != 0 {
+		if s.bm.Remainder(ofs) != 0 || s.bm.Remainder(int64(len(p))) != 0 {
 			panic(fmt.Sprintf("set with ofs & len not multiples of block size: %v %v", ofs, len(p)))
 		}
 		s.assertShardStateIsConsistent()
@@ -430,13 +431,13 @@ func (s *shard) set(fileNum base.DiskFileNum, p []byte, ofs int64) error {
 
 		// If the logical block is already in the cache, we should skip doing a set.
 		k := logicalBlockID{
-			filenum:               fileNum,
-			offsetInUnitsOfBlocks: (ofs + int64(n)) / int64(s.blockSize),
+			filenum:       fileNum,
+			cacheBlockIdx: s.bm.Block(ofs + int64(n)),
 		}
 		s.mu.Lock()
 		if _, ok := s.mu.where[k]; ok {
 			s.mu.Unlock()
-			n += s.blockSize
+			n += s.bm.BlockSize()
 			continue
 		}
 
@@ -478,9 +479,9 @@ func (s *shard) set(fileNum base.DiskFileNum, p []byte, ofs int64) error {
 		s.mu.locks[cacheBlockInd] = writeLockTaken
 		s.mu.Unlock()
 
-		writeAt := int64(cacheBlockInd) * int64(s.blockSize)
+		writeAt := s.bm.BlockOffset(cacheBlockInd)
 
-		writeSize := s.blockSize
+		writeSize := s.bm.BlockSize()
 		if len(p[n:]) <= writeSize {
 			writeSize = len(p[n:])
 		}
@@ -558,5 +559,121 @@ func (s *shard) assertShardStateIsConsistent() {
 		if ls < writeLockTaken {
 			panic(fmt.Sprintf("lock state %v is not allowed: %v", ls, s.mu.locks))
 		}
+	}
+}
+
+// cacheBlockIndex is the index of a blockSize-aligned cache block.
+type cacheBlockIndex int64
+
+// blockMath is a helper type for performing conversions between offsets and
+// block indexes.
+type blockMath struct {
+	blockSizeBits int8
+}
+
+func makeBlockMath(blockSize int) blockMath {
+	bm := blockMath{
+		blockSizeBits: int8(bits.Len64(uint64(blockSize)) - 1),
+	}
+	if blockSize != (1 << bm.blockSizeBits) {
+		panic(fmt.Sprintf("blockSize %d is not a power of 2", blockSize))
+	}
+	return bm
+}
+
+func (bm blockMath) mask() int64 {
+	return (1 << bm.blockSizeBits) - 1
+}
+
+// BlockSize returns the block size.
+func (bm blockMath) BlockSize() int {
+	return 1 << bm.blockSizeBits
+}
+
+// Block returns the block index containing the given offset.
+func (bm blockMath) Block(offset int64) cacheBlockIndex {
+	return cacheBlockIndex(offset >> bm.blockSizeBits)
+}
+
+// Remainder returns the offset relative to the start of the cache block.
+func (bm blockMath) Remainder(offset int64) int64 {
+	return offset & bm.mask()
+}
+
+// BlockOffset returns the object offset where the given block starts.
+func (bm blockMath) BlockOffset(block cacheBlockIndex) int64 {
+	return int64(block) << bm.blockSizeBits
+}
+
+// RoundUp rounds up the given value to the closest multiple of block size.
+func (bm blockMath) RoundUp(x int64) int64 {
+	return (x + bm.mask()) & ^(bm.mask())
+}
+
+type writeWorkers struct {
+	doneCh        chan struct{}
+	doneWaitGroup sync.WaitGroup
+
+	numWorkers int
+	tasksCh    chan writeTask
+}
+
+type writeTask struct {
+	fileNum base.DiskFileNum
+	p       []byte
+	offset  int64
+}
+
+// Start starts the worker goroutines.
+func (w *writeWorkers) Start(c *Cache, numWorkers int) {
+	doneCh := make(chan struct{})
+	tasksCh := make(chan writeTask, numWorkers*writeTasksPerWorker)
+
+	w.numWorkers = numWorkers
+	w.doneCh = doneCh
+	w.tasksCh = tasksCh
+	w.doneWaitGroup.Add(numWorkers)
+	for i := 0; i < numWorkers; i++ {
+		go func() {
+			defer w.doneWaitGroup.Done()
+			for {
+				select {
+				case <-doneCh:
+					return
+				case task, ok := <-tasksCh:
+					if !ok {
+						// The tasks channel was closed; this is used in testing code to
+						// ensure all writes are completed.
+						return
+					}
+					// TODO(radu): set() can perform multiple writes; perhaps each one
+					// should be its own task.
+					if err := c.set(task.fileNum, task.p, task.offset); err != nil {
+						// TODO(radu): expose as metric.
+						// TODO(radu): throttle logs.
+						c.logger.Infof("writing back to cache after miss failed: %v", err)
+					}
+				}
+			}
+		}()
+	}
+}
+
+// Stop waits for any in-progress writes to complete and stops the worker
+// goroutines and waits for any in-pro. Any queued writes not yet started are
+// discarded.
+func (w *writeWorkers) Stop() {
+	close(w.doneCh)
+	w.doneCh = nil
+	w.tasksCh = nil
+	w.doneWaitGroup.Wait()
+}
+
+// QueueWrite adds a write task to the queue. Can block if the queue is full.
+func (w *writeWorkers) QueueWrite(fileNum base.DiskFileNum, p []byte, offset int64) {
+	w.tasksCh <- writeTask{
+		fileNum: fileNum,
+		p:       p,
+		offset:  offset,
 	}
 }
