@@ -275,6 +275,9 @@ func (fs *ChainDB) addLeaf(block *types.Block, mes bool, dup bool) error {
 }
 
 func (fs *ChainDB) Root() common.Hash {
+	if fs.tree == nil {
+		return common.EmptyHash
+	}
 	return common.BytesToHash(fs.tree.MerkleRoot())
 }
 
