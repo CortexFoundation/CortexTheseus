@@ -21,11 +21,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"sort"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
+	"golang.org/x/exp/slices"
 )
 
 const jsonIndent = "    "
@@ -76,8 +76,8 @@ func (ns nodeSet) nodes() []*enode.Node {
 		result = append(result, n.N)
 	}
 	// Sort by ID.
-	sort.Slice(result, func(i, j int) bool {
-		return bytes.Compare(result[i].ID().Bytes(), result[j].ID().Bytes()) < 0
+	slices.SortFunc(result, func(a, b *enode.Node) bool {
+		return bytes.Compare(a.ID().Bytes(), b.ID().Bytes()) < 0
 	})
 	return result
 }
@@ -88,6 +88,27 @@ func (ns nodeSet) add(nodes ...*enode.Node) {
 	}
 }
 
+// topN returns the top n nodes by score as a new set.
+func (ns nodeSet) topN(n int) nodeSet {
+	if n >= len(ns) {
+		return ns
+	}
+
+	byscore := make([]nodeJSON, 0, len(ns))
+	for _, v := range ns {
+		byscore = append(byscore, v)
+	}
+	slices.SortFunc(byscore, func(a, b nodeJSON) bool {
+		return a.Score >= b.Score
+	})
+	result := make(nodeSet, n)
+	for _, v := range byscore[:n] {
+		result[v.N.ID()] = v
+	}
+	return result
+}
+
+// verify performs integrity checks on the node set.
 func (ns nodeSet) verify() error {
 	for id, n := range ns {
 		if n.N.ID() != id {
