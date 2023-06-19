@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.43-0.20230615095111-d285c74599f0
+	github.com/CortexFoundation/torrentfs v1.0.43-0.20230615194035-3988f0f6bc4b
 	github.com/VictoriaMetrics/fastcache v1.12.1
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.17.7
@@ -17,7 +17,7 @@ require (
 	github.com/cespare/cp v1.1.1
 	github.com/charmbracelet/bubbletea v0.23.2
 	github.com/cloudflare/cloudflare-go v0.57.1
-	github.com/cockroachdb/pebble v0.0.0-20230614191204-17e0ab3c2e0e
+	github.com/cockroachdb/pebble v0.0.0-20230615190452-047380b92d76
 	github.com/consensys/gnark-crypto v0.10.0
 	github.com/crate-crypto/go-kzg-4844 v0.2.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
@@ -124,6 +124,7 @@ require (
 	github.com/cockroachdb/errors v1.9.1 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
 	github.com/cockroachdb/redact v1.1.4 // indirect
+	github.com/cockroachdb/tokenbucket v0.0.0-20230613231145-182959a1fad6 // indirect
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be // indirect
 	github.com/consensys/bavard v0.1.13 // indirect
 	github.com/containerd/console v1.0.3 // indirect
@@ -171,7 +172,7 @@ require (
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
-	github.com/nutsdb/nutsdb v0.12.3-0.20230521084054-b0a6e1ba0c39 // indirect
+	github.com/nutsdb/nutsdb v0.12.3-0.20230615013224-3ed1f785655a // indirect
 	github.com/onsi/gomega v1.20.0 // indirect
 	github.com/otiai10/copy v1.11.0 // indirect
 	github.com/pion/datachannel v1.5.5 // indirect
@@ -210,7 +211,7 @@ require (
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/ucwong/filecache v1.0.6-0.20230405163841-810d53ced4bd // indirect
 	github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb // indirect
-	github.com/ucwong/golang-kv v1.0.20-0.20230615003635-e32bf57a8914 // indirect
+	github.com/ucwong/golang-kv v1.0.20-0.20230615193522-78cdcb07ec1b // indirect
 	github.com/ucwong/shard v1.0.1-0.20230505153952-911e99b5f0c2 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/xujiajun/mmap-go v1.0.1 // indirect
