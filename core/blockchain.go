@@ -23,7 +23,6 @@ import (
 	"io"
 	"math/big"
 	mrand "math/rand"
-	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -46,6 +45,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/trie"
+	"golang.org/x/exp/slices"
 )
 
 var (
@@ -965,8 +965,8 @@ func (bc *BlockChain) procFutureBlocks() {
 		}
 	}
 	if len(blocks) > 0 {
-		sort.Slice(blocks, func(i, j int) bool {
-			return blocks[i].NumberU64() < blocks[j].NumberU64()
+		slices.SortFunc(blocks, func(a, b *types.Block) bool {
+			return a.NumberU64() < b.NumberU64()
 		})
 		// Insert one by one as chain insertion needs contiguous ancestry between blocks
 		for i := range blocks {
