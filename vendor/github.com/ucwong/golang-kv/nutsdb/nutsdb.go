@@ -32,9 +32,9 @@ type NutsDB struct {
 
 const GLOBAL = "m41gA7omIWU4s"
 
-type NutsdbOption func(nutsdb.Options) nutsdb.Options
+type NutsDBOption func(nutsdb.Options) nutsdb.Options
 
-func Open(path string, opts ...NutsdbOption) *NutsDB {
+func Open(path string, opts ...NutsDBOption) *NutsDB {
 	//if len(path) == 0 {
 	path = filepath.Join(path, common.GLOBAL_SPACE, ".nuts")
 	err := os.MkdirAll(path, 0777) //os.FileMode(os.ModePerm))
