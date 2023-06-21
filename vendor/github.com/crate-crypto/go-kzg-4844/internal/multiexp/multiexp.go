@@ -16,7 +16,7 @@ import (
 //
 // Returns an error if the numGoRoutines exceeds 1024.
 //
-// [g1_lincomb]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#g1_lincomb
+// [g1_lincomb]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#g1_lincomb
 func MultiExp(scalars []fr.Element, points []bls12381.G1Affine, numGoRoutines int) (*bls12381.G1Affine, error) {
 	err := isValidNumGoRoutines(numGoRoutines)
 	if err != nil {

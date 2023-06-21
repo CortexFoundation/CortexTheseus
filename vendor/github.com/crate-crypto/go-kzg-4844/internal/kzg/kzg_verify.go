@@ -30,7 +30,7 @@ type OpeningProof struct {
 //
 // Modified from [gnark-crypto].
 //
-// [verify_kzg_proof_impl]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#verify_kzg_proof_impl
+// [verify_kzg_proof_impl]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#verify_kzg_proof_impl
 // [gnark-crypto]: https://github.com/ConsenSys/gnark-crypto/blob/8f7ca09273c24ed9465043566906cbecf5dcee91/ecc/bls12-381/fr/kzg/kzg.go#L166
 func Verify(commitment *Commitment, proof *OpeningProof, openKey *OpeningKey) error {
 	// [-1]G₂
@@ -104,7 +104,7 @@ func Verify(commitment *Commitment, proof *OpeningProof, openKey *OpeningKey) er
 //
 // Modified from [gnark-crypto].
 //
-// [verify_kzg_proof_batch]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#verify_kzg_proof_batch
+// [verify_kzg_proof_batch]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#verify_kzg_proof_batch
 // [gnark-crypto]: https://github.com/ConsenSys/gnark-crypto/blob/8f7ca09273c24ed9465043566906cbecf5dcee91/ecc/bls12-381/fr/kzg/kzg.go#L367)
 func BatchVerifyMultiPoints(commitments []Commitment, proofs []OpeningProof, openKey *OpeningKey) error {
 	// Check consistency number of proofs is equal to the number of commitments.

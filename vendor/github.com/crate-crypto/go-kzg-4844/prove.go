@@ -9,7 +9,7 @@ import (
 // numGoRoutines is used to configure the amount of concurrency needed. Setting this
 // value to a negative number or 0 will make it default to the number of CPUs.
 //
-// [blob_to_kzg_commitment]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#blob_to_kzg_commitment
+// [blob_to_kzg_commitment]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#blob_to_kzg_commitment
 func (c *Context) BlobToKZGCommitment(blob Blob, numGoRoutines int) (KZGCommitment, error) {
 	// 1. Deserialization
 	//
@@ -42,7 +42,7 @@ func (c *Context) BlobToKZGCommitment(blob Blob, numGoRoutines int) (KZGCommitme
 // numGoRoutines is used to configure the amount of concurrency needed. Setting this
 // value to a negative number or 0 will make it default to the number of CPUs.
 //
-// [compute_blob_kzg_proof]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#compute_blob_kzg_proof
+// [compute_blob_kzg_proof]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#compute_blob_kzg_proof
 func (c *Context) ComputeBlobKZGProof(blob Blob, blobCommitment KZGCommitment, numGoRoutines int) (KZGProof, error) {
 	// 1. Deserialization
 	//
@@ -81,7 +81,7 @@ func (c *Context) ComputeBlobKZGProof(blob Blob, blobCommitment KZGCommitment, n
 // numGoRoutines is used to configure the amount of concurrency needed. Setting this
 // value to a negative number or 0 will make it default to the number of CPUs.
 //
-// [compute_kzg_proof]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#compute_kzg_proof
+// [compute_kzg_proof]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#compute_kzg_proof
 func (c *Context) ComputeKZGProof(blob Blob, inputPointBytes Scalar, numGoRoutines int) (KZGProof, Scalar, error) {
 	// 1. Deserialization
 	//

@@ -20,7 +20,7 @@ type Context struct {
 //
 // It matches [BLS_MODULUS] in the spec.
 //
-// [BLS_MODULUS]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#constants
+// [BLS_MODULUS]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#constants
 var BlsModulus = [32]byte{
 	0x73, 0xed, 0xa7, 0x53, 0x29, 0x9d, 0x7d, 0x48,
 	0x33, 0x39, 0xd8, 0x08, 0x09, 0xa1, 0xd8, 0x05,
@@ -32,7 +32,7 @@ var BlsModulus = [32]byte{
 //
 // It matches [G1_POINT_AT_INFINITY] in the spec.
 //
-// [G1_POINT_AT_INFINITY]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#constants
+// [G1_POINT_AT_INFINITY]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#constants
 var PointAtInfinity = [48]byte{0xc0}
 
 // NewContext4096Insecure1337 creates a new context object which will hold the state needed for one to use the KZG

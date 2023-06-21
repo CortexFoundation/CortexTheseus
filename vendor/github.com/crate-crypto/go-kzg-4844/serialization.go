@@ -18,7 +18,7 @@ const CompressedG2Size = 96
 //
 // It matches [BYTES_PER_FIELD_ELEMENT] in the spec.
 //
-// [BYTES_PER_FIELD_ELEMENT]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#constants
+// [BYTES_PER_FIELD_ELEMENT]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#constants
 const SerializedScalarSize = 32
 
 // ScalarsPerBlob is the number of serialized scalars in a blob.
@@ -28,45 +28,45 @@ const SerializedScalarSize = 32
 // Note: These scalars are not guaranteed to be valid (a value less than [BLS_MODULUS]). If any of the scalars in a blob
 // are invalid (non-canonical), an error will be returned on deserialization.
 //
-// [BLS_MODULUS]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#constants
-// [FIELD_ELEMENTS_PER_BLOB]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#blob
+// [BLS_MODULUS]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#constants
+// [FIELD_ELEMENTS_PER_BLOB]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#blob
 const ScalarsPerBlob = 4096
 
 type (
 	// G1Point matches [G1Point] in the spec.
 	//
-	// [G1Point]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#custom-types
+	// [G1Point]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#custom-types
 	G1Point [CompressedG1Size]byte
 
 	// G2Point matches [G2Point] in the spec.
 	//
-	// [G2Point]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#custom-types
+	// [G2Point]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#custom-types
 	G2Point [CompressedG2Size]byte
 
 	// Scalar matches [BLSFieldElement] in the spec.
 	//
-	// [BLSFieldElement]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#custom-types
+	// [BLSFieldElement]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#custom-types
 	Scalar [SerializedScalarSize]byte
 
 	// Blob is a flattened representation of a serialized polynomial.
 	//
 	// It matches [Blob] in the spec.
 	//
-	// [Blob]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#custom-types
+	// [Blob]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#custom-types
 	Blob [ScalarsPerBlob * SerializedScalarSize]byte
 
 	// KZGProof is a serialized commitment to the quotient polynomial.
 	//
 	// It matches [KZGProof] in the spec.
 	//
-	// [KZGProof]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#custom-types
+	// [KZGProof]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#custom-types
 	KZGProof G1Point
 
 	// KZGCommitment is a serialized commitment to a polynomial.
 	//
 	// It matches [KZGCommitment] in the spec.
 	//
-	// [KZGCommitment]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#custom-types
+	// [KZGCommitment]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#custom-types
 	KZGCommitment G1Point
 )
 
@@ -80,7 +80,7 @@ func SerializeG1Point(affine bls12381.G1Affine) G1Point {
 //
 // It implements [validate_kzg_g1].
 //
-// [validate_kzg_g1]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#validate_kzg_g1
+// [validate_kzg_g1]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#validate_kzg_g1
 func deserializeG1Point(serPoint G1Point) (bls12381.G1Affine, error) {
 	var point bls12381.G1Affine
 	_, err := point.SetBytes(serPoint[:])
@@ -92,21 +92,21 @@ func deserializeG1Point(serPoint G1Point) (bls12381.G1Affine, error) {
 
 // DeserializeKZGCommitment implements [bytes_to_kzg_commitment].
 //
-// [bytes_to_kzg_commitment]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#bytes_to_kzg_commitment
+// [bytes_to_kzg_commitment]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#bytes_to_kzg_commitment
 func DeserializeKZGCommitment(commitment KZGCommitment) (bls12381.G1Affine, error) {
 	return deserializeG1Point(G1Point(commitment))
 }
 
 // DeserializeKZGProof implements [bytes_to_kzg_proof].
 //
-// [bytes_to_kzg_proof]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#bytes_to_kzg_proof
+// [bytes_to_kzg_proof]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#bytes_to_kzg_proof
 func DeserializeKZGProof(proof KZGProof) (bls12381.G1Affine, error) {
 	return deserializeG1Point(G1Point(proof))
 }
 
 // DeserializeBlob implements [blob_to_polynomial].
 //
-// [blob_to_polynomial]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#blob_to_polynomial
+// [blob_to_polynomial]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#blob_to_polynomial
 func DeserializeBlob(blob Blob) (kzg.Polynomial, error) {
 	poly := make(kzg.Polynomial, ScalarsPerBlob)
 	for i := 0; i < ScalarsPerBlob; i++ {
@@ -123,14 +123,11 @@ func DeserializeBlob(blob Blob) (kzg.Polynomial, error) {
 
 // DeserializeScalar implements [bytes_to_bls_field].
 //
-// Note: Returns an error if the scalar, when interpreted as a big integer in little-endian format, is not in the range
-// [0, p-1] (inclusive) where `p` is the prime associated with the scalar field.
+// Note: Returns an error if the scalar is not in the range [0, p-1] (inclusive) where `p` is the prime associated with the scalar field.
 //
-// [bytes_to_bls_field]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#bytes_to_bls_field
+// [bytes_to_bls_field]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#bytes_to_bls_field
 func DeserializeScalar(serScalar Scalar) (fr.Element, error) {
-	// Gnark uses big-endian but the format according to the
-	// specs is little-endian, so we reverse the scalar.
-	scalar, err := utils.ReduceCanonicalLittleEndian(serScalar[:])
+	scalar, err := utils.ReduceCanonicalBigEndian(serScalar[:])
 	if err != nil {
 		return fr.Element{}, ErrNonCanonicalScalar
 	}
@@ -139,11 +136,7 @@ func DeserializeScalar(serScalar Scalar) (fr.Element, error) {
 
 // SerializeScalar converts a [fr.Element] to [Scalar].
 func SerializeScalar(element fr.Element) Scalar {
-	// Gnark uses big-endian but the format according to the
-	// specs is little-endian, so we reverse the scalar.
-	serScalar := element.Bytes()
-	utils.Reverse(serScalar[:])
-	return serScalar
+	return element.Bytes()
 }
 
 // SerializePoly converts a [kzg.Polynomial] to [Blob].

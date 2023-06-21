@@ -27,7 +27,7 @@ $ go test -bench=.
 ## Consensus specs
 
 This version of the code is conformant with the consensus-specs as of the
-following commit: `50a3f8e8d902ad9d677ca006302eb9535d56d758`
+following commit: `017a8495f7671f5fff2075a9bfc9238c1a0982f8`
 
 
 ## Security
