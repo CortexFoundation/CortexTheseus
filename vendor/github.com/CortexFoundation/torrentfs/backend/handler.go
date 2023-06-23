@@ -899,6 +899,8 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 		torrentManager.kvdb = kv.Bolt(config.DataDir)
 	case "nutsdb":
 		torrentManager.kvdb = kv.NutsDB(config.DataDir)
+	case "rosedb":
+		torrentManager.kvdb = kv.RoseDB(config.DataDir)
 	default:
 		panic("Invalid nas engine " + config.Engine)
 	}
