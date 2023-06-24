@@ -1,10 +1,13 @@
 package wal
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -12,6 +15,10 @@ import (
 
 const (
 	initialSegmentFileID = 1
+)
+
+var (
+	ErrValueTooLarge = errors.New("the data size can't larger than segment size")
 )
 
 // WAL represents a Write-Ahead Log structure that provides durability
@@ -49,6 +56,9 @@ type Reader struct {
 }
 
 func Open(options Options) (*WAL, error) {
+	if !strings.HasPrefix(options.SementFileExt, ".") {
+		return nil, fmt.Errorf("segment file extension must start with '.'")
+	}
 	wal := &WAL{
 		options:       options,
 		olderSegments: make(map[SegmentID]*segment),
@@ -85,7 +95,7 @@ func Open(options Options) (*WAL, error) {
 			continue
 		}
 		var id int
-		_, err := fmt.Sscanf(entry.Name(), "%d"+segmentFileSuffix, &id)
+		_, err := fmt.Sscanf(entry.Name(), "%d"+options.SementFileExt, &id)
 		if err != nil {
 			continue
 		}
@@ -94,7 +104,8 @@ func Open(options Options) (*WAL, error) {
 
 	// empty directory, just initialize a new segment file.
 	if len(segmengIDs) == 0 {
-		segment, err := openSegmentFile(options.DirPath, initialSegmentFileID, wal.blockCache)
+		segment, err := openSegmentFile(options.DirPath, options.SementFileExt,
+			initialSegmentFileID, wal.blockCache)
 		if err != nil {
 			return nil, err
 		}
@@ -104,7 +115,8 @@ func Open(options Options) (*WAL, error) {
 		sort.Ints(segmengIDs)
 
 		for i, segId := range segmengIDs {
-			segment, err := openSegmentFile(options.DirPath, uint32(segId), wal.blockCache)
+			segment, err := openSegmentFile(options.DirPath, options.SementFileExt,
+				uint32(segId), wal.blockCache)
 			if err != nil {
 				return nil, err
 			}
@@ -119,18 +131,74 @@ func Open(options Options) (*WAL, error) {
 	return wal, nil
 }
 
-func (wal *WAL) NewReader() *Reader {
+// SegmentFileName returns the file name of a segment file.
+func SegmentFileName(dirPath string, extName string, id SegmentID) string {
+	return filepath.Join(dirPath, fmt.Sprintf("%09d"+extName, id))
+}
+
+// OpenNewActiveSegment opens a new segment file
+// and sets it as the active segment file.
+// It is used when even the active segment file is not full,
+// but the user wants to create a new segment file.
+//
+// It is now used by Merge operation of rosedb, not a common usage for most users.
+func (wal *WAL) OpenNewActiveSegment() error {
+	wal.mu.Lock()
+	defer wal.mu.Unlock()
+	// sync the active segment file.
+	if err := wal.activeSegment.Sync(); err != nil {
+		return err
+	}
+	// create a new segment file and set it as the active one.
+	segment, err := openSegmentFile(wal.options.DirPath, wal.options.SementFileExt,
+		wal.activeSegment.id+1, wal.blockCache)
+	if err != nil {
+		return err
+	}
+	wal.olderSegments[wal.activeSegment.id] = wal.activeSegment
+	wal.activeSegment = segment
+	return nil
+}
+
+// ActiveSegmentID returns the id of the active segment file.
+func (wal *WAL) ActiveSegmentID() SegmentID {
+	wal.mu.RLock()
+	defer wal.mu.RUnlock()
+
+	return wal.activeSegment.id
+}
+
+// IsEmpty returns whether the WAL is empty.
+// Only there is only one active segment file and it is empty,
+// the WAL is empty.
+func (wal *WAL) IsEmpty() bool {
+	wal.mu.RLock()
+	defer wal.mu.RUnlock()
+
+	return len(wal.olderSegments) == 0 && wal.activeSegment.Size() == 0
+}
+
+// NewReaderWithMax returns a new reader for the WAL,
+// and the reader will only read the data from the segment file
+// whose id is less than or equal to the given segId.
+//
+// It is now used by the Merge operation of rosedb, not a common usage for most users.
+func (wal *WAL) NewReaderWithMax(segId SegmentID) *Reader {
 	wal.mu.RLock()
 	defer wal.mu.RUnlock()
 
 	// get all segment readers.
 	var segmentReaders []*segmentReader
 	for _, segment := range wal.olderSegments {
-		reader := segment.NewReader()
+		if segId == 0 || segment.id <= segId {
+			reader := segment.NewReader()
+			segmentReaders = append(segmentReaders, reader)
+		}
+	}
+	if segId == 0 || wal.activeSegment.id <= segId {
+		reader := wal.activeSegment.NewReader()
 		segmentReaders = append(segmentReaders, reader)
 	}
-	reader := wal.activeSegment.NewReader()
-	segmentReaders = append(segmentReaders, reader)
 
 	// sort the segment readers by segment id.
 	sort.Slice(segmentReaders, func(i, j int) bool {
@@ -141,6 +209,11 @@ func (wal *WAL) NewReader() *Reader {
 		segmentReaders: segmentReaders,
 		currentReader:  0,
 	}
+}
+
+// NewReader returns a new reader for the WAL.
+func (wal *WAL) NewReader() *Reader {
+	return wal.NewReaderWithMax(0)
 }
 
 // Next returns the next chunk data and its position in the WAL.
@@ -160,17 +233,34 @@ func (r *Reader) Next() ([]byte, *ChunkPosition, error) {
 	return data, position, err
 }
 
+// SkipCurrentSegment skips the current segment file
+// when reading the WAL.
+//
+// It is now used by the Merge operation of rosedb, not a common usage for most users.
+func (r *Reader) SkipCurrentSegment() {
+	r.currentReader++
+}
+
+// CurrentSegmentId returns the id of the current segment file
+// when reading the WAL.
+func (r *Reader) CurrentSegmentId() SegmentID {
+	return r.segmentReaders[r.currentReader].segment.id
+}
+
 func (wal *WAL) Write(data []byte) (*ChunkPosition, error) {
 	wal.mu.Lock()
 	defer wal.mu.Unlock()
-
+	if int64(len(data))+chunkHeaderSize > wal.options.SegmentSize {
+		return nil, ErrValueTooLarge
+	}
 	// if the active segment file is full, sync it and create a new one.
 	if wal.isFull(int64(len(data))) {
 		if err := wal.activeSegment.Sync(); err != nil {
 			return nil, err
 		}
-
-		segment, err := openSegmentFile(wal.options.DirPath, wal.activeSegment.id+1, wal.blockCache)
+		wal.bytesWrite = 0
+		segment, err := openSegmentFile(wal.options.DirPath, wal.options.SementFileExt,
+			wal.activeSegment.id+1, wal.blockCache)
 		if err != nil {
 			return nil, err
 		}
@@ -215,7 +305,7 @@ func (wal *WAL) Read(pos *ChunkPosition) ([]byte, error) {
 	}
 
 	if segment == nil {
-		return nil, fmt.Errorf("segment file %d%s not found", pos.SegmentId, segmentFileSuffix)
+		return nil, fmt.Errorf("segment file %d%s not found", pos.SegmentId, wal.options.SementFileExt)
 	}
 
 	// read the data from the segment file.

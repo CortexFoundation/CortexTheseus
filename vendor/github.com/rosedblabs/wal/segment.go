@@ -7,7 +7,6 @@ import (
 	"hash/crc32"
 	"io"
 	"os"
-	"path/filepath"
 
 	lru "github.com/hashicorp/golang-lru/v2"
 )
@@ -37,8 +36,6 @@ const (
 	blockSize = 32 * KB
 
 	fileModePerm = 0644
-
-	segmentFileSuffix = ".SEG"
 )
 
 // Segment represents a single segment file in WAL.
@@ -75,10 +72,9 @@ type ChunkPosition struct {
 }
 
 // openSegmentFile a new segment file.
-func openSegmentFile(dirPath string, id uint32, cache *lru.Cache[uint64, []byte]) (*segment, error) {
-	fileName := fmt.Sprintf("%09d"+segmentFileSuffix, id)
+func openSegmentFile(dirPath, extName string, id uint32, cache *lru.Cache[uint64, []byte]) (*segment, error) {
 	fd, err := os.OpenFile(
-		filepath.Join(dirPath, fileName),
+		SegmentFileName(dirPath, extName, id),
 		os.O_CREATE|os.O_RDWR|os.O_APPEND,
 		fileModePerm,
 	)
@@ -90,7 +86,7 @@ func openSegmentFile(dirPath string, id uint32, cache *lru.Cache[uint64, []byte]
 	// set the current block number and block size.
 	offset, err := fd.Seek(0, io.SeekEnd)
 	if err != nil {
-		panic(fmt.Errorf("seek to the end of segment file %d%s failed: %v", id, segmentFileSuffix, err))
+		panic(fmt.Errorf("seek to the end of segment file %d%s failed: %v", id, extName, err))
 	}
 
 	return &segment{
@@ -247,7 +243,6 @@ func (seg *segment) writeInternal(data []byte, chunkType ChunkType) error {
 		seg.currentBlockNumber += 1
 		seg.currentBlockSize = 0
 	}
-
 	return nil
 }
 
@@ -261,13 +256,9 @@ func (seg *segment) readInternal(blockNumber uint32, chunkOffset int64) ([]byte,
 		return nil, nil, ErrClosed
 	}
 
-	segSize, err := seg.fd.Seek(0, io.SeekEnd)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	var (
 		result    []byte
+		segSize   = seg.Size()
 		nextChunk = &ChunkPosition{SegmentId: seg.id}
 	)
 	for {
@@ -307,14 +298,14 @@ func (seg *segment) readInternal(blockNumber uint32, chunkOffset int64) ([]byte,
 		copy(header, block[chunkOffset:chunkOffset+chunkHeaderSize])
 
 		// length
-		legnth := binary.LittleEndian.Uint16(header[4:6])
+		length := binary.LittleEndian.Uint16(header[4:6])
 
 		// copy data
 		start := chunkOffset + chunkHeaderSize
-		result = append(result, block[start:start+int64(legnth)]...)
+		result = append(result, block[start:start+int64(length)]...)
 
 		// check sum
-		checksumEnd := chunkOffset + chunkHeaderSize + int64(legnth)
+		checksumEnd := chunkOffset + chunkHeaderSize + int64(length)
 		checksum := crc32.ChecksumIEEE(block[chunkOffset+4 : checksumEnd])
 		savedSum := binary.LittleEndian.Uint32(header[:4])
 		if savedSum != checksum {

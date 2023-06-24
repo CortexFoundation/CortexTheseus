@@ -15,6 +15,7 @@
 package buffer
 
 import (
+	"bytes"
 	origFmt "fmt"
 	"unicode/utf8"
 	"unsafe"
@@ -197,11 +198,16 @@ func (b *Buffer) endRedactable() {
 	if len(b.buf) == 0 {
 		return
 	}
-	p, ok := b.tryGrowByReslice(len(m.EndS))
-	if !ok {
-		p = b.grow(len(m.EndS))
+	if bytes.HasSuffix(b.buf, m.StartBytes) {
+		// Special case: remove a trailing open marker and call it a day.
+		b.buf = b.buf[:len(b.buf)-m.StartLen]
+	} else {
+		p, ok := b.tryGrowByReslice(m.EndLen)
+		if !ok {
+			p = b.grow(m.EndLen)
+		}
+		copy(b.buf[p:], m.EndS)
 	}
-	copy(b.buf[p:], m.EndS)
 	b.markerOpen = false
 }
 
@@ -214,18 +220,23 @@ func (b *Buffer) startWrite() {
 
 // endRedactable adds the closing redaction marker.
 func (b *Buffer) startRedactable() {
-	p, ok := b.tryGrowByReslice(len(m.StartS))
-	if !ok {
-		p = b.grow(len(m.StartS))
+	if bytes.HasSuffix(b.buf, m.EndBytes) {
+		// Special case: remove a trailing closing marker and call it a day.
+		b.buf = b.buf[:len(b.buf)-m.EndLen]
+	} else {
+		p, ok := b.tryGrowByReslice(len(m.StartS))
+		if !ok {
+			p = b.grow(len(m.StartS))
+		}
+		copy(b.buf[p:], m.StartS)
 	}
-	copy(b.buf[p:], m.StartS)
 	b.markerOpen = true
 }
 
 // escapeToEnd escapes occurrences of redaction markers in
 // b.buf[b.validUntil:] and advances b.validUntil until the end.
 func (b *Buffer) escapeToEnd(breakNewLines bool) {
-	b.buf = escape.InternalEscapeBytes(b.buf, b.validUntil, breakNewLines, breakNewLines)
+	b.buf = escape.InternalEscapeBytes(b.buf, b.validUntil, breakNewLines, false /* trim */)
 	b.validUntil = len(b.buf)
 }
 
@@ -311,6 +322,13 @@ func (b *Buffer) Grow(n int) {
 	}
 	m := b.grow(n)
 	b.buf = b.buf[:m]
+}
+
+// clone is used in tests.
+func (b *Buffer) clone() *Buffer {
+	c := *b
+	c.buf = append([]byte(nil), b.buf...)
+	return &c
 }
 
 // makeSlice allocates a slice of size n. If the allocation fails, it panics

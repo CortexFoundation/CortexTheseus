@@ -10,7 +10,6 @@ import (
 	"os"
 	"sync"
 	"sync/atomic"
-	"unsafe"
 
 	"github.com/cockroachdb/errors"
 	"github.com/cockroachdb/pebble/internal/arenaskl"
@@ -261,7 +260,7 @@ func (m *memTable) newRangeKeyIter(*IterOptions) keyspan.FragmentIterator {
 }
 
 func (m *memTable) containsRangeKeys() bool {
-	return atomic.LoadUint32(&m.rangeKeys.atomicCount) > 0
+	return m.rangeKeys.count.Load() > 0
 }
 
 func (m *memTable) availBytes() uint32 {
@@ -355,8 +354,8 @@ func (f *keySpanFrags) get(
 // invalidated whenever a key of the same kind is added to a memTable, and
 // populated when empty when a span iterator of that key kind is created.
 type keySpanCache struct {
-	atomicCount   uint32
-	frags         unsafe.Pointer
+	count         atomic.Uint32
+	frags         atomic.Pointer[keySpanFrags]
 	cmp           Compare
 	formatKey     base.FormatKey
 	constructSpan constructSpan
@@ -366,23 +365,20 @@ type keySpanCache struct {
 // Invalidate the current set of cached spans, indicating the number of
 // spans that were added.
 func (c *keySpanCache) invalidate(count uint32) {
-	newCount := atomic.AddUint32(&c.atomicCount, count)
+	newCount := c.count.Add(count)
 	var frags *keySpanFrags
 
 	for {
-		oldPtr := atomic.LoadPointer(&c.frags)
-		if oldPtr != nil {
-			oldFrags := (*keySpanFrags)(oldPtr)
-			if oldFrags.count >= newCount {
-				// Someone else invalidated the cache before us and their invalidation
-				// subsumes ours.
-				break
-			}
+		oldFrags := c.frags.Load()
+		if oldFrags != nil && oldFrags.count >= newCount {
+			// Someone else invalidated the cache before us and their invalidation
+			// subsumes ours.
+			break
 		}
 		if frags == nil {
 			frags = &keySpanFrags{count: newCount}
 		}
-		if atomic.CompareAndSwapPointer(&c.frags, oldPtr, unsafe.Pointer(frags)) {
+		if c.frags.CompareAndSwap(oldFrags, frags) {
 			// We successfully invalidated the cache.
 			break
 		}
@@ -391,7 +387,7 @@ func (c *keySpanCache) invalidate(count uint32) {
 }
 
 func (c *keySpanCache) get() []keyspan.Span {
-	frags := (*keySpanFrags)(atomic.LoadPointer(&c.frags))
+	frags := c.frags.Load()
 	if frags == nil {
 		return nil
 	}

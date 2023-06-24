@@ -28,6 +28,9 @@ import (
 // If breakNewLines is set, a closing redaction marker
 // is placed before sequences of one or more newline characters,
 // and an open redaction marker is placed afterwards.
+//
+// If strip is set, final newlines and spaces are trimmed from the
+// output.
 func InternalEscapeBytes(b []byte, startLoc int, breakNewLines, strip bool) (res []byte) {
 	// Note: we use len(...RedactableS) and not len(...RedactableBytes)
 	// because the ...S variant is a compile-time constant so this
@@ -69,7 +72,12 @@ func InternalEscapeBytes(b []byte, startLoc int, breakNewLines, strip bool) (res
 				copied = true
 			}
 			res = append(res, b[k:i]...)
-			res = append(res, end...)
+			// Either add an end marker, or elide a start marker immediately prior.
+			if bytes.HasSuffix(res, start) {
+				res = res[:len(res)-ls]
+			} else {
+				res = append(res, end...)
+			}
 			// Advance to the last newline character. We want to forward
 			// them all in a single call to doWrite, for performance.
 			lastNewLine := i

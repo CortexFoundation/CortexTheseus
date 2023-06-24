@@ -2,8 +2,8 @@
 // of this source code is governed by a BSD-style license that can be found in
 // the LICENSE file.
 
-//go:build darwin || openbsd || dragonfly || freebsd
-// +build darwin openbsd dragonfly freebsd
+//go:build darwin || dragonfly || freebsd
+// +build darwin dragonfly freebsd
 
 package vfs
 
