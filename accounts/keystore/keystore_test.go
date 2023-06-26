@@ -20,7 +20,6 @@ import (
 	"math/rand"
 	"os"
 	"runtime"
-	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -28,6 +27,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/event"
+	"golang.org/x/exp/slices"
 )
 
 var testSigData = make([]byte, 32)
@@ -349,7 +349,7 @@ func checkAccounts(t *testing.T, live map[common.Address]accounts.Account, walle
 	for _, account := range live {
 		liveList = append(liveList, account)
 	}
-	sort.Sort(accountsByURL(liveList))
+	slices.SortFunc(liveList, byURL)
 	for j, wallet := range wallets {
 		if accs := wallet.Accounts(); len(accs) != 1 {
 			t.Errorf("wallet %d: contains invalid number of accounts: have %d, want 1", j, len(accs))
