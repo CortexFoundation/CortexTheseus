@@ -118,6 +118,8 @@ const (
 	MSIZE    OpCode = 0x59
 	GAS      OpCode = 0x5a
 	JUMPDEST OpCode = 0x5b
+	TLOAD    OpCode = 0x5c
+	TSTORE   OpCode = 0x5d
 	PUSH0    OpCode = 0x5f
 )
 
@@ -202,8 +204,6 @@ const (
 	INFER      OpCode = 0xc0
 	INFERARRAY        = 0xc1
 	// NNFORWARD         = 0xc2
-	TLOAD  OpCode = 0xb3
-	TSTORE OpCode = 0xb4
 )
 
 // 0xf0 range - closures.
@@ -297,6 +297,8 @@ var opCodeToString = map[OpCode]string{
 	MSIZE:    "MSIZE",
 	GAS:      "GAS",
 	JUMPDEST: "JUMPDEST",
+	TLOAD:    "TLOAD",
+	TSTORE:   "TSTORE",
 	PUSH0:    "PUSH0",
 
 	// 0x60 range - pushes.
@@ -468,6 +470,8 @@ var stringToOp = map[string]OpCode{
 	"MSIZE":          MSIZE,
 	"GAS":            GAS,
 	"JUMPDEST":       JUMPDEST,
+	"TLOAD":          TLOAD,
+	"TSTORE":         TSTORE,
 	"PUSH0":          PUSH0,
 	"PUSH1":          PUSH1,
 	"PUSH2":          PUSH2,
@@ -541,8 +545,6 @@ var stringToOp = map[string]OpCode{
 	"INFER":          INFER,
 	"INFERARRAY":     INFERARRAY,
 	// "NNFORWARD":      NNFORWARD,
-	"TLOAD":        TLOAD,
-	"TSTORE":       TSTORE,
 	"CREATE":       CREATE,
 	"CREATE2":      CREATE2,
 	"CALL":         CALL,
