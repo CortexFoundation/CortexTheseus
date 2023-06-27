@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -32,6 +31,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/route53"
 	"github.com/aws/aws-sdk-go-v2/service/route53/types"
+	"golang.org/x/exp/slices"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -248,11 +248,11 @@ func (c *route53Client) computeChanges(name string, records map[string]string, e
 // sortChanges ensures DNS changes are in leaf-added -> root-changed -> leaf-deleted order.
 func sortChanges(changes []types.Change) {
 	score := map[string]int{"CREATE": 1, "UPSERT": 2, "DELETE": 3}
-	sort.Slice(changes, func(i, j int) bool {
-		if changes[i].Action == changes[j].Action {
-			return *changes[i].ResourceRecordSet.Name < *changes[j].ResourceRecordSet.Name
+	slices.SortFunc(changes, func(a, b types.Change) bool {
+		if a.Action == b.Action {
+			return *a.ResourceRecordSet.Name < *b.ResourceRecordSet.Name
 		}
-		return score[string(changes[i].Action)] < score[string(changes[j].Action)]
+		return score[string(a.Action)] < score[string(b.Action)]
 	})
 }
 
