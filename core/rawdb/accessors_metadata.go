@@ -81,15 +81,16 @@ func WriteChainConfig(db ctxcdb.KeyValueWriter, hash common.Hash, cfg *params.Ch
 	}
 }
 
-// ReadGenesisState retrieves the genesis state based on the given genesis hash.
-func ReadGenesisState(db ctxcdb.KeyValueReader, hash common.Hash) []byte {
-	data, _ := db.Get(genesisKey(hash))
+// ReadGenesisStateSpec retrieves the genesis state specification based on the
+// given genesis (block-)hash.
+func ReadGenesisStateSpec(db ctxcdb.KeyValueReader, blockhash common.Hash) []byte {
+	data, _ := db.Get(genesisStateSpecKey(blockhash))
 	return data
 }
 
-// WriteGenesisState writes the genesis state into the disk.
-func WriteGenesisState(db ctxcdb.KeyValueWriter, hash common.Hash, data []byte) {
-	if err := db.Put(genesisKey(hash), data); err != nil {
+// WriteGenesisStateSpec writes the genesis state specification into the disk.
+func WriteGenesisStateSpec(db ctxcdb.KeyValueWriter, blockhash common.Hash, data []byte) {
+	if err := db.Put(genesisStateSpecKey(blockhash), data); err != nil {
 		log.Crit("Failed to store genesis state", "err", err)
 	}
 }

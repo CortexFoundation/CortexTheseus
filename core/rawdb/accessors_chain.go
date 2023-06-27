@@ -37,7 +37,7 @@ import (
 func ReadCanonicalHash(db ctxcdb.Reader, number uint64) common.Hash {
 	var data []byte
 	db.ReadAncients(func(reader ctxcdb.AncientReaderOp) error {
-		data, _ = reader.Ancient(chainFreezerHashTable, number)
+		data, _ = reader.Ancient(ChainFreezerHashTable, number)
 		if len(data) == 0 {
 			// Get it by hash from leveldb
 			data, _ = db.Get(headerHashKey(number))
@@ -232,21 +232,6 @@ func WriteFinalizedBlockHash(db ctxcdb.KeyValueWriter, hash common.Hash) {
 	}
 }
 
-// ReadLastPivotNumber retrieves the number of the last pivot block. If the node
-// full synced, the last pivot will always be nil.
-func ReadLastPivotNumber(db ctxcdb.KeyValueReader) *uint64 {
-	data, _ := db.Get(lastPivotKey)
-	if len(data) == 0 {
-		return nil
-	}
-	var pivot uint64
-	if err := rlp.DecodeBytes(data, &pivot); err != nil {
-		log.Error("Invalid pivot block number in database", "err", err)
-		return nil
-	}
-	return &pivot
-}
-
 // ReadFastTrieProgress retrieves the number of tries nodes fast synced to allow
 // reporting correct numbers across restarts.
 func ReadFastTrieProgress(db ctxcdb.KeyValueReader) uint64 {
@@ -265,6 +250,21 @@ func WriteFastTrieProgress(db ctxcdb.KeyValueWriter, count uint64) {
 	}
 }
 
+// ReadLastPivotNumber retrieves the number of the last pivot block. If the node
+// full synced, the last pivot will always be nil.
+func ReadLastPivotNumber(db ctxcdb.KeyValueReader) *uint64 {
+	data, _ := db.Get(lastPivotKey)
+	if len(data) == 0 {
+		return nil
+	}
+	var pivot uint64
+	if err := rlp.DecodeBytes(data, &pivot); err != nil {
+		log.Error("Invalid pivot block number in database", "err", err)
+		return nil
+	}
+	return &pivot
+}
+
 // WriteLastPivotNumber stores the number of the last pivot block.
 func WriteLastPivotNumber(db ctxcdb.KeyValueWriter, pivot uint64) {
 	enc, err := rlp.EncodeToBytes(pivot)
@@ -277,8 +277,7 @@ func WriteLastPivotNumber(db ctxcdb.KeyValueWriter, pivot uint64) {
 }
 
 // ReadTxIndexTail retrieves the number of oldest indexed block
-// whose transaction indices has been indexed. If the corresponding entry
-// is non-existent in database it means the indexing has been finished.
+// whose transaction indices has been indexed.
 func ReadTxIndexTail(db ctxcdb.KeyValueReader) *uint64 {
 	data, _ := db.Get(txIndexTailKey)
 	if len(data) != 8 {
@@ -353,7 +352,7 @@ func ReadHeaderRange(db ctxcdb.Reader, number uint64, count uint64) []rlp.RawVal
 	}
 	// read remaining from ancients
 	max := count * 700
-	data, err := db.AncientRange(chainFreezerHeaderTable, i+1-count, count, max)
+	data, err := db.AncientRange(ChainFreezerHeaderTable, i+1-count, count, max)
 	if err == nil && uint64(len(data)) == count {
 		// the data is on the order [h, h+1, .., n] -- reordering needed
 		for i := range data {
@@ -370,7 +369,7 @@ func ReadHeaderRLP(db ctxcdb.Reader, hash common.Hash, number uint64) rlp.RawVal
 		// First try to look up the data in ancient database. Extra hash
 		// comparison is necessary since ancient database only maintains
 		// the canonical data.
-		data, _ = reader.Ancient(chainFreezerHeaderTable, number)
+		data, _ = reader.Ancient(ChainFreezerHeaderTable, number)
 		if len(data) > 0 && crypto.Keccak256Hash(data) == hash {
 			return nil
 		}
@@ -446,7 +445,7 @@ func deleteHeaderWithoutNumber(db ctxcdb.KeyValueWriter, hash common.Hash, numbe
 // isCanon is an internal utility method, to check whether the given number/hash
 // is part of the ancient (canon) set.
 func isCanon(reader ctxcdb.AncientReaderOp, number uint64, hash common.Hash) bool {
-	h, err := reader.Ancient(chainFreezerHashTable, number)
+	h, err := reader.Ancient(ChainFreezerHashTable, number)
 	if err != nil {
 		return false
 	}
@@ -462,7 +461,7 @@ func ReadBodyRLP(db ctxcdb.Reader, hash common.Hash, number uint64) rlp.RawValue
 	db.ReadAncients(func(reader ctxcdb.AncientReaderOp) error {
 		// Check if the data is in ancients
 		if isCanon(reader, number, hash) {
-			data, _ = reader.Ancient(chainFreezerBodiesTable, number)
+			data, _ = reader.Ancient(ChainFreezerBodiesTable, number)
 			return nil
 		}
 		// If not, try reading from leveldb
@@ -477,7 +476,7 @@ func ReadBodyRLP(db ctxcdb.Reader, hash common.Hash, number uint64) rlp.RawValue
 func ReadCanonicalBodyRLP(db ctxcdb.Reader, number uint64) rlp.RawValue {
 	var data []byte
 	db.ReadAncients(func(reader ctxcdb.AncientReaderOp) error {
-		data, _ = reader.Ancient(chainFreezerBodiesTable, number)
+		data, _ = reader.Ancient(ChainFreezerBodiesTable, number)
 		if len(data) > 0 {
 			return nil
 		}
@@ -545,7 +544,7 @@ func ReadTdRLP(db ctxcdb.Reader, hash common.Hash, number uint64) rlp.RawValue {
 	db.ReadAncients(func(reader ctxcdb.AncientReaderOp) error {
 		// Check if the data is in ancients
 		if isCanon(reader, number, hash) {
-			data, _ = reader.Ancient(chainFreezerDifficultyTable, number)
+			data, _ = reader.Ancient(ChainFreezerDifficultyTable, number)
 			return nil
 		}
 		// If not, try reading from leveldb
@@ -605,7 +604,7 @@ func ReadReceiptsRLP(db ctxcdb.Reader, hash common.Hash, number uint64) rlp.RawV
 	db.ReadAncients(func(reader ctxcdb.AncientReaderOp) error {
 		// Check if the data is in ancients
 		if isCanon(reader, number, hash) {
-			data, _ = reader.Ancient(chainFreezerReceiptTable, number)
+			data, _ = reader.Ancient(ChainFreezerReceiptTable, number)
 			return nil
 		}
 		// If not, try reading from leveldb
@@ -638,7 +637,7 @@ func ReadRawReceipts(db ctxcdb.Reader, hash common.Hash, number uint64) types.Re
 }
 
 // ReadReceipts retrieves all the transaction receipts belonging to a block, including
-// its correspoinding metadata fields. If it is unable to populate these metadata
+// its corresponding metadata fields. If it is unable to populate these metadata
 // fields then nil is returned.
 //
 // The current implementation populates these metadata fields by reading the receipts'
@@ -688,10 +687,11 @@ func DeleteReceipts(db ctxcdb.KeyValueWriter, hash common.Hash, number uint64) {
 
 // storedReceiptRLP is the storage encoding of a receipt.
 // Re-definition in core/types/receipt.go.
+// TODO: Re-use the existing definition.
 type storedReceiptRLP struct {
 	PostStateOrStatus []byte
 	CumulativeGasUsed uint64
-	Logs              []*types.LogForStorage
+	Logs              []*types.Log
 }
 
 // ReceiptLogs is a barebone version of ReceiptForStorage which only keeps
@@ -707,10 +707,7 @@ func (r *receiptLogs) DecodeRLP(s *rlp.Stream) error {
 	if err := s.Decode(&stored); err != nil {
 		return err
 	}
-	r.Logs = make([]*types.Log, len(stored.Logs))
-	for i, log := range stored.Logs {
-		r.Logs[i] = (*types.Log)(log)
-	}
+	r.Logs = stored.Logs
 	return nil
 }
 
@@ -735,9 +732,9 @@ func deriveLogFields(receipts []*receiptLogs, hash common.Hash, number uint64, t
 	return nil
 }
 
-// ReadLogs retrieves the logs for all transactions in a block. The log fields
-// are populated with metadata. In case the receipts or the block body
-// are not found, a nil is returned.
+// ReadLogs retrieves the logs for all transactions in a block. In case
+// receipts is not found, a nil is returned.
+// Note: ReadLogs does not derive unstored log fields.
 func ReadLogs(db ctxcdb.Reader, hash common.Hash, number uint64, config *params.ChainConfig) [][]*types.Log {
 	// Retrieve the flattened receipt slice
 	data := ReadReceiptsRLP(db, hash, number)
@@ -746,43 +743,10 @@ func ReadLogs(db ctxcdb.Reader, hash common.Hash, number uint64, config *params.
 	}
 	receipts := []*receiptLogs{}
 	if err := rlp.DecodeBytes(data, &receipts); err != nil {
-		// Receipts might be in the legacy format, try decoding that.
-		// TODO: to be removed after users migrated
-		if logs := readLegacyLogs(db, hash, number, config); logs != nil {
-			return logs
-		}
 		log.Error("Invalid receipt array RLP", "hash", hash, "err", err)
 		return nil
 	}
 
-	body := ReadBody(db, hash, number)
-	if body == nil {
-		log.Error("Missing body but have receipt", "hash", hash, "number", number)
-		return nil
-	}
-	if err := deriveLogFields(receipts, hash, number, body.Transactions); err != nil {
-		log.Error("Failed to derive block receipts fields", "hash", hash, "number", number, "err", err)
-		return nil
-	}
-	logs := make([][]*types.Log, len(receipts))
-	for i, receipt := range receipts {
-		logs[i] = receipt.Logs
-	}
-	return logs
-}
-
-// readLegacyLogs is a temporary workaround for when trying to read logs
-// from a block which has its receipt stored in the legacy format. It'll
-// be removed after users have migrated their freezer databases.
-func readLegacyLogs(db ctxcdb.Reader, hash common.Hash, number uint64, config *params.ChainConfig) [][]*types.Log {
-	header := ReadHeader(db, hash, number)
-	if header == nil {
-		return nil
-	}
-	receipts := ReadReceipts(db, hash, number, header.Time, config)
-	if receipts == nil {
-		return nil
-	}
 	logs := make([][]*types.Log, len(receipts))
 	for i, receipt := range receipts {
 		logs[i] = receipt.Logs
@@ -841,19 +805,19 @@ func WriteAncientBlocks(db ctxcdb.AncientWriter, blocks []*types.Block, receipts
 
 func writeAncientBlock(op ctxcdb.AncientWriteOp, block *types.Block, header *types.Header, receipts []*types.ReceiptForStorage, td *big.Int) error {
 	num := block.NumberU64()
-	if err := op.AppendRaw(chainFreezerHashTable, num, block.Hash().Bytes()); err != nil {
+	if err := op.AppendRaw(ChainFreezerHashTable, num, block.Hash().Bytes()); err != nil {
 		return fmt.Errorf("can't add block %d hash: %v", num, err)
 	}
-	if err := op.Append(chainFreezerHeaderTable, num, header); err != nil {
+	if err := op.Append(ChainFreezerHeaderTable, num, header); err != nil {
 		return fmt.Errorf("can't append block header %d: %v", num, err)
 	}
-	if err := op.Append(chainFreezerBodiesTable, num, block.Body()); err != nil {
+	if err := op.Append(ChainFreezerBodiesTable, num, block.Body()); err != nil {
 		return fmt.Errorf("can't append block body %d: %v", num, err)
 	}
-	if err := op.Append(chainFreezerReceiptTable, num, receipts); err != nil {
+	if err := op.Append(ChainFreezerReceiptTable, num, receipts); err != nil {
 		return fmt.Errorf("can't append block %d receipts: %v", num, err)
 	}
-	if err := op.Append(chainFreezerDifficultyTable, num, td); err != nil {
+	if err := op.Append(ChainFreezerDifficultyTable, num, td); err != nil {
 		return fmt.Errorf("can't append block %d total difficulty: %v", num, err)
 	}
 	return nil
