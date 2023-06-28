@@ -19,7 +19,6 @@ package clique
 import (
 	"bytes"
 	"crypto/ecdsa"
-	"sort"
 	"testing"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -29,6 +28,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/params"
+	"golang.org/x/exp/slices"
 )
 
 // testerAccountPool is a pool to maintain currently active tester accounts,
@@ -51,7 +51,7 @@ func (ap *testerAccountPool) checkpoint(header *types.Header, signers []string) 
 	for i, signer := range signers {
 		auths[i] = ap.address(signer)
 	}
-	sort.Sort(signersAscending(auths))
+	slices.SortFunc(auths, common.Address.Less)
 	for i, auth := range auths {
 		copy(header.Extra[extraVanity+i*common.AddressLength:], auth.Bytes())
 	}
