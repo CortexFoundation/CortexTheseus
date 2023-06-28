@@ -44,7 +44,7 @@ func NewIPASettingsWithSRSPrecomp(srs_precomp *SRSPrecompPoints) *IPAConfig {
 	}
 }
 
-func multiScalar(points []banderwagon.Element, scalars []fr.Element) banderwagon.Element {
+func MultiScalar(points []banderwagon.Element, scalars []fr.Element) banderwagon.Element {
 	var result banderwagon.Element
 	result.Identity()
 
@@ -69,7 +69,7 @@ func commit(group_elements []banderwagon.Element, polynomial []fr.Element) bande
 	if len(group_elements) != len(polynomial) {
 		panic(fmt.Sprintf("diff sizes, %d != %d", len(group_elements), len(polynomial)))
 	}
-	return multiScalar(group_elements, polynomial)
+	return MultiScalar(group_elements, polynomial)
 }
 
 // Computes the inner product of a and b

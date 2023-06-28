@@ -79,7 +79,7 @@ func checkChildren(root verkle.VerkleNode, resolver verkle.NodeResolverFn) error
 	switch node := root.(type) {
 	case *verkle.InternalNode:
 		for i, child := range node.Children() {
-			childC := child.Commitment().Bytes()
+			childC := child.Commit().Bytes()
 
 			childS, err := resolver(childC[:])
 			if bytes.Equal(childC[:], zero[:]) {

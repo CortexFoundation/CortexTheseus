@@ -27,19 +27,50 @@ package verkle
 
 import "errors"
 
-var (
-	errInsertIntoHash         = errors.New("trying to insert into hashed node")
-	errDeleteHash             = errors.New("trying to delete from a hashed subtree")
-	errReadFromInvalid        = errors.New("trying to read from an invalid child")
-	errSerializeHashedNode    = errors.New("trying to serialize a hashed internal node")
-	errInsertIntoOtherStem    = errors.New("insert splits a stem where it should not happen")
-	errUnknownNodeType        = errors.New("unknown node type detected")
-	errMissingNodeInStateless = errors.New("trying to access a node that is missing from the stateless view")
-)
+type UnknownNode struct{}
 
-const (
-	// Extension status
-	extStatusAbsentEmpty = byte(iota) // missing child node along the path
-	extStatusAbsentOther              // path led to a node with a different stem
-	extStatusPresent                  // stem was present
-)
+func (UnknownNode) Insert([]byte, []byte, NodeResolverFn) error {
+	return errMissingNodeInStateless
+}
+
+func (UnknownNode) Delete([]byte, NodeResolverFn) (bool, error) {
+	return false, errors.New("cant delete in a subtree missing form a stateless view")
+}
+
+func (UnknownNode) Get([]byte, NodeResolverFn) ([]byte, error) {
+	return nil, nil
+}
+
+func (n UnknownNode) Commit() *Point {
+	return n.Commitment()
+}
+
+func (UnknownNode) Commitment() *Point {
+	var id Point
+	id.Identity()
+	return &id
+}
+
+func (UnknownNode) GetProofItems(keylist) (*ProofElements, []byte, [][]byte, error) {
+	return nil, nil, nil, errors.New("can't generate proof items for unknown node")
+}
+
+func (UnknownNode) Serialize() ([]byte, error) {
+	return nil, errors.New("trying to serialize a subtree missing from the statless view")
+}
+
+func (UnknownNode) Copy() VerkleNode {
+	return UnknownNode(struct{}{})
+}
+
+func (UnknownNode) toDot(string, string) string {
+	return ""
+}
+
+func (UnknownNode) setDepth(_ byte) {
+	panic("should not be try to set the depth of an UnknownNode node")
+}
+
+func (UnknownNode) Hash() *Fr {
+	return &FrZero
+}

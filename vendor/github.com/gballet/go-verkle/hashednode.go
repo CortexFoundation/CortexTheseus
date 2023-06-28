@@ -39,12 +39,8 @@ func (*HashedNode) Insert([]byte, []byte, NodeResolverFn) error {
 	return errInsertIntoHash
 }
 
-func (*HashedNode) InsertOrdered([]byte, []byte, NodeFlushFn) error {
-	return errInsertIntoHash
-}
-
-func (*HashedNode) Delete([]byte, NodeResolverFn) error {
-	return errors.New("cant delete a hashed node in-place")
+func (*HashedNode) Delete([]byte, NodeResolverFn) (bool, error) {
+	return false, errors.New("cant delete a hashed node in-place")
 }
 
 func (*HashedNode) Get([]byte, NodeResolverFn) ([]byte, error) {
@@ -69,8 +65,8 @@ func (n *HashedNode) Commitment() *Point {
 	return n.Commit()
 }
 
-func (*HashedNode) GetProofItems(keylist) (*ProofElements, []byte, [][]byte) {
-	panic("can not get the full path, and there is no proof of absence")
+func (*HashedNode) GetProofItems(keylist) (*ProofElements, []byte, [][]byte, error) {
+	return nil, nil, nil, errors.New("can not get the full path, and there is no proof of absence")
 }
 
 func (*HashedNode) Serialize() ([]byte, error) {

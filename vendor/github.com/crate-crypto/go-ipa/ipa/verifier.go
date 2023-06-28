@@ -24,6 +24,7 @@ func CheckIPAProof(transcript *common.Transcript, ic *IPAConfig, commitment band
 
 	w := transcript.ChallengeScalar("w")
 
+	// Rescaling of q.
 	var q banderwagon.Element
 	q.ScalarMul(&ic.SRSPrecompPoints.Q, &w)
 
@@ -32,7 +33,7 @@ func CheckIPAProof(transcript *common.Transcript, ic *IPAConfig, commitment band
 	commitment.Add(&commitment, &qy)
 
 	challenges := generateChallenges(transcript, &proof)
-	challenges_inv := make([]fr.Element, len(challenges))
+	challenges_inv := fr.BatchInvert(challenges)
 
 	// Compute expected commitment
 	for i := 0; i < len(challenges); i++ {
@@ -40,42 +41,30 @@ func CheckIPAProof(transcript *common.Transcript, ic *IPAConfig, commitment band
 		L := proof.L[i]
 		R := proof.R[i]
 
-		var xInv fr.Element
-		xInv.Inverse(&x)
-
-		challenges_inv[i] = xInv
-
-		commitment = commit([]banderwagon.Element{commitment, L, R}, []fr.Element{fr.One(), x, xInv})
+		commitment = commit([]banderwagon.Element{commitment, L, R}, []fr.Element{fr.One(), x, challenges_inv[i]})
 	}
 
-	current_basis := ic.SRSPrecompPoints.SRS
+	g := ic.SRSPrecompPoints.SRS
 
-	for i := 0; i < len(challenges); i++ {
+	// We compute the folding-scalars for g and b.
+	foldingScalars := make([]fr.Element, len(g))
+	for i := 0; i < len(g); i++ {
+		scalar := fr.One()
 
-		G_L, G_R := splitPoints(current_basis)
-
-		b_L, b_R := splitScalars(b)
-
-		xInv := challenges_inv[i]
-
-		b = foldScalars(b_L, b_R, xInv)
-		current_basis = foldPoints(G_L, G_R, xInv)
+		for challengeIdx := 0; challengeIdx < len(challenges); challengeIdx++ {
+			if i&(1<<(7-challengeIdx)) > 0 {
+				scalar.Mul(&scalar, &challenges_inv[challengeIdx])
+			}
+		}
+		foldingScalars[i] = scalar
 	}
-
-	if len(b) != len(current_basis) {
-		panic("reduction was not correct")
-	}
-
-	if len(b) != 1 {
-		panic("`b` and `G` should be 1")
-	}
-
-	b0 := b[0]
+	g0 := MultiScalar(g, foldingScalars)
+	b0 := InnerProd(b, foldingScalars)
 
 	var got banderwagon.Element
-	//  G[0] * a + (a * b) * Q;
+	//  g0 * a + (a * b) * Q;
 	var part_1 banderwagon.Element
-	part_1.ScalarMul(&current_basis[0], &proof.A_scalar)
+	part_1.ScalarMul(&g0, &proof.A_scalar)
 
 	var part_2 banderwagon.Element
 	var part_2a fr.Element

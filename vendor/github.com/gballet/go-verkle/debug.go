@@ -25,21 +25,22 @@
 
 package verkle
 
-import "errors"
+// A few proxy types that export their fields, so that the core type
+// does not. The conversion from one type to the other is done by calling
+// toExportable on an InternalNode.
+type (
+	ExportableInternalNode struct {
+		Children []interface{} `json:"children"`
 
-var (
-	errInsertIntoHash         = errors.New("trying to insert into hashed node")
-	errDeleteHash             = errors.New("trying to delete from a hashed subtree")
-	errReadFromInvalid        = errors.New("trying to read from an invalid child")
-	errSerializeHashedNode    = errors.New("trying to serialize a hashed internal node")
-	errInsertIntoOtherStem    = errors.New("insert splits a stem where it should not happen")
-	errUnknownNodeType        = errors.New("unknown node type detected")
-	errMissingNodeInStateless = errors.New("trying to access a node that is missing from the stateless view")
-)
+		Commitment []byte `json:"commitment"`
+	}
 
-const (
-	// Extension status
-	extStatusAbsentEmpty = byte(iota) // missing child node along the path
-	extStatusAbsentOther              // path led to a node with a different stem
-	extStatusPresent                  // stem was present
+	ExportableLeafNode struct {
+		Stem   []byte   `json:"stem"`
+		Values [][]byte `json:"values"`
+
+		C  [32]byte `json:"commitment"`
+		C1 [32]byte `json:"c1"`
+		C2 [32]byte `json:"c2"`
+	}
 )

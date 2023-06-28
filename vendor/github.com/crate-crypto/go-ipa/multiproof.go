@@ -32,6 +32,7 @@ func CreateMultiProof(transcript *common.Transcript, ipaConf *ipa.IPAConfig, Cs 
 		panic("cannot create a multiproof with 0 queries")
 	}
 
+	banderwagon.BatchNormalize(Cs)
 	for i := 0; i < num_queries; i++ {
 		transcript.AppendPoint(Cs[i], "C")
 		var z = domainToFr(zs[i])
@@ -46,21 +47,33 @@ func CreateMultiProof(transcript *common.Transcript, ipaConf *ipa.IPAConfig, Cs 
 	r := transcript.ChallengeScalar("r")
 	powers_of_r := common.PowersOf(r, num_queries)
 
-	// Compute g(X)
-	g_x := make([]fr.Element, common.POLY_DEGREE)
-
+	// Compute g(x)
+	// We first compute the polynomials in lagrange form grouped by evaluation point, and
+	// then we compute g(X). This limit the numbers of DivideOnDomain() calls up to
+	// the domain size.
+	groupedFs := make([][]fr.Element, common.POLY_DEGREE)
 	for i := 0; i < num_queries; i++ {
-		f := fs[i]
-		index := zs[i]
+		z := zs[i]
+		if len(groupedFs[z]) == 0 {
+			groupedFs[z] = make([]fr.Element, common.POLY_DEGREE)
+		}
+
 		r := powers_of_r[i]
-
-		quotient := ipaConf.PrecomputedWeights.DivideOnDomain(index, f)
-
 		for j := 0; j < common.POLY_DEGREE; j++ {
-			var tmp fr.Element
-
-			tmp.Mul(&r, &quotient[j])
-			g_x[j].Add(&g_x[j], &tmp)
+			var scaledEvaluation fr.Element
+			scaledEvaluation.Mul(&r, &fs[i][j])
+			groupedFs[z][j].Add(&groupedFs[z][j], &scaledEvaluation)
+		}
+	}
+	g_x := make([]fr.Element, common.POLY_DEGREE)
+	for index, f := range groupedFs {
+		// If there is no polynomial for this evaluation point, we skip it.
+		if len(f) == 0 {
+			continue
+		}
+		quotient := ipaConf.PrecomputedWeights.DivideOnDomain(uint8(index), f)
+		for j := 0; j < common.POLY_DEGREE; j++ {
+			g_x[j].Add(&g_x[j], &quotient[j])
 		}
 	}
 
@@ -69,26 +82,32 @@ func CreateMultiProof(transcript *common.Transcript, ipaConf *ipa.IPAConfig, Cs 
 	transcript.AppendPoint(&D, "D")
 	t := transcript.ChallengeScalar("t")
 
+	// Calculate the denominator inverses only for referenced evaluation points.
+	den_inv := make([]fr.Element, 0, common.POLY_DEGREE)
+	for z, f := range groupedFs {
+		if len(f) == 0 {
+			continue
+		}
+		var z = domainToFr(uint8(z))
+		var den fr.Element
+		den.Sub(&t, &z)
+		den_inv = append(den_inv, den)
+	}
+	den_inv = fr.BatchInvert(den_inv)
+
 	// Compute h(X) = g_1(X)
 	h_x := make([]fr.Element, common.POLY_DEGREE)
-
-	for i := 0; i < num_queries; i++ {
-		r := powers_of_r[i]
-		f := fs[i]
-
-		var den_inv fr.Element
-		var z = domainToFr(zs[i])
-		den_inv.Sub(&t, &z)
-		den_inv.Inverse(&den_inv)
-
+	denInvIdx := 0
+	for _, f := range groupedFs {
+		if len(f) == 0 {
+			continue
+		}
 		for k := 0; k < common.POLY_DEGREE; k++ {
-			f_k := f[k]
-
 			var tmp fr.Element
-			tmp.Mul(&r, &f_k)
-			tmp.Mul(&tmp, &den_inv)
+			tmp.Mul(&f[k], &den_inv[denInvIdx])
 			h_x[k].Add(&h_x[k], &tmp)
 		}
+		denInvIdx++
 	}
 
 	h_minus_g := make([]fr.Element, common.POLY_DEGREE)
@@ -140,37 +159,48 @@ func CheckMultiProof(transcript *common.Transcript, ipaConf *ipa.IPAConfig, proo
 	transcript.AppendPoint(&proof.D, "D")
 	t := transcript.ChallengeScalar("t")
 
-	// Compute helper_scalars. This is r^i / t - z_i
-	//
-	// There are more optimal ways to do this, but
-	// this is more readable, so will leave for now
-	helper_scalars := make([]fr.Element, num_queries)
+	// Compute the polynomials in lagrange form grouped by evaluation point, and
+	// the needed helper scalars.
+	groupedEvals := make([]fr.Element, common.POLY_DEGREE)
 	for i := 0; i < num_queries; i++ {
-		r := powers_of_r[i]
+		z := zs[i]
 
-		// r^i / (t - z_i)
-		var z = domainToFr(zs[i])
-		helper_scalars[i].Sub(&t, &z)
-		helper_scalars[i].Inverse(&helper_scalars[i])
-		helper_scalars[i].Mul(&helper_scalars[i], &r)
+		// r * y_i
+		r := powers_of_r[i]
+		var scaledEvaluation fr.Element
+		scaledEvaluation.Mul(&r, ys[i])
+		groupedEvals[z].Add(&groupedEvals[z], &scaledEvaluation)
 	}
 
-	// Compute g_2(t) = SUM y_i * (r^i / t - z_i) = SUM y_i * helper_scalars
+	// Compute helper_scalar_den. This is 1 / t - z_i
+	helper_scalar_den := make([]fr.Element, common.POLY_DEGREE)
+	for i := 0; i < common.POLY_DEGREE; i++ {
+		// (t - z_i)
+		var z = domainToFr(uint8(i))
+		helper_scalar_den[i].Sub(&t, &z)
+	}
+	helper_scalar_den = fr.BatchInvert(helper_scalar_den)
+
+	// Compute g_2(t) = SUM (y_i * r^i) / (t - z_i) = SUM (y_i * r) * helper_scalars_den
 	g_2_t := fr.Zero()
-	for i := 0; i < num_queries; i++ {
+	for i := 0; i < common.POLY_DEGREE; i++ {
+		if groupedEvals[i].IsZero() {
+			continue
+		}
 		var tmp fr.Element
-		tmp.Mul(ys[i], &helper_scalars[i])
+		tmp.Mul(&groupedEvals[i], &helper_scalar_den[i])
 		g_2_t.Add(&g_2_t, &tmp)
 	}
 
-	// Compute E = SUM C_i * (r^i / t - z_i) = SUM C_i * helper_scalars
-	var E banderwagon.Element
-	E.Identity()
-	for i := 0; i < num_queries; i++ {
-		var tmp banderwagon.Element
-		tmp.ScalarMul(Cs[i], &helper_scalars[i])
-		E.Add(&E, &tmp)
+	// Compute E = SUM C_i * (r^i / t - z_i) = SUM C_i * msm_scalars
+	msm_scalars := make([]fr.Element, len(Cs))
+	Csnp := make([]banderwagon.Element, len(Cs))
+	for i := 0; i < len(Cs); i++ {
+		Csnp[i] = *Cs[i]
+
+		msm_scalars[i].Mul(&powers_of_r[i], &helper_scalar_den[zs[i]])
 	}
+	E := ipa.MultiScalar(Csnp, msm_scalars)
 	transcript.AppendPoint(&E, "E")
 
 	var E_minus_D banderwagon.Element
