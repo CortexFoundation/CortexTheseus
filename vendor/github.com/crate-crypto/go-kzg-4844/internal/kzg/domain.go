@@ -123,7 +123,7 @@ to think about all these when you add DAS.
 //
 // [gnark-crypto]: https://github.com/ConsenSys/gnark-crypto/blob/8f7ca09273c24ed9465043566906cbecf5dcee91/ecc/bls12-381/fr/fft/fft.go#L245
 //
-// [reverse_bits]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#reverse_bits
+// [reverse_bits]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#reverse_bits
 func bitReverse[K interface{}](list []K) {
 	n := uint64(len(list))
 	if !utils.IsPowerOfTwo(n) {
@@ -146,7 +146,7 @@ func bitReverse[K interface{}](list []K) {
 
 // ReverseRoots applies the bit-reversal permutation to the list of precomputed roots of unity and their inverses in the domain.
 //
-// [bit_reversal_permutation]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#bit_reversal_permutation
+// [bit_reversal_permutation]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#bit_reversal_permutation
 func (domain *Domain) ReverseRoots() {
 	bitReverse(domain.Roots)
 	bitReverse(domain.PreComputedInverses)
@@ -171,7 +171,7 @@ func (domain *Domain) findRootIndex(point fr.Element) int64 {
 // The input polynomial is given in evaluation form, meaning a list of evaluations at the points in the domain.
 // If len(poly) != domain.Cardinality, returns an error.
 //
-// [evaluate_polynomial_in_evaluation_form]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#evaluate_polynomial_in_evaluation_form
+// [evaluate_polynomial_in_evaluation_form]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#evaluate_polynomial_in_evaluation_form
 func (domain *Domain) EvaluateLagrangePolynomial(poly Polynomial, evalPoint fr.Element) (*fr.Element, error) {
 	outputPoint, _, err := domain.evaluateLagrangePolynomial(poly, evalPoint)
 

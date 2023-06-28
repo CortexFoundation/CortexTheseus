@@ -25,7 +25,7 @@ import (
 type JSONTrustedSetup struct {
 	SetupG1         [ScalarsPerBlob]G1CompressedHexStr `json:"setup_G1"`
 	SetupG2         []G2CompressedHexStr               `json:"setup_G2"`
-	SetupG1Lagrange [ScalarsPerBlob]G2CompressedHexStr `json:"setup_G1_lagrange"`
+	SetupG1Lagrange [ScalarsPerBlob]G1CompressedHexStr `json:"setup_G1_lagrange"`
 }
 
 // G1CompressedHexStr is a hex-string (with the 0x prefix) of a compressed G1 point.

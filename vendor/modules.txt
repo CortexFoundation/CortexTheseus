@@ -419,7 +419,7 @@ github.com/crate-crypto/go-ipa/banderwagon
 github.com/crate-crypto/go-ipa/common
 github.com/crate-crypto/go-ipa/common/parallel
 github.com/crate-crypto/go-ipa/ipa
-# github.com/crate-crypto/go-kzg-4844 v0.2.0
+# github.com/crate-crypto/go-kzg-4844 v0.3.0
 ## explicit; go 1.18
 github.com/crate-crypto/go-kzg-4844
 github.com/crate-crypto/go-kzg-4844/internal/kzg
@@ -480,7 +480,7 @@ github.com/edsrzf/mmap-go
 # github.com/elliotchance/orderedmap v1.5.0
 ## explicit; go 1.12
 github.com/elliotchance/orderedmap
-# github.com/ethereum/c-kzg-4844 v0.1.0
+# github.com/ethereum/c-kzg-4844 v0.3.0
 ## explicit; go 1.19
 github.com/ethereum/c-kzg-4844/bindings/go
 # github.com/fjl/gencodec v0.0.0-20220412091415-8bb9e558978c

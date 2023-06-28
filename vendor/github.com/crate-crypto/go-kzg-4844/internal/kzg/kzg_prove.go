@@ -9,7 +9,7 @@ import (
 // numGoRoutines is used to configure the amount of concurrency needed. Setting this
 // value to a negative number or 0 will make it default to the number of CPUs.
 //
-// [compute_kzg_proof_impl]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#compute_kzg_proof_impl
+// [compute_kzg_proof_impl]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#compute_kzg_proof_impl
 func Open(domain *Domain, p Polynomial, evaluationPoint fr.Element, ck *CommitKey, numGoRoutines int) (OpeningProof, error) {
 	if len(p) == 0 || len(p) > len(ck.G1) {
 		return OpeningProof{}, ErrInvalidPolynomialSize
@@ -112,7 +112,7 @@ func (domain *Domain) computeQuotientPolyOutsideDomain(f Polynomial, fz, z fr.El
 //
 // This is the implementation of computeQuotientPoly for the case where the evaluation point is in the domain.
 //
-// [compute_quotient_eval_within_domain]: https://github.com/ethereum/consensus-specs/blob/50a3f8e8d902ad9d677ca006302eb9535d56d758/specs/deneb/polynomial-commitments.md#compute_quotient_eval_within_domain
+// [compute_quotient_eval_within_domain]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#compute_quotient_eval_within_domain
 func (domain *Domain) computeQuotientPolyOnDomain(f Polynomial, index uint64) (Polynomial, error) {
 	fz := f[index]
 	z := domain.Roots[index]
