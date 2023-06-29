@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023 The Pion community <https://pion.ly>
+// SPDX-License-Identifier: MIT
+
 // Package client implements the API for a TURN client
 package client
 
@@ -7,10 +10,8 @@ import (
 	"io"
 	"math"
 	"net"
-	"sync"
 	"time"
 
-	"github.com/pion/logging"
 	"github.com/pion/stun"
 	"github.com/pion/turn/v2/internal/proto"
 )
@@ -26,71 +27,43 @@ const (
 	timerIDRefreshPerms
 )
 
-func noDeadline() time.Time {
-	return time.Time{}
-}
-
 type inboundData struct {
 	data []byte
 	from net.Addr
 }
 
-// UDPConnObserver is an interface to UDPConn observer
-type UDPConnObserver interface {
-	TURNServerAddr() net.Addr
-	Username() stun.Username
-	Realm() stun.Realm
-	WriteTo(data []byte, to net.Addr) (int, error)
-	PerformTransaction(msg *stun.Message, to net.Addr, dontWait bool) (TransactionResult, error)
-	OnDeallocated(relayedAddr net.Addr)
-}
-
-// UDPConnConfig is a set of configuration params use by NewUDPConn
-type UDPConnConfig struct {
-	Observer    UDPConnObserver
-	RelayedAddr net.Addr
-	Integrity   stun.MessageIntegrity
-	Nonce       stun.Nonce
-	Lifetime    time.Duration
-	Log         logging.LeveledLogger
-}
-
 // UDPConn is the implementation of the Conn and PacketConn interfaces for UDP network connections.
-// comatible with net.PacketConn and net.Conn
+// compatible with net.PacketConn and net.Conn
 type UDPConn struct {
-	obs               UDPConnObserver       // read-only
-	relayedAddr       net.Addr              // read-only
-	permMap           *permissionMap        // thread-safe
-	bindingMgr        *bindingManager       // thread-safe
-	integrity         stun.MessageIntegrity // read-only
-	_nonce            stun.Nonce            // needs mutex x
-	_lifetime         time.Duration         // needs mutex x
-	readCh            chan *inboundData     // thread-safe
-	closeCh           chan struct{}         // thread-safe
-	readTimer         *time.Timer           // thread-safe
-	refreshAllocTimer *PeriodicTimer        // thread-safe
-	refreshPermsTimer *PeriodicTimer        // thread-safe
-	mutex             sync.RWMutex          // thread-safe
-	log               logging.LeveledLogger // read-only
+	bindingMgr *bindingManager   // Thread-safe
+	readCh     chan *inboundData // Thread-safe
+	closeCh    chan struct{}     // Thread-safe
+	allocation
 }
 
 // NewUDPConn creates a new instance of UDPConn
-func NewUDPConn(config *UDPConnConfig) *UDPConn {
+func NewUDPConn(config *AllocationConfig) *UDPConn {
 	c := &UDPConn{
-		obs:         config.Observer,
-		relayedAddr: config.RelayedAddr,
-		permMap:     newPermissionMap(),
-		bindingMgr:  newBindingManager(),
-		integrity:   config.Integrity,
-		_nonce:      config.Nonce,
-		_lifetime:   config.Lifetime,
-		readCh:      make(chan *inboundData, maxReadQueueSize),
-		closeCh:     make(chan struct{}),
-		readTimer:   time.NewTimer(time.Duration(math.MaxInt64)),
-		log:         config.Log,
+		bindingMgr: newBindingManager(),
+		readCh:     make(chan *inboundData, maxReadQueueSize),
+		closeCh:    make(chan struct{}),
+		allocation: allocation{
+			client:      config.Client,
+			relayedAddr: config.RelayedAddr,
+			serverAddr:  config.ServerAddr,
+			readTimer:   time.NewTimer(time.Duration(math.MaxInt64)),
+			permMap:     newPermissionMap(),
+			username:    config.Username,
+			realm:       config.Realm,
+			integrity:   config.Integrity,
+			_nonce:      config.Nonce,
+			_lifetime:   config.Lifetime,
+			net:         config.Net,
+			log:         config.Log,
+		},
 	}
 
-	c.log.Debugf("initial lifetime: %d seconds", int(c.lifetime().Seconds()))
+	c.log.Debugf("Initial lifetime: %d seconds", int(c.lifetime().Seconds()))
 
 	c.refreshAllocTimer = NewPeriodicTimer(
 		timerIDRefreshAlloc,
@@ -105,10 +78,10 @@ func NewUDPConn(config *UDPConnConfig) *UDPConn {
 	)
 
 	if c.refreshAllocTimer.Start() {
-		c.log.Debugf("refreshAllocTimer started")
+		c.log.Debugf("Started refresh allocation timer")
 	}
 	if c.refreshPermsTimer.Start() {
-		c.log.Debugf("refreshPermsTimer started")
+		c.log.Debugf("Started refresh permission timer")
 	}
 
 	return c
@@ -153,14 +126,14 @@ func (c *UDPConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
 	}
 }
 
-func (c *UDPConn) createPermission(perm *permission, addr net.Addr) error {
+func (a *allocation) createPermission(perm *permission, addr net.Addr) error {
 	perm.mutex.Lock()
 	defer perm.mutex.Unlock()
 
 	if perm.state() == permStateIdle {
-		// punch a hole! (this would block a bit..)
-		if err := c.CreatePermissions(addr); err != nil {
-			c.permMap.delete(addr)
+		// Punch a hole! (this would block a bit..)
+		if err := a.CreatePermissions(addr); err != nil {
+			a.permMap.delete(addr)
 			return err
 		}
 		perm.setState(permStatePermitted)
@@ -180,7 +153,7 @@ func (c *UDPConn) WriteTo(p []byte, addr net.Addr) (int, error) { //nolint: goco
 		return 0, errUDPAddrCast
 	}
 
-	// check if we have a permission for the destination IP addr
+	// Check if we have a permission for the destination IP addr
 	perm, ok := c.permMap.find(addr)
 	if !ok {
 		perm = &permission{}
@@ -203,7 +176,7 @@ func (c *UDPConn) WriteTo(p []byte, addr net.Addr) (int, error) { //nolint: goco
 		return 0, err
 	}
 
-	// bind channel
+	// Bind channel
 	b, ok := c.bindingMgr.findByAddr(addr)
 	if !ok {
 		b = c.bindingMgr.create(addr)
@@ -213,20 +186,20 @@ func (c *UDPConn) WriteTo(p []byte, addr net.Addr) (int, error) { //nolint: goco
 
 	if bindSt == bindingStateIdle || bindSt == bindingStateRequest || bindSt == bindingStateFailed {
 		func() {
-			// block only callers with the same binding until
+			// Block only callers with the same binding until
 			// the binding transaction has been complete
 			b.muBind.Lock()
 			defer b.muBind.Unlock()
 
-			// binding state may have been changed while waiting. check again.
+			// Binding state may have been changed while waiting. check again.
 			if b.state() == bindingStateIdle {
 				b.setState(bindingStateRequest)
 				go func() {
 					err2 := c.bind(b)
 					if err2 != nil {
-						c.log.Warnf("bind() failed: %s", err2.Error())
+						c.log.Warnf("Failed to bind bind(): %s", err2)
 						b.setState(bindingStateFailed)
-						// keep going...
+						// Keep going...
 					} else {
 						b.setState(bindingStateReady)
 					}
@@ -234,7 +207,7 @@ func (c *UDPConn) WriteTo(p []byte, addr net.Addr) (int, error) { //nolint: goco
 			}
 		}()
 
-		// send data using SendIndication
+		// Send data using SendIndication
 		peerAddr := addr2PeerAddress(addr)
 		var msg *stun.Message
 		msg, err = stun.Build(
@@ -248,14 +221,14 @@ func (c *UDPConn) WriteTo(p []byte, addr net.Addr) (int, error) { //nolint: goco
 			return 0, err
 		}
 
-		// indication has no transaction (fire-and-forget)
+		// Indication has no transaction (fire-and-forget)
 
-		return c.obs.WriteTo(msg.Raw, c.obs.TURNServerAddr())
+		return c.client.WriteTo(msg.Raw, c.serverAddr)
 	}
 
-	// binding is either ready
+	// Binding is either ready
 
-	// check if the binding needs a refresh
+	// Check if the binding needs a refresh
 	func() {
 		b.muBind.Lock()
 		defer b.muBind.Unlock()
@@ -265,9 +238,9 @@ func (c *UDPConn) WriteTo(p []byte, addr net.Addr) (int, error) { //nolint: goco
 			go func() {
 				err = c.bind(b)
 				if err != nil {
-					c.log.Warnf("bind() for refresh failed: %s", err.Error())
+					c.log.Warnf("Failed to bind() for refresh: %s", err)
 					b.setState(bindingStateFailed)
-					// keep going...
+					// Keep going...
 				} else {
 					b.setRefreshedAt(time.Now())
 					b.setState(bindingStateReady)
@@ -276,7 +249,7 @@ func (c *UDPConn) WriteTo(p []byte, addr net.Addr) (int, error) { //nolint: goco
 		}
 	}()
 
-	// send via ChannelData
+	// Send via ChannelData
 	_, err = c.sendChannelData(p, b.number)
 	if err != nil {
 		return 0, err
@@ -297,7 +270,7 @@ func (c *UDPConn) Close() error {
 		close(c.closeCh)
 	}
 
-	c.obs.OnDeallocated(c.relayedAddr)
+	c.client.OnDeallocated(c.relayedAddr)
 	return c.refreshAllocation(0, true /* dontWait=true */)
 }
 
@@ -344,7 +317,7 @@ func (c *UDPConn) SetReadDeadline(t time.Time) error {
 // Even if write times out, it may return n > 0, indicating that
 // some of the data was successfully written.
 // A zero value for t means WriteTo will not time out.
-func (c *UDPConn) SetWriteDeadline(t time.Time) error {
+func (c *UDPConn) SetWriteDeadline(time.Time) error {
 	// Write never blocks.
 	return nil
 }
@@ -365,7 +338,7 @@ func addr2PeerAddress(addr net.Addr) proto.PeerAddress {
 
 // CreatePermissions Issues a CreatePermission request for the supplied addresses
 // as described in https://datatracker.ietf.org/doc/html/rfc5766#section-9
-func (c *UDPConn) CreatePermissions(addrs ...net.Addr) error {
+func (a *allocation) CreatePermissions(addrs ...net.Addr) error {
 	setters := []stun.Setter{
 		stun.TransactionID,
 		stun.NewType(stun.MethodCreatePermission, stun.ClassRequest),
@@ -376,10 +349,10 @@ func (c *UDPConn) CreatePermissions(addrs ...net.Addr) error {
 	}
 
 	setters = append(setters,
-		c.obs.Username(),
-		c.obs.Realm(),
-		c.nonce(),
-		c.integrity,
+		a.username,
+		a.realm,
+		a.nonce(),
+		a.integrity,
 		stun.Fingerprint)
 
 	msg, err := stun.Build(setters...)
@@ -387,7 +360,7 @@ func (c *UDPConn) CreatePermissions(addrs ...net.Addr) error {
 		return err
 	}
 
-	trRes, err := c.obs.PerformTransaction(msg, c.obs.TURNServerAddr(), false)
+	trRes, err := a.client.PerformTransaction(msg, a.serverAddr, false)
 	if err != nil {
 		return err
 	}
@@ -398,12 +371,11 @@ func (c *UDPConn) CreatePermissions(addrs ...net.Addr) error {
 		var code stun.ErrorCodeAttribute
 		if err = code.GetFrom(res); err == nil {
 			if code.Code == stun.CodeStaleNonce {
-				c.setNonceFromMsg(res)
+				a.setNonceFromMsg(res)
 				return errTryAgain
 			}
 			return fmt.Errorf("%s (error %s)", res.Type, code) //nolint:goerr113
 		}
-
 		return fmt.Errorf("%s", res.Type) //nolint:goerr113
 	}
 
@@ -412,14 +384,14 @@ func (c *UDPConn) CreatePermissions(addrs ...net.Addr) error {
 
 // HandleInbound passes inbound data in UDPConn
 func (c *UDPConn) HandleInbound(data []byte, from net.Addr) {
-	// copy data
+	// Copy data
 	copied := make([]byte, len(data))
 	copy(copied, data)
 
 	select {
 	case c.readCh <- &inboundData{data: copied, from: from}:
 	default:
-		c.log.Warnf("receive buffer full")
+		c.log.Warnf("Receive buffer full")
 	}
 }
 
@@ -433,94 +405,14 @@ func (c *UDPConn) FindAddrByChannelNumber(chNum uint16) (net.Addr, bool) {
 	return b.addr, true
 }
 
-func (c *UDPConn) setNonceFromMsg(msg *stun.Message) {
-	// Update nonce
-	var nonce stun.Nonce
-	if err := nonce.GetFrom(msg); err == nil {
-		c.setNonce(nonce)
-		c.log.Debug("refresh allocation: 438, got new nonce.")
-	} else {
-		c.log.Warn("refresh allocation: 438 but no nonce.")
-	}
-}
-
-func (c *UDPConn) refreshAllocation(lifetime time.Duration, dontWait bool) error {
-	msg, err := stun.Build(
-		stun.TransactionID,
-		stun.NewType(stun.MethodRefresh, stun.ClassRequest),
-		proto.Lifetime{Duration: lifetime},
-		c.obs.Username(),
-		c.obs.Realm(),
-		c.nonce(),
-		c.integrity,
-		stun.Fingerprint,
-	)
-	if err != nil {
-		return fmt.Errorf("%w: %s", errFailedToBuildRefreshRequest, err.Error())
-	}
-
-	c.log.Debugf("send refresh request (dontWait=%v)", dontWait)
-	trRes, err := c.obs.PerformTransaction(msg, c.obs.TURNServerAddr(), dontWait)
-	if err != nil {
-		return fmt.Errorf("%w: %s", errFailedToRefreshAllocation, err.Error())
-	}
-
-	if dontWait {
-		c.log.Debug("refresh request sent")
-		return nil
-	}
-
-	c.log.Debug("refresh request sent, and waiting response")
-
-	res := trRes.Msg
-	if res.Type.Class == stun.ClassErrorResponse {
-		var code stun.ErrorCodeAttribute
-		if err = code.GetFrom(res); err == nil {
-			if code.Code == stun.CodeStaleNonce {
-				c.setNonceFromMsg(res)
-				return errTryAgain
-			}
-			return err
-		}
-		return fmt.Errorf("%s", res.Type) //nolint:goerr113
-	}
-
-	// Getting lifetime from response
-	var updatedLifetime proto.Lifetime
-	if err := updatedLifetime.GetFrom(res); err != nil {
-		return fmt.Errorf("%w: %s", errFailedToGetLifetime, err.Error())
-	}
-
-	c.setLifetime(updatedLifetime.Duration)
-	c.log.Debugf("updated lifetime: %d seconds", int(c.lifetime().Seconds()))
-	return nil
-}
-
-func (c *UDPConn) refreshPermissions() error {
-	addrs := c.permMap.addrs()
-	if len(addrs) == 0 {
-		c.log.Debug("no permission to refresh")
-		return nil
-	}
-	if err := c.CreatePermissions(addrs...); err != nil {
-		if errors.Is(err, errTryAgain) {
-			return errTryAgain
-		}
-		c.log.Errorf("fail to refresh permissions: %s", err.Error())
-		return err
-	}
-	c.log.Debug("refresh permissions successful")
-	return nil
-}
-
 func (c *UDPConn) bind(b *binding) error {
 	setters := []stun.Setter{
 		stun.TransactionID,
 		stun.NewType(stun.MethodChannelBind, stun.ClassRequest),
 		addr2PeerAddress(b.addr),
 		proto.ChannelNumber(b.number),
-		c.obs.Username(),
-		c.obs.Realm(),
+		c.username,
+		c.realm,
 		c.nonce(),
 		c.integrity,
 		stun.Fingerprint,
@@ -531,7 +423,7 @@ func (c *UDPConn) bind(b *binding) error {
 		return err
 	}
 
-	trRes, err := c.obs.PerformTransaction(msg, c.obs.TURNServerAddr(), false)
+	trRes, err := c.client.PerformTransaction(msg, c.serverAddr, false)
 	if err != nil {
 		c.bindingMgr.deleteByAddr(b.addr)
 		return err
@@ -543,7 +435,7 @@ func (c *UDPConn) bind(b *binding) error {
 		return fmt.Errorf("unexpected response type %s", res.Type) //nolint:goerr113
 	}
 
-	c.log.Debugf("channel binding successful: %s %d", b.addr.String(), b.number)
+	c.log.Debugf("Channel binding successful: %s %d", b.addr.String(), b.number)
 
 	// Success.
 	return nil
@@ -555,69 +447,9 @@ func (c *UDPConn) sendChannelData(data []byte, chNum uint16) (int, error) {
 		Number: proto.ChannelNumber(chNum),
 	}
 	chData.Encode()
-	_, err := c.obs.WriteTo(chData.Raw, c.obs.TURNServerAddr())
+	_, err := c.client.WriteTo(chData.Raw, c.serverAddr)
 	if err != nil {
 		return 0, err
 	}
 	return len(data), nil
-}
-
-func (c *UDPConn) onRefreshTimers(id int) {
-	c.log.Debugf("refresh timer %d expired", id)
-	switch id {
-	case timerIDRefreshAlloc:
-		var err error
-		lifetime := c.lifetime()
-		// limit the max retries on errTryAgain to 3
-		// when stale nonce returns, sencond retry should succeed
-		for i := 0; i < maxRetryAttempts; i++ {
-			err = c.refreshAllocation(lifetime, false)
-			if !errors.Is(err, errTryAgain) {
-				break
-			}
-		}
-		if err != nil {
-			c.log.Warnf("refresh allocation failed")
-		}
-	case timerIDRefreshPerms:
-		var err error
-		for i := 0; i < maxRetryAttempts; i++ {
-			err = c.refreshPermissions()
-			if !errors.Is(err, errTryAgain) {
-				break
-			}
-		}
-		if err != nil {
-			c.log.Warnf("refresh permissions failed")
-		}
-	}
-}
-
-func (c *UDPConn) nonce() stun.Nonce {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-
-	return c._nonce
-}
-
-func (c *UDPConn) setNonce(nonce stun.Nonce) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
-	c.log.Debugf("set new nonce with %d bytes", len(nonce))
-	c._nonce = nonce
-}
-
-func (c *UDPConn) lifetime() time.Duration {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-
-	return c._lifetime
-}
-
-func (c *UDPConn) setLifetime(lifetime time.Duration) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
-	c._lifetime = lifetime
 }
