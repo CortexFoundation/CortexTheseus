@@ -223,12 +223,12 @@ func (fs *ChainDB) Metrics() time.Duration {
 
 // Make sure the block group is increasing by number
 func (fs *ChainDB) addLeaf(block *types.Block, mes bool, dup bool) error {
-	number := block.Number
-	leaf := merkletree.NewContent(block.Hash.String(), number)
-
 	if fs.tree == nil {
 		return errors.New("mkt is nil")
 	}
+
+	number := block.Number
+	leaf := merkletree.NewContent(block.Hash.String(), number)
 
 	l, e := fs.tree.VerifyContent(leaf)
 	if !l {
