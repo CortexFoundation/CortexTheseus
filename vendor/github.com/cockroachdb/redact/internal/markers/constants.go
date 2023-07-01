@@ -20,8 +20,10 @@ import "regexp"
 const (
 	Start       = '‹'
 	StartS      = string(Start)
+	StartLen    = len(StartS)
 	End         = '›'
 	EndS        = string(End)
+	EndLen      = len(EndS)
 	EscapeMark  = '?'
 	EscapeMarkS = string(EscapeMark)
 	RedactedS   = StartS + "×" + EndS
