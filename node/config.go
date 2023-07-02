@@ -19,6 +19,7 @@ package node
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -245,7 +246,7 @@ func (c *Config) HTTPEndpoint() string {
 	if c.HTTPHost == "" {
 		return ""
 	}
-	return fmt.Sprintf("%s:%d", c.HTTPHost, c.HTTPPort)
+	return net.JoinHostPort(c.HTTPHost, fmt.Sprintf("%d", c.HTTPPort))
 }
 
 // GraphQLEndpoint resolves a GraphQL endpoint based on the configured host interface
@@ -269,7 +270,7 @@ func (c *Config) WSEndpoint() string {
 	if c.WSHost == "" {
 		return ""
 	}
-	return fmt.Sprintf("%s:%d", c.WSHost, c.WSPort)
+	return net.JoinHostPort(c.WSHost, fmt.Sprintf("%d", c.WSPort))
 }
 
 // DefaultWSEndpoint returns the websocket endpoint used by default.
