@@ -22,19 +22,21 @@ import (
 // You must call Commit method to commit the batch, otherwise the DB will be locked.
 type Batch struct {
 	db            *DB
-	pendingWrites map[string]*LogRecord
+	pendingWrites map[string]*LogRecord // save the data to be written
 	options       BatchOptions
 	mu            sync.RWMutex
-	committed     bool
+	committed     bool // whether the batch has been committed
+	rollbacked    bool // whether the batch has been rollbacked
 	batchId       *snowflake.Node
 }
 
 // NewBatch creates a new Batch instance.
 func (db *DB) NewBatch(options BatchOptions) *Batch {
 	batch := &Batch{
-		db:        db,
-		options:   options,
-		committed: false,
+		db:         db,
+		options:    options,
+		committed:  false,
+		rollbacked: false,
 	}
 	if !options.ReadOnly {
 		batch.pendingWrites = make(map[string]*LogRecord)
@@ -196,9 +198,12 @@ func (b *Batch) Commit() error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	// check if committed
+	// check if committed or discarded
 	if b.committed {
 		return ErrBatchCommitted
+	}
+	if b.rollbacked {
+		return ErrBatchRollbacked
 	}
 
 	batchId := b.batchId.Generate()
@@ -241,5 +246,30 @@ func (b *Batch) Commit() error {
 	}
 
 	b.committed = true
+	return nil
+}
+
+// Rollback discards a uncommitted batch instance.
+// the discard operation will clear the buffered data and release the lock.
+func (b *Batch) Rollback() error {
+	defer b.unlock()
+
+	if b.db.closed {
+		return ErrDBClosed
+	}
+
+	if b.committed {
+		return ErrBatchCommitted
+	}
+	if b.rollbacked {
+		return ErrBatchRollbacked
+	}
+
+	if !b.options.ReadOnly {
+		// clear pendingWrites
+		b.pendingWrites = nil
+	}
+
+	b.rollbacked = true
 	return nil
 }
