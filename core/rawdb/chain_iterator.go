@@ -1,4 +1,4 @@
-// Copyright 2019 The CortexTheseus Authors
+// Copyright 2020 The CortexTheseus Authors
 // This file is part of the CortexTheseus library.
 //
 // The CortexTheseus library is free software: you can redistribute it and/or modify
@@ -50,7 +50,7 @@ func InitDatabaseFromFreezer(db ctxcdb.Database) {
 		if i+count > frozen {
 			count = frozen - i
 		}
-		data, err := db.AncientRange(chainFreezerHashTable, i, count, 32*count)
+		data, err := db.AncientRange(ChainFreezerHashTable, i, count, 32*count)
 		if err != nil {
 			log.Crit("Failed to init database from freezer", "err", err)
 		}

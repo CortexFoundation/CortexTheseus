@@ -101,8 +101,6 @@ func NewFreezer(datadir string, namespace string, readonly bool, maxTableSize ui
 			return nil, errSymlinkDatadir
 		}
 	}
-	// Leveldb uses LOCK as the filelock filename. To prevent the
-	// name collision, we use FLOCK as the lock name.
 	flockFile := filepath.Join(datadir, "FLOCK")
 	if err := os.MkdirAll(filepath.Dir(flockFile), 0755); err != nil {
 		return nil, err
@@ -134,7 +132,6 @@ func NewFreezer(datadir string, namespace string, readonly bool, maxTableSize ui
 		}
 		freezer.tables[name] = table
 	}
-
 	var err error
 	if freezer.readonly {
 		// In readonly mode only validate, don't truncate.
@@ -437,7 +434,7 @@ func (f *Freezer) MigrateTable(kind string, convert convertLegacyFn) error {
 	// TODO(s1na): This is a sanity-check since as of now no process does tail-deletion. But the migration
 	// process assumes no deletion at tail and needs to be modified to account for that.
 	if table.itemOffset.Load() > 0 || table.itemHidden.Load() > 0 {
-		return fmt.Errorf("migration not supported for tail-deleted freezers")
+		return errors.New("migration not supported for tail-deleted freezers")
 	}
 	ancientsPath := filepath.Dir(table.index.Name())
 	// Set up new dir for the migrated table, the content of which

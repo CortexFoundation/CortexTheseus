@@ -36,9 +36,9 @@ import (
 
 // freezerdb is a database wrapper that enabled freezer data retrievals.
 type freezerdb struct {
+	ancientRoot string
 	ctxcdb.KeyValueStore
 	ctxcdb.AncientStore
-	ancientRoot string
 }
 
 // AncientDatadir returns the path of root ancient directory.
@@ -195,11 +195,13 @@ func resolveChainFreezerDir(ancient string) string {
 
 // NewDatabaseWithFreezer creates a high level database on top of a given key-
 // value data store with a freezer moving immutable chain segments into cold
-// storage.
+// storage. The passed ancient indicates the path of root ancient directory
+// where the chain freezer can be opened.
 func NewDatabaseWithFreezer(db ctxcdb.KeyValueStore, ancient string, namespace string, readonly bool) (ctxcdb.Database, error) {
 	// Create the idle freezer instance
 	frdb, err := newChainFreezer(resolveChainFreezerDir(ancient), namespace, readonly)
 	if err != nil {
+		printChainMetadata(db)
 		return nil, err
 	}
 	// Since the freezer can be stored separately from the user's key-value database,
@@ -215,7 +217,7 @@ func NewDatabaseWithFreezer(db ctxcdb.KeyValueStore, ancient string, namespace s
 	//     this point care, the key-value/freezer combo is valid).
 	//   - If neither the key-value store nor the freezer is empty, cross validate
 	//     the genesis hashes to make sure they are compatible. If they are, also
-	//     ensure that there's no gap between the freezer and sunsequently leveldb.
+	//     ensure that there's no gap between the freezer and subsequently leveldb.
 	//   - If the key-value store is not empty, but the freezer is we might just be
 	//     upgrading to the freezer release, or we might have had a small chain and
 	//     not frozen anything yet. Ensure that no blocks are missing yet from the
@@ -229,19 +231,32 @@ func NewDatabaseWithFreezer(db ctxcdb.KeyValueStore, ancient string, namespace s
 			// If the freezer already contains something, ensure that the genesis blocks
 			// match, otherwise we might mix up freezers across chains and destroy both
 			// the freezer and the key-value store.
-			frgenesis, err := frdb.Ancient(chainFreezerHashTable, 0)
+			frgenesis, err := frdb.Ancient(ChainFreezerHashTable, 0)
 			if err != nil {
+				printChainMetadata(db)
 				return nil, fmt.Errorf("failed to retrieve genesis from ancient %v", err)
 			} else if !bytes.Equal(kvgenesis, frgenesis) {
+				printChainMetadata(db)
 				return nil, fmt.Errorf("genesis mismatch: %#x (leveldb) != %#x (ancients)", kvgenesis, frgenesis)
 			}
 			// Key-value store and freezer belong to the same network. Ensure that they
 			// are contiguous, otherwise we might end up with a non-functional freezer.
 			if kvhash, _ := db.Get(headerHashKey(frozen)); len(kvhash) == 0 {
 				// Subsequent header after the freezer limit is missing from the database.
-				// Reject startup is the database has a more recent head.
-				if ldbNum := *ReadHeaderNumber(db, ReadHeadHeaderHash(db)); ldbNum > frozen-1 {
-					return nil, fmt.Errorf("gap in the chain between ancients (#%d) and leveldb (#%d) ", frozen, ldbNum)
+				// Reject startup if the database has a more recent head.
+				if head := *ReadHeaderNumber(db, ReadHeadHeaderHash(db)); head > frozen-1 {
+					// Find the smallest block stored in the key-value store
+					// in range of [frozen, head]
+					var number uint64
+					for number = frozen; number <= head; number++ {
+						if present, _ := db.Has(headerHashKey(number)); present {
+							break
+						}
+					}
+					// We are about to exit on error. Print database metdata beore exiting
+					printChainMetadata(db)
+					return nil, fmt.Errorf("gap in the chain between ancients [0 - #%d] and leveldb [#%d - #%d] ",
+						frozen-1, number, head)
 				}
 				// Database contains only older data than the freezer, this happens if the
 				// state was wiped and reinited from an existing freezer.
@@ -258,9 +273,10 @@ func NewDatabaseWithFreezer(db ctxcdb.KeyValueStore, ancient string, namespace s
 				// Key-value store contains more data than the genesis block, make sure we
 				// didn't freeze anything yet.
 				if kvblob, _ := db.Get(headerHashKey(1)); len(kvblob) == 0 {
+					printChainMetadata(db)
 					return nil, errors.New("ancient chain segments already extracted, please set --datadir.ancient to the correct path")
 				}
-				// Block #1 is still in the database, we're allowed to init a new feezer
+				// Block #1 is still in the database, we're allowed to init a new freezer
 			}
 			// Otherwise, the head header is still the genesis, we're allowed to init a new
 			// freezer.
@@ -301,6 +317,7 @@ func NewLevelDBDatabase(file string, cache int, handles int, namespace string, r
 	if err != nil {
 		return nil, err
 	}
+	log.Info("Using LevelDB as the backing database")
 	return NewDatabase(db), nil
 }
 
@@ -341,8 +358,8 @@ type OpenOptions struct {
 //
 //	                      type == null          type != null
 //	                   +----------------------------------------
-//	db is non-existent |  leveldb default  |  specified type
-//	db is existent     |  from db          |  specified type (if compatible)
+//	db is non-existent |  pebble default  |  specified type
+//	db is existent     |  from db         |  specified type (if compatible)
 func openKeyValueDatabase(o OpenOptions) (ctxcdb.Database, error) {
 	// Reject any unsupported database type
 	if len(o.Type) != 0 && o.Type != dbLeveldb && o.Type != dbPebble {
@@ -543,7 +560,7 @@ func InspectDatabase(db ctxcdb.Database, keyPrefix, keyStart []byte) error {
 			logged = time.Now()
 		}
 	}
-	// Display the database statistic.
+	// Display the database statistic of key-value store.
 	stats := [][]string{
 		{"Key-Value store", "Headers", headers.Size(), headers.Count()},
 		{"Key-Value store", "Bodies", bodies.Size(), bodies.Count()},
@@ -580,7 +597,6 @@ func InspectDatabase(db ctxcdb.Database, keyPrefix, keyStart []byte) error {
 		}
 		total += ancient.size()
 	}
-
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"Database", "Category", "Size", "Items"})
 	table.SetFooter([]string{"", "Total", total.String(), " "})
@@ -590,6 +606,44 @@ func InspectDatabase(db ctxcdb.Database, keyPrefix, keyStart []byte) error {
 	if unaccounted.size > 0 {
 		log.Error("Database contains unaccounted data", "size", unaccounted.size, "count", unaccounted.count)
 	}
-
 	return nil
+}
+
+// printChainMetadata prints out chain metadata to stderr.
+func printChainMetadata(db ctxcdb.KeyValueStore) {
+	fmt.Fprintf(os.Stderr, "Chain metadata\n")
+	for _, v := range ReadChainMetadata(db) {
+		fmt.Fprintf(os.Stderr, "  %s\n", strings.Join(v, ": "))
+	}
+	fmt.Fprintf(os.Stderr, "\n\n")
+}
+
+// ReadChainMetadata returns a set of key/value pairs that contains informatin
+// about the database chain status. This can be used for diagnostic purposes
+// when investigating the state of the node.
+func ReadChainMetadata(db ctxcdb.KeyValueStore) [][]string {
+	pp := func(val *uint64) string {
+		if val == nil {
+			return "<nil>"
+		}
+		return fmt.Sprintf("%d (%#x)", *val, *val)
+	}
+	data := [][]string{
+		{"databaseVersion", pp(ReadDatabaseVersion(db))},
+		{"headBlockHash", fmt.Sprintf("%v", ReadHeadBlockHash(db))},
+		{"headFastBlockHash", fmt.Sprintf("%v", ReadHeadFastBlockHash(db))},
+		{"headHeaderHash", fmt.Sprintf("%v", ReadHeadHeaderHash(db))},
+		{"lastPivotNumber", pp(ReadLastPivotNumber(db))},
+		{"len(snapshotSyncStatus)", fmt.Sprintf("%d bytes", len(ReadSnapshotSyncStatus(db)))},
+		{"snapshotDisabled", fmt.Sprintf("%v", ReadSnapshotDisabled(db))},
+		{"snapshotJournal", fmt.Sprintf("%d bytes", len(ReadSnapshotJournal(db)))},
+		{"snapshotRecoveryNumber", pp(ReadSnapshotRecoveryNumber(db))},
+		{"snapshotRoot", fmt.Sprintf("%v", ReadSnapshotRoot(db))},
+		{"txIndexTail", pp(ReadTxIndexTail(db))},
+		{"fastTxLookupLimit", pp(ReadFastTxLookupLimit(db))},
+	}
+	if b := ReadSkeletonSyncStatus(db); b != nil {
+		data = append(data, []string{"SkeletonSyncStatus", string(b)})
+	}
+	return data
 }
