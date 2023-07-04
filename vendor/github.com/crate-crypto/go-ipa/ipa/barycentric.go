@@ -101,7 +101,7 @@ func computeBarycentricWeightForElement(element uint64) fr.Element {
 // This can also be seen as the lagrange coefficients L_i(point)
 func (preComp *PrecomputedWeights) ComputeBarycentricCoefficients(point fr.Element) []fr.Element {
 
-	// Compute A(x_i) * point - x_i
+	// Compute A'(x_i) * (point - x_i)
 	lagrangeEvals := make([]fr.Element, DOMAIN_SIZE)
 	for i := uint64(0); i < DOMAIN_SIZE; i++ {
 		weight := preComp.barycentricWeights[i]
@@ -122,12 +122,8 @@ func (preComp *PrecomputedWeights) ComputeBarycentricCoefficients(point fr.Eleme
 		totalProd.Mul(&totalProd, &tmp)
 	}
 
+	lagrangeEvals = fr.BatchInvert(lagrangeEvals)
 	for i := uint64(0); i < DOMAIN_SIZE; i++ {
-		// TODO: there was no batch inversion API.
-		// TODO once we fully switch over to bandersnatch
-		// TODO we can switch to batch invert API
-
-		lagrangeEvals[i].Inverse(&lagrangeEvals[i])
 		lagrangeEvals[i].Mul(&lagrangeEvals[i], &totalProd)
 	}
 

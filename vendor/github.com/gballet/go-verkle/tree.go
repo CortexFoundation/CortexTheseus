@@ -27,6 +27,7 @@ package verkle
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -56,14 +57,8 @@ type VerkleNode interface {
 	// Insert or Update value into the tree
 	Insert([]byte, []byte, NodeResolverFn) error
 
-	// Insert "à la" Stacktrie. Same thing as insert, except that
-	// values are expected to be ordered, and the commitments and
-	// hashes for each subtrie are computed online, as soon as it
-	// is clear that no more values will be inserted in there.
-	InsertOrdered([]byte, []byte, NodeFlushFn) error
-
 	// Delete a leaf with the given key
-	Delete([]byte, NodeResolverFn) error
+	Delete([]byte, NodeResolverFn) (bool, error)
 
 	// Get value at a given key
 	Get([]byte, NodeResolverFn) ([]byte, error)
@@ -83,7 +78,7 @@ type VerkleNode interface {
 	// returns them breadth-first. On top of that, it returns
 	// one "extension status" per stem, and an alternate stem
 	// if the key is missing but another stem has been found.
-	GetProofItems(keylist) (*ProofElements, []byte, [][]byte)
+	GetProofItems(keylist) (*ProofElements, []byte, [][]byte, error)
 
 	// Serialize encodes the node to RLP.
 	Serialize() ([]byte, error)
@@ -104,6 +99,7 @@ type ProofElements struct {
 	Yis    []*Fr
 	Fis    [][]Fr
 	ByPath map[string]*Point // Gather commitments by path
+	Vals   [][]byte          // list of values read from the tree
 
 	// dedups flags the presence of each (Ci,zi) tuple
 	dedups map[*Point]map[byte]struct{}
@@ -151,6 +147,8 @@ func (pe *ProofElements) Merge(other *ProofElements) {
 			pe.ByPath[path] = C
 		}
 	}
+
+	pe.Vals = append(pe.Vals, other.Vals...)
 }
 
 const (
@@ -186,6 +184,40 @@ type (
 	}
 )
 
+func (n *InternalNode) toExportable() *ExportableInternalNode {
+	comm := n.commitment.Bytes()
+	exportable := &ExportableInternalNode{
+		Children:   make([]interface{}, NodeWidth),
+		Commitment: comm[:],
+	}
+
+	for i := range exportable.Children {
+		switch child := n.children[i].(type) {
+		case Empty:
+			exportable.Children[i] = nil
+		case *HashedNode:
+			exportable.Children[i] = n.commitment.Bytes()
+		case *InternalNode:
+			exportable.Children[i] = child.toExportable()
+		case *LeafNode:
+			exportable.Children[i] = &ExportableLeafNode{
+				Stem:   child.stem,
+				Values: child.values,
+				C:      child.commitment.Bytes(),
+				C1:     child.c1.Bytes(),
+			}
+		default:
+			panic("unexportable type")
+		}
+	}
+	return exportable
+}
+
+// Turn an internal node into a JSON string
+func (n *InternalNode) ToJSON() ([]byte, error) {
+	return json.Marshal(n.toExportable())
+}
+
 func newInternalNode(depth byte) VerkleNode {
 	node := new(InternalNode)
 	node.children = make([]VerkleNode, NodeWidth)
@@ -202,34 +234,62 @@ func New() VerkleNode {
 	return newInternalNode(0)
 }
 
+func NewStatelessInternal(depth byte, comm *Point) VerkleNode {
+	node := &InternalNode{
+		children:   make([]VerkleNode, NodeWidth),
+		depth:      depth,
+		commitment: comm,
+	}
+	for idx := range node.children {
+		node.children[idx] = UnknownNode(struct{}{})
+	}
+	return node
+}
+
 // New creates a new leaf node
 func NewLeafNode(stem []byte, values [][]byte) *LeafNode {
-	leaf := &LeafNode{
-		// depth will be 0, but the commitment calculation
-		// does not need it, and so it won't be free.
-		values: values,
-		stem:   stem[:31], // enforce a 31-byte length
-		c1:     Generator(),
-		c2:     Generator(),
+	cfg := GetConfig()
+
+	// C1.
+	var c1poly [NodeWidth]Fr
+	var c1 *Point
+	count := fillSuffixTreePoly(c1poly[:], values[:NodeWidth/2])
+	containsEmptyCodeHash := len(c1poly) >= EmptyCodeHashSecondHalfIdx &&
+		c1poly[EmptyCodeHashFirstHalfIdx].Equal(&EmptyCodeHashFirstHalfValue) &&
+		c1poly[EmptyCodeHashSecondHalfIdx].Equal(&EmptyCodeHashSecondHalfValue)
+	if containsEmptyCodeHash {
+		// Clear out values of the cached point.
+		c1poly[EmptyCodeHashFirstHalfIdx] = FrZero
+		c1poly[EmptyCodeHashSecondHalfIdx] = FrZero
+		// Calculate the remaining part of c1 and add to the base value.
+		partialc1 := cfg.CommitToPoly(c1poly[:], NodeWidth-count-2)
+		c1 = new(Point)
+		c1.Add(&EmptyCodeHashPoint, partialc1)
+	} else {
+		c1 = cfg.CommitToPoly(c1poly[:], NodeWidth-count)
 	}
 
-	// Initialize the commitment with the extension tree
-	// marker and the stem.
-	cfg := GetConfig()
-	count := 0
-	var poly, c1poly, c2poly [256]Fr
+	// C2.
+	var c2poly [NodeWidth]Fr
+	count = fillSuffixTreePoly(c2poly[:], values[NodeWidth/2:])
+	c2 := cfg.CommitToPoly(c2poly[:], NodeWidth-count)
+
+	// Root commitment preparation for calculation.
+	stem = stem[:StemSize] // enforce a 31-byte length
+	var poly [NodeWidth]Fr
 	poly[0].SetUint64(1)
-	StemFromBytes(&poly[1], leaf.stem)
+	StemFromBytes(&poly[1], stem)
+	toFrMultiple([]*Fr{&poly[2], &poly[3]}, []*Point{c1, c2})
 
-	count = fillSuffixTreePoly(c1poly[:], values[:128])
-	leaf.c1 = cfg.CommitToPoly(c1poly[:], 256-count)
-	count = fillSuffixTreePoly(c2poly[:], values[128:])
-	leaf.c2 = cfg.CommitToPoly(c2poly[:], 256-count)
-	toFrMultiple([]*Fr{&poly[2], &poly[3]}, []*Point{leaf.c1, leaf.c2})
-
-	leaf.commitment = cfg.CommitToPoly(poly[:], 252)
-
-	return leaf
+	return &LeafNode{
+		// depth will be 0, but the commitment calculation
+		// does not need it, and so it won't be free.
+		values:     values,
+		stem:       stem,
+		commitment: cfg.CommitToPoly(poly[:], NodeWidth-4),
+		c1:         c1,
+		c2:         c2,
+	}
 }
 
 // NewLeafNodeWithNoComms create a leaf node but does compute its
@@ -244,24 +304,19 @@ func NewLeafNodeWithNoComms(stem []byte, values [][]byte) *LeafNode {
 	}
 }
 
+// Children return the children of the node. The returned slice is
+// internal to the tree, so callers *must* consider it readonly.
 func (n *InternalNode) Children() []VerkleNode {
 	return n.children
 }
 
+// SetChild *replaces* the child at the given index with the given node.
 func (n *InternalNode) SetChild(i int, c VerkleNode) error {
-	if i >= NodeWidth-1 {
+	if i >= NodeWidth {
 		return errors.New("child index higher than node width")
 	}
 	n.children[i] = c
 	return nil
-}
-
-// TouchCoW is a helper function that will mark a child as
-// "inserted into". It is used by the conversion code to
-// mark reconstructed subtrees as 'written to', so that its
-// root commitment can be computed.
-func (n *InternalNode) TouchCoW(index byte) {
-	n.cowChild(index)
 }
 
 func (n *InternalNode) cowChild(index byte) {
@@ -286,6 +341,8 @@ func (n *InternalNode) InsertStem(stem []byte, values [][]byte, resolver NodeRes
 	n.cowChild(nChild)
 
 	switch child := n.children[nChild].(type) {
+	case UnknownNode:
+		return errMissingNodeInStateless
 	case Empty:
 		n.children[nChild] = NewLeafNode(stem, values)
 		n.children[nChild].setDepth(n.depth + 1)
@@ -334,26 +391,102 @@ func (n *InternalNode) InsertStem(stem []byte, values [][]byte, resolver NodeRes
 		newBranch.children[nextWordInInsertedKey] = leaf
 	case *InternalNode:
 		return child.InsertStem(stem, values, resolver)
-	default: // StatelessNode
-		return errStatelessAndStatefulMix
+	default: // It should be an UknonwnNode.
+		return errUnknownNodeType
 	}
 
 	return nil
 }
 
+// CreatePath inserts a given stem in the tree, placing it as
+// described by stemInfo. Its third parameters is the list of
+// commitments that have not been assigned a node. It returns
+// the same list, save the commitments that were consumed
+// during this call.
+func (n *InternalNode) CreatePath(path []byte, stemInfo stemInfo, comms []*Point, values [][]byte) ([]*Point, error) {
+	if len(path) == 0 {
+		return comms, errors.New("invalid path")
+	}
+
+	// path is 1 byte long, the leaf node must be created
+	if len(path) == 1 {
+		switch stemInfo.stemType & 3 {
+		case extStatusAbsentEmpty:
+			// Set child to Empty so that, in a stateless context,
+			// a node known to be absent is differentiated from an
+			// unknown node.
+			n.children[path[0]] = Empty{}
+		case extStatusAbsentOther:
+			// insert poa stem
+		case extStatusPresent:
+			// insert stem
+			newchild := &LeafNode{
+				commitment: comms[0],
+				stem:       stemInfo.stem,
+				values:     values,
+				depth:      n.depth + 1,
+			}
+			n.children[path[0]] = newchild
+			comms = comms[1:]
+			if stemInfo.has_c1 {
+				newchild.c1 = comms[0]
+				comms = comms[1:]
+			} else {
+				newchild.c1 = new(Point)
+			}
+			if stemInfo.has_c2 {
+				newchild.c2 = comms[0]
+				comms = comms[1:]
+			} else {
+				newchild.c2 = new(Point)
+			}
+			for b, value := range stemInfo.values {
+				newchild.values[b] = value
+			}
+		}
+		return comms, nil
+	}
+
+	switch child := n.children[path[0]].(type) {
+	case UnknownNode:
+		// create the child node if missing
+		n.children[path[0]] = NewStatelessInternal(n.depth+1, comms[0])
+		comms = comms[1:]
+	case *InternalNode:
+	// nothing else to do
+	case *LeafNode:
+		return comms, fmt.Errorf("error rebuilding the tree from a proof: stem %x leads to an already-existing leaf node at depth %x", stemInfo.stem, n.depth)
+	default:
+		return comms, fmt.Errorf("error rebuilding the tree from a proof: stem %x leads to an unsupported node type %v", stemInfo.stem, child)
+	}
+
+	// This should only be used in the context of
+	// stateless nodes, so panic if another node
+	// type is found.
+	child := n.children[path[0]].(*InternalNode)
+
+	// recurse
+	return child.CreatePath(path[1:], stemInfo, comms, values)
+}
+
+// GetStem returns the all NodeWidth values of the stem.
+// The returned slice is internal to the tree, so it *must* be considered readonly
+// for callers.
 func (n *InternalNode) GetStem(stem []byte, resolver NodeResolverFn) ([][]byte, error) {
 	nchild := offset2key(stem, n.depth) // index of the child pointed by the next byte in the key
 	switch child := n.children[nchild].(type) {
+	case UnknownNode:
+		return nil, errMissingNodeInStateless
 	case Empty:
 		return nil, nil
 	case *HashedNode:
 		if resolver == nil {
-			return nil, fmt.Errorf("hashed node %x at depth %d along stem %x could not be resolved", child.Commitment().Bytes(), n.depth, stem)
+			return nil, fmt.Errorf("hashed node %x at depth %d along stem %x could not be resolved: %w", child.Commitment().Bytes(), n.depth, stem, errReadFromInvalid)
 		}
 		hash := child.commitment
 		serialized, err := resolver(hash)
 		if err != nil {
-			return nil, fmt.Errorf("verkle tree: error resolving node %x at depth %d: %w", stem, n.depth, err)
+			return nil, fmt.Errorf("resolving node %x at depth %d: %w", stem, n.depth, err)
 		}
 		resolved, err := ParseNode(serialized, n.depth+1, hash)
 		if err != nil {
@@ -370,8 +503,8 @@ func (n *InternalNode) GetStem(stem []byte, resolver NodeResolverFn) ([][]byte, 
 		return nil, nil
 	case *InternalNode:
 		return child.GetStem(stem, resolver)
-	default: // StatelessNode
-		return nil, errStatelessAndStatefulMix
+	default:
+		return nil, errUnknownNodeType
 	}
 }
 
@@ -383,131 +516,52 @@ func (n *InternalNode) toHashedNode() *HashedNode {
 	return &HashedNode{commitment: comm[:]}
 }
 
-func (n *InternalNode) InsertOrdered(key []byte, value []byte, flush NodeFlushFn) error {
-	values := make([][]byte, NodeWidth)
-	values[key[31]] = value
-	return n.InsertStemOrdered(key[:31], values, flush)
-}
-
-// InsertStemOrdered does the same thing as InsertOrdered but is meant to insert a pre-build
-// LeafNode at a given stem, instead of individual leaves.
-func (n *InternalNode) InsertStemOrdered(key []byte, values [][]byte, flush NodeFlushFn) error {
-	nChild := offset2key(key, n.depth)
-	n.cowChild(nChild)
-
-	switch child := n.children[nChild].(type) {
-	case Empty:
-		// Insert into a new subtrie, which means that the
-		// subtree directly preceding this new one, can
-		// safely be flushed.
-	searchFirstNonEmptyChild:
-		for i := int(nChild) - 1; i >= 0; i-- {
-			switch child := n.children[i].(type) {
-			case Empty:
-				continue
-			case *LeafNode:
-				child.Commit()
-				if flush != nil {
-					flush(child)
-				}
-				n.children[i] = child.ToHashedNode()
-				break searchFirstNonEmptyChild
-			case *HashedNode:
-				break searchFirstNonEmptyChild
-			case *InternalNode:
-				n.children[i].Commit()
-				if flush != nil {
-					child.Flush(flush)
-				}
-				n.children[i] = child.toHashedNode()
-				break searchFirstNonEmptyChild
-			}
-		}
-
-		// NOTE: these allocations are inducing a noticeable slowdown
-		lastNode := NewLeafNode(key[:31], values)
-		lastNode.setDepth(n.depth + 1)
-		n.children[nChild] = lastNode
-
-		// If the node was already created, then there was at least one
-		// child. As a result, inserting this new leaf means there are
-		// now more than one child in this node.
-	case *HashedNode:
-		return errInsertIntoHash
-	case *LeafNode:
-		// Need to add a new branch node to differentiate
-		// between two keys, if the keys are different.
-		// Otherwise, just update the key.
-		if equalPaths(child.stem, key) {
-			// TODO when LeafNode no longer updates on insert,
-			// just set the values here.
-			child.updateMultipleLeaves(values)
-		} else {
-			// A new branch node has to be inserted. Depending
-			// on the next word in both keys, a recursion into
-			// the moved leaf node can occur.
-			nextWordInExistingKey := offset2key(child.stem, n.depth+1)
-			newBranch := newInternalNode(n.depth + 1).(*InternalNode)
-			newBranch.cowChild(nextWordInExistingKey)
-			n.children[nChild] = newBranch
-
-			nextWordInInsertedKey := offset2key(key, n.depth+1)
-			if nextWordInInsertedKey != nextWordInExistingKey {
-				// Directly hash the (left) node that was already
-				// inserted. In case the commitment update should
-				// not be updated, the left node's commitment has
-				// to be calculated anyways, in order to flush it
-				// to disk.
-				child.Commit()
-				if flush != nil {
-					flush(child)
-				}
-				newBranch.children[nextWordInExistingKey] = child.ToHashedNode()
-
-				// Next word differs, so this was the last level.
-				// Insert it directly into its final slot.
-				lastNode := NewLeafNode(key[:31], values)
-				lastNode.setDepth(n.depth + 1)
-				newBranch.cowChild(nextWordInInsertedKey)
-				newBranch.children[nextWordInInsertedKey] = lastNode
-			} else {
-				// Reinsert the leaf in order to recurse
-				newBranch.children[nextWordInExistingKey] = child
-				return newBranch.InsertStemOrdered(key, values, flush)
-			}
-		}
-	case *InternalNode: // InternalNode
-		return child.InsertStemOrdered(key, values, flush)
-	default: // StatelessNode
-		return errStatelessAndStatefulMix
-	}
-	return nil
-}
-
-func (n *InternalNode) Delete(key []byte, resolver NodeResolverFn) error {
+func (n *InternalNode) Delete(key []byte, resolver NodeResolverFn) (bool, error) {
 	nChild := offset2key(key, n.depth)
 	switch child := n.children[nChild].(type) {
 	case Empty:
-		return errDeleteNonExistent
+		return false, nil
 	case *HashedNode:
 		if resolver == nil {
-			return errDeleteHash
+			return false, errDeleteHash
 		}
 		comm := child.commitment
 		payload, err := resolver(comm)
 		if err != nil {
-			return err
+			return false, err
 		}
 		// deserialize the payload and set it as the child
 		c, err := ParseNode(payload, n.depth+1, comm)
 		if err != nil {
-			return err
+			return false, err
 		}
 		n.children[nChild] = c
 		return n.Delete(key, resolver)
 	default:
 		n.cowChild(nChild)
-		return child.Delete(key, resolver)
+		del, err := child.Delete(key, resolver)
+		if err != nil {
+			return false, err
+		}
+
+		// delete the entire child if instructed to by
+		// the recursive algorigthm.
+		if del {
+			n.children[nChild] = Empty{}
+
+			// Check if all children are gone, if so
+			// signal that this node should be deleted
+			// as well.
+			for _, c := range n.children {
+				if _, ok := c.(Empty); !ok {
+					break
+				}
+			}
+
+			return true, nil
+		}
+
+		return false, nil
 	}
 }
 
@@ -537,6 +591,11 @@ func (n *InternalNode) FlushAtDepth(depth uint8, flush NodeFlushFn) {
 		// Skip non-internal nodes
 		c, ok := child.(*InternalNode)
 		if !ok {
+			if c, ok := child.(*LeafNode); ok {
+				c.Commit()
+				flush(c)
+				n.children[i] = c.ToHashedNode()
+			}
 			continue
 		}
 
@@ -552,38 +611,24 @@ func (n *InternalNode) FlushAtDepth(depth uint8, flush NodeFlushFn) {
 	}
 }
 
-func (n *InternalNode) Get(k []byte, getter NodeResolverFn) ([]byte, error) {
-	nChild := offset2key(k, n.depth)
-
-	switch child := n.children[nChild].(type) {
-	case Empty, nil:
-		// Return nil as a signal that the value isn't
-		// present in the tree. This matches the behavior
-		// of SecureTrie in Geth.
-		return nil, nil
-	case *HashedNode:
-		// if a resolution function is set, resolve the
-		// current hash node.
-		if getter == nil {
-			return nil, errReadFromInvalid
-		}
-
-		payload, err := getter(child.commitment)
-		if err != nil {
-			return nil, err
-		}
-
-		// deserialize the payload and set it as the child
-		c, err := ParseNode(payload, n.depth+1, child.commitment)
-		if err != nil {
-			return nil, err
-		}
-		n.children[nChild] = c
-
-		return c.Get(k, getter)
-	default: // InternalNode
-		return child.Get(k, getter)
+func (n *InternalNode) Get(key []byte, resolver NodeResolverFn) ([]byte, error) {
+	if len(key) != StemSize+1 {
+		return nil, fmt.Errorf("invalid key length, expected %d, got %d", StemSize+1, len(key))
 	}
+	stemValues, err := n.GetStem(key[:StemSize], resolver)
+	if err != nil {
+		return nil, err
+	}
+
+	// If the stem results in an empty node, return nil.
+	if stemValues == nil {
+		return nil, nil
+	}
+
+	// Return nil as a signal that the value isn't
+	// present in the tree. This matches the behavior
+	// of SecureTrie in Geth.
+	return stemValues[key[StemSize]], nil
 }
 
 func (n *InternalNode) Hash() *Fr {
@@ -706,7 +751,7 @@ func groupKeys(keys keylist, depth byte) []keylist {
 	return groups
 }
 
-func (n *InternalNode) GetProofItems(keys keylist) (*ProofElements, []byte, [][]byte) {
+func (n *InternalNode) GetProofItems(keys keylist) (*ProofElements, []byte, [][]byte, error) {
 	var (
 		groups = groupKeys(keys, n.depth)
 		pe     = &ProofElements{
@@ -727,7 +772,12 @@ func (n *InternalNode) GetProofItems(keys keylist) (*ProofElements, []byte, [][]
 	var points [NodeWidth]*Point
 	for i, child := range n.children {
 		fiPtrs[i] = &fi[i]
-		points[i] = child.Commitment()
+		if child != nil {
+			points[i] = child.Commitment()
+		} else {
+			// TODO: add a test case to cover this scenario.
+			points[i] = new(Point)
+		}
 	}
 	toFrMultiple(fiPtrs[:], points[:])
 
@@ -749,24 +799,35 @@ func (n *InternalNode) GetProofItems(keys keylist) (*ProofElements, []byte, [][]
 	for _, group := range groups {
 		childIdx := offset2key(group[0], n.depth)
 
+		if _, isunknown := n.children[childIdx].(UnknownNode); isunknown {
+			// TODO: add a test case to cover this scenario.
+			return nil, nil, nil, errMissingNodeInStateless
+		}
+
 		// Special case of a proof of absence: no children
 		// commitment, as the value is 0.
-		if _, ok := n.children[childIdx].(Empty); ok {
+		_, isempty := n.children[childIdx].(Empty)
+		if isempty {
 			// A question arises here: what if this proof of absence
 			// corresponds to several stems? Should the ext status be
 			// repeated as many times? It would be wasteful, so the
 			// decoding code has to be aware of this corner case.
 			esses = append(esses, extStatusAbsentEmpty|((n.depth+1)<<3))
+			pe.Vals = append(pe.Vals, nil)
 			continue
 		}
 
-		pec, es, other := n.children[childIdx].GetProofItems(group)
+		pec, es, other, err := n.children[childIdx].GetProofItems(group)
+		if err != nil {
+			// TODO: add a test case to cover this scenario.
+			return nil, nil, nil, err
+		}
 		pe.Merge(pec)
 		poass = append(poass, other...)
 		esses = append(esses, es...)
 	}
 
-	return pe, esses, poass
+	return pe, esses, poass, nil
 }
 
 func (n *InternalNode) Serialize() ([]byte, error) {
@@ -854,6 +915,9 @@ func (n *InternalNode) toDot(parent, path string) string {
 	}
 
 	for i, child := range n.children {
+		if child == nil {
+			continue
+		}
 		ret = fmt.Sprintf("%s%s", ret, child.toDot(me, fmt.Sprintf("%s%02x", path, i)))
 	}
 
@@ -866,19 +930,28 @@ func (n *InternalNode) setDepth(d byte) {
 
 // MergeTrees takes a series of subtrees that got filled following
 // a command-and-conquer method, and merges them into a single tree.
+// This method is deprecated, use with caution.
 func MergeTrees(subroots []*InternalNode) VerkleNode {
 	root := New().(*InternalNode)
 	for _, subroot := range subroots {
-		for i := 0; i < 256; i++ {
+		for i := 0; i < NodeWidth; i++ {
 			if _, ok := subroot.children[i].(Empty); ok {
 				continue
 			}
-			root.TouchCoW(byte(i))
+			root.touchCoW(byte(i))
 			root.children[i] = subroot.children[i]
 		}
 	}
 
 	return root
+}
+
+// TouchCoW is a helper function that will mark a child as
+// "inserted into". It is used by the conversion code to
+// mark reconstructed subtrees as 'written to', so that its
+// root commitment can be computed.
+func (n *InternalNode) touchCoW(index byte) {
+	n.cowChild(index)
 }
 
 func (n *LeafNode) ToHashedNode() *HashedNode {
@@ -889,15 +962,21 @@ func (n *LeafNode) ToHashedNode() *HashedNode {
 	return &HashedNode{commitment: comm[:]}
 }
 
-func (n *LeafNode) Insert(k []byte, value []byte, _ NodeResolverFn) error {
+func (n *LeafNode) Insert(key []byte, value []byte, _ NodeResolverFn) error {
+	if len(key) != StemSize+1 {
+		return fmt.Errorf("invalid key size: %d", len(key))
+	}
+	if !bytes.Equal(key[:StemSize], n.stem) {
+		return fmt.Errorf("stems doesn't match: %x != %x", key[:StemSize], n.stem)
+	}
 	values := make([][]byte, NodeWidth)
-	values[k[31]] = value
-	return n.insertMultiple(k[:31], values)
+	values[key[StemSize]] = value
+	return n.insertMultiple(key[:StemSize], values)
 }
 
-func (n *LeafNode) insertMultiple(k []byte, values [][]byte) error {
-	// Sanity check: ensure the key header is the same:
-	if !equalPaths(k, n.stem) {
+func (n *LeafNode) insertMultiple(stem []byte, values [][]byte) error {
+	// Sanity check: ensure the stems are the same.
+	if !equalPaths(stem, n.stem) {
 		return errInsertIntoOtherStem
 	}
 
@@ -923,7 +1002,7 @@ func (n *LeafNode) updateCn(index byte, value []byte, c *Point) {
 	var (
 		old, newH [2]Fr
 		diff      Point
-		poly      [256]Fr
+		poly      [NodeWidth]Fr
 	)
 
 	// Optimization idea:
@@ -1022,22 +1101,98 @@ func (n *LeafNode) updateMultipleLeaves(values [][]byte) {
 	}
 }
 
-func (n *LeafNode) InsertOrdered(key []byte, value []byte, _ NodeFlushFn) error {
-	// In the previous version, this value used to be flushed on insert.
-	// This is no longer the case, as all values at the last level get
-	// flushed at the same time.
-	return n.Insert(key, value, nil)
-}
-
-func (n *LeafNode) Delete(k []byte, _ NodeResolverFn) error {
+// Delete deletes a value from the leaf, return `true` as a second
+// return value, if the parent should entirely delete the child.
+func (n *LeafNode) Delete(k []byte, _ NodeResolverFn) (bool, error) {
 	// Sanity check: ensure the key header is the same:
 	if !equalPaths(k, n.stem) {
-		return errDeleteNonExistent
+		return false, nil
 	}
 
-	var zero [32]byte
-	n.updateLeaf(k[31], zero[:])
-	return nil
+	// Erase the value it used to contain
+	original := n.values[k[31]] // save original value
+	n.values[k[31]] = nil
+
+	// Check if a Cn subtree is entirely empty, or if
+	// the entire subtree is empty.
+	var (
+		isCnempty = true
+		isCempty  = true
+	)
+	for i := 0; i < NodeWidth; i++ {
+		if len(n.values[i]) > 0 {
+			// if i and k[31] are in the same subtree,
+			// set both values and return.
+			if byte(i/128) == k[31]/128 {
+				isCnempty = false
+				isCempty = false
+				break
+			}
+
+			// i and k[31] were in a different subtree,
+			// so all we can say at this stage, is that
+			// the whole tree isn't empty.
+			// TODO if i < 128, then k[31] >= 128 and
+			// we could skip to 128, but that's an
+			// optimization for later.
+			isCempty = false
+		}
+	}
+
+	// if the whole subtree is empty, then the
+	// entire node should be deleted.
+	if isCempty {
+		return true, nil
+	}
+
+	// if a Cn branch becomes empty as a result
+	// of removing the last value, update C by
+	// adding -Cn to it and exit.
+	if isCnempty {
+		var (
+			cn           *Point
+			subtreeindex = 2 + k[31]/128
+		)
+
+		if k[31] < 128 {
+			cn = n.c1
+		} else {
+			cn = n.c2
+		}
+
+		// Update C by subtracting the old value for Cn
+		// Note: this isn't done in one swoop, which would make sense
+		// since presumably a lot of values would be deleted at the same
+		// time when reorging. Nonetheless, a reorg is an already complex
+		// operation which is slow no matter what, so ensuring correctness
+		// is more important than
+		var poly [4]Fr
+		toFr(&poly[subtreeindex], cn)
+		n.commitment.Sub(n.commitment, cfg.CommitToPoly(poly[:], 0))
+
+		// Clear the corresponding commitment
+		if k[31] < 128 {
+			n.c1 = nil
+		} else {
+			n.c2 = nil
+		}
+
+		return false, nil
+	}
+
+	// Recompute the updated C & Cn
+	//
+	// This is done by setting the leaf value
+	// to `nil` at this point, and all the
+	// diff computation will be performed by
+	// updateLeaf since leafToComms supports
+	// nil values.
+	// Note that the value is set to nil by
+	// the method, as it needs the original
+	// value to compute the commitment diffs.
+	n.values[k[31]] = original
+	n.updateLeaf(k[31], nil)
+	return false, nil
 }
 
 func (n *LeafNode) Get(k []byte, _ NodeResolverFn) ([]byte, error) {
@@ -1049,7 +1204,7 @@ func (n *LeafNode) Get(k []byte, _ NodeResolverFn) ([]byte, error) {
 		return nil, nil
 	}
 	// value can be nil, as expected by geth
-	return n.values[k[31]], nil
+	return n.values[k[StemSize]], nil
 }
 
 func (n *LeafNode) Hash() *Fr {
@@ -1112,14 +1267,15 @@ func leafToComms(poly []Fr, val []byte) {
 	}
 }
 
-func (n *LeafNode) GetProofItems(keys keylist) (*ProofElements, []byte, [][]byte) {
+func (n *LeafNode) GetProofItems(keys keylist) (*ProofElements, []byte, [][]byte, error) {
 	var (
-		poly [256]Fr // top-level polynomial
-		pe           = &ProofElements{
+		poly [NodeWidth]Fr // top-level polynomial
+		pe                 = &ProofElements{
 			Cis:    []*Point{n.commitment, n.commitment},
 			Zis:    []byte{0, 1},
 			Yis:    []*Fr{&poly[0], &poly[1]}, // Should be 0
 			Fis:    [][]Fr{poly[:], poly[:]},
+			Vals:   make([][]byte, 0, len(keys)),
 			ByPath: map[string]*Point{},
 		}
 
@@ -1170,6 +1326,7 @@ func (n *LeafNode) GetProofItems(keys keylist) (*ProofElements, []byte, [][]byte
 			if len(esses) == 0 {
 				esses = append(esses, extStatusAbsentOther|(n.depth<<3))
 				poass = append(poass, n.stem)
+				pe.Vals = append(pe.Vals, nil)
 			}
 			continue
 		}
@@ -1185,10 +1342,9 @@ func (n *LeafNode) GetProofItems(keys keylist) (*ProofElements, []byte, [][]byte
 
 		var (
 			suffix   = key[31]
-			suffPoly [256]Fr // suffix-level polynomial
+			suffPoly [NodeWidth]Fr // suffix-level polynomial
 			count    int
 		)
-
 		if suffix >= 128 {
 			count = fillSuffixTreePoly(suffPoly[:], n.values[128:])
 		} else {
@@ -1207,6 +1363,7 @@ func (n *LeafNode) GetProofItems(keys keylist) (*ProofElements, []byte, [][]byte
 			// as all the information is available before fillSuffixTreePoly
 			// has to be called, save the count.
 			esses = append(esses, extStatusAbsentEmpty|(n.depth<<3))
+			pe.Vals = append(pe.Vals, nil)
 			continue
 		}
 
@@ -1216,42 +1373,33 @@ func (n *LeafNode) GetProofItems(keys keylist) (*ProofElements, []byte, [][]byte
 		} else {
 			scomm = n.c2
 		}
-
-		slotPath := string(key[:n.depth]) + string([]byte{2 + suffix/128})
-
-		// Proof of absence: case of a missing value.
-		//
-		// Suffix tree is present as a child of the extension,
-		// but does not contain the requested suffix. This can
-		// only happen when the leaf has never been written to
-		// since after deletion the value would be set to zero
-		// but still contain the leaf marker 2^128.
-		if n.values[suffix] == nil {
-			pe.Cis = append(pe.Cis, scomm, scomm)
-			pe.Zis = append(pe.Zis, 2*suffix, 2*suffix+1)
-			pe.Yis = append(pe.Yis, &FrZero, &FrZero)
-			pe.Fis = append(pe.Fis, suffPoly[:], suffPoly[:])
-			if len(esses) == 0 || esses[len(esses)-1] != extStatusPresent|(n.depth<<3) {
-				esses = append(esses, extStatusPresent|(n.depth<<3))
-			}
-			pe.ByPath[slotPath] = scomm
-			continue
-		}
-
-		// suffix tree is present and contains the key
 		var leaves [2]Fr
-		leafToComms(leaves[:], n.values[suffix])
+		if n.values[suffix] == nil {
+			// Proof of absence: case of a missing value.
+			//
+			// Suffix tree is present as a child of the extension,
+			// but does not contain the requested suffix. This can
+			// only happen when the leaf has never been written to
+			// since after deletion the value would be set to zero
+			// but still contain the leaf marker 2^128.
+			leaves[0], leaves[1] = FrZero, FrZero
+		} else {
+			// suffix tree is present and contains the key
+			leaves[0], leaves[1] = suffPoly[2*suffix], suffPoly[2*suffix+1]
+		}
 		pe.Cis = append(pe.Cis, scomm, scomm)
 		pe.Zis = append(pe.Zis, 2*suffix, 2*suffix+1)
 		pe.Yis = append(pe.Yis, &leaves[0], &leaves[1])
 		pe.Fis = append(pe.Fis, suffPoly[:], suffPoly[:])
+		pe.Vals = append(pe.Vals, n.values[key[31]])
 		if len(esses) == 0 || esses[len(esses)-1] != extStatusPresent|(n.depth<<3) {
 			esses = append(esses, extStatusPresent|(n.depth<<3))
 		}
+		slotPath := string(key[:n.depth]) + string([]byte{2 + suffix/128})
 		pe.ByPath[slotPath] = scomm
 	}
 
-	return pe, esses, poass
+	return pe, esses, poass, nil
 }
 
 // Serialize serializes a LeafNode.
@@ -1295,7 +1443,10 @@ func (n *LeafNode) Key(i int) []byte {
 }
 
 func (n *LeafNode) Value(i int) []byte {
-	return n.values[i]
+	if i >= NodeWidth {
+		panic("leaf node index out of range")
+	}
+	return n.values[byte(i)]
 }
 
 func (n *LeafNode) toDot(parent, path string) string {

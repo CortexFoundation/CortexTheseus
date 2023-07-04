@@ -74,12 +74,12 @@ type StemStateDiff struct {
 
 type StateDiff []StemStateDiff
 
-func GetCommitmentsForMultiproof(root VerkleNode, keys [][]byte) (*ProofElements, []byte, [][]byte) {
+func GetCommitmentsForMultiproof(root VerkleNode, keys [][]byte) (*ProofElements, []byte, [][]byte, error) {
 	sort.Sort(keylist(keys))
 	return root.GetProofItems(keylist(keys))
 }
 
-func MakeVerkleMultiProof(root VerkleNode, keys [][]byte, keyvals map[string][]byte) (*Proof, []*Point, []byte, []*Fr, error) {
+func MakeVerkleMultiProof(root VerkleNode, keys [][]byte) (*Proof, []*Point, []byte, []*Fr, error) {
 	// go-ipa won't accept no key as an input, catch this corner case
 	// and return an empty result.
 	if len(keys) == 0 {
@@ -89,15 +89,23 @@ func MakeVerkleMultiProof(root VerkleNode, keys [][]byte, keyvals map[string][]b
 	tr := common.NewTranscript("vt")
 	root.Commit()
 
-	pe, es, poas := GetCommitmentsForMultiproof(root, keys)
-
-	var vals [][]byte
-	for _, k := range keys {
-		// TODO at the moment, do not include the post-data
-		// val, _ := root.Get(k, nil)
-		// vals = append(vals, val)
-		vals = append(vals, keyvals[string(k)])
+	pe, es, poas, err := GetCommitmentsForMultiproof(root, keys)
+	if err != nil {
+		return nil, nil, nil, nil, err
 	}
+
+	// NOTE this is leftover code from the time the proof was
+	// made against the POST state. Since proofs are expected
+	// to prove PRE and POST state in the future, I'm leaving
+	// this for reference - eventhough it's unlikely that the
+	// final version will look like this, but you never know.
+	// var vals [][]byte
+	// for _, k := range keys {
+	// 	// TODO at the moment, do not include the post-data
+	// 	// val, _ := root.Get(k, nil)
+	// 	// vals = append(vals, val)
+	// 	vals = append(vals, keyvals[string(k)])
+	// }
 
 	cfg := GetConfig()
 	mpArg := ipa.CreateMultiProof(tr, cfg.conf, pe.Cis, pe.Fis, pe.Zis)
@@ -124,7 +132,7 @@ func MakeVerkleMultiProof(root VerkleNode, keys [][]byte, keyvals map[string][]b
 		ExtStatus:  es,
 		PoaStems:   poas,
 		Keys:       keys,
-		Values:     vals,
+		Values:     pe.Vals,
 	}
 	return proof, pe.Cis, pe.Zis, pe.Yis, nil
 }
@@ -335,23 +343,26 @@ func TreeFromProof(proof *Proof, rootC *Point) (VerkleNode, error) {
 		}
 	}
 
-	root := NewStatelessWithCommitment(rootC)
+	root := NewStatelessInternal(0, rootC).(*InternalNode)
 	comms := proof.Cs
 	for _, p := range paths {
-		comms, err = root.insertStem(p, info[string(p)], comms)
-		if err != nil {
-			return nil, err
-		}
-	}
+		// NOTE: the reconstructed tree won't tell the
+		// difference between leaves missing from view
+		// and absent leaves. This is enough for verification
+		// but not for block validation.
+		values := make([][]byte, NodeWidth)
+		for i, k := range proof.Keys {
+			if len(proof.Values[i]) == 0 {
+				// Skip the nil keys, they are here to prove
+				// an absence.
+				continue
+			}
 
-	for i, k := range proof.Keys {
-		if len(proof.Values[i]) == 0 {
-			// Skip the nil keys, they are here to prove
-			// an absence.
-			continue
+			if bytes.Equal(k[:31], info[string(p)].stem) {
+				values[k[31]] = proof.Values[i]
+			}
 		}
-
-		err = root.insertValue(k, proof.Values[i])
+		comms, err = root.CreatePath(p, info[string(p)], comms, values)
 		if err != nil {
 			return nil, err
 		}

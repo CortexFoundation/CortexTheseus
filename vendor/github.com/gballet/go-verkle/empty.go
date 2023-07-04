@@ -35,12 +35,8 @@ func (Empty) Insert([]byte, []byte, NodeResolverFn) error {
 	return errDirectInsertIntoEmptyNode
 }
 
-func (e Empty) InsertOrdered(key []byte, value []byte, _ NodeFlushFn) error {
-	return e.Insert(key, value, nil)
-}
-
-func (Empty) Delete([]byte, NodeResolverFn) error {
-	return errors.New("cant delete an empty node")
+func (Empty) Delete([]byte, NodeResolverFn) (bool, error) {
+	return false, errors.New("cant delete an empty node")
 }
 
 func (Empty) Get([]byte, NodeResolverFn) ([]byte, error) {
@@ -57,8 +53,8 @@ func (Empty) Commitment() *Point {
 	return &id
 }
 
-func (Empty) GetProofItems(keylist) (*ProofElements, []byte, [][]byte) {
-	panic("trying to produce a commitment for an empty subtree")
+func (Empty) GetProofItems(keylist) (*ProofElements, []byte, [][]byte, error) {
+	return nil, nil, nil, errors.New("trying to produce a commitment for an empty subtree")
 }
 
 func (Empty) Serialize() ([]byte, error) {

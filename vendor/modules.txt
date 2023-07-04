@@ -409,7 +409,7 @@ github.com/containerd/console
 # github.com/cpuguy83/go-md2man/v2 v2.0.2
 ## explicit; go 1.11
 github.com/cpuguy83/go-md2man/v2/md2man
-# github.com/crate-crypto/go-ipa v0.0.0-20230315201338-1643fdc2ead8
+# github.com/crate-crypto/go-ipa v0.0.0-20230601170251-1830d0757c80
 ## explicit; go 1.15
 github.com/crate-crypto/go-ipa
 github.com/crate-crypto/go-ipa/bandersnatch
@@ -499,8 +499,8 @@ github.com/garslo/gogen
 # github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
 ## explicit
 github.com/gballet/go-libpcsclite
-# github.com/gballet/go-verkle v0.0.0-20230329162043-6b398b747b83
-## explicit; go 1.18
+# github.com/gballet/go-verkle v0.0.0-20230620072649-dd771ce9a3b3
+## explicit; go 1.19
 github.com/gballet/go-verkle
 # github.com/getsentry/sentry-go v0.22.0
 ## explicit; go 1.18

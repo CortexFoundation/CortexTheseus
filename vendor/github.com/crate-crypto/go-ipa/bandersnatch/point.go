@@ -482,7 +482,7 @@ func computeY(x *fp.Element, choose_largest bool) *fp.Element {
 	num.Mul(&num, &edwards.A)   // ax^2
 	num.Sub(&num, &one) // ax^2 - 1
 	y.Div(&num, &den)
-	is_nil := y.Sqrt(&y)
+	is_nil := y.SqrtPrecomp(&y)
 
 	// If the square root does not exist, then the Sqrt method returns nil
 	// and leaves the receiver unchanged.
