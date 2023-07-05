@@ -311,7 +311,7 @@ func (m *Monitor) buildConnection(ipcpath string, rpcuri string) (*rpc.Client, e
 			}
 		}
 	} else {
-		log.Warn("IPC is emptyl")
+		log.Warn("IPC is empty")
 	}
 
 	cl, err := rpc.Dial(rpcuri)
@@ -655,7 +655,7 @@ func (m *Monitor) syncLatestBlock() {
 			}
 			counter++
 			if counter%10 == 0 {
-				//log.Info(backend.ProgressBar(int64(m.lastNumber), int64(m.CurrentNumber()), ""), "blocks", progress, "current", m.CurrentNumber(), "latest", m.lastNumber, "end", end, "txs", m.fs.Txs(), "ckp", m.fs.CheckPoint(), "last", m.fs.LastListenBlockNumber())
+				log.Info("Monitor status", "blocks", progress, "current", m.CurrentNumber(), "latest", m.lastNumber, "end", end, "txs", m.fs.Txs(), "ckp", m.fs.CheckPoint(), "last", m.fs.LastListenBlockNumber())
 				counter = 0
 			}
 			m.fs.Flush()
@@ -812,8 +812,8 @@ func (m *Monitor) solve(block *types.Block) error {
 	i := block.Number
 	if i%65536 == 0 {
 		defer func() {
-			//elapsedA := time.Duration(mclock.Now()) - time.Duration(m.start)
-			//log.Info(backend.ProgressBar(int64(i), int64(m.CurrentNumber()), "Nas monitor"), "start", m.startNumber, "max", uint64(m.CurrentNumber()), "last", m.lastNumber, "cur", i, "bps", math.Abs(float64(i)-float64(m.startNumber))*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA), "scope", m.scope, "db", common.PrettyDuration(m.fs.Metrics()), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "root", m.fs.Root())
+			elapsedA := time.Duration(mclock.Now()) - time.Duration(m.start)
+			log.Info("Nas monitor", "start", m.startNumber, "max", uint64(m.CurrentNumber()), "last", m.lastNumber, "cur", i, "bps", math.Abs(float64(i)-float64(m.startNumber))*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA), "scope", m.scope, "db", common.PrettyDuration(m.fs.Metrics()), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "root", m.fs.Root())
 			m.fs.SkipPrint()
 		}()
 	}
