@@ -34,8 +34,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	params1 "github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
+	"github.com/CortexFoundation/robot"
 	"github.com/CortexFoundation/torrentfs/backend"
-	"github.com/CortexFoundation/torrentfs/monitor"
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/tool"
 	"github.com/CortexFoundation/torrentfs/types"
@@ -52,9 +52,9 @@ import (
 type TorrentFS struct {
 	protocol p2p.Protocol // Protocol description and parameters
 	config   *params.Config
-	monitor  *monitor.Monitor
+	monitor  *robot.Monitor
 	handler  *backend.TorrentManager
-	db       *backend.ChainDB
+	//db       *backend.ChainDB
 
 	peerMu sync.RWMutex     // Mutex to sync the active peer set
 	peers  map[string]*Peer // Set of currently active peers
@@ -96,9 +96,9 @@ func (t *TorrentFS) storage() *backend.TorrentManager {
 	return t.handler
 }
 
-func (t *TorrentFS) chain() *backend.ChainDB {
+/*func (t *TorrentFS) chain() *backend.ChainDB {
 	return t.db
-}
+}*/
 
 var (
 	inst    *TorrentFS = nil
@@ -138,7 +138,7 @@ func create(config *params.Config, cache, compress, listen bool) (*TorrentFS, er
 		return inst, nil
 	}
 
-	db, err := backend.NewChainDB(config)
+	/*db, err := backend.NewChainDB(config)
 	if err != nil {
 		log.Error("file storage failed", "err", err)
 		return nil, err
@@ -150,10 +150,10 @@ func create(config *params.Config, cache, compress, listen bool) (*TorrentFS, er
 		log.Error("fs manager failed", "err", err)
 		return nil, errors.New("fs download manager initialise failed")
 	}
-	log.Info("Fs manager initialized")
+	log.Info("Fs manager initialized")*/
 
 	_callback := make(chan any, 1024)
-	monitor, err := monitor.New(config, cache, compress, listen, db, _callback)
+	monitor, err := robot.New(config, cache, compress, listen, _callback)
 	if err != nil {
 		log.Error("Failed create monitor", "err", err)
 		return nil, err
@@ -161,12 +161,19 @@ func create(config *params.Config, cache, compress, listen bool) (*TorrentFS, er
 
 	log.Info("Fs monitor initialized")
 
+	handler, err := backend.NewTorrentManager(config, monitor.ID(), cache, compress)
+	if err != nil || handler == nil {
+		log.Error("fs manager failed", "err", err)
+		return nil, errors.New("fs download manager initialise failed")
+	}
+	log.Info("Fs manager initialized")
+
 	inst = &TorrentFS{
 		config:  config,
 		monitor: monitor,
 		handler: handler,
-		db:      db,
-		peers:   make(map[string]*Peer),
+		//db:      db,
+		peers: make(map[string]*Peer),
 		//queryChan: make(chan Query, 128),
 	}
 
@@ -197,12 +204,12 @@ func create(config *params.Config, cache, compress, listen bool) (*TorrentFS, er
 					"tcp":            !config.DisableTCP,
 					"utp":            !config.DisableUTP,
 					"port":           inst.LocalPort(),
-					"root":           inst.chain().Root().Hex(),
+					"root":           inst.monitor.DB().Root().Hex(),
 					"files":          inst.Congress(),
 					"active":         inst.Candidate(),
 					"nominee":        inst.Nominee(),
-					"leafs":          len(inst.chain().Blocks()),
-					"number":         monitor.CurrentNumber(),
+					"leafs":          len(inst.monitor.DB().Blocks()),
+					"number":         inst.monitor.CurrentNumber(),
 					"maxMessageSize": inst.MaxMessageSize(),
 					//					"listen":         monitor.listen,
 					"metrics":    inst.NasCounter(),
@@ -471,11 +478,11 @@ func (fs *TorrentFS) handleMsg(p *Peer) error {
 }
 
 func (fs *TorrentFS) progress(ih string) (uint64, error) {
-	return fs.chain().GetTorrentProgress(ih)
+	return fs.monitor.DB().GetTorrentProgress(ih)
 }
 
 func (fs *TorrentFS) Records() map[string]uint64 {
-	if progs, err := fs.chain().InitTorrents(); err == nil {
+	if progs, err := fs.monitor.DB().InitTorrents(); err == nil {
 		return progs
 	}
 
@@ -518,10 +525,10 @@ func (fs *TorrentFS) Start(srvr *p2p.Server) (err error) {
 
 	log.Info("Started nas", "config", fs, "mode", fs.config.Mode, "version", params.ProtocolVersion, "queue", fs.tunnel.Len(), "peers", fs.Neighbors())
 
-	err = fs.db.Init()
+	/*err = fs.db.Init()
 	if err != nil {
 		return
-	}
+	}*/
 
 	err = fs.handler.Start()
 	if err != nil {
@@ -544,7 +551,7 @@ func (fs *TorrentFS) init() {
 		go inst.listen()
 
 		if fs.config.Mode != params.LAZY {
-			checkpoint := fs.chain().GetRoot(395964)
+			checkpoint := fs.monitor.DB().GetRoot(395964)
 			log.Info("Checkpoint loaded")
 			if checkpoint == nil {
 				for k, ok := range params.ColaFiles {
@@ -592,10 +599,10 @@ func (fs *TorrentFS) Stop() error {
 			fs.monitor.Stop()
 		}
 
-		if fs.db != nil {
+		/*if fs.db != nil {
 			log.Info("Chain DB closing ... ...")
 			fs.db.Close()
-		}
+		}*/
 
 		close(fs.closeAll)
 		fs.wg.Wait()
@@ -915,7 +922,7 @@ func (fs *TorrentFS) Drop(ih string) error {
 // Download is used to download file with request, broadcast when not found locally
 func (fs *TorrentFS) download(ctx context.Context, ih string, request uint64) error {
 	ih = strings.ToLower(ih)
-	_, p, err := fs.chain().SetTorrentProgress(ih, request)
+	_, p, err := fs.monitor.DB().SetTorrentProgress(ih, request)
 	if err != nil {
 		return err
 	}
