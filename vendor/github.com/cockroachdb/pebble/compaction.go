@@ -13,10 +13,10 @@ import (
 	"runtime/pprof"
 	"sort"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/cockroachdb/errors"
-	"github.com/cockroachdb/errors/oserror"
 	"github.com/cockroachdb/pebble/internal/base"
 	"github.com/cockroachdb/pebble/internal/keyspan"
 	"github.com/cockroachdb/pebble/internal/manifest"
@@ -31,6 +31,7 @@ import (
 
 var errEmptyTable = errors.New("pebble: empty table")
 var errFlushInvariant = errors.New("pebble: flush next log number is unset")
+var errCancelledCompaction = errors.New("pebble: compaction cancelled by a concurrent operation, will retry compaction")
 
 var compactLabels = pprof.Labels("pebble", "compact")
 var flushLabels = pprof.Labels("pebble", "flush")
@@ -547,6 +548,11 @@ func rangeKeyCompactionTransform(
 // compaction is a table compaction from one level to the next, starting from a
 // given version.
 type compaction struct {
+	// cancel is a bool that can be used by other goroutines to signal a compaction
+	// to cancel, such as if a conflicting excise operation raced it to manifest
+	// application. Only holders of the manifest lock will write to this atomic.
+	cancel atomic.Bool
+
 	kind      compactionKind
 	cmp       Compare
 	equal     Equal
@@ -1712,6 +1718,14 @@ func (d *DB) getDeletionPacerInfo() deletionPacerInfo {
 	return pacerInfo
 }
 
+// onObsoleteTableDelete is called to update metrics when an sstable is deleted.
+func (d *DB) onObsoleteTableDelete(fileSize uint64) {
+	d.mu.Lock()
+	d.mu.versions.metrics.Table.ObsoleteCount--
+	d.mu.versions.metrics.Table.ObsoleteSize -= fileSize
+	d.mu.Unlock()
+}
+
 // maybeScheduleFlush schedules a flush if necessary.
 //
 // d.mu must be held when calling this.
@@ -2108,14 +2122,9 @@ func (d *DB) flush1() (bytesFlushed uint64, err error) {
 		flushed[i].readerUnrefLocked(true)
 	}
 
-	d.deleteObsoleteFiles(jobID, false /* waitForOngoing */)
+	d.deleteObsoleteFiles(jobID)
 
-	// Mark all the memtables we flushed as flushed. Note that we do this last so
-	// that a synchronous call to DB.Flush() will not return until the deletion
-	// of obsolete files from this job have completed. This makes testing easier
-	// and provides similar behavior to manual compactions where the compaction
-	// is not marked as completed until the deletion of obsolete files job has
-	// completed.
+	// Mark all the memtables we flushed as flushed.
 	for i := range flushed {
 		close(flushed[i].flushed)
 	}
@@ -2567,14 +2576,12 @@ func (d *DB) compact1(c *compaction, errChannel chan error) (err error) {
 		err = func() error {
 			var err error
 			d.mu.versions.logLock()
-			// Confirm if any of this compaction's inputs were deleted while this
-			// compaction was ongoing.
-			for i := range c.inputs {
-				c.inputs[i].files.Each(func(m *manifest.FileMetadata) {
-					if m.Deleted {
-						err = firstError(err, errors.New("pebble: file deleted by a concurrent operation, will retry compaction"))
-					}
-				})
+			// Check if this compaction had a conflicting operation (eg. a d.excise())
+			// that necessitates it restarting from scratch. Note that since we hold
+			// the manifest lock, we don't expect this bool to change its value
+			// as only the holder of the manifest lock will ever write to it.
+			if c.cancel.Load() {
+				err = firstError(err, errCancelledCompaction)
 			}
 			if err != nil {
 				// logAndApply calls logUnlock. If we didn't call it, we need to call
@@ -2633,7 +2640,7 @@ func (d *DB) compact1(c *compaction, errChannel chan error) (err error) {
 		d.updateReadStateLocked(d.opts.DebugCheck)
 		d.updateTableStatsLocked(ve.NewFiles)
 	}
-	d.deleteObsoleteFiles(jobID, true /* waitForOngoing */)
+	d.deleteObsoleteFiles(jobID)
 
 	return err
 }
@@ -2830,6 +2837,10 @@ func (d *DB) runCompaction(
 	}()
 
 	newOutput := func() error {
+		// Check if we've been cancelled by a concurrent operation.
+		if c.cancel.Load() {
+			return errCancelledCompaction
+		}
 		fileMeta := &fileMetadata{}
 		d.mu.Lock()
 		fileNum := d.mu.versions.getNextFileNum()
@@ -3479,75 +3490,27 @@ func (d *DB) scanObsoleteFiles(list []string) {
 //
 // d.mu must be held when calling this method.
 func (d *DB) disableFileDeletions() {
-	d.mu.cleaner.disabled++
-	for d.mu.cleaner.cleaning {
-		d.mu.cleaner.cond.Wait()
-	}
-	d.mu.cleaner.cond.Broadcast()
+	d.mu.disableFileDeletions++
+	d.mu.Unlock()
+	defer d.mu.Lock()
+	d.cleanupManager.Wait()
 }
 
-// enableFileDeletions enables previously disabled file deletions. Note that if
-// file deletions have been re-enabled, the current goroutine will be used to
-// perform the queued up deletions.
+// enableFileDeletions enables previously disabled file deletions. A cleanup job
+// is queued if necessary.
 //
 // d.mu must be held when calling this method.
 func (d *DB) enableFileDeletions() {
-	if d.mu.cleaner.disabled <= 0 || d.mu.cleaner.cleaning {
+	if d.mu.disableFileDeletions <= 0 {
 		panic("pebble: file deletion disablement invariant violated")
 	}
-	d.mu.cleaner.disabled--
-	if d.mu.cleaner.disabled > 0 {
+	d.mu.disableFileDeletions--
+	if d.mu.disableFileDeletions > 0 {
 		return
 	}
 	jobID := d.mu.nextJobID
 	d.mu.nextJobID++
-	d.deleteObsoleteFiles(jobID, true /* waitForOngoing */)
-}
-
-// d.mu must be held when calling this.
-func (d *DB) acquireCleaningTurn(waitForOngoing bool) bool {
-	// Only allow a single delete obsolete files job to run at a time.
-	for d.mu.cleaner.cleaning && d.mu.cleaner.disabled == 0 && waitForOngoing {
-		d.mu.cleaner.cond.Wait()
-	}
-	if d.mu.cleaner.cleaning {
-		return false
-	}
-	if d.mu.cleaner.disabled > 0 {
-		// File deletions are currently disabled. When they are re-enabled a new
-		// job will be created to catch up on file deletions.
-		return false
-	}
-	d.mu.cleaner.cleaning = true
-	return true
-}
-
-// d.mu must be held when calling this.
-func (d *DB) releaseCleaningTurn() {
-	d.mu.cleaner.cleaning = false
-	d.mu.cleaner.cond.Broadcast()
-}
-
-// deleteObsoleteFiles deletes those files and objects that are no longer
-// needed. If waitForOngoing is true, it waits for any ongoing cleaning turns to
-// complete, and if false, it returns rightaway if a cleaning turn is ongoing.
-//
-// d.mu must be held when calling this, but the mutex may be dropped and
-// re-acquired during the course of this method.
-func (d *DB) deleteObsoleteFiles(jobID int, waitForOngoing bool) {
-	if !d.acquireCleaningTurn(waitForOngoing) {
-		return
-	}
-	d.doDeleteObsoleteFiles(jobID)
-	d.releaseCleaningTurn()
-}
-
-// obsoleteFile holds information about a file that needs to be deleted soon.
-type obsoleteFile struct {
-	dir      string
-	fileNum  base.DiskFileNum
-	fileType fileType
-	fileSize uint64
+	d.deleteObsoleteFiles(jobID)
 }
 
 type fileInfo struct {
@@ -3555,16 +3518,16 @@ type fileInfo struct {
 	fileSize uint64
 }
 
-// d.mu must be held when calling this, but the mutex may be dropped and
-// re-acquired during the course of this method.
-func (d *DB) doDeleteObsoleteFiles(jobID int) {
-	var obsoleteTables []fileInfo
-
-	defer func() {
-		for _, tbl := range obsoleteTables {
-			delete(d.mu.versions.zombieTables, tbl.fileNum)
-		}
-	}()
+// deleteObsoleteFiles enqueues a cleanup job to the cleanup manager, if necessary.
+//
+// d.mu must be held when calling this. The function will release and re-aquire the mutex.
+//
+// Does nothing if file deletions are disabled (see disableFileDeletions). A
+// cleanup job will be scheduled when file deletions are re-enabled.
+func (d *DB) deleteObsoleteFiles(jobID int) {
+	if d.mu.disableFileDeletions > 0 {
+		return
+	}
 
 	var obsoleteLogs []fileInfo
 	for i := range d.mu.log.queue {
@@ -3580,8 +3543,12 @@ func (d *DB) doDeleteObsoleteFiles(jobID int) {
 		}
 	}
 
-	obsoleteTables = append(obsoleteTables, d.mu.versions.obsoleteTables...)
+	obsoleteTables := append([]fileInfo(nil), d.mu.versions.obsoleteTables...)
 	d.mu.versions.obsoleteTables = nil
+
+	for _, tbl := range obsoleteTables {
+		delete(d.mu.versions.zombieTables, tbl.fileNum)
+	}
 
 	// Sort the manifests cause we want to delete some contiguous prefix
 	// of the older manifests.
@@ -3603,7 +3570,7 @@ func (d *DB) doDeleteObsoleteFiles(jobID int) {
 	obsoleteOptions := d.mu.versions.obsoleteOptions
 	d.mu.versions.obsoleteOptions = nil
 
-	// Release d.mu while doing I/O
+	// Release d.mu while preparing the cleanup job and possibly waiting.
 	// Note the unusual order: Unlock and then Lock.
 	d.mu.Unlock()
 	defer d.mu.Lock()
@@ -3618,7 +3585,7 @@ func (d *DB) doDeleteObsoleteFiles(jobID int) {
 		{fileTypeOptions, obsoleteOptions},
 	}
 	_, noRecycle := d.opts.Cleaner.(base.NeedsFileContents)
-	filesToDelete := make([]obsoleteFile, 0, len(files))
+	filesToDelete := make([]obsoleteFile, 0, len(obsoleteLogs)+len(obsoleteTables)+len(obsoleteManifests)+len(obsoleteOptions))
 	for _, f := range files {
 		// We sort to make the order of deletions deterministic, which is nice for
 		// tests.
@@ -3646,126 +3613,24 @@ func (d *DB) doDeleteObsoleteFiles(jobID int) {
 		}
 	}
 	if len(filesToDelete) > 0 {
-		d.deleters.Add(1)
-		// Delete asynchronously if that could get held up in the pacer.
-		if d.opts.TargetByteDeletionRate > 0 {
-			go d.paceAndDeleteObsoleteFiles(jobID, filesToDelete)
-		} else {
-			d.paceAndDeleteObsoleteFiles(jobID, filesToDelete)
-		}
+		d.cleanupManager.EnqueueJob(jobID, filesToDelete)
 	}
-}
-
-// Paces and eventually deletes the list of obsolete files passed in. db.mu
-// must NOT be held when calling this method.
-func (d *DB) paceAndDeleteObsoleteFiles(jobID int, files []obsoleteFile) {
-	defer d.deleters.Done()
-	var pacer *deletionPacer
-	if d.deletionLimiter != nil {
-		pacer = newDeletionPacer(d.deletionLimiter, d.getDeletionPacerInfo)
-	}
-
-	for _, of := range files {
-		path := base.MakeFilepath(d.opts.FS, of.dir, of.fileType, of.fileNum)
-		if of.fileType == fileTypeTable {
-			// Don't throttle deletion of shared objects.
-			meta, err := d.objProvider.Lookup(of.fileType, of.fileNum)
-			// If we get an error here, deleteObsoleteObject won't actually delete
-			// anything, so we don't need to throttle.
-			if pacer != nil && err == nil && !meta.IsShared() {
-				pacer.maybeThrottle(of.fileSize)
-			}
-			d.mu.Lock()
-			d.mu.versions.metrics.Table.ObsoleteCount--
-			d.mu.versions.metrics.Table.ObsoleteSize -= of.fileSize
-			d.mu.Unlock()
-			d.deleteObsoleteObject(fileTypeTable, jobID, of.fileNum)
-		} else {
-			d.deleteObsoleteFile(of.fileType, jobID, path, of.fileNum)
-		}
+	if d.testingAlwaysWaitForCleanup {
+		d.cleanupManager.Wait()
 	}
 }
 
 func (d *DB) maybeScheduleObsoleteTableDeletion() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-
-	if len(d.mu.versions.obsoleteTables) == 0 {
-		return
-	}
-	if !d.acquireCleaningTurn(false) {
-		return
-	}
-
-	go func() {
-		pprof.Do(context.Background(), gcLabels, func(context.Context) {
-			d.mu.Lock()
-			defer d.mu.Unlock()
-
-			jobID := d.mu.nextJobID
-			d.mu.nextJobID++
-			d.doDeleteObsoleteFiles(jobID)
-			d.releaseCleaningTurn()
-		})
-	}()
+	d.maybeScheduleObsoleteTableDeletionLocked()
 }
 
-func (d *DB) deleteObsoleteObject(fileType fileType, jobID int, fileNum base.DiskFileNum) {
-	if fileType != fileTypeTable {
-		panic("not an object")
-	}
-
-	var path string
-	meta, err := d.objProvider.Lookup(fileType, fileNum)
-	if err != nil {
-		path = "<nil>"
-	} else {
-		path = d.objProvider.Path(meta)
-		err = d.objProvider.Remove(fileType, fileNum)
-	}
-	if d.objProvider.IsNotExistError(err) {
-		return
-	}
-
-	switch fileType {
-	case fileTypeTable:
-		d.opts.EventListener.TableDeleted(TableDeleteInfo{
-			JobID:   jobID,
-			Path:    path,
-			FileNum: fileNum.FileNum(),
-			Err:     err,
-		})
-	}
-}
-
-// deleteObsoleteFile deletes a (non-object) file that is no longer needed.
-func (d *DB) deleteObsoleteFile(
-	fileType fileType, jobID int, path string, fileNum base.DiskFileNum,
-) {
-	// TODO(peter): need to handle this error, probably by re-adding the
-	// file that couldn't be deleted to one of the obsolete slices map.
-	err := d.opts.Cleaner.Clean(d.opts.FS, fileType, path)
-	if oserror.IsNotExist(err) {
-		return
-	}
-
-	switch fileType {
-	case fileTypeLog:
-		d.opts.EventListener.WALDeleted(WALDeleteInfo{
-			JobID:   jobID,
-			Path:    path,
-			FileNum: fileNum.FileNum(),
-			Err:     err,
-		})
-	case fileTypeManifest:
-		d.opts.EventListener.ManifestDeleted(ManifestDeleteInfo{
-			JobID:   jobID,
-			Path:    path,
-			FileNum: fileNum.FileNum(),
-			Err:     err,
-		})
-	case fileTypeTable:
-		panic("invalid deletion of object file")
+func (d *DB) maybeScheduleObsoleteTableDeletionLocked() {
+	if len(d.mu.versions.obsoleteTables) > 0 {
+		jobID := d.mu.nextJobID
+		d.mu.nextJobID++
+		d.deleteObsoleteFiles(jobID)
 	}
 }
 

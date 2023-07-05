@@ -227,10 +227,6 @@ type FileMetadata struct {
 	// we'd have to write virtual sstable stats to the version edit.
 	Stats TableStats
 
-	// Deleted is set to true if a VersionEdit gets installed that has deleted
-	// this file. Protected by the manifest lock (see versionSet.logLock()).
-	Deleted bool
-
 	// For L0 files only. Protected by DB.mu. Used to generate L0 sublevels and
 	// pick L0 compactions. Only accurate for the most recent Version.
 	SubLevel         int
@@ -686,6 +682,7 @@ func (m *FileMetadata) DebugString(format base.FormatKey, verbose bool) string {
 	if !verbose {
 		return b.String()
 	}
+	fmt.Fprintf(&b, " seqnums:[%d-%d]", m.SmallestSeqNum, m.LargestSeqNum)
 	if m.HasPointKeys {
 		fmt.Fprintf(&b, " points:[%s-%s]",
 			m.SmallestPointKey.Pretty(format), m.LargestPointKey.Pretty(format))
@@ -701,7 +698,7 @@ func (m *FileMetadata) DebugString(format base.FormatKey, verbose bool) string {
 // representation.
 func ParseFileMetadataDebug(s string) (*FileMetadata, error) {
 	// Split lines of the form:
-	//  000000:[a#0,SET-z#0,SET] points:[...] ranges:[...]
+	//  000000:[a#0,SET-z#0,SET] seqnums:[5-5] points:[...] ranges:[...]
 	fields := strings.FieldsFunc(s, func(c rune) bool {
 		switch c {
 		case ':', '[', '-', ']':
@@ -716,6 +713,19 @@ func ParseFileMetadataDebug(s string) (*FileMetadata, error) {
 	m := &FileMetadata{}
 	for len(fields) > 0 {
 		prefix := fields[0]
+		if prefix == "seqnums" {
+			smallestSeqNum, err := strconv.ParseUint(fields[1], 10, 64)
+			if err != nil {
+				return m, errors.Newf("malformed input: %s: %s", s, err)
+			}
+			largestSeqNum, err := strconv.ParseUint(fields[2], 10, 64)
+			if err != nil {
+				return m, errors.Newf("malformed input: %s: %s", s, err)
+			}
+			m.SmallestSeqNum, m.LargestSeqNum = smallestSeqNum, largestSeqNum
+			fields = fields[3:]
+			continue
+		}
 		smallest := base.ParsePrettyInternalKey(fields[1])
 		largest := base.ParsePrettyInternalKey(fields[2])
 		switch prefix {

@@ -23,7 +23,6 @@ import (
 	"github.com/cockroachdb/pebble/internal/invariants"
 	"github.com/cockroachdb/pebble/internal/manifest"
 	"github.com/cockroachdb/pebble/internal/manual"
-	"github.com/cockroachdb/pebble/internal/rate"
 	"github.com/cockroachdb/pebble/objstorage"
 	"github.com/cockroachdb/pebble/objstorage/objstorageprovider"
 	"github.com/cockroachdb/pebble/record"
@@ -194,6 +193,9 @@ func Open(dirname string, opts *Options) (db *DB, _ error) {
 					t.arenaBuf = nil
 				}
 			}
+			if d.cleanupManager != nil {
+				d.cleanupManager.Close()
+			}
 			if d.objProvider != nil {
 				d.objProvider.Close()
 			}
@@ -209,15 +211,11 @@ func Open(dirname string, opts *Options) (db *DB, _ error) {
 		apply:         d.commitApply,
 		write:         d.commitWrite,
 	})
-	if r := d.opts.TargetByteDeletionRate; r != 0 {
-		d.deletionLimiter = rate.NewLimiter(float64(r), float64(r))
-	}
 	d.mu.nextJobID = 1
 	d.mu.mem.nextSize = opts.MemTableSize
 	if d.mu.mem.nextSize > initialMemTableSize {
 		d.mu.mem.nextSize = initialMemTableSize
 	}
-	d.mu.cleaner.cond.L = &d.mu.Mutex
 	d.mu.compact.cond.L = &d.mu.Mutex
 	d.mu.compact.inProgress = make(map[*compaction]struct{})
 	d.mu.compact.noOngoingFlushStartTime = time.Now()
@@ -305,6 +303,8 @@ func Open(dirname string, opts *Options) (db *DB, _ error) {
 	if err != nil {
 		return nil, err
 	}
+
+	d.cleanupManager = openCleanupManager(opts, d.objProvider, d.onObsoleteTableDelete, d.getDeletionPacerInfo)
 
 	if manifestExists {
 		curVersion := d.mu.versions.currentVersion()
@@ -507,7 +507,7 @@ func Open(dirname string, opts *Options) (db *DB, _ error) {
 
 	if !d.opts.ReadOnly {
 		d.scanObsoleteFiles(ls)
-		d.deleteObsoleteFiles(jobID, true /* waitForOngoing */)
+		d.deleteObsoleteFiles(jobID)
 	} else {
 		// All the log files are obsolete.
 		d.mu.versions.metrics.WAL.Files = int64(len(logFiles))
@@ -680,6 +680,8 @@ func (d *DB) replayWAL(
 		rr              = record.NewReader(file, logNum)
 		offset          int64 // byte offset in rr
 		lastFlushOffset int64
+		keysReplayed    int64 // number of keys replayed
+		batchesReplayed int64 // number of batches replayed
 	)
 
 	if d.opts.ReadOnly {
@@ -772,7 +774,8 @@ func (d *DB) replayWAL(
 		b.SetRepr(buf.Bytes())
 		seqNum := b.SeqNum()
 		maxSeqNum = seqNum + uint64(b.Count())
-
+		keysReplayed += int64(b.Count())
+		batchesReplayed++
 		{
 			br := b.Reader()
 			if kind, encodedFileNum, _, _ := br.Next(); kind == InternalKeyKindIngestSST {
@@ -913,7 +916,10 @@ func (d *DB) replayWAL(
 		}
 		buf.Reset()
 	}
+
+	d.opts.Logger.Infof("[JOB %d] WAL file %s with log number %s stopped reading at offset: %d; replayed %d keys in %d batches", jobID, filename, logNum.String(), offset, keysReplayed, batchesReplayed)
 	flushMem()
+
 	// mem is nil here.
 	if !d.opts.ReadOnly {
 		err = updateVE()
