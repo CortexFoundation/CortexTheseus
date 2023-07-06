@@ -59,8 +59,8 @@ type Monitor struct {
 
 	exitCh        chan any
 	terminated    atomic.Bool
-	lastNumber    uint64
-	startNumber   uint64
+	lastNumber    atomic.Uint64
+	startNumber   atomic.Uint64
 	scope         uint64
 	currentNumber atomic.Uint64
 	wg            sync.WaitGroup
@@ -83,6 +83,8 @@ type Monitor struct {
 	lock sync.RWMutex
 
 	callback chan any
+
+	srv atomic.Int32
 }
 
 // NewMonitor creates a new instance of monitor.
@@ -110,18 +112,20 @@ func New(flag *params.Config, cache, compress, listen bool, callback chan any) (
 		cl:     nil,
 		//fs:     fs,
 		//dl:            tMana,
-		exitCh:     make(chan any),
-		lastNumber: uint64(0),
-		scope:      uint64(math.Min(float64(runtime.NumCPU()), float64(8))),
+		exitCh: make(chan any),
+		scope:  uint64(math.Min(float64(runtime.NumCPU()), float64(8))),
 		//taskCh:        make(chan *types.Block, batch),
 		//start: mclock.Now(),
 	}
-	fs_, err := backend.NewChainDB(flag)
-	if err != nil {
+
+	// TODO https://github.com/ucwong/golang-kv
+	if fs_, err := backend.NewChainDB(flag); err != nil {
 		log.Error("file storage failed", "err", err)
 		return nil, err
+	} else {
+		m.fs = fs_
 	}
-	m.fs = fs_
+	m.lastNumber.Store(0)
 	m.currentNumber.Store(0)
 	m.terminated.Store(false)
 	m.blockCache, _ = lru.New(delay)
@@ -135,6 +139,8 @@ func New(flag *params.Config, cache, compress, listen bool, callback chan any) (
 	//}
 
 	m.mode = flag.Mode
+
+	m.srv.Store(SRV_MODEL)
 
 	/*torrents, _ := fs.initTorrents()
 	if m.mode != params.LAZY {
@@ -211,9 +217,9 @@ func (m *Monitor) indexCheck() error {
 
 		version := m.fs.GetRoot(checkpoint.TfsCheckPoint)
 		if common.BytesToHash(version) != checkpoint.TfsRoot {
-			m.lastNumber = 0
-			m.startNumber = 0
-			if m.lastNumber > checkpoint.TfsCheckPoint {
+			m.lastNumber.Store(0)
+			m.startNumber.Store(0)
+			if m.lastNumber.Load() > checkpoint.TfsCheckPoint {
 				//m.fs.LastListenBlockNumber = 0
 				m.fs.Anchor(0)
 				//m.lastNumber = 0
@@ -221,7 +227,7 @@ func (m *Monitor) indexCheck() error {
 				//	return err
 				//}
 			}
-			log.Warn("Fs storage is reloading ...", "name", m.ckp.Name, "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot, "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs(), "lastNumber", m.lastNumber, "last in db", m.fs.LastListenBlockNumber())
+			log.Warn("Fs storage is reloading ...", "name", m.ckp.Name, "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "checkpoint", checkpoint.TfsRoot, "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs(), "lastNumber", m.lastNumber.Load(), "last", m.fs.LastListenBlockNumber())
 		} else {
 			log.Info("Fs storage version check passed", "name", m.ckp.Name, "number", checkpoint.TfsCheckPoint, "version", common.BytesToHash(version), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs())
 		}
@@ -290,7 +296,6 @@ func (m *Monitor) indexInit() error {
 
 // SetConnection method builds connection to remote or local communicator.
 func (m *Monitor) buildConnection(ipcpath string, rpcuri string) (*rpc.Client, error) {
-
 	log.Debug("Building connection", "terminated", m.terminated.Load())
 
 	if len(ipcpath) > 0 {
@@ -311,7 +316,7 @@ func (m *Monitor) buildConnection(ipcpath string, rpcuri string) (*rpc.Client, e
 			}
 		}
 	} else {
-		log.Warn("IPC is empty")
+		log.Warn("IPC is empty, try remote RPC instead")
 	}
 
 	cl, err := rpc.Dial(rpcuri)
@@ -574,9 +579,9 @@ func (m *Monitor) run() error {
 	}
 	m.cl = rpcClient
 
-	m.lastNumber = m.fs.LastListenBlockNumber()
+	m.lastNumber.Store(m.fs.LastListenBlockNumber())
 	m.currentBlock()
-	m.startNumber = uint64(math.Min(float64(m.fs.LastListenBlockNumber()), float64(m.currentNumber.Load()))) // ? m.currentNumber:m.fs.LastListenBlockNumber
+	m.startNumber.Store(uint64(math.Min(float64(m.fs.LastListenBlockNumber()), float64(m.currentNumber.Load())))) // ? m.currentNumber:m.fs.LastListenBlockNumber
 
 	if err := m.indexCheck(); err != nil {
 		return err
@@ -644,9 +649,9 @@ func (m *Monitor) syncLatestBlock() {
 						m.fs.Flush()
 						//go m.exit()
 						elapsed := time.Duration(mclock.Now()) - time.Duration(m.start)
-						log.Info("Finish sync, listener will be paused", "current", m.currentNumber.Load(), "elapsed", common.PrettyDuration(elapsed), "progress", progress, "end", end, "last", m.lastNumber)
+						log.Info("Finish sync, listener will be paused", "current", m.currentNumber.Load(), "elapsed", common.PrettyDuration(elapsed), "progress", progress, "end", end, "last", m.lastNumber.Load())
 						//return
-						timer.Reset(time.Millisecond * 1000 * 180)
+						timer.Reset(time.Millisecond * 1000 * 60)
 						end = false
 						continue
 					}
@@ -655,7 +660,7 @@ func (m *Monitor) syncLatestBlock() {
 			}
 			counter++
 			if counter%10 == 0 {
-				log.Info("Monitor status", "blocks", progress, "current", m.CurrentNumber(), "latest", m.lastNumber, "end", end, "txs", m.fs.Txs(), "ckp", m.fs.CheckPoint(), "last", m.fs.LastListenBlockNumber())
+				log.Info("Monitor status", "blocks", progress, "current", m.CurrentNumber(), "latest", m.lastNumber.Load(), "end", end, "txs", m.fs.Txs(), "ckp", m.fs.CheckPoint(), "last", m.fs.LastListenBlockNumber())
 				counter = 0
 			}
 			m.fs.Flush()
@@ -682,6 +687,10 @@ func (m *Monitor) currentBlock() (uint64, error) {
 }
 
 func (m *Monitor) skip(i uint64) bool {
+	if m.srv.Load() != SRV_MODEL {
+		return false
+	}
+
 	if len(m.ckp.Skips) == 0 || i > m.ckp.Skips[len(m.ckp.Skips)-1].To || i < m.ckp.Skips[0].From {
 		return false
 	}
@@ -701,25 +710,25 @@ func (m *Monitor) syncLastBlock() uint64 {
 		return 0
 	}
 
-	if currentNumber < m.lastNumber {
-		log.Warn("Fs sync rollback", "current", currentNumber, "last", m.lastNumber, "offset", m.lastNumber-currentNumber)
+	if currentNumber < m.lastNumber.Load() {
+		log.Warn("Fs sync rollback", "current", currentNumber, "last", m.lastNumber.Load(), "offset", m.lastNumber.Load()-currentNumber)
 		if currentNumber > 65536 {
-			m.lastNumber = currentNumber - 65536
+			m.lastNumber.Store(currentNumber - 65536)
 		} else {
-			m.lastNumber = 0
+			m.lastNumber.Store(0)
 		}
-		m.startNumber = m.lastNumber
+		m.startNumber.Store(m.lastNumber.Load())
 	}
 
-	minNumber := m.lastNumber + 1
+	minNumber := m.lastNumber.Load() + 1
 	maxNumber := uint64(0)
 	if currentNumber > delay {
 		maxNumber = currentNumber - delay
 	}
 
-	if m.lastNumber > currentNumber {
-		if m.lastNumber > batch {
-			minNumber = m.lastNumber - batch
+	if m.lastNumber.Load() > currentNumber {
+		if m.lastNumber.Load() > batch {
+			minNumber = m.lastNumber.Load() - batch
 		}
 	}
 
@@ -750,12 +759,14 @@ func (m *Monitor) syncLastBlock() uint64 {
 			blocks, rpcErr := m.rpcBatchBlockByNumber(i, i+m.scope)
 			if rpcErr != nil {
 				log.Error("Sync old block failed", "number", i, "error", rpcErr)
-				m.lastNumber = i - 1
+				m.lastNumber.Store(i - 1)
 				return 0
 			}
+
+			// batch blocks operation according service category
 			for _, rpcBlock := range blocks {
 				if err := m.solve(rpcBlock); err != nil {
-					m.lastNumber = i - 1
+					m.lastNumber.Store(i - 1)
 					return 0
 				}
 				i++
@@ -777,11 +788,11 @@ func (m *Monitor) syncLastBlock() uint64 {
 			rpcBlock, rpcErr := m.rpcBlockByNumber(i)
 			if rpcErr != nil {
 				log.Error("Sync old block failed", "number", i, "error", rpcErr)
-				m.lastNumber = i - 1
+				m.lastNumber.Store(i - 1)
 				return 0
 			}
 			if err := m.solve(rpcBlock); err != nil {
-				m.lastNumber = i - 1
+				m.lastNumber.Store(i - 1)
 				return 0
 			}
 			i++
@@ -799,21 +810,62 @@ func (m *Monitor) syncLastBlock() uint64 {
 			}*/
 		}
 	}
-	m.lastNumber = maxNumber
+	m.lastNumber.Store(maxNumber)
 	//if maxNumber-minNumber > batch-1 {
 	if maxNumber-minNumber > delay {
 		elapsedA := time.Duration(mclock.Now()) - time.Duration(m.start)
-		log.Debug("Chain segment frozen", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(m.CurrentNumber()), "progress", float64(maxNumber)/float64(m.CurrentNumber()), "last", m.lastNumber, "bps", float64(maxNumber)*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA))
+		log.Debug("Chain segment frozen", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(m.CurrentNumber()), "progress", float64(maxNumber)/float64(m.CurrentNumber()), "last", m.lastNumber.Load(), "bps", float64(maxNumber)*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA))
 	}
 	return uint64(maxNumber - minNumber)
 }
 
+// solve block from node
 func (m *Monitor) solve(block *types.Block) error {
+	switch m.srv.Load() {
+	case SRV_MODEL:
+		return m.forModelService(block)
+	//case 1:
+	//	return m.forExplorerService(block) // others service, explorer, exchange, zkp, nft, etc.
+	//case 2:
+	//	return m.forExchangeService(block)
+	case SRV_PRINT:
+		return m.forPrintService(block)
+	default:
+		return errors.New("no block operation service found")
+	}
+}
+
+func (m *Monitor) SwitchService(srv int) error {
+	m.srv.Store(int32(srv))
+	return nil
+}
+
+// only for examples
+func (m *Monitor) forExplorerService(block *types.Block) error {
+	return errors.New("not support")
+}
+
+func (m *Monitor) forExchangeService(block *types.Block) error {
+	return errors.New("not support")
+}
+
+func (m *Monitor) forPrintService(block *types.Block) error {
+	log.Info("Block print", "num", block.Number, "hash", block.Hash, "txs", len(block.Txs))
+	if len(block.Txs) > 0 {
+		for _, t := range block.Txs {
+			log.Info("Tx print", "hash", t.Hash, "amount", t.Amount, "gas", t.GasLimit, "receipt", t.Recipient, "payload", t.Payload)
+		}
+	}
+	m.fs.Anchor(block.Number)
+	return nil
+}
+
+func (m *Monitor) forModelService(block *types.Block) error {
 	i := block.Number
 	if i%65536 == 0 {
 		defer func() {
 			elapsedA := time.Duration(mclock.Now()) - time.Duration(m.start)
-			log.Info("Nas monitor", "start", m.startNumber, "max", uint64(m.CurrentNumber()), "last", m.lastNumber, "cur", i, "bps", math.Abs(float64(i)-float64(m.startNumber))*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA), "scope", m.scope, "db", common.PrettyDuration(m.fs.Metrics()), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "root", m.fs.Root())
+			log.Info("Nas monitor", "start", m.startNumber.Load(), "max", uint64(m.CurrentNumber()), "last", m.lastNumber.Load(), "cur", i, "bps", math.Abs(float64(i)-float64(m.startNumber.Load()))*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA), "scope", m.scope, "db", common.PrettyDuration(m.fs.Metrics()), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "root", m.fs.Root())
 			m.fs.SkipPrint()
 		}()
 	}
@@ -836,7 +888,6 @@ func (m *Monitor) solve(block *types.Block) error {
 			log.Debug("Seal fs record", "number", i, "record", record, "root", m.fs.Root().Hex(), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "ckp", m.fs.CheckPoint())
 		} else {
 			if m.fs.LastListenBlockNumber() < i {
-				//m.fs.LastListenBlockNumber = i
 				m.fs.Anchor(i)
 			}
 

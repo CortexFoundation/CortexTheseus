@@ -26,6 +26,7 @@ import (
 	"github.com/CortexFoundation/torrentfs/types"
 	"strings"
 	"sync"
+	"sync/atomic"
 	//lru "github.com/hashicorp/golang-lru"
 	"fmt"
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -52,13 +53,13 @@ type ChainDB struct {
 	filesContractAddr map[common.Address]*types.FileInfo
 	files             []*types.FileInfo //only storage init files from local storage
 	blocks            []*types.Block    //only storage init ckp blocks from local storage
-	txs               uint64
+	txs               atomic.Uint64
 	db                *bolt.DB
 	version           string
 
-	id                    uint64
-	checkPoint            uint64
-	lastListenBlockNumber uint64
+	id                    atomic.Uint64
+	checkPoint            atomic.Uint64
+	lastListenBlockNumber atomic.Uint64
 	leaves                []merkletree.Content
 	tree                  *merkletree.MerkleTree
 	dataDir               string
@@ -128,7 +129,7 @@ func NewChainDB(config *params.Config) (*ChainDB, error) {
 
 	//fs.history()
 
-	log.Info("Storage ID generated", "id", fs.id, "version", fs.version)
+	log.Info("Storage ID generated", "id", fs.id.Load(), "version", fs.version)
 
 	return fs, nil
 }
@@ -175,13 +176,13 @@ func (fs *ChainDB) Leaves() []merkletree.Content {
 }
 
 func (fs *ChainDB) Txs() uint64 {
-	return fs.txs
+	return fs.txs.Load()
 }
 
 func (fs *ChainDB) Reset() error {
 	fs.blocks = nil
-	fs.checkPoint = 0
-	fs.lastListenBlockNumber = 0
+	fs.checkPoint.Store(0)
+	fs.lastListenBlockNumber.Store(0)
 	if err := fs.initMerkleTree(); err != nil {
 		return errors.New("err storage reset")
 	}
@@ -212,7 +213,7 @@ func (fs *ChainDB) initMerkleTree() error {
 		}
 	}
 
-	log.Info("Storage merkletree initialization", "root", hexutil.Encode(fs.tree.MerkleRoot()), "number", fs.lastListenBlockNumber, "checkpoint", fs.checkPoint, "version", fs.version, "len", len(fs.blocks))
+	log.Info("Storage merkletree initialization", "root", hexutil.Encode(fs.tree.MerkleRoot()), "number", fs.lastListenBlockNumber.Load(), "checkpoint", fs.checkPoint.Load(), "version", fs.version, "len", len(fs.blocks))
 
 	return nil
 }
@@ -236,14 +237,14 @@ func (fs *ChainDB) addLeaf(block *types.Block, mes bool, dup bool) error {
 			fs.leaves = append(fs.leaves, leaf)
 		}
 	} else {
-		log.Debug("Node is already in the tree", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.checkPoint, "mes", mes, "dup", dup, "err", e)
+		log.Debug("Node is already in the tree", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.checkPoint.Load(), "mes", mes, "dup", dup, "err", e)
 		if !mes {
 			return nil
 		}
 	}
 
 	if mes {
-		log.Debug("Messing", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.checkPoint, "mes", mes, "dup", dup)
+		log.Debug("Messing", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.checkPoint.Load(), "mes", mes, "dup", dup)
 		sort.Slice(fs.leaves, func(i, j int) bool {
 			return fs.leaves[i].(merkletree.BlockContent).N() < fs.leaves[j].(merkletree.BlockContent).N()
 		})
@@ -254,7 +255,7 @@ func (fs *ChainDB) addLeaf(block *types.Block, mes bool, dup bool) error {
 			i = len(fs.leaves)
 		}
 
-		log.Warn("Messing solved", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.checkPoint, "mes", mes, "dup", dup, "i", i)
+		log.Warn("Messing solved", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.checkPoint.Load(), "mes", mes, "dup", dup, "i", i)
 
 		if err := fs.tree.RebuildTreeWith(fs.leaves[0:i]); err != nil {
 			return err
@@ -267,8 +268,8 @@ func (fs *ChainDB) addLeaf(block *types.Block, mes bool, dup bool) error {
 
 		// TODO
 
-		if number > fs.checkPoint {
-			fs.checkPoint = number
+		if number > fs.checkPoint.Load() {
+			fs.checkPoint.Store(number)
 		}
 	}
 
@@ -326,7 +327,7 @@ func (fs *ChainDB) GetFileByAddr(addr common.Address) *types.FileInfo {
 
 func (fs *ChainDB) Close() error {
 	defer fs.db.Close()
-	log.Info("File DB Closed", "database", fs.db.Path(), "last", fs.lastListenBlockNumber)
+	log.Info("File DB Closed", "database", fs.db.Path(), "last", fs.lastListenBlockNumber.Load())
 	return fs.Flush()
 }
 
@@ -473,9 +474,9 @@ func (fs *ChainDB) AddBlock(b *types.Block) error {
 		return buk.Put(k, v)
 	}); err == nil {
 		fs.blocks = append(fs.blocks, b)
-		fs.txs += uint64(len(b.Txs))
+		fs.txs.Add(uint64(len(b.Txs)))
 		mes := false
-		if b.Number < fs.checkPoint {
+		if b.Number < fs.checkPoint.Load() {
 			mes = true
 		}
 
@@ -483,8 +484,8 @@ func (fs *ChainDB) AddBlock(b *types.Block) error {
 	} else {
 		return err
 	}
-	if b.Number > fs.lastListenBlockNumber {
-		fs.lastListenBlockNumber = b.Number
+	if b.Number > fs.lastListenBlockNumber.Load() {
+		fs.lastListenBlockNumber.Store(b.Number)
 		if err := fs.Flush(); err != nil {
 			return err
 		}
@@ -511,12 +512,12 @@ func (fs *ChainDB) initBlocks() error {
 					return err
 				}
 				fs.blocks = append(fs.blocks, &x)
-				fs.txs += uint64(len(x.Txs))
+				fs.txs.Add(uint64(len(x.Txs)))
 			}
 			sort.Slice(fs.blocks, func(i, j int) bool {
 				return fs.blocks[i].Number < fs.blocks[j].Number
 			})
-			log.Info("Fs blocks initializing ... ...", "blocks", len(fs.blocks), "txs", fs.txs)
+			log.Info("Fs blocks initializing ... ...", "blocks", len(fs.blocks), "txs", fs.txs.Load())
 			return nil
 		}
 	})
@@ -571,7 +572,7 @@ func (fs *ChainDB) initFiles() error {
 }
 
 func (fs *ChainDB) ID() uint64 {
-	return fs.id
+	return fs.id.Load()
 }
 
 func (fs *ChainDB) initID() error {
@@ -591,10 +592,10 @@ func (fs *ChainDB) initID() error {
 		if err != nil {
 			return err
 		}
-		fs.id = number
+		fs.id.Store(number)
 
 		return nil
-	}); fs.id > 0 && err == nil {
+	}); fs.id.Load() > 0 && err == nil {
 		return nil
 	}
 
@@ -609,7 +610,7 @@ func (fs *ChainDB) initID() error {
 		}
 		id := binary.LittleEndian.Uint64([]byte(uid[:]))
 		e := buk.Put([]byte("key"), []byte(strconv.FormatUint(id, 16)))
-		fs.id = id //binary.LittleEndian.Uint64([]byte(id[:]))//uint64(id[:])
+		fs.id.Store(id) //binary.LittleEndian.Uint64([]byte(id[:]))//uint64(id[:])
 
 		return e
 	})
@@ -660,7 +661,7 @@ func (fs *ChainDB) initBlockNumber() error {
 			return err
 		}
 
-		fs.lastListenBlockNumber = number
+		fs.lastListenBlockNumber.Store(number)
 		log.Info("Start from block number (default:0)", "num", number)
 
 		return nil
@@ -727,8 +728,8 @@ func (fs *ChainDB) Flush() error {
 		if err != nil {
 			return err
 		}
-		log.Trace("Write block number", "num", fs.lastListenBlockNumber)
-		e := buk.Put([]byte("key"), []byte(strconv.FormatUint(fs.lastListenBlockNumber, 16)))
+		log.Trace("Write block number", "num", fs.lastListenBlockNumber.Load())
+		e := buk.Put([]byte("key"), []byte(strconv.FormatUint(fs.lastListenBlockNumber.Load(), 16)))
 
 		return e
 	})
@@ -751,8 +752,8 @@ func (fs *ChainDB) SkipPrint() {
 		//fmt.Println(b.Number, ":true,")
 	}
 
-	if fs.lastListenBlockNumber-from > 1000 {
-		str = str + "{From:" + strconv.FormatUint(from, 10) + ",To:" + strconv.FormatUint(fs.lastListenBlockNumber, 10) + "},"
+	if fs.lastListenBlockNumber.Load()-from > 1000 {
+		str = str + "{From:" + strconv.FormatUint(from, 10) + ",To:" + strconv.FormatUint(fs.lastListenBlockNumber.Load(), 10) + "},"
 	}
 
 	//log.Info("Skip chart", "skips", str)
@@ -865,13 +866,13 @@ func (fs *ChainDB) InitTorrents() (map[string]uint64, error) {
 }
 
 func (fs *ChainDB) CheckPoint() uint64 {
-	return fs.checkPoint
+	return fs.checkPoint.Load()
 }
 
 func (fs *ChainDB) LastListenBlockNumber() uint64 {
-	return fs.lastListenBlockNumber
+	return fs.lastListenBlockNumber.Load()
 }
 
 func (fs *ChainDB) Anchor(n uint64) {
-	fs.lastListenBlockNumber = n
+	fs.lastListenBlockNumber.Store(n)
 }
