@@ -87,7 +87,7 @@ type receiptRLP struct {
 type storedReceiptRLP struct {
 	PostStateOrStatus []byte
 	CumulativeGasUsed uint64
-	Logs              []*LogForStorage
+	Logs              []*Log
 }
 
 // v4StoredReceiptRLP is the storage encoding of a receipt used in database version 4.
