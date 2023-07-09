@@ -17,6 +17,6 @@
 package robot
 
 const (
-	SRV_MODEL = 0
-	SRV_PRINT = 99
+	SRV_MODEL  = 0
+	SRV_RECORD = 99
 )
