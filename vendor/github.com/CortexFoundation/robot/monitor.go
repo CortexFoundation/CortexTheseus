@@ -1,4 +1,4 @@
-// Copyright 2020 The CortexTheseus Authors
+// Copyright 2023 The CortexTheseus Authors
 // This file is part of the CortexTheseus library.
 //
 // The CortexTheseus library is free software: you can redistribute it and/or modify
@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
-package monitor
+package robot
 
 import (
 	//"context"
@@ -25,7 +25,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
-	"github.com/CortexFoundation/torrentfs/backend"
+	"github.com/CortexFoundation/robot/backend"
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
 	lru "github.com/hashicorp/golang-lru"
@@ -90,7 +90,7 @@ type Monitor struct {
 // get higher communicating performance.
 // IpcPath is unavailable on windows.
 // func New(flag *params.Config, cache, compress, listen bool, fs *backend.ChainDB, tMana *backend.TorrentManager, callback chan any) (*Monitor, error) {
-func New(flag *params.Config, cache, compress, listen bool, fs *backend.ChainDB, callback chan any) (m *Monitor, err error) {
+func New(flag *params.Config, cache, compress, listen bool, callback chan any) (m *Monitor, err error) {
 	/*fs, fsErr := NewChainDB(flag)
 	if fsErr != nil {
 		log.Error("file storage failed", "err", fsErr)
@@ -108,7 +108,7 @@ func New(flag *params.Config, cache, compress, listen bool, fs *backend.ChainDB,
 	m = &Monitor{
 		config: flag,
 		cl:     nil,
-		fs:     fs,
+		//fs:     fs,
 		//dl:            tMana,
 		exitCh:     make(chan any),
 		lastNumber: uint64(0),
@@ -116,6 +116,12 @@ func New(flag *params.Config, cache, compress, listen bool, fs *backend.ChainDB,
 		//taskCh:        make(chan *types.Block, batch),
 		//start: mclock.Now(),
 	}
+	fs_, err := backend.NewChainDB(flag)
+	if err != nil {
+		log.Error("file storage failed", "err", err)
+		return nil, err
+	}
+	m.fs = fs_
 	m.currentNumber.Store(0)
 	m.terminated.Store(false)
 	m.blockCache, _ = lru.New(delay)
@@ -155,6 +161,18 @@ func (m *Monitor) CurrentNumber() uint64 {
 	return m.currentNumber.Load()
 }
 
+func (m *Monitor) ID() uint64 {
+	return m.fs.ID()
+}
+
+func (m *Monitor) DB() *backend.ChainDB {
+	return m.fs
+}
+
+func (m *Monitor) Callback() chan any {
+	return m.callback
+}
+
 func (m *Monitor) loadHistory() error {
 	torrents, _ := m.fs.InitTorrents()
 	if m.mode != params.LAZY {
@@ -174,7 +192,7 @@ func (m *Monitor) loadHistory() error {
 }
 
 func (m *Monitor) download(k string, v uint64) {
-	if m.mode != params.LAZY {
+	if m.mode != params.LAZY && m.callback != nil {
 		task := types.NewBitsFlow(k, v)
 		m.callback <- task
 	}
@@ -293,7 +311,7 @@ func (m *Monitor) buildConnection(ipcpath string, rpcuri string) (*rpc.Client, e
 			}
 		}
 	} else {
-		log.Warn("IPC is emptyl")
+		log.Warn("IPC is empty")
 	}
 
 	cl, err := rpc.Dial(rpcuri)
@@ -510,9 +528,9 @@ func (m *Monitor) Stop() {
 	//	log.Error("Monitor Fs Manager closed", "error", err)
 	//}
 
-	//if err := m.fs.Close(); err != nil {
-	//	log.Error("Monitor File Storage closed", "error", err)
-	//}
+	if err := m.fs.Close(); err != nil {
+		log.Error("Monitor File Storage closed", "error", err)
+	}
 	log.Info("Fs listener synchronizing closed")
 	//})
 }
@@ -528,6 +546,7 @@ func (m *Monitor) Start() error {
 		m.wg.Add(1)
 		go func() {
 			defer m.wg.Done()
+			m.fs.Init()
 			if err := m.run(); err != nil {
 				log.Error("Fs monitor start failed", "err", err)
 			}
@@ -636,7 +655,7 @@ func (m *Monitor) syncLatestBlock() {
 			}
 			counter++
 			if counter%10 == 0 {
-				log.Info(backend.ProgressBar(int64(m.lastNumber), int64(m.CurrentNumber()), ""), "blocks", progress, "current", m.CurrentNumber(), "latest", m.lastNumber, "end", end, "txs", m.fs.Txs(), "ckp", m.fs.CheckPoint(), "last", m.fs.LastListenBlockNumber())
+				log.Info("Monitor status", "blocks", progress, "current", m.CurrentNumber(), "latest", m.lastNumber, "end", end, "txs", m.fs.Txs(), "ckp", m.fs.CheckPoint(), "last", m.fs.LastListenBlockNumber())
 				counter = 0
 			}
 			m.fs.Flush()
@@ -794,7 +813,7 @@ func (m *Monitor) solve(block *types.Block) error {
 	if i%65536 == 0 {
 		defer func() {
 			elapsedA := time.Duration(mclock.Now()) - time.Duration(m.start)
-			log.Info(backend.ProgressBar(int64(i), int64(m.CurrentNumber()), "Nas monitor"), "start", m.startNumber, "max", uint64(m.CurrentNumber()), "last", m.lastNumber, "cur", i, "bps", math.Abs(float64(i)-float64(m.startNumber))*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA), "scope", m.scope, "db", common.PrettyDuration(m.fs.Metrics()), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "root", m.fs.Root())
+			log.Info("Nas monitor", "start", m.startNumber, "max", uint64(m.CurrentNumber()), "last", m.lastNumber, "cur", i, "bps", math.Abs(float64(i)-float64(m.startNumber))*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA), "scope", m.scope, "db", common.PrettyDuration(m.fs.Metrics()), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "root", m.fs.Root())
 			m.fs.SkipPrint()
 		}()
 	}

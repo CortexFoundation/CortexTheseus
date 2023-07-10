@@ -133,9 +133,9 @@ func (peer *Peer) update() {
 func (peer *Peer) state() error {
 	state := PeerInfo{
 		Listen: uint64(peer.host.LocalPort()),
-		Root:   peer.host.chain().Root(),
+		Root:   peer.host.monitor.DB().Root(),
 		Files:  uint64(peer.host.Congress()),
-		Leafs:  uint64(len(peer.host.chain().Blocks())),
+		Leafs:  uint64(len(peer.host.monitor.DB().Blocks())),
 	}
 	if err := p2p.Send(peer.ws, params.StatusCode, &state); err != nil {
 		return err
@@ -216,9 +216,9 @@ func (peer *Peer) handshake() error {
 		log.Debug("Nas send items", "status", params.StatusCode, "version", params.ProtocolVersion)
 		info := PeerInfo{
 			Listen: uint64(peer.host.LocalPort()),
-			Root:   peer.host.chain().Root(),
+			Root:   peer.host.monitor.DB().Root(),
 			Files:  uint64(peer.host.Congress()),
-			Leafs:  uint64(len(peer.host.chain().Blocks())),
+			Leafs:  uint64(len(peer.host.monitor.DB().Blocks())),
 		}
 		select {
 		case errc <- p2p.SendItems(peer.ws, params.StatusCode, params.ProtocolVersion, &info):
