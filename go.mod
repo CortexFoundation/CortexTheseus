@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.51
+	github.com/CortexFoundation/torrentfs v1.0.52-0.20230709094201-d96076f01bdc
 	github.com/VictoriaMetrics/fastcache v1.12.1
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.17.7
@@ -17,7 +17,7 @@ require (
 	github.com/cespare/cp v1.1.1
 	github.com/charmbracelet/bubbletea v0.23.2
 	github.com/cloudflare/cloudflare-go v0.57.1
-	github.com/cockroachdb/pebble v0.0.0-20230701135918-609ae80aea41
+	github.com/cockroachdb/pebble v0.0.0-20230707214756-fa85ec45a815
 	github.com/consensys/gnark-crypto v0.10.0
 	github.com/crate-crypto/go-kzg-4844 v0.3.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
@@ -62,14 +62,14 @@ require (
 	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d
 	github.com/ucwong/color v1.10.1-0.20200624105241-fba1e010fe1e
 	github.com/urfave/cli/v2 v2.25.7
-	golang.org/x/crypto v0.10.0
+	golang.org/x/crypto v0.11.0
 	golang.org/x/exp v0.0.0-20230626212559-97b1e661b5df
 	golang.org/x/mobile v0.0.0-20201217150744-e6ae53a27f4f
 	golang.org/x/sync v0.3.0
 	golang.org/x/sys v0.10.0
 	golang.org/x/text v0.11.0
 	golang.org/x/time v0.3.0
-	golang.org/x/tools v0.10.0
+	golang.org/x/tools v0.11.0
 	google.golang.org/protobuf v1.31.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
@@ -82,7 +82,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.2.0 // indirect
 	github.com/CortexFoundation/cvm-runtime v0.0.0-20221117094012-b5a251885572 // indirect
 	github.com/CortexFoundation/merkletree v0.0.0-20230401054716-73abfa6f740b // indirect
-	github.com/CortexFoundation/robot v0.0.0-20230705130529-6c0840a9a325 // indirect
+	github.com/CortexFoundation/robot v1.0.2-0.20230709093805-dc9ac0275184 // indirect
 	github.com/DataDog/zstd v1.5.6-0.20230622172052-ea68dcab66c0 // indirect
 	github.com/RoaringBitmap/roaring v1.3.0 // indirect
 	github.com/ajwerner/btree v0.0.0-20211221152037-f427b3e689c0 // indirect
@@ -179,7 +179,7 @@ require (
 	github.com/otiai10/copy v1.12.0 // indirect
 	github.com/pion/datachannel v1.5.5 // indirect
 	github.com/pion/dtls/v2 v2.2.7 // indirect
-	github.com/pion/ice/v2 v2.3.8 // indirect
+	github.com/pion/ice/v2 v2.3.9 // indirect
 	github.com/pion/interceptor v0.1.17 // indirect
 	github.com/pion/logging v0.2.2 // indirect
 	github.com/pion/mdns v0.0.7 // indirect
@@ -229,8 +229,8 @@ require (
 	go.opentelemetry.io/otel/metric v1.16.0 // indirect
 	go.opentelemetry.io/otel/trace v1.16.0 // indirect
 	golang.org/x/mod v0.12.0 // indirect
-	golang.org/x/net v0.11.0 // indirect
-	golang.org/x/term v0.9.0 // indirect
+	golang.org/x/net v0.12.0 // indirect
+	golang.org/x/term v0.10.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gotest.tools/v3 v3.3.0 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
