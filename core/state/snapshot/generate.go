@@ -26,20 +26,12 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
-	"github.com/CortexFoundation/CortexTheseus/crypto"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/trie"
 	"github.com/VictoriaMetrics/fastcache"
-)
-
-var (
-	// emptyRoot is the known root hash of an empty trie.
-	emptyRoot = common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
-
-	// emptyCode is the known hash of the empty CVM bytecode.
-	emptyCode = crypto.Keccak256Hash(nil)
 )
 
 // generatorStats is a collection of statistics gathered by the snapshot generator
@@ -246,7 +238,7 @@ func (dl *diskLayer) generate(stats *generatorStats) {
 			}
 		}
 		// If the account is in-progress, continue where we left off (otherwise iterate all)
-		if acc.Root != emptyRoot {
+		if acc.Root != types.EmptyRootHash {
 			storeTrie, err := trie.NewSecure(acc.Root, dl.triedb)
 			if err != nil {
 				log.Error("Generator failed to access storage trie", "root", dl.root, "hash", common.BytesToHash(accIt.Key), "root", acc.Root, "err", err)

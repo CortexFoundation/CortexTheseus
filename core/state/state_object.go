@@ -67,7 +67,8 @@ func (s Storage) Copy() Storage {
 // Finally, call CommitTrie to write the modified storage trie into a database.
 type stateObject struct {
 	address  common.Address
-	addrHash common.Hash // hash of cortex address of the account
+	addrHash common.Hash         // hash of cortex address of the account
+	origin   *types.StateAccount // Account original data without any change applied, nil means it was not existent
 	data     types.StateAccount
 	db       *StateDB
 
@@ -100,30 +101,18 @@ func (s *stateObject) empty() bool {
 }
 
 // newObject creates a state object.
-func newObject(db *StateDB, address common.Address, data types.StateAccount) *stateObject {
-	if data.Balance == nil {
-		data.Balance = new(big.Int)
-	}
-	if data.Upload == nil {
-		data.Upload = new(big.Int)
-	}
-
-	if data.Num == nil {
-		data.Num = new(big.Int)
-	}
-	if data.CodeHash == nil {
-		data.CodeHash = emptyCodeHash
-	}
-
-	if data.Root == (common.Hash{}) {
-		data.Root = emptyRoot
+func newObject(db *StateDB, address common.Address, acct *types.StateAccount) *stateObject {
+	origin := acct
+	if acct == nil {
+		acct = types.NewEmptyStateAccount()
 	}
 
 	return &stateObject{
 		db:             db,
 		address:        address,
 		addrHash:       crypto.Keccak256Hash(address[:]),
-		data:           data,
+		origin:         origin,
+		data:           *acct,
 		originStorage:  make(Storage),
 		pendingStorage: make(Storage),
 		dirtyStorage:   make(Storage),
@@ -296,10 +285,13 @@ func (s *stateObject) updateTrie(db Database) Trie {
 		defer func(start time.Time) { s.db.StorageUpdates += time.Since(start) }(time.Now())
 	}
 	// The snapshot storage map for the object
-	var storage map[common.Hash][]byte
+	var (
+		storage map[common.Hash][]byte
+		origin  map[common.Hash][]byte
+		hasher  = s.db.hasher
+	)
 	// Insert all the pending updates into the trie
 	tr := s.getTrie(db)
-	hasher := s.db.hasher
 
 	usedStorage := make([][]byte, 0, len(s.pendingStorage))
 	for key, value := range s.pendingStorage {
@@ -307,6 +299,7 @@ func (s *stateObject) updateTrie(db Database) Trie {
 		if value == s.originStorage[key] {
 			continue
 		}
+		prev := s.originStorage[key]
 		s.originStorage[key] = value
 
 		var v []byte
@@ -318,17 +311,34 @@ func (s *stateObject) updateTrie(db Database) Trie {
 			v, _ = rlp.EncodeToBytes(common.TrimLeftZeroes(value[:]))
 			s.setError(tr.TryUpdate(key[:], v))
 		}
-		// If state snapshotting is active, cache the data til commit
-		if s.db.snap != nil {
-			if storage == nil {
-				// Retrieve the old storage map, if available, create a new one otherwise
-				if storage = s.db.snapStorage[s.addrHash]; storage == nil {
-					storage = make(map[common.Hash][]byte)
-					s.db.snapStorage[s.addrHash] = storage
-				}
+		// Cache the mutated storage slots until commit
+		if storage == nil {
+			if storage = s.db.storages[s.addrHash]; storage == nil {
+				storage = make(map[common.Hash][]byte)
+				s.db.storages[s.addrHash] = storage
 			}
-			storage[crypto.HashData(hasher, key[:])] = v // v will be nil if value is 0x00
 		}
+		khash := crypto.HashData(hasher, key[:])
+		storage[khash] = v // snapshotVal will be nil if it's deleted
+
+		// Cache the original value of mutated storage slots
+		if origin == nil {
+			if origin = s.db.storagesOrigin[s.addrHash]; origin == nil {
+				origin = make(map[common.Hash][]byte)
+				s.db.storagesOrigin[s.addrHash] = origin
+			}
+		}
+		// Track the original value of slot only if it's mutated first time
+		if _, ok := origin[khash]; !ok {
+			if prev == (common.Hash{}) {
+				origin[khash] = nil // nil if it was not present previously
+			} else {
+				// Encoding []byte cannot fail, ok to ignore the error.
+				b, _ := rlp.EncodeToBytes(common.TrimLeftZeroes(prev[:]))
+				origin[khash] = b
+			}
+		}
+		// Cache the items for preloading
 		usedStorage = append(usedStorage, common.CopyBytes(key[:])) // Copy needed for closure
 	}
 	if s.db.prefetcher != nil {
@@ -349,10 +359,11 @@ func (s *stateObject) updateRoot(db Database) {
 	s.data.Root = s.trie.Hash()
 }
 
-// CommitTrie the storage trie of the object to db.
+// commit the storage trie of the object to db.
 // This updates the trie root.
-func (s *stateObject) CommitTrie(db Database) error {
+func (s *stateObject) commit(db Database) error {
 	if s.updateTrie(db) == nil {
+		s.origin = s.data.Copy()
 		return nil
 	}
 	if s.dbErr != nil {
@@ -361,6 +372,8 @@ func (s *stateObject) CommitTrie(db Database) error {
 	root, err := s.trie.Commit(nil)
 	if err == nil {
 		s.data.Root = root
+		// Update original account data after commit
+		s.origin = s.data.Copy()
 	}
 	return err
 }
@@ -452,18 +465,24 @@ func (s *stateObject) setUpload(amount *big.Int) {
 func (s *stateObject) ReturnGas(gas *big.Int) {}
 
 func (s *stateObject) deepCopy(db *StateDB) *stateObject {
-	stateObject := newObject(db, s.address, s.data)
-	if s.trie != nil {
-		stateObject.trie = db.db.CopyTrie(s.trie)
+	obj := &stateObject{
+		db:       db,
+		address:  s.address,
+		addrHash: s.addrHash,
+		origin:   s.origin,
+		data:     s.data,
 	}
-	stateObject.code = s.code
-	stateObject.dirtyStorage = s.dirtyStorage.Copy()
-	stateObject.originStorage = s.originStorage.Copy()
-	stateObject.pendingStorage = s.pendingStorage.Copy()
-	stateObject.suicided = s.suicided
-	stateObject.dirtyCode = s.dirtyCode
-	stateObject.deleted = s.deleted
-	return stateObject
+	if s.trie != nil {
+		obj.trie = db.db.CopyTrie(s.trie)
+	}
+	obj.code = s.code
+	obj.dirtyStorage = s.dirtyStorage.Copy()
+	obj.originStorage = s.originStorage.Copy()
+	obj.pendingStorage = s.pendingStorage.Copy()
+	obj.suicided = s.suicided
+	obj.dirtyCode = s.dirtyCode
+	obj.deleted = s.deleted
+	return obj
 }
 
 //
