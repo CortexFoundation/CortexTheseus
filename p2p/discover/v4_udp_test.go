@@ -165,7 +165,6 @@ func TestUDPv4_responseTimeouts(t *testing.T) {
 	test := newUDPTest(t)
 	defer test.close()
 
-	rand.Seed(time.Now().UnixNano())
 	randomDuration := func(max time.Duration) time.Duration {
 		return time.Duration(rand.Int63n(int64(max)))
 	}
@@ -395,7 +394,7 @@ func TestUDPv4_pingMatchIP(t *testing.T) {
 func TestUDPv4_successfulPing(t *testing.T) {
 	test := newUDPTest(t)
 	added := make(chan *node, 1)
-	test.table.nodeAddedHook = func(n *node) { added <- n }
+	test.table.nodeAddedHook = func(b *bucket, n *node) { added <- n }
 	defer test.close()
 
 	// The remote side sends a ping packet to initiate the exchange.
