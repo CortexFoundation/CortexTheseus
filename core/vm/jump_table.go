@@ -74,6 +74,7 @@ func newMergeInstructionSet() JumpTable {
 		gasCost:       constGasFunc(GasQuickStep),
 		validateStack: makeStackFunc(0, 1),
 	}
+	enable5656(&instructionSet) // EIP-5656 (MCOPY opcode)
 	return validate(instructionSet)
 }
 
