@@ -130,7 +130,7 @@ func (s *StateDB) dump(c collector, excludeCode, excludeStorage, excludeMissingP
 			account.SecureKey = it.Key
 		}
 		addr := common.BytesToAddress(addrBytes)
-		obj := newObject(s, addr, data)
+		obj := newObject(s, addr, &data)
 		if !excludeCode {
 			account.Code = common.Bytes2Hex(obj.Code(s.db))
 		}

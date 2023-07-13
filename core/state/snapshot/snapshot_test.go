@@ -26,6 +26,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/VictoriaMetrics/fastcache"
 )
@@ -46,7 +47,7 @@ func randomAccount() []byte {
 		Balance:  big.NewInt(rand.Int63()),
 		Nonce:    rand.Uint64(),
 		Root:     root[:],
-		CodeHash: emptyCode[:],
+		CodeHash: types.EmptyCodeHash[:],
 	}
 	data, _ := rlp.EncodeToBytes(a)
 	return data

@@ -34,3 +34,41 @@ type StateAccount struct {
 	Upload   *big.Int //bytes
 	Num      *big.Int
 }
+
+// NewEmptyStateAccount constructs an empty state account.
+func NewEmptyStateAccount() *StateAccount {
+	return &StateAccount{
+		Balance:  new(big.Int),
+		Root:     EmptyRootHash,
+		CodeHash: EmptyCodeHash.Bytes(),
+		Upload:   big.NewInt(0),
+		Num:      big.NewInt(0),
+	}
+}
+
+// Copy returns a deep-copied state account object.
+func (acct *StateAccount) Copy() *StateAccount {
+	var (
+		balance *big.Int
+		upload  *big.Int
+		num     *big.Int
+	)
+
+	if acct.Balance != nil {
+		balance = new(big.Int).Set(acct.Balance)
+	}
+	if acct.Upload != nil {
+		upload = new(big.Int).Set(acct.Upload)
+	}
+	if acct.Num != nil {
+		num = new(big.Int).Set(acct.Num)
+	}
+	return &StateAccount{
+		Nonce:    acct.Nonce,
+		Balance:  balance,
+		Root:     acct.Root,
+		CodeHash: common.CopyBytes(acct.CodeHash),
+		Upload:   upload,
+		Num:      num,
+	}
+}
