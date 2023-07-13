@@ -615,7 +615,7 @@ func (s *StateDB) updateStateObject(obj *stateObject) {
 	// update mechanism is not symmetric to the deletion, because whereas it is
 	// enough to track account updates at commit time, deletions need tracking
 	// at transaction boundary level to ensure we capture state clearing.
-	s.accounts[obj.addrHash] = snapshot.SlimAccountRLP(obj.data.Nonce, obj.data.Balance, obj.data.Root, obj.data.CodeHash, obj.data.Upload, obj.data.Num)
+	s.accounts[obj.addrHash] = types.SlimAccountRLP(obj.data)
 	// Track the original value of mutated account, nil means it was not present.
 	// Skip if it has been tracked (because updateStateObject may be called
 	// multiple times in a block).
@@ -623,7 +623,7 @@ func (s *StateDB) updateStateObject(obj *stateObject) {
 		if obj.origin == nil {
 			s.accountsOrigin[obj.addrHash] = nil
 		} else {
-			s.accountsOrigin[obj.addrHash] = snapshot.SlimAccountRLP(obj.origin.Nonce, obj.origin.Balance, obj.origin.Root, obj.origin.CodeHash, obj.origin.Upload, obj.origin.Num)
+			s.accountsOrigin[obj.addrHash] = types.SlimAccountRLP(*obj.origin)
 		}
 	}
 }

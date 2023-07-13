@@ -207,7 +207,7 @@ func (dl *diskLayer) generate(stats *generatorStats) {
 		if err := rlp.DecodeBytes(accIt.Value, &acc); err != nil {
 			log.Crit("Invalid account encountered during snapshot creation", "err", err, "value", accIt.Value)
 		}
-		data := SlimAccountRLP(acc.Nonce, acc.Balance, acc.Root, acc.CodeHash, acc.Upload, acc.Num)
+		data := types.SlimAccountRLP(acc)
 
 		// If the account is not yet in-progress, write it out
 		if accMarker == nil || !bytes.Equal(accountHash[:], accMarker) {
