@@ -101,6 +101,10 @@ func newTester(t *testing.T, confOverride func(*ctxc.Config)) *tester {
 	if err != nil {
 		t.Fatalf("failed to attach to node: %v", err)
 	}
+	t.Cleanup(func() {
+		client.Close()
+	})
+
 	prompter := &hookedPrompter{scheduler: make(chan string)}
 	printer := new(bytes.Buffer)
 
