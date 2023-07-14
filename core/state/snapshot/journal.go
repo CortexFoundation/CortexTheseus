@@ -143,12 +143,17 @@ func loadAndParseJournal(db ctxcdb.KeyValueStore, base *diskLayer) (snapshot, jo
 }
 
 // loadSnapshot loads a pre-existing state snapshot backed by a key-value store.
-func loadSnapshot(diskdb ctxcdb.KeyValueStore, triedb *trie.Database, cache int, root common.Hash, recovery bool) (snapshot, error) {
+func loadSnapshot(diskdb ctxcdb.KeyValueStore, triedb *trie.Database, root common.Hash, cache int, recovery bool, noBuild bool) (snapshot, bool, error) {
+	// If snapshotting is disabled (initial sync in progress), don't do anything,
+	// wait for the chain to permit us to do something meaningful
+	if rawdb.ReadSnapshotDisabled(diskdb) {
+		return nil, true, nil
+	}
 	// Retrieve the block number and hash of the snapshot, failing if no snapshot
 	// is present in the database (or crashed mid-update).
 	baseRoot := rawdb.ReadSnapshotRoot(diskdb)
 	if baseRoot == (common.Hash{}) {
-		return nil, errors.New("missing or corrupted snapshot")
+		return nil, false, errors.New("missing or corrupted snapshot")
 	}
 	base := &diskLayer{
 		diskdb: diskdb,
@@ -164,7 +169,8 @@ func loadSnapshot(diskdb ctxcdb.KeyValueStore, triedb *trie.Database, cache int,
 		legacy = true
 	}
 	if err != nil {
-		return nil, err
+		log.Warn("Failed to load journal", "error", err)
+		return nil, false, err
 	}
 	// Entire snapshot journal loaded, sanity check the head. If the loaded
 	// snapshot is not matched with current state root, print a warning log
@@ -179,7 +185,7 @@ func loadSnapshot(diskdb ctxcdb.KeyValueStore, triedb *trie.Database, cache int,
 		// it's not in recovery mode, returns the error here for
 		// rebuilding the entire snapshot forcibly.
 		if legacy || !recovery {
-			return nil, fmt.Errorf("head doesn't match snapshot: have %#x, want %#x", head, root)
+			return nil, false, fmt.Errorf("head doesn't match snapshot: have %#x, want %#x", head, root)
 		}
 		// It's in snapshot recovery, the assumption is held that
 		// the disk layer is always higher than chain head. It can
@@ -188,7 +194,7 @@ func loadSnapshot(diskdb ctxcdb.KeyValueStore, triedb *trie.Database, cache int,
 		log.Warn("Snapshot is not continuous with chain", "snaproot", head, "chainroot", root)
 	}
 	// Everything loaded correctly, resume any suspended operations
-	if !generator.Done {
+	if !generator.Done && !noBuild {
 		// If the generator was still wiping, restart one from scratch (fine for
 		// now as it's rare and the wiper deletes the stuff it touches anyway, so
 		// restarting won't incur a lot of extra database hops.
@@ -218,7 +224,7 @@ func loadSnapshot(diskdb ctxcdb.KeyValueStore, triedb *trie.Database, cache int,
 			storage:  common.StorageSize(generator.Storage),
 		})
 	}
-	return snapshot, nil
+	return snapshot, false, nil
 }
 
 // loadDiffLayer reads the next sections of a snapshot journal, reconstructing a new

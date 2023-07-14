@@ -152,6 +152,14 @@ type snapshot interface {
 	StorageIterator(account common.Hash, seek common.Hash) (StorageIterator, bool)
 }
 
+// Config includes the configurations for snapshots.
+type Config struct {
+	CacheSize  int  // Megabytes permitted to use for read caches
+	Recovery   bool // Indicator that the snapshots is in the recovery mode
+	NoBuild    bool // Indicator that the snapshots generation is disallowed
+	AsyncBuild bool // The snapshot generation is allowed to be constructed asynchronously
+}
+
 // SnapshotTree is an Cortex state snapshot tree. It consists of one persistent
 // base layer backed by a key-value store, on top of which arbitrarily many in-
 // memory diff layers are topped. The memory diffs can form a tree with branching,
@@ -162,9 +170,9 @@ type snapshot interface {
 // storage data to avoid expensive multi-level trie lookups; and to allow sorted,
 // cheap iteration of the account/storage tries for sync aid.
 type Tree struct {
+	config Config                   // Snapshots configurations
 	diskdb ctxcdb.KeyValueStore     // Persistent database to store the snapshot
 	triedb *trie.Database           // In-memory cache to access the trie through
-	cache  int                      // Megabytes permitted to use for read caches
 	layers map[common.Hash]snapshot // Collection of all known layers
 	lock   sync.RWMutex
 
@@ -181,30 +189,39 @@ type Tree struct {
 // store, on a background thread. If the memory layers from the journal is not
 // continuous with disk layer or the journal is missing, all diffs will be discarded
 // iff it's in "recovery" mode, otherwise rebuild is mandatory.
-func New(diskdb ctxcdb.KeyValueStore, triedb *trie.Database, cache int, root common.Hash, async bool, recovery bool) *Tree {
+func New(config Config, diskdb ctxcdb.KeyValueStore, triedb *trie.Database, root common.Hash) (*Tree, error) {
 	// Create a new, empty snapshot tree
 	snap := &Tree{
+		config: config,
 		diskdb: diskdb,
 		triedb: triedb,
-		cache:  cache,
 		layers: make(map[common.Hash]snapshot),
 	}
-	if !async {
+
+	// Attempt to load a previously persisted snapshot and rebuild one if failed
+	head, disabled, err := loadSnapshot(diskdb, triedb, root, config.CacheSize, config.Recovery, config.NoBuild)
+	if disabled {
+		log.Warn("Snapshot maintenance disabled (syncing)")
+		return snap, nil
+	}
+	// Create the building waiter iff the background generation is allowed
+	if !config.NoBuild && !config.AsyncBuild {
 		defer snap.waitBuild()
 	}
-	// Attempt to load a previously persisted snapshot and rebuild one if failed
-	head, err := loadSnapshot(diskdb, triedb, cache, root, recovery)
 	if err != nil {
-		log.Warn("Failed to load snapshot, regenerating", "err", err)
-		snap.Rebuild(root)
-		return snap
+		log.Warn("Failed to load snapshot", "err", err)
+		if !config.NoBuild {
+			snap.Rebuild(root)
+			return snap, nil
+		}
+		return nil, err // Bail out the error, don't rebuild automatically.
 	}
 	// Existing snapshot loaded, seed all the layers
 	for head != nil {
 		snap.layers[head.Root()] = head
 		head = head.Parent()
 	}
-	return snap
+	return snap, nil
 }
 
 // waitBuild blocks until the snapshot finishes rebuilding. This method is meant
@@ -760,7 +777,7 @@ func (t *Tree) Rebuild(root common.Hash) {
 	// generator will run a wiper first if there's not one running right now.
 	log.Info("Rebuilding state snapshot")
 	t.layers = map[common.Hash]snapshot{
-		root: generateSnapshot(t.diskdb, t.triedb, t.cache, root, wiper),
+		root: generateSnapshot(t.diskdb, t.triedb, t.config.CacheSize, root, wiper),
 	}
 }
 
