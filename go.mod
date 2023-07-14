@@ -62,6 +62,7 @@ require (
 	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d
 	github.com/ucwong/color v1.10.1-0.20200624105241-fba1e010fe1e
 	github.com/urfave/cli/v2 v2.25.7
+	go.uber.org/automaxprocs v1.5.2
 	golang.org/x/crypto v0.11.0
 	golang.org/x/exp v0.0.0-20230711153332-06a737ee72cb
 	golang.org/x/mobile v0.0.0-20201217150744-e6ae53a27f4f

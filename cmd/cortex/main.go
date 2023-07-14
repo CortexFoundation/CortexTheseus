@@ -38,6 +38,10 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/node"
 	_ "github.com/CortexFoundation/statik"
 	"github.com/arsham/figurine/figurine"
+
+	// Automatically set GOMAXPROCS to match Linux container CPU quota.
+	_ "go.uber.org/automaxprocs"
+
 	"gopkg.in/urfave/cli.v1"
 
 	// Force-load the tracer engines to trigger registration
