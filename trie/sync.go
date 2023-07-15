@@ -23,6 +23,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/prque"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 )
 
@@ -149,7 +150,7 @@ func NewSync(root common.Hash, database ctxcdb.KeyValueReader, callback LeafCall
 // AddSubTrie registers a new trie to the sync code, rooted at the designated parent.
 func (s *Sync) AddSubTrie(root common.Hash, path []byte, parent common.Hash, callback LeafCallback) {
 	// Short circuit if the trie is empty or already known
-	if root == emptyRoot {
+	if root == types.EmptyRootHash {
 		return
 	}
 	if s.membatch.hasNode(root) {
@@ -188,7 +189,7 @@ func (s *Sync) AddSubTrie(root common.Hash, path []byte, parent common.Hash, cal
 // as is.
 func (s *Sync) AddCodeEntry(hash common.Hash, path []byte, parent common.Hash) {
 	// Short circuit if the entry is empty or already known
-	if hash == emptyState {
+	if hash == types.EmptyStateHash {
 		return
 	}
 	if s.membatch.hasCode(hash) {
