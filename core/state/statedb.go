@@ -42,15 +42,6 @@ type revision struct {
 	journalIndex int
 }
 
-var (
-	// emptyState is the known hash of an empty state trie entry.
-	//emptyState = crypto.Keccak256Hash(nil)
-	emptyRoot = common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
-
-	// emptyCode is the known hash of the empty CVM bytecode.
-	emptyCode = crypto.Keccak256Hash(nil)
-)
-
 type proofList [][]byte
 
 func (n *proofList) Put(key []byte, value []byte) error {
@@ -713,10 +704,10 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) *stateObject {
 				Num:      acc.Num,
 			}
 			if len(data.CodeHash) == 0 {
-				data.CodeHash = emptyCodeHash
+				data.CodeHash = types.EmptyCodeHash.Bytes()
 			}
 			if data.Root == (common.Hash{}) {
-				data.Root = emptyRoot
+				data.Root = types.EmptyRootHash
 			}
 		}
 	}
@@ -1172,7 +1163,7 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 		if err := rlp.DecodeBytes(leaf, &account); err != nil {
 			return nil
 		}
-		if account.Root != emptyRoot {
+		if account.Root != types.EmptyRootHash {
 			s.db.TrieDB().Reference(account.Root, parent)
 		}
 		return nil

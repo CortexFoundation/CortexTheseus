@@ -127,7 +127,7 @@ func (it *NodeIterator) step() error {
 	if !it.dataIt.Next(true) {
 		it.dataIt = nil
 	}
-	if !bytes.Equal(account.CodeHash, emptyCodeHash) {
+	if !bytes.Equal(account.CodeHash, types.EmptyCodeHash.Bytes()) {
 		it.codeHash = common.BytesToHash(account.CodeHash)
 		//it.code, err = it.state.db.ContractCode(common.BytesToAddress(it.stateIt.LeafKey()), common.BytesToHash(account.CodeHash))
 		it.code, err = it.state.db.ContractCode(address, common.BytesToHash(account.CodeHash))
