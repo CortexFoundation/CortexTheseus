@@ -90,8 +90,15 @@ type stateObject struct {
 	// When an object is marked suicided it will be delete from the trie
 	// during the "update" phase of the state transition.
 	dirtyCode bool // true if the code was updated
-	suicided  bool
-	deleted   bool
+
+	// Flag whether the account was marked as self-destructed. The self-destructed account
+	// is still accessible in the scope of same transaction.
+	selfDestructed bool
+
+	// Flag whether the account was marked as deleted. A self-destructed account
+	// or an account that is considered as empty will be marked as deleted at
+	// the end of transaction and no longer accessible anymore.
+	deleted bool
 }
 
 // empty returns whether the account is considered empty.
@@ -130,8 +137,8 @@ func (s *stateObject) setError(err error) {
 	}
 }
 
-func (s *stateObject) markSuicided() {
-	s.suicided = true
+func (s *stateObject) markSelfdestructed() {
+	s.selfDestructed = true
 }
 
 func (c *stateObject) touch() {
@@ -487,7 +494,7 @@ func (s *stateObject) deepCopy(db *StateDB) *stateObject {
 	obj.dirtyStorage = s.dirtyStorage.Copy()
 	obj.originStorage = s.originStorage.Copy()
 	obj.pendingStorage = s.pendingStorage.Copy()
-	obj.suicided = s.suicided
+	obj.selfDestructed = s.selfDestructed
 	obj.dirtyCode = s.dirtyCode
 	obj.deleted = s.deleted
 	return obj
