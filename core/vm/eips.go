@@ -24,6 +24,7 @@ import (
 )
 
 var activators = map[int]func(*JumpTable){
+	5656: enable5656,
 	3855: enable3855,
 	2200: enable2200,
 	1884: enable1884,
@@ -45,6 +46,31 @@ func EnableEIP(eipNum int, jt *JumpTable) error {
 		return fmt.Errorf("undefined eip %d", eipNum)
 	}
 	return nil
+}
+
+// enable5656 enables EIP-5656 (MCOPY opcode)
+// https://eips.cortex.org/EIPS/eip-5656
+func enable5656(jt *JumpTable) {
+	jt[MCOPY] = &operation{
+		execute: opMcopy,
+		//gasCost:       constGasFunc(GasFastestStep),
+		gasCost:       gasMcopy,
+		validateStack: makeStackFunc(3, 0),
+		memorySize:    memoryMcopy,
+	}
+}
+
+// opMcopy implements the MCOPY opcode (https://eips.cortex.org/EIPS/eip-5656)
+func opMcopy(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	var (
+		dst    = scope.Stack.pop()
+		src    = scope.Stack.pop()
+		length = scope.Stack.pop()
+	)
+	// These values are checked for overflow during memory expansion calculation
+	// (the memorySize function on the opcode).
+	scope.Memory.Copy(dst.Uint64(), src.Uint64(), length.Uint64())
+	return nil, nil
 }
 
 // enable1884 applies EIP-1884 to the given jump table:
