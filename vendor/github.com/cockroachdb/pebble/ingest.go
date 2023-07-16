@@ -729,7 +729,7 @@ func ingestTargetLevel(
 	// Check for overlap over the keys of L0 by iterating over the sublevels.
 	for subLevel := 0; subLevel < len(v.L0SublevelFiles); subLevel++ {
 		iter := newLevelIter(iterOps, cmp, nil /* split */, newIters,
-			v.L0Sublevels.Levels[subLevel].Iter(), manifest.Level(0), nil)
+			v.L0Sublevels.Levels[subLevel].Iter(), manifest.Level(0), internalIterOpts{})
 
 		var rangeDelIter keyspan.FragmentIterator
 		// Pass in a non-nil pointer to rangeDelIter so that levelIter.findFileGE
@@ -760,7 +760,7 @@ func ingestTargetLevel(
 	level := baseLevel
 	for ; level < numLevels; level++ {
 		levelIter := newLevelIter(iterOps, cmp, nil /* split */, newIters,
-			v.Levels[level].Iter(), manifest.Level(level), nil)
+			v.Levels[level].Iter(), manifest.Level(level), internalIterOpts{})
 		var rangeDelIter keyspan.FragmentIterator
 		// Pass in a non-nil pointer to rangeDelIter so that levelIter.findFileGE
 		// sets it up for the target file.
@@ -1732,8 +1732,10 @@ func (d *DB) ingestApply(
 		// for files, and if they are, we should signal those compactions to error
 		// out.
 		for level := range current.Levels {
-			iter := current.Levels[level].Iter()
-			for m := iter.SeekGE(d.cmp, exciseSpan.Start); m != nil && d.cmp(m.Smallest.UserKey, exciseSpan.End) < 0; m = iter.Next() {
+			overlaps := current.Overlaps(level, d.cmp, exciseSpan.Start, exciseSpan.End, true /* exclusiveEnd */)
+			iter := overlaps.Iter()
+
+			for m := iter.First(); m != nil; m = iter.Next() {
 				excised, err := d.excise(exciseSpan, m, ve, level)
 				if err != nil {
 					return nil, err

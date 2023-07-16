@@ -538,10 +538,9 @@ func (m *Monitor) Stop() {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	//m.closeOnce.Do(func() {
-	if m.terminated.Load() {
+	if m.terminated.Swap(true) {
 		return
 	}
-	m.terminated.Store(true)
 
 	m.exit()
 	log.Info("Monitor is waiting to be closed")
