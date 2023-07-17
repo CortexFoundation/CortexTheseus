@@ -1084,6 +1084,22 @@ func opSuicide(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContex
 	return nil, errStopToken
 }
 
+func opSelfdestruct6780(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	if interpreter.readOnly {
+		return nil, ErrWriteProtection
+	}
+	beneficiary := scope.Stack.pop()
+	balance := interpreter.cvm.StateDB.GetBalance(scope.Contract.Address())
+	interpreter.cvm.StateDB.SubBalance(scope.Contract.Address(), balance)
+	interpreter.cvm.StateDB.AddBalance(beneficiary.Bytes20(), balance)
+	interpreter.cvm.StateDB.Selfdestruct6780(scope.Contract.Address())
+	if tracer := interpreter.cvm.vmConfig.Tracer; tracer != nil {
+		tracer.CaptureEnter(SELFDESTRUCT, scope.Contract.Address(), beneficiary.Bytes20(), []byte{}, 0, balance)
+		tracer.CaptureExit([]byte{}, 0, nil)
+	}
+	return nil, errStopToken
+}
+
 // make log instruction function
 func makeLog(size int) executionFunc {
 	return func(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
