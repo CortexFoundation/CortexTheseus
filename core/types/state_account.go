@@ -41,8 +41,8 @@ func NewEmptyStateAccount() *StateAccount {
 		Balance:  new(big.Int),
 		Root:     EmptyRootHash,
 		CodeHash: EmptyCodeHash.Bytes(),
-		Upload:   big.NewInt(0),
-		Num:      big.NewInt(0),
+		Upload:   new(big.Int),
+		Num:      new(big.Int),
 	}
 }
 
