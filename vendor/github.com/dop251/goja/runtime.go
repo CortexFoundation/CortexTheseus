@@ -1914,12 +1914,12 @@ func (r *Runtime) toValue(i interface{}, origValue reflect.Value) Value {
 		m.init()
 		return obj
 	case []interface{}:
-		return r.newObjectGoSlice(&i).val
+		return r.newObjectGoSlice(&i, false).val
 	case *[]interface{}:
 		if i == nil {
 			return _null
 		}
-		return r.newObjectGoSlice(i).val
+		return r.newObjectGoSlice(i, true).val
 	}
 
 	if !origValue.IsValid() {
@@ -2769,6 +2769,37 @@ func (ir *iteratorRecord) returnIter() {
 func (ir *iteratorRecord) close() {
 	ir.iterator = nil
 	ir.next = nil
+}
+
+// ForOf is a Go equivalent of for-of loop. The function panics if an exception is thrown at any point
+// while iterating, including if the supplied value is not iterable
+// (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols#the_iterable_protocol).
+// When using outside of Runtime.Run (i.e. when calling directly from Go code, not from a JS function implemented
+// in Go) it must be enclosed in Try. See the example.
+func (r *Runtime) ForOf(iterable Value, step func(curValue Value) (continueIteration bool)) {
+	iter := r.getIterator(iterable, nil)
+	for {
+		value, ex := iter.step()
+		if ex != nil {
+			panic(ex)
+		}
+		if value != nil {
+			var continueIteration bool
+			ex := r.vm.try(func() {
+				continueIteration = step(value)
+			})
+			if ex != nil {
+				iter.returnIter()
+				panic(ex)
+			}
+			if !continueIteration {
+				iter.returnIter()
+				break
+			}
+		} else {
+			break
+		}
+	}
 }
 
 func (r *Runtime) createIterResultObject(value Value, done bool) Value {

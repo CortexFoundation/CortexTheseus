@@ -52,8 +52,8 @@ type GetHostedZoneOutput struct {
 	// hosted zone.
 	DelegationSet *types.DelegationSet
 
-	// A complex type that contains information about the VPCs that are associated with
-	// the specified hosted zone.
+	// A complex type that contains information about the VPCs that are associated
+	// with the specified hosted zone.
 	VPCs []types.VPC
 
 	// Metadata pertaining to the operation's result.
@@ -98,7 +98,7 @@ func (c *Client) addOperationGetHostedZoneMiddlewares(stack *middleware.Stack, o
 	if err = awsmiddleware.AddRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = addClientUserAgent(stack); err != nil {
+	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
 	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
@@ -111,6 +111,9 @@ func (c *Client) addOperationGetHostedZoneMiddlewares(stack *middleware.Stack, o
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opGetHostedZone(options.Region), middleware.Before); err != nil {
+		return err
+	}
+	if err = awsmiddleware.AddRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {

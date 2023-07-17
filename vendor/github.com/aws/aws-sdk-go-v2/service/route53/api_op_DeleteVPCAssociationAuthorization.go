@@ -19,7 +19,7 @@ import (
 // with the Amazon Route 53 hosted zone in the future. If the VPC is already
 // associated with the hosted zone, DeleteVPCAssociationAuthorization won't
 // disassociate the VPC from the hosted zone. If you want to delete an existing
-// association, use DisassociateVPCFromHostedZone.
+// association, use DisassociateVPCFromHostedZone .
 func (c *Client) DeleteVPCAssociationAuthorization(ctx context.Context, params *DeleteVPCAssociationAuthorizationInput, optFns ...func(*Options)) (*DeleteVPCAssociationAuthorizationOutput, error) {
 	if params == nil {
 		params = &DeleteVPCAssociationAuthorizationInput{}
@@ -102,7 +102,7 @@ func (c *Client) addOperationDeleteVPCAssociationAuthorizationMiddlewares(stack 
 	if err = awsmiddleware.AddRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = addClientUserAgent(stack); err != nil {
+	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
 	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
@@ -115,6 +115,9 @@ func (c *Client) addOperationDeleteVPCAssociationAuthorizationMiddlewares(stack 
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opDeleteVPCAssociationAuthorization(options.Region), middleware.Before); err != nil {
+		return err
+	}
+	if err = awsmiddleware.AddRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {

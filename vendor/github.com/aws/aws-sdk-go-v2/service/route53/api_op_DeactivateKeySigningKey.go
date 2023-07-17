@@ -12,7 +12,7 @@ import (
 )
 
 // Deactivates a key-signing key (KSK) so that it will not be used for signing by
-// DNSSEC. This operation changes the KSK status to INACTIVE.
+// DNSSEC. This operation changes the KSK status to INACTIVE .
 func (c *Client) DeactivateKeySigningKey(ctx context.Context, params *DeactivateKeySigningKeyInput, optFns ...func(*Options)) (*DeactivateKeySigningKeyOutput, error) {
 	if params == nil {
 		params = &DeactivateKeySigningKeyInput{}
@@ -93,7 +93,7 @@ func (c *Client) addOperationDeactivateKeySigningKeyMiddlewares(stack *middlewar
 	if err = awsmiddleware.AddRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = addClientUserAgent(stack); err != nil {
+	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
 	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
@@ -106,6 +106,9 @@ func (c *Client) addOperationDeactivateKeySigningKeyMiddlewares(stack *middlewar
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opDeactivateKeySigningKey(options.Region), middleware.Before); err != nil {
+		return err
+	}
+	if err = awsmiddleware.AddRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {

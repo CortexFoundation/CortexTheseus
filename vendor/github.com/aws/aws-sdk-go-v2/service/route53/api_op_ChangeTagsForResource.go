@@ -12,8 +12,7 @@ import (
 )
 
 // Adds, edits, or deletes tags for a health check or a hosted zone. For
-// information about using tags for cost allocation, see Using Cost Allocation Tags
-// (https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/cost-alloc-tags.html)
+// information about using tags for cost allocation, see Using Cost Allocation Tags (https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/cost-alloc-tags.html)
 // in the Billing and Cost Management User Guide.
 func (c *Client) ChangeTagsForResource(ctx context.Context, params *ChangeTagsForResourceInput, optFns ...func(*Options)) (*ChangeTagsForResourceOutput, error) {
 	if params == nil {
@@ -40,11 +39,8 @@ type ChangeTagsForResourceInput struct {
 	ResourceId *string
 
 	// The type of the resource.
-	//
-	// * The resource type for health checks is
-	// healthcheck.
-	//
-	// * The resource type for hosted zones is hostedzone.
+	//   - The resource type for health checks is healthcheck .
+	//   - The resource type for hosted zones is hostedzone .
 	//
 	// This member is required.
 	ResourceType types.TagResourceType
@@ -54,8 +50,8 @@ type ChangeTagsForResourceInput struct {
 	// Value for. You can add a maximum of 10 tags to a health check or a hosted zone.
 	AddTags []types.Tag
 
-	// A complex type that contains a list of the tags that you want to delete from the
-	// specified health check or hosted zone. You can specify up to 10 keys.
+	// A complex type that contains a list of the tags that you want to delete from
+	// the specified health check or hosted zone. You can specify up to 10 keys.
 	RemoveTagKeys []string
 
 	noSmithyDocumentSerde
@@ -105,7 +101,7 @@ func (c *Client) addOperationChangeTagsForResourceMiddlewares(stack *middleware.
 	if err = awsmiddleware.AddRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = addClientUserAgent(stack); err != nil {
+	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
 	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
@@ -118,6 +114,9 @@ func (c *Client) addOperationChangeTagsForResourceMiddlewares(stack *middleware.
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opChangeTagsForResource(options.Region), middleware.Before); err != nil {
+		return err
+	}
+	if err = awsmiddleware.AddRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {

@@ -10,8 +10,8 @@ import (
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
-// Gets the number of traffic policy instances that are associated with the current
-// Amazon Web Services account.
+// Gets the number of traffic policy instances that are associated with the
+// current Amazon Web Services account.
 func (c *Client) GetTrafficPolicyInstanceCount(ctx context.Context, params *GetTrafficPolicyInstanceCountInput, optFns ...func(*Options)) (*GetTrafficPolicyInstanceCountOutput, error) {
 	if params == nil {
 		params = &GetTrafficPolicyInstanceCountInput{}
@@ -85,7 +85,7 @@ func (c *Client) addOperationGetTrafficPolicyInstanceCountMiddlewares(stack *mid
 	if err = awsmiddleware.AddRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = addClientUserAgent(stack); err != nil {
+	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
 	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
@@ -95,6 +95,9 @@ func (c *Client) addOperationGetTrafficPolicyInstanceCountMiddlewares(stack *mid
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opGetTrafficPolicyInstanceCount(options.Region), middleware.Before); err != nil {
+		return err
+	}
+	if err = awsmiddleware.AddRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {

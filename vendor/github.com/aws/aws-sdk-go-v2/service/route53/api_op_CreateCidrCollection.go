@@ -36,8 +36,8 @@ type CreateCidrCollectionInput struct {
 	// This member is required.
 	CallerReference *string
 
-	// A unique identifier for the account that can be used to reference the collection
-	// from other API calls.
+	// A unique identifier for the account that can be used to reference the
+	// collection from other API calls.
 	//
 	// This member is required.
 	Name *string
@@ -95,7 +95,7 @@ func (c *Client) addOperationCreateCidrCollectionMiddlewares(stack *middleware.S
 	if err = awsmiddleware.AddRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = addClientUserAgent(stack); err != nil {
+	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
 	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
@@ -108,6 +108,9 @@ func (c *Client) addOperationCreateCidrCollectionMiddlewares(stack *middleware.S
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opCreateCidrCollection(options.Region), middleware.Before); err != nil {
+		return err
+	}
+	if err = awsmiddleware.AddRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {

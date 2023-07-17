@@ -14,8 +14,7 @@ import (
 // information that is already available to the public. GetCheckerIpRanges still
 // works, but we recommend that you download ip-ranges.json, which includes IP
 // address ranges for all Amazon Web Services services. For more information, see
-// IP Address Ranges of Amazon Route 53 Servers
-// (https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/route-53-ip-addresses.html)
+// IP Address Ranges of Amazon Route 53 Servers (https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/route-53-ip-addresses.html)
 // in the Amazon Route 53 Developer Guide.
 func (c *Client) GetCheckerIpRanges(ctx context.Context, params *GetCheckerIpRangesInput, optFns ...func(*Options)) (*GetCheckerIpRangesOutput, error) {
 	if params == nil {
@@ -88,7 +87,7 @@ func (c *Client) addOperationGetCheckerIpRangesMiddlewares(stack *middleware.Sta
 	if err = awsmiddleware.AddRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = addClientUserAgent(stack); err != nil {
+	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
 	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
@@ -98,6 +97,9 @@ func (c *Client) addOperationGetCheckerIpRangesMiddlewares(stack *middleware.Sta
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opGetCheckerIpRanges(options.Region), middleware.Before); err != nil {
+		return err
+	}
+	if err = awsmiddleware.AddRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {

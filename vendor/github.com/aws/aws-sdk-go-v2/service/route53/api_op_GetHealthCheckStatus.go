@@ -48,8 +48,8 @@ type GetHealthCheckStatusInput struct {
 // A complex type that contains the response to a GetHealthCheck request.
 type GetHealthCheckStatusOutput struct {
 
-	// A list that contains one HealthCheckObservation element for each Amazon Route 53
-	// health checker that is reporting a status about the health check endpoint.
+	// A list that contains one HealthCheckObservation element for each Amazon Route
+	// 53 health checker that is reporting a status about the health check endpoint.
 	//
 	// This member is required.
 	HealthCheckObservations []types.HealthCheckObservation
@@ -96,7 +96,7 @@ func (c *Client) addOperationGetHealthCheckStatusMiddlewares(stack *middleware.S
 	if err = awsmiddleware.AddRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = addClientUserAgent(stack); err != nil {
+	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
 	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
@@ -109,6 +109,9 @@ func (c *Client) addOperationGetHealthCheckStatusMiddlewares(stack *middleware.S
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opGetHealthCheckStatus(options.Region), middleware.Before); err != nil {
+		return err
+	}
+	if err = awsmiddleware.AddRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {
