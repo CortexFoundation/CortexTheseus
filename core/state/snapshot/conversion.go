@@ -17,12 +17,12 @@
 package snapshot
 
 import (
-	"bytes"
 	"fmt"
 	"sync"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb/memorydb"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
@@ -209,13 +209,13 @@ func generateTrieRoot(it Iterator, account common.Hash, generatorFn trieGenerato
 				fullData []byte
 			)
 			if leafCallback == nil {
-				fullData, err = FullAccountRLP(it.(AccountIterator).Account())
+				fullData, err = types.FullAccountRLP(it.(AccountIterator).Account())
 				if err != nil {
 					stop(false)
 					return common.Hash{}, err
 				}
 			} else {
-				account, err := FullAccount(it.(AccountIterator).Account())
+				account, err := types.FullAccount(it.(AccountIterator).Account())
 				if err != nil {
 					stop(false)
 					return common.Hash{}, err
@@ -223,7 +223,7 @@ func generateTrieRoot(it Iterator, account common.Hash, generatorFn trieGenerato
 				// Apply the leaf callback. Normally the callback is used to traverse
 				// the storage trie and re-generate the subtrie root.
 				subroot := leafCallback(it.Hash(), stats)
-				if !bytes.Equal(account.Root, subroot.Bytes()) {
+				if account.Root != subroot {
 					stop(false)
 					return common.Hash{}, fmt.Errorf("invalid subroot(%x), want %x, got %x", it.Hash(), account.Root, subroot)
 				}
