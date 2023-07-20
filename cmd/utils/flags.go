@@ -1873,9 +1873,9 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 }
 
 // MakeChain creates a chain manager from set command line flags.
-func MakeChain(ctx *cli.Context, stack *node.Node, readOnly bool) (chain *core.BlockChain, chainDb ctxcdb.Database) {
+func MakeChain(ctx *cli.Context, stack *node.Node, readonly bool) (chain *core.BlockChain, chainDb ctxcdb.Database) {
 	var err error
-	chainDb = MakeChainDatabase(ctx, stack, readOnly)
+	chainDb = MakeChainDatabase(ctx, stack, readonly)
 
 	config, _, err := core.SetupGenesisBlock(chainDb, MakeGenesis(ctx))
 	if err != nil {
@@ -1909,6 +1909,10 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readOnly bool) (chain *core.B
 	if !ctx.GlobalIsSet(SnapshotFlag.Name) {
 		cache.SnapshotLimit = 0 // Disabled
 	}
+	// If we're in readonly, do not bother generating snapshot data.
+	if readonly {
+		cache.SnapshotNoBuild = true
+	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheTrieFlag.Name) {
 		cache.TrieCleanLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheTrieFlag.Name) / 100
 	}
@@ -1919,7 +1923,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readOnly bool) (chain *core.B
 		EnablePreimageRecording: ctx.GlobalBool(VMEnableDebugFlag.Name),
 	}
 	var limit *uint64
-	if ctx.GlobalIsSet(TxLookupLimitFlag.Name) && !readOnly {
+	if ctx.GlobalIsSet(TxLookupLimitFlag.Name) && !readonly {
 		l := ctx.GlobalUint64(TxLookupLimitFlag.Name)
 		limit = &l
 	}
