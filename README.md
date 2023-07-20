@@ -29,6 +29,8 @@ https://github.com/CortexFoundation/solution
 https://github.com/CortexFoundation/rosetta-cortex
 ### Docker
 https://github.com/CortexFoundation/docker
+### Robot
+https://github.com/CortexFoundation/robot
 
 ## System Requirements
 ### **** x64 support  ****
