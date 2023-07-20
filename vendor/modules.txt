@@ -44,14 +44,14 @@ github.com/CortexFoundation/inference/synapse
 # github.com/CortexFoundation/merkletree v0.0.0-20230401054716-73abfa6f740b
 ## explicit; go 1.19
 github.com/CortexFoundation/merkletree
-# github.com/CortexFoundation/robot v1.0.3-0.20230716143502-8ce6a8bd48ab
+# github.com/CortexFoundation/robot v1.0.3-0.20230717205833-201ad9f8738a
 ## explicit; go 1.19
 github.com/CortexFoundation/robot
 github.com/CortexFoundation/robot/backend
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit; go 1.16
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.52-0.20230717211035-eb4007aab0c5
+# github.com/CortexFoundation/torrentfs v1.0.52-0.20230720080436-978953c473bd
 ## explicit; go 1.20
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/backend
@@ -100,7 +100,7 @@ github.com/anacrolix/envpprof
 # github.com/anacrolix/generics v0.0.0-20230428105757-683593396d68
 ## explicit; go 1.18
 github.com/anacrolix/generics
-# github.com/anacrolix/go-libutp v1.3.0
+# github.com/anacrolix/go-libutp v1.3.1
 ## explicit; go 1.14
 github.com/anacrolix/go-libutp
 # github.com/anacrolix/log v0.14.0
@@ -119,7 +119,7 @@ github.com/anacrolix/missinggo/slices
 # github.com/anacrolix/missinggo/perf v1.0.0
 ## explicit; go 1.12
 github.com/anacrolix/missinggo/perf
-# github.com/anacrolix/missinggo/v2 v2.7.2-0.20230527121029-a582b4f397b9
+# github.com/anacrolix/missinggo/v2 v2.7.2
 ## explicit; go 1.18
 github.com/anacrolix/missinggo/v2
 github.com/anacrolix/missinggo/v2/bitmap
@@ -370,7 +370,7 @@ github.com/cockroachdb/errors/withstack
 # github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b
 ## explicit; go 1.16
 github.com/cockroachdb/logtags
-# github.com/cockroachdb/pebble v0.0.0-20230716025533-809057a10ee4
+# github.com/cockroachdb/pebble v0.0.0-20230720030626-d0e583f8ff3c
 ## explicit; go 1.19
 github.com/cockroachdb/pebble
 github.com/cockroachdb/pebble/bloom
@@ -1074,7 +1074,7 @@ github.com/ucwong/filecache
 # github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb
 ## explicit; go 1.19
 github.com/ucwong/go-ttlmap
-# github.com/ucwong/golang-kv v1.0.22-0.20230716065016-8b0628ed69a4
+# github.com/ucwong/golang-kv v1.0.22-0.20230720065959-71dc599ac23b
 ## explicit; go 1.20
 github.com/ucwong/golang-kv
 github.com/ucwong/golang-kv/badger
@@ -1144,7 +1144,7 @@ go.opentelemetry.io/otel/metric/embedded
 # go.opentelemetry.io/otel/trace v1.16.0
 ## explicit; go 1.19
 go.opentelemetry.io/otel/trace
-# go.uber.org/automaxprocs v1.5.2
+# go.uber.org/automaxprocs v1.5.3
 ## explicit; go 1.18
 go.uber.org/automaxprocs
 go.uber.org/automaxprocs/internal/cgroups
