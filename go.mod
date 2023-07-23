@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.52-0.20230720080436-978953c473bd
+	github.com/CortexFoundation/torrentfs v1.0.52-0.20230722140812-17c9d53db44c
 	github.com/VictoriaMetrics/fastcache v1.12.1
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.19.0
@@ -17,7 +17,7 @@ require (
 	github.com/cespare/cp v1.1.1
 	github.com/charmbracelet/bubbletea v0.24.2
 	github.com/cloudflare/cloudflare-go v0.57.1
-	github.com/cockroachdb/pebble v0.0.0-20230720030626-d0e583f8ff3c
+	github.com/cockroachdb/pebble v0.0.0-20230721221451-fcaeb47a50e0
 	github.com/consensys/gnark-crypto v0.11.1
 	github.com/crate-crypto/go-kzg-4844 v0.3.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
@@ -83,7 +83,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.3.0 // indirect
 	github.com/CortexFoundation/cvm-runtime v0.0.0-20221117094012-b5a251885572 // indirect
 	github.com/CortexFoundation/merkletree v0.0.0-20230401054716-73abfa6f740b // indirect
-	github.com/CortexFoundation/robot v1.0.3-0.20230717205833-201ad9f8738a // indirect
+	github.com/CortexFoundation/robot v1.0.3 // indirect
 	github.com/DataDog/zstd v1.5.6-0.20230622172052-ea68dcab66c0 // indirect
 	github.com/RoaringBitmap/roaring v1.3.0 // indirect
 	github.com/ajwerner/btree v0.0.0-20211221152037-f427b3e689c0 // indirect
@@ -93,7 +93,7 @@ require (
 	github.com/anacrolix/envpprof v1.3.0 // indirect
 	github.com/anacrolix/generics v0.0.0-20230428105757-683593396d68 // indirect
 	github.com/anacrolix/go-libutp v1.3.1 // indirect
-	github.com/anacrolix/log v0.14.0 // indirect
+	github.com/anacrolix/log v0.14.1 // indirect
 	github.com/anacrolix/missinggo v1.3.0 // indirect
 	github.com/anacrolix/missinggo/perf v1.0.0 // indirect
 	github.com/anacrolix/missinggo/v2 v2.7.2 // indirect
@@ -203,14 +203,14 @@ require (
 	github.com/pion/mdns v0.0.7 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/rtcp v1.2.10 // indirect
-	github.com/pion/rtp v1.7.13 // indirect
+	github.com/pion/rtp v1.8.0 // indirect
 	github.com/pion/sctp v1.8.7 // indirect
 	github.com/pion/sdp/v3 v3.0.6 // indirect
 	github.com/pion/srtp/v2 v2.0.15 // indirect
 	github.com/pion/stun v0.6.1 // indirect
 	github.com/pion/transport/v2 v2.2.1 // indirect
-	github.com/pion/turn/v2 v2.1.2 // indirect
-	github.com/pion/webrtc/v3 v3.2.12 // indirect
+	github.com/pion/turn/v2 v2.1.3 // indirect
+	github.com/pion/webrtc/v3 v3.2.13 // indirect
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
@@ -235,7 +235,7 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ucwong/filecache v1.0.6-0.20230405163841-810d53ced4bd // indirect
 	github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb // indirect
-	github.com/ucwong/golang-kv v1.0.22-0.20230720065959-71dc599ac23b // indirect
+	github.com/ucwong/golang-kv v1.0.22-0.20230722073244-66070a1ddace // indirect
 	github.com/ucwong/shard v1.0.1-0.20230505153952-911e99b5f0c2 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect

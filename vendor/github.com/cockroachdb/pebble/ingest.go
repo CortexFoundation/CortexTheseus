@@ -827,7 +827,7 @@ func ingestTargetLevel(
 //
 // Two types of sstables are accepted for ingestion(s): one is sstables present
 // in the instance's vfs.FS and can be referenced locally. The other is sstables
-// present in shared.Storage, referred to as shared or foreign sstables. These
+// present in remote.Storage, referred to as shared or foreign sstables. These
 // shared sstables can be linked through objstorageprovider.Provider, and do not
 // need to already be present on the local vfs.FS. Foreign sstables must all fit
 // in an excise span, and are destined for a level specified in SharedSSTMeta.
@@ -914,14 +914,14 @@ func (d *DB) IngestWithStats(paths []string) (IngestOperationStats, error) {
 }
 
 // IngestAndExcise does the same as IngestWithStats, and additionally accepts a
-// list of shared files to ingest that can be read from a shared.Storage through
+// list of shared files to ingest that can be read from a remote.Storage through
 // a Provider. All the shared files must live within exciseSpan, and any existing
 // keys in exciseSpan are deleted by turning existing sstables into virtual
 // sstables (if not virtual already) and shrinking their spans to exclude
 // exciseSpan. See the comment at Ingest for a more complete picture of the
 // ingestion process.
 //
-// Panics if this DB instance was not instantiated with a shared.Storage and
+// Panics if this DB instance was not instantiated with a remote.Storage and
 // shared sstables are present.
 func (d *DB) IngestAndExcise(
 	paths []string, shared []SharedSSTMeta, exciseSpan KeyRange,
@@ -1049,7 +1049,7 @@ func (d *DB) ingest(
 	shared []SharedSSTMeta,
 	exciseSpan KeyRange,
 ) (IngestOperationStats, error) {
-	if len(shared) > 0 && d.opts.Experimental.SharedStorage == nil {
+	if len(shared) > 0 && d.opts.Experimental.RemoteStorage == nil {
 		panic("cannot ingest shared sstables with nil SharedStorage")
 	}
 	if (exciseSpan.Valid() || len(shared) > 0) && d.opts.FormatMajorVersion < ExperimentalFormatVirtualSSTables {

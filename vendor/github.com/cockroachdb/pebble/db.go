@@ -23,7 +23,7 @@ import (
 	"github.com/cockroachdb/pebble/internal/manifest"
 	"github.com/cockroachdb/pebble/internal/manual"
 	"github.com/cockroachdb/pebble/objstorage"
-	"github.com/cockroachdb/pebble/objstorage/shared"
+	"github.com/cockroachdb/pebble/objstorage/remote"
 	"github.com/cockroachdb/pebble/rangekey"
 	"github.com/cockroachdb/pebble/record"
 	"github.com/cockroachdb/pebble/sstable"
@@ -1939,9 +1939,9 @@ type SSTableInfo struct {
 	BackingSSTNum base.FileNum
 	// BackingType is the type of storage backing this sstable.
 	BackingType BackingType
-	// Locator is the shared.Locator backing this sstable, if one was specified
-	// during ingest.
-	Locator shared.Locator
+	// Locator is the remote.Locator backing this sstable, if the backing type is
+	// not BackingTypeLocal.
+	Locator remote.Locator
 
 	// Properties is the sstable properties of this table. If Virtual is true,
 	// then the Properties are associated with the backing sst.
@@ -2567,7 +2567,7 @@ func firstError(err0, err1 error) error {
 // Does nothing if SharedStorage was not set in the options when the DB was
 // opened or if the DB is in read-only mode.
 func (d *DB) SetCreatorID(creatorID uint64) error {
-	if d.opts.Experimental.SharedStorage == nil || d.opts.ReadOnly {
+	if d.opts.Experimental.RemoteStorage == nil || d.opts.ReadOnly {
 		return nil
 	}
 	return d.objProvider.SetCreatorID(objstorage.CreatorID(creatorID))
