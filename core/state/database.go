@@ -123,7 +123,7 @@ func NewDatabase(db ctxcdb.Database) Database {
 // large memory cache.
 func NewDatabaseWithConfig(db ctxcdb.Database, config *trie.Config) Database {
 	return &cachingDB{
-		db:            trie.NewDatabaseWithConfig(db, config),
+		triedb:        trie.NewDatabaseWithConfig(db, config),
 		disk:          db,
 		codeSizeCache: lru.NewCache[common.Hash, int](codeSizeCacheSize),
 		codeCache:     lru.NewSizeConstrainedCache[common.Hash, []byte](codeCacheSize),
@@ -131,7 +131,7 @@ func NewDatabaseWithConfig(db ctxcdb.Database, config *trie.Config) Database {
 }
 
 type cachingDB struct {
-	db            *trie.Database
+	triedb        *trie.Database
 	disk          ctxcdb.KeyValueStore
 	codeSizeCache *lru.Cache[common.Hash, int]
 	codeCache     *lru.SizeConstrainedCache[common.Hash, []byte]
@@ -139,7 +139,7 @@ type cachingDB struct {
 
 // OpenTrie opens the main account trie at a specific root hash.
 func (db *cachingDB) OpenTrie(root common.Hash) (Trie, error) {
-	tr, err := trie.NewSecure(root, db.db)
+	tr, err := trie.NewSecure(root, db.triedb)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +148,7 @@ func (db *cachingDB) OpenTrie(root common.Hash) (Trie, error) {
 
 // OpenStorageTrie opens the storage trie of an account.
 func (db *cachingDB) OpenStorageTrie(addr common.Address, root common.Hash) (Trie, error) {
-	tr, err := trie.NewSecure(root, db.db)
+	tr, err := trie.NewSecure(root, db.triedb)
 	if err != nil {
 		return nil, err
 	}
@@ -213,5 +213,5 @@ func (db *cachingDB) DiskDB() ctxcdb.KeyValueStore {
 
 // TrieDB retrieves any intermediate trie-node caching layer.
 func (db *cachingDB) TrieDB() *trie.Database {
-	return db.db
+	return db.triedb
 }
