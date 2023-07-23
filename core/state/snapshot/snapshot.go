@@ -741,6 +741,7 @@ func (t *Tree) Rebuild(root common.Hash) {
 	// Firstly delete any recovery flag in the database. Because now we are
 	// building a brand new snapshot.
 	rawdb.DeleteSnapshotRecoveryNumber(t.diskdb)
+	rawdb.DeleteSnapshotDisabled(t.diskdb)
 
 	// Track whether there's a wipe currently running and keep it alive if so
 	var wiper chan struct{}
