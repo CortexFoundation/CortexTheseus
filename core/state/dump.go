@@ -132,11 +132,11 @@ func (s *StateDB) dump(c collector, excludeCode, excludeStorage, excludeMissingP
 		addr := common.BytesToAddress(addrBytes)
 		obj := newObject(s, addr, &data)
 		if !excludeCode {
-			account.Code = common.Bytes2Hex(obj.Code(s.db))
+			account.Code = common.Bytes2Hex(obj.Code())
 		}
 		if !excludeStorage {
 			account.Storage = make(map[common.Hash]string)
-			storageIt := trie.NewIterator(obj.getTrie(s.db).NodeIterator(nil))
+			storageIt := trie.NewIterator(obj.getTrie().NodeIterator(nil))
 			for storageIt.Next() {
 				_, content, _, err := rlp.Split(storageIt.Value)
 				if err != nil {

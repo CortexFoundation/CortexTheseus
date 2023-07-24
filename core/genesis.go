@@ -288,7 +288,8 @@ func (g *Genesis) ToBlock(db ctxcdb.Database) *types.Block {
 	if g.Difficulty == nil && g.Mixhash == (common.Hash{}) {
 		head.Difficulty = params.GenesisDifficulty
 	}
-	statedb.Commit(false)
+	statedb.Commit(0, false)
+
 	statedb.Database().TrieDB().Commit(root, true)
 
 	return types.NewBlock(head, nil, nil, nil, trie.NewStackTrie(nil))
