@@ -402,6 +402,7 @@ func (c *tableCacheShard) newIters(
 	}
 
 	hideObsoletePoints := false
+	var pointKeyFilters []BlockPropertyFilter
 	if opts != nil {
 		// This code is appending (at most one filter) in-place to
 		// opts.PointKeyFilters even though the slice is shared for iterators in
@@ -417,7 +418,7 @@ func (c *tableCacheShard) newIters(
 		//
 		// An alternative would be to have different slices for different sstable
 		// iterators, but that requires more work to avoid allocations.
-		hideObsoletePoints, opts.PointKeyFilters =
+		hideObsoletePoints, pointKeyFilters =
 			v.reader.TryAddBlockPropertyFilterForHideObsoletePoints(
 				opts.snapshotForHideObsoletePoints, file.LargestSeqNum, opts.PointKeyFilters)
 	}
@@ -426,7 +427,7 @@ func (c *tableCacheShard) newIters(
 	var err error
 	if opts != nil {
 		ok, filterer, err = c.checkAndIntersectFilters(v, opts.TableFilter,
-			opts.PointKeyFilters, internalOpts.boundLimitedFilter)
+			pointKeyFilters, internalOpts.boundLimitedFilter)
 	}
 	if err != nil {
 		c.unrefValue(v)
@@ -439,6 +440,7 @@ func (c *tableCacheShard) newIters(
 		NewCompactionIter(
 			bytesIterated *uint64,
 			rp sstable.ReaderProvider,
+			bufferPool *sstable.BufferPool,
 		) (sstable.Iterator, error)
 	}
 
@@ -520,7 +522,7 @@ func (c *tableCacheShard) newIters(
 	}
 
 	if internalOpts.bytesIterated != nil {
-		iter, err = ic.NewCompactionIter(internalOpts.bytesIterated, rp)
+		iter, err = ic.NewCompactionIter(internalOpts.bytesIterated, rp, internalOpts.bufferPool)
 	} else {
 		iter, err = ic.NewIterWithBlockPropertyFiltersAndContextEtc(
 			ctx, opts.GetLowerBound(), opts.GetUpperBound(), filterer, hideObsoletePoints, useFilter,
