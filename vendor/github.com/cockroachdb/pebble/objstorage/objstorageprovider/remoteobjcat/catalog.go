@@ -2,7 +2,7 @@
 // of this source code is governed by a BSD-style license that can be found in
 // the LICENSE file.
 
-package sharedobjcat
+package remoteobjcat
 
 import (
 	"fmt"
@@ -19,10 +19,10 @@ import (
 	"github.com/cockroachdb/pebble/vfs/atomicfs"
 )
 
-// Catalog is used to manage the on-disk shared object catalog.
+// Catalog is used to manage the on-disk remote object catalog.
 //
 // The catalog file is a log of records, where each record is an encoded
-// versionEdit.
+// VersionEdit.
 type Catalog struct {
 	fs      vfs.FS
 	dirname string
@@ -30,7 +30,7 @@ type Catalog struct {
 		sync.Mutex
 
 		creatorID objstorage.CreatorID
-		objects   map[base.DiskFileNum]SharedObjectMetadata
+		objects   map[base.DiskFileNum]RemoteObjectMetadata
 
 		marker *atomicfs.Marker
 
@@ -45,8 +45,8 @@ type Catalog struct {
 	}
 }
 
-// SharedObjectMetadata encapsulates the data stored in the catalog file for each object.
-type SharedObjectMetadata struct {
+// RemoteObjectMetadata encapsulates the data stored in the catalog file for each object.
+type RemoteObjectMetadata struct {
 	// FileNum is the identifier for the object within the context of a single DB
 	// instance.
 	FileNum base.DiskFileNum
@@ -67,19 +67,19 @@ type SharedObjectMetadata struct {
 }
 
 const (
-	catalogFilenameBase = "SHARED-CATALOG"
-	catalogMarkerName   = "shared-catalog"
+	catalogFilenameBase = "REMOTE-OBJ-CATALOG"
+	catalogMarkerName   = "remote-obj-catalog"
 
 	// We create a new file when the size exceeds 1MB (and some other conditions
 	// hold; see record.RotationHelper).
 	rotateFileSize = 1024 * 1024 // 1MB
 )
 
-// CatalogContents contains the shared objects in the catalog.
+// CatalogContents contains the remote objects in the catalog.
 type CatalogContents struct {
 	// CreatorID, if it is set.
 	CreatorID objstorage.CreatorID
-	Objects   []SharedObjectMetadata
+	Objects   []RemoteObjectMetadata
 }
 
 // Open creates a Catalog and loads any existing catalog file, returning the
@@ -89,7 +89,7 @@ func Open(fs vfs.FS, dirname string) (*Catalog, CatalogContents, error) {
 		fs:      fs,
 		dirname: dirname,
 	}
-	c.mu.objects = make(map[base.DiskFileNum]SharedObjectMetadata)
+	c.mu.objects = make(map[base.DiskFileNum]RemoteObjectMetadata)
 
 	var err error
 	c.mu.marker, c.mu.catalogFilename, err = atomicfs.LocateMarker(fs, dirname, catalogMarkerName)
@@ -108,7 +108,7 @@ func Open(fs vfs.FS, dirname string) (*Catalog, CatalogContents, error) {
 	}
 	res := CatalogContents{
 		CreatorID: c.mu.creatorID,
-		Objects:   make([]SharedObjectMetadata, 0, len(c.mu.objects)),
+		Objects:   make([]RemoteObjectMetadata, 0, len(c.mu.objects)),
 	}
 	for _, meta := range c.mu.objects {
 		res.Objects = append(res.Objects, meta)
@@ -136,9 +136,9 @@ func (c *Catalog) SetCreatorID(id objstorage.CreatorID) error {
 		return nil
 	}
 
-	ve := versionEdit{CreatorID: id}
+	ve := VersionEdit{CreatorID: id}
 	if err := c.writeToCatalogFileLocked(&ve); err != nil {
-		return errors.Wrapf(err, "pebble: could not write to shared object catalog: %v", err)
+		return errors.Wrapf(err, "pebble: could not write to remote object catalog: %v", err)
 	}
 	c.mu.creatorID = id
 	return nil
@@ -165,14 +165,14 @@ func (c *Catalog) closeCatalogFile() error {
 
 // Batch is used to perform multiple object additions/deletions at once.
 type Batch struct {
-	ve versionEdit
+	ve VersionEdit
 }
 
 // AddObject adds a new object to the batch.
 //
 // The given FileNum must be new - it must not match that of any object that was
 // ever in the catalog.
-func (b *Batch) AddObject(meta SharedObjectMetadata) {
+func (b *Batch) AddObject(meta RemoteObjectMetadata) {
 	b.ve.NewObjects = append(b.ve.NewObjects, meta)
 }
 
@@ -196,7 +196,7 @@ func (b *Batch) IsEmpty() bool {
 func (b *Batch) Copy() Batch {
 	var res Batch
 	if len(b.ve.NewObjects) > 0 {
-		res.ve.NewObjects = make([]SharedObjectMetadata, len(b.ve.NewObjects))
+		res.ve.NewObjects = make([]RemoteObjectMetadata, len(b.ve.NewObjects))
 		copy(res.ve.NewObjects, b.ve.NewObjects)
 	}
 	if len(b.ve.DeletedObjects) > 0 {
@@ -245,7 +245,7 @@ func (c *Catalog) ApplyBatch(b Batch) error {
 	}
 
 	if err := c.writeToCatalogFileLocked(&b.ve); err != nil {
-		return errors.Wrapf(err, "pebble: could not write to shared object catalog: %v", err)
+		return errors.Wrapf(err, "pebble: could not write to remote object catalog: %v", err)
 	}
 
 	b.Reset()
@@ -257,7 +257,7 @@ func (c *Catalog) loadFromCatalogFile(filename string) error {
 	f, err := c.fs.Open(catalogPath)
 	if err != nil {
 		return errors.Wrapf(
-			err, "pebble: could not open shared object catalog file %q for DB %q",
+			err, "pebble: could not open remote object catalog file %q for DB %q",
 			errors.Safe(filename), c.dirname,
 		)
 	}
@@ -269,32 +269,24 @@ func (c *Catalog) loadFromCatalogFile(filename string) error {
 			break
 		}
 		if err != nil {
-			return errors.Wrapf(err, "pebble: error when loading shared object catalog file %q",
+			return errors.Wrapf(err, "pebble: error when loading remote object catalog file %q",
 				errors.Safe(filename))
 		}
-		var ve versionEdit
+		var ve VersionEdit
 		err = ve.Decode(r)
 		if err != nil {
-			return errors.Wrapf(err, "pebble: error when loading shared object catalog file %q",
+			return errors.Wrapf(err, "pebble: error when loading remote object catalog file %q",
 				errors.Safe(filename))
 		}
 		// Apply the version edit to the current state.
-		if ve.CreatorID.IsSet() {
-			c.mu.creatorID = ve.CreatorID
-		}
-		for _, fileNum := range ve.DeletedObjects {
-			delete(c.mu.objects, fileNum)
-		}
-		for _, meta := range ve.NewObjects {
-			c.mu.objects[meta.FileNum] = meta
-		}
+		ve.Apply(&c.mu.creatorID, c.mu.objects)
 	}
 	return nil
 }
 
-// writeToCatalogFileLocked writes a versionEdit to the catalog file.
+// writeToCatalogFileLocked writes a VersionEdit to the catalog file.
 // Creates a new file if this is the first write.
-func (c *Catalog) writeToCatalogFileLocked(ve *versionEdit) error {
+func (c *Catalog) writeToCatalogFileLocked(ve *VersionEdit) error {
 	c.mu.rotationHelper.AddRecord(int64(len(ve.NewObjects) + len(ve.DeletedObjects)))
 	snapshotSize := int64(len(c.mu.objects))
 
@@ -337,10 +329,10 @@ func (c *Catalog) createNewCatalogFileLocked() (outErr error) {
 	}
 	recWriter := record.NewWriter(file)
 	err = func() error {
-		// Create a versionEdit that gets us from an empty catalog to the current state.
-		var ve versionEdit
+		// Create a VersionEdit that gets us from an empty catalog to the current state.
+		var ve VersionEdit
 		ve.CreatorID = c.mu.creatorID
-		ve.NewObjects = make([]SharedObjectMetadata, 0, len(c.mu.objects))
+		ve.NewObjects = make([]RemoteObjectMetadata, 0, len(c.mu.objects))
 		for _, meta := range c.mu.objects {
 			ve.NewObjects = append(ve.NewObjects, meta)
 		}
@@ -375,7 +367,7 @@ func (c *Catalog) createNewCatalogFileLocked() (outErr error) {
 	return nil
 }
 
-func writeRecord(ve *versionEdit, file vfs.File, recWriter *record.Writer) error {
+func writeRecord(ve *VersionEdit, file vfs.File, recWriter *record.Writer) error {
 	w, err := recWriter.Next()
 	if err != nil {
 		return err

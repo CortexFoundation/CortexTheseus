@@ -17,6 +17,7 @@ package nutsdb
 import (
 	"encoding/binary"
 	"errors"
+	"github.com/xujiajun/utils/strconv2"
 	"hash/crc32"
 )
 
@@ -65,13 +66,12 @@ func (e *Entry) Size() int64 {
 
 // Encode returns the slice after the entry be encoded.
 //
-//  the entry stored format:
-//  |----------------------------------------------------------------------------------------------------------------|
-//  |  crc  | timestamp | ksz | valueSize | flag  | TTL  |bucketSize| status | ds   | txId |  bucket |  key  | value |
-//  |----------------------------------------------------------------------------------------------------------------|
-//  | uint32| uint64  |uint32 |  uint32 | uint16  | uint32| uint32 | uint16 | uint16 |uint64 |[]byte|[]byte | []byte |
-//  |----------------------------------------------------------------------------------------------------------------|
-//
+//	the entry stored format:
+//	|----------------------------------------------------------------------------------------------------------------|
+//	|  crc  | timestamp | ksz | valueSize | flag  | TTL  |bucketSize| status | ds   | txId |  bucket |  key  | value |
+//	|----------------------------------------------------------------------------------------------------------------|
+//	| uint32| uint64  |uint32 |  uint32 | uint16  | uint32| uint32 | uint16 | uint16 |uint64 |[]byte|[]byte | []byte |
+//	|----------------------------------------------------------------------------------------------------------------|
 func (e *Entry) Encode() []byte {
 	keySize := e.Meta.KeySize
 	valueSize := e.Meta.ValueSize
@@ -144,6 +144,7 @@ func (e *Entry) ParsePayload(data []byte) error {
 	return nil
 }
 
+// checkPayloadSize checks the payload size
 func (e *Entry) checkPayloadSize(size int64) error {
 	if e.Meta.PayloadSize() != size {
 		return payLoadSizeMismatchErr
@@ -151,31 +152,33 @@ func (e *Entry) checkPayloadSize(size int64) error {
 	return nil
 }
 
+// ParseMeta parse meta object to entry
 func (e *Entry) ParseMeta(buf []byte) error {
-	meta := &MetaData{
-		Crc:        binary.LittleEndian.Uint32(buf[0:4]),
-		Timestamp:  binary.LittleEndian.Uint64(buf[4:12]),
-		KeySize:    binary.LittleEndian.Uint32(buf[12:16]),
-		ValueSize:  binary.LittleEndian.Uint32(buf[16:20]),
-		Flag:       binary.LittleEndian.Uint16(buf[20:22]),
-		TTL:        binary.LittleEndian.Uint32(buf[22:26]),
-		BucketSize: binary.LittleEndian.Uint32(buf[26:30]),
-		Status:     binary.LittleEndian.Uint16(buf[30:32]),
-		Ds:         binary.LittleEndian.Uint16(buf[32:34]),
-		TxID:       binary.LittleEndian.Uint64(buf[34:42]),
-	}
-	e.Meta = meta
+	e.Meta = NewMetaData().WithCrc(binary.LittleEndian.Uint32(buf[0:4])).
+		WithTimeStamp(binary.LittleEndian.Uint64(buf[4:12])).WithKeySize(binary.LittleEndian.Uint32(buf[12:16])).
+		WithValueSize(binary.LittleEndian.Uint32(buf[16:20])).WithFlag(binary.LittleEndian.Uint16(buf[20:22])).
+		WithTTL(binary.LittleEndian.Uint32(buf[22:26])).WithBucketSize(binary.LittleEndian.Uint32(buf[26:30])).
+		WithStatus(binary.LittleEndian.Uint16(buf[30:32])).WithDs(binary.LittleEndian.Uint16(buf[32:34])).
+		WithTxID(binary.LittleEndian.Uint64(buf[34:42]))
 	return nil
 }
 
 // isFilter to confirm if this entry is can be filtered
 func (e *Entry) isFilter() bool {
 	meta := e.Meta
-	if meta.Flag == DataDeleteFlag || meta.Flag == DataRPopFlag ||
-		meta.Flag == DataLPopFlag || meta.Flag == DataLRemFlag ||
-		meta.Flag == DataLTrimFlag || meta.Flag == DataZRemFlag ||
-		meta.Flag == DataZRemRangeByRankFlag || meta.Flag == DataZPopMaxFlag ||
-		meta.Flag == DataZPopMinFlag || meta.Flag == DataLRemByIndex ||
+	var filterDataSet = []uint16{
+		DataDeleteFlag,
+		DataRPopFlag,
+		DataLPopFlag,
+		DataLRemFlag,
+		DataLTrimFlag,
+		DataZRemFlag,
+		DataZRemRangeByRankFlag,
+		DataZPopMaxFlag,
+		DataZPopMinFlag,
+		DataLRemByIndex,
+	}
+	if OneOfUint16Array(meta.Flag, filterDataSet) ||
 		IsExpired(meta.TTL, meta.Timestamp) {
 		return true
 	}
@@ -183,6 +186,7 @@ func (e *Entry) isFilter() bool {
 	return false
 }
 
+// valid check the entry fields valid or not
 func (e *Entry) valid() error {
 	if len(e.Key) == 0 {
 		return ErrKeyEmpty
@@ -191,4 +195,126 @@ func (e *Entry) valid() error {
 		return ErrDataSizeExceed
 	}
 	return nil
+}
+
+// NewHint new Hint object
+func NewHint() *Hint {
+	return new(Hint)
+}
+
+// WithKey set key to Hint
+func (h *Hint) WithKey(key []byte) *Hint {
+	h.Key = key
+	return h
+}
+
+// WithFileId set FileID to Hint
+func (h *Hint) WithFileId(fid int64) *Hint {
+	h.FileID = fid
+	return h
+}
+
+// WithMeta set Meta to Hint
+func (h *Hint) WithMeta(meta *MetaData) *Hint {
+	h.Meta = meta
+	return h
+}
+
+// WithDataPos set DataPos to Hint
+func (h *Hint) WithDataPos(pos uint64) *Hint {
+	h.DataPos = pos
+	return h
+}
+
+// NewEntry new Entry Object
+func NewEntry() *Entry {
+	return new(Entry)
+}
+
+// WithKey set key to Entry
+func (e *Entry) WithKey(key []byte) *Entry {
+	e.Key = key
+	return e
+}
+
+// WithValue set value to Entry
+func (e *Entry) WithValue(value []byte) *Entry {
+	e.Value = value
+	return e
+}
+
+// WithMeta set meta to Entry
+func (e *Entry) WithMeta(meta *MetaData) *Entry {
+	e.Meta = meta
+	return e
+}
+
+// WithBucket set bucket to Entry
+func (e *Entry) WithBucket(bucket []byte) *Entry {
+	e.Bucket = bucket
+	return e
+}
+
+// GetBucketString return the string of bucket
+func (e *Entry) GetBucketString() string {
+	return string(e.Bucket)
+}
+
+// GetTxIDBytes return the bytes of TxID
+func (e *Entry) GetTxIDBytes() []byte {
+	return []byte(strconv2.Int64ToStr(int64(e.Meta.TxID)))
+}
+
+func NewMetaData() *MetaData {
+	return new(MetaData)
+}
+
+func (meta *MetaData) WithKeySize(keySize uint32) *MetaData {
+	meta.KeySize = keySize
+	return meta
+}
+
+func (meta *MetaData) WithValueSize(valueSize uint32) *MetaData {
+	meta.ValueSize = valueSize
+	return meta
+}
+
+func (meta *MetaData) WithTimeStamp(timestamp uint64) *MetaData {
+	meta.Timestamp = timestamp
+	return meta
+}
+
+func (meta *MetaData) WithTTL(ttl uint32) *MetaData {
+	meta.TTL = ttl
+	return meta
+}
+
+func (meta *MetaData) WithFlag(flag uint16) *MetaData {
+	meta.Flag = flag
+	return meta
+}
+
+func (meta *MetaData) WithBucketSize(bucketSize uint32) *MetaData {
+	meta.BucketSize = bucketSize
+	return meta
+}
+
+func (meta *MetaData) WithTxID(txID uint64) *MetaData {
+	meta.TxID = txID
+	return meta
+}
+
+func (meta *MetaData) WithStatus(status uint16) *MetaData {
+	meta.Status = status
+	return meta
+}
+
+func (meta *MetaData) WithDs(ds uint16) *MetaData {
+	meta.Ds = ds
+	return meta
+}
+
+func (meta *MetaData) WithCrc(crc uint32) *MetaData {
+	meta.Crc = crc
+	return meta
 }

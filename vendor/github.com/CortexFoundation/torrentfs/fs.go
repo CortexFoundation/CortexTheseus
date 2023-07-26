@@ -397,9 +397,7 @@ func (fs *TorrentFS) HandlePeer(peer *p2p.Peer, rw p2p.MsgReadWriter) error {
 	fs.record(peer.ID().String())
 
 	tfsPeer.start()
-	defer func() {
-		tfsPeer.stop()
-	}()
+	defer tfsPeer.stop()
 
 	return fs.runMessageLoop(tfsPeer)
 }
