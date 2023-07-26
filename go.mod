@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.52-0.20230726123847-15c871b871af
+	github.com/CortexFoundation/torrentfs v1.0.52-0.20230726133100-5420612255ee
 	github.com/VictoriaMetrics/fastcache v1.12.1
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.19.0
@@ -137,7 +137,7 @@ require (
 	github.com/crate-crypto/go-ipa v0.0.0-20230710183535-d5eb1c4661bd // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
 	github.com/deepmap/oapi-codegen v1.13.0 // indirect
-	github.com/dgraph-io/badger/v4 v4.0.2-0.20230612214140-c903578894e4 // indirect
+	github.com/dgraph-io/badger/v4 v4.0.2-0.20230718055455-ec80d3d3526a // indirect
 	github.com/dgraph-io/ristretto v0.1.1 // indirect
 	github.com/dlclark/regexp2 v1.10.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
@@ -191,7 +191,7 @@ require (
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
-	github.com/nutsdb/nutsdb v0.12.6 // indirect
+	github.com/nutsdb/nutsdb v0.12.7-0.20230726115229-a8e3cbad7085 // indirect
 	github.com/onsi/gomega v1.20.0 // indirect
 	github.com/otiai10/copy v1.12.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.9 // indirect
@@ -222,8 +222,8 @@ require (
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/rosedblabs/go-immutable-radix/v2 v2.0.1-0.20230614125820-f2a7bc058c90 // indirect
-	github.com/rosedblabs/rosedb/v2 v2.2.1 // indirect
-	github.com/rosedblabs/wal v1.2.0 // indirect
+	github.com/rosedblabs/rosedb/v2 v2.2.2-0.20230725110004-f96ca2a09197 // indirect
+	github.com/rosedblabs/wal v1.2.1-0.20230720135650-d5d56517e0a3 // indirect
 	github.com/rs/dnscache v0.0.0-20211102005908-e0241e321417 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
@@ -235,7 +235,7 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ucwong/filecache v1.0.6-0.20230405163841-810d53ced4bd // indirect
 	github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb // indirect
-	github.com/ucwong/golang-kv v1.0.22-0.20230722073244-66070a1ddace // indirect
+	github.com/ucwong/golang-kv v1.0.22-0.20230726132106-a11c05086281 // indirect
 	github.com/ucwong/shard v1.0.1-0.20230505153952-911e99b5f0c2 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect

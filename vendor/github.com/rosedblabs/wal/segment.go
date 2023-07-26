@@ -48,6 +48,7 @@ type segment struct {
 	currentBlockSize   uint32
 	closed             bool
 	cache              *lru.Cache[uint64, []byte]
+	header             []byte
 }
 
 // segmentReader is used to iterate all the data from the segment file.
@@ -93,6 +94,7 @@ func openSegmentFile(dirPath, extName string, id uint32, cache *lru.Cache[uint64
 		id:                 id,
 		fd:                 fd,
 		cache:              cache,
+		header:             make([]byte, chunkHeaderSize),
 		currentBlockNumber: uint32(offset / blockSize),
 		currentBlockSize:   uint32(offset % blockSize),
 	}, nil
@@ -215,20 +217,21 @@ func (seg *segment) Write(data []byte) (*ChunkPosition, error) {
 
 func (seg *segment) writeInternal(data []byte, chunkType ChunkType) error {
 	dataSize := uint32(len(data))
-	buf := make([]byte, dataSize+chunkHeaderSize)
 
 	// Length	2 Bytes	index:4-5
-	binary.LittleEndian.PutUint16(buf[4:6], uint16(dataSize))
+	binary.LittleEndian.PutUint16(seg.header[4:6], uint16(dataSize))
 	// Type	1 Byte	index:6
-	buf[6] = chunkType
-	// data N Bytes index:7-end
-	copy(buf[7:], data)
+	seg.header[6] = chunkType
 	// Checksum	4 Bytes index:0-3
-	sum := crc32.ChecksumIEEE(buf[4:])
-	binary.LittleEndian.PutUint32(buf[:4], sum)
+	sum := crc32.ChecksumIEEE(seg.header[4:])
+	sum = crc32.Update(sum, crc32.IEEETable, data)
+	binary.LittleEndian.PutUint32(seg.header[:4], sum)
 
 	// append to the file
-	if _, err := seg.fd.Write(buf); err != nil {
+	if _, err := seg.fd.Write(seg.header); err != nil {
+		return err
+	}
+	if _, err := seg.fd.Write(data); err != nil {
 		return err
 	}
 
@@ -369,4 +372,52 @@ func (segReader *segmentReader) Next() ([]byte, *ChunkPosition, error) {
 	segReader.chunkOffset = nextChunk.ChunkOffset
 
 	return value, chunkPosition, nil
+}
+
+// Encode encodes the chunk position to a byte slice.
+// You can decode it by calling wal.DecodeChunkPosition().
+func (cp *ChunkPosition) Encode() []byte {
+	maxLen := binary.MaxVarintLen32*3 + binary.MaxVarintLen64
+	buf := make([]byte, maxLen)
+
+	var index = 0
+	// SegmentId
+	index += binary.PutUvarint(buf[index:], uint64(cp.SegmentId))
+	// BlockNumber
+	index += binary.PutUvarint(buf[index:], uint64(cp.BlockNumber))
+	// ChunkOffset
+	index += binary.PutUvarint(buf[index:], uint64(cp.ChunkOffset))
+	// ChunkSize
+	index += binary.PutUvarint(buf[index:], uint64(cp.ChunkSize))
+
+	return buf[:index]
+}
+
+// DecodeChunkPosition decodes the chunk position from a byte slice.
+// You can encode it by calling wal.ChunkPosition.Encode().
+func DecodeChunkPosition(buf []byte) *ChunkPosition {
+	if len(buf) == 0 {
+		return nil
+	}
+
+	var index = 0
+	// SegmentId
+	segmentId, n := binary.Uvarint(buf[index:])
+	index += n
+	// BlockNumber
+	blockNumber, n := binary.Uvarint(buf[index:])
+	index += n
+	// ChunkOffset
+	chunkOffset, n := binary.Uvarint(buf[index:])
+	index += n
+	// ChunkSize
+	chunkSize, n := binary.Uvarint(buf[index:])
+	index += n
+
+	return &ChunkPosition{
+		SegmentId:   uint32(segmentId),
+		BlockNumber: uint32(blockNumber),
+		ChunkOffset: int64(chunkOffset),
+		ChunkSize:   uint32(chunkSize),
+	}
 }
