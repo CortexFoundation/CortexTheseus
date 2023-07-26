@@ -10,11 +10,10 @@ import (
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
-// Deletes a reusable delegation set. You can delete a reusable delegation set only
-// if it isn't associated with any hosted zones. To verify that the reusable
+// Deletes a reusable delegation set. You can delete a reusable delegation set
+// only if it isn't associated with any hosted zones. To verify that the reusable
 // delegation set is not associated with any hosted zones, submit a
-// GetReusableDelegationSet
-// (https://docs.aws.amazon.com/Route53/latest/APIReference/API_GetReusableDelegationSet.html)
+// GetReusableDelegationSet (https://docs.aws.amazon.com/Route53/latest/APIReference/API_GetReusableDelegationSet.html)
 // request and specify the ID of the reusable delegation set that you want to
 // delete.
 func (c *Client) DeleteReusableDelegationSet(ctx context.Context, params *DeleteReusableDelegationSetInput, optFns ...func(*Options)) (*DeleteReusableDelegationSetOutput, error) {
@@ -87,7 +86,7 @@ func (c *Client) addOperationDeleteReusableDelegationSetMiddlewares(stack *middl
 	if err = awsmiddleware.AddRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = addClientUserAgent(stack); err != nil {
+	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
 	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
@@ -100,6 +99,9 @@ func (c *Client) addOperationDeleteReusableDelegationSetMiddlewares(stack *middl
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opDeleteReusableDelegationSet(options.Region), middleware.Before); err != nil {
+		return err
+	}
+	if err = awsmiddleware.AddRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {

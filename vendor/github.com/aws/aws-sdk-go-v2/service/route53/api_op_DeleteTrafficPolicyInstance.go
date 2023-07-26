@@ -31,9 +31,9 @@ func (c *Client) DeleteTrafficPolicyInstance(ctx context.Context, params *Delete
 // A request to delete a specified traffic policy instance.
 type DeleteTrafficPolicyInstanceInput struct {
 
-	// The ID of the traffic policy instance that you want to delete. When you delete a
-	// traffic policy instance, Amazon Route 53 also deletes all of the resource record
-	// sets that were created when you created the traffic policy instance.
+	// The ID of the traffic policy instance that you want to delete. When you delete
+	// a traffic policy instance, Amazon Route 53 also deletes all of the resource
+	// record sets that were created when you created the traffic policy instance.
 	//
 	// This member is required.
 	Id *string
@@ -85,7 +85,7 @@ func (c *Client) addOperationDeleteTrafficPolicyInstanceMiddlewares(stack *middl
 	if err = awsmiddleware.AddRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = addClientUserAgent(stack); err != nil {
+	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
 	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
@@ -98,6 +98,9 @@ func (c *Client) addOperationDeleteTrafficPolicyInstanceMiddlewares(stack *middl
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opDeleteTrafficPolicyInstance(options.Region), middleware.Before); err != nil {
+		return err
+	}
+	if err = awsmiddleware.AddRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {

@@ -12,8 +12,8 @@ import (
 )
 
 // Gets information about a specified traffic policy instance. After you submit a
-// CreateTrafficPolicyInstance or an UpdateTrafficPolicyInstance request, there's a
-// brief delay while Amazon Route 53 creates the resource record sets that are
+// CreateTrafficPolicyInstance or an UpdateTrafficPolicyInstance request, there's
+// a brief delay while Amazon Route 53 creates the resource record sets that are
 // specified in the traffic policy definition. For more information, see the State
 // response element. In the Route 53 console, traffic policy instances are known as
 // policy records.
@@ -94,7 +94,7 @@ func (c *Client) addOperationGetTrafficPolicyInstanceMiddlewares(stack *middlewa
 	if err = awsmiddleware.AddRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = addClientUserAgent(stack); err != nil {
+	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
 	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
@@ -107,6 +107,9 @@ func (c *Client) addOperationGetTrafficPolicyInstanceMiddlewares(stack *middlewa
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opGetTrafficPolicyInstance(options.Region), middleware.Before); err != nil {
+		return err
+	}
+	if err = awsmiddleware.AddRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {

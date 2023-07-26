@@ -34,8 +34,8 @@ func (c *Client) CreateTrafficPolicy(ctx context.Context, params *CreateTrafficP
 type CreateTrafficPolicyInput struct {
 
 	// The definition of this traffic policy in JSON format. For more information, see
-	// Traffic Policy Document Format
-	// (https://docs.aws.amazon.com/Route53/latest/APIReference/api-policies-traffic-policy-document-format.html).
+	// Traffic Policy Document Format (https://docs.aws.amazon.com/Route53/latest/APIReference/api-policies-traffic-policy-document-format.html)
+	// .
 	//
 	// This member is required.
 	Document *string
@@ -107,7 +107,7 @@ func (c *Client) addOperationCreateTrafficPolicyMiddlewares(stack *middleware.St
 	if err = awsmiddleware.AddRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = addClientUserAgent(stack); err != nil {
+	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
 	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
@@ -120,6 +120,9 @@ func (c *Client) addOperationCreateTrafficPolicyMiddlewares(stack *middleware.St
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opCreateTrafficPolicy(options.Region), middleware.Before); err != nil {
+		return err
+	}
+	if err = awsmiddleware.AddRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {

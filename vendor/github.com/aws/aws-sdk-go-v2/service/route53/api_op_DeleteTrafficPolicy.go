@@ -10,21 +10,15 @@ import (
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
-// Deletes a traffic policy. When you delete a traffic policy, Route 53 sets a flag
-// on the policy to indicate that it has been deleted. However, Route 53 never
+// Deletes a traffic policy. When you delete a traffic policy, Route 53 sets a
+// flag on the policy to indicate that it has been deleted. However, Route 53 never
 // fully deletes the traffic policy. Note the following:
-//
-// * Deleted traffic
-// policies aren't listed if you run ListTrafficPolicies
-// (https://docs.aws.amazon.com/Route53/latest/APIReference/API_ListTrafficPolicies.html).
-//
-// *
-// There's no way to get a list of deleted policies.
-//
-// * If you retain the ID of the
-// policy, you can get information about the policy, including the traffic policy
-// document, by running GetTrafficPolicy
-// (https://docs.aws.amazon.com/Route53/latest/APIReference/API_GetTrafficPolicy.html).
+//   - Deleted traffic policies aren't listed if you run ListTrafficPolicies (https://docs.aws.amazon.com/Route53/latest/APIReference/API_ListTrafficPolicies.html)
+//     .
+//   - There's no way to get a list of deleted policies.
+//   - If you retain the ID of the policy, you can get information about the
+//     policy, including the traffic policy document, by running GetTrafficPolicy (https://docs.aws.amazon.com/Route53/latest/APIReference/API_GetTrafficPolicy.html)
+//     .
 func (c *Client) DeleteTrafficPolicy(ctx context.Context, params *DeleteTrafficPolicyInput, optFns ...func(*Options)) (*DeleteTrafficPolicyOutput, error) {
 	if params == nil {
 		params = &DeleteTrafficPolicyInput{}
@@ -100,7 +94,7 @@ func (c *Client) addOperationDeleteTrafficPolicyMiddlewares(stack *middleware.St
 	if err = awsmiddleware.AddRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = addClientUserAgent(stack); err != nil {
+	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
 	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
@@ -113,6 +107,9 @@ func (c *Client) addOperationDeleteTrafficPolicyMiddlewares(stack *middleware.St
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opDeleteTrafficPolicy(options.Region), middleware.Before); err != nil {
+		return err
+	}
+	if err = awsmiddleware.AddRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {

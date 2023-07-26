@@ -260,10 +260,13 @@ func (m *Monitor) indexInit() error {
 			fileMap[file.Meta.InfoHash] = file
 		}
 	}
-	capcity := uint64(0)
-	seed := 0
-	pause := 0
-	pending := 0
+
+	var (
+		capcity = uint64(0)
+		seed    = 0
+		pause   = 0
+		pending = 0
+	)
 
 	for _, file := range fileMap {
 		var bytesRequested uint64
@@ -655,9 +658,9 @@ func (m *Monitor) syncLatestBlock() {
 	for {
 		select {
 		case sv := <-m.srvCh:
-			//log.Info("Do switch start", "srv", sv)
-			m.doSwitch(sv)
-			//log.Info("Do switch finish", "srv", sv)
+			if err := m.doSwitch(sv); err != nil {
+				log.Error("Service switch failed", "srv", sv, "err", err)
+			}
 		case <-timer.C:
 			//m.currentBlock()
 			progress = m.syncLastBlock()
@@ -877,51 +880,39 @@ func (m *Monitor) solve(block *types.Block) error {
 }
 
 func (m *Monitor) SwitchService(srv int) error {
-	//log.Info("Srv start", "srv", srv, "ch", cap(m.srvCh))
-	//if cap(m.srvCh) == 0 {
+	log.Debug("Srv switch start", "srv", srv, "ch", cap(m.srvCh))
 	select {
 	case m.srvCh <- srv:
 	case <-m.exitCh:
 		return nil
 	}
-	//} else {
-	//	return errors.New("can't switch service right now")
-	//}
-	//log.Info("Srv end", "srv", srv, "ch", cap(m.srvCh))
+	log.Debug("Srv switch end", "srv", srv, "ch", cap(m.srvCh))
 	return nil
 }
+
 func (m *Monitor) doSwitch(srv int) error {
 	if m.srv.Load() != int32(srv) {
-		//if m.lastNumber.Load() > 0 {
-		// TODO record last block according to old service category
 		switch m.srv.Load() {
 		case SRV_MODEL:
 			if m.lastNumber.Load() > 0 {
-				//close(m.exitSyncCh)
-
 				m.fs.Anchor(m.lastNumber.Load())
 				m.fs.Flush()
-				log.Info("Model srv flush", "last", m.lastNumber.Load())
+				log.Debug("Model srv flush", "last", m.lastNumber.Load())
 			}
 		case SRV_RECORD:
 			if m.lastNumber.Load() > 0 {
-				//close(m.exitSyncCh)
-
-				log.Info("Record srv flush", "last", m.lastNumber.Load())
+				log.Debug("Record srv flush", "last", m.lastNumber.Load())
 				m.engine.Set([]byte("srv_record_last"), []byte(strconv.FormatUint(m.lastNumber.Load(), 16)))
 			}
+		default:
+			return errors.New("Invalid current service")
 		}
 
-		// TODO load last block according to new service category
 		switch srv {
 		case SRV_MODEL:
 			m.fs.InitBlockNumber()
 			m.lastNumber.Store(m.fs.LastListenBlockNumber())
-			log.Info("Model srv load", "last", m.lastNumber.Load())
-
-			//m.exitSyncCh = make(chan any)
-			//m.wg.Add(1)
-			//go m.syncLatestBlock()
+			log.Debug("Model srv load", "last", m.lastNumber.Load())
 		case SRV_RECORD:
 			if v := m.engine.Get([]byte("srv_record_last")); v != nil {
 				if number, err := strconv.ParseUint(string(v), 16, 64); err == nil {
@@ -932,16 +923,14 @@ func (m *Monitor) doSwitch(srv int) error {
 			} else {
 				m.lastNumber.Store(0)
 			}
-			log.Info("Record srv load", "last", m.lastNumber.Load())
-
-			//m.exitSyncCh = make(chan any)
-			//m.wg.Add(1)
-			//go m.syncLatestBlock()
+			log.Debug("Record srv load", "last", m.lastNumber.Load())
+		default:
+			return errors.New("Unknow service")
 		}
-		//}
 		m.srv.Store(int32(srv))
 		log.Info("Service switch", "srv", m.srv.Load(), "last", m.lastNumber.Load())
 	}
+
 	return nil
 }
 

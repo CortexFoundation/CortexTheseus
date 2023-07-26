@@ -16,8 +16,7 @@ import (
 // resource record sets, the future status of the health check can't be predicted
 // and may change. This will affect the routing of DNS queries for your DNS
 // failover configuration. For more information, see Replacing and Deleting Health
-// Checks
-// (https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/health-checks-creating-deleting.html#health-checks-deleting.html)
+// Checks (https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/health-checks-creating-deleting.html#health-checks-deleting.html)
 // in the Amazon Route 53 Developer Guide. If you're using Cloud Map and you
 // configured Cloud Map to create a Route 53 health check when you register an
 // instance, you can't use the Route 53 DeleteHealthCheck command to delete the
@@ -94,7 +93,7 @@ func (c *Client) addOperationDeleteHealthCheckMiddlewares(stack *middleware.Stac
 	if err = awsmiddleware.AddRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = addClientUserAgent(stack); err != nil {
+	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
 	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
@@ -107,6 +106,9 @@ func (c *Client) addOperationDeleteHealthCheckMiddlewares(stack *middleware.Stac
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opDeleteHealthCheck(options.Region), middleware.Before); err != nil {
+		return err
+	}
+	if err = awsmiddleware.AddRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {

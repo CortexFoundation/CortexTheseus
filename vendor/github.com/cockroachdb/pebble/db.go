@@ -23,6 +23,7 @@ import (
 	"github.com/cockroachdb/pebble/internal/manifest"
 	"github.com/cockroachdb/pebble/internal/manual"
 	"github.com/cockroachdb/pebble/objstorage"
+	"github.com/cockroachdb/pebble/objstorage/remote"
 	"github.com/cockroachdb/pebble/rangekey"
 	"github.com/cockroachdb/pebble/record"
 	"github.com/cockroachdb/pebble/sstable"
@@ -1904,7 +1905,30 @@ func WithApproximateSpanBytes() SSTablesOption {
 	}
 }
 
-// SSTableInfo export manifest.TableInfo with sstable.Properties
+// BackingType denotes the type of storage backing a given sstable.
+type BackingType int
+
+const (
+	// BackingTypeLocal denotes an sstable stored on local disk according to the
+	// objprovider. This file is completely owned by us.
+	BackingTypeLocal BackingType = iota
+	// BackingTypeShared denotes an sstable stored on shared storage, created
+	// by this Pebble instance and possibly shared by other Pebble instances.
+	// These types of files have lifecycle managed by Pebble.
+	BackingTypeShared
+	// BackingTypeSharedForeign denotes an sstable stored on shared storage,
+	// created by a Pebble instance other than this one. These types of files have
+	// lifecycle managed by Pebble.
+	BackingTypeSharedForeign
+	// BackingTypeExternal denotes an sstable stored on external storage,
+	// not owned by any Pebble instance and with no refcounting/cleanup methods
+	// or lifecycle management. An example of an external file is a file restored
+	// from a backup.
+	BackingTypeExternal
+)
+
+// SSTableInfo export manifest.TableInfo with sstable.Properties alongside
+// other file backing info.
 type SSTableInfo struct {
 	manifest.TableInfo
 	// Virtual indicates whether the sstable is virtual.
@@ -1913,6 +1937,11 @@ type SSTableInfo struct {
 	// backs the sstable associated with this SSTableInfo. If Virtual is false,
 	// then BackingSSTNum == FileNum.
 	BackingSSTNum base.FileNum
+	// BackingType is the type of storage backing this sstable.
+	BackingType BackingType
+	// Locator is the remote.Locator backing this sstable, if the backing type is
+	// not BackingTypeLocal.
+	Locator remote.Locator
 
 	// Properties is the sstable properties of this table. If Virtual is true,
 	// then the Properties are associated with the backing sst.
@@ -1972,6 +2001,24 @@ func (d *DB) SSTables(opts ...SSTablesOption) ([][]SSTableInfo, error) {
 			}
 			destTables[j].Virtual = m.Virtual
 			destTables[j].BackingSSTNum = m.FileBacking.DiskFileNum.FileNum()
+			objMeta, err := d.objProvider.Lookup(fileTypeTable, m.FileBacking.DiskFileNum)
+			if err != nil {
+				return nil, err
+			}
+			if objMeta.IsRemote() {
+				if objMeta.IsShared() {
+					if d.objProvider.IsForeign(objMeta) {
+						destTables[j].BackingType = BackingTypeSharedForeign
+					} else {
+						destTables[j].BackingType = BackingTypeShared
+					}
+				} else {
+					destTables[j].BackingType = BackingTypeExternal
+				}
+				destTables[j].Locator = objMeta.Remote.Locator
+			} else {
+				destTables[j].BackingType = BackingTypeLocal
+			}
 
 			if opt.withApproximateSpanBytes {
 				var spanBytes uint64
@@ -1984,7 +2031,15 @@ func (d *DB) SSTables(opts ...SSTablesOption) ([][]SSTableInfo, error) {
 					}
 					spanBytes = size
 				}
-				destTables[j].Properties.UserProperties["approximate-span-bytes"] = strconv.FormatUint(spanBytes, 10)
+				propertiesCopy := *destTables[j].Properties
+
+				// Deep copy user properties so approximate span bytes can be added.
+				propertiesCopy.UserProperties = make(map[string]string, len(destTables[j].Properties.UserProperties)+1)
+				for k, v := range destTables[j].Properties.UserProperties {
+					propertiesCopy.UserProperties[k] = v
+				}
+				propertiesCopy.UserProperties["approximate-span-bytes"] = strconv.FormatUint(spanBytes, 10)
+				destTables[j].Properties = &propertiesCopy
 			}
 			j++
 		}
@@ -2009,11 +2064,20 @@ func (d *DB) SSTables(opts ...SSTablesOption) ([][]SSTableInfo, error) {
 //   - There may also exist WAL entries for unflushed keys in this range. This
 //     estimation currently excludes space used for the range in the WAL.
 func (d *DB) EstimateDiskUsage(start, end []byte) (uint64, error) {
+	bytes, _, _, err := d.EstimateDiskUsageByBackingType(start, end)
+	return bytes, err
+}
+
+// EstimateDiskUsageByBackingType is like EstimateDiskUsage but additionally
+// returns the subsets of that size in remote ane external files.
+func (d *DB) EstimateDiskUsageByBackingType(
+	start, end []byte,
+) (totalSize, remoteSize, externalSize uint64, _ error) {
 	if err := d.closed.Load(); err != nil {
 		panic(err)
 	}
 	if d.opts.Comparer.Compare(start, end) > 0 {
-		return 0, errors.New("invalid key-range specified (start > end)")
+		return 0, 0, 0, errors.New("invalid key-range specified (start > end)")
 	}
 
 	// Grab and reference the current readState. This prevents the underlying
@@ -2022,7 +2086,6 @@ func (d *DB) EstimateDiskUsage(start, end []byte) (uint64, error) {
 	readState := d.loadReadState()
 	defer readState.unref()
 
-	var totalSize uint64
 	for level, files := range readState.current.Levels {
 		iter := files.Iter()
 		if level > 0 {
@@ -2037,6 +2100,16 @@ func (d *DB) EstimateDiskUsage(start, end []byte) (uint64, error) {
 				d.opts.Comparer.Compare(file.Largest.UserKey, end) <= 0 {
 				// The range fully contains the file, so skip looking it up in
 				// table cache/looking at its indexes, and add the full file size.
+				meta, err := d.objProvider.Lookup(fileTypeTable, file.FileBacking.DiskFileNum)
+				if err != nil {
+					return 0, 0, 0, err
+				}
+				if meta.IsRemote() {
+					remoteSize += file.Size
+					if meta.Remote.CleanupMethod == objstorage.SharedNoCleanup {
+						externalSize += file.Size
+					}
+				}
 				totalSize += file.Size
 			} else if d.opts.Comparer.Compare(file.Smallest.UserKey, end) <= 0 &&
 				d.opts.Comparer.Compare(start, file.Largest.UserKey) <= 0 {
@@ -2060,13 +2133,23 @@ func (d *DB) EstimateDiskUsage(start, end []byte) (uint64, error) {
 					)
 				}
 				if err != nil {
-					return 0, err
+					return 0, 0, 0, err
+				}
+				meta, err := d.objProvider.Lookup(fileTypeTable, file.FileBacking.DiskFileNum)
+				if err != nil {
+					return 0, 0, 0, err
+				}
+				if meta.IsRemote() {
+					remoteSize += size
+					if meta.Remote.CleanupMethod == objstorage.SharedNoCleanup {
+						externalSize += size
+					}
 				}
 				totalSize += size
 			}
 		}
 	}
-	return totalSize, nil
+	return totalSize, remoteSize, externalSize, nil
 }
 
 func (d *DB) walPreallocateSize() int {
@@ -2484,7 +2567,7 @@ func firstError(err0, err1 error) error {
 // Does nothing if SharedStorage was not set in the options when the DB was
 // opened or if the DB is in read-only mode.
 func (d *DB) SetCreatorID(creatorID uint64) error {
-	if d.opts.Experimental.SharedStorage == nil || d.opts.ReadOnly {
+	if d.opts.Experimental.RemoteStorage == nil || d.opts.ReadOnly {
 		return nil
 	}
 	return d.objProvider.SetCreatorID(objstorage.CreatorID(creatorID))

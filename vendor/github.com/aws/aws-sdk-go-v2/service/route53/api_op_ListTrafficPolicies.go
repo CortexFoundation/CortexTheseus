@@ -14,9 +14,9 @@ import (
 // Gets information about the latest version for every traffic policy that is
 // associated with the current Amazon Web Services account. Policies are listed in
 // the order that they were created in. For information about how of deleting a
-// traffic policy affects the response from ListTrafficPolicies, see
-// DeleteTrafficPolicy
-// (https://docs.aws.amazon.com/Route53/latest/APIReference/API_DeleteTrafficPolicy.html).
+// traffic policy affects the response from ListTrafficPolicies , see
+// DeleteTrafficPolicy (https://docs.aws.amazon.com/Route53/latest/APIReference/API_DeleteTrafficPolicy.html)
+// .
 func (c *Client) ListTrafficPolicies(ctx context.Context, params *ListTrafficPoliciesInput, optFns ...func(*Options)) (*ListTrafficPoliciesOutput, error) {
 	if params == nil {
 		params = &ListTrafficPoliciesInput{}
@@ -39,16 +39,16 @@ type ListTrafficPoliciesInput struct {
 
 	// (Optional) The maximum number of traffic policies that you want Amazon Route 53
 	// to return in response to this request. If you have more than MaxItems traffic
-	// policies, the value of IsTruncated in the response is true, and the value of
+	// policies, the value of IsTruncated in the response is true , and the value of
 	// TrafficPolicyIdMarker is the ID of the first traffic policy that Route 53 will
 	// return if you submit another request.
 	MaxItems *int32
 
-	// (Conditional) For your first request to ListTrafficPolicies, don't include the
+	// (Conditional) For your first request to ListTrafficPolicies , don't include the
 	// TrafficPolicyIdMarker parameter. If you have more traffic policies than the
-	// value of MaxItems, ListTrafficPolicies returns only the first MaxItems traffic
+	// value of MaxItems , ListTrafficPolicies returns only the first MaxItems traffic
 	// policies. To get the next group of policies, submit another request to
-	// ListTrafficPolicies. For the value of TrafficPolicyIdMarker, specify the value
+	// ListTrafficPolicies . For the value of TrafficPolicyIdMarker , specify the value
 	// of TrafficPolicyIdMarker that was returned in the previous response.
 	TrafficPolicyIdMarker *string
 
@@ -72,7 +72,7 @@ type ListTrafficPoliciesOutput struct {
 	// This member is required.
 	MaxItems *int32
 
-	// If the value of IsTruncated is true, TrafficPolicyIdMarker is the ID of the
+	// If the value of IsTruncated is true , TrafficPolicyIdMarker is the ID of the
 	// first traffic policy in the next group of MaxItems traffic policies.
 	//
 	// This member is required.
@@ -126,7 +126,7 @@ func (c *Client) addOperationListTrafficPoliciesMiddlewares(stack *middleware.St
 	if err = awsmiddleware.AddRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = addClientUserAgent(stack); err != nil {
+	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
 	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
@@ -136,6 +136,9 @@ func (c *Client) addOperationListTrafficPoliciesMiddlewares(stack *middleware.St
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opListTrafficPolicies(options.Region), middleware.Before); err != nil {
+		return err
+	}
+	if err = awsmiddleware.AddRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {

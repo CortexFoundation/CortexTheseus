@@ -154,7 +154,7 @@ func printNotice(nodeKey *ecdsa.PublicKey, addr net.UDPAddr) {
 func doPortMapping(natm nat.Interface, ln *enode.LocalNode, addr *net.UDPAddr) *net.UDPAddr {
 	const (
 		protocol = "udp"
-		name     = "ethereum discovery"
+		name     = "cortex discovery"
 	)
 	newLogger := func(external int, internal int) log.Logger {
 		return log.New("proto", protocol, "extport", external, "intport", internal, "interface", natm)

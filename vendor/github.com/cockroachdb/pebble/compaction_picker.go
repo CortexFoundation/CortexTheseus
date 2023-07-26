@@ -805,19 +805,21 @@ func (p *compactionPickerByScore) estimatedCompactionDebt(l0ExtraSize uint64) ui
 	// We assume that all the bytes in L0 need to be compacted to Lbase. This is
 	// unlike the RocksDB logic that figures out whether L0 needs compaction.
 	bytesAddedToNextLevel := l0ExtraSize + uint64(p.levelSizes[0])
-	nextLevelSize := uint64(p.levelSizes[p.baseLevel])
+	lbaseSize := uint64(p.levelSizes[p.baseLevel])
 
 	var compactionDebt uint64
-	if bytesAddedToNextLevel > 0 && nextLevelSize > 0 {
+	if bytesAddedToNextLevel > 0 && lbaseSize > 0 {
 		// We only incur compaction debt if both L0 and Lbase contain data. If L0
 		// is empty, no compaction is necessary. If Lbase is empty, a move-based
 		// compaction from L0 would occur.
-		compactionDebt += bytesAddedToNextLevel + nextLevelSize
+		compactionDebt += bytesAddedToNextLevel + lbaseSize
 	}
 
+	// loop invariant: At the beginning of the loop, bytesAddedToNextLevel is the
+	// bytes added to `level` in the loop.
 	for level := p.baseLevel; level < numLevels-1; level++ {
-		levelSize := nextLevelSize + bytesAddedToNextLevel
-		nextLevelSize = uint64(p.levelSizes[level+1])
+		levelSize := uint64(p.levelSizes[level]) + bytesAddedToNextLevel
+		nextLevelSize := uint64(p.levelSizes[level+1])
 		if levelSize > uint64(p.levelMaxBytes[level]) {
 			bytesAddedToNextLevel = levelSize - uint64(p.levelMaxBytes[level])
 			if nextLevelSize > 0 {
@@ -828,9 +830,11 @@ func (p *compactionPickerByScore) estimatedCompactionDebt(l0ExtraSize uint64) ui
 				// The next level contributes levelRatio * bytesAddedToNextLevel.
 				compactionDebt += uint64(float64(bytesAddedToNextLevel) * (levelRatio + 1))
 			}
+		} else {
+			// We're not moving any bytes to the next level.
+			bytesAddedToNextLevel = 0
 		}
 	}
-
 	return compactionDebt
 }
 
@@ -1259,10 +1263,10 @@ func (p *compactionPickerByScore) pickAuto(env compactionEnv) (pc *pickedCompact
 			}
 			fmt.Fprintf(&buf, "  %sL%d: %5.1f  %5.1f  %5.1f %8s  %8s",
 				marker, info.level, info.score, info.origScore, info.rawScore,
-				humanize.Int64(int64(totalCompensatedSize(
+				humanize.Bytes.Int64(int64(totalCompensatedSize(
 					p.vers.Levels[info.level].Iter(),
 				))),
-				humanize.Int64(p.levelMaxBytes[info.level]),
+				humanize.Bytes.Int64(p.levelMaxBytes[info.level]),
 			)
 
 			count := 0
