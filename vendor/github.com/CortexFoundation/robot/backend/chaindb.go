@@ -246,10 +246,10 @@ func (fs *ChainDB) addLeaf(block *types.Block, mes bool, dup bool) error {
 	if mes {
 		log.Debug("Messing", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.checkPoint.Load(), "mes", mes, "dup", dup)
 		sort.Slice(fs.leaves, func(i, j int) bool {
-			return fs.leaves[i].(merkletree.BlockContent).N() < fs.leaves[j].(merkletree.BlockContent).N()
+			return fs.leaves[i].(*merkletree.BlockContent).N() < fs.leaves[j].(*merkletree.BlockContent).N()
 		})
 
-		i := sort.Search(len(fs.leaves), func(i int) bool { return fs.leaves[i].(merkletree.BlockContent).N() > number })
+		i := sort.Search(len(fs.leaves), func(i int) bool { return fs.leaves[i].(*merkletree.BlockContent).N() > number })
 
 		if i > len(fs.leaves) {
 			i = len(fs.leaves)
