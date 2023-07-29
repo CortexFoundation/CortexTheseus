@@ -17,11 +17,13 @@ package nutsdb
 import (
 	"errors"
 	"fmt"
+	"github.com/gofrs/flock"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -51,6 +53,11 @@ var (
 
 	// ErrNotSupportHintBPTSparseIdxMode is returned not support mode `HintBPTSparseIdxMode`
 	ErrNotSupportHintBPTSparseIdxMode = errors.New("not support mode `HintBPTSparseIdxMode`")
+
+	// ErrDirLocked is returned when can't get the file lock of dir
+	ErrDirLocked = errors.New("the dir of db is locked")
+
+	ErrDirUnlocked = errors.New("the dir of db is unlocked")
 )
 
 const (
@@ -146,6 +153,8 @@ const (
 	DataStructureNone
 )
 
+const FLockName = "nutsdb-flock"
+
 type (
 	// DB represents a collection of buckets that persist on disk.
 	DB struct {
@@ -156,7 +165,7 @@ type (
 		bucketMetas             BucketMetasIdx
 		SetIdx                  SetIdx
 		SortedSetIdx            SortedSetIdx
-		ListIdx                 ListIdx
+		Index                   *index
 		ActiveFile              *DataFile
 		ActiveBPTreeIdx         *BPTree
 		ActiveCommittedTxIdsIdx *BPTree
@@ -167,6 +176,7 @@ type (
 		closed                  bool
 		isMerging               bool
 		fm                      *fileManager
+		flock                   *flock.Flock
 	}
 
 	// Entries represents entries
@@ -182,7 +192,6 @@ func open(opt Options) (*DB, error) {
 		BPTreeIdx:               make(BPTreeIdx),
 		SetIdx:                  make(SetIdx),
 		SortedSetIdx:            make(SortedSetIdx),
-		ListIdx:                 make(ListIdx),
 		ActiveBPTreeIdx:         NewTree(),
 		MaxFileID:               0,
 		opt:                     opt,
@@ -192,6 +201,7 @@ func open(opt Options) (*DB, error) {
 		BPTreeKeyEntryPosMap:    make(map[string]int64),
 		bucketMetas:             make(map[string]*BucketMeta),
 		ActiveCommittedTxIdsIdx: NewTree(),
+		Index:                   NewIndex(),
 		fm:                      newFileManager(opt.RWMode, opt.MaxFdNumsInCache, opt.CleanFdsCacheThreshold),
 	}
 
@@ -200,6 +210,15 @@ func open(opt Options) (*DB, error) {
 			return nil, err
 		}
 	}
+
+	flock := flock.New(filepath.Join(opt.Dir, FLockName))
+	if ok, err := flock.TryLock(); err != nil {
+		return nil, err
+	} else if !ok {
+		return nil, ErrDirLocked
+	}
+
+	db.flock = flock
 
 	if err := db.checkEntryIdxMode(); err != nil {
 		return nil, err
@@ -332,7 +351,7 @@ func (db *DB) Merge() error {
 
 	for _, pendingMergeFId := range pendingMergeFIds {
 		off = 0
-		path := db.getDataPath(int64(pendingMergeFId))
+		path := getDataPath(int64(pendingMergeFId), db.opt.Dir)
 		fr, err := newFileRecovery(path, db.opt.BufferSizeOfRecovery)
 		if err != nil {
 			db.isMerging = false
@@ -434,17 +453,7 @@ func (db *DB) Close() error {
 
 	db.closed = true
 
-	err := db.ActiveFile.rwManager.Release()
-	if err != nil {
-		return err
-	}
-
-	db.ActiveFile = nil
-
-	db.BPTreeIdx = nil
-
-	err = db.fm.close()
-
+	err := db.release()
 	if err != nil {
 		return err
 	}
@@ -452,9 +461,64 @@ func (db *DB) Close() error {
 	return nil
 }
 
+// release set all obj in the db instance to nil
+func (db *DB) release() error {
+	GCEnable := db.opt.GCWhenClose
+
+	err := db.ActiveFile.rwManager.Release()
+	if err != nil {
+		return err
+	}
+
+	db.BPTreeIdx = nil
+
+	db.BPTreeKeyEntryPosMap = nil
+
+	db.bucketMetas = nil
+
+	db.SetIdx = nil
+
+	db.SortedSetIdx = nil
+
+	db.Index = nil
+
+	db.ActiveFile = nil
+
+	db.ActiveBPTreeIdx = nil
+
+	db.ActiveCommittedTxIdsIdx = nil
+
+	db.committedTxIds = nil
+
+	err = db.fm.close()
+
+	if err != nil {
+		return err
+	}
+
+	if !db.flock.Locked() {
+		return ErrDirUnlocked
+	}
+
+	err = db.flock.Unlock()
+	if err != nil {
+		return err
+	}
+
+	db.fm = nil
+
+	db = nil
+
+	if GCEnable {
+		runtime.GC()
+	}
+
+	return nil
+}
+
 // setActiveFile sets the ActiveFile (DataFile object).
 func (db *DB) setActiveFile() (err error) {
-	filepath := db.getDataPath(db.MaxFileID)
+	filepath := getDataPath(db.MaxFileID, db.opt.Dir)
 	db.ActiveFile, err = db.fm.getDataFile(filepath, db.opt.SegmentSize)
 	if err != nil {
 		return
@@ -527,7 +591,6 @@ func (db *DB) getActiveFileWriteOff() (off int64, err error) {
 func (db *DB) parseDataFiles(dataFileIds []int) (unconfirmedRecords []*Record, committedTxIds map[uint64]struct{}, err error) {
 	var (
 		off int64
-		e   *Entry
 	)
 
 	committedTxIds = make(map[uint64]struct{})
@@ -539,7 +602,7 @@ func (db *DB) parseDataFiles(dataFileIds []int) (unconfirmedRecords []*Record, c
 	for _, dataID := range dataFileIds {
 		off = 0
 		fID := int64(dataID)
-		path := db.getDataPath(fID)
+		path := getDataPath(fID, db.opt.Dir)
 		f, err := newFileRecovery(path, db.opt.BufferSizeOfRecovery)
 		if err != nil {
 			return nil, nil, err
@@ -551,32 +614,24 @@ func (db *DB) parseDataFiles(dataFileIds []int) (unconfirmedRecords []*Record, c
 					break
 				}
 
-				e = nil
+				var e *Entry
 				if db.opt.EntryIdxMode == HintKeyValAndRAMIdxMode {
-					e = &Entry{
-						Key:    entry.Key,
-						Bucket: entry.Bucket,
-						Value:  entry.Value,
-						Meta:   entry.Meta,
-					}
+					e = NewEntry().WithKey(entry.Key).WithValue(entry.Value).WithBucket(entry.Bucket).WithMeta(entry.Meta)
 				}
 
 				if entry.Meta.Status == Committed {
 					committedTxIds[entry.Meta.TxID] = struct{}{}
-					db.ActiveCommittedTxIdsIdx.Insert([]byte(strconv2.Int64ToStr(int64(entry.Meta.TxID))), nil,
-						&Hint{Meta: &MetaData{Flag: DataSetFlag}}, CountFlagEnabled)
+					meta := NewMetaData().WithFlag(DataSetFlag)
+					h := NewHint().WithMeta(meta)
+					err := db.ActiveCommittedTxIdsIdx.Insert(entry.GetTxIDBytes(), nil, h, CountFlagEnabled)
+					if err != nil {
+						return nil, nil, fmt.Errorf("can not ingest the hint obj to ActiveCommittedTxIdsIdx, err: %s", err.Error())
+					}
 				}
 
-				unconfirmedRecords = append(unconfirmedRecords, &Record{
-					H: &Hint{
-						Key:     entry.Key,
-						FileID:  fID,
-						Meta:    entry.Meta,
-						DataPos: uint64(off),
-					},
-					E:      e,
-					Bucket: string(entry.Bucket),
-				})
+				h := NewHint().WithKey(entry.Key).WithFileId(fID).WithMeta(entry.Meta).WithDataPos(uint64(off))
+				r := NewRecord().WithHint(h).WithEntry(e).WithBucket(entry.GetBucketString())
+				unconfirmedRecords = append(unconfirmedRecords, r)
 
 				if db.opt.EntryIdxMode == HintBPTSparseIdxMode {
 					db.BPTreeKeyEntryPosMap[string(getNewKey(string(entry.Bucket), entry.Key))] = off
@@ -625,7 +680,7 @@ func (db *DB) buildBPTreeRootIdxes(dataFileIds []int) error {
 
 	for i := 0; i < len(dataFileIds[0:dataFileIdsSize-1]); i++ {
 		off = 0
-		path := db.getBPTRootPath(int64(dataFileIds[i]))
+		path := getBPTRootPath(int64(dataFileIds[i]), db.opt.Dir)
 		fd, err := os.OpenFile(filepath.Clean(path), os.O_RDWR, os.ModePerm)
 		if err != nil {
 			return err
@@ -678,7 +733,7 @@ func (db *DB) buildActiveBPTreeIdx(r *Record) error {
 
 func (db *DB) buildBucketMetaIdx() error {
 	if db.opt.EntryIdxMode == HintBPTSparseIdxMode {
-		files, err := ioutil.ReadDir(db.getBucketMetaPath())
+		files, err := ioutil.ReadDir(getBucketMetaPath(db.opt.Dir))
 		if err != nil {
 			return err
 		}
@@ -693,7 +748,7 @@ func (db *DB) buildBucketMetaIdx() error {
 
 				name = strings.TrimSuffix(name, BucketMetaSuffix)
 
-				bucketMeta, err := ReadBucketMeta(db.getBucketMetaFilePath(name))
+				bucketMeta, err := ReadBucketMeta(getBucketMetaFilePath(name, db.opt.Dir))
 				if err == io.EOF {
 					break
 				}
@@ -809,7 +864,7 @@ func (db *DB) deleteBucket(ds uint16, bucket string) {
 		delete(db.BPTreeIdx, bucket)
 	}
 	if ds == DataStructureList {
-		delete(db.ListIdx, bucket)
+		db.Index.deleteList(bucket)
 	}
 }
 
@@ -875,9 +930,7 @@ func (db *DB) buildSortedSetIdx(bucket string, r *Record) error {
 
 // buildListIdx builds List index when opening the DB.
 func (db *DB) buildListIdx(bucket string, r *Record) error {
-	if _, ok := db.ListIdx[bucket]; !ok {
-		db.ListIdx[bucket] = list.New()
-	}
+	l := db.Index.getList(bucket)
 
 	if r.E == nil {
 		return ErrEntryIdxModeOpt
@@ -892,33 +945,33 @@ func (db *DB) buildListIdx(bucket string, r *Record) error {
 			return err
 		}
 		ttl := uint32(t)
-		db.ListIdx[bucket].TTL[string(r.E.Key)] = ttl
-		db.ListIdx[bucket].TimeStamp[string(r.E.Key)] = r.E.Meta.Timestamp
+		l.TTL[string(r.E.Key)] = ttl
+		l.TimeStamp[string(r.E.Key)] = r.E.Meta.Timestamp
 	case DataLPushFlag:
-		_, _ = db.ListIdx[bucket].LPush(string(r.E.Key), r.E.Value)
+		_, _ = l.LPush(string(r.E.Key), r.E.Value)
 	case DataRPushFlag:
-		_, _ = db.ListIdx[bucket].RPush(string(r.E.Key), r.E.Value)
+		_, _ = l.RPush(string(r.E.Key), r.E.Value)
 	case DataLRemFlag:
 		countAndValueIndex := strings.Split(string(r.E.Value), SeparatorForListKey)
 		count, _ := strconv2.StrToInt(countAndValueIndex[0])
 		value := []byte(countAndValueIndex[1])
 
-		if _, err := db.ListIdx[bucket].LRem(string(r.E.Key), count, value); err != nil {
+		if _, err := l.LRem(string(r.E.Key), count, value); err != nil {
 			return ErrWhenBuildListIdx(err)
 		}
 	case DataLPopFlag:
-		if _, err := db.ListIdx[bucket].LPop(string(r.E.Key)); err != nil {
+		if _, err := l.LPop(string(r.E.Key)); err != nil {
 			return ErrWhenBuildListIdx(err)
 		}
 	case DataRPopFlag:
-		if _, err := db.ListIdx[bucket].RPop(string(r.E.Key)); err != nil {
+		if _, err := l.RPop(string(r.E.Key)); err != nil {
 			return ErrWhenBuildListIdx(err)
 		}
 	case DataLSetFlag:
 		keyAndIndex := strings.Split(string(r.E.Key), SeparatorForListKey)
 		newKey := keyAndIndex[0]
 		index, _ := strconv2.StrToInt(keyAndIndex[1])
-		if err := db.ListIdx[bucket].LSet(newKey, index, r.E.Value); err != nil {
+		if err := l.LSet(newKey, index, r.E.Value); err != nil {
 			return ErrWhenBuildListIdx(err)
 		}
 	case DataLTrimFlag:
@@ -926,7 +979,7 @@ func (db *DB) buildListIdx(bucket string, r *Record) error {
 		newKey := keyAndStartIndex[0]
 		start, _ := strconv2.StrToInt(keyAndStartIndex[1])
 		end, _ := strconv2.StrToInt(string(r.E.Value))
-		if err := db.ListIdx[bucket].Ltrim(newKey, start, end); err != nil {
+		if err := l.Ltrim(newKey, start, end); err != nil {
 			return ErrWhenBuildListIdx(err)
 		}
 	case DataLRemByIndex:
@@ -934,7 +987,7 @@ func (db *DB) buildListIdx(bucket string, r *Record) error {
 		if err != nil {
 			return err
 		}
-		if _, err := db.ListIdx[bucket].LRemByIndex(string(r.E.Key), indexes); err != nil {
+		if _, err := l.LRemByIndex(string(r.E.Key), indexes); err != nil {
 			return ErrWhenBuildListIdx(err)
 		}
 	}
@@ -989,71 +1042,26 @@ func (db *DB) managed(writable bool, fn func(tx *Tx) error) (err error) {
 		return err
 	}
 	defer func() {
-		var panicked bool
 		if r := recover(); r != nil {
-			// resume normal execution
-			panicked = true
-		}
-		if panicked || err != nil {
-			if errRollback := tx.Rollback(); errRollback != nil {
-				err = errRollback
-			}
+			err = fmt.Errorf("panic when executing tx, err is %+v", r)
 		}
 	}()
 
 	if err = fn(tx); err == nil {
 		err = tx.Commit()
+	} else {
+		if db.opt.ErrorHandler != nil {
+			db.opt.ErrorHandler.HandleError(err)
+		}
+
+		errRollback := tx.Rollback()
+		err = fmt.Errorf("%v. Rollback err: %v", err, errRollback)
 	}
+
 	return err
 }
 
 const bptDir = "bpt"
-
-// getDataPath returns the data path at given fid.
-func (db *DB) getDataPath(fID int64) string {
-	separator := string(filepath.Separator)
-	return db.opt.Dir + separator + strconv2.Int64ToStr(fID) + DataSuffix
-}
-
-func (db *DB) getMetaPath() string {
-	separator := string(filepath.Separator)
-	return db.opt.Dir + separator + "meta"
-}
-
-func (db *DB) getBucketMetaPath() string {
-	separator := string(filepath.Separator)
-	return db.getMetaPath() + separator + "bucket"
-}
-
-func (db *DB) getBucketMetaFilePath(name string) string {
-	separator := string(filepath.Separator)
-	return db.getBucketMetaPath() + separator + name + BucketMetaSuffix
-}
-
-func (db *DB) getBPTDir() string {
-	separator := string(filepath.Separator)
-	return db.opt.Dir + separator + bptDir
-}
-
-func (db *DB) getBPTPath(fID int64) string {
-	separator := string(filepath.Separator)
-	return db.getBPTDir() + separator + strconv2.Int64ToStr(fID) + BPTIndexSuffix
-}
-
-func (db *DB) getBPTRootPath(fID int64) string {
-	separator := string(filepath.Separator)
-	return db.getBPTDir() + separator + "root" + separator + strconv2.Int64ToStr(fID) + BPTRootIndexSuffix
-}
-
-func (db *DB) getBPTTxIDPath(fID int64) string {
-	separator := string(filepath.Separator)
-	return db.getBPTDir() + separator + "txid" + separator + strconv2.Int64ToStr(fID) + BPTTxIDIndexSuffix
-}
-
-func (db *DB) getBPTRootTxIDPath(fID int64) string {
-	separator := string(filepath.Separator)
-	return db.getBPTDir() + separator + "txid" + separator + strconv2.Int64ToStr(fID) + BPTRootTxIDIndexSuffix
-}
 
 func (db *DB) getPendingMergeEntries(entry *Entry, pendingMergeEntries []*Entry) []*Entry {
 	if entry.Meta.Ds == DataStructureBPTree {
@@ -1094,8 +1102,9 @@ func (db *DB) getPendingMergeEntries(entry *Entry, pendingMergeEntries []*Entry)
 		//if expired, it will clear the items of index
 		//so that nutsdb can clear entry of expiring list in the function getPendingMergeEntries
 		db.checkListExpired()
-		listIdx, exist := db.ListIdx[string(entry.Bucket)]
-		if exist {
+		listIdx := db.Index.getList(string(entry.Bucket))
+
+		if listIdx != nil {
 			items, _ := listIdx.LRange(string(entry.Key), 0, -1)
 			ok := false
 			if entry.Meta.Flag == DataRPushFlag || entry.Meta.Flag == DataLPushFlag {
@@ -1125,7 +1134,7 @@ func (db *DB) reWriteData(pendingMergeEntries []*Entry) error {
 		return err
 	}
 
-	dataFile, err := db.fm.getDataFile(db.getDataPath(db.MaxFileID+1), db.opt.SegmentSize)
+	dataFile, err := db.fm.getDataFile(getDataPath(db.MaxFileID+1, db.opt.Dir), db.opt.SegmentSize)
 	if err != nil {
 		db.isMerging = false
 		return err
@@ -1160,12 +1169,11 @@ func (db *DB) getRecordFromKey(bucket, key []byte) (record *Record, err error) {
 }
 
 func (db *DB) checkListExpired() {
-	listIdx := db.ListIdx
-	for bucket := range listIdx {
-		for key := range listIdx[bucket].TTL {
-			listIdx[bucket].IsExpire(key)
+	db.Index.rangeList(func(l *list.List) {
+		for key := range l.TTL {
+			l.IsExpire(key)
 		}
-	}
+	})
 }
 
 // IsClose return the value that represents the status of DB

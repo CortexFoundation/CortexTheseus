@@ -1143,16 +1143,19 @@ func (s *StateDB) Commit(block uint64, deleteEmptyObjects bool) (common.Hash, er
 	// Commit objects to the trie, measuring the elapsed time
 	codeWriter := s.db.DiskDB().NewBatch()
 	for addr := range s.stateObjectsDirty {
-		if obj := s.stateObjects[addr]; !obj.deleted {
-			// Write any contract code associated with the state object
-			if obj.code != nil && obj.dirtyCode {
-				rawdb.WriteCode(codeWriter, common.BytesToHash(obj.CodeHash()), obj.code)
-				obj.dirtyCode = false
-			}
-			// Write any storage changes in the state object to its storage trie
-			if err := obj.commit(); err != nil {
-				return common.Hash{}, err
-			}
+		obj := s.stateObjects[addr]
+		if obj.deleted {
+			continue
+		}
+		// Write any contract code associated with the state object
+		if obj.code != nil && obj.dirtyCode {
+			rawdb.WriteCode(codeWriter, common.BytesToHash(obj.CodeHash()), obj.code)
+			s.trie.UpdateContractCode(obj.Address(), common.BytesToHash(obj.CodeHash()), obj.code)
+			obj.dirtyCode = false
+		}
+		// Write any storage changes in the state object to its storage trie
+		if err := obj.commit(); err != nil {
+			return common.Hash{}, err
 		}
 	}
 	if len(s.stateObjectsDirty) > 0 {
@@ -1209,13 +1212,12 @@ func (s *StateDB) Commit(block uint64, deleteEmptyObjects bool) (common.Hash, er
 	if root == (common.Hash{}) {
 		root = types.EmptyRootHash
 	}
-	origin := s.originalRoot
+	/*origin := s.originalRoot
 	if origin == (common.Hash{}) {
 		origin = types.EmptyRootHash
 	}
 	if root != origin {
 		start := time.Now()
-		/*
 			set := &triestate.Set{
 				Accounts:   s.accountsOrigin,
 				Storages:   s.storagesOrigin,
@@ -1225,12 +1227,11 @@ func (s *StateDB) Commit(block uint64, deleteEmptyObjects bool) (common.Hash, er
 				return common.Hash{}, err
 			}
 			s.originalRoot = root
-		*/
 
 		if metrics.EnabledExpensive {
 			s.TrieDBCommits += time.Since(start)
 		}
-	}
+	}*/
 
 	// Clear all internal flags at the end of commit operation.
 	s.accounts = make(map[common.Hash][]byte)

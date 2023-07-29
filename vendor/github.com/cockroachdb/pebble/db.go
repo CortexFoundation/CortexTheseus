@@ -909,7 +909,7 @@ func (d *DB) commitWrite(b *Batch, syncWG *sync.WaitGroup, syncErr *error) (*mem
 		b.flushable.setSeqNum(b.SeqNum())
 		if !d.opts.DisableWAL {
 			var err error
-			size, b.commitStats.WALQueueWaitDuration, err = d.mu.log.SyncRecord(repr, syncWG, syncErr)
+			size, err = d.mu.log.SyncRecord(repr, syncWG, syncErr)
 			if err != nil {
 				panic(err)
 			}
@@ -947,7 +947,7 @@ func (d *DB) commitWrite(b *Batch, syncWG *sync.WaitGroup, syncErr *error) (*mem
 	}
 
 	if b.flushable == nil {
-		size, b.commitStats.WALQueueWaitDuration, err = d.mu.log.SyncRecord(repr, syncWG, syncErr)
+		size, err = d.mu.log.SyncRecord(repr, syncWG, syncErr)
 		if err != nil {
 			panic(err)
 		}
@@ -2561,7 +2561,7 @@ func firstError(err0, err1 error) error {
 }
 
 // SetCreatorID sets the CreatorID which is needed in order to use shared objects.
-// Shared object usage is disabled until this method is called the first time.
+// Remote object usage is disabled until this method is called the first time.
 // Once set, the Creator ID is persisted and cannot change.
 //
 // Does nothing if SharedStorage was not set in the options when the DB was

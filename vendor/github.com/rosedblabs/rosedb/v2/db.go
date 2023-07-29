@@ -92,12 +92,12 @@ func Open(options Options) (*DB, error) {
 
 	// open data files from WAL
 	walFiles, err := wal.Open(wal.Options{
-		DirPath:       options.DirPath,
-		SegmentSize:   options.SegmentSize,
-		SementFileExt: dataFileNameSuffix,
-		BlockCache:    options.BlockCache,
-		Sync:          options.Sync,
-		BytesPerSync:  options.BytesPerSync,
+		DirPath:        options.DirPath,
+		SegmentSize:    options.SegmentSize,
+		SegmentFileExt: dataFileNameSuffix,
+		BlockCache:     options.BlockCache,
+		Sync:           options.Sync,
+		BytesPerSync:   options.BytesPerSync,
 	})
 	if err != nil {
 		return nil, err
@@ -261,6 +261,7 @@ func (db *DB) loadIndexFromWAL() error {
 		// and we can load index from the hint file directly.
 		if reader.CurrentSegmentId() <= mergeFinSegmentId {
 			reader.SkipCurrentSegment()
+			continue
 		}
 
 		chunk, position, err := reader.Next()
