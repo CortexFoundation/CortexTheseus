@@ -19,7 +19,6 @@ import (
 	"errors"
 	"os"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -79,12 +78,6 @@ var (
 	// ErrNotFoundBucket is returned when key not found int the bucket on an view function.
 	ErrNotFoundBucket = errors.New("bucket not found")
 )
-
-var cachePool = sync.Pool{
-	New: func() interface{} {
-		return new(bytes.Buffer)
-	},
-}
 
 // Tx represents a transaction.
 type Tx struct {
@@ -204,11 +197,8 @@ func (tx *Tx) Commit() (err error) {
 		countFlag = CountFlagDisabled
 	}
 
-	buff := cachePool.Get().(*bytes.Buffer)
-	defer func() {
-		buff.Reset()
-		cachePool.Put(buff)
-	}()
+	buff := tx.allocCommitBuffer()
+	defer tx.db.commitBuffer.Reset()
 
 	for i := 0; i < writesLen; i++ {
 		entry := tx.pendingWrites[i]
@@ -277,6 +267,11 @@ func (tx *Tx) Commit() (err error) {
 		if entry.Meta.Ds == DataStructureBPTree {
 			tx.buildBPTreeIdx(bucket, entry, e, offset, countFlag)
 		}
+
+		if entry.Meta.Ds == DataStructureList {
+			tx.buildListIdx(bucket, entry, offset)
+		}
+
 		if entry.Meta.Ds == DataStructureNone && entry.Meta.Flag == DataBPTreeBucketDeleteFlag {
 			tx.db.deleteBucket(DataStructureBPTree, bucket)
 		}
@@ -285,6 +280,25 @@ func (tx *Tx) Commit() (err error) {
 	tx.buildIdxes()
 
 	return nil
+}
+
+func (tx *Tx) allocCommitBuffer() *bytes.Buffer {
+	var txSize int64
+	for i := 0; i < len(tx.pendingWrites); i++ {
+		txSize += tx.pendingWrites[i].Size()
+	}
+
+	var buff *bytes.Buffer
+
+	if txSize < tx.db.opt.CommitBufferSize {
+		buff = tx.db.commitBuffer
+	} else {
+		buff = new(bytes.Buffer)
+		// avoid grow
+		buff.Grow(int(txSize))
+	}
+
+	return buff
 }
 
 func (tx *Tx) buildTempBucketMetaIdx(bucket string, key []byte, bucketMetaTemp BucketMeta) BucketMeta {
@@ -412,9 +426,9 @@ func (tx *Tx) buildIdxes() {
 			tx.buildSortedSetIdx(bucket, entry)
 		}
 
-		if entry.Meta.Ds == DataStructureList {
-			tx.buildListIdx(bucket, entry)
-		}
+		//if entry.Meta.Ds == DataStructureList {
+		//	tx.buildListIdx(bucket, entry)
+		//}
 
 		if entry.Meta.Ds == DataStructureNone {
 			if entry.Meta.Flag == DataSetBucketDeleteFlag {
@@ -496,13 +510,26 @@ func (tx *Tx) buildSortedSetIdx(bucket string, entry *Entry) {
 	}
 }
 
-func (tx *Tx) buildListIdx(bucket string, entry *Entry) {
+func (tx *Tx) buildListIdx(bucket string, entry *Entry, offset int64) {
 	l := tx.db.Index.getList(bucket)
 
 	key, value := entry.Key, entry.Value
 	if IsExpired(entry.Meta.TTL, entry.Meta.Timestamp) {
 		return
 	}
+
+	var (
+		h *Hint
+		e *Entry
+	)
+	if tx.db.opt.EntryIdxMode == HintKeyAndRAMIdxMode {
+		h = NewHint().WithFileId(tx.db.ActiveFile.fileID).WithKey(entry.Key).WithMeta(entry.Meta).WithDataPos(uint64(offset))
+	} else {
+		e = entry
+	}
+
+	r := NewRecord().WithBucket(bucket).WithEntry(e).WithHint(h)
+
 	switch entry.Meta.Flag {
 	case DataExpireListFlag:
 		t, _ := strconv2.StrToInt64(string(value))
@@ -510,15 +537,21 @@ func (tx *Tx) buildListIdx(bucket string, entry *Entry) {
 		l.TTL[string(key)] = ttl
 		l.TimeStamp[string(key)] = entry.Meta.Timestamp
 	case DataLPushFlag:
-		_, _ = l.LPush(string(key), value)
+		_ = l.LPush(string(key), r)
 	case DataRPushFlag:
-		_, _ = l.RPush(string(key), value)
+		_ = l.RPush(string(key), r)
 	case DataLRemFlag:
 		countAndValue := strings.Split(string(value), SeparatorForListKey)
 		count, _ := strconv2.StrToInt(countAndValue[0])
 		newValue := countAndValue[1]
 
-		_, _ = l.LRem(string(key), count, []byte(newValue))
+		_ = l.LRem(string(key), count, func(r *Record) (bool, error) {
+			v, err := tx.db.getValueByRecord(r)
+			if err != nil {
+				return false, err
+			}
+			return bytes.Equal([]byte(newValue), v), nil
+		})
 
 	case DataLPopFlag:
 		_, _ = l.LPop(string(key))
@@ -528,16 +561,16 @@ func (tx *Tx) buildListIdx(bucket string, entry *Entry) {
 		keyAndIndex := strings.Split(string(key), SeparatorForListKey)
 		newKey := keyAndIndex[0]
 		index, _ := strconv2.StrToInt(keyAndIndex[1])
-		_ = l.LSet(newKey, index, value)
+		_ = l.LSet(newKey, index, r)
 	case DataLTrimFlag:
 		keyAndStartIndex := strings.Split(string(key), SeparatorForListKey)
 		newKey := keyAndStartIndex[0]
 		start, _ := strconv2.StrToInt(keyAndStartIndex[1])
 		end, _ := strconv2.StrToInt(string(value))
-		_ = l.Ltrim(newKey, start, end)
+		_ = l.LTrim(newKey, start, end)
 	case DataLRemByIndex:
 		indexes, _ := UnmarshalInts(value)
-		_, _ = l.LRemByIndex(string(key), indexes)
+		_ = l.LRemByIndex(string(key), indexes)
 	}
 }
 
@@ -715,6 +748,7 @@ func (tx *Tx) put(bucket string, key, value []byte, ttl uint32, flag uint16, tim
 
 	meta := NewMetaData().WithTimeStamp(timestamp).WithKeySize(uint32(len(key))).WithValueSize(uint32(len(value))).WithFlag(flag).
 		WithTTL(ttl).WithBucketSize(uint32(len(bucket))).WithStatus(UnCommitted).WithDs(ds).WithTxID(tx.id)
+
 	e := NewEntry().WithKey(key).WithBucket([]byte(bucket)).WithMeta(meta).WithValue(value)
 
 	err := e.valid()

@@ -253,9 +253,14 @@ func (d defaultCPUWorkGranter) CPUWorkDone(_ CPUWorkHandle) {}
 type DB struct {
 	// The count and size of referenced memtables. This includes memtables
 	// present in DB.mu.mem.queue, as well as memtables that have been flushed
-	// but are still referenced by an inuse readState.
+	// but are still referenced by an inuse readState, as well as up to one
+	// memTable waiting to be reused and stored in d.memTableRecycle.
 	memTableCount    atomic.Int64
 	memTableReserved atomic.Int64 // number of bytes reserved in the cache for memtables
+	// memTableRecycle holds a pointer to an obsolete memtable. The next
+	// memtable allocation will reuse this memtable if it has not already been
+	// recycled.
+	memTableRecycle atomic.Pointer[memTable]
 
 	// The size of the current log file (i.e. db.mu.log.queue[len(queue)-1].
 	logSize atomic.Uint64
@@ -1540,6 +1545,10 @@ func (d *DB) Close() error {
 		// replay.
 		mem.readerUnrefLocked(false)
 	}
+	// If there's an unused, recycled memtable, we need to release its memory.
+	if obsoleteMemTable := d.memTableRecycle.Swap(nil); obsoleteMemTable != nil {
+		d.freeMemTable(obsoleteMemTable)
+	}
 	if reserved := d.memTableReserved.Load(); reserved != 0 {
 		err = firstError(err, errors.Errorf("leaked memtable reservation: %d", errors.Safe(reserved)))
 	}
@@ -1732,6 +1741,30 @@ func (d *DB) splitManualCompaction(
 		})
 	}
 	return splitCompactions
+}
+
+// DownloadSpan is a key range passed to the Download method.
+type DownloadSpan struct {
+	StartKey []byte
+	// EndKey is exclusive.
+	EndKey []byte
+}
+
+// Download ensures that the LSM does not use any external sstables for the
+// given key ranges. It does so by performing appropriate compactions so that
+// all external data becomes available locally.
+//
+// Note that calling this method does not imply that all other compactions stop;
+// it simply informs Pebble of a list of spans for which external data should be
+// downloaded with high priority.
+//
+// The method returns once no external sstasbles overlap the given spans, the
+// context is canceled, or an error is hit.
+//
+// TODO(radu): consider passing a priority/impact knob to express how important
+// the download is (versus live traffic performance, LSM health).
+func (d *DB) Download(ctx context.Context, spans []DownloadSpan) error {
+	return errors.Errorf("not implemented")
 }
 
 // Flush the memtable to stable storage.
@@ -2175,28 +2208,66 @@ func (d *DB) newMemTable(logNum FileNum, logSeqNum uint64) (*memTable, *flushabl
 		}
 	}
 
-	d.memTableCount.Add(1)
-	d.memTableReserved.Add(int64(size))
-	releaseAccountingReservation := d.opts.Cache.Reserve(size)
-
-	mem := newMemTable(memTableOptions{
+	memtblOpts := memTableOptions{
 		Options:   d.opts,
-		arenaBuf:  manual.New(int(size)),
 		logSeqNum: logSeqNum,
-	})
+	}
 
-	// Note: this is a no-op if invariants are disabled or race is enabled.
-	invariants.SetFinalizer(mem, checkMemTable)
+	// Before attempting to allocate a new memtable, check if there's one
+	// available for recycling in memTableRecycle. Large contiguous allocations
+	// can be costly as fragmentation makes it more difficult to find a large
+	// contiguous free space. We've observed 64MB allocations taking 10ms+.
+	//
+	// To reduce these costly allocations, up to 1 obsolete memtable is stashed
+	// in `d.memTableRecycle` to allow a future memtable rotation to reuse
+	// existing memory.
+	var mem *memTable
+	mem = d.memTableRecycle.Swap(nil)
+	if mem != nil && len(mem.arenaBuf) != size {
+		d.freeMemTable(mem)
+		mem = nil
+	}
+	if mem != nil {
+		// Carry through the existing buffer and memory reservation.
+		memtblOpts.arenaBuf = mem.arenaBuf
+		memtblOpts.releaseAccountingReservation = mem.releaseAccountingReservation
+	} else {
+		mem = new(memTable)
+		memtblOpts.arenaBuf = manual.New(int(size))
+		memtblOpts.releaseAccountingReservation = d.opts.Cache.Reserve(size)
+		d.memTableCount.Add(1)
+		d.memTableReserved.Add(int64(size))
+
+		// Note: this is a no-op if invariants are disabled or race is enabled.
+		invariants.SetFinalizer(mem, checkMemTable)
+	}
+	mem.init(memtblOpts)
 
 	entry := d.newFlushableEntry(mem, logNum, logSeqNum)
 	entry.releaseMemAccounting = func() {
-		manual.Free(mem.arenaBuf)
-		mem.arenaBuf = nil
-		d.memTableCount.Add(-1)
-		d.memTableReserved.Add(-int64(size))
-		releaseAccountingReservation()
+		// If the user leaks iterators, we may be releasing the memtable after
+		// the DB is already closed. In this case, we want to just release the
+		// memory because DB.Close won't come along to free it for us.
+		if err := d.closed.Load(); err != nil {
+			d.freeMemTable(mem)
+			return
+		}
+
+		// The next memtable allocation might be able to reuse this memtable.
+		// Stash it on d.memTableRecycle.
+		if unusedMem := d.memTableRecycle.Swap(mem); unusedMem != nil {
+			// There was already a memtable waiting to be recycled. We're now
+			// responsible for freeing it.
+			d.freeMemTable(unusedMem)
+		}
 	}
 	return mem, entry
+}
+
+func (d *DB) freeMemTable(m *memTable) {
+	d.memTableCount.Add(-1)
+	d.memTableReserved.Add(-int64(len(m.arenaBuf)))
+	m.free()
 }
 
 func (d *DB) newFlushableEntry(f flushable, logNum FileNum, logSeqNum uint64) *flushableEntry {

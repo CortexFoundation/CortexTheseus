@@ -1328,7 +1328,7 @@ func (tm *TorrentManager) activeLoop() {
 				log.Info("Cache status", "total", common.StorageSize(tm.fc.FileSize()), "itms", tm.fc.Size())
 				if tm.mode == params.LAZY {
 					for _, itm := range tm.fc.MostAccessed(4) {
-						log.Info("Cache status", "key", itm.Key(), "acc", itm.AccessCount, "dur", common.PrettyDuration(itm.Dur()))
+						log.Debug("Cache status", "key", itm.Key(), "acc", itm.AccessCount, "dur", common.PrettyDuration(itm.Dur()))
 					}
 				}
 			}

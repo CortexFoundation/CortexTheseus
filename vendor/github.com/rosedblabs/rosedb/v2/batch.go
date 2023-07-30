@@ -124,7 +124,7 @@ func (b *Batch) Get(key []byte) ([]byte, error) {
 
 	record := decodeLogRecord(chunk)
 	if record.Type == LogRecordDeleted {
-		return nil, ErrKeyNotFound
+		panic("Deleted data cannot exist in the index")
 	}
 	return record.Value, nil
 }
@@ -198,7 +198,7 @@ func (b *Batch) Commit() error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	// check if committed or discarded
+	// check if committed or rollbacked
 	if b.committed {
 		return ErrBatchCommitted
 	}

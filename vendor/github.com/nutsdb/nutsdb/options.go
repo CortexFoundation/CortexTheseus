@@ -40,6 +40,8 @@ func (fn ErrorHandlerFunc) HandleError(err error) {
 	fn(err)
 }
 
+type LessFunc func(l, r string) bool
+
 // Options records params for creating DB object.
 type Options struct {
 	// Dir represents Open the database located in which dir.
@@ -76,6 +78,9 @@ type Options struct {
 	// CcWhenClose represent initiative GC when calling db.Close()
 	GCWhenClose bool
 
+	// CommitBufferSize represent allocated memory for tx
+	CommitBufferSize int64
+
 	// ErrorHandler handles an error occurred during transaction.
 	// Example:
 	//     func triggerAlertError(err error) {
@@ -84,6 +89,9 @@ type Options struct {
 	//     	   }
 	//     })
 	ErrorHandler ErrorHandler
+
+	// LessFunc is a function that sorts keys.
+	LessFunc LessFunc
 }
 
 const (
@@ -102,11 +110,12 @@ var defaultSegmentSize int64 = 256 * MB
 // DefaultOptions represents the default options.
 var DefaultOptions = func() Options {
 	return Options{
-		EntryIdxMode: HintKeyValAndRAMIdxMode,
-		SegmentSize:  defaultSegmentSize,
-		NodeNum:      1,
-		RWMode:       FileIO,
-		SyncEnable:   true,
+		EntryIdxMode:     HintKeyValAndRAMIdxMode,
+		SegmentSize:      defaultSegmentSize,
+		NodeNum:          1,
+		RWMode:           FileIO,
+		SyncEnable:       true,
+		CommitBufferSize: 4 * MB,
 	}
 }()
 
@@ -175,5 +184,17 @@ func WithGCWhenClose(enable bool) Option {
 func WithErrorHandler(errorHandler ErrorHandler) Option {
 	return func(opt *Options) {
 		opt.ErrorHandler = errorHandler
+	}
+}
+
+func WithCommitBufferSize(commitBufferSize int64) Option {
+	return func(opt *Options) {
+		opt.CommitBufferSize = commitBufferSize
+	}
+}
+
+func WithLessFunc(lessFunc LessFunc) Option {
+	return func(opt *Options) {
+		opt.LessFunc = lessFunc
 	}
 }
