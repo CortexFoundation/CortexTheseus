@@ -85,7 +85,7 @@ type TorrentFS struct {
 	tunnel *ttlmap.Map
 
 	callback chan any
-	ttlchan  chan any
+	//ttlchan  chan any
 
 	net *p2p.Server
 
@@ -179,7 +179,7 @@ func create(config *params.Config, cache, compress, listen bool) (*TorrentFS, er
 
 	//inst.nasCache, _ = lru.New(32)
 	inst.callback = _callback
-	inst.ttlchan = make(chan any, 1024)
+	//inst.ttlchan = make(chan any, 1024)
 	//inst.queryCache, _ = lru.New(25)
 
 	//inst.scoreTable = make(map[string]int)
@@ -296,27 +296,27 @@ func create(config *params.Config, cache, compress, listen bool) (*TorrentFS, er
 func (fs *TorrentFS) listen() {
 	log.Info("Bitsflow listener starting ...")
 	defer fs.wg.Done()
-	ttl := time.NewTimer(3 * time.Second)
+	//ttl := time.NewTimer(3 * time.Second)
 	//ticker := time.NewTimer(300 * time.Second)
-	defer ttl.Stop()
+	//defer ttl.Stop()
 	//defer ticker.Stop()
 	for {
 		select {
 		case msg := <-fs.callback:
 			meta := msg.(*types.BitsFlow)
 			//if meta.Request() > 0 || (params.IsGood(meta.InfoHash()) && fs.config.Mode != params.LAZY) {
-			if meta.Request() > 0 || params.IsGood(meta.InfoHash()) {
-				fs.download(context.Background(), meta.InfoHash(), meta.Request())
-			} else {
-				fs.ttlchan <- msg
-			}
-		case <-ttl.C:
-			if len(fs.ttlchan) > 0 {
-				msg := <-fs.ttlchan
-				meta := msg.(*types.BitsFlow)
-				fs.download(context.Background(), meta.InfoHash(), meta.Request())
-			}
-			ttl.Reset(3 * time.Second)
+			//	if meta.Request() > 0 || params.IsGood(meta.InfoHash()) {
+			fs.download(context.Background(), meta.InfoHash(), meta.Request())
+		//	} else {
+		//		fs.ttlchan <- msg
+		//	}
+		//case <-ttl.C:
+		//	if len(fs.ttlchan) > 0 {
+		//		msg := <-fs.ttlchan
+		//		meta := msg.(*types.BitsFlow)
+		//		fs.download(context.Background(), meta.InfoHash(), meta.Request())
+		//	}
+		//	ttl.Reset(3 * time.Second)
 		/*case <-ticker.C:
 		log.Info("Bitsflow status", "neighbors", fs.Neighbors(), "current", fs.monitor.CurrentNumber(), "rev", fs.received.Load(), "sent", fs.sent.Load(), "in", fs.in.Load(), "out", fs.out.Load(), "tunnel", fs.tunnel.Len(), "history", fs.history.Cardinality(), "retry", fs.retry.Load())
 		fs.wakeup(context.Background(), fs.sampling())
