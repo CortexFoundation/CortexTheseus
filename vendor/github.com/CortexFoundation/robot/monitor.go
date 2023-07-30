@@ -777,11 +777,12 @@ func (m *Monitor) syncLastBlock() uint64 {
 	for i := minNumber; i <= maxNumber; { // i++ {
 		if m.terminated.Load() {
 			log.Warn("Fs scan terminated", "number", i)
-			maxNumber = i - 1
-			break
+			//maxNumber = i - 1
+			m.lastNumber.Store(i - 1)
+			return 0
 		}
 		if maxNumber > minNumber && i%2048 == 0 {
-			log.Info("Running", "min", minNumber, "max", maxNumber, "cur", currentNumber, "last", m.lastNumber.Load(), "batch", batch, "i", i, "srv", m.srv.Load(), "size", maxNumber-minNumber, "progress", float64(i)/float64(currentNumber))
+			log.Info("Running", "min", minNumber, "max", maxNumber, "cur", currentNumber, "last", m.lastNumber.Load(), "batch", batch, "i", i, "srv", m.srv.Load(), "count", maxNumber-minNumber, "progress", float64(i)/float64(currentNumber))
 		}
 		if m.ckp != nil && m.skip(i) {
 			//m.lastNumber = i - 1
