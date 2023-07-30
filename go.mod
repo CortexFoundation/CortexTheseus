@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.52-0.20230726133100-5420612255ee
+	github.com/CortexFoundation/torrentfs v1.0.52-0.20230730073417-8c0c273cc561
 	github.com/VictoriaMetrics/fastcache v1.12.1
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.19.0
@@ -17,7 +17,7 @@ require (
 	github.com/cespare/cp v1.1.1
 	github.com/charmbracelet/bubbletea v0.24.2
 	github.com/cloudflare/cloudflare-go v0.57.1
-	github.com/cockroachdb/pebble v0.0.0-20230725232348-7a4ed3c57cc5
+	github.com/cockroachdb/pebble v0.0.0-20230728201528-5e7f88523982
 	github.com/consensys/gnark-crypto v0.11.1
 	github.com/crate-crypto/go-kzg-4844 v0.3.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
@@ -83,7 +83,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.3.0 // indirect
 	github.com/CortexFoundation/cvm-runtime v0.0.0-20221117094012-b5a251885572 // indirect
 	github.com/CortexFoundation/merkletree v0.0.0-20230724124840-b6e80265a137 // indirect
-	github.com/CortexFoundation/robot v1.0.4-0.20230726115343-bbd209dbe87a // indirect
+	github.com/CortexFoundation/robot v1.0.4-0.20230730073236-074161bbaa06 // indirect
 	github.com/DataDog/zstd v1.5.6-0.20230622172052-ea68dcab66c0 // indirect
 	github.com/RoaringBitmap/roaring v1.3.0 // indirect
 	github.com/ajwerner/btree v0.0.0-20211221152037-f427b3e689c0 // indirect
@@ -143,6 +143,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/edsrzf/mmap-go v1.1.1-0.20220903035803-8e5d0fe06024 // indirect
 	github.com/elliotchance/orderedmap v1.5.0 // indirect
+	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/garslo/gogen v0.0.0-20170307003452-d6ebae628c7c // indirect
 	github.com/getsentry/sentry-go v0.22.0 // indirect
@@ -167,7 +168,7 @@ require (
 	github.com/google/pprof v0.0.0-20230705174524-200ffdc848b8 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.4 // indirect
-	github.com/hashicorp/golang-lru/v2 v2.0.4 // indirect
+	github.com/hashicorp/golang-lru/v2 v2.0.5-0.20230705200825-f4cd393e7b29 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/influxdata/line-protocol v0.0.0-20210922203350-b1ad95c89adf // indirect
 	github.com/jedib0t/go-pretty/v6 v6.4.6 // indirect
@@ -191,7 +192,7 @@ require (
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
-	github.com/nutsdb/nutsdb v0.12.7-0.20230726115229-a8e3cbad7085 // indirect
+	github.com/nutsdb/nutsdb v0.12.7-0.20230729163545-bc1a538785ca // indirect
 	github.com/onsi/gomega v1.20.0 // indirect
 	github.com/otiai10/copy v1.12.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.9 // indirect
@@ -222,8 +223,8 @@ require (
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/rosedblabs/go-immutable-radix/v2 v2.0.1-0.20230614125820-f2a7bc058c90 // indirect
-	github.com/rosedblabs/rosedb/v2 v2.2.2-0.20230725110004-f96ca2a09197 // indirect
-	github.com/rosedblabs/wal v1.2.1-0.20230720135650-d5d56517e0a3 // indirect
+	github.com/rosedblabs/rosedb/v2 v2.2.2-0.20230729072225-0ac294e9358f // indirect
+	github.com/rosedblabs/wal v1.2.1-0.20230729070929-b03783455406 // indirect
 	github.com/rs/dnscache v0.0.0-20211102005908-e0241e321417 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
@@ -235,7 +236,7 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ucwong/filecache v1.0.6-0.20230405163841-810d53ced4bd // indirect
 	github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb // indirect
-	github.com/ucwong/golang-kv v1.0.22-0.20230726132106-a11c05086281 // indirect
+	github.com/ucwong/golang-kv v1.0.22-0.20230729184506-644907d087e4 // indirect
 	github.com/ucwong/shard v1.0.1-0.20230505153952-911e99b5f0c2 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect

@@ -30,7 +30,7 @@ import (
 	"github.com/CortexFoundation/robot/backend"
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
-	lru "github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/ucwong/golang-kv"
 	"math"
 	"math/big"
@@ -74,10 +74,11 @@ type Monitor struct {
 	wg            sync.WaitGroup
 	rpcWg         sync.WaitGroup
 
-	//taskCh      chan *types.Block
+	taskCh chan *types.Block
+	errCh  chan error
 	//newTaskHook func(*types.Block)
-	blockCache *lru.Cache
-	sizeCache  *lru.Cache
+	blockCache *lru.Cache[uint64, string]
+	sizeCache  *lru.Cache[string, uint64]
 	ckp        *params.TrustedCheckpoint
 	start      mclock.AbsTime
 
@@ -124,10 +125,12 @@ func New(flag *params.Config, cache, compress, listen bool, callback chan any) (
 		srvCh:  make(chan int),
 		//exitSyncCh: make(chan any),
 		scope: uint64(math.Min(float64(runtime.NumCPU()), float64(8))),
-		//taskCh:        make(chan *types.Block, batch),
+		//taskCh: make(chan *types.Block, batch),
+		//taskCh:        make(chan *types.Block, 1),
 		//start: mclock.Now(),
 	}
-
+	m.errCh = make(chan error, m.scope)
+	m.taskCh = make(chan *types.Block, m.scope)
 	// TODO https://github.com/ucwong/golang-kv
 	if fs_, err := backend.NewChainDB(flag); err != nil {
 		log.Error("file storage failed", "err", err)
@@ -140,8 +143,8 @@ func New(flag *params.Config, cache, compress, listen bool, callback chan any) (
 	m.startNumber.Store(0)
 
 	m.terminated.Store(false)
-	m.blockCache, _ = lru.New(delay)
-	m.sizeCache, _ = lru.New(batch)
+	m.blockCache, _ = lru.New[uint64, string](delay)
+	m.sizeCache, _ = lru.New[string, uint64](batch)
 	m.listen = listen
 	m.callback = callback
 
@@ -172,10 +175,6 @@ func New(flag *params.Config, cache, compress, listen bool, callback chan any) (
 
 	return m, nil
 }
-
-//func (m *Monitor) DB() *backend.ChainDB {
-//	return m.fs
-//}
 
 func (m *Monitor) CurrentNumber() uint64 {
 	return m.currentNumber.Load()
@@ -288,27 +287,29 @@ func (m *Monitor) indexInit() error {
 	return nil
 }
 
-/*func (m *Monitor) taskLoop() {
+func (m *Monitor) taskLoop() {
+	log.Info("Task channel started")
 	defer m.wg.Done()
 	for {
 		select {
 		case task := <-m.taskCh:
-			if m.newTaskHook != nil {
-				m.newTaskHook(task)
-			}
+			//if m.newTaskHook != nil {
+			//	m.newTaskHook(task)
+			//}
 
-			if err := m.solve(task); err != nil {
-				log.Warn("Block solved failed, try again", "err", err, "num", task.Number)
-			}
+			/*if err := m.solve(task); err != nil {
+				m.errCh <- err
+				log.Warn("Block solved failed, try again", "err", err, "num", task.Number, "last", m.lastNumber.Load())
+			} else {
+				m.errCh <- nil
+			}*/
+			m.errCh <- m.solve(task)
 		case <-m.exitCh:
-			if cap(m.taskCh) > 0 {
-				continue
-			}
 			log.Info("Monitor task channel closed")
 			return
 		}
 	}
-}*/
+}
 
 // SetConnection method builds connection to remote or local communicator.
 func (m *Monitor) buildConnection(ipcpath string, rpcuri string) (*rpc.Client, error) {
@@ -379,8 +380,8 @@ func (m *Monitor) rpcBatchBlockByNumber(from, to uint64) (result []*types.Block,
 }
 
 func (m *Monitor) getRemainingSize(address string) (uint64, error) {
-	if size, suc := m.sizeCache.Get(address); suc && size.(uint64) == 0 {
-		return size.(uint64), nil
+	if size, suc := m.sizeCache.Get(address); suc && size == 0 {
+		return size, nil
 	}
 	var remainingSize hexutil.Uint64
 	rpcUploadMeter.Mark(1)
@@ -520,13 +521,6 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 
 func (m *Monitor) exit() {
 	m.closeOnce.Do(func() {
-		/*if m.exitSyncCh != nil {
-			close(m.exitSyncCh)
-			m.exitSyncCh = nil
-		} else {
-			log.Warn("Listener sync has already been stopped")
-		}*/
-
 		if m.exitCh != nil {
 			close(m.exitCh)
 			m.wg.Wait()
@@ -537,12 +531,11 @@ func (m *Monitor) exit() {
 	})
 }
 
-func (m *Monitor) Stop() {
+func (m *Monitor) Stop() error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	//m.closeOnce.Do(func() {
 	if m.terminated.Swap(true) {
-		return
+		return nil
 	}
 
 	m.exit()
@@ -558,14 +551,15 @@ func (m *Monitor) Stop() {
 	// TODO dirty statics deal with
 	if m.engine != nil {
 		log.Info("Golang-kv engine close", "engine", m.engine.Name())
-		m.engine.Close()
+		return m.engine.Close()
 	}
 
 	if err := m.fs.Close(); err != nil {
 		log.Error("Monitor File Storage closed", "error", err)
+		return err
 	}
 	log.Info("Fs listener synchronizing closed")
-	//})
+	return nil
 }
 
 // Start ... start ListenOn on the rpc port of a blockchain full node
@@ -620,8 +614,8 @@ func (m *Monitor) run() error {
 	//if err := m.loadHistory(); err != nil {
 	//	return err
 	//}
-	//m.wg.Add(1)
-	//go m.taskLoop()
+	m.wg.Add(1)
+	go m.taskLoop()
 	//m.wg.Add(1)
 	//go m.listenLatestBlock()
 	m.wg.Add(1)
@@ -683,7 +677,6 @@ func (m *Monitor) syncLatestBlock() {
 							continue
 						}
 						m.fs.Flush()
-						//go m.exit()
 						elapsed := time.Duration(mclock.Now()) - time.Duration(m.start)
 						log.Debug("Finish sync, listener will be paused", "current", m.currentNumber.Load(), "elapsed", common.PrettyDuration(elapsed), "progress", progress, "end", end, "last", m.lastNumber.Load())
 						//return
@@ -787,8 +780,8 @@ func (m *Monitor) syncLastBlock() uint64 {
 			maxNumber = i - 1
 			break
 		}
-		if maxNumber > minNumber && (i-minNumber)%128 == 0 {
-			log.Debug("Running", "min", minNumber, "max", maxNumber, "cur", currentNumber, "last", m.lastNumber.Load(), "batch", batch, "i", i, "srv", m.srv.Load(), "size", maxNumber-minNumber, "progress", float64(i-minNumber)/float64(maxNumber-minNumber))
+		if maxNumber > minNumber && i%2048 == 0 {
+			log.Info("Running", "min", minNumber, "max", maxNumber, "cur", currentNumber, "last", m.lastNumber.Load(), "batch", batch, "i", i, "srv", m.srv.Load(), "size", maxNumber-minNumber, "progress", float64(i)/float64(currentNumber))
 		}
 		if m.ckp != nil && m.skip(i) {
 			//m.lastNumber = i - 1
@@ -806,25 +799,24 @@ func (m *Monitor) syncLastBlock() uint64 {
 
 			// batch blocks operation according service category
 			for _, rpcBlock := range blocks {
-				if err := m.solve(rpcBlock); err != nil {
-					log.Error("solve err", "err", err)
+				m.taskCh <- rpcBlock
+			}
+
+			for n := 0; n < len(blocks); n++ {
+				select {
+				case err := <-m.errCh:
+					if err != nil {
+						m.lastNumber.Store(i - 1)
+						log.Error("solve err", "err", err, "last", m.lastNumber.Load(), "i", i, "scope", m.scope, "min", minNumber, "max", maxNumber, "cur", currentNumber)
+						return 0
+					}
+				case <-m.exitCh:
 					m.lastNumber.Store(i - 1)
+					log.Info("Task checker quit")
 					return 0
 				}
-				i++
-				/*if len(m.taskCh) < cap(m.taskCh) {
-					m.taskCh <- rpcBlock
-					i++
-				} else {
-					m.lastNumber = i - 1
-					if maxNumber-minNumber > delay/2 {
-						elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-						elapsedA := time.Duration(mclock.Now()) - time.Duration(m.start)
-						log.Warn("Chain segment frozen", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(m.currentNumber), "progress", float64(i)/float64(m.currentNumber), "last", m.lastNumber, "elapsed", common.PrettyDuration(elapsed), "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsedA), "cap", len(m.taskCh))
-					}
-					return 0
-				}*/
 			}
+			i += uint64(len(blocks))
 		} else {
 			rpcBlock, rpcErr := m.rpcBlockByNumber(i)
 			if rpcErr != nil {
@@ -838,24 +830,10 @@ func (m *Monitor) syncLastBlock() uint64 {
 				return 0
 			}
 			i++
-			/*if len(m.taskCh) < cap(m.taskCh) {
-				m.taskCh <- rpcBlock
-				i++
-			} else {
-				m.lastNumber = i - 1
-				if maxNumber-minNumber > delay/2 {
-					elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-					elapsedA := time.Duration(mclock.Now()) - time.Duration(m.start)
-					log.Warn("Chain segment frozen", "from", minNumber, "to", i, "range", uint64(i-minNumber), "current", uint64(m.currentNumber), "progress", float64(i)/float64(m.currentNumber), "last", m.lastNumber, "elapsed", common.PrettyDuration(elapsed), "bps", float64(i-minNumber)*1000*1000*1000/float64(elapsed), "bps_a", float64(maxNumber)*1000*1000*1000/float64(elapsedA), "cap", len(m.taskCh))
-				}
-				return 0
-			}*/
 		}
 	}
 	log.Debug("Last number changed", "min", minNumber, "max", maxNumber, "cur", currentNumber, "last", m.lastNumber.Load(), "batch", batch)
 	m.lastNumber.Store(maxNumber)
-	//m.storeLastNumber(maxNumber)
-	//if maxNumber-minNumber > batch-1 {
 	if maxNumber-minNumber > delay {
 		elapsedA := time.Duration(mclock.Now()) - time.Duration(m.start)
 		log.Debug("Chain segment frozen", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(m.CurrentNumber()), "progress", float64(maxNumber)/float64(m.CurrentNumber()), "last", m.lastNumber.Load(), "bps", float64(maxNumber)*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA))
@@ -949,7 +927,9 @@ func (m *Monitor) forExchangeService(block *types.Block) error {
 }
 
 func (m *Monitor) forRecordService(block *types.Block) error {
-	log.Debug("Block record", "num", block.Number, "hash", block.Hash, "txs", len(block.Txs), "last", m.lastNumber.Load())
+	if block.Number%4096 == 0 {
+		log.Info("Block record", "num", block.Number, "hash", block.Hash, "txs", len(block.Txs), "last", m.lastNumber.Load())
+	}
 	if len(block.Txs) > 0 {
 		for _, t := range block.Txs {
 			x := new(big.Float).Quo(new(big.Float).SetInt(t.Amount), new(big.Float).SetInt(big.NewInt(params1.Cortex)))
