@@ -43,8 +43,8 @@ import (
 )
 
 const (
-	batch = 4096 //params.SyncBatch
-	delay = 6    //params.Delay
+	batch = 4096 * 2 //params.SyncBatch
+	delay = 12       //params.Delay
 )
 
 var (
@@ -616,33 +616,35 @@ func (m *Monitor) run() error {
 	//}
 	m.wg.Add(1)
 	go m.taskLoop()
-	//m.wg.Add(1)
-	//go m.listenLatestBlock()
+	m.wg.Add(1)
+	go m.listenLatestBlock()
 	m.wg.Add(1)
 	go m.syncLatestBlock()
 
 	return nil
 }
 
-/*func (m *Monitor) listenLatestBlock() {
+func (m *Monitor) listenLatestBlock() {
 	defer m.wg.Done()
-	timer := time.NewTimer(time.Second * queryTimeInterval)
+	timer := time.NewTimer(time.Second * params.QueryTimeInterval)
 	defer timer.Stop()
 	for {
 		select {
 		case <-timer.C:
-			m.currentBlock()
+			if cur, update, err := m.currentBlock(); err == nil && update {
+				log.Debug("Blockchain update", "cur", cur)
+			}
 			if m.local {
-				timer.Reset(time.Second * queryTimeInterval)
+				timer.Reset(time.Second * params.QueryTimeInterval)
 			} else {
-				timer.Reset(time.Second * queryTimeInterval * 10)
+				timer.Reset(time.Second * params.QueryTimeInterval * 10)
 			}
 		case <-m.exitCh:
-			log.Debug("Block listener stopped")
+			log.Info("Block listener stopped")
 			return
 		}
 	}
-}*/
+}
 
 func (m *Monitor) syncLatestBlock() {
 	defer m.wg.Done()
@@ -656,7 +658,6 @@ func (m *Monitor) syncLatestBlock() {
 				log.Error("Service switch failed", "srv", sv, "err", err)
 			}
 		case <-timer.C:
-			//m.currentBlock()
 			progress = m.syncLastBlock()
 			// Avoid sync in full mode, fresh interval may be less.
 			if progress >= delay {
@@ -667,7 +668,7 @@ func (m *Monitor) syncLatestBlock() {
 				timer.Reset(time.Millisecond * 2000)
 			} else if progress == 1 {
 				end = true
-				timer.Reset(time.Millisecond * 13500)
+				timer.Reset(time.Millisecond * 6750)
 			} else {
 				if !m.listen {
 					if (m.ckp != nil && m.currentNumber.Load() >= m.ckp.TfsCheckPoint) || (m.ckp == nil && m.currentNumber.Load() > 0) {
@@ -677,8 +678,8 @@ func (m *Monitor) syncLatestBlock() {
 							continue
 						}
 						m.fs.Flush()
-						elapsed := time.Duration(mclock.Now()) - time.Duration(m.start)
-						log.Debug("Finish sync, listener will be paused", "current", m.currentNumber.Load(), "elapsed", common.PrettyDuration(elapsed), "progress", progress, "end", end, "last", m.lastNumber.Load())
+						//elapsed := time.Duration(mclock.Now()) - time.Duration(m.start)
+						//log.Debug("Finish sync, listener will be paused", "current", m.currentNumber.Load(), "elapsed", common.PrettyDuration(elapsed), "progress", progress, "end", end, "last", m.lastNumber.Load())
 						//return
 						timer.Reset(time.Millisecond * 6750)
 						end = false
@@ -700,19 +701,23 @@ func (m *Monitor) syncLatestBlock() {
 	}
 }
 
-func (m *Monitor) currentBlock() (uint64, error) {
-	var currentNumber hexutil.Uint64
+func (m *Monitor) currentBlock() (uint64, bool, error) {
+	var (
+		currentNumber hexutil.Uint64
+		update        bool
+	)
 
 	rpcCurrentMeter.Mark(1)
 	if err := m.cl.Call(&currentNumber, "ctxc_blockNumber"); err != nil {
 		log.Error("Call ipc method ctxc_blockNumber failed", "error", err)
-		return 0, err
+		return m.currentNumber.Load(), false, err
 	}
-	if m.CurrentNumber() != uint64(currentNumber) {
+	if m.currentNumber.Load() != uint64(currentNumber) {
 		m.currentNumber.Store(uint64(currentNumber))
+		update = true
 	}
 
-	return uint64(currentNumber), nil
+	return uint64(currentNumber), update, nil
 }
 
 func (m *Monitor) skip(i uint64) bool {
@@ -734,10 +739,12 @@ func (m *Monitor) skip(i uint64) bool {
 }
 
 func (m *Monitor) syncLastBlock() uint64 {
-	currentNumber, err := m.currentBlock()
+	/*currentNumber, err := m.currentBlock()
 	if err != nil {
 		return 0
-	}
+	}*/
+
+	currentNumber := m.currentNumber.Load()
 
 	if currentNumber < m.lastNumber.Load() {
 		log.Warn("Fs sync rollback", "current", currentNumber, "last", m.lastNumber.Load(), "offset", m.lastNumber.Load()-currentNumber)
@@ -750,10 +757,10 @@ func (m *Monitor) syncLastBlock() uint64 {
 	}
 
 	minNumber := m.lastNumber.Load() + 1
-	//log.Info("min", "minNumber", minNumber)
 	maxNumber := uint64(0)
 	if currentNumber > delay {
 		maxNumber = currentNumber - delay
+		//maxNumber = currentNumber
 	}
 
 	if m.lastNumber.Load() > currentNumber {
@@ -766,26 +773,29 @@ func (m *Monitor) syncLastBlock() uint64 {
 		maxNumber = minNumber + batch
 	}
 
+	// replay
+	if minNumber >= delay {
+		//minNumber = minNumber - delay
+	}
+
 	if maxNumber < minNumber {
 		return 0
 	}
 
-	if m.start == 0 {
-		m.start = mclock.Now()
-	}
+	//if m.start == 0 {
+	m.start = mclock.Now()
+	//}
 
 	for i := minNumber; i <= maxNumber; { // i++ {
 		if m.terminated.Load() {
 			log.Warn("Fs scan terminated", "number", i)
-			//maxNumber = i - 1
 			m.lastNumber.Store(i - 1)
 			return 0
 		}
-		if maxNumber > minNumber && i%2048 == 0 {
-			log.Info("Running", "min", minNumber, "max", maxNumber, "cur", currentNumber, "last", m.lastNumber.Load(), "batch", batch, "i", i, "srv", m.srv.Load(), "count", maxNumber-minNumber, "progress", float64(i)/float64(currentNumber))
-		}
+		//if maxNumber > minNumber && i%2048 == 0 {
+		//	log.Info("Running", "min", minNumber, "max", maxNumber, "cur", currentNumber, "last", m.lastNumber.Load(), "batch", batch, "i", i, "srv", m.srv.Load(), "count", maxNumber-minNumber, "progress", float64(i)/float64(currentNumber))
+		//}
 		if m.ckp != nil && m.skip(i) {
-			//m.lastNumber = i - 1
 			i++
 			continue
 		}
@@ -833,12 +843,10 @@ func (m *Monitor) syncLastBlock() uint64 {
 			i++
 		}
 	}
-	log.Debug("Last number changed", "min", minNumber, "max", maxNumber, "cur", currentNumber, "last", m.lastNumber.Load(), "batch", batch)
+	//log.Debug("Last number changed", "min", minNumber, "max", maxNumber, "cur", currentNumber, "last", m.lastNumber.Load(), "batch", batch)
 	m.lastNumber.Store(maxNumber)
-	if maxNumber-minNumber > delay {
-		elapsedA := time.Duration(mclock.Now()) - time.Duration(m.start)
-		log.Debug("Chain segment frozen", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber), "current", uint64(m.CurrentNumber()), "progress", float64(maxNumber)/float64(m.CurrentNumber()), "last", m.lastNumber.Load(), "bps", float64(maxNumber)*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA))
-	}
+	elapsedA := time.Duration(mclock.Now()) - time.Duration(m.start)
+	log.Info("Chain segment frozen", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber+1), "current", uint64(m.CurrentNumber()), "progress", float64(maxNumber)/float64(m.CurrentNumber()), "last", m.lastNumber.Load(), "bps", float64(maxNumber-minNumber+1)*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA))
 	return uint64(maxNumber - minNumber)
 }
 
@@ -958,8 +966,8 @@ func (m *Monitor) forModelService(block *types.Block) error {
 	i := block.Number
 	if i%65536 == 0 {
 		defer func() {
-			elapsedA := time.Duration(mclock.Now()) - time.Duration(m.start)
-			log.Info("Nas monitor", "start", m.startNumber.Load(), "max", uint64(m.CurrentNumber()), "last", m.lastNumber.Load(), "cur", i, "bps", math.Abs(float64(i)-float64(m.startNumber.Load()))*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA), "scope", m.scope, "db", common.PrettyDuration(m.fs.Metrics()), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "root", m.fs.Root())
+			//elapsedA := time.Duration(mclock.Now()) - time.Duration(m.start)
+			//log.Info("Nas monitor", "start", m.startNumber.Load(), "max", uint64(m.CurrentNumber()), "last", m.lastNumber.Load(), "cur", i, "bps", math.Abs(float64(i)-float64(m.startNumber.Load()))*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA), "scope", m.scope, "db", common.PrettyDuration(m.fs.Metrics()), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "root", m.fs.Root())
 			m.fs.SkipPrint()
 		}()
 	}
