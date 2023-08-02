@@ -148,7 +148,15 @@ var (
 	// This is the version of go that will be downloaded by
 	//
 	//     go run ci.go install -dlgo
-	dlgoVersion = "1.20.3"
+	dlgoVersion = "1.20.7"
+
+	// This is the version of Go that will be used to bootstrap the PPA builder.
+	//
+	// This version is fine to be old and full of security holes, we just use it
+	// to build the latest Go. Don't change it. If it ever becomes insufficient,
+	// we need to switch over to a recursive builder to jumpt across supported
+	// versions.
+	gobootVersion = "1.19.6"
 )
 
 var GOBIN, _ = filepath.Abs(filepath.Join("build", "bin"))
