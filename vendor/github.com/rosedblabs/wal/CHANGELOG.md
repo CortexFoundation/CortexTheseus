@@ -1,3 +1,28 @@
+# Release 1.3.0 (2023-08-04)
+
+## 🐞 Bug Fixes
+* Add a condition to avoid cache repeatedly https://github.com/rosedblabs/wal/commit/cb708139c877b1ef102c0be057ba33cb4af6abb2
+
+# Release 1.3.0 (2023-08-02)
+
+## 🚀 New Features
+* Add ChunkPosition Encode and Decode
+
+## 🎄 Enhancements
+* Avoid to make new bytes while writing
+* Use sync.Pool to optimize read performace
+* Add more code comments
+
+## 🎠 Community
+* Thanks to @chinazmc 
+  * update SementFileExt to SegmentFileExt (https://github.com/rosedblabs/wal/pull/11)
+* Thanks to @xzhseh 
+  * feat(docs): improve README.md format & fix several typos (https://github.com/rosedblabs/wal/pull/12)
+* Thanks to @yanxiaoqi932 
+  * BlockCache must smaller than SegmentSize (https://github.com/rosedblabs/wal/pull/14)
+* Thanks to @mitingjin 
+  * Fix typo in wal.go (https://github.com/rosedblabs/wal/pull/15)
+
 # Release 1.2.0 (2023-07-01)
 
 ## 🚀 New Features

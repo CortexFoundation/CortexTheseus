@@ -52,7 +52,7 @@ import (
 type TorrentFS struct {
 	protocol p2p.Protocol // Protocol description and parameters
 	config   *params.Config
-	monitor  *robot.Monitor
+	monitor  robot.IMonitor
 	handler  *backend.TorrentManager
 	//db       *backend.ChainDB
 

@@ -14,6 +14,8 @@
 
 package nutsdb
 
+import "time"
+
 // EntryIdxMode represents entry index mode.
 type EntryIdxMode int
 
@@ -92,6 +94,12 @@ type Options struct {
 
 	// LessFunc is a function that sorts keys.
 	LessFunc LessFunc
+
+	// MergeInterval represent the interval for automatic merges, with 0 meaning automatic merging is disabled.
+	MergeInterval time.Duration
+
+	MaxBatchCount int64 // max entries in batch
+	MaxBatchSize  int64 // max batch size in bytes
 }
 
 const (
@@ -116,6 +124,9 @@ var DefaultOptions = func() Options {
 		RWMode:           FileIO,
 		SyncEnable:       true,
 		CommitBufferSize: 4 * MB,
+		MergeInterval:    2 * time.Hour,
+		MaxBatchSize:     (15 * defaultSegmentSize / 4) / 100,
+		MaxBatchCount:    (15 * defaultSegmentSize / 4) / 100 / 100,
 	}
 }()
 
@@ -142,6 +153,18 @@ func WithRWMode(rwMode RWMode) Option {
 func WithSegmentSize(size int64) Option {
 	return func(opt *Options) {
 		opt.SegmentSize = size
+	}
+}
+
+func WithMaxBatchCount(count int64) Option {
+	return func(opt *Options) {
+		opt.MaxBatchCount = count
+	}
+}
+
+func WithMaxBatchSize(size int64) Option {
+	return func(opt *Options) {
+		opt.MaxBatchSize = size
 	}
 }
 
