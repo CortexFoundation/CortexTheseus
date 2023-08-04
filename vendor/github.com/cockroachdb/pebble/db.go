@@ -1178,21 +1178,28 @@ func finishInitializingIter(ctx context.Context, buf *iterAlloc) *Iterator {
 func (d *DB) ScanInternal(
 	ctx context.Context,
 	lower, upper []byte,
-	visitPointKey func(key *InternalKey, value LazyValue) error,
+	visitPointKey func(key *InternalKey, value LazyValue, iterInfo IteratorLevel) error,
 	visitRangeDel func(start, end []byte, seqNum uint64) error,
 	visitRangeKey func(start, end []byte, keys []rangekey.Key) error,
 	visitSharedFile func(sst *SharedSSTMeta) error,
+	includeObsoleteKeys bool,
 ) error {
-	iter := d.newInternalIter(nil /* snapshot */, &scanInternalOptions{
+	scanInternalOpts := &scanInternalOptions{
+		visitPointKey:       visitPointKey,
+		visitRangeDel:       visitRangeDel,
+		visitRangeKey:       visitRangeKey,
+		visitSharedFile:     visitSharedFile,
+		skipSharedLevels:    visitSharedFile != nil,
+		includeObsoleteKeys: includeObsoleteKeys,
 		IterOptions: IterOptions{
 			KeyTypes:   IterKeyTypePointsAndRanges,
 			LowerBound: lower,
 			UpperBound: upper,
 		},
-		skipSharedLevels: visitSharedFile != nil,
-	})
+	}
+	iter := d.newInternalIter(nil /* snapshot */, scanInternalOpts)
 	defer iter.close()
-	return scanInternalImpl(ctx, lower, upper, iter, visitPointKey, visitRangeDel, visitRangeKey, visitSharedFile)
+	return scanInternalImpl(ctx, lower, upper, iter, scanInternalOpts)
 }
 
 // newInternalIter constructs and returns a new scanInternalIterator on this db.
@@ -1231,6 +1238,7 @@ func (d *DB) newInternalIter(s *Snapshot, o *scanInternalOptions) *scanInternalI
 		newIters:        d.newIters,
 		newIterRangeKey: d.tableNewRangeKeyIter,
 		seqNum:          seqNum,
+		mergingIter:     &buf.merging,
 	}
 	if o != nil {
 		dbi.opts = *o
@@ -2021,7 +2029,6 @@ func (d *DB) SSTables(opts ...SSTablesOption) ([][]SSTableInfo, error) {
 			if opt.start != nil && opt.end != nil && !m.Overlaps(d.opts.Comparer.Compare, opt.start, opt.end, true /* exclusive end */) {
 				continue
 			}
-
 			destTables[j] = SSTableInfo{TableInfo: m.TableInfo()}
 			if opt.withProperties {
 				p, err := d.tableCache.getTableProperties(
@@ -2644,8 +2651,175 @@ func (d *DB) SetCreatorID(creatorID uint64) error {
 	return d.objProvider.SetCreatorID(objstorage.CreatorID(creatorID))
 }
 
+// KeyStatistics keeps track of the number of keys that have been pinned by a
+// snapshot as well as counts of the different key kinds in the lsm.
+type KeyStatistics struct {
+	// when a compaction determines a key is obsolete, but cannot elide the key
+	// because it's required by an open snapshot.
+	SnapshotPinnedKeys int
+	// the total number of bytes of all snapshot pinned keys.
+	SnapshotPinnedKeysBytes uint64
+	// Note: these fields are currently only populated for point keys (including range deletes).
+	KindsCount [InternalKeyKindMax + 1]int
+}
+
+// LSMKeyStatistics is used by DB.ScanStatistics.
+type LSMKeyStatistics struct {
+	Accumulated KeyStatistics
+	// Levels contains statistics only for point keys. Range deletions and range keys will
+	// appear in Accumulated but not Levels.
+	Levels    [numLevels]KeyStatistics
+	BytesRead uint64
+}
+
+// ScanStatistics returns the count of different key kinds within the lsm for a
+// key span [lower, upper) as well as the number of snapshot keys.
+func (d *DB) ScanStatistics(ctx context.Context, lower, upper []byte) (LSMKeyStatistics, error) {
+	stats := LSMKeyStatistics{}
+	var prevKey InternalKey
+
+	err := d.ScanInternal(ctx, lower, upper,
+		func(key *InternalKey, value LazyValue, iterInfo IteratorLevel) error {
+			// If the previous key is equal to the current point key, the current key was
+			// pinned by a snapshot.
+			size := uint64(key.Size())
+			kind := key.Kind()
+			if iterInfo.Kind == IteratorLevelLSM && d.equal(prevKey.UserKey, key.UserKey) {
+				stats.Levels[iterInfo.Level].SnapshotPinnedKeys++
+				stats.Levels[iterInfo.Level].SnapshotPinnedKeysBytes += size
+				stats.Accumulated.SnapshotPinnedKeys++
+				stats.Accumulated.SnapshotPinnedKeysBytes += size
+			}
+			if iterInfo.Kind == IteratorLevelLSM {
+				stats.Levels[iterInfo.Level].KindsCount[kind]++
+			}
+
+			stats.Accumulated.KindsCount[kind]++
+			prevKey.CopyFrom(*key)
+			stats.BytesRead += uint64(key.Size() + value.Len())
+			return nil
+		},
+		func(start, end []byte, seqNum uint64) error {
+			stats.Accumulated.KindsCount[InternalKeyKindRangeDelete]++
+			stats.BytesRead += uint64(len(start) + len(end))
+			return nil
+		},
+		func(start, end []byte, keys []rangekey.Key) error {
+			stats.BytesRead += uint64(len(start) + len(end))
+			for _, key := range keys {
+				stats.Accumulated.KindsCount[key.Kind()]++
+				stats.BytesRead += uint64(len(key.Value) + len(key.Suffix))
+			}
+			return nil
+		},
+		nil,  /* visitSharedFile */
+		true, /* includeObsoleteKeys */
+	)
+
+	if err != nil {
+		return LSMKeyStatistics{}, err
+	}
+
+	return stats, nil
+}
+
 // ObjProvider returns the objstorage.Provider for this database. Meant to be
 // used for internal purposes only.
 func (d *DB) ObjProvider() objstorage.Provider {
 	return d.objProvider
+}
+
+func (d *DB) checkVirtualBounds(m *fileMetadata, iterOpts *IterOptions) {
+	if !invariants.Enabled {
+		return
+	}
+
+	if m.HasPointKeys {
+		pointIter, rangeDelIter, err := d.newIters(context.TODO(), m, iterOpts, internalIterOpts{})
+		if err != nil {
+			panic(errors.Wrap(err, "pebble: error creating point iterator"))
+		}
+
+		defer pointIter.Close()
+		if rangeDelIter != nil {
+			defer rangeDelIter.Close()
+		}
+
+		pointKey, _ := pointIter.First()
+		var rangeDel *keyspan.Span
+		if rangeDelIter != nil {
+			rangeDel = rangeDelIter.First()
+		}
+
+		// Check that the lower bound is tight.
+		if (rangeDel == nil || d.cmp(rangeDel.SmallestKey().UserKey, m.SmallestPointKey.UserKey) != 0) &&
+			(pointKey == nil || d.cmp(pointKey.UserKey, m.SmallestPointKey.UserKey) != 0) {
+			panic(errors.Newf("pebble: virtual sstable %s lower point key bound is not tight", m.FileNum))
+		}
+
+		pointKey, _ = pointIter.Last()
+		rangeDel = nil
+		if rangeDelIter != nil {
+			rangeDel = rangeDelIter.Last()
+		}
+
+		// Check that the upper bound is tight.
+		if (rangeDel == nil || d.cmp(rangeDel.LargestKey().UserKey, m.LargestPointKey.UserKey) != 0) &&
+			(pointKey == nil || d.cmp(pointKey.UserKey, m.LargestPointKey.UserKey) != 0) {
+			panic(errors.Newf("pebble: virtual sstable %s upper point key bound is not tight", m.FileNum))
+		}
+
+		// Check that iterator keys are within bounds.
+		for key, _ := pointIter.First(); key != nil; key, _ = pointIter.Next() {
+			if d.cmp(key.UserKey, m.SmallestPointKey.UserKey) < 0 || d.cmp(key.UserKey, m.LargestPointKey.UserKey) > 0 {
+				panic(errors.Newf("pebble: virtual sstable %s point key %s is not within bounds", m.FileNum, key.UserKey))
+			}
+		}
+
+		if rangeDelIter != nil {
+			for key := rangeDelIter.First(); key != nil; key = rangeDelIter.Next() {
+				if d.cmp(key.SmallestKey().UserKey, m.SmallestPointKey.UserKey) < 0 {
+					panic(errors.Newf("pebble: virtual sstable %s point key %s is not within bounds", m.FileNum, key.SmallestKey().UserKey))
+				}
+
+				if d.cmp(key.LargestKey().UserKey, m.LargestPointKey.UserKey) > 0 {
+					panic(errors.Newf("pebble: virtual sstable %s point key %s is not within bounds", m.FileNum, key.LargestKey().UserKey))
+				}
+			}
+		}
+	}
+
+	if !m.HasRangeKeys {
+		return
+	}
+
+	spanIterOpts := keyspan.SpanIterOptions{}
+	if iterOpts != nil {
+		spanIterOpts.Level = iterOpts.level
+	}
+	rangeKeyIter, err := d.tableNewRangeKeyIter(m, spanIterOpts)
+	defer rangeKeyIter.Close()
+
+	if err != nil {
+		panic(errors.Wrap(err, "pebble: error creating range key iterator"))
+	}
+
+	// Check that the lower bound is tight.
+	if d.cmp(rangeKeyIter.First().SmallestKey().UserKey, m.SmallestRangeKey.UserKey) != 0 {
+		panic(errors.Newf("pebble: virtual sstable %s lower range key bound is not tight", m.FileNum))
+	}
+
+	// Check that upper bound is tight.
+	if d.cmp(rangeKeyIter.Last().LargestKey().UserKey, m.LargestRangeKey.UserKey) != 0 {
+		panic(errors.Newf("pebble: virtual sstable %s upper range key bound is not tight", m.FileNum))
+	}
+
+	for key := rangeKeyIter.First(); key != nil; key = rangeKeyIter.Next() {
+		if d.cmp(key.SmallestKey().UserKey, m.SmallestRangeKey.UserKey) < 0 {
+			panic(errors.Newf("pebble: virtual sstable %s point key %s is not within bounds", m.FileNum, key.SmallestKey().UserKey))
+		}
+		if d.cmp(key.LargestKey().UserKey, m.LargestRangeKey.UserKey) > 0 {
+			panic(errors.Newf("pebble: virtual sstable %s point key %s is not within bounds", m.FileNum, key.LargestKey().UserKey))
+		}
+	}
 }

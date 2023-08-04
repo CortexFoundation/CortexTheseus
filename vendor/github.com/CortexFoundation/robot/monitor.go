@@ -17,8 +17,8 @@
 package robot
 
 import (
+	"context"
 	"encoding/json"
-	//"context"
 	"errors"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
@@ -43,8 +43,9 @@ import (
 )
 
 const (
-	batch = 4096 * 2 //params.SyncBatch
-	delay = 12       //params.Delay
+	batch   = 4096 * 2 //params.SyncBatch
+	delay   = 12       //params.Delay
+	timeout = 30 * time.Second
 )
 
 var (
@@ -196,7 +197,9 @@ func (m *Monitor) loadHistory() error {
 	torrents, _ := m.fs.InitTorrents()
 	if m.mode != params.LAZY {
 		for k, v := range torrents {
-			m.download(k, v)
+			ctx, cancel := context.WithTimeout(context.Background(), timeout)
+			defer cancel()
+			m.download(ctx, k, v)
 		}
 	}
 
@@ -210,11 +213,16 @@ func (m *Monitor) loadHistory() error {
 	return nil
 }
 
-func (m *Monitor) download(k string, v uint64) {
+func (m *Monitor) download(ctx context.Context, k string, v uint64) error {
 	if m.mode != params.LAZY && m.callback != nil {
 		task := types.NewBitsFlow(k, v)
-		m.callback <- task
+		select {
+		case m.callback <- task:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
+	return nil
 }
 
 func (m *Monitor) indexCheck() error {
@@ -274,7 +282,11 @@ func (m *Monitor) indexInit() error {
 		}
 		capcity += bytesRequested
 		log.Debug("File storage info", "addr", file.ContractAddr, "ih", file.Meta.InfoHash, "remain", common.StorageSize(file.LeftSize), "raw", common.StorageSize(file.Meta.RawSize), "request", common.StorageSize(bytesRequested))
-		m.download(file.Meta.InfoHash, bytesRequested)
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+		if err := m.download(ctx, file.Meta.InfoHash, bytesRequested); err != nil {
+			return err
+		}
 		if file.LeftSize == 0 {
 			seed++
 		} else if file.Meta.RawSize == file.LeftSize && file.LeftSize > 0 {
@@ -439,10 +451,12 @@ func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta, b *
 	if update && op == 1 {
 		log.Debug("Create new file", "ih", meta.InfoHash, "op", op)
 
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
 		if m.mode == params.FULL {
-			m.download(meta.InfoHash, 512*1024)
+			return m.download(ctx, meta.InfoHash, 512*1024)
 		} else {
-			m.download(meta.InfoHash, 0)
+			return m.download(ctx, meta.InfoHash, 0)
 		}
 	}
 	return nil
@@ -498,7 +512,11 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 					} else {
 						log.Debug("Data processing ...", "ih", file.Meta.InfoHash, "addr", (*tx.Recipient).String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
 					}
-					m.download(file.Meta.InfoHash, bytesRequested)
+					ctx, cancel := context.WithTimeout(context.Background(), timeout)
+					defer cancel()
+					if err := m.download(ctx, file.Meta.InfoHash, bytesRequested); err != nil {
+						return false, err
+					}
 				}
 			}
 			record = true

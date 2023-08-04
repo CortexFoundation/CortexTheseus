@@ -18,9 +18,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/gofrs/flock"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -29,7 +29,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/nutsdb/nutsdb/ds/set"
+	"github.com/gofrs/flock"
 	"github.com/nutsdb/nutsdb/ds/zset"
 	"github.com/xujiajun/utils/filesystem"
 	"github.com/xujiajun/utils/strconv2"
@@ -62,6 +62,9 @@ var (
 
 	// ErrDirUnlocked is returned when the file lock already unlocked
 	ErrDirUnlocked = errors.New("the dir of db is unlocked")
+
+	// ErrIsMerging is returned when merge in progress
+	ErrIsMerging = errors.New("merge in progress")
 )
 
 const (
@@ -138,6 +141,8 @@ const (
 
 	// ScanNoLimit represents the data scan no limit flag
 	ScanNoLimit int = -1
+
+	KvWriteChCapacity = 1000
 )
 
 const (
@@ -182,6 +187,10 @@ type (
 		fm                      *fileManager
 		flock                   *flock.Flock
 		commitBuffer            *bytes.Buffer
+		mergeStartCh            chan struct{}
+		mergeEndCh              chan error
+		mergeWorkCloseCh        chan struct{}
+		writeCh                 chan *request
 	}
 
 	// BucketMetasIdx represents the index of the bucket's meta-information
@@ -205,6 +214,10 @@ func open(opt Options) (*DB, error) {
 		ActiveCommittedTxIdsIdx: NewTree(),
 		Index:                   NewIndex(),
 		fm:                      newFileManager(opt.RWMode, opt.MaxFdNumsInCache, opt.CleanFdsCacheThreshold),
+		mergeStartCh:            make(chan struct{}),
+		mergeEndCh:              make(chan error),
+		mergeWorkCloseCh:        make(chan struct{}),
+		writeCh:                 make(chan *request, KvWriteChCapacity),
 	}
 
 	commitBuffer := new(bytes.Buffer)
@@ -231,23 +244,12 @@ func open(opt Options) (*DB, error) {
 	}
 
 	if opt.EntryIdxMode == HintBPTSparseIdxMode {
-		bptRootIdxDir := db.opt.Dir + "/" + bptDir + "/root"
-		if ok := filesystem.PathIsExist(bptRootIdxDir); !ok {
-			if err := os.MkdirAll(bptRootIdxDir, os.ModePerm); err != nil {
-				return nil, err
-			}
-		}
-
-		bptTxIDIdxDir := db.opt.Dir + "/" + bptDir + "/txid"
-		if ok := filesystem.PathIsExist(bptTxIDIdxDir); !ok {
-			if err := os.MkdirAll(bptTxIDIdxDir, os.ModePerm); err != nil {
-				return nil, err
-			}
-		}
-
-		bucketMetaDir := db.opt.Dir + "/meta/bucket"
-		if ok := filesystem.PathIsExist(bucketMetaDir); !ok {
-			if err := os.MkdirAll(bucketMetaDir, os.ModePerm); err != nil {
+		for _, subDir := range []string{
+			path.Join(db.opt.Dir, bptDir, "root"),
+			path.Join(db.opt.Dir, bptDir, "txid"),
+			path.Join(db.opt.Dir, "meta/bucket"),
+		} {
+			if err := createDirIfNotExist(subDir); err != nil {
 				return nil, err
 			}
 		}
@@ -256,6 +258,9 @@ func open(opt Options) (*DB, error) {
 	if err := db.buildIndexes(); err != nil {
 		return nil, fmt.Errorf("db.buildIndexes error: %s", err)
 	}
+
+	go db.mergeWorker()
+	go db.doWrites()
 
 	return db, nil
 }
@@ -321,117 +326,6 @@ func (db *DB) View(fn func(tx *Tx) error) error {
 	}
 
 	return db.managed(false, fn)
-}
-
-// Merge removes dirty data and reduce data redundancy,following these steps:
-//
-// 1. Filter delete or expired entry.
-//
-// 2. Write entry to activeFile if the key not exist，if exist miss this write operation.
-//
-// 3. Filter the entry which is committed.
-//
-// 4. At last remove the merged files.
-//
-// Caveat: Merge is Called means starting multiple write transactions, and it
-// will affect the other write request. so execute it at the appropriate time.
-func (db *DB) Merge() error {
-	var (
-		off                 int64
-		pendingMergeFIds    []int
-		pendingMergeEntries []*Entry
-	)
-
-	if db.opt.EntryIdxMode == HintBPTSparseIdxMode {
-		return ErrNotSupportHintBPTSparseIdxMode
-	}
-
-	db.isMerging = true
-
-	_, pendingMergeFIds = db.getMaxFileIDAndFileIDs()
-
-	if len(pendingMergeFIds) < 2 {
-		db.isMerging = false
-		return errors.New("the number of files waiting to be merged is at least 2")
-	}
-
-	for _, pendingMergeFId := range pendingMergeFIds {
-		off = 0
-		path := getDataPath(int64(pendingMergeFId), db.opt.Dir)
-		fr, err := newFileRecovery(path, db.opt.BufferSizeOfRecovery)
-		if err != nil {
-			db.isMerging = false
-			return err
-		}
-
-		pendingMergeEntries = []*Entry{}
-
-		for {
-			if entry, err := fr.readEntry(); err == nil {
-				if entry == nil {
-					break
-				}
-
-				var skipEntry bool
-
-				if entry.isFilter() {
-					skipEntry = true
-				}
-
-				// check if we have a new entry with same key and bucket
-				if r, _ := db.getRecordFromKey(entry.Bucket, entry.Key); r != nil && !skipEntry {
-					if r.H.FileID > int64(pendingMergeFId) {
-						skipEntry = true
-					} else if r.H.FileID == int64(pendingMergeFId) && r.H.DataPos > uint64(off) {
-						skipEntry = true
-					}
-				}
-
-				if skipEntry {
-					off += entry.Size()
-					if off >= db.opt.SegmentSize {
-						break
-					}
-					continue
-				}
-
-				pendingMergeEntries = db.getPendingMergeEntries(entry, pendingMergeEntries)
-
-				off += entry.Size()
-				if off >= db.opt.SegmentSize {
-					break
-				}
-
-			} else {
-				if err == io.EOF {
-					break
-				}
-				if err == ErrIndexOutOfBound {
-					break
-				}
-				if err == io.ErrUnexpectedEOF {
-					break
-				}
-				return fmt.Errorf("when merge operation build hintIndex readAt err: %s", err)
-			}
-		}
-
-		if err := db.reWriteData(pendingMergeEntries); err != nil {
-			_ = fr.release()
-			return err
-		}
-
-		err = fr.release()
-		if err != nil {
-			return err
-		}
-		if err := os.Remove(path); err != nil {
-			db.isMerging = false
-			return fmt.Errorf("when merge err: %s", err)
-		}
-	}
-
-	return nil
 }
 
 // Backup copies the database to file directory at the given dir.
@@ -511,6 +405,8 @@ func (db *DB) release() error {
 		return err
 	}
 
+	db.mergeWorkCloseCh <- struct{}{}
+
 	db.fm = nil
 
 	db = nil
@@ -561,6 +457,126 @@ func (db *DB) getEntryByHint(h *Hint) (*Entry, error) {
 	return item, nil
 }
 
+func (db *DB) commitTransaction(tx *Tx) error {
+	var err error
+	defer func() {
+		var panicked bool
+		if r := recover(); r != nil {
+			// resume normal execution
+			panicked = true
+		}
+		if panicked || err != nil {
+			//log.Fatal("panicked=", panicked, ", err=", err)
+			if errRollback := tx.Rollback(); errRollback != nil {
+				err = errRollback
+			}
+		}
+	}()
+
+	// commit current tx
+	tx.lock()
+	tx.setStatusRunning()
+	err = tx.Commit()
+	if err != nil {
+		//log.Fatal("txCommit fail,err=", err)
+		return err
+	}
+
+	return err
+}
+
+func (db *DB) writeRequests(reqs []*request) error {
+	var err error
+	if len(reqs) == 0 {
+		return nil
+	}
+
+	done := func(err error) {
+		for _, r := range reqs {
+			r.Err = err
+			r.Wg.Done()
+		}
+	}
+
+	for _, req := range reqs {
+		tx := req.tx
+		cerr := db.commitTransaction(tx)
+		if cerr != nil {
+			err = cerr
+		}
+	}
+
+	done(err)
+	return err
+}
+
+// MaxBatchCount returns max possible entries in batch
+func (db *DB) getMaxBatchCount() int64 {
+	return db.opt.MaxBatchCount
+}
+
+// MaxBatchSize returns max possible batch size
+func (db *DB) getMaxBatchSize() int64 {
+	return db.opt.MaxBatchSize
+}
+
+func (db *DB) doWrites() {
+	pendingCh := make(chan struct{}, 1)
+	writeRequests := func(reqs []*request) {
+		if err := db.writeRequests(reqs); err != nil {
+			log.Fatal("writeRequests fail, err=", err)
+		}
+		<-pendingCh
+	}
+
+	reqs := make([]*request, 0, 10)
+	var r *request
+	var ok bool
+	for {
+		r, ok = <-db.writeCh
+		if !ok {
+			goto closedCase
+		}
+
+		for {
+			reqs = append(reqs, r)
+
+			if len(reqs) >= 3*KvWriteChCapacity {
+				pendingCh <- struct{}{} // blocking.
+				goto writeCase
+			}
+
+			select {
+			// Either push to pending, or continue to pick from writeCh.
+			case r, ok = <-db.writeCh:
+				if !ok {
+					goto closedCase
+				}
+			case pendingCh <- struct{}{}:
+				goto writeCase
+			}
+		}
+
+	closedCase:
+		// All the pending request are drained.
+		// Don't close the writeCh, because it has be used in several places.
+		for {
+			select {
+			case r = <-db.writeCh:
+				reqs = append(reqs, r)
+			default:
+				pendingCh <- struct{}{} // Push to pending before doing a write.
+				writeRequests(reqs)
+				return
+			}
+		}
+
+	writeCase:
+		go writeRequests(reqs)
+		reqs = make([]*request, 0, 10)
+	}
+}
+
 // setActiveFile sets the ActiveFile (DataFile object).
 func (db *DB) setActiveFile() (err error) {
 	filepath := getDataPath(db.MaxFileID, db.opt.Dir)
@@ -580,8 +596,6 @@ func (db *DB) getMaxFileIDAndFileIDs() (maxFileID int64, dataFileIds []int) {
 	if len(files) == 0 {
 		return 0, nil
 	}
-
-	maxFileID = 0
 
 	for _, f := range files {
 		id := f.Name()
@@ -634,9 +648,7 @@ func (db *DB) getActiveFileWriteOff() (off int64, err error) {
 }
 
 func (db *DB) parseDataFiles(dataFileIds []int) (unconfirmedRecords []*Record, committedTxIds map[uint64]struct{}, err error) {
-	var (
-		off int64
-	)
+	var off int64
 
 	committedTxIds = make(map[uint64]struct{})
 
@@ -647,67 +659,55 @@ func (db *DB) parseDataFiles(dataFileIds []int) (unconfirmedRecords []*Record, c
 	for _, dataID := range dataFileIds {
 		off = 0
 		fID := int64(dataID)
-		path := getDataPath(fID, db.opt.Dir)
-		f, err := newFileRecovery(path, db.opt.BufferSizeOfRecovery)
+		dataPath := getDataPath(fID, db.opt.Dir)
+		f, err := newFileRecovery(dataPath, db.opt.BufferSizeOfRecovery)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		for {
-			if entry, err := f.readEntry(); err == nil {
-				if entry == nil {
-					break
-				}
-
-				var e *Entry
-				if db.opt.EntryIdxMode == HintKeyValAndRAMIdxMode {
-					e = NewEntry().WithKey(entry.Key).WithValue(entry.Value).WithBucket(entry.Bucket).WithMeta(entry.Meta)
-				}
-
-				if entry.Meta.Status == Committed {
-					committedTxIds[entry.Meta.TxID] = struct{}{}
-					meta := NewMetaData().WithFlag(DataSetFlag)
-					h := NewHint().WithMeta(meta)
-					err := db.ActiveCommittedTxIdsIdx.Insert(entry.GetTxIDBytes(), nil, h, CountFlagEnabled)
-					if err != nil {
-						return nil, nil, fmt.Errorf("can not ingest the hint obj to ActiveCommittedTxIdsIdx, err: %s", err.Error())
-					}
-				}
-
-				h := NewHint().WithKey(entry.Key).WithFileId(fID).WithMeta(entry.Meta).WithDataPos(uint64(off))
-				r := NewRecord().WithHint(h).WithEntry(e).WithBucket(entry.GetBucketString())
-				unconfirmedRecords = append(unconfirmedRecords, r)
-
-				if db.opt.EntryIdxMode == HintBPTSparseIdxMode {
-					db.BPTreeKeyEntryPosMap[string(getNewKey(string(entry.Bucket), entry.Key))] = off
-				}
-
-				off += entry.Size()
-
-			} else {
+			entry, err := f.readEntry()
+			if err != nil {
 				// whatever which logic branch it will choose, we will release the fd.
 				_ = f.release()
-				if err == io.EOF {
-					break
-				}
-				if err == ErrIndexOutOfBound {
-					break
-				}
-				if err == io.ErrUnexpectedEOF {
+				if errors.Is(err, io.EOF) || errors.Is(err, ErrIndexOutOfBound) || errors.Is(err, io.ErrUnexpectedEOF) {
 					break
 				}
 				if off >= db.opt.SegmentSize {
 					break
 				}
-				if err != nil {
-					return nil, nil, err
-				}
-				return nil, nil, fmt.Errorf("when build hintIndex readAt err: %s", err)
-			}
-		}
 
-		if err != nil {
-			return nil, nil, err
+				return nil, nil, err
+			}
+
+			if entry == nil {
+				break
+			}
+
+			var e *Entry
+			if db.opt.EntryIdxMode == HintKeyValAndRAMIdxMode {
+				e = NewEntry().WithKey(entry.Key).WithValue(entry.Value).WithBucket(entry.Bucket).WithMeta(entry.Meta)
+			}
+
+			if entry.Meta.Status == Committed {
+				committedTxIds[entry.Meta.TxID] = struct{}{}
+				meta := NewMetaData().WithFlag(DataSetFlag)
+				h := NewHint().WithMeta(meta)
+				err := db.ActiveCommittedTxIdsIdx.Insert(entry.GetTxIDBytes(), nil, h, CountFlagEnabled)
+				if err != nil {
+					return nil, nil, fmt.Errorf("can not ingest the hint obj to ActiveCommittedTxIdsIdx, err: %s", err.Error())
+				}
+			}
+
+			h := NewHint().WithKey(entry.Key).WithFileId(fID).WithMeta(entry.Meta).WithDataPos(uint64(off))
+			r := NewRecord().WithHint(h).WithEntry(e).WithBucket(entry.GetBucketString())
+			unconfirmedRecords = append(unconfirmedRecords, r)
+
+			if db.opt.EntryIdxMode == HintBPTSparseIdxMode {
+				db.BPTreeKeyEntryPosMap[string(getNewKey(string(entry.Bucket), entry.Key))] = off
+			}
+
+			off += entry.Size()
 		}
 	}
 
@@ -916,7 +916,7 @@ func (db *DB) deleteBucket(ds uint16, bucket string) {
 // buildSetIdx builds set index when opening the DB.
 func (db *DB) buildSetIdx(bucket string, r *Record) error {
 	if _, ok := db.SetIdx[bucket]; !ok {
-		db.SetIdx[bucket] = set.New()
+		db.SetIdx[bucket] = NewSet()
 	}
 
 	if r.E == nil {
@@ -924,7 +924,7 @@ func (db *DB) buildSetIdx(bucket string, r *Record) error {
 	}
 
 	if r.H.Meta.Flag == DataSetFlag {
-		if err := db.SetIdx[bucket].SAdd(string(r.E.Key), r.E.Value); err != nil {
+		if err := db.SetIdx[bucket].SAdd(string(r.E.Key), [][]byte{r.E.Value}, []*Record{r}); err != nil {
 			return fmt.Errorf("when build SetIdx SAdd index err: %s", err)
 		}
 	}
@@ -1084,6 +1084,20 @@ func (db *DB) buildIndexes() (err error) {
 	return db.buildHintIdx(dataFileIds)
 }
 
+func (db *DB) buildRecordByEntryAndOffset(entry *Entry, offset int64) *Record {
+	var (
+		h *Hint
+		e *Entry
+	)
+	if db.opt.EntryIdxMode == HintKeyAndRAMIdxMode {
+		h = NewHint().WithFileId(db.ActiveFile.fileID).WithKey(entry.Key).WithMeta(entry.Meta).WithDataPos(uint64(offset))
+	} else {
+		e = entry
+	}
+
+	return NewRecord().WithBucket(string(entry.Bucket)).WithEntry(e).WithHint(h)
+}
+
 // managed calls a block of code that is fully contained in a transaction.
 func (db *DB) managed(writable bool, fn func(tx *Tx) error) (err error) {
 	var tx *Tx
@@ -1114,110 +1128,14 @@ func (db *DB) managed(writable bool, fn func(tx *Tx) error) (err error) {
 
 const bptDir = "bpt"
 
-func (db *DB) getPendingMergeEntries(entry *Entry, pendingMergeEntries []*Entry) []*Entry {
-	if entry.Meta.Ds == DataStructureBPTree {
-		bptIdx, exist := db.BPTreeIdx[string(entry.Bucket)]
-		if exist {
-			r, err := bptIdx.Find(entry.Key)
-			if err == nil && r.H.Meta.Flag == DataSetFlag {
-				pendingMergeEntries = append(pendingMergeEntries, entry)
-			}
-		}
-	}
-
-	if entry.Meta.Ds == DataStructureSet {
-		setIdx, exist := db.SetIdx[string(entry.Bucket)]
-		if exist {
-			if setIdx.SIsMember(string(entry.Key), entry.Value) {
-				pendingMergeEntries = append(pendingMergeEntries, entry)
-			}
-		}
-	}
-
-	if entry.Meta.Ds == DataStructureSortedSet {
-		keyAndScore := strings.Split(string(entry.Key), SeparatorForZSetKey)
-		if len(keyAndScore) == 2 {
-			key := keyAndScore[0]
-			sortedSetIdx, exist := db.SortedSetIdx[string(entry.Bucket)]
-			if exist {
-				n := sortedSetIdx.GetByKey(key)
-				if n != nil {
-					pendingMergeEntries = append(pendingMergeEntries, entry)
-				}
-			}
-		}
-	}
-
-	if entry.Meta.Ds == DataStructureList {
-		//check the key of list is expired or not
-		//if expired, it will clear the items of index
-		//so that nutsdb can clear entry of expiring list in the function getPendingMergeEntries
-		db.checkListExpired()
-		listIdx := db.Index.getList(string(entry.Bucket))
-
-		if listIdx != nil {
-			items, _ := listIdx.LRange(string(entry.Key), 0, -1)
-			ok := false
-			if entry.Meta.Flag == DataRPushFlag || entry.Meta.Flag == DataLPushFlag {
-				for _, item := range items {
-					v, _ := db.getValueByRecord(item)
-					if string(entry.Value) == string(v) {
-						ok = true
-						break
-					}
-				}
-				if ok {
-					pendingMergeEntries = append(pendingMergeEntries, entry)
-				}
-			}
-		}
-	}
-
-	return pendingMergeEntries
-}
-
-func (db *DB) reWriteData(pendingMergeEntries []*Entry) error {
-	if len(pendingMergeEntries) == 0 {
-		return nil
-	}
-	tx, err := db.Begin(true)
-	if err != nil {
-		db.isMerging = false
-		return err
-	}
-
-	dataFile, err := db.fm.getDataFile(getDataPath(db.MaxFileID+1, db.opt.Dir), db.opt.SegmentSize)
-	if err != nil {
-		db.isMerging = false
-		return err
-	}
-	db.ActiveFile = dataFile
-	db.MaxFileID++
-
-	for _, e := range pendingMergeEntries {
-		err := tx.put(string(e.Bucket), e.Key, e.Value, e.Meta.TTL, e.Meta.Flag, e.Meta.Timestamp, e.Meta.Ds)
-		if err != nil {
-			tx.Rollback()
-			db.isMerging = false
-			return err
-		}
-	}
-	tx.Commit()
-	return nil
-}
-
-// getRecordFromKey fetches Record for given key and bucket
-// this is a helper function used in Merge so it does not work if index mode is HintBPTSparseIdxMode
-func (db *DB) getRecordFromKey(bucket, key []byte) (record *Record, err error) {
-	idxMode := db.opt.EntryIdxMode
-	if !(idxMode == HintKeyValAndRAMIdxMode || idxMode == HintKeyAndRAMIdxMode) {
-		return nil, errors.New("not implemented")
-	}
-	idx, ok := db.BPTreeIdx[string(bucket)]
-	if !ok {
-		return nil, ErrBucketNotFound
-	}
-	return idx.Find(key)
+func (db *DB) sendToWriteCh(tx *Tx) (*request, error) {
+	req := requestPool.Get().(*request)
+	req.reset()
+	req.Wg.Add(1)
+	req.tx = tx
+	req.IncrRef()     // for db write
+	db.writeCh <- req // Handled in doWrites.
+	return req, nil
 }
 
 func (db *DB) checkListExpired() {
