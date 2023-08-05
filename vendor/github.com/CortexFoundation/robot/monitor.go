@@ -220,6 +220,8 @@ func (m *Monitor) download(ctx context.Context, k string, v uint64) error {
 		case m.callback <- task:
 		case <-ctx.Done():
 			return ctx.Err()
+		case <-m.exitCh:
+			return errors.New("Terminated")
 		}
 	}
 	return nil

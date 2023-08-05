@@ -44,14 +44,14 @@ github.com/CortexFoundation/inference/synapse
 # github.com/CortexFoundation/merkletree v0.0.0-20230724124840-b6e80265a137
 ## explicit; go 1.19
 github.com/CortexFoundation/merkletree
-# github.com/CortexFoundation/robot v1.0.5-0.20230803154454-c8f652b42baf
+# github.com/CortexFoundation/robot v1.0.5-0.20230804155714-62b5334cd91f
 ## explicit; go 1.20
 github.com/CortexFoundation/robot
 github.com/CortexFoundation/robot/backend
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit; go 1.16
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.53-0.20230804085546-cc4904f2dc42
+# github.com/CortexFoundation/torrentfs v1.0.53-0.20230805075654-6bcd8cf69a1b
 ## explicit; go 1.20
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/backend
@@ -370,7 +370,7 @@ github.com/cockroachdb/errors/withstack
 # github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b
 ## explicit; go 1.16
 github.com/cockroachdb/logtags
-# github.com/cockroachdb/pebble v0.0.0-20230803185510-83c9361c3b82
+# github.com/cockroachdb/pebble v0.0.0-20230804232740-ff9402f082b3
 ## explicit; go 1.19
 github.com/cockroachdb/pebble
 github.com/cockroachdb/pebble/bloom
@@ -462,7 +462,7 @@ github.com/crate-crypto/go-kzg-4844/internal/utils
 # github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/deckarep/golang-set/v2 v2.3.0
+# github.com/deckarep/golang-set/v2 v2.3.1
 ## explicit; go 1.18
 github.com/deckarep/golang-set/v2
 # github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0
@@ -473,7 +473,7 @@ github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa
 ## explicit; go 1.18
 github.com/deepmap/oapi-codegen/pkg/runtime
 github.com/deepmap/oapi-codegen/pkg/types
-# github.com/dgraph-io/badger/v4 v4.0.2-0.20230731151745-c2e611ac7cc6
+# github.com/dgraph-io/badger/v4 v4.2.0
 ## explicit; go 1.19
 github.com/dgraph-io/badger/v4
 github.com/dgraph-io/badger/v4/fb
@@ -1079,7 +1079,7 @@ github.com/ucwong/filecache
 # github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb
 ## explicit; go 1.19
 github.com/ucwong/go-ttlmap
-# github.com/ucwong/golang-kv v1.0.22-0.20230804083442-f50c3ff8e5a2
+# github.com/ucwong/golang-kv v1.0.23-0.20230805075412-50201768d48f
 ## explicit; go 1.20
 github.com/ucwong/golang-kv
 github.com/ucwong/golang-kv/badger
