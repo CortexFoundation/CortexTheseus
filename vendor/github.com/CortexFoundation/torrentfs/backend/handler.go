@@ -1105,7 +1105,7 @@ func (tm *TorrentManager) mainLoop() {
 				log.Error("Seed [create] failed", "ih", meta.InfoHash(), "request", meta.Request())
 			} else {
 				if t.Stopping() {
-					log.Info("Nas recovery", "ih", t.InfoHash(), "status", t.Status(), "complete", common.StorageSize(t.Torrent.BytesCompleted()))
+					log.Debug("Nas recovery", "ih", t.InfoHash(), "status", t.Status(), "complete", common.StorageSize(t.Torrent.BytesCompleted()))
 					if tt, err := tm.injectSpec(t.InfoHash(), t.Spec()); err == nil && tt != nil {
 						t.status.Store(torrentPending)
 						t.Lock()
@@ -1325,7 +1325,7 @@ func (tm *TorrentManager) activeLoop() {
 			}(t.InfoHash(), n)
 		case <-timer_1.C:
 			if tm.fc != nil {
-				log.Info("Cache status", "total", common.StorageSize(tm.fc.FileSize()), "itms", tm.fc.Size())
+				log.Debug("Cache status", "total", common.StorageSize(tm.fc.FileSize()), "itms", tm.fc.Size())
 				if tm.mode == params.LAZY {
 					for _, itm := range tm.fc.MostAccessed(4) {
 						log.Debug("Cache status", "key", itm.Key(), "acc", itm.AccessCount, "dur", common.PrettyDuration(itm.Dur()))
@@ -1410,7 +1410,7 @@ func (tm *TorrentManager) droppingLoop() {
 				tm.dropTorrent(t)
 
 				elapsed := time.Duration(mclock.Now()) - time.Duration(t.Birth())
-				log.Info("Seed has been dropped", "ih", ih, "cited", t.Cited(), "status", t.Status(), "elapsed", common.PrettyDuration(elapsed))
+				log.Debug("Seed has been dropped", "ih", ih, "cited", t.Cited(), "status", t.Status(), "elapsed", common.PrettyDuration(elapsed))
 			} else {
 				log.Warn("Drop seed not found", "ih", ih)
 			}
