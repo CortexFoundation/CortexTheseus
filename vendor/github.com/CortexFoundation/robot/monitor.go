@@ -125,7 +125,7 @@ func New(flag *params.Config, cache, compress, listen bool, callback chan any) (
 		exitCh: make(chan any),
 		srvCh:  make(chan int),
 		//exitSyncCh: make(chan any),
-		scope: uint64(math.Min(float64(runtime.NumCPU()), float64(8))),
+		scope: uint64(math.Max(float64(runtime.NumCPU()*2), float64(4))),
 		//taskCh: make(chan *types.Block, batch),
 		//taskCh:        make(chan *types.Block, 1),
 		//start: mclock.Now(),
@@ -215,13 +215,12 @@ func (m *Monitor) loadHistory() error {
 
 func (m *Monitor) download(ctx context.Context, k string, v uint64) error {
 	if m.mode != params.LAZY && m.callback != nil {
-		task := types.NewBitsFlow(k, v)
 		select {
-		case m.callback <- task:
+		case m.callback <- types.NewBitsFlow(k, v):
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-m.exitCh:
-			return errors.New("Terminated")
+			return errors.New("terminated")
 		}
 	}
 	return nil
@@ -806,6 +805,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 	m.start = mclock.Now()
 	//}
 
+	counter := 0
 	for i := minNumber; i <= maxNumber; { // i++ {
 		if m.terminated.Load() {
 			log.Warn("Fs scan terminated", "number", i)
@@ -848,6 +848,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 				}
 			}
 			i += uint64(len(blocks))
+			counter += len(blocks)
 		} else {
 			rpcBlock, rpcErr := m.rpcBlockByNumber(i)
 			if rpcErr != nil {
@@ -861,12 +862,13 @@ func (m *Monitor) syncLastBlock() uint64 {
 				return 0
 			}
 			i++
+			counter++
 		}
 	}
 	//log.Debug("Last number changed", "min", minNumber, "max", maxNumber, "cur", currentNumber, "last", m.lastNumber.Load(), "batch", batch)
 	m.lastNumber.Store(maxNumber)
 	elapsedA := time.Duration(mclock.Now()) - time.Duration(m.start)
-	log.Info("Chain segment frozen", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber+1), "current", uint64(m.CurrentNumber()), "progress", float64(maxNumber)/float64(m.CurrentNumber()), "last", m.lastNumber.Load(), "bps", float64(maxNumber-minNumber+1)*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA))
+	log.Info("Chain segment frozen", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber+1), "counter", counter, "scope", m.scope, "current", m.CurrentNumber(), "prog", float64(maxNumber)/float64(m.CurrentNumber()), "last", m.lastNumber.Load(), "bps", float64(counter)*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA))
 	return uint64(maxNumber - minNumber)
 }
 
