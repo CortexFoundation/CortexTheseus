@@ -364,14 +364,14 @@ func (t *Torrent) run() bool {
 func (t *Torrent) listen() {
 	defer t.wg.Done()
 
-	log.Info("Task listener started", "ih", t.InfoHash())
+	log.Debug("Task listener started", "ih", t.InfoHash())
 
 	for {
 		select {
 		case task := <-t.taskCh:
 			t.Torrent.DownloadPieces(task.start, task.end)
 		case <-t.closeAll:
-			log.Info("Task listener stopped", "ih", t.InfoHash())
+			log.Debug("Task listener stopped", "ih", t.InfoHash())
 			return
 		}
 	}
@@ -433,7 +433,7 @@ func (t *Torrent) stopListen() {
 
 		t.taskCh = nil
 
-		log.Info("Nas listener stopped", "ih", t.InfoHash(), "status", t.Status())
+		log.Debug("Nas listener stopped", "ih", t.InfoHash(), "status", t.Status())
 	})
 }
 
