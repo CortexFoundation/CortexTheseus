@@ -17,7 +17,7 @@
 package ctxc
 
 import (
-	"math/big"
+	//"math/big"
 	"os"
 	"os/user"
 	"time"
@@ -58,12 +58,7 @@ var DefaultConfig = Config{
 	TrieDirtyCache:          256,
 	TrieTimeout:             60 * time.Minute,
 	SnapshotCache:           102,
-	Miner: miner.Config{
-		GasFloor: params.MinerGasFloor,
-		GasCeil:  params.MinerGasCeil,
-		GasPrice: big.NewInt(params.GWei),
-		Recommit: 3 * time.Second,
-	},
+	Miner:                   miner.DefaultConfig,
 
 	TxPool:      txpool.DefaultConfig,
 	RPCGasCap:   50000000,
