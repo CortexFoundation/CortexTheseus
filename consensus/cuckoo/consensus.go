@@ -391,6 +391,7 @@ func checkGasLimit(gasUsed, gasLimit, currentGasLimit uint64) bool {
 		}
 	}
 
+	// TODO
 	return limit == currentGasLimit
 }
 

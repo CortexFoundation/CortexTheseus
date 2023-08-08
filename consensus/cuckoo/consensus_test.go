@@ -82,4 +82,12 @@ func TestGasLimitCheck(t *testing.T) {
 	if validate := checkGasLimit(0, 8000000, 7992189); validate {
 		t.Fatalf("failed")
 	}
+
+	if validate := checkGasLimit(7980000, 8000000, 8003878); !validate {
+		t.Fatalf("failed")
+	}
+
+	if validate := checkGasLimit(7980000, 8000000, 8003879); validate {
+		t.Fatalf("failed")
+	}
 }
