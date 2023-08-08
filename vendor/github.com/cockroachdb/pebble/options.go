@@ -259,6 +259,9 @@ type scanInternalOptions struct {
 	// includeObsoleteKeys specifies whether keys shadowed by newer internal keys
 	// are exposed. If false, only one internal key per user key is exposed.
 	includeObsoleteKeys bool
+
+	// rateLimitFunc is used to limit the amount of bytes read per second.
+	rateLimitFunc func(key *InternalKey, value LazyValue)
 }
 
 // RangeKeyMasking configures automatic hiding of point keys by range keys. A
@@ -678,9 +681,9 @@ type Options struct {
 		CreateOnShared        bool
 		CreateOnSharedLocator remote.Locator
 
-		// CacheSizeBytes is the size of the on-disk block cache for objects
-		// on shared storage. If it is 0, no cache is used.
-		SecondaryCacheSize int64
+		// CacheSizeBytesBytes is the size of the on-disk block cache for objects
+		// on shared storage in bytes. If it is 0, no cache is used.
+		SecondaryCacheSizeBytes int64
 	}
 
 	// Filters is a map from filter policy name to filter policy. It is used for
@@ -1225,6 +1228,7 @@ func (o *Options) String() string {
 	fmt.Fprintf(&buf, "  wal_bytes_per_sync=%d\n", o.WALBytesPerSync)
 	fmt.Fprintf(&buf, "  max_writer_concurrency=%d\n", o.Experimental.MaxWriterConcurrency)
 	fmt.Fprintf(&buf, "  force_writer_parallelism=%t\n", o.Experimental.ForceWriterParallelism)
+	fmt.Fprintf(&buf, "  secondary_cache_size_bytes=%d\n", o.Experimental.SecondaryCacheSizeBytes)
 
 	// Private options.
 	//
@@ -1494,6 +1498,8 @@ func (o *Options) Parse(s string, hooks *ParseHooks) error {
 				o.Experimental.MaxWriterConcurrency, err = strconv.Atoi(value)
 			case "force_writer_parallelism":
 				o.Experimental.ForceWriterParallelism, err = strconv.ParseBool(value)
+			case "secondary_cache_size_bytes":
+				o.Experimental.SecondaryCacheSizeBytes, err = strconv.ParseInt(value, 10, 64)
 			default:
 				if hooks != nil && hooks.SkipUnknown != nil && hooks.SkipUnknown(section+"."+key, value) {
 					return nil

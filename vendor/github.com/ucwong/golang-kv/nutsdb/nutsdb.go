@@ -87,7 +87,7 @@ func (b *NutsDB) Del(k []byte) (err error) {
 
 func (b *NutsDB) Prefix(prefix []byte) (res [][]byte) {
 	b.engine.View(func(tx *nutsdb.Tx) error {
-		if entries, _, err := tx.PrefixScan(GLOBAL, prefix, 25, 100); err != nil {
+		if entries, err := tx.PrefixScan(GLOBAL, prefix, 25, 100); err != nil {
 			return err
 		} else {
 			for _, entry := range entries {
