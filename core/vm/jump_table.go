@@ -53,6 +53,8 @@ var (
 	neoInstructionSet              = newNeoInstructionSet()
 
 	mergeInstructionSet = newMergeInstructionSet()
+
+	mercuryInstructionSet = newMercuryInstructionSet()
 )
 
 // JumpTable contains the CVM opcodes supported at a given fork.
@@ -67,6 +69,13 @@ func validate(jt JumpTable) JumpTable {
 	return jt
 }
 
+func newMercuryInstructionSet() JumpTable {
+	instructionSet := newMergeInstructionSet()
+	enable5656(&instructionSet) // EIP-5656 (MCOPY opcode)
+
+	return validate(instructionSet)
+}
+
 func newMergeInstructionSet() JumpTable {
 	instructionSet := newNeoInstructionSet()
 	instructionSet[RANDOM] = &operation{
@@ -74,7 +83,6 @@ func newMergeInstructionSet() JumpTable {
 		gasCost:       constGasFunc(GasQuickStep),
 		validateStack: makeStackFunc(0, 1),
 	}
-	enable5656(&instructionSet) // EIP-5656 (MCOPY opcode)
 	return validate(instructionSet)
 }
 

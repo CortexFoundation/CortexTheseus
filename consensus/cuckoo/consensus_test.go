@@ -71,23 +71,23 @@ func randSlice(min, max uint32) []byte {
 }
 
 func TestGasLimitCheck(t *testing.T) {
-	if validate := checkGasLimit(0, 7992189, 8000000); !validate {
+	if validate := checkGasLimit(0, 7992189, 8000000, nil, nil); !validate {
 		t.Fatalf("failed")
 	}
 
-	if validate := checkGasLimit(7992189, 7992189, 8000000); !validate {
+	if validate := checkGasLimit(7992189, 7992189, 8000000, nil, nil); !validate {
 		t.Fatalf("failed")
 	}
 
-	if validate := checkGasLimit(0, 8000000, 7992189); validate {
+	if validate := checkGasLimit(0, 8000000, 7992189, nil, nil); validate {
 		t.Fatalf("failed")
 	}
 
-	if validate := checkGasLimit(7980000, 8000000, 8003878); !validate {
+	if validate := checkGasLimit(7980000, 8000000, 8003878, nil, nil); !validate {
 		t.Fatalf("failed")
 	}
 
-	if validate := checkGasLimit(7980000, 8000000, 8003879); validate {
+	if validate := checkGasLimit(7980000, 8000000, 8003879, nil, nil); validate {
 		t.Fatalf("failed")
 	}
 }

@@ -89,6 +89,8 @@ func NewCVMInterpreter(cvm *CVM) *CVMInterpreter {
 	// If jump table was not initialised we set the default one.
 	var table *JumpTable
 	switch {
+	case cvm.chainRules.IsMercury:
+		table = &mercuryInstructionSet
 	case cvm.chainRules.IsMerge:
 		table = &mergeInstructionSet
 	case cvm.chainRules.IsNeo:

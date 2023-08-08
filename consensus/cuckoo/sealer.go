@@ -207,7 +207,7 @@ func (cuckoo *Cuckoo) remote() {
 		// Verify the correctness of submitted result.
 		header := block.Header()
 		header.Nonce = nonce
-		//header.MixDigest = mixDigest
+		header.MixDigest = sol.Hash()
 		header.Solution = sol
 		if err := cuckoo.VerifySeal(nil, header); err != nil {
 			log.Warn("Invalid proof-of-work submitted", "hash", hash, "err", err)

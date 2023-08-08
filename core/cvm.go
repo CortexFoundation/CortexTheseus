@@ -24,6 +24,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
 // ChainContext supports retrieving headers and consensus parameters from the
@@ -48,9 +49,19 @@ func NewCVMBlockContext(header *types.Header, chain ChainContext, author *common
 	} else {
 		beneficiary = *author
 	}
+
+	log.Info("Random", "number", header.Number, "mix", header.MixDigest, "parent", header.ParentHash, "mercury", params.MERCURY_MAINNET)
+
+	// TODO auto invoked by PoS (IsMerge Version) op random, set when mining work commit, it will not happen by PoW
 	if header.Difficulty.Cmp(common.Big0) == 0 {
 		random = &header.MixDigest
+	} else {
+		// TODO fake random only for random op pass, used carefully, check block number
+		if params.MERCURY_MAINNET != nil && header.Number.Cmp(params.MERCURY_MAINNET) >= 0 {
+			random = &header.ParentHash
+		}
 	}
+
 	return vm.BlockContext{
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,
