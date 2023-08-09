@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.53-0.20230808072508-61b90f87fb76
+	github.com/CortexFoundation/torrentfs v1.0.53-0.20230809192512-d2b61327e9a5
 	github.com/VictoriaMetrics/fastcache v1.12.1
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.19.0
@@ -17,7 +17,7 @@ require (
 	github.com/cespare/cp v1.1.1
 	github.com/charmbracelet/bubbletea v0.24.2
 	github.com/cloudflare/cloudflare-go v0.57.1
-	github.com/cockroachdb/pebble v0.0.0-20230807203122-df7e2ae16dbf
+	github.com/cockroachdb/pebble v0.0.0-20230809152335-49821f58f7c4
 	github.com/consensys/gnark-crypto v0.11.1
 	github.com/crate-crypto/go-kzg-4844 v0.3.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
@@ -67,7 +67,7 @@ require (
 	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
 	golang.org/x/mobile v0.0.0-20201217150744-e6ae53a27f4f
 	golang.org/x/sync v0.3.0
-	golang.org/x/sys v0.10.0
+	golang.org/x/sys v0.11.0
 	golang.org/x/text v0.11.0
 	golang.org/x/time v0.3.0
 	golang.org/x/tools v0.11.0
@@ -192,7 +192,7 @@ require (
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
-	github.com/nutsdb/nutsdb v0.13.1-0.20230808025958-28b0deedbd97 // indirect
+	github.com/nutsdb/nutsdb v0.13.1-0.20230809122353-2f72279a1960 // indirect
 	github.com/onsi/gomega v1.20.0 // indirect
 	github.com/otiai10/copy v1.12.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.9 // indirect
@@ -236,7 +236,7 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ucwong/filecache v1.0.6-0.20230405163841-810d53ced4bd // indirect
 	github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb // indirect
-	github.com/ucwong/golang-kv v1.0.23-0.20230808071813-15ccff947f41 // indirect
+	github.com/ucwong/golang-kv v1.0.23-0.20230809155820-1d331ad1346f // indirect
 	github.com/ucwong/shard v1.0.1-0.20230505153952-911e99b5f0c2 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
