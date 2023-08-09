@@ -449,19 +449,19 @@ func ingestLink(
 			})
 		}
 	}
-	sharedObjs := make([]objstorage.SharedObjectToAttach, 0, len(shared))
+	sharedObjs := make([]objstorage.RemoteObjectToAttach, 0, len(shared))
 	for i := range shared {
 		backing, err := shared[i].Backing.Get()
 		if err != nil {
 			return err
 		}
-		sharedObjs = append(sharedObjs, objstorage.SharedObjectToAttach{
+		sharedObjs = append(sharedObjs, objstorage.RemoteObjectToAttach{
 			FileNum:  lr.sharedMeta[i].FileBacking.DiskFileNum,
 			FileType: fileTypeTable,
 			Backing:  backing,
 		})
 	}
-	sharedObjMetas, err := objProvider.AttachSharedObjects(sharedObjs)
+	sharedObjMetas, err := objProvider.AttachRemoteObjects(sharedObjs)
 	if err != nil {
 		return err
 	}
@@ -473,7 +473,7 @@ func ingestLink(
 		// open the db again after a crash/restart (see checkConsistency in open.go),
 		// plus it more accurately allows us to prioritize compactions of files
 		// that were originally created by us.
-		if !objProvider.IsForeign(sharedObjMetas[i]) {
+		if sharedObjMetas[i].IsShared() && !objProvider.IsForeign(sharedObjMetas[i]) {
 			size, err := objProvider.Size(sharedObjMetas[i])
 			if err != nil {
 				return err
@@ -729,7 +729,7 @@ func ingestTargetLevel(
 	// Check for overlap over the keys of L0 by iterating over the sublevels.
 	for subLevel := 0; subLevel < len(v.L0SublevelFiles); subLevel++ {
 		iter := newLevelIter(iterOps, cmp, nil /* split */, newIters,
-			v.L0Sublevels.Levels[subLevel].Iter(), manifest.Level(0), nil)
+			v.L0Sublevels.Levels[subLevel].Iter(), manifest.Level(0), internalIterOpts{})
 
 		var rangeDelIter keyspan.FragmentIterator
 		// Pass in a non-nil pointer to rangeDelIter so that levelIter.findFileGE
@@ -760,7 +760,7 @@ func ingestTargetLevel(
 	level := baseLevel
 	for ; level < numLevels; level++ {
 		levelIter := newLevelIter(iterOps, cmp, nil /* split */, newIters,
-			v.Levels[level].Iter(), manifest.Level(level), nil)
+			v.Levels[level].Iter(), manifest.Level(level), internalIterOpts{})
 		var rangeDelIter keyspan.FragmentIterator
 		// Pass in a non-nil pointer to rangeDelIter so that levelIter.findFileGE
 		// sets it up for the target file.
@@ -827,7 +827,7 @@ func ingestTargetLevel(
 //
 // Two types of sstables are accepted for ingestion(s): one is sstables present
 // in the instance's vfs.FS and can be referenced locally. The other is sstables
-// present in shared.Storage, referred to as shared or foreign sstables. These
+// present in remote.Storage, referred to as shared or foreign sstables. These
 // shared sstables can be linked through objstorageprovider.Provider, and do not
 // need to already be present on the local vfs.FS. Foreign sstables must all fit
 // in an excise span, and are destined for a level specified in SharedSSTMeta.
@@ -858,7 +858,7 @@ func ingestTargetLevel(
 //     local sstables. This is the step where overlap with memtables is
 //     determined. If there is overlap, we remember the most recent memtable
 //     that overlaps.
-//  6. Update the sequence number in the ingested local sstables. (Shared
+//  6. Update the sequence number in the ingested local sstables. (Remote
 //     sstables get fixed sequence numbers that were determined at load time.)
 //  7. Wait for the most recent memtable that overlaps to flush (if any).
 //  8. Add the ingested sstables to the version (DB.ingestApply).
@@ -914,14 +914,14 @@ func (d *DB) IngestWithStats(paths []string) (IngestOperationStats, error) {
 }
 
 // IngestAndExcise does the same as IngestWithStats, and additionally accepts a
-// list of shared files to ingest that can be read from a shared.Storage through
+// list of shared files to ingest that can be read from a remote.Storage through
 // a Provider. All the shared files must live within exciseSpan, and any existing
 // keys in exciseSpan are deleted by turning existing sstables into virtual
 // sstables (if not virtual already) and shrinking their spans to exclude
 // exciseSpan. See the comment at Ingest for a more complete picture of the
 // ingestion process.
 //
-// Panics if this DB instance was not instantiated with a shared.Storage and
+// Panics if this DB instance was not instantiated with a remote.Storage and
 // shared sstables are present.
 func (d *DB) IngestAndExcise(
 	paths []string, shared []SharedSSTMeta, exciseSpan KeyRange,
@@ -1049,7 +1049,7 @@ func (d *DB) ingest(
 	shared []SharedSSTMeta,
 	exciseSpan KeyRange,
 ) (IngestOperationStats, error) {
-	if len(shared) > 0 && d.opts.Experimental.SharedStorage == nil {
+	if len(shared) > 0 && d.opts.Experimental.RemoteStorage == nil {
 		panic("cannot ingest shared sstables with nil SharedStorage")
 	}
 	if (exciseSpan.Valid() || len(shared) > 0) && d.opts.FormatMajorVersion < ExperimentalFormatVirtualSSTables {
@@ -1096,6 +1096,10 @@ func (d *DB) ingest(
 	// error.
 	if err := ingestLink(jobID, d.opts, d.objProvider, loadResult, shared); err != nil {
 		return IngestOperationStats{}, err
+	}
+
+	for i, sharedMeta := range loadResult.sharedMeta {
+		d.checkVirtualBounds(sharedMeta, &IterOptions{level: manifest.Level(loadResult.sharedLevels[i])})
 	}
 	// Make the new tables durable. We need to do this at some point before we
 	// update the MANIFEST (via logAndApply), otherwise a crash can have the
@@ -1295,7 +1299,7 @@ func (d *DB) ingest(
 		}
 	}
 
-	// NB: Shared-sstable-only ingestions do not assign a sequence number to
+	// NB: Remote-sstable-only ingestions do not assign a sequence number to
 	// any sstables.
 	globalSeqNum := uint64(0)
 	if len(loadResult.localMeta) > 0 {
@@ -1490,6 +1494,8 @@ func (d *DB) excise(
 			if err := leftFile.Validate(d.cmp, d.opts.Comparer.FormatKey); err != nil {
 				return nil, err
 			}
+			leftFile.ValidateVirtual(m)
+			d.checkVirtualBounds(leftFile, &IterOptions{level: manifest.Level(level)} /* iterOptions */)
 			ve.NewFiles = append(ve.NewFiles, newFileEntry{Level: level, Meta: leftFile})
 			ve.CreatedBackingTables = append(ve.CreatedBackingTables, leftFile.FileBacking)
 			backingTableCreated = true
@@ -1597,6 +1603,8 @@ func (d *DB) excise(
 			// for it here.
 			rightFile.Size = 1
 		}
+		rightFile.ValidateVirtual(m)
+		d.checkVirtualBounds(rightFile, &IterOptions{level: manifest.Level(level)} /* iterOptions */)
 		ve.NewFiles = append(ve.NewFiles, newFileEntry{Level: level, Meta: rightFile})
 		if !backingTableCreated {
 			ve.CreatedBackingTables = append(ve.CreatedBackingTables, rightFile.FileBacking)
@@ -1732,8 +1740,10 @@ func (d *DB) ingestApply(
 		// for files, and if they are, we should signal those compactions to error
 		// out.
 		for level := range current.Levels {
-			iter := current.Levels[level].Iter()
-			for m := iter.SeekGE(d.cmp, exciseSpan.Start); m != nil && d.cmp(m.Smallest.UserKey, exciseSpan.End) < 0; m = iter.Next() {
+			overlaps := current.Overlaps(level, d.cmp, exciseSpan.Start, exciseSpan.End, true /* exclusiveEnd */)
+			iter := overlaps.Iter()
+
+			for m := iter.First(); m != nil; m = iter.Next() {
 				excised, err := d.excise(exciseSpan, m, ve, level)
 				if err != nil {
 					return nil, err

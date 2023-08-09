@@ -44,6 +44,9 @@ type DB struct {
 	mu           sync.RWMutex
 	closed       bool
 	mergeRunning uint32 // indicate if the database is merging
+	batchPool    sync.Pool
+	watchCh      chan *Event // user consume channel for watch events
+	watcher      *Watcher
 }
 
 // Stat represents the statistics of the database.
@@ -92,12 +95,12 @@ func Open(options Options) (*DB, error) {
 
 	// open data files from WAL
 	walFiles, err := wal.Open(wal.Options{
-		DirPath:       options.DirPath,
-		SegmentSize:   options.SegmentSize,
-		SementFileExt: dataFileNameSuffix,
-		BlockCache:    options.BlockCache,
-		Sync:          options.Sync,
-		BytesPerSync:  options.BytesPerSync,
+		DirPath:        options.DirPath,
+		SegmentSize:    options.SegmentSize,
+		SegmentFileExt: dataFileNameSuffix,
+		BlockCache:     options.BlockCache,
+		Sync:           options.Sync,
+		BytesPerSync:   options.BytesPerSync,
 	})
 	if err != nil {
 		return nil, err
@@ -109,6 +112,15 @@ func Open(options Options) (*DB, error) {
 		index:     index.NewIndexer(),
 		options:   options,
 		fileLock:  fileLock,
+		batchPool: sync.Pool{New: makeBatch},
+	}
+
+	// enable watch
+	if options.WatchQueueSize > 0 {
+		db.watchCh = make(chan *Event, 100)
+		db.watcher = NewWatcher(options.WatchQueueSize)
+		// run a goroutine to synchronize event information
+		go db.watcher.sendEvent(db.watchCh)
 	}
 
 	// load index frm hint file
@@ -146,6 +158,11 @@ func (db *DB) Close() error {
 		return err
 	}
 
+	// close watch channel
+	if db.options.WatchQueueSize > 0 {
+		close(db.watchCh)
+	}
+
 	db.closed = true
 	return nil
 }
@@ -178,12 +195,15 @@ func (db *DB) Stat() *Stat {
 // Actually, it will open a new batch and commit it.
 // You can think the batch has only one Put operation.
 func (db *DB) Put(key []byte, value []byte) error {
-	options := DefaultBatchOptions
+	batch := db.batchPool.Get().(*Batch)
+	defer func() {
+		batch.reset()
+		db.batchPool.Put(batch)
+	}()
 	// This is a single delete operation, we can set Sync to false.
 	// Because the data will be written to the WAL,
 	// and the WAL file will be synced to disk according to the DB options.
-	options.Sync = false
-	batch := db.NewBatch(options)
+	batch.init(false, false, db).withPendingWrites()
 	if err := batch.Put(key, value); err != nil {
 		return err
 	}
@@ -194,12 +214,12 @@ func (db *DB) Put(key []byte, value []byte) error {
 // Actually, it will open a new batch and commit it.
 // You can think the batch has only one Get operation.
 func (db *DB) Get(key []byte) ([]byte, error) {
-	options := DefaultBatchOptions
-	// Read-only operation
-	options.ReadOnly = true
-	batch := db.NewBatch(options)
+	batch := db.batchPool.Get().(*Batch)
+	batch.init(true, false, db)
 	defer func() {
 		_ = batch.Commit()
+		batch.reset()
+		db.batchPool.Put(batch)
 	}()
 	return batch.Get(key)
 }
@@ -208,13 +228,17 @@ func (db *DB) Get(key []byte) ([]byte, error) {
 // Actually, it will open a new batch and commit it.
 // You can think the batch has only one Delete operation.
 func (db *DB) Delete(key []byte) error {
-	options := DefaultBatchOptions
+	batch := db.batchPool.Get().(*Batch)
+	defer func() {
+		batch.reset()
+		db.batchPool.Put(batch)
+	}()
 	// This is a single delete operation, we can set Sync to false.
 	// Because the data will be written to the WAL,
 	// and the WAL file will be synced to disk according to the DB options.
-	options.Sync = false
-	batch := db.NewBatch(options)
+	batch.init(false, false, db).withPendingWrites()
 	if err := batch.Delete(key); err != nil {
+		_ = batch.Rollback()
 		return err
 	}
 	return batch.Commit()
@@ -224,14 +248,21 @@ func (db *DB) Delete(key []byte) error {
 // Actually, it will open a new batch and commit it.
 // You can think the batch has only one Exist operation.
 func (db *DB) Exist(key []byte) (bool, error) {
-	options := DefaultBatchOptions
-	// Read-only operation
-	options.ReadOnly = true
-	batch := db.NewBatch(options)
+	batch := db.batchPool.Get().(*Batch)
+	batch.init(true, false, db)
 	defer func() {
 		_ = batch.Commit()
+		batch.reset()
+		db.batchPool.Put(batch)
 	}()
 	return batch.Exist(key)
+}
+
+func (db *DB) Watch() (chan *Event, error) {
+	if db.options.WatchQueueSize <= 0 {
+		return nil, ErrWatchDisabled
+	}
+	return db.watchCh, nil
 }
 
 func checkOptions(options Options) error {
@@ -261,6 +292,7 @@ func (db *DB) loadIndexFromWAL() error {
 		// and we can load index from the hint file directly.
 		if reader.CurrentSegmentId() <= mergeFinSegmentId {
 			reader.SkipCurrentSegment()
+			continue
 		}
 
 		chunk, position, err := reader.Next()

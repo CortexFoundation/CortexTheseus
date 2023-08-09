@@ -39,14 +39,19 @@ func (tx *Tx) IterateBuckets(ds uint16, pattern string, f func(key string) bool)
 		}
 	}
 	if ds == DataStructureList {
-		for bucket := range tx.db.ListIdx {
+		f := func(bucket string) error {
 			if end, err := MatchForRange(pattern, bucket, f); end || err != nil {
 				return err
 			}
+			return nil
+		}
+		err := tx.db.Index.handleListBucket(f)
+		if err != nil {
+			return err
 		}
 	}
-	if ds == DataStructureBPTree {
-		for bucket := range tx.db.BPTreeIdx {
+	if ds == DataStructureTree {
+		for bucket := range tx.db.BTreeIdx {
 			if end, err := MatchForRange(pattern, bucket, f); end || err != nil {
 				return err
 			}
@@ -63,17 +68,45 @@ func (tx *Tx) DeleteBucket(ds uint16, bucket string) error {
 	if tx.db.opt.EntryIdxMode == HintBPTSparseIdxMode {
 		return ErrNotSupportHintBPTSparseIdxMode
 	}
+
+	ok, err := tx.ExistBucket(ds, bucket)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return ErrBucketNotFound
+	}
+
 	if ds == DataStructureSet {
 		return tx.put(bucket, []byte("0"), nil, Persistent, DataSetBucketDeleteFlag, uint64(time.Now().Unix()), DataStructureNone)
 	}
 	if ds == DataStructureSortedSet {
 		return tx.put(bucket, []byte("1"), nil, Persistent, DataSortedSetBucketDeleteFlag, uint64(time.Now().Unix()), DataStructureNone)
 	}
-	if ds == DataStructureBPTree {
+	if ds == DataStructureTree {
 		return tx.put(bucket, []byte("2"), nil, Persistent, DataBPTreeBucketDeleteFlag, uint64(time.Now().Unix()), DataStructureNone)
 	}
 	if ds == DataStructureList {
 		return tx.put(bucket, []byte("3"), nil, Persistent, DataListBucketDeleteFlag, uint64(time.Now().Unix()), DataStructureNone)
 	}
 	return nil
+}
+
+func (tx *Tx) ExistBucket(ds uint16, bucket string) (bool, error) {
+	var ok bool
+
+	switch ds {
+	case DataStructureSet:
+		_, ok = tx.db.SetIdx[bucket]
+	case DataStructureSortedSet:
+		_, ok = tx.db.SortedSetIdx[bucket]
+	case DataStructureTree:
+		_, ok = tx.db.BTreeIdx[bucket]
+	case DataStructureList:
+		ok = tx.db.Index.existList(bucket)
+	default:
+		return false, ErrDataStructureNotSupported
+	}
+
+	return ok, nil
 }

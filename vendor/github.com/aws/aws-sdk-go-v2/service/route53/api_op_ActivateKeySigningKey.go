@@ -12,7 +12,7 @@ import (
 )
 
 // Activates a key-signing key (KSK) so that it can be used for signing by DNSSEC.
-// This operation changes the KSK status to ACTIVE.
+// This operation changes the KSK status to ACTIVE .
 func (c *Client) ActivateKeySigningKey(ctx context.Context, params *ActivateKeySigningKeyInput, optFns ...func(*Options)) (*ActivateKeySigningKeyOutput, error) {
 	if params == nil {
 		params = &ActivateKeySigningKeyInput{}
@@ -95,7 +95,7 @@ func (c *Client) addOperationActivateKeySigningKeyMiddlewares(stack *middleware.
 	if err = awsmiddleware.AddRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = addClientUserAgent(stack); err != nil {
+	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
 	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
@@ -108,6 +108,9 @@ func (c *Client) addOperationActivateKeySigningKeyMiddlewares(stack *middleware.
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opActivateKeySigningKey(options.Region), middleware.Before); err != nil {
+		return err
+	}
+	if err = awsmiddleware.AddRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {

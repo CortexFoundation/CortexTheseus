@@ -583,7 +583,7 @@ func (api *PrivateDebugAPI) computeStateDB(block *types.Block, reexec uint64) (*
 			return nil, err
 		}
 		// Finalize the state so any modifications are written to the trie
-		root, err := statedb.Commit(api.ctxc.blockchain.Config().IsEIP158(block.Number()))
+		root, err := statedb.Commit(0, api.ctxc.blockchain.Config().IsEIP158(block.Number()))
 		if err != nil {
 			return nil, fmt.Errorf("stateAtBlock commit failed, number %d root %v: %w",
 				block.NumberU64(), block.Root().Hex(), err)

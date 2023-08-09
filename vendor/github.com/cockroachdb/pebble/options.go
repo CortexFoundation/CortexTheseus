@@ -19,7 +19,8 @@ import (
 	"github.com/cockroachdb/pebble/internal/humanize"
 	"github.com/cockroachdb/pebble/internal/keyspan"
 	"github.com/cockroachdb/pebble/internal/manifest"
-	"github.com/cockroachdb/pebble/objstorage/shared"
+	"github.com/cockroachdb/pebble/objstorage/remote"
+	"github.com/cockroachdb/pebble/rangekey"
 	"github.com/cockroachdb/pebble/sstable"
 	"github.com/cockroachdb/pebble/vfs"
 )
@@ -246,9 +247,21 @@ func (o *IterOptions) SpanIterOptions(level manifest.Level) keyspan.SpanIterOpti
 type scanInternalOptions struct {
 	IterOptions
 
+	visitPointKey   func(key *InternalKey, value LazyValue, iterInfo IteratorLevel) error
+	visitRangeDel   func(start, end []byte, seqNum uint64) error
+	visitRangeKey   func(start, end []byte, keys []rangekey.Key) error
+	visitSharedFile func(sst *SharedSSTMeta) error
+
 	// skipSharedLevels skips levels that are shareable (level >=
 	// sharedLevelStart).
 	skipSharedLevels bool
+
+	// includeObsoleteKeys specifies whether keys shadowed by newer internal keys
+	// are exposed. If false, only one internal key per user key is exposed.
+	includeObsoleteKeys bool
+
+	// rateLimitFunc is used to limit the amount of bytes read per second.
+	rateLimitFunc func(key *InternalKey, value LazyValue)
 }
 
 // RangeKeyMasking configures automatic hiding of point keys by range keys. A
@@ -653,24 +666,24 @@ type Options struct {
 		// major version is at least `FormatFlushableIngest`.
 		DisableIngestAsFlushable func() bool
 
-		// SharedStorage is a second FS-like storage medium that can be shared
-		// between multiple Pebble instances. It is used to store sstables only, and
-		// is managed by objstorage.Provider. Each sstable might only be written to
-		// by one Pebble instance, but other Pebble instances can possibly read the
-		// same files if they have the path to get to them. The pebble instance that
-		// wrote a file should not delete it if other Pebble instances are known to
-		// be reading this file. This FS is expected to have slower read/write
-		// performance than the default FS above.
-		SharedStorage shared.StorageFactory
+		// RemoteStorage enables use of remote storage (e.g. S3) for storing
+		// sstables. Setting this option enables use of CreateOnShared option and
+		// allows ingestion of external files.
+		RemoteStorage remote.StorageFactory
 
-		// If CreateOnShred is true, any new sstables are created on shared storage,
-		// using CreateOnSharedLocator. Can only be used when SharedStorage is set.
+		// If CreateOnShared is true, any new sstables are created on remote storage
+		// (using CreateOnSharedLocator). These sstables can be shared between
+		// different Pebble instances; the lifecycle of such objects is managed by
+		// the cluster.
+		//
+		// Can only be used when RemoteStorage is set (and recognizes
+		// CreateOnSharedLocator).
 		CreateOnShared        bool
-		CreateOnSharedLocator shared.Locator
+		CreateOnSharedLocator remote.Locator
 
-		// CacheSizeBytes is the size of the on-disk block cache for objects
-		// on shared storage. If it is 0, no cache is used.
-		SecondaryCacheSize int64
+		// CacheSizeBytesBytes is the size of the on-disk block cache for objects
+		// on shared storage in bytes. If it is 0, no cache is used.
+		SecondaryCacheSizeBytes int64
 	}
 
 	// Filters is a map from filter policy name to filter policy. It is used for
@@ -881,9 +894,10 @@ type Options struct {
 	// Deletion pacing is used to slow down deletions when compactions finish up
 	// or readers close and newly-obsolete files need cleaning up. Deleting lots
 	// of files at once can cause disk latency to go up on some SSDs, which this
-	// functionality guards against. This is only a best-effort target; pacing is
-	// disabled when there are too many obsolete files relative to live bytes, or
-	// there isn't enough disk space available.
+	// functionality guards against.
+	//
+	// This value is only a best-effort target; the effective rate can be
+	// higher if deletions are falling behind or disk space is running low.
 	//
 	// Setting this to 0 disables deletion pacing, which is also the default.
 	TargetByteDeletionRate int
@@ -1214,6 +1228,7 @@ func (o *Options) String() string {
 	fmt.Fprintf(&buf, "  wal_bytes_per_sync=%d\n", o.WALBytesPerSync)
 	fmt.Fprintf(&buf, "  max_writer_concurrency=%d\n", o.Experimental.MaxWriterConcurrency)
 	fmt.Fprintf(&buf, "  force_writer_parallelism=%t\n", o.Experimental.ForceWriterParallelism)
+	fmt.Fprintf(&buf, "  secondary_cache_size_bytes=%d\n", o.Experimental.SecondaryCacheSizeBytes)
 
 	// Private options.
 	//
@@ -1483,6 +1498,8 @@ func (o *Options) Parse(s string, hooks *ParseHooks) error {
 				o.Experimental.MaxWriterConcurrency, err = strconv.Atoi(value)
 			case "force_writer_parallelism":
 				o.Experimental.ForceWriterParallelism, err = strconv.ParseBool(value)
+			case "secondary_cache_size_bytes":
+				o.Experimental.SecondaryCacheSizeBytes, err = strconv.ParseInt(value, 10, 64)
 			default:
 				if hooks != nil && hooks.SkipUnknown != nil && hooks.SkipUnknown(section+"."+key, value) {
 					return nil
@@ -1613,7 +1630,7 @@ func (o *Options) Validate() error {
 	}
 	if uint64(o.MemTableSize) >= maxMemTableSize {
 		fmt.Fprintf(&buf, "MemTableSize (%s) must be < %s\n",
-			humanize.Uint64(uint64(o.MemTableSize)), humanize.Uint64(maxMemTableSize))
+			humanize.Bytes.Uint64(uint64(o.MemTableSize)), humanize.Bytes.Uint64(maxMemTableSize))
 	}
 	if o.MemTableStopWritesThreshold < 2 {
 		fmt.Fprintf(&buf, "MemTableStopWritesThreshold (%d) must be >= 2\n",

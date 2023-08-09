@@ -431,7 +431,8 @@ func opExtCodeCopy(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeCo
 // If the precompile account is not transferred any amount on a private or
 // customized chain, the return value will be zero.
 //
-//	(5) Caller tries to get the code hash for an account which is marked as suicided
+//  5. Caller tries to get the code hash for an account which is marked as self-destructed
+//     in the current transaction, the code hash of this account should be returned.
 //
 // in the current transaction, the code hash of this account should be returned.
 //
@@ -1079,7 +1080,23 @@ func opSuicide(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContex
 	beneficiary := callContext.Stack.pop()
 	balance := interpreter.cvm.StateDB.GetBalance(callContext.Contract.Address())
 	interpreter.cvm.StateDB.AddBalance(beneficiary.Bytes20(), balance)
-	interpreter.cvm.StateDB.Suicide(callContext.Contract.Address())
+	interpreter.cvm.StateDB.SelfDestruct(callContext.Contract.Address())
+	return nil, errStopToken
+}
+
+func opSelfdestruct6780(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	if interpreter.readOnly {
+		return nil, ErrWriteProtection
+	}
+	beneficiary := scope.Stack.pop()
+	balance := interpreter.cvm.StateDB.GetBalance(scope.Contract.Address())
+	interpreter.cvm.StateDB.SubBalance(scope.Contract.Address(), balance)
+	interpreter.cvm.StateDB.AddBalance(beneficiary.Bytes20(), balance)
+	interpreter.cvm.StateDB.Selfdestruct6780(scope.Contract.Address())
+	if tracer := interpreter.cvm.vmConfig.Tracer; tracer != nil {
+		tracer.CaptureEnter(SELFDESTRUCT, scope.Contract.Address(), beneficiary.Bytes20(), []byte{}, 0, balance)
+		tracer.CaptureExit([]byte{}, 0, nil)
+	}
 	return nil, errStopToken
 }
 

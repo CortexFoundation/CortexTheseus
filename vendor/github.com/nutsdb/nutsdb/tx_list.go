@@ -44,12 +44,13 @@ func (tx *Tx) RPop(bucket string, key []byte) (item []byte, err error) {
 }
 
 // RPeek returns the last element of the list stored in the bucket at given bucket and key.
-func (tx *Tx) RPeek(bucket string, key []byte) (item []byte, err error) {
+func (tx *Tx) RPeek(bucket string, key []byte) ([]byte, error) {
 	if err := tx.checkTxIsClosed(); err != nil {
 		return nil, err
 	}
 
-	if _, ok := tx.db.ListIdx[bucket]; !ok {
+	l := tx.db.Index.getList(bucket)
+	if l == nil {
 		return nil, ErrBucket
 	}
 
@@ -57,9 +58,17 @@ func (tx *Tx) RPeek(bucket string, key []byte) (item []byte, err error) {
 		return nil, ErrKeyNotFound
 	}
 
-	item, _, err = tx.db.ListIdx[bucket].RPeek(string(key))
+	r, err := l.RPeek(string(key))
+	if err != nil {
+		return nil, err
+	}
 
-	return
+	v, err := tx.db.getValueByRecord(r)
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
 }
 
 // push sets values for list stored in the bucket at given bucket, key, flag and values.
@@ -120,15 +129,24 @@ func (tx *Tx) LPeek(bucket string, key []byte) (item []byte, err error) {
 	if err := tx.checkTxIsClosed(); err != nil {
 		return nil, err
 	}
-	if _, ok := tx.db.ListIdx[bucket]; !ok {
+	l := tx.db.Index.getList(bucket)
+	if l == nil {
 		return nil, ErrBucket
 	}
 	if tx.CheckExpire(bucket, key) {
 		return nil, ErrKeyNotFound
 	}
-	item, err = tx.db.ListIdx[bucket].LPeek(string(key))
+	r, err := l.LPeek(string(key))
+	if err != nil {
+		return nil, err
+	}
 
-	return
+	v, err := tx.db.getValueByRecord(r)
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
 }
 
 // LSize returns the size of key in the bucket in the bucket at given bucket and key.
@@ -136,13 +154,14 @@ func (tx *Tx) LSize(bucket string, key []byte) (int, error) {
 	if err := tx.checkTxIsClosed(); err != nil {
 		return 0, err
 	}
-	if _, ok := tx.db.ListIdx[bucket]; !ok {
+	l := tx.db.Index.getList(bucket)
+	if l == nil {
 		return 0, ErrBucket
 	}
 	if tx.CheckExpire(bucket, key) {
 		return 0, ErrKeyNotFound
 	}
-	return tx.db.ListIdx[bucket].Size(string(key))
+	return l.Size(string(key))
 }
 
 // LRange returns the specified elements of the list stored in the bucket at given bucket,key, start and end.
@@ -150,17 +169,34 @@ func (tx *Tx) LSize(bucket string, key []byte) (int, error) {
 // 1 being the next element and so on.
 // Start and end can also be negative numbers indicating offsets from the end of the list,
 // where -1 is the last element of the list, -2 the penultimate element and so on.
-func (tx *Tx) LRange(bucket string, key []byte, start, end int) (list [][]byte, err error) {
+func (tx *Tx) LRange(bucket string, key []byte, start, end int) ([][]byte, error) {
 	if err := tx.checkTxIsClosed(); err != nil {
 		return nil, err
 	}
-	if _, ok := tx.db.ListIdx[bucket]; !ok {
+	l := tx.db.Index.getList(bucket)
+	if l == nil {
 		return nil, ErrBucket
 	}
 	if tx.CheckExpire(bucket, key) {
 		return nil, ErrKeyNotFound
 	}
-	return tx.db.ListIdx[bucket].LRange(string(key), start, end)
+
+	records, err := l.LRange(string(key), start, end)
+	if err != nil {
+		return nil, err
+	}
+
+	values := make([][]byte, len(records))
+
+	for i, r := range records {
+		value, err := tx.db.getValueByRecord(r)
+		if err != nil {
+			return nil, err
+		}
+		values[i] = value
+	}
+
+	return values, nil
 }
 
 // LRem removes the first count occurrences of elements equal to value from the list stored in the bucket at given bucket,key,count.
@@ -168,18 +204,18 @@ func (tx *Tx) LRange(bucket string, key []byte, start, end int) (list [][]byte, 
 // count > 0: Remove elements equal to value moving from head to tail.
 // count < 0: Remove elements equal to value moving from tail to head.
 // count = 0: Remove all elements equal to value.
-func (tx *Tx) LRem(bucket string, key []byte, count int, value []byte) (removedNum int, err error) {
+func (tx *Tx) LRem(bucket string, key []byte, count int, value []byte) error {
 	var (
 		buffer bytes.Buffer
 		size   int
 	)
-	size, err = tx.LSize(bucket, key)
+	size, err := tx.LSize(bucket, key)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	if count > size || count < -size {
-		return 0, list.ErrCount
+		return list.ErrCount
 	}
 
 	buffer.Write([]byte(strconv2.IntToStr(count)))
@@ -189,11 +225,10 @@ func (tx *Tx) LRem(bucket string, key []byte, count int, value []byte) (removedN
 
 	err = tx.push(bucket, key, DataLRemFlag, newValue)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	removedNum, err = tx.db.ListIdx[bucket].LRemNum(string(key), count, value)
-	return
+	return nil
 }
 
 // LSet sets the list element at index to value.
@@ -206,13 +241,11 @@ func (tx *Tx) LSet(bucket string, key []byte, index int, value []byte) error {
 	if err = tx.checkTxIsClosed(); err != nil {
 		return err
 	}
-	if _, ok := tx.db.ListIdx[bucket]; !ok {
-		return ErrBucket
-	}
+	l := tx.db.Index.getList(bucket)
 	if tx.CheckExpire(bucket, key) {
 		return ErrKeyNotFound
 	}
-	if _, ok := tx.db.ListIdx[bucket].Items[string(key)]; !ok {
+	if _, ok := l.Items[string(key)]; !ok {
 		return ErrKeyNotFound
 	}
 
@@ -245,14 +278,11 @@ func (tx *Tx) LTrim(bucket string, key []byte, start, end int) error {
 		return err
 	}
 
-	if _, ok := tx.db.ListIdx[bucket]; !ok {
-		return ErrBucket
-	}
-
+	l := tx.db.Index.getList(bucket)
 	if tx.CheckExpire(bucket, key) {
 		return ErrKeyNotFound
 	}
-	if _, ok := tx.db.ListIdx[bucket].Items[string(key)]; !ok {
+	if _, ok := l.Items[string(key)]; !ok {
 		return ErrKeyNotFound
 	}
 
@@ -269,30 +299,30 @@ func (tx *Tx) LTrim(bucket string, key []byte, start, end int) error {
 }
 
 // LRemByIndex remove the list element at specified index
-func (tx *Tx) LRemByIndex(bucket string, key []byte, indexes ...int) (removedNum int, err error) {
+func (tx *Tx) LRemByIndex(bucket string, key []byte, indexes ...int) error {
 	if err := tx.checkTxIsClosed(); err != nil {
-		return 0, err
-	}
-	if _, ok := tx.db.ListIdx[bucket]; !ok {
-		return 0, ErrBucket
+		return err
 	}
 	if tx.CheckExpire(bucket, key) {
-		return 0, ErrKeyNotFound
+		return ErrKeyNotFound
 	}
+
+	if len(indexes) == 0 {
+		return nil
+	}
+
 	sort.Ints(indexes)
-	removedNum, err = tx.db.ListIdx[bucket].LRemByIndexPreCheck(string(key), indexes)
-	if removedNum == 0 || err != nil {
-		return
-	}
 	data, err := MarshalInts(indexes)
 	if err != nil {
-		return 0, err
+		return err
 	}
+
 	err = tx.push(bucket, key, DataLRemByIndex, data)
 	if err != nil {
-		return 0, err
+		return err
 	}
-	return
+
+	return nil
 }
 
 // LKeys find all keys matching a given pattern
@@ -300,10 +330,11 @@ func (tx *Tx) LKeys(bucket, pattern string, f func(key string) bool) error {
 	if err := tx.checkTxIsClosed(); err != nil {
 		return err
 	}
-	if _, ok := tx.db.ListIdx[bucket]; !ok {
+	l := tx.db.Index.getList(bucket)
+	if l == nil {
 		return ErrBucket
 	}
-	for key := range tx.db.ListIdx[bucket].Items {
+	for key := range l.Items {
 		if tx.CheckExpire(bucket, []byte(key)) {
 			continue
 		}
@@ -318,11 +349,9 @@ func (tx *Tx) ExpireList(bucket string, key []byte, ttl uint32) error {
 	if err := tx.checkTxIsClosed(); err != nil {
 		return err
 	}
-	if _, ok := tx.db.ListIdx[bucket]; !ok {
-		return ErrBucket
-	}
-	tx.db.ListIdx[bucket].TTL[string(key)] = ttl
-	tx.db.ListIdx[bucket].TimeStamp[string(key)] = uint64(time.Now().Unix())
+	l := tx.db.Index.getList(bucket)
+	l.TTL[string(key)] = ttl
+	l.TimeStamp[string(key)] = uint64(time.Now().Unix())
 	ttls := strconv2.Int64ToStr(int64(ttl))
 	err := tx.push(bucket, key, DataExpireListFlag, []byte(ttls))
 	if err != nil {
@@ -332,7 +361,8 @@ func (tx *Tx) ExpireList(bucket string, key []byte, ttl uint32) error {
 }
 
 func (tx *Tx) CheckExpire(bucket string, key []byte) bool {
-	if tx.db.ListIdx[bucket].IsExpire(string(key)) {
+	l := tx.db.Index.getList(bucket)
+	if l.IsExpire(string(key)) {
 		_ = tx.push(bucket, key, DataDeleteFlag)
 		return true
 	}
@@ -343,5 +373,9 @@ func (tx *Tx) GetListTTL(bucket string, key []byte) (uint32, error) {
 	if err := tx.checkTxIsClosed(); err != nil {
 		return 0, err
 	}
-	return tx.db.ListIdx[bucket].GetListTTL(string(key))
+	l := tx.db.Index.getList(bucket)
+	if l == nil {
+		return 0, ErrBucket
+	}
+	return l.GetListTTL(string(key))
 }

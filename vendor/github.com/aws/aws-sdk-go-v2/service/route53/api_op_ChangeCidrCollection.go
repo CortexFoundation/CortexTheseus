@@ -19,12 +19,8 @@ import (
 // included in the request is 1000. As a result, big updates require multiple API
 // calls. PUT and DELETE_IF_EXISTS Use ChangeCidrCollection to perform the
 // following actions:
-//
-// * PUT: Create a CIDR block within the specified
-// collection.
-//
-// * DELETE_IF_EXISTS: Delete an existing CIDR block from the
-// collection.
+//   - PUT : Create a CIDR block within the specified collection.
+//   - DELETE_IF_EXISTS : Delete an existing CIDR block from the collection.
 func (c *Client) ChangeCidrCollection(ctx context.Context, params *ChangeCidrCollectionInput, optFns ...func(*Options)) (*ChangeCidrCollectionOutput, error) {
 	if params == nil {
 		params = &ChangeCidrCollectionInput{}
@@ -52,20 +48,18 @@ type ChangeCidrCollectionInput struct {
 	// This member is required.
 	Id *string
 
-	// A sequential counter that Amazon Route 53 sets to 1 when you create a collection
-	// and increments it by 1 each time you update the collection. We recommend that
-	// you use ListCidrCollection to get the current value of CollectionVersion for the
-	// collection that you want to update, and then include that value with the change
-	// request. This prevents Route 53 from overwriting an intervening update:
-	//
-	// * If
-	// the value in the request matches the value of CollectionVersion in the
-	// collection, Route 53 updates the collection.
-	//
-	// * If the value of
-	// CollectionVersion in the collection is greater than the value in the request,
-	// the collection was changed after you got the version number. Route 53 does not
-	// update the collection, and it returns a CidrCollectionVersionMismatch error.
+	// A sequential counter that Amazon Route 53 sets to 1 when you create a
+	// collection and increments it by 1 each time you update the collection. We
+	// recommend that you use ListCidrCollection to get the current value of
+	// CollectionVersion for the collection that you want to update, and then include
+	// that value with the change request. This prevents Route 53 from overwriting an
+	// intervening update:
+	//   - If the value in the request matches the value of CollectionVersion in the
+	//   collection, Route 53 updates the collection.
+	//   - If the value of CollectionVersion in the collection is greater than the
+	//   value in the request, the collection was changed after you got the version
+	//   number. Route 53 does not update the collection, and it returns a
+	//   CidrCollectionVersionMismatch error.
 	CollectionVersion *int64
 
 	noSmithyDocumentSerde
@@ -73,7 +67,7 @@ type ChangeCidrCollectionInput struct {
 
 type ChangeCidrCollectionOutput struct {
 
-	// The ID that is returned by ChangeCidrCollection. You can use it as input to
+	// The ID that is returned by ChangeCidrCollection . You can use it as input to
 	// GetChange to see if a CIDR collection change has propagated or not.
 	//
 	// This member is required.
@@ -121,7 +115,7 @@ func (c *Client) addOperationChangeCidrCollectionMiddlewares(stack *middleware.S
 	if err = awsmiddleware.AddRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = addClientUserAgent(stack); err != nil {
+	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
 	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
@@ -134,6 +128,9 @@ func (c *Client) addOperationChangeCidrCollectionMiddlewares(stack *middleware.S
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opChangeCidrCollection(options.Region), middleware.Before); err != nil {
+		return err
+	}
+	if err = awsmiddleware.AddRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {

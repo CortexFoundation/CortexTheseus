@@ -158,26 +158,26 @@ func NewTree() *BPTree {
 }
 
 var queue *Node
+var tailNode *Node
 
 func enqueue(node *Node) {
-	var c *Node
+	node.Next = nil
 
-	if queue == nil {
-		queue = node
-		queue.Next = nil
+	if queue != nil {
+		tailNode.Next = node
+		tailNode = node
 	} else {
-		c = queue
-		for c.Next != nil {
-			c = c.Next
-		}
-		c.Next = node
-		node.Next = nil
+		queue = node
+		tailNode = node
 	}
 }
 
 func dequeue() *Node {
 	n := queue
 	queue = queue.Next
+	if nil == queue {
+		tailNode = nil
+	}
 
 	return n
 }
@@ -700,7 +700,7 @@ func (t *BPTree) Insert(key []byte, e *Entry, h *Hint, countFlag bool) error {
 	}
 
 	// Initialize the Record object When key does not exist.
-	pointer := &Record{H: h, E: e}
+	pointer := NewRecord().WithEntry(e).WithHint(h)
 
 	// Update the validKeyCount number
 	t.ValidKeyCount++

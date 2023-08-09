@@ -604,7 +604,7 @@ func gasSuicide(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, 
 		}
 	}
 
-	if !cvm.StateDB.HasSuicided(contract.Address()) {
+	if !cvm.StateDB.HasSelfDestructed(contract.Address()) {
 		cvm.StateDB.AddRefund(params.SuicideRefundGas)
 	}
 	return gas, nil

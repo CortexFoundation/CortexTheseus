@@ -14,6 +14,8 @@
 
 package nutsdb
 
+import "time"
+
 // EntryIdxMode represents entry index mode.
 type EntryIdxMode int
 
@@ -27,6 +29,20 @@ const (
 	// HintBPTSparseIdxMode represents b+ tree sparse index mode.
 	HintBPTSparseIdxMode
 )
+
+// An ErrorHandler handles an error occurred during transaction.
+type ErrorHandler interface {
+	HandleError(err error)
+}
+
+// The ErrorHandlerFunc type is an adapter to ErrorHandler.
+type ErrorHandlerFunc func(err error)
+
+func (fn ErrorHandlerFunc) HandleError(err error) {
+	fn(err)
+}
+
+type LessFunc func(l, r string) bool
 
 // Options records params for creating DB object.
 type Options struct {
@@ -60,6 +76,30 @@ type Options struct {
 
 	// BufferSizeOfRecovery represents the buffer size of recoveryReader buffer Size
 	BufferSizeOfRecovery int
+
+	// CcWhenClose represent initiative GC when calling db.Close()
+	GCWhenClose bool
+
+	// CommitBufferSize represent allocated memory for tx
+	CommitBufferSize int64
+
+	// ErrorHandler handles an error occurred during transaction.
+	// Example:
+	//     func triggerAlertError(err error) {
+	//     	   if errors.Is(err, targetErr) {
+	//         		alertManager.TriggerAlert()
+	//     	   }
+	//     })
+	ErrorHandler ErrorHandler
+
+	// LessFunc is a function that sorts keys.
+	LessFunc LessFunc
+
+	// MergeInterval represent the interval for automatic merges, with 0 meaning automatic merging is disabled.
+	MergeInterval time.Duration
+
+	MaxBatchCount int64 // max entries in batch
+	MaxBatchSize  int64 // max batch size in bytes
 }
 
 const (
@@ -78,11 +118,15 @@ var defaultSegmentSize int64 = 256 * MB
 // DefaultOptions represents the default options.
 var DefaultOptions = func() Options {
 	return Options{
-		EntryIdxMode: HintKeyValAndRAMIdxMode,
-		SegmentSize:  defaultSegmentSize,
-		NodeNum:      1,
-		RWMode:       FileIO,
-		SyncEnable:   true,
+		EntryIdxMode:     HintKeyValAndRAMIdxMode,
+		SegmentSize:      defaultSegmentSize,
+		NodeNum:          1,
+		RWMode:           FileIO,
+		SyncEnable:       true,
+		CommitBufferSize: 4 * MB,
+		MergeInterval:    2 * time.Hour,
+		MaxBatchSize:     (15 * defaultSegmentSize / 4) / 100,
+		MaxBatchCount:    (15 * defaultSegmentSize / 4) / 100 / 100,
 	}
 }()
 
@@ -109,6 +153,18 @@ func WithRWMode(rwMode RWMode) Option {
 func WithSegmentSize(size int64) Option {
 	return func(opt *Options) {
 		opt.SegmentSize = size
+	}
+}
+
+func WithMaxBatchCount(count int64) Option {
+	return func(opt *Options) {
+		opt.MaxBatchCount = count
+	}
+}
+
+func WithMaxBatchSize(size int64) Option {
+	return func(opt *Options) {
+		opt.MaxBatchSize = size
 	}
 }
 
@@ -139,5 +195,29 @@ func WithCleanFdsCacheThreshold(threshold float64) Option {
 func WithBufferSizeOfRecovery(size int) Option {
 	return func(opt *Options) {
 		opt.BufferSizeOfRecovery = size
+	}
+}
+
+func WithGCWhenClose(enable bool) Option {
+	return func(opt *Options) {
+		opt.GCWhenClose = enable
+	}
+}
+
+func WithErrorHandler(errorHandler ErrorHandler) Option {
+	return func(opt *Options) {
+		opt.ErrorHandler = errorHandler
+	}
+}
+
+func WithCommitBufferSize(commitBufferSize int64) Option {
+	return func(opt *Options) {
+		opt.CommitBufferSize = commitBufferSize
+	}
+}
+
+func WithLessFunc(lessFunc LessFunc) Option {
+	return func(opt *Options) {
+		opt.LessFunc = lessFunc
 	}
 }

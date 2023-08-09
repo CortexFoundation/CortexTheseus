@@ -50,6 +50,37 @@ func (db *DB) NewBatch(options BatchOptions) *Batch {
 	return batch
 }
 
+func makeBatch() interface{} {
+	node, err := snowflake.NewNode(1)
+	if err != nil {
+		panic(fmt.Sprintf("snowflake.NewNode(1) failed: %v", err))
+	}
+	return &Batch{
+		options: DefaultBatchOptions,
+		batchId: node,
+	}
+}
+
+func (b *Batch) init(rdonly, sync bool, db *DB) *Batch {
+	b.options.ReadOnly = rdonly
+	b.options.Sync = sync
+	b.db = db
+	b.lock()
+	return b
+}
+
+func (b *Batch) withPendingWrites() *Batch {
+	b.pendingWrites = make(map[string]*LogRecord)
+	return b
+}
+
+func (b *Batch) reset() {
+	b.db = nil
+	b.pendingWrites = nil
+	b.committed = false
+	b.rollbacked = false
+}
+
 func (b *Batch) lock() {
 	if b.options.ReadOnly {
 		b.db.mu.RLock()
@@ -110,6 +141,7 @@ func (b *Batch) Get(key []byte) ([]byte, error) {
 			b.mu.RUnlock()
 			return record.Value, nil
 		}
+		b.mu.RUnlock()
 	}
 
 	// get from data file
@@ -124,7 +156,7 @@ func (b *Batch) Get(key []byte) ([]byte, error) {
 
 	record := decodeLogRecord(chunk)
 	if record.Type == LogRecordDeleted {
-		return nil, ErrKeyNotFound
+		panic("Deleted data cannot exist in the index")
 	}
 	return record.Value, nil
 }
@@ -198,7 +230,7 @@ func (b *Batch) Commit() error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	// check if committed or discarded
+	// check if committed or rollbacked
 	if b.committed {
 		return ErrBatchCommitted
 	}
@@ -242,6 +274,16 @@ func (b *Batch) Commit() error {
 			b.db.index.Delete(record.Key)
 		} else {
 			b.db.index.Put(record.Key, positions[key])
+		}
+
+		if b.db.options.WatchQueueSize > 0 {
+			e := &Event{Key: record.Key, Value: record.Value, BatchId: record.BatchId}
+			if record.Type == LogRecordDeleted {
+				e.Action = WatchActionDelete
+			} else {
+				e.Action = WatchActionPut
+			}
+			b.db.watcher.putEvent(e)
 		}
 	}
 

@@ -14,11 +14,9 @@ import (
 // Deletes a key-signing key (KSK). Before you can delete a KSK, you must
 // deactivate it. The KSK must be deactivated before you can delete it regardless
 // of whether the hosted zone is enabled for DNSSEC signing. You can use
-// DeactivateKeySigningKey
-// (https://docs.aws.amazon.com/Route53/latest/APIReference/API_DeactivateKeySigningKey.html)
-// to deactivate the key before you delete it. Use GetDNSSEC
-// (https://docs.aws.amazon.com/Route53/latest/APIReference/API_GetDNSSEC.html) to
-// verify that the KSK is in an INACTIVE status.
+// DeactivateKeySigningKey (https://docs.aws.amazon.com/Route53/latest/APIReference/API_DeactivateKeySigningKey.html)
+// to deactivate the key before you delete it. Use GetDNSSEC (https://docs.aws.amazon.com/Route53/latest/APIReference/API_GetDNSSEC.html)
+// to verify that the KSK is in an INACTIVE status.
 func (c *Client) DeleteKeySigningKey(ctx context.Context, params *DeleteKeySigningKeyInput, optFns ...func(*Options)) (*DeleteKeySigningKeyOutput, error) {
 	if params == nil {
 		params = &DeleteKeySigningKeyInput{}
@@ -99,7 +97,7 @@ func (c *Client) addOperationDeleteKeySigningKeyMiddlewares(stack *middleware.St
 	if err = awsmiddleware.AddRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = addClientUserAgent(stack); err != nil {
+	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
 	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
@@ -112,6 +110,9 @@ func (c *Client) addOperationDeleteKeySigningKeyMiddlewares(stack *middleware.St
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opDeleteKeySigningKey(options.Region), middleware.Before); err != nil {
+		return err
+	}
+	if err = awsmiddleware.AddRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {

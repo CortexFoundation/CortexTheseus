@@ -47,23 +47,15 @@ type CreateKeySigningKeyInput struct {
 	// configure the customer managed customer managed key as follows: Status Enabled
 	// Key spec ECC_NIST_P256 Key usage Sign and verify Key policy The key policy must
 	// give permission for the following actions:
-	//
-	// * DescribeKey
-	//
-	// * GetPublicKey
-	//
-	// *
-	// Sign
-	//
-	// The key policy must also include the Amazon Route 53 service in the
-	// principal for your account. Specify the following:
-	//
-	// * "Service":
-	// "dnssec-route53.amazonaws.com"
-	//
-	// For more information about working with a
-	// customer managed key in KMS, see Key Management Service concepts
-	// (https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html).
+	//   - DescribeKey
+	//   - GetPublicKey
+	//   - Sign
+	// The key policy must also include the Amazon Route 53 service in the principal
+	// for your account. Specify the following:
+	//   - "Service": "dnssec-route53.amazonaws.com"
+	// For more information about working with a customer managed key in KMS, see Key
+	// Management Service concepts (https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html)
+	// .
 	//
 	// This member is required.
 	KeyManagementServiceArn *string
@@ -75,8 +67,8 @@ type CreateKeySigningKeyInput struct {
 	// This member is required.
 	Name *string
 
-	// A string specifying the initial status of the key-signing key (KSK). You can set
-	// the value to ACTIVE or INACTIVE.
+	// A string specifying the initial status of the key-signing key (KSK). You can
+	// set the value to ACTIVE or INACTIVE .
 	//
 	// This member is required.
 	Status *string
@@ -144,7 +136,7 @@ func (c *Client) addOperationCreateKeySigningKeyMiddlewares(stack *middleware.St
 	if err = awsmiddleware.AddRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = addClientUserAgent(stack); err != nil {
+	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
 	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
@@ -157,6 +149,9 @@ func (c *Client) addOperationCreateKeySigningKeyMiddlewares(stack *middleware.St
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opCreateKeySigningKey(options.Region), middleware.Before); err != nil {
+		return err
+	}
+	if err = awsmiddleware.AddRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {

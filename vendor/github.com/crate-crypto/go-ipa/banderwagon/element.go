@@ -9,7 +9,11 @@ import (
 	"github.com/crate-crypto/go-ipa/bandersnatch/fr"
 )
 
-const sizePointCompressed = fp.Limbs * 8
+const (
+	coordinateSize        = fp.Limbs * 8
+	sizePointCompressed   = coordinateSize
+	sizePointUncompressed = 2 * coordinateSize
+)
 
 var Generator = Element{inner: bandersnatch.PointProj{
 	X: bandersnatch.GetEdwardsCurve().Base.X,
@@ -40,6 +44,21 @@ func (p Element) Bytes() [sizePointCompressed]byte {
 		x.Neg(&x)
 	}
 	return x.Bytes()
+}
+
+func (p Element) BytesUncompressed() [sizePointUncompressed]byte {
+	// Convert underlying point to affine representation
+	var affine_representation bandersnatch.PointAffine
+	affine_representation.FromProj(&p.inner)
+
+	xbytes := affine_representation.X.Bytes()
+	ybytes := affine_representation.Y.Bytes()
+
+	var xy [sizePointUncompressed]byte
+	copy(xy[:], xbytes[:])
+	copy(xy[coordinateSize:], ybytes[:])
+
+	return xy
 }
 
 func BatchNormalize(elements []*Element) {
@@ -111,6 +130,37 @@ func ElementsToBytes(elements []*Element) [][sizePointCompressed]byte {
 	return serialised_points
 }
 
+func ElementsToBytesUncompressed(elements []*Element) [][sizePointUncompressed]byte {
+	// Collect all z co-ordinates
+	zs := make([]fp.Element, len(elements))
+	for i := 0; i < int(len(elements)); i++ {
+		zs[i] = elements[i].inner.Z
+	}
+
+	// Invert z co-ordinates
+	zInvs := fp.BatchInvert(zs)
+
+	uncompressedPoints := make([][sizePointUncompressed]byte, len(elements))
+
+	// Multiply x and y by zInv
+	for i := 0; i < int(len(elements)); i++ {
+		var X fp.Element
+		var Y fp.Element
+
+		element := elements[i]
+
+		X.Mul(&element.inner.X, &zInvs[i])
+		Y.Mul(&element.inner.Y, &zInvs[i])
+
+		xbytes := X.Bytes()
+		ybytes := Y.Bytes()
+		copy(uncompressedPoints[i][:], xbytes[:])
+		copy(uncompressedPoints[i][coordinateSize:], ybytes[:])
+	}
+
+	return uncompressedPoints
+}
+
 func (p *Element) setBytes(buf []byte, trusted bool) error {
 	// set the buffer which is x * SignY as X
 	var x fp.Element
@@ -147,6 +197,30 @@ func (p *Element) SetBytes(buf []byte) error {
 // assuming the input is trusted
 func (p *Element) SetBytesTrusted(buf []byte) error {
 	return p.setBytes(buf, true)
+}
+
+func (p *Element) SetBytesUncompressed(buf []byte, trusted bool) error {
+	var x fp.Element
+	x.SetBytes(buf[:coordinateSize])
+
+	// subgroup check
+	if !trusted {
+		err := subgroup_check(x)
+		if err != nil {
+			return err
+		}
+	}
+
+	var y fp.Element
+	y.SetBytes(buf[coordinateSize:])
+
+	*p = Element{inner: bandersnatch.PointProj{
+		X: x,
+		Y: y,
+		Z: fp.One(),
+	}}
+
+	return nil
 }
 
 // computes X/Y

@@ -44,7 +44,7 @@ var ErrNotIndexed = errors.New("pebble: batch not indexed")
 var ErrInvalidBatch = errors.New("pebble: invalid batch")
 
 // ErrBatchTooLarge indicates that a batch is invalid or otherwise corrupted.
-var ErrBatchTooLarge = errors.Newf("pebble: batch too large: >= %s", humanize.Uint64(maxBatchSize))
+var ErrBatchTooLarge = errors.Newf("pebble: batch too large: >= %s", humanize.Bytes.Uint64(maxBatchSize))
 
 // DeferredBatchOp represents a batch operation (eg. set, merge, delete) that is
 // being inserted into the batch. Indexing is not performed on the specified key
@@ -319,7 +319,11 @@ type BatchCommitStats struct {
 	// commitPipeline.Commit.
 	SemaphoreWaitDuration time.Duration
 	// WALQueueWaitDuration is the wait time for allocating memory blocks in the
-	// LogWriter (due to the LogWriter not writing fast enough).
+	// LogWriter (due to the LogWriter not writing fast enough). At the moment
+	// this is duration is always zero because a single WAL will allow
+	// allocating memory blocks up to the entire memtable size. In the future,
+	// we may pipeline WALs and bound the WAL queued blocks separately, so this
+	// field is preserved for that possibility.
 	WALQueueWaitDuration time.Duration
 	// MemTableWriteStallDuration is the wait caused by a write stall due to too
 	// many memtables (due to not flushing fast enough).

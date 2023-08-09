@@ -12,9 +12,9 @@ import (
 )
 
 // Gets information about a specific traffic policy version. For information about
-// how of deleting a traffic policy affects the response from GetTrafficPolicy, see
-// DeleteTrafficPolicy
-// (https://docs.aws.amazon.com/Route53/latest/APIReference/API_DeleteTrafficPolicy.html).
+// how of deleting a traffic policy affects the response from GetTrafficPolicy ,
+// see DeleteTrafficPolicy (https://docs.aws.amazon.com/Route53/latest/APIReference/API_DeleteTrafficPolicy.html)
+// .
 func (c *Client) GetTrafficPolicy(ctx context.Context, params *GetTrafficPolicyInput, optFns ...func(*Options)) (*GetTrafficPolicyOutput, error) {
 	if params == nil {
 		params = &GetTrafficPolicyInput{}
@@ -96,7 +96,7 @@ func (c *Client) addOperationGetTrafficPolicyMiddlewares(stack *middleware.Stack
 	if err = awsmiddleware.AddRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = addClientUserAgent(stack); err != nil {
+	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
 	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
@@ -109,6 +109,9 @@ func (c *Client) addOperationGetTrafficPolicyMiddlewares(stack *middleware.Stack
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opGetTrafficPolicy(options.Region), middleware.Before); err != nil {
+		return err
+	}
+	if err = awsmiddleware.AddRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {

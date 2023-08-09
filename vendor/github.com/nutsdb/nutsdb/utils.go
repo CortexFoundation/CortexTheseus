@@ -21,19 +21,10 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"sort"
+
+	"github.com/xujiajun/utils/filesystem"
+	"github.com/xujiajun/utils/strconv2"
 )
-
-// SortedEntryKeys returns sorted entries.
-func SortedEntryKeys(m map[string]*Entry) (keys []string, es map[string]*Entry) {
-	for k := range m {
-		keys = append(keys, k)
-	}
-
-	sort.Strings(keys)
-
-	return keys, m
-}
 
 // Truncate changes the size of the file.
 func Truncate(path string, capacity int64, f *os.File) error {
@@ -81,4 +72,76 @@ func MatchForRange(pattern, key string, f func(key string) bool) (end bool, err 
 		return true, nil
 	}
 	return false, nil
+}
+
+// getDataPath returns the data path for the given file ID.
+func getDataPath(fID int64, dir string) string {
+	separator := string(filepath.Separator)
+	return dir + separator + strconv2.Int64ToStr(fID) + DataSuffix
+}
+
+// getMetaPath returns the path for the meta file in the specified directory.
+func getMetaPath(dir string) string {
+	separator := string(filepath.Separator)
+	return dir + separator + "meta"
+}
+
+// getBucketMetaPath returns the path for the bucket meta file in the specified directory.
+func getBucketMetaPath(dir string) string {
+	separator := string(filepath.Separator)
+	return getMetaPath(dir) + separator + "bucket"
+}
+
+// getBucketMetaFilePath returns the path for the bucket meta file with the given name.
+func getBucketMetaFilePath(name, dir string) string {
+	separator := string(filepath.Separator)
+	return getBucketMetaPath(dir) + separator + name + BucketMetaSuffix
+}
+
+// getBPTDir returns the BPT directory path in the specified directory.
+func getBPTDir(dir string) string {
+	separator := string(filepath.Separator)
+	return dir + separator + bptDir
+}
+
+// getBPTPath returns the BPT index path for the given file ID.
+func getBPTPath(fID int64, dir string) string {
+	separator := string(filepath.Separator)
+	return getBPTDir(dir) + separator + strconv2.Int64ToStr(fID) + BPTIndexSuffix
+}
+
+// getBPTRootPath returns the BPT root index path for the given file ID.
+func getBPTRootPath(fID int64, dir string) string {
+	separator := string(filepath.Separator)
+	return getBPTDir(dir) + separator + "root" + separator + strconv2.Int64ToStr(fID) + BPTRootIndexSuffix
+}
+
+// getBPTTxIDPath returns the BPT transaction ID index path for the given file ID.
+func getBPTTxIDPath(fID int64, dir string) string {
+	separator := string(filepath.Separator)
+	return getBPTDir(dir) + separator + "txid" + separator + strconv2.Int64ToStr(fID) + BPTTxIDIndexSuffix
+}
+
+// getBPTRootTxIDPath returns the BPT root transaction ID index path for the given file ID.
+func getBPTRootTxIDPath(fID int64, dir string) string {
+	separator := string(filepath.Separator)
+	return getBPTDir(dir) + separator + "txid" + separator + strconv2.Int64ToStr(fID) + BPTRootTxIDIndexSuffix
+}
+
+func OneOfUint16Array(value uint16, array []uint16) bool {
+	for _, v := range array {
+		if v == value {
+			return true
+		}
+	}
+	return false
+}
+
+func createDirIfNotExist(dir string) error {
+	if ok := filesystem.PathIsExist(dir); !ok {
+		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+			return err
+		}
+	}
+	return nil
 }

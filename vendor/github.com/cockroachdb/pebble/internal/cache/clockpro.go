@@ -71,9 +71,7 @@ func (h Handle) Get() []byte {
 
 // Release releases the reference to the cache entry.
 func (h Handle) Release() {
-	if h.value != nil {
-		h.value.release()
-	}
+	h.value.release()
 }
 
 type shard struct {
@@ -176,7 +174,7 @@ func (c *shard) Set(id uint64, fileNum base.DiskFileNum, offset uint64, value *V
 		// cache entry was a test page
 		c.sizeTest -= e.size
 		c.countTest--
-		c.metaDel(e)
+		c.metaDel(e).release()
 		c.metaCheck(e)
 
 		e.size = int64(len(value.buf))
@@ -233,37 +231,75 @@ func (c *shard) Delete(id uint64, fileNum base.DiskFileNum, offset uint64) {
 		return
 	}
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	var deletedValue *Value
+	func() {
+		c.mu.Lock()
+		defer c.mu.Unlock()
 
-	e := c.blocks.Get(k)
-	if e == nil {
-		return
-	}
-	c.metaEvict(e)
-
-	c.checkConsistency()
+		e := c.blocks.Get(k)
+		if e == nil {
+			return
+		}
+		deletedValue = c.metaEvict(e)
+		c.checkConsistency()
+	}()
+	// Now that the mutex has been dropped, release the reference which will
+	// potentially free the memory associated with the previous cached value.
+	deletedValue.release()
 }
 
 // EvictFile evicts all of the cache values for the specified file.
 func (c *shard) EvictFile(id uint64, fileNum base.DiskFileNum) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	fkey := key{fileKey{id, fileNum}, 0}
+	for c.evictFileRun(fkey) {
+		// Sched switch to give another goroutine an opportunity to acquire the
+		// shard mutex.
+		runtime.Gosched()
+	}
+}
+
+func (c *shard) evictFileRun(fkey key) (moreRemaining bool) {
+	// If most of the file's blocks are held in the block cache, evicting all
+	// the blocks may take a while. We don't want to block the entire cache
+	// shard, forcing concurrent readers to wait until we're finished. We drop
+	// the mutex every [blocksPerMutexAcquisition] blocks to give other
+	// goroutines an opportunity to make progress.
+	const blocksPerMutexAcquisition = 5
+	c.mu.Lock()
+
+	// Releasing a value may result in free-ing it back to the memory allocator.
+	// This can have a nontrivial cost that we'd prefer to not pay while holding
+	// the shard mutex, so we collect the evicted values in a local slice and
+	// only release them in a defer after dropping the cache mutex.
+	var obsoleteValuesAlloc [blocksPerMutexAcquisition]*Value
+	obsoleteValues := obsoleteValuesAlloc[:0]
+	defer func() {
+		c.mu.Unlock()
+		for _, v := range obsoleteValues {
+			v.release()
+		}
+	}()
+
 	blocks := c.files.Get(fkey)
 	if blocks == nil {
-		return
-	}
-	for b, n := blocks, (*entry)(nil); ; b = n {
-		n = b.fileLink.next
-		c.metaEvict(b)
-		if b == n {
-			break
-		}
+		// No blocks for this file.
+		return false
 	}
 
-	c.checkConsistency()
+	// b is the current head of the doubly linked list, and n is the entry after b.
+	for b, n := blocks, (*entry)(nil); len(obsoleteValues) < cap(obsoleteValues); b = n {
+		n = b.fileLink.next
+		obsoleteValues = append(obsoleteValues, c.metaEvict(b))
+		if b == n {
+			// b == n represents the case where b was the last entry remaining
+			// in the doubly linked list, which is why it pointed at itself. So
+			// no more entries left.
+			c.checkConsistency()
+			return false
+		}
+	}
+	// Exhausted blocksPerMutexAcquisition.
+	return true
 }
 
 func (c *shard) Free() {
@@ -274,7 +310,7 @@ func (c *shard) Free() {
 	// metaCheck call when the "invariants" build tag is specified.
 	for c.handHot != nil {
 		e := c.handHot
-		c.metaDel(c.handHot)
+		c.metaDel(c.handHot).release()
 		e.free()
 	}
 
@@ -359,12 +395,14 @@ func (c *shard) metaAdd(key key, e *entry) bool {
 
 // Remove the entry from the cache. This removes the entry from the blocks map,
 // the files map, and ensures that hand{Hot,Cold,Test} are not pointing at the
-// entry.
-func (c *shard) metaDel(e *entry) {
+// entry. Returns the deleted value that must be released, if any.
+func (c *shard) metaDel(e *entry) (deletedValue *Value) {
 	if value := e.peekValue(); value != nil {
 		value.ref.trace("metaDel")
 	}
-	e.setValue(nil)
+	// Remove the pointer to the value.
+	deletedValue = e.val
+	e.val = nil
 
 	c.blocks.Delete(e.key)
 	if entriesGoAllocated {
@@ -396,6 +434,7 @@ func (c *shard) metaDel(e *entry) {
 	} else {
 		c.files.Put(fkey, next)
 	}
+	return deletedValue
 }
 
 // Check that the specified entry is not referenced by the cache.
@@ -455,7 +494,7 @@ func (c *shard) metaCheck(e *entry) {
 	}
 }
 
-func (c *shard) metaEvict(e *entry) {
+func (c *shard) metaEvict(e *entry) (evictedValue *Value) {
 	switch e.ptype {
 	case etHot:
 		c.sizeHot -= e.size
@@ -467,9 +506,10 @@ func (c *shard) metaEvict(e *entry) {
 		c.sizeTest -= e.size
 		c.countTest--
 	}
-	c.metaDel(e)
+	evictedValue = c.metaDel(e)
 	c.metaCheck(e)
 	e.free()
+	return evictedValue
 }
 
 func (c *shard) evict() {
@@ -564,7 +604,7 @@ func (c *shard) runHandTest() {
 		if c.coldTarget < 0 {
 			c.coldTarget = 0
 		}
-		c.metaDel(e)
+		c.metaDel(e).release()
 		c.metaCheck(e)
 		e.free()
 	}
@@ -587,7 +627,7 @@ type Metrics struct {
 // Cache implements Pebble's sharded block cache. The Clock-PRO algorithm is
 // used for page replacement
 // (http://static.usenix.org/event/usenix05/tech/general/full_papers/jiang/jiang_html/html.html). In
-// order to provide better concurrency, 2 x NumCPUs shards are created, with
+// order to provide better concurrency, 4 x NumCPUs shards are created, with
 // each shard being given 1/n of the target cache size. The Clock-PRO algorithm
 // is run independently on each shard.
 //
@@ -643,7 +683,34 @@ type Cache struct {
 //	defer c.Unref()
 //	d, err := pebble.Open(pebble.Options{Cache: c})
 func New(size int64) *Cache {
-	return newShards(size, 2*runtime.GOMAXPROCS(0))
+	// How many cache shards should we create?
+	//
+	// Note that the probability two processors will try to access the same
+	// shard at the same time increases superlinearly with the number of
+	// processors (Eg, consider the brithday problem where each CPU is a person,
+	// and each shard is a possible birthday).
+	//
+	// We could consider growing the number of shards superlinearly, but
+	// increasing the shard count may reduce the effectiveness of the caching
+	// algorithm if frequently-accessed blocks are insufficiently distributed
+	// across shards. If a shard's size is smaller than a single frequently
+	// scanned sstable, then the shard will be unable to hold the entire
+	// frequently-scanned table in memory despite other shards still holding
+	// infrequently accessed blocks.
+	//
+	// Experimentally, we've observed contention contributing to tail latencies
+	// at 2 shards per processor. For now we use 4 shards per processor,
+	// recognizing this may not be final word.
+	m := 4 * runtime.GOMAXPROCS(0)
+
+	// In tests we can use large CPU machines with small cache sizes and have
+	// many caches in existence at a time. If sharding into m shards would
+	// produce too small shards, constrain the number of shards to 4.
+	const minimumShardSize = 4 << 20 // 4 MiB
+	if m > 4 && int(size)/m < minimumShardSize {
+		m = 4
+	}
+	return newShards(size, m)
 }
 
 func newShards(size int64, shards int) *Cache {
@@ -785,14 +852,14 @@ func (c *Cache) Size() int64 {
 // manually managed. The caller MUST either add the value to the cache (via
 // Cache.Set), or release the value (via Cache.Free). Failure to do so will
 // result in a memory leak.
-func (c *Cache) Alloc(n int) *Value {
+func Alloc(n int) *Value {
 	return newValue(n)
 }
 
 // Free frees the specified value. The buffer associated with the value will
 // possibly be reused, making it invalid to use the buffer after calling
 // Free. Do not call Free on a value that has been added to the cache.
-func (c *Cache) Free(v *Value) {
+func Free(v *Value) {
 	if n := v.refs(); n > 1 {
 		panic(fmt.Sprintf("pebble: Value has been added to the cache: refs=%d", n))
 	}

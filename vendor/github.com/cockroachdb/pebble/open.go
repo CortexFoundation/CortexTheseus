@@ -297,10 +297,10 @@ func Open(dirname string, opts *Options) (db *DB, _ error) {
 		NoSyncOnClose:       opts.NoSyncOnClose,
 		BytesPerSync:        opts.BytesPerSync,
 	}
-	providerSettings.Shared.StorageFactory = opts.Experimental.SharedStorage
-	providerSettings.Shared.CreateOnShared = opts.Experimental.CreateOnShared
-	providerSettings.Shared.CreateOnSharedLocator = opts.Experimental.CreateOnSharedLocator
-	providerSettings.Shared.CacheSizeBytes = opts.Experimental.SecondaryCacheSize
+	providerSettings.Remote.StorageFactory = opts.Experimental.RemoteStorage
+	providerSettings.Remote.CreateOnShared = opts.Experimental.CreateOnShared
+	providerSettings.Remote.CreateOnSharedLocator = opts.Experimental.CreateOnSharedLocator
+	providerSettings.Remote.CacheSizeBytes = opts.Experimental.SecondaryCacheSizeBytes
 
 	d.objProvider, err = objstorageprovider.Open(providerSettings)
 	if err != nil {
@@ -814,7 +814,7 @@ func (d *DB) replayWAL(
 					if err != nil {
 						return nil, 0, errors.Wrap(err, "pebble: error when looking up ingested SSTs")
 					}
-					if objMeta.IsShared() {
+					if objMeta.IsRemote() {
 						readable, err = d.objProvider.OpenForReading(context.TODO(), fileTypeTable, n, objstorage.OpenOptions{MustExist: true})
 						if err != nil {
 							return nil, 0, errors.Wrap(err, "pebble: error when opening flushable ingest files")

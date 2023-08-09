@@ -59,6 +59,13 @@ type Config struct {
 	Devices string
 }
 
+var DefaultConfig = Config{
+	GasFloor: params.MinerGasFloor,
+	GasCeil:  params.MinerGasCeil,
+	GasPrice: big.NewInt(params.GWei),
+	Recommit: 3 * time.Second,
+}
+
 // Miner creates blocks and searches for proof-of-work values.
 type Miner struct {
 	mux      *event.TypeMux

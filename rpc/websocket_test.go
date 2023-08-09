@@ -355,22 +355,22 @@ func wsPingTestHandler(t *testing.T, conn *websocket.Conn, shutdown, sendPing <-
 // severableReadWriteCloser wraps an io.ReadWriteCloser and provides a Sever() method to drop writes and read empty.
 type severableReadWriteCloser struct {
 	io.ReadWriteCloser
-	severed int32 // atomic
+	severed atomic.Int32 // atomic
 }
 
 func (s *severableReadWriteCloser) Sever() {
-	atomic.StoreInt32(&s.severed, 1)
+	s.severed.Add(1)
 }
 
 func (s *severableReadWriteCloser) Read(p []byte) (n int, err error) {
-	if atomic.LoadInt32(&s.severed) > 0 {
+	if s.severed.Load() > 0 {
 		return 0, nil
 	}
 	return s.ReadWriteCloser.Read(p)
 }
 
 func (s *severableReadWriteCloser) Write(p []byte) (n int, err error) {
-	if atomic.LoadInt32(&s.severed) > 0 {
+	if s.severed.Load() > 0 {
 		return len(p), nil
 	}
 	return s.ReadWriteCloser.Write(p)

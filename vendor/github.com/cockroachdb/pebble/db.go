@@ -23,11 +23,13 @@ import (
 	"github.com/cockroachdb/pebble/internal/manifest"
 	"github.com/cockroachdb/pebble/internal/manual"
 	"github.com/cockroachdb/pebble/objstorage"
+	"github.com/cockroachdb/pebble/objstorage/remote"
 	"github.com/cockroachdb/pebble/rangekey"
 	"github.com/cockroachdb/pebble/record"
 	"github.com/cockroachdb/pebble/sstable"
 	"github.com/cockroachdb/pebble/vfs"
 	"github.com/cockroachdb/pebble/vfs/atomicfs"
+	"github.com/cockroachdb/tokenbucket"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -252,9 +254,14 @@ func (d defaultCPUWorkGranter) CPUWorkDone(_ CPUWorkHandle) {}
 type DB struct {
 	// The count and size of referenced memtables. This includes memtables
 	// present in DB.mu.mem.queue, as well as memtables that have been flushed
-	// but are still referenced by an inuse readState.
+	// but are still referenced by an inuse readState, as well as up to one
+	// memTable waiting to be reused and stored in d.memTableRecycle.
 	memTableCount    atomic.Int64
 	memTableReserved atomic.Int64 // number of bytes reserved in the cache for memtables
+	// memTableRecycle holds a pointer to an obsolete memtable. The next
+	// memtable allocation will reuse this memtable if it has not already been
+	// recycled.
+	memTableRecycle atomic.Pointer[memTable]
 
 	// The size of the current log file (i.e. db.mu.log.queue[len(queue)-1].
 	logSize atomic.Uint64
@@ -908,7 +915,7 @@ func (d *DB) commitWrite(b *Batch, syncWG *sync.WaitGroup, syncErr *error) (*mem
 		b.flushable.setSeqNum(b.SeqNum())
 		if !d.opts.DisableWAL {
 			var err error
-			size, b.commitStats.WALQueueWaitDuration, err = d.mu.log.SyncRecord(repr, syncWG, syncErr)
+			size, err = d.mu.log.SyncRecord(repr, syncWG, syncErr)
 			if err != nil {
 				panic(err)
 			}
@@ -946,7 +953,7 @@ func (d *DB) commitWrite(b *Batch, syncWG *sync.WaitGroup, syncErr *error) (*mem
 	}
 
 	if b.flushable == nil {
-		size, b.commitStats.WALQueueWaitDuration, err = d.mu.log.SyncRecord(repr, syncWG, syncErr)
+		size, err = d.mu.log.SyncRecord(repr, syncWG, syncErr)
 		if err != nil {
 			panic(err)
 		}
@@ -1172,21 +1179,30 @@ func finishInitializingIter(ctx context.Context, buf *iterAlloc) *Iterator {
 func (d *DB) ScanInternal(
 	ctx context.Context,
 	lower, upper []byte,
-	visitPointKey func(key *InternalKey, value LazyValue) error,
+	visitPointKey func(key *InternalKey, value LazyValue, iterInfo IteratorLevel) error,
 	visitRangeDel func(start, end []byte, seqNum uint64) error,
 	visitRangeKey func(start, end []byte, keys []rangekey.Key) error,
 	visitSharedFile func(sst *SharedSSTMeta) error,
+	includeObsoleteKeys bool,
+	rateLimitFunc func(key *InternalKey, val LazyValue),
 ) error {
-	iter := d.newInternalIter(nil /* snapshot */, &scanInternalOptions{
+	scanInternalOpts := &scanInternalOptions{
+		visitPointKey:       visitPointKey,
+		visitRangeDel:       visitRangeDel,
+		visitRangeKey:       visitRangeKey,
+		visitSharedFile:     visitSharedFile,
+		skipSharedLevels:    visitSharedFile != nil,
+		includeObsoleteKeys: includeObsoleteKeys,
+		rateLimitFunc:       rateLimitFunc,
 		IterOptions: IterOptions{
 			KeyTypes:   IterKeyTypePointsAndRanges,
 			LowerBound: lower,
 			UpperBound: upper,
 		},
-		skipSharedLevels: visitSharedFile != nil,
-	})
+	}
+	iter := d.newInternalIter(nil /* snapshot */, scanInternalOpts)
 	defer iter.close()
-	return scanInternalImpl(ctx, lower, upper, iter, visitPointKey, visitRangeDel, visitRangeKey, visitSharedFile)
+	return scanInternalImpl(ctx, lower, upper, iter, scanInternalOpts)
 }
 
 // newInternalIter constructs and returns a new scanInternalIterator on this db.
@@ -1225,6 +1241,7 @@ func (d *DB) newInternalIter(s *Snapshot, o *scanInternalOptions) *scanInternalI
 		newIters:        d.newIters,
 		newIterRangeKey: d.tableNewRangeKeyIter,
 		seqNum:          seqNum,
+		mergingIter:     &buf.merging,
 	}
 	if o != nil {
 		dbi.opts = *o
@@ -1539,6 +1556,10 @@ func (d *DB) Close() error {
 		// replay.
 		mem.readerUnrefLocked(false)
 	}
+	// If there's an unused, recycled memtable, we need to release its memory.
+	if obsoleteMemTable := d.memTableRecycle.Swap(nil); obsoleteMemTable != nil {
+		d.freeMemTable(obsoleteMemTable)
+	}
 	if reserved := d.memTableReserved.Load(); reserved != 0 {
 		err = firstError(err, errors.Errorf("leaked memtable reservation: %d", errors.Safe(reserved)))
 	}
@@ -1733,6 +1754,30 @@ func (d *DB) splitManualCompaction(
 	return splitCompactions
 }
 
+// DownloadSpan is a key range passed to the Download method.
+type DownloadSpan struct {
+	StartKey []byte
+	// EndKey is exclusive.
+	EndKey []byte
+}
+
+// Download ensures that the LSM does not use any external sstables for the
+// given key ranges. It does so by performing appropriate compactions so that
+// all external data becomes available locally.
+//
+// Note that calling this method does not imply that all other compactions stop;
+// it simply informs Pebble of a list of spans for which external data should be
+// downloaded with high priority.
+//
+// The method returns once no external sstasbles overlap the given spans, the
+// context is canceled, or an error is hit.
+//
+// TODO(radu): consider passing a priority/impact knob to express how important
+// the download is (versus live traffic performance, LSM health).
+func (d *DB) Download(ctx context.Context, spans []DownloadSpan) error {
+	return errors.Errorf("not implemented")
+}
+
 // Flush the memtable to stable storage.
 func (d *DB) Flush() error {
 	flushDone, err := d.AsyncFlush()
@@ -1904,7 +1949,30 @@ func WithApproximateSpanBytes() SSTablesOption {
 	}
 }
 
-// SSTableInfo export manifest.TableInfo with sstable.Properties
+// BackingType denotes the type of storage backing a given sstable.
+type BackingType int
+
+const (
+	// BackingTypeLocal denotes an sstable stored on local disk according to the
+	// objprovider. This file is completely owned by us.
+	BackingTypeLocal BackingType = iota
+	// BackingTypeShared denotes an sstable stored on shared storage, created
+	// by this Pebble instance and possibly shared by other Pebble instances.
+	// These types of files have lifecycle managed by Pebble.
+	BackingTypeShared
+	// BackingTypeSharedForeign denotes an sstable stored on shared storage,
+	// created by a Pebble instance other than this one. These types of files have
+	// lifecycle managed by Pebble.
+	BackingTypeSharedForeign
+	// BackingTypeExternal denotes an sstable stored on external storage,
+	// not owned by any Pebble instance and with no refcounting/cleanup methods
+	// or lifecycle management. An example of an external file is a file restored
+	// from a backup.
+	BackingTypeExternal
+)
+
+// SSTableInfo export manifest.TableInfo with sstable.Properties alongside
+// other file backing info.
 type SSTableInfo struct {
 	manifest.TableInfo
 	// Virtual indicates whether the sstable is virtual.
@@ -1913,6 +1981,11 @@ type SSTableInfo struct {
 	// backs the sstable associated with this SSTableInfo. If Virtual is false,
 	// then BackingSSTNum == FileNum.
 	BackingSSTNum base.FileNum
+	// BackingType is the type of storage backing this sstable.
+	BackingType BackingType
+	// Locator is the remote.Locator backing this sstable, if the backing type is
+	// not BackingTypeLocal.
+	Locator remote.Locator
 
 	// Properties is the sstable properties of this table. If Virtual is true,
 	// then the Properties are associated with the backing sst.
@@ -1959,7 +2032,6 @@ func (d *DB) SSTables(opts ...SSTablesOption) ([][]SSTableInfo, error) {
 			if opt.start != nil && opt.end != nil && !m.Overlaps(d.opts.Comparer.Compare, opt.start, opt.end, true /* exclusive end */) {
 				continue
 			}
-
 			destTables[j] = SSTableInfo{TableInfo: m.TableInfo()}
 			if opt.withProperties {
 				p, err := d.tableCache.getTableProperties(
@@ -1972,6 +2044,24 @@ func (d *DB) SSTables(opts ...SSTablesOption) ([][]SSTableInfo, error) {
 			}
 			destTables[j].Virtual = m.Virtual
 			destTables[j].BackingSSTNum = m.FileBacking.DiskFileNum.FileNum()
+			objMeta, err := d.objProvider.Lookup(fileTypeTable, m.FileBacking.DiskFileNum)
+			if err != nil {
+				return nil, err
+			}
+			if objMeta.IsRemote() {
+				if objMeta.IsShared() {
+					if d.objProvider.IsForeign(objMeta) {
+						destTables[j].BackingType = BackingTypeSharedForeign
+					} else {
+						destTables[j].BackingType = BackingTypeShared
+					}
+				} else {
+					destTables[j].BackingType = BackingTypeExternal
+				}
+				destTables[j].Locator = objMeta.Remote.Locator
+			} else {
+				destTables[j].BackingType = BackingTypeLocal
+			}
 
 			if opt.withApproximateSpanBytes {
 				var spanBytes uint64
@@ -1984,7 +2074,15 @@ func (d *DB) SSTables(opts ...SSTablesOption) ([][]SSTableInfo, error) {
 					}
 					spanBytes = size
 				}
-				destTables[j].Properties.UserProperties["approximate-span-bytes"] = strconv.FormatUint(spanBytes, 10)
+				propertiesCopy := *destTables[j].Properties
+
+				// Deep copy user properties so approximate span bytes can be added.
+				propertiesCopy.UserProperties = make(map[string]string, len(destTables[j].Properties.UserProperties)+1)
+				for k, v := range destTables[j].Properties.UserProperties {
+					propertiesCopy.UserProperties[k] = v
+				}
+				propertiesCopy.UserProperties["approximate-span-bytes"] = strconv.FormatUint(spanBytes, 10)
+				destTables[j].Properties = &propertiesCopy
 			}
 			j++
 		}
@@ -2009,11 +2107,20 @@ func (d *DB) SSTables(opts ...SSTablesOption) ([][]SSTableInfo, error) {
 //   - There may also exist WAL entries for unflushed keys in this range. This
 //     estimation currently excludes space used for the range in the WAL.
 func (d *DB) EstimateDiskUsage(start, end []byte) (uint64, error) {
+	bytes, _, _, err := d.EstimateDiskUsageByBackingType(start, end)
+	return bytes, err
+}
+
+// EstimateDiskUsageByBackingType is like EstimateDiskUsage but additionally
+// returns the subsets of that size in remote ane external files.
+func (d *DB) EstimateDiskUsageByBackingType(
+	start, end []byte,
+) (totalSize, remoteSize, externalSize uint64, _ error) {
 	if err := d.closed.Load(); err != nil {
 		panic(err)
 	}
 	if d.opts.Comparer.Compare(start, end) > 0 {
-		return 0, errors.New("invalid key-range specified (start > end)")
+		return 0, 0, 0, errors.New("invalid key-range specified (start > end)")
 	}
 
 	// Grab and reference the current readState. This prevents the underlying
@@ -2022,7 +2129,6 @@ func (d *DB) EstimateDiskUsage(start, end []byte) (uint64, error) {
 	readState := d.loadReadState()
 	defer readState.unref()
 
-	var totalSize uint64
 	for level, files := range readState.current.Levels {
 		iter := files.Iter()
 		if level > 0 {
@@ -2037,6 +2143,16 @@ func (d *DB) EstimateDiskUsage(start, end []byte) (uint64, error) {
 				d.opts.Comparer.Compare(file.Largest.UserKey, end) <= 0 {
 				// The range fully contains the file, so skip looking it up in
 				// table cache/looking at its indexes, and add the full file size.
+				meta, err := d.objProvider.Lookup(fileTypeTable, file.FileBacking.DiskFileNum)
+				if err != nil {
+					return 0, 0, 0, err
+				}
+				if meta.IsRemote() {
+					remoteSize += file.Size
+					if meta.Remote.CleanupMethod == objstorage.SharedNoCleanup {
+						externalSize += file.Size
+					}
+				}
 				totalSize += file.Size
 			} else if d.opts.Comparer.Compare(file.Smallest.UserKey, end) <= 0 &&
 				d.opts.Comparer.Compare(start, file.Largest.UserKey) <= 0 {
@@ -2060,13 +2176,23 @@ func (d *DB) EstimateDiskUsage(start, end []byte) (uint64, error) {
 					)
 				}
 				if err != nil {
-					return 0, err
+					return 0, 0, 0, err
+				}
+				meta, err := d.objProvider.Lookup(fileTypeTable, file.FileBacking.DiskFileNum)
+				if err != nil {
+					return 0, 0, 0, err
+				}
+				if meta.IsRemote() {
+					remoteSize += size
+					if meta.Remote.CleanupMethod == objstorage.SharedNoCleanup {
+						externalSize += size
+					}
 				}
 				totalSize += size
 			}
 		}
 	}
-	return totalSize, nil
+	return totalSize, remoteSize, externalSize, nil
 }
 
 func (d *DB) walPreallocateSize() int {
@@ -2092,28 +2218,66 @@ func (d *DB) newMemTable(logNum FileNum, logSeqNum uint64) (*memTable, *flushabl
 		}
 	}
 
-	d.memTableCount.Add(1)
-	d.memTableReserved.Add(int64(size))
-	releaseAccountingReservation := d.opts.Cache.Reserve(size)
-
-	mem := newMemTable(memTableOptions{
+	memtblOpts := memTableOptions{
 		Options:   d.opts,
-		arenaBuf:  manual.New(int(size)),
 		logSeqNum: logSeqNum,
-	})
+	}
 
-	// Note: this is a no-op if invariants are disabled or race is enabled.
-	invariants.SetFinalizer(mem, checkMemTable)
+	// Before attempting to allocate a new memtable, check if there's one
+	// available for recycling in memTableRecycle. Large contiguous allocations
+	// can be costly as fragmentation makes it more difficult to find a large
+	// contiguous free space. We've observed 64MB allocations taking 10ms+.
+	//
+	// To reduce these costly allocations, up to 1 obsolete memtable is stashed
+	// in `d.memTableRecycle` to allow a future memtable rotation to reuse
+	// existing memory.
+	var mem *memTable
+	mem = d.memTableRecycle.Swap(nil)
+	if mem != nil && len(mem.arenaBuf) != size {
+		d.freeMemTable(mem)
+		mem = nil
+	}
+	if mem != nil {
+		// Carry through the existing buffer and memory reservation.
+		memtblOpts.arenaBuf = mem.arenaBuf
+		memtblOpts.releaseAccountingReservation = mem.releaseAccountingReservation
+	} else {
+		mem = new(memTable)
+		memtblOpts.arenaBuf = manual.New(int(size))
+		memtblOpts.releaseAccountingReservation = d.opts.Cache.Reserve(size)
+		d.memTableCount.Add(1)
+		d.memTableReserved.Add(int64(size))
+
+		// Note: this is a no-op if invariants are disabled or race is enabled.
+		invariants.SetFinalizer(mem, checkMemTable)
+	}
+	mem.init(memtblOpts)
 
 	entry := d.newFlushableEntry(mem, logNum, logSeqNum)
 	entry.releaseMemAccounting = func() {
-		manual.Free(mem.arenaBuf)
-		mem.arenaBuf = nil
-		d.memTableCount.Add(-1)
-		d.memTableReserved.Add(-int64(size))
-		releaseAccountingReservation()
+		// If the user leaks iterators, we may be releasing the memtable after
+		// the DB is already closed. In this case, we want to just release the
+		// memory because DB.Close won't come along to free it for us.
+		if err := d.closed.Load(); err != nil {
+			d.freeMemTable(mem)
+			return
+		}
+
+		// The next memtable allocation might be able to reuse this memtable.
+		// Stash it on d.memTableRecycle.
+		if unusedMem := d.memTableRecycle.Swap(mem); unusedMem != nil {
+			// There was already a memtable waiting to be recycled. We're now
+			// responsible for freeing it.
+			d.freeMemTable(unusedMem)
+		}
 	}
 	return mem, entry
+}
+
+func (d *DB) freeMemTable(m *memTable) {
+	d.memTableCount.Add(-1)
+	d.memTableReserved.Add(-int64(len(m.arenaBuf)))
+	m.free()
 }
 
 func (d *DB) newFlushableEntry(f flushable, logNum FileNum, logSeqNum uint64) *flushableEntry {
@@ -2478,20 +2642,216 @@ func firstError(err0, err1 error) error {
 }
 
 // SetCreatorID sets the CreatorID which is needed in order to use shared objects.
-// Shared object usage is disabled until this method is called the first time.
+// Remote object usage is disabled until this method is called the first time.
 // Once set, the Creator ID is persisted and cannot change.
 //
 // Does nothing if SharedStorage was not set in the options when the DB was
 // opened or if the DB is in read-only mode.
 func (d *DB) SetCreatorID(creatorID uint64) error {
-	if d.opts.Experimental.SharedStorage == nil || d.opts.ReadOnly {
+	if d.opts.Experimental.RemoteStorage == nil || d.opts.ReadOnly {
 		return nil
 	}
 	return d.objProvider.SetCreatorID(objstorage.CreatorID(creatorID))
+}
+
+// KeyStatistics keeps track of the number of keys that have been pinned by a
+// snapshot as well as counts of the different key kinds in the lsm.
+type KeyStatistics struct {
+	// when a compaction determines a key is obsolete, but cannot elide the key
+	// because it's required by an open snapshot.
+	SnapshotPinnedKeys int
+	// the total number of bytes of all snapshot pinned keys.
+	SnapshotPinnedKeysBytes uint64
+	// Note: these fields are currently only populated for point keys (including range deletes).
+	KindsCount [InternalKeyKindMax + 1]int
+}
+
+// LSMKeyStatistics is used by DB.ScanStatistics.
+type LSMKeyStatistics struct {
+	Accumulated KeyStatistics
+	// Levels contains statistics only for point keys. Range deletions and range keys will
+	// appear in Accumulated but not Levels.
+	Levels [numLevels]KeyStatistics
+	// BytesRead represents the logical, pre-compression size of keys and values read
+	BytesRead uint64
+}
+
+// ScanStatisticsOptions is used by DB.ScanStatistics.
+type ScanStatisticsOptions struct {
+	// LimitBytesPerSecond indicates the number of bytes that are able to be read
+	// per second using ScanInternal.
+	// A value of 0 indicates that there is no limit set.
+	LimitBytesPerSecond int64
+}
+
+// ScanStatistics returns the count of different key kinds within the lsm for a
+// key span [lower, upper) as well as the number of snapshot keys.
+func (d *DB) ScanStatistics(
+	ctx context.Context, lower, upper []byte, opts ScanStatisticsOptions,
+) (LSMKeyStatistics, error) {
+	stats := LSMKeyStatistics{}
+	var prevKey InternalKey
+	var rateLimitFunc func(key *InternalKey, val LazyValue)
+	tb := tokenbucket.TokenBucket{}
+
+	if opts.LimitBytesPerSecond != 0 {
+		// Each "token" roughly corresponds to a byte that was read.
+		tb.Init(tokenbucket.TokensPerSecond(opts.LimitBytesPerSecond), tokenbucket.Tokens(1024))
+		rateLimitFunc = func(key *InternalKey, val LazyValue) {
+			for {
+				fulfilled, tryAgainAfter := tb.TryToFulfill(tokenbucket.Tokens(key.Size() + val.Len()))
+
+				if fulfilled {
+					break
+				}
+				time.Sleep(tryAgainAfter)
+			}
+		}
+	}
+
+	err := d.ScanInternal(ctx, lower, upper,
+		func(key *InternalKey, value LazyValue, iterInfo IteratorLevel) error {
+			// If the previous key is equal to the current point key, the current key was
+			// pinned by a snapshot.
+			size := uint64(key.Size())
+			kind := key.Kind()
+			if iterInfo.Kind == IteratorLevelLSM && d.equal(prevKey.UserKey, key.UserKey) {
+				stats.Levels[iterInfo.Level].SnapshotPinnedKeys++
+				stats.Levels[iterInfo.Level].SnapshotPinnedKeysBytes += size
+				stats.Accumulated.SnapshotPinnedKeys++
+				stats.Accumulated.SnapshotPinnedKeysBytes += size
+			}
+			if iterInfo.Kind == IteratorLevelLSM {
+				stats.Levels[iterInfo.Level].KindsCount[kind]++
+			}
+
+			stats.Accumulated.KindsCount[kind]++
+			prevKey.CopyFrom(*key)
+			stats.BytesRead += uint64(key.Size() + value.Len())
+			return nil
+		},
+		func(start, end []byte, seqNum uint64) error {
+			stats.Accumulated.KindsCount[InternalKeyKindRangeDelete]++
+			stats.BytesRead += uint64(len(start) + len(end))
+			return nil
+		},
+		func(start, end []byte, keys []rangekey.Key) error {
+			stats.BytesRead += uint64(len(start) + len(end))
+			for _, key := range keys {
+				stats.Accumulated.KindsCount[key.Kind()]++
+				stats.BytesRead += uint64(len(key.Value) + len(key.Suffix))
+			}
+			return nil
+		},
+		nil,  /* visitSharedFile */
+		true, /* includeObsoleteKeys */
+		rateLimitFunc,
+	)
+
+	if err != nil {
+		return LSMKeyStatistics{}, err
+	}
+
+	return stats, nil
 }
 
 // ObjProvider returns the objstorage.Provider for this database. Meant to be
 // used for internal purposes only.
 func (d *DB) ObjProvider() objstorage.Provider {
 	return d.objProvider
+}
+
+func (d *DB) checkVirtualBounds(m *fileMetadata, iterOpts *IterOptions) {
+	if !invariants.Enabled {
+		return
+	}
+
+	if m.HasPointKeys {
+		pointIter, rangeDelIter, err := d.newIters(context.TODO(), m, iterOpts, internalIterOpts{})
+		if err != nil {
+			panic(errors.Wrap(err, "pebble: error creating point iterator"))
+		}
+
+		defer pointIter.Close()
+		if rangeDelIter != nil {
+			defer rangeDelIter.Close()
+		}
+
+		pointKey, _ := pointIter.First()
+		var rangeDel *keyspan.Span
+		if rangeDelIter != nil {
+			rangeDel = rangeDelIter.First()
+		}
+
+		// Check that the lower bound is tight.
+		if (rangeDel == nil || d.cmp(rangeDel.SmallestKey().UserKey, m.SmallestPointKey.UserKey) != 0) &&
+			(pointKey == nil || d.cmp(pointKey.UserKey, m.SmallestPointKey.UserKey) != 0) {
+			panic(errors.Newf("pebble: virtual sstable %s lower point key bound is not tight", m.FileNum))
+		}
+
+		pointKey, _ = pointIter.Last()
+		rangeDel = nil
+		if rangeDelIter != nil {
+			rangeDel = rangeDelIter.Last()
+		}
+
+		// Check that the upper bound is tight.
+		if (rangeDel == nil || d.cmp(rangeDel.LargestKey().UserKey, m.LargestPointKey.UserKey) != 0) &&
+			(pointKey == nil || d.cmp(pointKey.UserKey, m.LargestPointKey.UserKey) != 0) {
+			panic(errors.Newf("pebble: virtual sstable %s upper point key bound is not tight", m.FileNum))
+		}
+
+		// Check that iterator keys are within bounds.
+		for key, _ := pointIter.First(); key != nil; key, _ = pointIter.Next() {
+			if d.cmp(key.UserKey, m.SmallestPointKey.UserKey) < 0 || d.cmp(key.UserKey, m.LargestPointKey.UserKey) > 0 {
+				panic(errors.Newf("pebble: virtual sstable %s point key %s is not within bounds", m.FileNum, key.UserKey))
+			}
+		}
+
+		if rangeDelIter != nil {
+			for key := rangeDelIter.First(); key != nil; key = rangeDelIter.Next() {
+				if d.cmp(key.SmallestKey().UserKey, m.SmallestPointKey.UserKey) < 0 {
+					panic(errors.Newf("pebble: virtual sstable %s point key %s is not within bounds", m.FileNum, key.SmallestKey().UserKey))
+				}
+
+				if d.cmp(key.LargestKey().UserKey, m.LargestPointKey.UserKey) > 0 {
+					panic(errors.Newf("pebble: virtual sstable %s point key %s is not within bounds", m.FileNum, key.LargestKey().UserKey))
+				}
+			}
+		}
+	}
+
+	if !m.HasRangeKeys {
+		return
+	}
+
+	spanIterOpts := keyspan.SpanIterOptions{}
+	if iterOpts != nil {
+		spanIterOpts.Level = iterOpts.level
+	}
+	rangeKeyIter, err := d.tableNewRangeKeyIter(m, spanIterOpts)
+	defer rangeKeyIter.Close()
+
+	if err != nil {
+		panic(errors.Wrap(err, "pebble: error creating range key iterator"))
+	}
+
+	// Check that the lower bound is tight.
+	if d.cmp(rangeKeyIter.First().SmallestKey().UserKey, m.SmallestRangeKey.UserKey) != 0 {
+		panic(errors.Newf("pebble: virtual sstable %s lower range key bound is not tight", m.FileNum))
+	}
+
+	// Check that upper bound is tight.
+	if d.cmp(rangeKeyIter.Last().LargestKey().UserKey, m.LargestRangeKey.UserKey) != 0 {
+		panic(errors.Newf("pebble: virtual sstable %s upper range key bound is not tight", m.FileNum))
+	}
+
+	for key := rangeKeyIter.First(); key != nil; key = rangeKeyIter.Next() {
+		if d.cmp(key.SmallestKey().UserKey, m.SmallestRangeKey.UserKey) < 0 {
+			panic(errors.Newf("pebble: virtual sstable %s point key %s is not within bounds", m.FileNum, key.SmallestKey().UserKey))
+		}
+		if d.cmp(key.LargestKey().UserKey, m.LargestRangeKey.UserKey) > 0 {
+			panic(errors.Newf("pebble: virtual sstable %s point key %s is not within bounds", m.FileNum, key.LargestKey().UserKey))
+		}
+	}
 }

@@ -103,6 +103,10 @@ func (t *SecureTrie) TryUpdateAccount(key []byte, acc *types.StateAccount) error
 	return nil
 }
 
+func (t *SecureTrie) UpdateContractCode(_ common.Address, _ common.Hash, _ []byte) error {
+	return nil
+}
+
 // Update associates key with value in the trie. Subsequent calls to
 // Get will return value. If value has length zero, any existing value
 // is deleted from the trie and calls to Get will return nil.

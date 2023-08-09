@@ -335,7 +335,7 @@ func (t *Torrent) download(p int) error {
 		defer cancel()
 		select {
 		case t.taskCh <- task{s, e}:
-			log.Info(ScaleBar(s, e, t.Torrent.NumPieces()), "ih", t.InfoHash(), "slot", t.slot, "s", s, "e", e, "p", p, "total", t.Torrent.NumPieces())
+			log.Debug(ScaleBar(s, e, t.Torrent.NumPieces()), "ih", t.InfoHash(), "slot", t.slot, "s", s, "e", e, "p", p, "total", t.Torrent.NumPieces())
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-t.closeAll:
@@ -364,14 +364,14 @@ func (t *Torrent) run() bool {
 func (t *Torrent) listen() {
 	defer t.wg.Done()
 
-	log.Info("Task listener started", "ih", t.InfoHash())
+	log.Debug("Task listener started", "ih", t.InfoHash())
 
 	for {
 		select {
 		case task := <-t.taskCh:
 			t.Torrent.DownloadPieces(task.start, task.end)
 		case <-t.closeAll:
-			log.Info("Task listener stopped", "ih", t.InfoHash())
+			log.Debug("Task listener stopped", "ih", t.InfoHash())
 			return
 		}
 	}
@@ -417,7 +417,7 @@ func (t *Torrent) Stop() {
 	defer t.Torrent.Drop()
 
 	if t.Status() != torrentStopping {
-		log.Info(ProgressBar(t.BytesCompleted(), t.Torrent.Length(), ""), "ih", t.InfoHash(), "total", common.StorageSize(t.Torrent.Length()), "req", common.StorageSize(t.BytesRequested()), "finish", common.StorageSize(t.Torrent.BytesCompleted()), "status", t.Status(), "cited", t.Cited())
+		log.Debug(ProgressBar(t.BytesCompleted(), t.Torrent.Length(), ""), "ih", t.InfoHash(), "total", common.StorageSize(t.Torrent.Length()), "req", common.StorageSize(t.BytesRequested()), "finish", common.StorageSize(t.Torrent.BytesCompleted()), "status", t.Status(), "cited", t.Cited())
 		//t.status = torrentStopping
 		t.status.Store(torrentStopping)
 	}
@@ -433,7 +433,7 @@ func (t *Torrent) stopListen() {
 
 		t.taskCh = nil
 
-		log.Info("Nas listener stopped", "ih", t.InfoHash(), "status", t.Status())
+		log.Debug("Nas listener stopped", "ih", t.InfoHash(), "status", t.Status())
 	})
 }
 
