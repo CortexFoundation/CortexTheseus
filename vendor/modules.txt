@@ -51,7 +51,7 @@ github.com/CortexFoundation/robot/backend
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit; go 1.16
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.53-0.20230808072508-61b90f87fb76
+# github.com/CortexFoundation/torrentfs v1.0.53-0.20230809192512-d2b61327e9a5
 ## explicit; go 1.20
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/backend
@@ -370,7 +370,7 @@ github.com/cockroachdb/errors/withstack
 # github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b
 ## explicit; go 1.16
 github.com/cockroachdb/logtags
-# github.com/cockroachdb/pebble v0.0.0-20230807203122-df7e2ae16dbf
+# github.com/cockroachdb/pebble v0.0.0-20230809152335-49821f58f7c4
 ## explicit; go 1.19
 github.com/cockroachdb/pebble
 github.com/cockroachdb/pebble/bloom
@@ -831,7 +831,7 @@ github.com/naoina/go-stringutil
 ## explicit
 github.com/naoina/toml
 github.com/naoina/toml/ast
-# github.com/nutsdb/nutsdb v0.13.1-0.20230808025958-28b0deedbd97
+# github.com/nutsdb/nutsdb v0.13.1-0.20230809122353-2f72279a1960
 ## explicit; go 1.18
 github.com/nutsdb/nutsdb
 github.com/nutsdb/nutsdb/ds/list
@@ -1080,7 +1080,7 @@ github.com/ucwong/filecache
 # github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb
 ## explicit; go 1.19
 github.com/ucwong/go-ttlmap
-# github.com/ucwong/golang-kv v1.0.23-0.20230808071813-15ccff947f41
+# github.com/ucwong/golang-kv v1.0.23-0.20230809155820-1d331ad1346f
 ## explicit; go 1.20
 github.com/ucwong/golang-kv
 github.com/ucwong/golang-kv/badger
@@ -1227,7 +1227,7 @@ golang.org/x/net/trace
 golang.org/x/sync/errgroup
 golang.org/x/sync/singleflight
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.10.0
+# golang.org/x/sys v0.11.0
 ## explicit; go 1.17
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
