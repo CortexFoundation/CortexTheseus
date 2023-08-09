@@ -50,7 +50,7 @@ func NewCVMBlockContext(header *types.Header, chain ChainContext, author *common
 		beneficiary = *author
 	}
 
-	log.Info("Random", "number", header.Number, "mix", header.MixDigest, "parent", header.ParentHash, "mercury", params.MERCURY_MAINNET)
+	log.Trace("Random", "number", header.Number, "mix", header.MixDigest, "parent", header.ParentHash, "mercury", params.MERCURY_MAINNET)
 
 	// TODO auto invoked by PoS (IsMerge Version) op random, set when mining work commit, it will not happen by PoW
 	if header.Difficulty.Cmp(common.Big0) == 0 {
