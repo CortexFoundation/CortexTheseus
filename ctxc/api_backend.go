@@ -219,7 +219,7 @@ func (b *CortexAPIBackend) GetReceipts(ctx context.Context, hash common.Hash) (t
 }*/
 
 func (b *CortexAPIBackend) GetLogs(ctx context.Context, hash common.Hash, number uint64) ([][]*types.Log, error) {
-	return rawdb.ReadLogs(b.ctxc.chainDb, hash, number, b.ChainConfig()), nil
+	return rawdb.ReadLogs(b.ctxc.chainDb, hash, number), nil
 }
 
 func (b *CortexAPIBackend) GetTd(ctx context.Context, blockHash common.Hash) *big.Int {
