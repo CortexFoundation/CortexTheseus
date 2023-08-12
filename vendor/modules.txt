@@ -520,7 +520,7 @@ github.com/emirpasic/gods/containers
 github.com/emirpasic/gods/lists
 github.com/emirpasic/gods/lists/doublylinkedlist
 github.com/emirpasic/gods/utils
-# github.com/ethereum/c-kzg-4844 v0.3.0
+# github.com/ethereum/c-kzg-4844 v0.3.1
 ## explicit; go 1.19
 github.com/ethereum/c-kzg-4844/bindings/go
 # github.com/fjl/gencodec v0.0.0-20220412091415-8bb9e558978c
@@ -1023,7 +1023,7 @@ github.com/steakknife/hamming
 ## explicit; go 1.20
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
-# github.com/supranational/blst v0.3.11-0.20230406105308-e9dfc5ee724b
+# github.com/supranational/blst v0.3.11
 ## explicit; go 1.11
 github.com/supranational/blst/bindings/go
 # github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d
