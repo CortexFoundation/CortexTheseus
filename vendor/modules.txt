@@ -495,7 +495,7 @@ github.com/dlclark/regexp2/syntax
 # github.com/docker/docker v24.0.4+incompatible
 ## explicit
 github.com/docker/docker/pkg/reexec
-# github.com/dop251/goja v0.0.0-20230707174833-636fdf960de1
+# github.com/dop251/goja v0.0.0-20230806174421-c933cf95e127
 ## explicit; go 1.16
 github.com/dop251/goja
 github.com/dop251/goja/ast
