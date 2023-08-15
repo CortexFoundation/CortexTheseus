@@ -15,6 +15,7 @@
 package tokenbucket
 
 import (
+	"context"
 	"time"
 )
 
@@ -50,7 +51,8 @@ func (tb *TokenBucket) Init(rate TokensPerSecond, burst Tokens) {
 	})
 }
 
-// Init the token bucket with a custom "Now" fuction.
+// Init the token bucket with a custom "Now" function.
+// Note that Wait/WaitCtx cannot be used with a custom time function.
 func (tb *TokenBucket) InitWithNowFn(rate TokensPerSecond, burst Tokens, nowFn func() time.Time) {
 	*tb = TokenBucket{
 		rate:        rate,
@@ -135,6 +137,33 @@ func (tb *TokenBucket) TryToFulfill(amount Tokens) (fulfilled bool, tryAgainAfte
 	tb.current -= amount
 	tb.updateExhaustedMicros()
 	return true, 0
+}
+
+// Wait removes the given amount, waiting as long as necessary.
+func (tb *TokenBucket) Wait(amount Tokens) {
+	_ = tb.WaitCtx(context.Background(), amount)
+}
+
+// WaitCtx removes the given amount, waiting as long as necessary or until the
+// context is canceled.
+func (tb *TokenBucket) WaitCtx(ctx context.Context, amount Tokens) error {
+	// We want to check for context cancelation even if we don't need to wait.
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+	for {
+		fulfilled, tryAgainAfter := tb.TryToFulfill(amount)
+		if fulfilled {
+			return nil
+		}
+		select {
+		case <-time.After(tryAgainAfter):
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
 }
 
 // Exhausted returns the cumulative duration over which this token bucket was
