@@ -116,7 +116,10 @@ func (peb *Pebble) Prefix(k []byte) (res [][]byte) {
 		}
 	}
 
-	iter := peb.engine.NewIter(prefixIterOptions(k))
+	iter, err := peb.engine.NewIter(prefixIterOptions(k))
+	if err != nil {
+		return
+	}
 	defer iter.Close()
 	for iter.First(); iter.Valid(); iter.Next() {
 		res = append(res, common.SafeCopy(nil, iter.Value()))
@@ -125,7 +128,10 @@ func (peb *Pebble) Prefix(k []byte) (res [][]byte) {
 }
 
 func (peb *Pebble) Suffix(k []byte) (res [][]byte) {
-	iter := peb.engine.NewIter(nil)
+	iter, err := peb.engine.NewIter(nil)
+	if err != nil {
+		return
+	}
 	defer iter.Close()
 	for iter.First(); iter.Valid(); iter.Next() {
 		if bytes.HasSuffix(iter.Key(), k) {
@@ -136,7 +142,10 @@ func (peb *Pebble) Suffix(k []byte) (res [][]byte) {
 }
 
 func (peb *Pebble) Range(start, limit []byte) (res [][]byte) {
-	iter := peb.engine.NewIter(nil)
+	iter, err := peb.engine.NewIter(nil)
+	if err != nil {
+		return
+	}
 	defer iter.Close()
 	for iter.SeekGEWithLimit(start, limit); iter.Valid(); iter.Next() {
 		if bytes.Compare(limit, iter.Key()) > 0 {
@@ -149,7 +158,10 @@ func (peb *Pebble) Range(start, limit []byte) (res [][]byte) {
 }
 
 func (peb *Pebble) Scan() (res [][]byte) {
-	iter := peb.engine.NewIter(nil)
+	iter, err := peb.engine.NewIter(nil)
+	if err != nil {
+		return
+	}
 	defer iter.Close()
 	for iter.First(); iter.Valid(); iter.Next() {
 		res = append(res, common.SafeCopy(nil, iter.Value()))

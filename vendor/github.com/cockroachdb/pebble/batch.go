@@ -1071,8 +1071,8 @@ func (b *Batch) SetRepr(data []byte) error {
 // The returned Iterator observes all of the Batch's existing mutations, but no
 // later mutations. Its view can be refreshed via RefreshBatchSnapshot or
 // SetOptions().
-func (b *Batch) NewIter(o *IterOptions) *Iterator {
-	return b.NewIterWithContext(context.Background(), o)
+func (b *Batch) NewIter(o *IterOptions) (*Iterator, error) {
+	return b.NewIterWithContext(context.Background(), o), nil
 }
 
 // NewIterWithContext is like NewIter, and additionally accepts a context for
@@ -1081,7 +1081,7 @@ func (b *Batch) NewIterWithContext(ctx context.Context, o *IterOptions) *Iterato
 	if b.index == nil {
 		return &Iterator{err: ErrNotIndexed}
 	}
-	return b.db.newIter(ctx, b, nil /* snapshot */, o)
+	return b.db.newIter(ctx, b, snapshotIterOpts{}, o)
 }
 
 // newInternalIter creates a new internalIterator that iterates over the
