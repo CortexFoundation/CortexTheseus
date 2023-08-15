@@ -9,11 +9,11 @@ https://github.com/CortexFoundation/torrentfs
 git clone https://github.com/CortexFoundation/torrentfs.git
 cd torrentfs
 make
-./build/bin/torrent download 'ih:6b75cc1354495ec763a6b295ee407ea864a0c292'
-./build/bin/torrent download 'ih:b2f5b0036877be22c6101bdfa5f2c7927fc35ef8'
-./build/bin/torrent download 'ih:5a49fed84aaf368cbf472cc06e42f93a93d92db5'
-./build/bin/torrent download 'ih:1f1706fa53ce0723ba1c577418b222acbfa5a200'
-./build/bin/torrent download 'ih:3f1f6c007e8da3e16f7c3378a20a746e70f1c2b0'
+./build/bin/torrent download 'infohash:6b75cc1354495ec763a6b295ee407ea864a0c292'
+./build/bin/torrent download 'infohash:b2f5b0036877be22c6101bdfa5f2c7927fc35ef8'
+./build/bin/torrent download 'infohash:5a49fed84aaf368cbf472cc06e42f93a93d92db5'
+./build/bin/torrent download 'infohash:1f1706fa53ce0723ba1c577418b222acbfa5a200'
+./build/bin/torrent download 'infohash:3f1f6c007e8da3e16f7c3378a20a746e70f1c2b0'
 ```
 downloaded ALL the torrents !!!!!!!!!!!!!!!!!!!
 
