@@ -677,6 +677,7 @@ func (fs *TorrentFS) IsActive(err error) bool {
 
 // Available is used to check the file status
 // func (fs *TorrentFS) wakeup(ctx context.Context, ih string, rawSize uint64) { //(bool, error) {
+// only wakeup local seed
 func (fs *TorrentFS) wakeup(ctx context.Context, ih string) error {
 	if p, e := fs.progress(ih); e == nil {
 		return fs.storage().Search(ctx, ih, p)

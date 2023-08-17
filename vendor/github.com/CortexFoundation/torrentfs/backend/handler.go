@@ -1168,7 +1168,11 @@ func (tm *TorrentManager) pendingLoop() {
 						if tm.kvdb != nil && tm.kvdb.Get([]byte(SEED_PRE+t.InfoHash())) == nil {
 							elapsed := time.Duration(mclock.Now()) - time.Duration(t.Birth())
 							log.Debug("Imported new seed", "ih", t.InfoHash(), "request", common.StorageSize(t.Length()), "ts", common.StorageSize(len(b)), "good", params.IsGood(t.InfoHash()), "elapsed", common.PrettyDuration(elapsed))
-							go t.WriteTorrent()
+							tm.wg.Add(1)
+							go func() {
+								tm.wg.Done()
+								t.WriteTorrent()
+							}()
 							tm.kvdb.Set([]byte(SEED_PRE+t.InfoHash()), b)
 						}
 						//t.lock.Lock()
