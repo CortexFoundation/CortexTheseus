@@ -18,10 +18,10 @@ package trienode
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"golang.org/x/exp/slices"
 )
 
 // Node is a wrapper which contains the encoded blob of the trie node and its
@@ -104,10 +104,8 @@ func (set *NodeSet) ForEachWithOrder(callback func(path string, n *Node)) {
 	for path := range set.Nodes {
 		paths = append(paths, path)
 	}
-	// Bottom-up, longest path first
-	slices.SortFunc(paths, func(a, b string) bool {
-		return a > b // Sort in reverse order
-	})
+	// Bottom-up, the longest path first
+	sort.Sort(sort.Reverse(sort.StringSlice(paths)))
 	for _, path := range paths {
 		callback(path, set.Nodes[path].Unwrap())
 	}

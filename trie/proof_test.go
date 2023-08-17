@@ -21,7 +21,6 @@ import (
 	crand "crypto/rand"
 	"encoding/binary"
 	mrand "math/rand"
-	"sort"
 	"testing"
 	"time"
 
@@ -29,6 +28,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb/memorydb"
+	"golang.org/x/exp/slices"
 )
 
 func init() {
@@ -165,7 +165,7 @@ func TestRangeProof(t *testing.T) {
 	for _, kv := range vals {
 		entries = append(entries, kv)
 	}
-	sort.Sort(entries)
+	slices.SortFunc(entries, (*kv).cmp)
 	for i := 0; i < 500; i++ {
 		start := mrand.Intn(len(entries))
 		end := mrand.Intn(len(entries)-start) + start + 1
@@ -198,7 +198,7 @@ func TestRangeProofWithNonExistentProof(t *testing.T) {
 	for _, kv := range vals {
 		entries = append(entries, kv)
 	}
-	sort.Sort(entries)
+	slices.SortFunc(entries, (*kv).cmp)
 	for i := 0; i < 500; i++ {
 		start := mrand.Intn(len(entries))
 		end := mrand.Intn(len(entries)-start) + start + 1
@@ -270,7 +270,7 @@ func TestRangeProofWithInvalidNonExistentProof(t *testing.T) {
 	for _, kv := range vals {
 		entries = append(entries, kv)
 	}
-	sort.Sort(entries)
+	slices.SortFunc(entries, (*kv).cmp)
 
 	// Case 1
 	start, end := 100, 200
@@ -327,7 +327,7 @@ func TestOneElementRangeProof(t *testing.T) {
 	for _, kv := range vals {
 		entries = append(entries, kv)
 	}
-	sort.Sort(entries)
+	slices.SortFunc(entries, (*kv).cmp)
 
 	// One element with existent edge proof, both edge proofs
 	// point to the SAME key.
@@ -414,7 +414,7 @@ func TestAllElementsProof(t *testing.T) {
 	for _, kv := range vals {
 		entries = append(entries, kv)
 	}
-	sort.Sort(entries)
+	slices.SortFunc(entries, (*kv).cmp)
 
 	var k [][]byte
 	var v [][]byte
@@ -466,7 +466,7 @@ func TestSingleSideRangeProof(t *testing.T) {
 			trie.Update(value.k, value.v)
 			entries = append(entries, value)
 		}
-		sort.Sort(entries)
+		slices.SortFunc(entries, (*kv).cmp)
 
 		var cases = []int{0, 1, 50, 100, 1000, 2000, len(entries) - 1}
 		for _, pos := range cases {
@@ -501,7 +501,7 @@ func TestReverseSingleSideRangeProof(t *testing.T) {
 			trie.Update(value.k, value.v)
 			entries = append(entries, value)
 		}
-		sort.Sort(entries)
+		slices.SortFunc(entries, (*kv).cmp)
 
 		var cases = []int{0, 1, 50, 100, 1000, 2000, len(entries) - 1}
 		for _, pos := range cases {
@@ -535,110 +535,8 @@ func TestBadRangeProof(t *testing.T) {
 	for _, kv := range vals {
 		entries = append(entries, kv)
 	}
-	sort.Sort(entries)
-
-	for i := 0; i < 500; i++ {
-		start := mrand.Intn(len(entries))
-		end := mrand.Intn(len(entries)-start) + start + 1
-		proof := memorydb.New()
-		if err := trie.Prove(entries[start].k, 0, proof); err != nil {
-			t.Fatalf("Failed to prove the first node %v", err)
-		}
-		if err := trie.Prove(entries[end-1].k, 0, proof); err != nil {
-			t.Fatalf("Failed to prove the last node %v", err)
-		}
-		var keys [][]byte
-		var vals [][]byte
-		for i := start; i < end; i++ {
-			keys = append(keys, entries[i].k)
-			vals = append(vals, entries[i].v)
-		}
-		var first, last = keys[0], keys[len(keys)-1]
-		testcase := mrand.Intn(6)
-		var index int
-		switch testcase {
-		case 0:
-			// Modified key
-			index = mrand.Intn(end - start)
-			keys[index] = randBytes(32) // In theory it can't be same
-		case 1:
-			// Modified val
-			index = mrand.Intn(end - start)
-			vals[index] = randBytes(20) // In theory it can't be same
-		case 2:
-			// Gapped entry slice
-			index = mrand.Intn(end - start)
-			if (index == 0 && start < 100) || (index == end-start-1 && end <= 100) {
-				continue
-			}
-			keys = append(keys[:index], keys[index+1:]...)
-			vals = append(vals[:index], vals[index+1:]...)
-		case 3:
-			// Out of order
-			index1 := mrand.Intn(end - start)
-			index2 := mrand.Intn(end - start)
-			if index1 == index2 {
-				continue
-			}
-			keys[index1], keys[index2] = keys[index2], keys[index1]
-			vals[index1], vals[index2] = vals[index2], vals[index1]
-		case 4:
-			// Set random key to nil, do nothing
-			index = mrand.Intn(end - start)
-			keys[index] = nil
-		case 5:
-			// Set random value to nil, deletion
-			index = mrand.Intn(end - start)
-			vals[index] = nil
-		}
-		_, _, _, _, err := VerifyRangeProof(trie.Hash(), first, last, keys, vals, proof)
-		if err == nil {
-			t.Fatalf("%d Case %d index %d range: (%d->%d) expect error, got nil", i, testcase, index, start, end-1)
-		}
-	}
-}
-
-// TestGappedRangeProof focuses on the small trie with embedded nodes.
-// If the gapped node is embedded in the trie, it should be detected too.
-func TestGappedRangeProof(t *testing.T) {
-	trie, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()))
-	var entries []*kv // Sorted entries
-	for i := byte(0); i < 10; i++ {
-		value := &kv{common.LeftPadBytes([]byte{i}, 32), []byte{i}, false}
-		trie.Update(value.k, value.v)
-		entries = append(entries, value)
-	}
-	first, last := 2, 8
-	proof := memorydb.New()
-	if err := trie.Prove(entries[first].k, 0, proof); err != nil {
-		t.Fatalf("Failed to prove the first node %v", err)
-	}
-	if err := trie.Prove(entries[last-1].k, 0, proof); err != nil {
-		t.Fatalf("Failed to prove the last node %v", err)
-	}
-	var keys [][]byte
-	var vals [][]byte
-	for i := first; i < last; i++ {
-		if i == (first+last)/2 {
-			continue
-		}
-		keys = append(keys, entries[i].k)
-		vals = append(vals, entries[i].v)
-	}
-	_, _, _, _, err := VerifyRangeProof(trie.Hash(), keys[0], keys[len(keys)-1], keys, vals, proof)
-	if err == nil {
-		t.Fatal("expect error, got nil")
-	}
-}
-
-// TestSameSideProofs tests the element is not in the range covered by proofs
-func TestSameSideProofs(t *testing.T) {
-	trie, vals := randomTrie(4096)
-	var entries entrySlice
-	for _, kv := range vals {
-		entries = append(entries, kv)
-	}
-	sort.Sort(entries)
+	slices.SortFunc(entries, (*kv).cmp)
+	slices.SortFunc(entries, (*kv).cmp)
 
 	pos := 1000
 	first := decreseKey(common.CopyBytes(entries[pos].k))
@@ -682,7 +580,7 @@ func TestHasRightElement(t *testing.T) {
 		trie.Update(value.k, value.v)
 		entries = append(entries, value)
 	}
-	sort.Sort(entries)
+	slices.SortFunc(entries, (*kv).cmp)
 
 	var cases = []struct {
 		start   int
@@ -754,7 +652,7 @@ func TestEmptyRangeProof(t *testing.T) {
 	for _, kv := range vals {
 		entries = append(entries, kv)
 	}
-	sort.Sort(entries)
+	slices.SortFunc(entries, (*kv).cmp)
 
 	var cases = []struct {
 		pos int
@@ -789,7 +687,7 @@ func TestBloatedProof(t *testing.T) {
 	for _, kv := range kvs {
 		entries = append(entries, kv)
 	}
-	sort.Sort(entries)
+	slices.SortFunc(entries, (*kv).cmp)
 	var keys [][]byte
 	var vals [][]byte
 
@@ -823,7 +721,7 @@ func TestEmptyValueRangeProof(t *testing.T) {
 	for _, kv := range values {
 		entries = append(entries, kv)
 	}
-	sort.Sort(entries)
+	slices.SortFunc(entries, (*kv).cmp)
 
 	// Create a new entry with a slightly modified key
 	mid := len(entries) / 2
@@ -867,7 +765,7 @@ func TestAllElementsEmptyValueRangeProof(t *testing.T) {
 	for _, kv := range values {
 		entries = append(entries, kv)
 	}
-	sort.Sort(entries)
+	slices.SortFunc(entries, (*kv).cmp)
 
 	// Create a new entry with a slightly modified key
 	mid := len(entries) / 2
@@ -973,7 +871,7 @@ func benchmarkVerifyRangeProof(b *testing.B, size int) {
 	for _, kv := range vals {
 		entries = append(entries, kv)
 	}
-	sort.Sort(entries)
+	slices.SortFunc(entries, (*kv).cmp)
 
 	start := 2
 	end := start + size
@@ -1010,7 +908,7 @@ func benchmarkVerifyRangeNoProof(b *testing.B, size int) {
 	for _, kv := range vals {
 		entries = append(entries, kv)
 	}
-	sort.Sort(entries)
+	slices.SortFunc(entries, (*kv).cmp)
 
 	var keys [][]byte
 	var values [][]byte

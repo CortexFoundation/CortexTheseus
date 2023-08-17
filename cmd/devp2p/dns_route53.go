@@ -248,11 +248,17 @@ func (c *route53Client) computeChanges(name string, records map[string]string, e
 // sortChanges ensures DNS changes are in leaf-added -> root-changed -> leaf-deleted order.
 func sortChanges(changes []types.Change) {
 	score := map[string]int{"CREATE": 1, "UPSERT": 2, "DELETE": 3}
-	slices.SortFunc(changes, func(a, b types.Change) bool {
+	slices.SortFunc(changes, func(a, b types.Change) int {
 		if a.Action == b.Action {
-			return *a.ResourceRecordSet.Name < *b.ResourceRecordSet.Name
+			return strings.Compare(*a.ResourceRecordSet.Name, *b.ResourceRecordSet.Name)
 		}
-		return score[string(a.Action)] < score[string(b.Action)]
+		if score[string(a.Action)] < score[string(b.Action)] {
+			return -1
+		}
+		if score[string(a.Action)] > score[string(b.Action)] {
+			return 1
+		}
+		return 0
 	})
 }
 
