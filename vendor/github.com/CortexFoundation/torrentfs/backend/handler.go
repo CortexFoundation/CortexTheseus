@@ -709,7 +709,7 @@ func (tm *TorrentManager) updateGlobalTrackers() error {
 
 	if global := wormhole.BestTrackers(); len(global) > 0 {
 		tm.globalTrackers = [][]string{global}
-		log.Info("Global trackers update", "size", len(global), "cap", wormhole.CAP)
+		log.Info("Global trackers update", "size", len(global), "cap", wormhole.CAP, "health", float32(len(global))/float32(wormhole.CAP))
 	} else {
 		return errors.New("best trackers failed")
 	}
