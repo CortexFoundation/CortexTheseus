@@ -424,7 +424,7 @@ func (fs *TorrentFS) handleMsg(p *Peer) error {
 
 	defer packet.Discard()
 
-	log.Debug("Nas "+params.ProtocolVersionStr+" package", "size", packet.Size, "code", packet.Code)
+	log.Debug("Nas "+params.ProtocolVersionStr+" package", "size", packet.Size, "code", packet.Code, "peer", p.peer.ID())
 
 	switch packet.Code {
 	case params.StatusCode:
