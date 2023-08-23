@@ -25,14 +25,14 @@ import (
 	"io"
 	"net"
 	//"math"
+	"math"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
-	//"strconv"
-	"math"
-	"runtime"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -710,6 +710,21 @@ func (tm *TorrentManager) updateGlobalTrackers() error {
 	if global := wormhole.BestTrackers(); len(global) > 0 {
 		tm.globalTrackers = [][]string{global}
 		log.Info("Global trackers update", "size", len(global), "cap", wormhole.CAP, "health", float32(len(global))/float32(wormhole.CAP))
+		if tm.kvdb == nil {
+			return nil
+		}
+		for _, url := range global {
+			v := tm.kvdb.Get([]byte(url))
+			if v != nil {
+				if score, err := strconv.ParseUint(string(v), 16, 64); err == nil {
+					score++
+					tm.kvdb.Set([]byte(url), []byte(strconv.FormatUint(score, 16)))
+					log.Info("Tracker status", "url", url, "score", score)
+				}
+			} else {
+				tm.kvdb.Set([]byte(url), []byte(strconv.FormatUint(1, 16)))
+			}
+		}
 	} else {
 		return errors.New("best trackers failed")
 	}
