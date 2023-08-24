@@ -60,13 +60,16 @@ func BestTrackers() (ret []string) {
 			log.Warn("Global tracker lost", "err", err)
 			continue
 		}
-		client.SetTimeout(time.Second * 2)
+
+		// 2.5s for health check
+		client.SetTimeout(time.Millisecond * 2500)
 
 		//var wg sync.WaitGroup
 		var (
-			str   = strings.Split(resp.String(), "\n\n")
-			retCh = make(chan string, len(str))
-			start = mclock.Now()
+			str      = strings.Split(resp.String(), "\n\n")
+			retCh    = make(chan string, len(str))
+			failedCh = make(chan string, len(str))
+			start    = mclock.Now()
 		)
 		for _, s := range str {
 			//if len(ret) < CAP {
@@ -77,7 +80,8 @@ func BestTrackers() (ret []string) {
 					//ret = append(ret, s)
 					retCh <- ss
 				} else {
-					retCh <- ""
+					//retCh <- ""
+					failedCh <- ss
 				}
 			}(s)
 			/*switch {
@@ -108,10 +112,14 @@ func BestTrackers() (ret []string) {
 		for i := 0; i < len(str); i++ {
 			select {
 			case x := <-retCh:
-				if len(x) > 0 {
-					log.Info("Healthy tracker", "url", x, "latency", common.PrettyDuration(time.Duration(mclock.Now())-time.Duration(start)))
-					ret = append(ret, x)
-				}
+				//if len(x) > 0 {
+				log.Info("Healthy tracker", "url", x, "latency", common.PrettyDuration(time.Duration(mclock.Now())-time.Duration(start)))
+				ret = append(ret, x)
+				//}
+			case x := <-failedCh:
+				// TODO
+				log.Info("Unhealthy tracker", "url", x, "latency", common.PrettyDuration(time.Duration(mclock.Now())-time.Duration(start)))
+
 			}
 		}
 
@@ -132,6 +140,7 @@ func HealthCheck(s string) error {
 	case strings.HasPrefix(s, "http"), strings.HasPrefix(s, "https"):
 		if _, err := client.R().Post(s); err != nil {
 			log.Warn("tracker failed", "err", err)
+			// TODO
 			return err
 		} else {
 			//ret = append(ret, s)
@@ -145,6 +154,7 @@ func HealthCheck(s string) error {
 					return nil
 				} else {
 					log.Warn("UDP ping err", "s", s, "err", err)
+					// TODO
 					return err
 				}
 			}
@@ -156,7 +166,7 @@ func HealthCheck(s string) error {
 		return errors.New("invalid url protocol")
 	}
 
-	return errors.New("unhealthy url")
+	return errors.New("unhealthy tracker url")
 }
 
 func ColaList() mapset.Set[string] {

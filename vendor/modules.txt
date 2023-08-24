@@ -44,14 +44,14 @@ github.com/CortexFoundation/inference/synapse
 # github.com/CortexFoundation/merkletree v0.0.0-20230724124840-b6e80265a137
 ## explicit; go 1.19
 github.com/CortexFoundation/merkletree
-# github.com/CortexFoundation/robot v1.0.5-0.20230817151905-224841d4d3a0
+# github.com/CortexFoundation/robot v1.0.5-0.20230820223944-e4ee2c132f4d
 ## explicit; go 1.20
 github.com/CortexFoundation/robot
 github.com/CortexFoundation/robot/backend
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit; go 1.16
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.53-0.20230819212811-a21bf4bb03cb
+# github.com/CortexFoundation/torrentfs v1.0.53-0.20230823090240-7f9650dc8398
 ## explicit; go 1.20
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/backend
@@ -143,7 +143,7 @@ github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.4.0
 ## explicit; go 1.13
 github.com/anacrolix/sync
-# github.com/anacrolix/torrent v1.52.6-0.20230817081446-de3309319f03
+# github.com/anacrolix/torrent v1.52.6-0.20230822025354-78cd5a1c0aef
 ## explicit; go 1.20
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/analysis
@@ -671,9 +671,10 @@ github.com/hashicorp/go-retryablehttp
 ## explicit; go 1.12
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
-# github.com/hashicorp/golang-lru/v2 v2.0.5-0.20230807184434-3b3d2595eca1
+# github.com/hashicorp/golang-lru/v2 v2.0.6-0.20230808191114-3afaa48530f7
 ## explicit; go 1.18
 github.com/hashicorp/golang-lru/v2
+github.com/hashicorp/golang-lru/v2/expirable
 github.com/hashicorp/golang-lru/v2/internal
 github.com/hashicorp/golang-lru/v2/simplelru
 # github.com/holiman/bloomfilter/v2 v2.0.3
@@ -835,7 +836,7 @@ github.com/naoina/go-stringutil
 ## explicit
 github.com/naoina/toml
 github.com/naoina/toml/ast
-# github.com/nutsdb/nutsdb v0.13.2-0.20230819142949-0eae1bce39fe
+# github.com/nutsdb/nutsdb v0.13.2-0.20230822061724-40efa02e7dc7
 ## explicit; go 1.18
 github.com/nutsdb/nutsdb
 github.com/nutsdb/nutsdb/ds/list
@@ -1083,7 +1084,7 @@ github.com/ucwong/filecache
 # github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb
 ## explicit; go 1.19
 github.com/ucwong/go-ttlmap
-# github.com/ucwong/golang-kv v1.0.23-0.20230819181037-df7b60be8c35
+# github.com/ucwong/golang-kv v1.0.23-0.20230823081549-c126cf7f95e5
 ## explicit; go 1.20
 github.com/ucwong/golang-kv
 github.com/ucwong/golang-kv/badger
