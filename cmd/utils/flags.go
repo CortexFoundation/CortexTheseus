@@ -47,6 +47,7 @@ import (
 	whisper "github.com/CortexFoundation/CortexTheseus/whisper/whisperv6"
 	gopsutil "github.com/shirou/gopsutil/mem"
 	// "github.com/CortexFoundation/CortexTheseus/core/state"
+	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/ctxc"
@@ -1855,6 +1856,18 @@ func MakeChainDatabase(ctx *cli.Context, stack *node.Node, readonly bool) ctxcdb
 		Fatalf("Could not open database: %v", err)
 	}
 	return chainDb
+}
+
+// tryMakeReadOnlyDatabase try to open the chain database in read-only mode,
+// or fallback to write mode if the database is not initialized.
+func tryMakeReadOnlyDatabase(ctx *cli.Context, stack *node.Node) ctxcdb.Database {
+	// If the database doesn't exist we need to open it in write-mode to allow
+	// the engine to create files.
+	readonly := true
+	if rawdb.PreexistingDatabase(stack.ResolvePath("chaindata")) == "" {
+		readonly = false
+	}
+	return MakeChainDatabase(ctx, stack, readonly)
 }
 
 func MakeGenesis(ctx *cli.Context) *core.Genesis {
