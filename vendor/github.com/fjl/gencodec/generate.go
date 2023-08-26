@@ -6,12 +6,10 @@ package main
 
 import (
 	"fmt"
-	"go/ast"
 	"go/printer"
 	"go/token"
 	"go/types"
 	"io"
-	"strconv"
 	"strings"
 
 	. "github.com/garslo/gogen"
@@ -204,50 +202,47 @@ func (m *marshalMethod) unmarshalConversions(from, to Var, format string) (s []S
 			continue // fields generated from functions cannot be assigned
 		}
 
+		fieldName := f.encodedName(format)
 		accessFrom := Dotted{Receiver: from, Name: f.name}
 		accessTo := Dotted{Receiver: to, Name: f.name}
 		typ := ensureNilCheckable(f.typ)
 		if !f.isRequired(format) {
 			s = append(s, If{
 				Condition: NotEqual{Lhs: accessFrom, Rhs: NIL},
-				Body:      m.convert(accessFrom, accessTo, typ, f.origTyp),
+				Body:      m.convert(accessFrom, accessTo, typ, f.origTyp, fieldName),
 			})
 		} else {
-			err := fmt.Sprintf("missing required field '%s' for %s", f.encodedName(format), m.mtyp.name)
-			errors := m.scope.parent.packageName("errors")
+			err := fmt.Sprintf("missing required field '%s' for %s", fieldName, m.mtyp.name)
 			s = append(s, If{
 				Condition: Equals{Lhs: accessFrom, Rhs: NIL},
 				Body: []Statement{
 					Return{
 						Values: []Expression{
-							CallFunction{
-								Func:   Dotted{Receiver: Name(errors), Name: "New"},
-								Params: []Expression{stringLit{err}},
-							},
+							errorsNewCall(m.scope.parent, err),
 						},
 					},
 				},
 			})
-			s = append(s, m.convert(accessFrom, accessTo, typ, f.origTyp)...)
+			s = append(s, m.convert(accessFrom, accessTo, typ, f.origTyp, fieldName)...)
 		}
 	}
 	return s
 }
 
-func (m *marshalMethod) marshalConversions(from, to Var, format string) (s []Statement) {
+func (m *marshalMethod) marshalConversions(from, to Var, fieldName string) (s []Statement) {
 	for _, f := range m.mtyp.Fields {
 		accessFrom := Dotted{Receiver: from, Name: f.name}
 		accessTo := Dotted{Receiver: to, Name: f.name}
+		var value Expression = accessFrom
 		if f.function != nil {
-			s = append(s, m.convert(CallFunction{Func: accessFrom}, accessTo, f.origTyp, f.typ)...)
-		} else {
-			s = append(s, m.convert(accessFrom, accessTo, f.origTyp, f.typ)...)
+			value = CallFunction{Func: accessFrom}
 		}
+		s = append(s, m.convert(value, accessTo, f.origTyp, f.typ, fieldName)...)
 	}
 	return s
 }
 
-func (m *marshalMethod) convert(from, to Expression, fromtyp, totyp types.Type) (s []Statement) {
+func (m *marshalMethod) convert(from, to Expression, fromtyp, totyp types.Type, fieldName string) (s []Statement) {
 	// Remove pointer introduced by ensureNilCheckable during field building.
 	if isPointer(fromtyp) && !isPointer(totyp) {
 		from = Star{Value: from}
@@ -256,15 +251,27 @@ func (m *marshalMethod) convert(from, to Expression, fromtyp, totyp types.Type) 
 		from = AddressOf{Value: from}
 		fromtyp = types.NewPointer(fromtyp)
 	}
-	// Generate the conversion.
+
 	qf := m.mtyp.scope.qualify
 	switch {
+	// Array -> slice (with [:] syntax)
+	case underlyingArray(fromtyp) != nil && underlyingSlice(totyp) != nil:
+		s = append(s, m.convertArrayToSlice(from, to, fromtyp, totyp)...)
+
+	// Slice -> array (with loop)
+	case underlyingSlice(fromtyp) != nil && underlyingArray(totyp) != nil:
+		s = append(s, m.convertSliceToArray(from, to, fromtyp, totyp, fieldName)...)
+
+	// Simple conversion `totyp(from)`
 	case types.ConvertibleTo(fromtyp, totyp):
-		s = append(s, Assign{Lhs: to, Rhs: simpleConv(from, fromtyp, totyp, qf)})
+		s = append(s, Assign{Lhs: to, Rhs: convertSimple(from, fromtyp, totyp, qf)})
+
+	// slice/slice and map/map (with loop)
 	case underlyingSlice(fromtyp) != nil:
-		s = append(s, m.loopConv(from, to, sliceKV(fromtyp), sliceKV(totyp))...)
+		s = append(s, m.convertLoop(from, to, sliceKV(fromtyp), sliceKV(totyp))...)
 	case underlyingMap(fromtyp) != nil:
-		s = append(s, m.loopConv(from, to, mapKV(fromtyp), mapKV(totyp))...)
+		s = append(s, m.convertLoop(from, to, mapKV(fromtyp), mapKV(totyp))...)
+
 	default:
 		invalidConv(fromtyp, totyp, qf)
 	}
@@ -286,7 +293,8 @@ func sliceKV(typ types.Type) kvType {
 	return kvType{typ, intType, slicetyp.Elem()}
 }
 
-func (m *marshalMethod) loopConv(from, to Expression, fromTyp, toTyp kvType) (conv []Statement) {
+// convertLoop creates type conversion code between two slice/map types.
+func (m *marshalMethod) convertLoop(from, to Expression, fromTyp, toTyp kvType) (conv []Statement) {
 	if hasSideEffects(from) {
 		orig := from
 		from = Name(m.scope.newIdent("tmp"))
@@ -294,14 +302,14 @@ func (m *marshalMethod) loopConv(from, to Expression, fromTyp, toTyp kvType) (co
 	}
 	// The actual conversion is a loop that assigns each element.
 	inner := []Statement{
-		Assign{Lhs: to, Rhs: makeExpr(toTyp.Type, from, m.scope.parent.qualify)},
+		Assign{Lhs: to, Rhs: makeCall(toTyp.Type, from, m.scope.parent.qualify)},
 		Range{
 			Key:        m.iterKey,
 			Value:      m.iterVal,
 			RangeValue: from,
 			Body: []Statement{Assign{
-				Lhs: Index{Value: to, Index: simpleConv(m.iterKey, fromTyp.Key, toTyp.Key, m.scope.parent.qualify)},
-				Rhs: simpleConv(m.iterVal, fromTyp.Elem, toTyp.Elem, m.scope.parent.qualify),
+				Lhs: Index{Value: to, Index: convertSimple(m.iterKey, fromTyp.Key, toTyp.Key, m.scope.parent.qualify)},
+				Rhs: convertSimple(m.iterVal, fromTyp.Elem, toTyp.Elem, m.scope.parent.qualify),
 			}},
 		},
 	}
@@ -316,7 +324,89 @@ func (m *marshalMethod) loopConv(from, to Expression, fromTyp, toTyp kvType) (co
 	return append(conv, inner...)
 }
 
-func simpleConv(from Expression, fromtyp, totyp types.Type, qf types.Qualifier) Expression {
+// arrayToSliceConv converts a slice value to an array.
+func (m *marshalMethod) convertArrayToSlice(from Expression, to Expression, fromtyp, totyp types.Type) (conv []Statement) {
+	if hasSideEffects(from) {
+		orig := from
+		from = Name(m.scope.newIdent("tmp"))
+		conv = []Statement{DeclareAndAssign{Lhs: from, Rhs: orig}}
+	}
+
+	fromEtype := underlyingArray(fromtyp).Elem()
+	toEtype := underlyingSlice(totyp).Elem()
+
+	if fromEtype == toEtype {
+		// For identical element types, we can just slice the array.
+		return append(conv, Assign{Lhs: to, Rhs: sliceExpr{Value: from}})
+	}
+
+	// For different element types, we need to convert each element.
+	return append(conv,
+		Assign{
+			Lhs: to,
+			Rhs: makeCall(totyp, from, m.scope.parent.qualify),
+		},
+		Range{
+			Key:        m.iterKey,
+			Value:      m.iterVal,
+			RangeValue: from,
+			Body: []Statement{Assign{
+				Lhs: Index{Value: to, Index: m.iterKey},
+				Rhs: convertSimple(m.iterVal, fromEtype, toEtype, m.scope.parent.qualify),
+			}},
+		},
+	)
+}
+
+// sliceToArrayConv converts an array value to a slice.
+func (m *marshalMethod) convertSliceToArray(from Expression, to Expression, fromtyp, totyp types.Type, format string) (conv []Statement) {
+	if hasSideEffects(from) {
+		orig := from
+		from = Name(m.scope.newIdent("tmp"))
+		conv = []Statement{DeclareAndAssign{Lhs: from, Rhs: orig}}
+	}
+
+	fromEtype := underlyingSlice(fromtyp).Elem()
+	toArray := underlyingArray(totyp)
+	toEtype := toArray.Elem()
+
+	// Check length of input slice matches the array size.
+	if m.isUnmarshal {
+		errormsg := fmt.Sprintf("field '%s' has wrong length, need %d items", format, toArray.Len())
+		conv = append(conv, If{
+			Condition: NotEqual{Lhs: lenCall(from), Rhs: lenCall(to)},
+			Body: []Statement{
+				Return{Values: []Expression{
+					errorsNewCall(m.scope.parent, errormsg),
+				}},
+			},
+		})
+	}
+
+	if fromEtype == toEtype {
+		// Copy can be used when element types are identical.
+		conv = append(conv, CallFunction{
+			Func: Name("copy"), Params: []Expression{
+				sliceExpr{Value: to},
+				from,
+			},
+		})
+	} else {
+		// Otherwise the conversion is a loop that assigns each element.
+		conv = append(conv, Range{
+			Key:        m.iterKey,
+			Value:      m.iterVal,
+			RangeValue: from,
+			Body: []Statement{Assign{
+				Lhs: Index{Value: to, Index: m.iterKey},
+				Rhs: convertSimple(m.iterVal, fromEtype, toEtype, m.scope.parent.qualify),
+			}},
+		})
+	}
+	return conv
+}
+
+func convertSimple(from Expression, fromtyp, totyp types.Type, qf types.Qualifier) Expression {
 	if types.AssignableTo(fromtyp, totyp) {
 		return from
 	}
@@ -332,52 +422,4 @@ func simpleConv(from Expression, fromtyp, totyp types.Type, qf types.Qualifier) 
 
 func invalidConv(from, to types.Type, qf types.Qualifier) {
 	panic(fmt.Errorf("BUG: invalid conversion %s -> %s", types.TypeString(from, qf), types.TypeString(to, qf)))
-}
-
-func makeExpr(typ types.Type, lenfrom Expression, qf types.Qualifier) Expression {
-	return CallFunction{Func: Name("make"), Params: []Expression{
-		Name(types.TypeString(typ, qf)),
-		CallFunction{Func: Name("len"), Params: []Expression{lenfrom}},
-	}}
-}
-
-func errCheck(expr Expression) If {
-	err := Name("err")
-	return If{
-		Init:      DeclareAndAssign{Lhs: err, Rhs: expr},
-		Condition: NotEqual{Lhs: err, Rhs: NIL},
-		Body:      []Statement{Return{Values: []Expression{err}}},
-	}
-}
-
-// hasSideEffects returns whether an expression may have side effects.
-func hasSideEffects(expr Expression) bool {
-	switch expr := expr.(type) {
-	case Var:
-		return false
-	case Dotted:
-		return hasSideEffects(expr.Receiver)
-	case Star:
-		return hasSideEffects(expr.Value)
-	case Index:
-		return hasSideEffects(expr.Index) && hasSideEffects(expr.Value)
-	default:
-		return true
-	}
-}
-
-type stringLit struct {
-	V string
-}
-
-func (l stringLit) Expression() ast.Expr {
-	return &ast.BasicLit{Kind: token.STRING, Value: strconv.Quote(l.V)}
-}
-
-type declStmt struct {
-	d Declaration
-}
-
-func (ds declStmt) Statement() ast.Stmt {
-	return &ast.DeclStmt{Decl: ds.d.Declaration()}
 }

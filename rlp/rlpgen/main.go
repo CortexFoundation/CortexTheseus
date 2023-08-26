@@ -1,4 +1,4 @@
-// Copyright 2021 The CortexTheseus Authors
+// Copyright 2022 The CortexTheseus Authors
 // This file is part of the CortexTheseus library.
 //
 // The CortexTheseus library is free software: you can redistribute it and/or modify
@@ -51,7 +51,7 @@ func main() {
 	}
 	if *output == "-" {
 		os.Stdout.Write(code)
-	} else if err := os.WriteFile(*output, code, 0644); err != nil {
+	} else if err := os.WriteFile(*output, code, 0600); err != nil {
 		fatal(err)
 	}
 }
