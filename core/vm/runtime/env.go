@@ -35,6 +35,7 @@ func NewEnv(cfg *Config) *vm.CVM {
 		Time:        cfg.Time,
 		Difficulty:  cfg.Difficulty,
 		GasLimit:    cfg.GasLimit,
+		Random:      cfg.Random,
 	}
 
 	return vm.NewCVM(blockContext, txContext, cfg.State, cfg.ChainConfig, cfg.CVMConfig)
