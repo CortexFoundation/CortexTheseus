@@ -176,6 +176,8 @@ type TorrentManager struct {
 	pends    atomic.Int32
 	actives  atomic.Int32
 	stops    atomic.Int32
+
+	//worms []Worm
 }
 
 // can only call by fs.go: 'SeedingLocal()'
@@ -703,6 +705,11 @@ func (tm *TorrentManager) injectSpec(ih string, spec *torrent.TorrentSpec) (*tor
 	}
 }
 
+type Worm struct {
+	tracker string
+	score   uint64
+}
+
 func (tm *TorrentManager) updateGlobalTrackers() error {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
@@ -710,26 +717,34 @@ func (tm *TorrentManager) updateGlobalTrackers() error {
 	if global := wormhole.BestTrackers(); len(global) > 0 {
 		tm.globalTrackers = [][]string{global}
 		log.Info("Global trackers update", "size", len(global), "cap", wormhole.CAP, "health", float32(len(global))/float32(wormhole.CAP))
-		if tm.kvdb == nil {
-			return nil
-		}
+
 		for _, url := range global {
-			v := tm.kvdb.Get([]byte(url))
-			if v != nil {
-				if score, err := strconv.ParseUint(string(v), 16, 64); err == nil {
-					score++
-					tm.kvdb.Set([]byte(url), []byte(strconv.FormatUint(score, 16)))
-					log.Info("Tracker status", "url", url, "score", score)
-				}
-			} else {
-				tm.kvdb.Set([]byte(url), []byte(strconv.FormatUint(1, 16)))
-			}
+			score, _ := tm.wormScore(url)
+			log.Info("Tracker status", "url", url, "score", score)
 		}
 	} else {
 		return errors.New("best trackers failed")
 	}
 
 	return nil
+}
+
+func (tm *TorrentManager) wormScore(url string) (score uint64, err error) {
+	if tm.kvdb == nil {
+		return
+	}
+
+	score = 1
+	if v := tm.kvdb.Get([]byte(url)); v != nil {
+		if score, err = strconv.ParseUint(string(v), 16, 64); err == nil {
+			score++
+			tm.kvdb.Set([]byte(url), []byte(strconv.FormatUint(score, 16)))
+		}
+	} else {
+		tm.kvdb.Set([]byte(url), []byte(strconv.FormatUint(score, 16)))
+	}
+
+	return
 }
 
 /*func (tm *TorrentManager) updateColaList() {

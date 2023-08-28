@@ -349,31 +349,3 @@ func mkTestTx(from common.MixedcaseAddress) SendTxArgs {
 //	}
 //
 //}
-
-/*
-func TestAsyncronousResponses(t *testing.T){
-
-	//Set up one account
-	api, control := setup(t)
-	createAccount(control, api, t)
-
-	// Two transactions, the second one with larger value than the first
-	tx1 := mkTestTx()
-	newVal := big.NewInt(0).Add((*big.Int) (tx1.Value), big.NewInt(1))
-	tx2 := mkTestTx()
-	tx2.Value = (*hexutil.Big)(newVal)
-
-	control <- "W" //wait
-	control <- "Y" //
-	control <- "apassword"
-	control <- "Y" //
-	control <- "apassword"
-
-	var err error
-
-	h1, err := api.SignTransaction(context.Background(), common.HexToAddress("1111"), tx1, nil)
-	h2, err := api.SignTransaction(context.Background(), common.HexToAddress("2222"), tx2, nil)
-
-
-	}
-*/
