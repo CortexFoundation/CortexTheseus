@@ -1375,7 +1375,7 @@ func (tm *TorrentManager) activeLoop() {
 		//	go tm.updateGlobalTrackers()
 		case <-timer.C:
 			/*for ih, t := range tm.activeTorrents {
-				if t.BytesMissing() == 0 {
+				if t.Torrent.BytesMissing() == 0 {
 					tm.finish(ih, t)
 					tm.cost(uint64(time.Duration(mclock.Now()) - time.Duration(t.start)))
 					continue
@@ -1388,7 +1388,7 @@ func (tm *TorrentManager) activeLoop() {
 
 			tm.torrents.Range(func(ih string, t *Torrent) bool {
 				if t.Running() {
-					if t.BytesMissing() == 0 {
+					if t.Torrent.BytesMissing() == 0 {
 						//clean = append(clean, t)
 						tm.finish(t)
 					} else {
@@ -1425,8 +1425,11 @@ func (tm *TorrentManager) seedingLoop() {
 			//tm.seedingTorrents.Set(t.InfoHash(), t)
 
 			if t.Seed() {
+				// count
 				tm.actives.Add(-1)
 				tm.seeds.Add(1)
+
+				// TODO
 			}
 		case <-tm.closeAll:
 			log.Info("Seeding loop closed")

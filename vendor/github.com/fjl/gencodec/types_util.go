@@ -28,6 +28,8 @@ func walkNamedTypes(typ types.Type, callback func(*types.Named)) {
 		walkNamedTypes(typ.Elem(), callback)
 	case *types.Slice:
 		walkNamedTypes(typ.Elem(), callback)
+	case *types.Array:
+		walkNamedTypes(typ.Elem(), callback)
 	case *types.Struct:
 		for i := 0; i < typ.NumFields(); i++ {
 			walkNamedTypes(typ.Field(i).Type(), callback)
@@ -70,28 +72,28 @@ func isPointer(typ types.Type) bool {
 	return ok
 }
 
+func underlyingArray(typ types.Type) *types.Array {
+	return underlying[*types.Array](typ)
+}
+
 func underlyingSlice(typ types.Type) *types.Slice {
-	for {
-		switch typ.(type) {
-		case *types.Named:
-			typ = typ.Underlying()
-		case *types.Slice:
-			return typ.(*types.Slice)
-		default:
-			return nil
-		}
-	}
+	return underlying[*types.Slice](typ)
 }
 
 func underlyingMap(typ types.Type) *types.Map {
+	return underlying[*types.Map](typ)
+}
+
+func underlying[T types.Type](typ types.Type) T {
 	for {
 		switch typ.(type) {
 		case *types.Named:
 			typ = typ.Underlying()
-		case *types.Map:
-			return typ.(*types.Map)
+		case T:
+			return typ.(T)
 		default:
-			return nil
+			var zero T
+			return zero
 		}
 	}
 }
@@ -136,6 +138,25 @@ func checkConvertible(from, to types.Type) error {
 		}
 		return nil
 	}
+
+	// Arrays.
+	afrom := underlyingArray(from)
+	ato := underlyingArray(to)
+	if afrom != nil && sto != nil {
+		// Array -> slice
+		if !types.ConvertibleTo(afrom.Elem(), sto.Elem()) {
+			return fmt.Errorf("array element type %s is not convertible to %s", afrom.Elem(), sto.Elem())
+		}
+		return nil
+	}
+	if sfrom != nil && ato != nil {
+		// Slice -> array
+		if !types.ConvertibleTo(sfrom.Elem(), ato.Elem()) {
+			return fmt.Errorf("slice element type %s is not convertible to array element %s", sfrom.Elem(), ato.Elem())
+		}
+		return nil
+	}
+
 	// Maps.
 	mfrom := underlyingMap(from)
 	mto := underlyingMap(to)
