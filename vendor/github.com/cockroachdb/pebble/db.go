@@ -1168,7 +1168,11 @@ func finishInitializingIter(ctx context.Context, buf *iterAlloc) *Iterator {
 			// dbi already had an initialized range key iterator, in case the point
 			// iterator changed or the range key masking suffix changed.
 			dbi.rangeKey.iiter.Init(&dbi.comparer, dbi.iter, dbi.rangeKey.rangeKeyIter,
-				&dbi.rangeKeyMasking, dbi.opts.LowerBound, dbi.opts.UpperBound)
+				keyspan.InterleavingIterOpts{
+					Mask:       &dbi.rangeKeyMasking,
+					LowerBound: dbi.opts.LowerBound,
+					UpperBound: dbi.opts.UpperBound,
+				})
 			dbi.iter = &dbi.rangeKey.iiter
 		}
 	} else {
@@ -1314,7 +1318,10 @@ func finishInitializingInternalIter(buf *iterAlloc, i *scanInternalIterator) *sc
 	// iterator that interleaves range keys pulled from
 	// i.rangeKey.rangeKeyIter.
 	i.rangeKey.iiter.Init(i.comparer, i.iter, i.rangeKey.rangeKeyIter,
-		nil /* mask */, i.opts.LowerBound, i.opts.UpperBound)
+		keyspan.InterleavingIterOpts{
+			LowerBound: i.opts.LowerBound,
+			UpperBound: i.opts.UpperBound,
+		})
 	i.iter = &i.rangeKey.iiter
 
 	return i
@@ -1454,6 +1461,12 @@ func (d *DB) NewBatch() *Batch {
 	return newBatch(d)
 }
 
+// NewBatchWithSize is mostly identical to NewBatch, but it will allocate the
+// the specified memory space for the internal slice in advance.
+func (d *DB) NewBatchWithSize(size int) *Batch {
+	return newBatchWithSize(d, size)
+}
+
 // NewIndexedBatch returns a new empty read-write batch. Any reads on the batch
 // will read from both the batch and the DB. If the batch is committed it will
 // be applied to the DB. An indexed batch is slower that a non-indexed batch
@@ -1461,6 +1474,12 @@ func (d *DB) NewBatch() *Batch {
 // NewBatch instead.
 func (d *DB) NewIndexedBatch() *Batch {
 	return newIndexedBatch(d, d.opts.Comparer)
+}
+
+// NewIndexedBatchWithSize is mostly identical to NewIndexedBatch, but it will
+// allocate the the specified memory space for the internal slice in advance.
+func (d *DB) NewIndexedBatchWithSize(size int) *Batch {
+	return newIndexedBatchWithSize(d, d.opts.Comparer, size)
 }
 
 // NewIter returns an iterator that is unpositioned (Iterator.Valid() will

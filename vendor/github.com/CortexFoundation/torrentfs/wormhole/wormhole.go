@@ -34,14 +34,20 @@ import (
 	"strings"
 )
 
-var (
-	client *resty.Client = resty.New().SetTimeout(time.Second * 10)
-)
+type Wormhole struct {
+	cl *resty.Client
+}
 
-func Tunnel(hash string) error {
+func New() *Wormhole {
+	return &Wormhole{
+		cl: resty.New().SetTimeout(time.Second * 10),
+	}
+}
+
+func (wh *Wormhole) Tunnel(hash string) error {
 	log.Debug("Wormhole tunnel", "hash", hash)
 	for _, worm := range Wormholes {
-		if _, err := client.R().Post(worm + hash); err != nil {
+		if _, err := wh.cl.R().Post(worm + hash); err != nil {
 			log.Error("Wormhole err", "err", err, "worm", worm, "hash", hash)
 		}
 	}
@@ -49,12 +55,12 @@ func Tunnel(hash string) error {
 	return nil
 }
 
-func BestTrackers() (ret []string) {
-	defer client.SetTimeout(time.Second * 10)
+func (wh *Wormhole) BestTrackers() (ret []string) {
+	defer wh.cl.SetTimeout(time.Second * 10)
 
 	for _, ur := range params.BestTrackerUrl {
 		log.Info("Fetch trackers", "url", ur)
-		resp, err := client.R().Get(ur)
+		resp, err := wh.cl.R().Get(ur)
 
 		if err != nil || resp == nil || len(resp.String()) == 0 {
 			log.Warn("Global tracker lost", "err", err)
@@ -62,7 +68,7 @@ func BestTrackers() (ret []string) {
 		}
 
 		// 2.5s for health check
-		client.SetTimeout(time.Millisecond * 2500)
+		wh.cl.SetTimeout(time.Millisecond * 2500)
 
 		//var wg sync.WaitGroup
 		var (
@@ -76,7 +82,7 @@ func BestTrackers() (ret []string) {
 			//	wg.Add(1)
 			go func(ss string) {
 				//		defer wg.Done()
-				if err := HealthCheck(ss); err == nil {
+				if err := wh.healthCheck(ss); err == nil {
 					//ret = append(ret, s)
 					retCh <- ss
 				} else {
@@ -86,7 +92,7 @@ func BestTrackers() (ret []string) {
 			}(s)
 			/*switch {
 			case strings.HasPrefix(s, "http"), strings.HasPrefix(s, "https"):
-				if _, err := client.R().Post(s); err != nil {
+				if _, err := wh.cl.R().Post(s); err != nil {
 					log.Warn("tracker failed", "err", err)
 				} else {
 					ret = append(ret, s)
@@ -128,17 +134,17 @@ func BestTrackers() (ret []string) {
 		if len(ret) > 0 {
 			return
 		}
-		client.SetTimeout(time.Second * 10)
+		wh.cl.SetTimeout(time.Second * 10)
 	}
 
 	return
 }
 
-func HealthCheck(s string) error {
+func (wh *Wormhole) healthCheck(s string) error {
 	log.Debug("Global best trackers", "url", s)
 	switch {
 	case strings.HasPrefix(s, "http"), strings.HasPrefix(s, "https"):
-		if _, err := client.R().Post(s); err != nil {
+		if _, err := wh.cl.R().Post(s); err != nil {
 			log.Warn("tracker failed", "err", err)
 			// TODO
 			return err
@@ -169,10 +175,10 @@ func HealthCheck(s string) error {
 	return errors.New("unhealthy tracker url")
 }
 
-func ColaList() mapset.Set[string] {
+func (wh *Wormhole) ColaList() mapset.Set[string] {
 	m := mapset.NewSet[string]()
 	for _, url := range params.ColaUrl {
-		resp, err := client.R().Get(url)
+		resp, err := wh.cl.R().Get(url)
 
 		if err != nil {
 			log.Warn("Cola lost", "err", err)

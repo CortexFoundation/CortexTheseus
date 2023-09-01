@@ -16,7 +16,7 @@
 package types
 
 import (
-	"bytes"
+	//"bytes"
 	//"errors"
 	"math/big"
 
@@ -94,7 +94,7 @@ func (t *Transaction) IsFlowControl() bool {
 func (t *Transaction) Parse() *FileMeta {
 	if t.Op() == opCreateInput {
 		var meta InputMeta
-		if err := rlp.Decode(bytes.NewReader(t.Data()), &meta); err != nil {
+		if err := rlp.DecodeBytes(t.Data(), &meta); err != nil {
 			return nil
 		}
 		var InfoHash = meta.InfoHash()
@@ -106,7 +106,7 @@ func (t *Transaction) Parse() *FileMeta {
 		}
 	} else if t.Op() == opCreateModel {
 		var meta ModelMeta
-		if err := rlp.Decode(bytes.NewReader(t.Data()), &meta); err != nil {
+		if err := rlp.DecodeBytes(t.Data(), &meta); err != nil {
 			return nil
 		}
 		var InfoHash = meta.InfoHash()

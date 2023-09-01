@@ -178,6 +178,8 @@ type TorrentManager struct {
 	stops    atomic.Int32
 
 	//worms []Worm
+
+	worm *wormhole.Wormhole
 }
 
 // can only call by fs.go: 'SeedingLocal()'
@@ -610,7 +612,7 @@ func (tm *TorrentManager) addInfoHash(ih string, bytesRequested int64) *Torrent 
 		tm.wg.Add(1)
 		go func() {
 			defer tm.wg.Done()
-			err := wormhole.Tunnel(ih)
+			err := tm.worm.Tunnel(ih)
 			if err != nil {
 				log.Error("Wormhole error", "err", err)
 			}
@@ -705,16 +707,11 @@ func (tm *TorrentManager) injectSpec(ih string, spec *torrent.TorrentSpec) (*tor
 	}
 }
 
-type Worm struct {
-	tracker string
-	score   uint64
-}
-
 func (tm *TorrentManager) updateGlobalTrackers() error {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
 
-	if global := wormhole.BestTrackers(); len(global) > 0 {
+	if global := tm.worm.BestTrackers(); len(global) > 0 {
 		tm.globalTrackers = [][]string{global}
 		log.Info("Global trackers update", "size", len(global), "cap", wormhole.CAP, "health", float32(len(global))/float32(wormhole.CAP))
 
@@ -973,6 +970,7 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 		torrentManager.trackers = [][]string{config.DefaultTrackers}
 	}
 
+	torrentManager.worm = wormhole.New()
 	torrentManager.updateGlobalTrackers()
 	//if global, err := wormhole.BestTrackers(); global != nil && err == nil {
 	//	torrentManager.globalTrackers = [][]string{global}
