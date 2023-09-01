@@ -93,7 +93,7 @@ const (
 
 var (
 	server         bool = false
-	worm           bool = false
+	enableWorm     bool = false
 	getfileMeter        = metrics.NewRegisteredMeter("torrent/getfile/call", nil)
 	availableMeter      = metrics.NewRegisteredMeter("torrent/available/call", nil)
 	diskReadMeter       = metrics.NewRegisteredMeter("torrent/disk/read", nil)
@@ -608,7 +608,7 @@ func (tm *TorrentManager) addInfoHash(ih string, bytesRequested int64) *Torrent 
 		return nil
 	}
 
-	if !server && worm {
+	if !server && enableWorm {
 		tm.wg.Add(1)
 		go func() {
 			defer tm.wg.Done()
@@ -791,7 +791,7 @@ func (tm *TorrentManager) updateInfoHash(t *Torrent, bytesRequested int64) {
 
 func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool) (*TorrentManager, error) {
 	server = config.Server
-	worm = config.Wormhole
+	enableWorm = config.Wormhole
 
 	cfg := torrent.NewDefaultClientConfig()
 	cfg.DisableUTP = config.DisableUTP
