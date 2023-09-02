@@ -18,6 +18,9 @@ func init() {
 	if !ok {
 		timeFmt = "2006-01-02 15:04:05 -0700"
 	}
+	if timeFmt != "" {
+		timeFmt += " "
+	}
 }
 
 var started = time.Now()

@@ -1,6 +1,3 @@
-// SPDX-FileCopyrightText: 2023 The Pion community <https://pion.ly>
-// SPDX-License-Identifier: MIT
-
 package rtp
 
 import (
@@ -49,14 +46,14 @@ func (e *OneByteHeaderExtension) Set(id uint8, buf []byte) error {
 		}
 
 		extid := e.payload[n] >> 4
-		payloadLen := int(e.payload[n]&^0xF0 + 1)
+		len := int(e.payload[n]&^0xF0 + 1)
 		n++
 
 		if extid == id {
-			e.payload = append(e.payload[:n+1], append(buf, e.payload[n+1+payloadLen:]...)...)
+			e.payload = append(e.payload[:n+1], append(buf, e.payload[n+1+len:]...)...)
 			return nil
 		}
-		n += payloadLen
+		n += len
 	}
 	e.payload = append(e.payload, (id<<4 | uint8(len(buf)-1)))
 	e.payload = append(e.payload, buf...)
@@ -74,7 +71,7 @@ func (e *OneByteHeaderExtension) GetIDs() []uint8 {
 		}
 
 		extid := e.payload[n] >> 4
-		payloadLen := int(e.payload[n]&^0xF0 + 1)
+		len := int(e.payload[n]&^0xF0 + 1)
 		n++
 
 		if extid == headerExtensionIDReserved {
@@ -82,7 +79,7 @@ func (e *OneByteHeaderExtension) GetIDs() []uint8 {
 		}
 
 		ids = append(ids, extid)
-		n += payloadLen
+		n += len
 	}
 	return ids
 }
@@ -96,13 +93,13 @@ func (e *OneByteHeaderExtension) Get(id uint8) []byte {
 		}
 
 		extid := e.payload[n] >> 4
-		payloadLen := int(e.payload[n]&^0xF0 + 1)
+		len := int(e.payload[n]&^0xF0 + 1)
 		n++
 
 		if extid == id {
-			return e.payload[n : n+payloadLen]
+			return e.payload[n : n+len]
 		}
-		n += payloadLen
+		n += len
 	}
 	return nil
 }
@@ -116,13 +113,13 @@ func (e *OneByteHeaderExtension) Del(id uint8) error {
 		}
 
 		extid := e.payload[n] >> 4
-		payloadLen := int(e.payload[n]&^0xF0 + 1)
+		len := int(e.payload[n]&^0xF0 + 1)
 
 		if extid == id {
-			e.payload = append(e.payload[:n], e.payload[n+1+payloadLen:]...)
+			e.payload = append(e.payload[:n], e.payload[n+1+len:]...)
 			return nil
 		}
-		n += payloadLen + 1
+		n += len + 1
 	}
 	return errHeaderExtensionNotFound
 }
@@ -179,14 +176,14 @@ func (e *TwoByteHeaderExtension) Set(id uint8, buf []byte) error {
 		extid := e.payload[n]
 		n++
 
-		payloadLen := int(e.payload[n])
+		len := int(e.payload[n])
 		n++
 
 		if extid == id {
-			e.payload = append(e.payload[:n+2], append(buf, e.payload[n+2+payloadLen:]...)...)
+			e.payload = append(e.payload[:n+2], append(buf, e.payload[n+2+len:]...)...)
 			return nil
 		}
-		n += payloadLen
+		n += len
 	}
 	e.payload = append(e.payload, id, uint8(len(buf)))
 	e.payload = append(e.payload, buf...)
@@ -206,11 +203,11 @@ func (e *TwoByteHeaderExtension) GetIDs() []uint8 {
 		extid := e.payload[n]
 		n++
 
-		payloadLen := int(e.payload[n])
+		len := int(e.payload[n])
 		n++
 
 		ids = append(ids, extid)
-		n += payloadLen
+		n += len
 	}
 	return ids
 }
@@ -226,13 +223,13 @@ func (e *TwoByteHeaderExtension) Get(id uint8) []byte {
 		extid := e.payload[n]
 		n++
 
-		payloadLen := int(e.payload[n])
+		len := int(e.payload[n])
 		n++
 
 		if extid == id {
-			return e.payload[n : n+payloadLen]
+			return e.payload[n : n+len]
 		}
-		n += payloadLen
+		n += len
 	}
 	return nil
 }
@@ -247,13 +244,13 @@ func (e *TwoByteHeaderExtension) Del(id uint8) error {
 
 		extid := e.payload[n]
 
-		payloadLen := int(e.payload[n+1])
+		len := int(e.payload[n+1])
 
 		if extid == id {
-			e.payload = append(e.payload[:n], e.payload[n+2+payloadLen:]...)
+			e.payload = append(e.payload[:n], e.payload[n+2+len:]...)
 			return nil
 		}
-		n += payloadLen + 2
+		n += len + 2
 	}
 	return errHeaderExtensionNotFound
 }
