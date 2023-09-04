@@ -297,7 +297,6 @@ func (s *stateObject) updateTrie() Trie {
 	var (
 		storage map[common.Hash][]byte
 		origin  map[common.Hash][]byte
-		hasher  = s.db.hasher
 	)
 	// Insert all the pending updates into the trie
 	tr := s.getTrie()
@@ -336,7 +335,7 @@ func (s *stateObject) updateTrie() Trie {
 				s.db.storages[s.addrHash] = storage
 			}
 		}
-		khash := crypto.HashData(hasher, key[:])
+		khash := crypto.HashData(s.db.hasher, key[:])
 		storage[khash] = v // snapshotVal will be nil if it's deleted
 
 		// Cache the original value of mutated storage slots
@@ -362,9 +361,8 @@ func (s *stateObject) updateTrie() Trie {
 	if s.db.prefetcher != nil {
 		s.db.prefetcher.used(s.data.Root, usedStorage)
 	}
-	if len(s.pendingStorage) > 0 {
-		s.pendingStorage = make(Storage)
-	}
+
+	s.pendingStorage = make(Storage) // reset pending map
 	return tr
 }
 
@@ -380,7 +378,7 @@ func (s *stateObject) updateRoot() {
 // commit the storage trie of the object to db.
 // This updates the trie root.
 func (s *stateObject) commit() error {
-	if s.updateTrie() == nil {
+	if s.trie == nil {
 		s.origin = s.data.Copy()
 		return nil
 	}
@@ -590,6 +588,10 @@ func (s *stateObject) Num() *big.Int {
 
 func (s *stateObject) Nonce() uint64 {
 	return s.data.Nonce
+}
+
+func (s *stateObject) Root() common.Hash {
+	return s.data.Root
 }
 
 // Never called, but must be present to allow stateObject to be used
