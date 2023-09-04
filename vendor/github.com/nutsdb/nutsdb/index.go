@@ -1,8 +1,5 @@
 package nutsdb
 
-// BPTreeIdx represents the B+ tree index
-type BPTreeIdx map[string]*BPTree
-
 // BTreeIdx represents the B tree index
 type BTreeIdx map[string]*BTree
 
@@ -19,7 +16,7 @@ type index struct {
 	list ListIdx
 }
 
-func NewIndex() *index {
+func newIndex() *index {
 	i := new(index)
 	i.list = map[string]*List{}
 	return i
