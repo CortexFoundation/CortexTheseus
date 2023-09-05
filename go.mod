@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.54-0.20230904072020-91897ef41bcf
+	github.com/CortexFoundation/torrentfs v1.0.54-0.20230905134126-7012a7c523bd
 	github.com/VictoriaMetrics/fastcache v1.12.1
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.19.0
@@ -78,7 +78,6 @@ require (
 )
 
 require (
-	crawshaw.io/sqlite v0.3.3-0.20220618202545-d1964889ea3c // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.0.0 // indirect
 	github.com/CortexFoundation/cvm-runtime v0.0.0-20221117094012-b5a251885572 // indirect
@@ -101,7 +100,7 @@ require (
 	github.com/anacrolix/multiless v0.3.1-0.20221221005021-2d12701f83f7 // indirect
 	github.com/anacrolix/stm v0.5.0 // indirect
 	github.com/anacrolix/sync v0.4.0 // indirect
-	github.com/anacrolix/torrent v1.52.6-0.20230823215932-b836d2ad53ee // indirect
+	github.com/anacrolix/torrent v1.52.6-0.20230905090324-873da77cca69 // indirect
 	github.com/anacrolix/upnp v0.1.3-0.20220123035249-922794e51c96 // indirect
 	github.com/anacrolix/utp v0.2.0 // indirect
 	github.com/antlabs/stl v0.0.1 // indirect
@@ -144,6 +143,8 @@ require (
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/garslo/gogen v0.0.0-20170306192744-1d203ffc1f61 // indirect
 	github.com/getsentry/sentry-go v0.22.0 // indirect
+	github.com/go-llsqlite/adapter v0.0.0-20230905083127-a7568332b3ac // indirect
+	github.com/go-llsqlite/crawshaw v0.0.0-20230904103556-219a9360a2c0 // indirect
 	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
@@ -201,6 +202,7 @@ require (
 	github.com/prometheus/common v0.44.0 // indirect
 	github.com/prometheus/procfs v0.11.0 // indirect
 	github.com/rakyll/statik v0.1.7 // indirect
+	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/rosedblabs/go-immutable-radix/v2 v2.0.1-0.20230614125820-f2a7bc058c90 // indirect
@@ -216,7 +218,7 @@ require (
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/ucwong/filecache v1.0.6-0.20230405163841-810d53ced4bd // indirect
 	github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb // indirect
-	github.com/ucwong/golang-kv v1.0.23-0.20230904071525-88ea690b82a0 // indirect
+	github.com/ucwong/golang-kv v1.0.23-0.20230904201849-ba26b515fcb4 // indirect
 	github.com/ucwong/shard v1.0.1-0.20230902205521-676c0c9c1dd2 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/xujiajun/mmap-go v1.0.1 // indirect
@@ -233,5 +235,10 @@ require (
 	golang.org/x/term v0.11.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gotest.tools/v3 v3.5.0 // indirect
+	modernc.org/libc v1.21.5 // indirect
+	modernc.org/mathutil v1.5.0 // indirect
+	modernc.org/memory v1.4.0 // indirect
+	modernc.org/sqlite v1.20.0 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
+	zombiezen.com/go/sqlite v0.12.0 // indirect
 )
