@@ -547,7 +547,7 @@ func (s *Cortex) Protocols() []p2p.Protocol {
 	protos := make([]p2p.Protocol, len(ProtocolVersions))
 	for i, vsn := range ProtocolVersions {
 		protos[i] = s.protocolManager.makeProtocol(vsn)
-		protos[i].Attributes = []enr.Entry{s.currentCtxcEntry()}
+		protos[i].Attributes = []enr.Entry{s.currentCtxcEntry(s.BlockChain())}
 		protos[i].DialCandidates = s.dialCandidates
 	}
 	return protos

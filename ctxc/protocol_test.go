@@ -53,7 +53,7 @@ func TestStatusMsgErrors64(t *testing.T) {
 		genesis = pm.blockchain.Genesis()
 		head    = pm.blockchain.CurrentHeader()
 		td      = pm.blockchain.GetTd(head.Hash(), head.Number.Uint64())
-		forkID  = forkid.NewID(pm.blockchain.Config(), genesis.Hash(), head.Number.Uint64())
+		forkID  = forkid.NewID(pm.blockchain.Config(), genesis, head.Number.Uint64(), head.Time)
 	)
 	defer pm.Stop()
 
