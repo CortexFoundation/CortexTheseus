@@ -21,7 +21,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/torrentfs/params"
 	"net"
 	"net/url"
 	"time"
@@ -58,7 +57,7 @@ func (wh *Wormhole) Tunnel(hash string) error {
 func (wh *Wormhole) BestTrackers() (ret []string) {
 	defer wh.cl.SetTimeout(time.Second * 10)
 
-	for _, ur := range params.BestTrackerUrl {
+	for _, ur := range BestTrackerUrl {
 		log.Info("Fetch trackers", "url", ur)
 		resp, err := wh.cl.R().Get(ur)
 
@@ -177,7 +176,7 @@ func (wh *Wormhole) healthCheck(s string) error {
 
 func (wh *Wormhole) ColaList() mapset.Set[string] {
 	m := mapset.NewSet[string]()
-	for _, url := range params.ColaUrl {
+	for _, url := range ColaUrl {
 		resp, err := wh.cl.R().Get(url)
 
 		if err != nil {
@@ -188,7 +187,6 @@ func (wh *Wormhole) ColaList() mapset.Set[string] {
 		str := strings.Split(resp.String(), "\n\n")
 		for _, s := range str {
 			log.Info("Cola", "ih", s)
-			//ret = append(ret, s)
 			m.Add(s)
 		}
 	}

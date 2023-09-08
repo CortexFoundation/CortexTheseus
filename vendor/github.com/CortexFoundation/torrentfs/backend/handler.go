@@ -44,7 +44,7 @@ import (
 	//"github.com/CortexFoundation/torrentfs/shard"
 	"github.com/CortexFoundation/torrentfs/tool"
 	"github.com/CortexFoundation/torrentfs/types"
-	"github.com/CortexFoundation/torrentfs/wormhole"
+	"github.com/CortexFoundation/wormhole"
 	"github.com/ucwong/shard"
 
 	//"github.com/allegro/bigcache/v3"

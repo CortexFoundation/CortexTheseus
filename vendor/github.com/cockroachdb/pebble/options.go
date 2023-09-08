@@ -538,7 +538,7 @@ type Options struct {
 		// concurrent compaction is added. This works "on top" of
 		// L0CompactionConcurrency, so the higher of the count of compaction
 		// concurrency slots as determined by the two options is chosen.
-		CompactionDebtConcurrency int
+		CompactionDebtConcurrency uint64
 
 		// ReadCompactionRate controls the frequency of read triggered
 		// compactions by adjusting `AllowedSeeks` in manifest.FileMetadata:
@@ -603,10 +603,10 @@ type Options struct {
 		// desired size of each level of the LSM. Defaults to 10.
 		LevelMultiplier int
 
-		// MultiLevelCompactionHueristic determines whether to add an additional
+		// MultiLevelCompactionHeuristic determines whether to add an additional
 		// level to a conventional two level compaction. If nil, a multilevel
 		// compaction will never get triggered.
-		MultiLevelCompactionHueristic MultiLevelHeuristic
+		MultiLevelCompactionHeuristic MultiLevelHeuristic
 
 		// MaxWriterConcurrency is used to indicate the maximum number of
 		// compression workers the compression queue is allowed to use. If
@@ -797,12 +797,18 @@ type Options struct {
 	// writing the contents of the old one in the
 	// background. MemTableStopWritesThreshold places a hard limit on the size of
 	// the queued MemTables.
-	MemTableSize int
+	//
+	// The default value is 4MB.
+	MemTableSize uint64
 
-	// Hard limit on the size of queued of MemTables. Writes are stopped when the
-	// sum of the queued memtable sizes exceeds
-	// MemTableStopWritesThreshold*MemTableSize. This value should be at least 2
-	// or writes will stop whenever a MemTable is being flushed.
+	// Hard limit on the number of queued of MemTables. Writes are stopped when
+	// the sum of the queued memtable sizes exceeds:
+	//   MemTableStopWritesThreshold * MemTableSize.
+	//
+	// This value should be at least 2 or writes will stop whenever a MemTable is
+	// being flushed.
+	//
+	// The default value is 2.
 	MemTableStopWritesThreshold int
 
 	// Merger defines the associative merge operation to use for merging values
@@ -1045,7 +1051,7 @@ func (o *Options) EnsureDefaults() *Options {
 		o.MaxOpenFiles = 1000
 	}
 	if o.MemTableSize <= 0 {
-		o.MemTableSize = 4 << 20
+		o.MemTableSize = 4 << 20 // 4 MB
 	}
 	if o.MemTableStopWritesThreshold <= 0 {
 		o.MemTableStopWritesThreshold = 2
@@ -1086,8 +1092,8 @@ func (o *Options) EnsureDefaults() *Options {
 	if o.Experimental.CPUWorkPermissionGranter == nil {
 		o.Experimental.CPUWorkPermissionGranter = defaultCPUWorkGranter{}
 	}
-	if o.Experimental.MultiLevelCompactionHueristic == nil {
-		o.Experimental.MultiLevelCompactionHueristic = NoMultiLevel{}
+	if o.Experimental.MultiLevelCompactionHeuristic == nil {
+		o.Experimental.MultiLevelCompactionHeuristic = WriteAmpHeuristic{}
 	}
 
 	o.initMaps()
@@ -1283,7 +1289,11 @@ func parseOptions(s string, fn func(section, key, value string) error) error {
 
 		pos := strings.Index(line, "=")
 		if pos < 0 {
-			return errors.Errorf("pebble: invalid key=value syntax: %s", errors.Safe(line))
+			const maxLen = 50
+			if len(line) > maxLen {
+				line = line[:maxLen-3] + "..."
+			}
+			return base.CorruptionErrorf("invalid key=value syntax: %q", errors.Safe(line))
 		}
 
 		key := strings.TrimSpace(line[:pos])
@@ -1381,7 +1391,7 @@ func (o *Options) Parse(s string, hooks *ParseHooks) error {
 					}
 				}
 			case "compaction_debt_concurrency":
-				o.Experimental.CompactionDebtConcurrency, err = strconv.Atoi(value)
+				o.Experimental.CompactionDebtConcurrency, err = strconv.ParseUint(value, 10, 64)
 			case "delete_range_flush_delay":
 				// NB: This is a deprecated serialization of the
 				// `flush_delay_delete_range`.
@@ -1446,7 +1456,7 @@ func (o *Options) Parse(s string, hooks *ParseHooks) error {
 			case "max_open_files":
 				o.MaxOpenFiles, err = strconv.Atoi(value)
 			case "mem_table_size":
-				o.MemTableSize, err = strconv.Atoi(value)
+				o.MemTableSize, err = strconv.ParseUint(value, 10, 64)
 			case "mem_table_stop_writes_threshold":
 				o.MemTableStopWritesThreshold, err = strconv.Atoi(value)
 			case "min_compaction_rate":
