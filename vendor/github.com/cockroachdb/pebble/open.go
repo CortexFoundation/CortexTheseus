@@ -21,6 +21,7 @@ import (
 	"github.com/cockroachdb/pebble/internal/arenaskl"
 	"github.com/cockroachdb/pebble/internal/base"
 	"github.com/cockroachdb/pebble/internal/cache"
+	"github.com/cockroachdb/pebble/internal/constants"
 	"github.com/cockroachdb/pebble/internal/invariants"
 	"github.com/cockroachdb/pebble/internal/manifest"
 	"github.com/cockroachdb/pebble/internal/manual"
@@ -37,15 +38,23 @@ const (
 
 	// The max batch size is limited by the uint32 offsets stored in
 	// internal/batchskl.node, DeferredBatchOp, and flushableBatchEntry.
-	// We limit the size to MaxUint32 so that the exclusive end of an allocation
-	// fits in uint32.
-	maxBatchSize = math.MaxUint32 // just short of 4 GB
+	//
+	// We limit the size to MaxUint32 (just short of 4GB) so that the exclusive
+	// end of an allocation fits in uint32.
+	//
+	// On 32-bit systems, slices are naturally limited to MaxInt (just short of
+	// 2GB).
+	maxBatchSize = constants.MaxUint32OrInt
 
 	// The max memtable size is limited by the uint32 offsets stored in
 	// internal/arenaskl.node, DeferredBatchOp, and flushableBatchEntry.
-	// We limit the size to MaxUint32 so that the exclusive end of an allocation
-	// fits in uint32.
-	maxMemTableSize = math.MaxUint32 // just short of 4 GB
+	//
+	// We limit the size to MaxUint32 (just short of 4GB) so that the exclusive
+	// end of an allocation fits in uint32.
+	//
+	// On 32-bit systems, slices are naturally limited to MaxInt (just short of
+	// 2GB).
+	maxMemTableSize = constants.MaxUint32OrInt
 )
 
 // TableCacheSize can be used to determine the table
@@ -80,7 +89,7 @@ func Open(dirname string, opts *Options) (db *DB, _ error) {
 	// Open the database and WAL directories first.
 	walDirname, dataDir, walDir, err := prepareAndOpenDirs(dirname, opts)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error opening database at %q", dirname)
 	}
 	defer func() {
 		if db == nil {
@@ -164,7 +173,7 @@ func Open(dirname string, opts *Options) (db *DB, _ error) {
 		merge:               opts.Merger.Merge,
 		split:               opts.Comparer.Split,
 		abbreviatedKey:      opts.Comparer.AbbreviatedKey,
-		largeBatchThreshold: (opts.MemTableSize - int(memTableEmptySize)) / 2,
+		largeBatchThreshold: (opts.MemTableSize - uint64(memTableEmptySize)) / 2,
 		fileLock:            fileLock,
 		dataDir:             dataDir,
 		walDir:              walDir,
@@ -174,7 +183,6 @@ func Open(dirname string, opts *Options) (db *DB, _ error) {
 	}
 	d.mu.versions = &versionSet{}
 	d.diskAvailBytes.Store(math.MaxUint64)
-	d.mu.versions.diskAvailBytes = d.getDiskAvailableBytesCached
 
 	defer func() {
 		// If an error or panic occurs during open, attempt to release the manually
@@ -1097,6 +1105,12 @@ var ErrDBAlreadyExists = errors.New("pebble: database already exists")
 //
 // Note that errors can be wrapped with more details; use errors.Is().
 var ErrDBNotPristine = errors.New("pebble: database already exists and is not pristine")
+
+// IsCorruptionError returns true if the given error indicates database
+// corruption.
+func IsCorruptionError(err error) bool {
+	return errors.Is(err, base.ErrCorruption)
+}
 
 func checkConsistency(v *manifest.Version, dirname string, objProvider objstorage.Provider) error {
 	var buf bytes.Buffer
