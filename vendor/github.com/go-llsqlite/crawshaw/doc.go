@@ -37,8 +37,7 @@ The optional SQLite3 compiled in are: FTS5, RTree, JSON1, Session, GeoPoly
 
 This is not a database/sql driver.
 
-
-Statement Caching
+# Statement Caching
 
 Statements are prepared with the Prepare and PrepareTransient methods.
 When using Prepare, statements are keyed inside a connection by the
@@ -51,8 +50,7 @@ After all the connections in a pool have been warmed up by passing
 through one of these Prepare calls, subsequent calls are simply a
 map lookup that returns an existing statement.
 
-
-Streaming Blobs
+# Streaming Blobs
 
 The sqlite package supports the SQLite incremental I/O interface for
 streaming blob data into and out of the the database without loading
@@ -70,8 +68,7 @@ Then you can open the blob with:
 
 	b, err := conn.OpenBlob("", "blobs", "myblob", conn.LastInsertRowID(), true)
 
-
-Deadlines and Cancellation
+# Deadlines and Cancellation
 
 Every connection can have a done channel associated with it using
 the SetInterrupt method. This is typically the channel returned by
@@ -94,16 +91,14 @@ connection is:
 	}
 	defer dbpool.Put(c)
 
-
-Transactions
+# Transactions
 
 SQLite transactions have to be managed manually with this package
 by directly calling BEGIN / COMMIT / ROLLBACK or
 SAVEPOINT / RELEASE/ ROLLBACK. The sqlitex has a Savepoint
 function that helps automate this.
 
-
-A typical HTTP Handler
+# A typical HTTP Handler
 
 Using a Pool to execute SQL in a concurrent HTTP handler.
 

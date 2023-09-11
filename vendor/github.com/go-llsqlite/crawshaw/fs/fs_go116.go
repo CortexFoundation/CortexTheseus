@@ -1,6 +1,7 @@
 // Copyright 2021 Ross Light
 // SPDX-License-Identifier: ISC
 
+//go:build go1.16
 // +build go1.16
 
 package fs

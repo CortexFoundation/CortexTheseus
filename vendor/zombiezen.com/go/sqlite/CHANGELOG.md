@@ -5,7 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-[Unreleased]: https://github.com/zombiezen/go-sqlite/compare/v0.12.0...main
+[Unreleased]: https://github.com/zombiezen/go-sqlite/compare/v0.13.1...main
+
+## [0.13.1][] - 2023-08-15
+
+Version 0.13.1 fixed a bug with the `sqlitemigration` package.
+
+[0.13.1]: https://github.com/zombiezen/go-sqlite/releases/tag/v0.13.1
+
+### Fixed
+
+- `sqlitemigration` will no longer disable foreign keys during operation
+  ([#54](https://github.com/zombiezen/go-sqlite/issues/54)).
+
+## [0.13.0][] - 2023-03-28
+
+Version 0.13 added support for
+user-defined [collating sequences](https://www.sqlite.org/datatype3.html#collation)
+and user-defined [virtual tables](https://sqlite.org/vtab.html).
+
+[0.13.0]: https://github.com/zombiezen/go-sqlite/releases/tag/v0.13.0
+
+### Added
+
+- Support user-defined collating sequences
+  ([#21](https://github.com/zombiezen/go-sqlite/issues/21)).
+- Support user-defined virtual tables
+  ([#15](https://github.com/zombiezen/go-sqlite/issues/15)).
+- New package `ext/generateseries` provides
+  an optional `generate_series` table-valued function extension.
+- Exported the `regexp` function example as a new `ext/refunc` package.
+- Add `*Conn.Serialize` and `*Conn.Deserialize` methods
+  ([#52](https://github.com/zombiezen/go-sqlite/issues/52)).
+
+### Changed
+
+- The minimum supported Go version for this library is now Go 1.19.
+
+### Fixed
+
+- The documentation for `AggregateFunction.WindowValue`
+  incorrectly stated that it would not be called in non-window contexts.
+  The sentence has been removed, but the behavior has not changed.
 
 ## [0.12.0][] - 2023-02-08
 

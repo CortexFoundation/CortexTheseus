@@ -10,6 +10,21 @@ var DefaultTimeFormatter = func() string {
 	return time.Now().Format(timeFmt)
 }
 
+// Preferred and probably faster than DefaultTimeFormatter.
+var DefaultTimeAppendFormatter = func(b []byte) []byte {
+	return time.Now().AppendFormat(b, timeFmt)
+}
+
+func GetDefaultTimeAppendFormatter() func([]byte) []byte {
+	if DefaultTimeAppendFormatter != nil {
+		return DefaultTimeAppendFormatter
+	}
+	// Hopefully this doesn't allocate.
+	return func(b []byte) []byte {
+		return append(b, DefaultTimeFormatter()...)
+	}
+}
+
 var timeFmt string
 
 func init() {
