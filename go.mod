@@ -1,12 +1,14 @@
 module github.com/CortexFoundation/CortexTheseus
 
-go 1.20
+go 1.21
+
+toolchain go1.21.1
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.54-0.20230910174502-eee81be52bff
+	github.com/CortexFoundation/torrentfs v1.0.54-0.20230911203935-006b0ee20358
 	github.com/VictoriaMetrics/fastcache v1.12.1
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.19.0
@@ -101,7 +103,7 @@ require (
 	github.com/anacrolix/multiless v0.3.1-0.20221221005021-2d12701f83f7 // indirect
 	github.com/anacrolix/stm v0.5.0 // indirect
 	github.com/anacrolix/sync v0.4.0 // indirect
-	github.com/anacrolix/torrent v1.52.6-0.20230910112943-dc0e7d9c14cb // indirect
+	github.com/anacrolix/torrent v1.52.6-0.20230911001013-87f6cdc1e96f // indirect
 	github.com/anacrolix/upnp v0.1.3-0.20220123035249-922794e51c96 // indirect
 	github.com/anacrolix/utp v0.2.0 // indirect
 	github.com/antlabs/stl v0.0.1 // indirect
@@ -144,8 +146,8 @@ require (
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/garslo/gogen v0.0.0-20170306192744-1d203ffc1f61 // indirect
 	github.com/getsentry/sentry-go v0.22.0 // indirect
-	github.com/go-llsqlite/adapter v0.0.0-20230905083127-a7568332b3ac // indirect
-	github.com/go-llsqlite/crawshaw v0.0.0-20230908140959-2f614f0fc470 // indirect
+	github.com/go-llsqlite/adapter v0.0.0-20230910110622-f955011c1e41 // indirect
+	github.com/go-llsqlite/crawshaw v0.0.0-20230910110433-7e901377eb6c // indirect
 	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
