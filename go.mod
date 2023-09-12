@@ -2,8 +2,6 @@ module github.com/CortexFoundation/CortexTheseus
 
 go 1.21
 
-toolchain go1.21.1
-
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
