@@ -41,6 +41,10 @@ const (
 	ResultCodeGenericError     = sqlite.SQLITE_ERROR
 )
 
+var (
+	ErrBlobClosed = sqlite.ErrBlobClosed
+)
+
 // GoValue is a result value for application-defined functions. crawshaw provides the context result
 // API, but zombiezen expects a hybrid value-type to be returned. GoValue calls out the Go part of
 // this hybrid type explicitly.

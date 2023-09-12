@@ -342,10 +342,8 @@ func (c *Conn) SetBlockOnBusy() {
 		return
 	}
 	c.setBusyHandler(func(count int) bool {
-		if count >= len(busyDelays) {
-			count = len(busyDelays) - 1
-		}
-		t := time.NewTimer(busyDelays[count])
+		delay := getDelayForCount(sqliteMsDelays[:], count)
+		t := time.NewTimer(time.Duration(delay) * time.Millisecond)
 		defer t.Stop()
 		select {
 		case <-t.C:
@@ -358,7 +356,18 @@ func (c *Conn) SetBlockOnBusy() {
 	})
 }
 
-var busyDelays = [...]time.Duration{
+func getDelayForCount[T any](delays []T, count int) T {
+	if count >= len(delays) {
+		count = len(delays) - 1
+	}
+	return delays[count]
+}
+
+// These are the delays from sqliteDefaultBusyCallback
+var sqliteMsDelays = [...]uint8{1, 2, 5, 10, 15, 20, 25, 25, 25, 50, 50, 100}
+
+// These are the delays that zombiezen uses. I'm not sure why they're so big.
+var zombiezenBusyDelays = [...]time.Duration{
 	1 * time.Second,
 	2 * time.Second,
 	5 * time.Second,
