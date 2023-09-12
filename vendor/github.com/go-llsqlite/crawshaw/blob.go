@@ -79,15 +79,24 @@ func (conn *Conn) OpenBlob(dbn, table, column string, row int64, write bool) (*B
 
 // Blob provides streaming access to SQLite blobs.
 type Blob struct {
-	io.ReadWriteSeeker
-	io.ReaderAt
-	io.WriterAt
-	io.Closer
-
 	conn *Conn
 	blob *C.sqlite3_blob
 	off  int64
 	size int64
+}
+
+func (blob *Blob) Reopen(rowid int64) (err error) {
+	rc := C.sqlite3_blob_reopen(blob.blob, C.sqlite3_int64(rowid))
+	err = blob.conn.reserr("Blob.Reopen", "", rc)
+	if err != nil {
+		return
+	}
+	blob.setSize()
+	return
+}
+
+func (blob *Blob) setSize() {
+	blob.size = int64(C.sqlite3_blob_bytes(blob.blob))
 }
 
 // https://www.sqlite.org/c3ref/blob_read.html
@@ -97,6 +106,9 @@ func (blob *Blob) ReadAt(p []byte, off int64) (n int, err error) {
 	}
 	if err := blob.conn.interrupted("Blob.ReadAt", ""); err != nil {
 		return 0, err
+	}
+	if int64(len(p)) > blob.size-off {
+		p = p[:blob.size-off]
 	}
 	lenp := C.int(len(p))
 	res := C.sqlite3_blob_read(blob.blob, unsafe.Pointer(&p[0]), lenp, C.int(off))

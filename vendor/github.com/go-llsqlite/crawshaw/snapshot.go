@@ -75,8 +75,9 @@ type Snapshot struct {
 // - At least one transaction must have been written to the current WAL file
 // since it was created on disk (by any connection). You can run the following
 // SQL to ensure that a WAL file has been created.
-//      BEGIN IMMEDIATE;
-//      COMMIT;
+//
+//	BEGIN IMMEDIATE;
+//	COMMIT;
 //
 // https://www.sqlite.org/c3ref/snapshot_get.html
 func (conn *Conn) GetSnapshot(schema string) (*Snapshot, func(), error) {
