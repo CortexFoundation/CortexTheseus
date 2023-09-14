@@ -260,7 +260,7 @@ func (cuckoo *Cuckoo) Threads() int {
 }
 
 func (cuckoo *Cuckoo) Hashrate() float64 {
-	return cuckoo.hashrate.Rate1()
+	return cuckoo.hashrate.Snapshot().Rate1()
 }
 
 func (cuckoo *Cuckoo) APIs(chain consensus.ChainHeaderReader) []rpc.API {
