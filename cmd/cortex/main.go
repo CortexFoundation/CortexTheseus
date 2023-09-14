@@ -265,6 +265,7 @@ func init() {
 	app.Flags = append(app.Flags, storageFlags...)
 	app.Flags = append(app.Flags, inferFlags...)
 
+	//flags.AutoEnvVars(app.Flags, "CORTEX")
 	app.Before = func(ctx *cli.Context) error {
 		return debug.Setup(ctx)
 	}
