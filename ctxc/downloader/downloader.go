@@ -1678,7 +1678,7 @@ func (d *Downloader) processFastSyncContent() error {
 		results := d.queue.Results(oldPivot == nil) // Block if we're not monitoring pivot staleness
 		if len(results) == 0 {
 			// If pivot sync is done, stop
-			if oldPivot == nil {
+			if d.committed.Load() {
 				return sync.Cancel()
 			}
 			// If sync failed, stop
@@ -1699,11 +1699,13 @@ func (d *Downloader) processFastSyncContent() error {
 		d.pivotLock.RUnlock()
 
 		if oldPivot == nil {
-			if pivot.Root != sync.root {
-				sync.Cancel()
-				sync = d.syncState(pivot.Root)
+			if !d.committed.Load() { // not yet passed the pivot, we can move the pivot
+				if pivot.Root != sync.root {
+					sync.Cancel()
+					sync = d.syncState(pivot.Root)
 
-				go closeOnErr(sync)
+					go closeOnErr(sync)
+				}
 			}
 		} else {
 			results = append(append([]*fetchResult{oldPivot}, oldTail...), results...)
