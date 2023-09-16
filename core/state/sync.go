@@ -17,8 +17,6 @@
 package state
 
 import (
-	"bytes"
-
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
@@ -31,7 +29,7 @@ func NewStateSync(root common.Hash, database ctxcdb.KeyValueReader, bloom *trie.
 	var syncer *trie.Sync
 	callback := func(paths [][]byte, path []byte, leaf []byte, parent common.Hash) error {
 		var obj types.StateAccount
-		if err := rlp.Decode(bytes.NewReader(leaf), &obj); err != nil {
+		if err := rlp.DecodeBytes(leaf, &obj); err != nil {
 			return err
 		}
 		syncer.AddSubTrie(obj.Root, path, parent, nil)

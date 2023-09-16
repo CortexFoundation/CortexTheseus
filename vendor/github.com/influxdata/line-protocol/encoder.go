@@ -169,11 +169,7 @@ func (e *Encoder) Encode(m Metric) (int, error) {
 
 		}
 
-		i, err = e.w.Write(e.pair)
-		if err != nil {
-			return 0, err
-		}
-		totalWritten += i
+		e.w.Write(e.pair)
 
 		pairsLen += len(e.pair)
 		firstField = false

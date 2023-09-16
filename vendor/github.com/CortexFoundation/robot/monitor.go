@@ -31,6 +31,7 @@ import (
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
 	lru "github.com/hashicorp/golang-lru/v2"
+	ttl "github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/ucwong/golang-kv"
 	"math"
 	"math/big"
@@ -79,9 +80,10 @@ type Monitor struct {
 	errCh  chan error
 	//newTaskHook func(*types.Block)
 	blockCache *lru.Cache[uint64, string]
-	sizeCache  *lru.Cache[string, uint64]
-	ckp        *params.TrustedCheckpoint
-	start      mclock.AbsTime
+	//blockCache *lru.LRU[uint64, string]
+	sizeCache *ttl.LRU[string, uint64]
+	ckp       *params.TrustedCheckpoint
+	start     mclock.AbsTime
 
 	local  bool
 	listen bool
@@ -144,8 +146,9 @@ func New(flag *params.Config, cache, compress, listen bool, callback chan any) (
 	m.startNumber.Store(0)
 
 	m.terminated.Store(false)
+	//m.blockCache = lru.NewLRU[uint64, string](delay, nil, time.Second*60)
 	m.blockCache, _ = lru.New[uint64, string](delay)
-	m.sizeCache, _ = lru.New[string, uint64](batch)
+	m.sizeCache = ttl.NewLRU[string, uint64](batch, nil, time.Second*60)
 	m.listen = listen
 	m.callback = callback
 
@@ -529,7 +532,11 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 		b.Txs = final
 	}
 	if record {
-		m.fs.AddBlock(b)
+		if err := m.fs.AddBlock(b); err == nil {
+			log.Info("Root has been changed", "number", b.Number, "hash", b.Hash, "root", m.fs.Root())
+		} else {
+			log.Warn("Block added failed", "number", b.Number, "hash", b.Hash, "root", m.fs.Root(), "err", err)
+		}
 	}
 	if len(b.Txs) > 0 {
 		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
@@ -868,7 +875,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 	//log.Debug("Last number changed", "min", minNumber, "max", maxNumber, "cur", currentNumber, "last", m.lastNumber.Load(), "batch", batch)
 	m.lastNumber.Store(maxNumber)
 	elapsedA := time.Duration(mclock.Now()) - time.Duration(m.start)
-	log.Info("Chain segment frozen", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber+1), "counter", counter, "scope", m.scope, "current", m.CurrentNumber(), "prog", float64(maxNumber)/float64(m.CurrentNumber()), "last", m.lastNumber.Load(), "bps", float64(counter)*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA))
+	log.Debug("Chain segment frozen", "from", minNumber, "to", maxNumber, "range", uint64(maxNumber-minNumber+1), "counter", counter, "scope", m.scope, "current", m.CurrentNumber(), "prog", float64(maxNumber)/float64(m.CurrentNumber()), "last", m.lastNumber.Load(), "bps", float64(counter)*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA))
 	return uint64(maxNumber - minNumber)
 }
 

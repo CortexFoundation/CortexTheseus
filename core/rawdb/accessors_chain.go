@@ -398,7 +398,7 @@ func ReadHeader(db ctxcdb.Reader, hash common.Hash, number uint64) *types.Header
 		return nil
 	}
 	header := new(types.Header)
-	if err := rlp.Decode(bytes.NewReader(data), header); err != nil {
+	if err := rlp.DecodeBytes(data, header); err != nil {
 		log.Error("Invalid block header RLP", "hash", hash, "err", err)
 		return nil
 	}
@@ -515,7 +515,7 @@ func ReadBody(db ctxcdb.Reader, hash common.Hash, number uint64) *types.Body {
 		return nil
 	}
 	body := new(types.Body)
-	if err := rlp.Decode(bytes.NewReader(data), body); err != nil {
+	if err := rlp.DecodeBytes(data, body); err != nil {
 		log.Error("Invalid block body RLP", "hash", hash, "err", err)
 		return nil
 	}
@@ -561,7 +561,7 @@ func ReadTd(db ctxcdb.Reader, hash common.Hash, number uint64) *big.Int {
 		return nil
 	}
 	td := new(big.Int)
-	if err := rlp.Decode(bytes.NewReader(data), td); err != nil {
+	if err := rlp.DecodeBytes(data, td); err != nil {
 		log.Error("Invalid block total difficulty RLP", "hash", hash, "err", err)
 		return nil
 	}
@@ -906,9 +906,9 @@ func WriteBadBlock(db ctxcdb.KeyValueStore, block *types.Block) {
 		Header: block.Header(),
 		Body:   block.Body(),
 	})
-	slices.SortFunc(badBlocks, func(a, b *badBlock) bool {
+	slices.SortFunc(badBlocks, func(a, b *badBlock) int {
 		// Note: sorting in descending number order.
-		return a.Header.Number.Uint64() >= b.Header.Number.Uint64()
+		return -a.Header.Number.Cmp(b.Header.Number)
 	})
 	if len(badBlocks) > badBlockToKeep {
 		badBlocks = badBlocks[:badBlockToKeep]

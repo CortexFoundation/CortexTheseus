@@ -20,7 +20,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nutsdb/nutsdb/ds/list"
 	"github.com/pkg/errors"
 	"github.com/xujiajun/utils/strconv2"
 )
@@ -49,13 +48,13 @@ func (tx *Tx) RPeek(bucket string, key []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	l := tx.db.Index.getList(bucket)
+	l := tx.db.Index.list.getWithDefault(bucket)
 	if l == nil {
 		return nil, ErrBucket
 	}
 
 	if tx.CheckExpire(bucket, key) {
-		return nil, ErrKeyNotFound
+		return nil, ErrListNotFound
 	}
 
 	r, err := l.RPeek(string(key))
@@ -89,7 +88,7 @@ func (tx *Tx) RPush(bucket string, key []byte, values ...[]byte) error {
 		return err
 	}
 	if tx.CheckExpire(bucket, key) {
-		return ErrKeyNotFound
+		return ErrListNotFound
 	}
 	if strings.Contains(string(key), SeparatorForListKey) {
 		return ErrSeparatorForListKey
@@ -104,7 +103,7 @@ func (tx *Tx) LPush(bucket string, key []byte, values ...[]byte) error {
 		return err
 	}
 	if tx.CheckExpire(bucket, key) {
-		return ErrKeyNotFound
+		return ErrListNotFound
 	}
 
 	if strings.Contains(string(key), SeparatorForListKey) {
@@ -129,12 +128,12 @@ func (tx *Tx) LPeek(bucket string, key []byte) (item []byte, err error) {
 	if err := tx.checkTxIsClosed(); err != nil {
 		return nil, err
 	}
-	l := tx.db.Index.getList(bucket)
+	l := tx.db.Index.list.getWithDefault(bucket)
 	if l == nil {
 		return nil, ErrBucket
 	}
 	if tx.CheckExpire(bucket, key) {
-		return nil, ErrKeyNotFound
+		return nil, ErrListNotFound
 	}
 	r, err := l.LPeek(string(key))
 	if err != nil {
@@ -154,12 +153,12 @@ func (tx *Tx) LSize(bucket string, key []byte) (int, error) {
 	if err := tx.checkTxIsClosed(); err != nil {
 		return 0, err
 	}
-	l := tx.db.Index.getList(bucket)
+	l := tx.db.Index.list.getWithDefault(bucket)
 	if l == nil {
 		return 0, ErrBucket
 	}
 	if tx.CheckExpire(bucket, key) {
-		return 0, ErrKeyNotFound
+		return 0, ErrListNotFound
 	}
 	return l.Size(string(key))
 }
@@ -173,12 +172,12 @@ func (tx *Tx) LRange(bucket string, key []byte, start, end int) ([][]byte, error
 	if err := tx.checkTxIsClosed(); err != nil {
 		return nil, err
 	}
-	l := tx.db.Index.getList(bucket)
+	l := tx.db.Index.list.getWithDefault(bucket)
 	if l == nil {
 		return nil, ErrBucket
 	}
 	if tx.CheckExpire(bucket, key) {
-		return nil, ErrKeyNotFound
+		return nil, ErrListNotFound
 	}
 
 	records, err := l.LRange(string(key), start, end)
@@ -215,7 +214,7 @@ func (tx *Tx) LRem(bucket string, key []byte, count int, value []byte) error {
 	}
 
 	if count > size || count < -size {
-		return list.ErrCount
+		return ErrCount
 	}
 
 	buffer.Write([]byte(strconv2.IntToStr(count)))
@@ -241,17 +240,17 @@ func (tx *Tx) LSet(bucket string, key []byte, index int, value []byte) error {
 	if err = tx.checkTxIsClosed(); err != nil {
 		return err
 	}
-	l := tx.db.Index.getList(bucket)
+	l := tx.db.Index.list.getWithDefault(bucket)
 	if tx.CheckExpire(bucket, key) {
-		return ErrKeyNotFound
+		return ErrListNotFound
 	}
 	if _, ok := l.Items[string(key)]; !ok {
-		return ErrKeyNotFound
+		return ErrListNotFound
 	}
 
 	size, _ := tx.LSize(bucket, key)
 	if index < 0 || index >= size {
-		return list.ErrIndexOutOfRange
+		return ErrIndexOutOfRange
 	}
 
 	buffer.Write(key)
@@ -278,12 +277,12 @@ func (tx *Tx) LTrim(bucket string, key []byte, start, end int) error {
 		return err
 	}
 
-	l := tx.db.Index.getList(bucket)
+	l := tx.db.Index.list.getWithDefault(bucket)
 	if tx.CheckExpire(bucket, key) {
-		return ErrKeyNotFound
+		return ErrListNotFound
 	}
 	if _, ok := l.Items[string(key)]; !ok {
-		return ErrKeyNotFound
+		return ErrListNotFound
 	}
 
 	if _, err := tx.LRange(bucket, key, start, end); err != nil {
@@ -304,7 +303,7 @@ func (tx *Tx) LRemByIndex(bucket string, key []byte, indexes ...int) error {
 		return err
 	}
 	if tx.CheckExpire(bucket, key) {
-		return ErrKeyNotFound
+		return ErrListNotFound
 	}
 
 	if len(indexes) == 0 {
@@ -330,7 +329,7 @@ func (tx *Tx) LKeys(bucket, pattern string, f func(key string) bool) error {
 	if err := tx.checkTxIsClosed(); err != nil {
 		return err
 	}
-	l := tx.db.Index.getList(bucket)
+	l := tx.db.Index.list.getWithDefault(bucket)
 	if l == nil {
 		return ErrBucket
 	}
@@ -349,7 +348,7 @@ func (tx *Tx) ExpireList(bucket string, key []byte, ttl uint32) error {
 	if err := tx.checkTxIsClosed(); err != nil {
 		return err
 	}
-	l := tx.db.Index.getList(bucket)
+	l := tx.db.Index.list.getWithDefault(bucket)
 	l.TTL[string(key)] = ttl
 	l.TimeStamp[string(key)] = uint64(time.Now().Unix())
 	ttls := strconv2.Int64ToStr(int64(ttl))
@@ -361,7 +360,7 @@ func (tx *Tx) ExpireList(bucket string, key []byte, ttl uint32) error {
 }
 
 func (tx *Tx) CheckExpire(bucket string, key []byte) bool {
-	l := tx.db.Index.getList(bucket)
+	l := tx.db.Index.list.getWithDefault(bucket)
 	if l.IsExpire(string(key)) {
 		_ = tx.push(bucket, key, DataDeleteFlag)
 		return true
@@ -373,7 +372,7 @@ func (tx *Tx) GetListTTL(bucket string, key []byte) (uint32, error) {
 	if err := tx.checkTxIsClosed(); err != nil {
 		return 0, err
 	}
-	l := tx.db.Index.getList(bucket)
+	l := tx.db.Index.list.getWithDefault(bucket)
 	if l == nil {
 		return 0, ErrBucket
 	}

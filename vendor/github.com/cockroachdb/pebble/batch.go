@@ -367,6 +367,14 @@ func newBatch(db *DB) *Batch {
 	return b
 }
 
+func newBatchWithSize(db *DB, size int) *Batch {
+	b := newBatch(db)
+	if cap(b.data) < size {
+		b.data = rawalloc.New(0, size)
+	}
+	return b
+}
+
 func newIndexedBatch(db *DB, comparer *Comparer) *Batch {
 	i := indexedBatchPool.Get().(*indexedBatch)
 	i.batch.cmp = comparer.Compare
@@ -376,6 +384,14 @@ func newIndexedBatch(db *DB, comparer *Comparer) *Batch {
 	i.batch.index = &i.index
 	i.batch.index.Init(&i.batch.data, i.batch.cmp, i.batch.abbreviatedKey)
 	return &i.batch
+}
+
+func newIndexedBatchWithSize(db *DB, comparer *Comparer, size int) *Batch {
+	b := newIndexedBatch(db, comparer)
+	if cap(b.data) < size {
+		b.data = rawalloc.New(0, size)
+	}
+	return b
 }
 
 // nextSeqNum returns the batch "sequence number" that will be given to the next
@@ -1294,12 +1310,16 @@ func (b *Batch) Indexed() bool {
 	return b.index != nil
 }
 
-func (b *Batch) init(cap int) {
+// init ensures that the batch data slice is initialized to meet the
+// minimum required size and allocates space for the batch header.
+func (b *Batch) init(size int) {
 	n := batchInitialSize
-	for n < cap {
+	for n < size {
 		n *= 2
 	}
-	b.data = rawalloc.New(batchHeaderLen, n)
+	if cap(b.data) < n {
+		b.data = rawalloc.New(batchHeaderLen, n)
+	}
 	b.setCount(0)
 	b.setSeqNum(0)
 	b.data = b.data[:batchHeaderLen]
@@ -1845,6 +1865,7 @@ func (b *flushableBatch) Swap(i, j int) {
 	b.offsets[i], b.offsets[j] = b.offsets[j], b.offsets[i]
 }
 
+// newIter is part of the flushable interface.
 func (b *flushableBatch) newIter(o *IterOptions) internalIterator {
 	return &flushableBatchIter{
 		batch:   b,
@@ -1857,6 +1878,7 @@ func (b *flushableBatch) newIter(o *IterOptions) internalIterator {
 	}
 }
 
+// newFlushIter is part of the flushable interface.
 func (b *flushableBatch) newFlushIter(o *IterOptions, bytesFlushed *uint64) internalIterator {
 	return &flushFlushableBatchIter{
 		flushableBatchIter: flushableBatchIter{
@@ -1870,6 +1892,7 @@ func (b *flushableBatch) newFlushIter(o *IterOptions, bytesFlushed *uint64) inte
 	}
 }
 
+// newRangeDelIter is part of the flushable interface.
 func (b *flushableBatch) newRangeDelIter(o *IterOptions) keyspan.FragmentIterator {
 	if len(b.tombstones) == 0 {
 		return nil
@@ -1877,6 +1900,7 @@ func (b *flushableBatch) newRangeDelIter(o *IterOptions) keyspan.FragmentIterato
 	return keyspan.NewIter(b.cmp, b.tombstones)
 }
 
+// newRangeKeyIter is part of the flushable interface.
 func (b *flushableBatch) newRangeKeyIter(o *IterOptions) keyspan.FragmentIterator {
 	if len(b.rangeKeys) == 0 {
 		return nil
@@ -1884,17 +1908,23 @@ func (b *flushableBatch) newRangeKeyIter(o *IterOptions) keyspan.FragmentIterato
 	return keyspan.NewIter(b.cmp, b.rangeKeys)
 }
 
+// containsRangeKeys is part of the flushable interface.
 func (b *flushableBatch) containsRangeKeys() bool { return len(b.rangeKeys) > 0 }
 
+// inuseBytes is part of the flushable interface.
 func (b *flushableBatch) inuseBytes() uint64 {
 	return uint64(len(b.data) - batchHeaderLen)
 }
 
+// totalBytes is part of the flushable interface.
 func (b *flushableBatch) totalBytes() uint64 {
 	return uint64(cap(b.data))
 }
 
+// readyForFlush is part of the flushable interface.
 func (b *flushableBatch) readyForFlush() bool {
+	// A flushable batch is always ready for flush; it must be flushed together
+	// with the previous memtable.
 	return true
 }
 

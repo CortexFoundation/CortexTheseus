@@ -18,6 +18,7 @@ import (
 	"github.com/cockroachdb/pebble/objstorage"
 	"github.com/cockroachdb/pebble/objstorage/objstorageprovider/objiotracing"
 	"github.com/cockroachdb/pebble/objstorage/objstorageprovider/remoteobjcat"
+	"github.com/cockroachdb/pebble/objstorage/objstorageprovider/sharedcache"
 	"github.com/cockroachdb/pebble/objstorage/remote"
 	"github.com/cockroachdb/pebble/vfs"
 )
@@ -143,7 +144,13 @@ func DefaultSettings(fs vfs.FS, dirName string) Settings {
 
 // Open creates the provider.
 func Open(settings Settings) (objstorage.Provider, error) {
-	return open(settings)
+	// Note: we can't just `return open(settings)` because in an error case we
+	// would return (*provider)(nil) which is not objstorage.Provider(nil).
+	p, err := open(settings)
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
 }
 
 func open(settings Settings) (p *provider, _ error) {
@@ -437,6 +444,14 @@ func (p *provider) List() []objstorage.ObjectMetadata {
 		return res[i].DiskFileNum.FileNum() < res[j].DiskFileNum.FileNum()
 	})
 	return res
+}
+
+// Metrics is part of the objstorage.Provider interface.
+func (p *provider) Metrics() sharedcache.Metrics {
+	if p.remote.cache != nil {
+		return p.remote.cache.Metrics()
+	}
+	return sharedcache.Metrics{}
 }
 
 func (p *provider) addMetadata(meta objstorage.ObjectMetadata) {

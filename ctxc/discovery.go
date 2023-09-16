@@ -48,7 +48,7 @@ func (ctxc *Cortex) startCtxcEntryUpdate(ln *enode.LocalNode) {
 		for {
 			select {
 			case <-newHead:
-				ln.Set(ctxc.currentCtxcEntry())
+				ln.Set(ctxc.currentCtxcEntry(ctxc.blockchain))
 			case <-sub.Err():
 				// Would be nice to sync with ctxc.Stop, but there is no
 				// good way to do that.
@@ -58,10 +58,11 @@ func (ctxc *Cortex) startCtxcEntryUpdate(ln *enode.LocalNode) {
 	}()
 }
 
-func (ctxc *Cortex) currentCtxcEntry() *ctxcEntry {
+func (ctxc *Cortex) currentCtxcEntry(chain *core.BlockChain) *ctxcEntry {
+	head := chain.CurrentHeader()
 	return &ctxcEntry{
-		ForkID: forkid.NewID(ctxc.blockchain.Config(), ctxc.blockchain.Genesis().Hash(),
-			ctxc.blockchain.CurrentHeader().Number.Uint64())}
+		ForkID: forkid.NewID(chain.Config(), chain.Genesis(), head.Number.Uint64(), head.Time),
+	}
 }
 
 // setupDiscovery creates the node discovery source for the ctxc protocol.

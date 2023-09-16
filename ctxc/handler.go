@@ -420,7 +420,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 		number  = head.Number.Uint64()
 		td      = pm.blockchain.GetTd(hash, number)
 	)
-	if err := p.Handshake(pm.networkID, td, hash, genesis.Hash(), forkid.NewID(pm.blockchain.Config(), genesis.Hash(), number), pm.forkFilter); err != nil {
+	if err := p.Handshake(pm.networkID, td, hash, genesis.Hash(), forkid.NewID(pm.blockchain.Config(), genesis, number, head.Time), pm.forkFilter); err != nil {
 		p.Log().Debug("Cortex handshake failed", "err", err)
 		return err
 	}

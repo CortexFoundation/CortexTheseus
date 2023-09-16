@@ -25,9 +25,16 @@ const (
 
 	// HintKeyAndRAMIdxMode represents ram index (only key) mode.
 	HintKeyAndRAMIdxMode
+)
 
-	// HintBPTSparseIdxMode represents b+ tree sparse index mode.
-	HintBPTSparseIdxMode
+type ExpiredDeleteType uint8
+
+const (
+	// TimeWheel represents use time wheel to do expired deletion
+	TimeWheel ExpiredDeleteType = iota
+
+	// TimeHeap represents use time heap to do expired deletion
+	TimeHeap
 )
 
 // An ErrorHandler handles an error occurred during transaction.
@@ -98,8 +105,19 @@ type Options struct {
 	// MergeInterval represent the interval for automatic merges, with 0 meaning automatic merging is disabled.
 	MergeInterval time.Duration
 
-	MaxBatchCount int64 // max entries in batch
-	MaxBatchSize  int64 // max batch size in bytes
+	// MaxBatchCount represents max entries in batch
+	MaxBatchCount int64
+
+	// MaxBatchSize represents max batch size in bytes
+	MaxBatchSize int64
+
+	// ExpiredDeleteType represents the data structure used for expired deletion
+	// TimeWheel means use the time wheel, You can use it when you need high performance or low memory usage
+	// TimeHeap means use the time heap, You can use it when you need to delete precisely or memory usage will be high
+	ExpiredDeleteType ExpiredDeleteType
+
+	// max write record num
+	MaxWriteRecordCount int64
 }
 
 const (
@@ -118,15 +136,16 @@ var defaultSegmentSize int64 = 256 * MB
 // DefaultOptions represents the default options.
 var DefaultOptions = func() Options {
 	return Options{
-		EntryIdxMode:     HintKeyValAndRAMIdxMode,
-		SegmentSize:      defaultSegmentSize,
-		NodeNum:          1,
-		RWMode:           FileIO,
-		SyncEnable:       true,
-		CommitBufferSize: 4 * MB,
-		MergeInterval:    2 * time.Hour,
-		MaxBatchSize:     (15 * defaultSegmentSize / 4) / 100,
-		MaxBatchCount:    (15 * defaultSegmentSize / 4) / 100 / 100,
+		EntryIdxMode:      HintKeyValAndRAMIdxMode,
+		SegmentSize:       defaultSegmentSize,
+		NodeNum:           1,
+		RWMode:            FileIO,
+		SyncEnable:        true,
+		CommitBufferSize:  4 * MB,
+		MergeInterval:     2 * time.Hour,
+		MaxBatchSize:      (15 * defaultSegmentSize / 4) / 100,
+		MaxBatchCount:     (15 * defaultSegmentSize / 4) / 100 / 100,
+		ExpiredDeleteType: TimeWheel,
 	}
 }()
 
@@ -219,5 +238,11 @@ func WithCommitBufferSize(commitBufferSize int64) Option {
 func WithLessFunc(lessFunc LessFunc) Option {
 	return func(opt *Options) {
 		opt.LessFunc = lessFunc
+	}
+}
+
+func WithMaxWriteRecordCount(maxWriteRecordCount int64) Option {
+	return func(opt *Options) {
+		opt.MaxWriteRecordCount = maxWriteRecordCount
 	}
 }

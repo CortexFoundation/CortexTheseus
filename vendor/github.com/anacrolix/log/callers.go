@@ -3,6 +3,7 @@ package log
 import (
 	"runtime"
 	"strings"
+	"sync"
 )
 
 func getSingleCallerPc(skip int) uintptr {
@@ -30,9 +31,16 @@ func locFromPc(pc uintptr) Loc {
 	}
 }
 
+var pcToLoc sync.Map
+
 func getMsgLogLoc(msg Msg) Loc {
 	var pc [1]uintptr
 	msg.Callers(1, pc[:])
-	return locFromPc(pc[0])
-
+	locIf, ok := pcToLoc.Load(pc[0])
+	if ok {
+		return locIf.(Loc)
+	}
+	loc := locFromPc(pc[0])
+	pcToLoc.Store(pc[0], loc)
+	return loc
 }

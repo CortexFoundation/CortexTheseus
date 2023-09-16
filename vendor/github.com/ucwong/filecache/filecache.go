@@ -1,6 +1,7 @@
 package filecache
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -327,7 +328,9 @@ func (cache *FileCache) WriteFile(w io.Writer, name string) (err error) {
 			return
 		}
 		defer file.Close()
-		_, err = io.Copy(w, file)
+		var buf bufio.Reader
+		buf.Reset(file)
+		_, err = io.Copy(w, &buf)
 	}
 	return
 }

@@ -25,14 +25,14 @@ import (
 	"io"
 	"net"
 	//"math"
+	"math"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
-	//"strconv"
-	"math"
-	"runtime"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -44,7 +44,7 @@ import (
 	//"github.com/CortexFoundation/torrentfs/shard"
 	"github.com/CortexFoundation/torrentfs/tool"
 	"github.com/CortexFoundation/torrentfs/types"
-	"github.com/CortexFoundation/torrentfs/wormhole"
+	"github.com/CortexFoundation/wormhole"
 	"github.com/ucwong/shard"
 
 	//"github.com/allegro/bigcache/v3"
@@ -93,7 +93,7 @@ const (
 
 var (
 	server         bool = false
-	worm           bool = false
+	enableWorm     bool = false
 	getfileMeter        = metrics.NewRegisteredMeter("torrent/getfile/call", nil)
 	availableMeter      = metrics.NewRegisteredMeter("torrent/available/call", nil)
 	diskReadMeter       = metrics.NewRegisteredMeter("torrent/disk/read", nil)
@@ -176,6 +176,10 @@ type TorrentManager struct {
 	pends    atomic.Int32
 	actives  atomic.Int32
 	stops    atomic.Int32
+
+	//worms []Worm
+
+	worm *wormhole.Wormhole
 }
 
 // can only call by fs.go: 'SeedingLocal()'
@@ -604,11 +608,11 @@ func (tm *TorrentManager) addInfoHash(ih string, bytesRequested int64) *Torrent 
 		return nil
 	}
 
-	if !server && worm {
+	if !server && enableWorm {
 		tm.wg.Add(1)
 		go func() {
 			defer tm.wg.Done()
-			err := wormhole.Tunnel(ih)
+			err := tm.worm.Tunnel(ih)
 			if err != nil {
 				log.Error("Wormhole error", "err", err)
 			}
@@ -707,14 +711,37 @@ func (tm *TorrentManager) updateGlobalTrackers() error {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
 
-	if global := wormhole.BestTrackers(); len(global) > 0 {
+	if global := tm.worm.BestTrackers(); len(global) > 0 {
 		tm.globalTrackers = [][]string{global}
-		log.Info("Global trackers update", "size", len(global), "cap", wormhole.CAP)
+		log.Info("Global trackers update", "size", len(global), "cap", wormhole.CAP, "health", float32(len(global))/float32(wormhole.CAP))
+
+		for _, url := range global {
+			score, _ := tm.wormScore(url)
+			log.Info("Tracker status", "url", url, "score", score)
+		}
 	} else {
 		return errors.New("best trackers failed")
 	}
 
 	return nil
+}
+
+func (tm *TorrentManager) wormScore(url string) (score uint64, err error) {
+	if tm.kvdb == nil {
+		return
+	}
+
+	score = 1
+	if v := tm.kvdb.Get([]byte(url)); v != nil {
+		if score, err = strconv.ParseUint(string(v), 16, 64); err == nil {
+			score++
+			tm.kvdb.Set([]byte(url), []byte(strconv.FormatUint(score, 16)))
+		}
+	} else {
+		tm.kvdb.Set([]byte(url), []byte(strconv.FormatUint(score, 16)))
+	}
+
+	return
 }
 
 /*func (tm *TorrentManager) updateColaList() {
@@ -764,7 +791,7 @@ func (tm *TorrentManager) updateInfoHash(t *Torrent, bytesRequested int64) {
 
 func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool) (*TorrentManager, error) {
 	server = config.Server
-	worm = config.Wormhole
+	enableWorm = config.Wormhole
 
 	cfg := torrent.NewDefaultClientConfig()
 	cfg.DisableUTP = config.DisableUTP
@@ -943,6 +970,7 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 		torrentManager.trackers = [][]string{config.DefaultTrackers}
 	}
 
+	torrentManager.worm = wormhole.New()
 	torrentManager.updateGlobalTrackers()
 	//if global, err := wormhole.BestTrackers(); global != nil && err == nil {
 	//	torrentManager.globalTrackers = [][]string{global}
@@ -1168,7 +1196,11 @@ func (tm *TorrentManager) pendingLoop() {
 						if tm.kvdb != nil && tm.kvdb.Get([]byte(SEED_PRE+t.InfoHash())) == nil {
 							elapsed := time.Duration(mclock.Now()) - time.Duration(t.Birth())
 							log.Debug("Imported new seed", "ih", t.InfoHash(), "request", common.StorageSize(t.Length()), "ts", common.StorageSize(len(b)), "good", params.IsGood(t.InfoHash()), "elapsed", common.PrettyDuration(elapsed))
-							go t.WriteTorrent()
+							tm.wg.Add(1)
+							go func() {
+								tm.wg.Done()
+								t.WriteTorrent()
+							}()
 							tm.kvdb.Set([]byte(SEED_PRE+t.InfoHash()), b)
 						}
 						//t.lock.Lock()
@@ -1341,7 +1373,7 @@ func (tm *TorrentManager) activeLoop() {
 		//	go tm.updateGlobalTrackers()
 		case <-timer.C:
 			/*for ih, t := range tm.activeTorrents {
-				if t.BytesMissing() == 0 {
+				if t.Torrent.BytesMissing() == 0 {
 					tm.finish(ih, t)
 					tm.cost(uint64(time.Duration(mclock.Now()) - time.Duration(t.start)))
 					continue
@@ -1354,7 +1386,7 @@ func (tm *TorrentManager) activeLoop() {
 
 			tm.torrents.Range(func(ih string, t *Torrent) bool {
 				if t.Running() {
-					if t.BytesMissing() == 0 {
+					if t.Torrent.BytesMissing() == 0 {
 						//clean = append(clean, t)
 						tm.finish(t)
 					} else {
@@ -1391,8 +1423,11 @@ func (tm *TorrentManager) seedingLoop() {
 			//tm.seedingTorrents.Set(t.InfoHash(), t)
 
 			if t.Seed() {
+				// count
 				tm.actives.Add(-1)
 				tm.seeds.Add(1)
+
+				// TODO
 			}
 		case <-tm.closeAll:
 			log.Info("Seeding loop closed")

@@ -12,6 +12,7 @@ import (
 	"github.com/cockroachdb/pebble/internal/base"
 	"github.com/cockroachdb/pebble/internal/cache"
 	"github.com/cockroachdb/pebble/internal/humanize"
+	"github.com/cockroachdb/pebble/objstorage/objstorageprovider/sharedcache"
 	"github.com/cockroachdb/pebble/record"
 	"github.com/cockroachdb/pebble/sstable"
 	"github.com/cockroachdb/redact"
@@ -27,6 +28,11 @@ type FilterMetrics = sstable.FilterMetrics
 // ThroughputMetric is a cumulative throughput metric. See the detailed
 // comment in base.
 type ThroughputMetric = base.ThroughputMetric
+
+// SecondaryCacheMetrics holds metrics for the persistent secondary cache
+// that caches commonly accessed blocks from blob storage on a local
+// file system.
+type SecondaryCacheMetrics = sharedcache.Metrics
 
 // LevelMetrics holds per-level metrics such as the number of files and total
 // size of the files, and compaction related metrics.
@@ -71,6 +77,18 @@ type LevelMetrics struct {
 	TablesIngested uint64
 	// The number of sstables moved to this level by a "move" compaction.
 	TablesMoved uint64
+
+	MultiLevel struct {
+		// BytesInTop are the total bytes in a multilevel compaction coming from the top level.
+		BytesInTop uint64
+
+		// BytesIn, exclusively for multiLevel compactions.
+		BytesIn uint64
+
+		// BytesRead, exclusively for multilevel compactions.
+		BytesRead uint64
+	}
+
 	// Additional contains misc additional metrics that are not always printed.
 	Additional struct {
 		// The sum of Properties.ValueBlocksSize for all the sstables in this
@@ -99,6 +117,9 @@ func (m *LevelMetrics) Add(u *LevelMetrics) {
 	m.TablesFlushed += u.TablesFlushed
 	m.TablesIngested += u.TablesIngested
 	m.TablesMoved += u.TablesMoved
+	m.MultiLevel.BytesInTop += u.MultiLevel.BytesInTop
+	m.MultiLevel.BytesRead += u.MultiLevel.BytesRead
+	m.MultiLevel.BytesIn += u.MultiLevel.BytesIn
 	m.Additional.BytesWrittenDataBlocks += u.Additional.BytesWrittenDataBlocks
 	m.Additional.BytesWrittenValueBlocks += u.Additional.BytesWrittenValueBlocks
 	m.Additional.ValueBlocksSize += u.Additional.ValueBlocksSize
@@ -124,14 +145,15 @@ type Metrics struct {
 
 	Compact struct {
 		// The total number of compactions, and per-compaction type counts.
-		Count            int64
-		DefaultCount     int64
-		DeleteOnlyCount  int64
-		ElisionOnlyCount int64
-		MoveCount        int64
-		ReadCount        int64
-		RewriteCount     int64
-		MultiLevelCount  int64
+		Count             int64
+		DefaultCount      int64
+		DeleteOnlyCount   int64
+		ElisionOnlyCount  int64
+		MoveCount         int64
+		ReadCount         int64
+		RewriteCount      int64
+		MultiLevelCount   int64
+		CounterLevelCount int64
 		// An estimate of the number of bytes that need to be compacted for the LSM
 		// to reach a stable state.
 		EstimatedDebt uint64
@@ -263,6 +285,8 @@ type Metrics struct {
 		record.LogWriterMetrics
 	}
 
+	SecondaryCacheMetrics SecondaryCacheMetrics
+
 	private struct {
 		optionsFileSize  uint64
 		manifestFileSize uint64
@@ -293,14 +317,6 @@ func (m *Metrics) DiskSpaceUsage() uint64 {
 	usageBytes += m.private.manifestFileSize
 	usageBytes += uint64(m.Compact.InProgressBytes)
 	return usageBytes
-}
-
-func (m *Metrics) levelSizes() [numLevels]int64 {
-	var sizes [numLevels]int64
-	for i := 0; i < len(sizes); i++ {
-		sizes[i] = m.Levels[i].Size
-	}
-	return sizes
 }
 
 // ReadAmp returns the current read amplification of the database.
@@ -353,6 +369,7 @@ func (m *Metrics) Total() LevelMetrics {
 //	Zombie tables: 16 (15B)
 //	Block cache: 2 entries (1B)  hit rate: 42.9%
 //	Table cache: 18 entries (17B)  hit rate: 48.7%
+//	Secondary cache: 40 entries (40B)  hit rate: 49.9%
 //	Snapshots: 4  earliest seq num: 1024
 //	Table iters: 21
 //	Filter utility: 47.4%
@@ -377,9 +394,25 @@ func (m *Metrics) SafeFormat(w redact.SafePrinter, _ rune) {
 	// width specifiers. When the issue is fixed, we can convert these to
 	// RedactableStrings. https://github.com/cockroachdb/redact/issues/17
 
-	w.SafeString("      |                     |       |       |   ingested   |     moved    |    written   |       |    amp\n")
-	w.SafeString("level | tables  size val-bl | score |   in  | tables  size | tables  size | tables  size |  read |   r   w\n")
-	w.SafeString("------+---------------------+-------+-------+--------------+--------------+--------------+-------+---------\n")
+	multiExists := m.Compact.MultiLevelCount > 0
+	appendIfMulti := func(line redact.SafeString) {
+		if multiExists {
+			w.SafeString(line)
+		}
+	}
+	newline := func() {
+		w.SafeString("\n")
+	}
+
+	w.SafeString("      |                     |       |       |   ingested   |     moved    |    written   |       |    amp")
+	appendIfMulti("   |     multilevel")
+	newline()
+	w.SafeString("level | tables  size val-bl | score |   in  | tables  size | tables  size | tables  size |  read |   r   w")
+	appendIfMulti("  |    top   in  read")
+	newline()
+	w.SafeString("------+---------------------+-------+-------+--------------+--------------+--------------+-------+---------")
+	appendIfMulti("-+------------------")
+	newline()
 
 	// formatRow prints out a row of the table.
 	formatRow := func(m *LevelMetrics, score float64) {
@@ -402,7 +435,7 @@ func (m *Metrics) SafeFormat(w redact.SafePrinter, _ rune) {
 			wampStr = fmt.Sprintf("%.1f", wamp)
 		}
 
-		w.Printf("| %5s %6s %6s | %5s | %5s | %5s %6s | %5s %6s | %5s %6s | %5s | %3d %4s\n",
+		w.Printf("| %5s %6s %6s | %5s | %5s | %5s %6s | %5s %6s | %5s %6s | %5s | %3d %4s",
 			humanize.Count.Int64(m.NumFiles),
 			humanize.Bytes.Int64(m.Size),
 			humanize.Bytes.Uint64(m.Additional.ValueBlocksSize),
@@ -417,6 +450,14 @@ func (m *Metrics) SafeFormat(w redact.SafePrinter, _ rune) {
 			humanize.Bytes.Uint64(m.BytesRead),
 			redact.Safe(m.Sublevels),
 			redact.Safe(wampStr))
+
+		if multiExists {
+			w.Printf(" | %5s %5s %5s",
+				humanize.Bytes.Uint64(m.MultiLevel.BytesInTop),
+				humanize.Bytes.Uint64(m.MultiLevel.BytesIn),
+				humanize.Bytes.Uint64(m.MultiLevel.BytesRead))
+		}
+		newline()
 	}
 
 	var total LevelMetrics
@@ -442,8 +483,9 @@ func (m *Metrics) SafeFormat(w redact.SafePrinter, _ rune) {
 	w.SafeString("total ")
 	formatRow(&total, math.NaN())
 
-	w.SafeString("-----------------------------------------------------------------------------------------------------------\n")
-
+	w.SafeString("-----------------------------------------------------------------------------------------------------------")
+	appendIfMulti("--------------------")
+	newline()
 	w.Printf("WAL: %d files (%s)  in: %s  written: %s (%.0f%% overhead)\n",
 		redact.Safe(m.WAL.Files),
 		humanize.Bytes.Uint64(m.WAL.Size),
@@ -488,6 +530,15 @@ func (m *Metrics) SafeFormat(w redact.SafePrinter, _ rune) {
 	formatCacheMetrics(&m.BlockCache, "Block cache")
 	formatCacheMetrics(&m.TableCache, "Table cache")
 
+	formatSharedCacheMetrics := func(w redact.SafePrinter, m *SecondaryCacheMetrics, name redact.SafeString) {
+		w.Printf("%s: %s entries (%s)  hit rate: %.1f%%\n",
+			name,
+			humanize.Count.Int64(m.Count),
+			humanize.Bytes.Int64(m.Size),
+			redact.Safe(hitRate(m.ReadsWithFullHit, m.ReadsWithPartialHit+m.ReadsWithNoHit)))
+	}
+	formatSharedCacheMetrics(w, &m.SecondaryCacheMetrics, "Secondary cache")
+
 	w.Printf("Snapshots: %d  earliest seq num: %d\n",
 		redact.Safe(m.Snapshots.Count),
 		redact.Safe(m.Snapshots.EarliestSeqNum))
@@ -510,4 +561,17 @@ func percent(numerator, denominator int64) float64 {
 		return 0
 	}
 	return 100 * float64(numerator) / float64(denominator)
+}
+
+// StringForTests is identical to m.String() on 64-bit platforms. It is used to
+// provide a platform-independent result for tests.
+func (m *Metrics) StringForTests() string {
+	mCopy := *m
+	if math.MaxInt == math.MaxInt32 {
+		// This is the difference in Sizeof(sstable.Reader{})) between 64 and 32 bit
+		// platforms.
+		const tableCacheSizeAdjustment = 212
+		mCopy.TableCache.Size += mCopy.TableCache.Count * tableCacheSizeAdjustment
+	}
+	return redact.StringWithoutMarkers(&mCopy)
 }

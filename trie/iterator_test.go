@@ -79,6 +79,10 @@ type kv struct {
 	t    bool
 }
 
+func (k *kv) cmp(other *kv) int {
+	return bytes.Compare(k.k, other.k)
+}
+
 func TestIteratorLargeData(t *testing.T) {
 	trie := newEmpty()
 	vals := make(map[string]*kv)

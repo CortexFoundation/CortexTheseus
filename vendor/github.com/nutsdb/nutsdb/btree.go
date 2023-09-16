@@ -16,9 +16,13 @@ package nutsdb
 
 import (
 	"bytes"
+	"errors"
 	"github.com/tidwall/btree"
 	"regexp"
 )
+
+// ErrKeyNotFound is returned when the key is not in the b tree.
+var ErrKeyNotFound = errors.New("key not found")
 
 type Item struct {
 	key []byte
@@ -45,8 +49,8 @@ func (bt *BTree) Find(key []byte) (*Record, bool) {
 	return nil, ok
 }
 
-func (bt *BTree) Insert(key []byte, e *Entry, h *Hint) bool {
-	r := NewRecord().WithEntry(e).WithHint(h)
+func (bt *BTree) Insert(key []byte, v []byte, h *Hint) bool {
+	r := NewRecord().WithValue(v).WithHint(h)
 	_, replaced := bt.btree.Set(&Item{key: key, r: r})
 	return replaced
 }

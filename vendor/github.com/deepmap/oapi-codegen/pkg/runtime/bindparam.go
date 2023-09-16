@@ -16,17 +16,18 @@ package runtime
 import (
 	"encoding"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/url"
 	"reflect"
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/deepmap/oapi-codegen/pkg/types"
 )
 
-// BindStyledParameter binds a parameter as described in the Path Parameters
+// This function binds a parameter as described in the Path Parameters
 // section here to a Go object:
 // https://swagger.io/docs/specification/serialization/
 // It is a backward compatible function to clients generated with codegen
@@ -36,7 +37,7 @@ func BindStyledParameter(style string, explode bool, paramName string,
 	return BindStyledParameterWithLocation(style, explode, paramName, ParamLocationUndefined, value, dest)
 }
 
-// BindStyledParameterWithLocation binds a parameter as described in the Path Parameters
+// This function binds a parameter as described in the Path Parameters
 // section here to a Go object:
 // https://swagger.io/docs/specification/serialization/
 func BindStyledParameterWithLocation(style string, explode bool, paramName string,
@@ -68,7 +69,7 @@ func BindStyledParameterWithLocation(style string, explode bool, paramName strin
 	// If the destination implements encoding.TextUnmarshaler we use it for binding
 	if tu, ok := dest.(encoding.TextUnmarshaler); ok {
 		if err := tu.UnmarshalText([]byte(value)); err != nil {
-			return fmt.Errorf("error unmarshalling '%s' text as %T: %s", value, dest, err)
+			return fmt.Errorf("error unmarshaling '%s' text as %T: %s", value, dest, err)
 		}
 
 		return nil
@@ -82,7 +83,7 @@ func BindStyledParameterWithLocation(style string, explode bool, paramName strin
 
 	if t.Kind() == reflect.Struct {
 		// We've got a destination object, we'll create a JSON representation
-		// of the input value, and let the json library deal with the unmarshalling
+		// of the input value, and let the json library deal with the unmarshaling
 		parts, err := splitStyledParameter(style, explode, true, paramName, value)
 		if err != nil {
 			return err
@@ -233,7 +234,7 @@ func bindSplitPartsToDestinationArray(parts []string, dest interface{}) error {
 // into the struct.
 func bindSplitPartsToDestinationStruct(paramName string, parts []string, explode bool, dest interface{}) error {
 	// We've got a destination object, we'll create a JSON representation
-	// of the input value, and let the json library deal with the unmarshalling
+	// of the input value, and let the json library deal with the unmarshaling
 	var fields []string
 	if explode {
 		fields = make([]string, len(parts))
@@ -263,7 +264,7 @@ func bindSplitPartsToDestinationStruct(paramName string, parts []string, explode
 	return nil
 }
 
-// BindQueryParameter works much like BindStyledParameter, however it takes a query argument
+// This works much like BindStyledParameter, however it takes a query argument
 // input array from the url package, since query arguments come through a
 // different path than the styled arguments. They're also exceptionally fussy.
 // For example, consider the exploded and unexploded form parameter examples:
@@ -336,12 +337,10 @@ func BindQueryParameter(style string, explode bool, required bool, paramName str
 			case reflect.Slice:
 				// In the slice case, we simply use the arguments provided by
 				// http library.
-
 				if !found {
 					if required {
 						return fmt.Errorf("query parameter '%s' is required", paramName)
 					} else {
-						// If an optional parameter is not found, we do nothing,
 						return nil
 					}
 				}
@@ -351,13 +350,7 @@ func BindQueryParameter(style string, explode bool, required bool, paramName str
 				// form style object binding doesn't tell us which arguments
 				// in the query string correspond to the object's fields. We'll
 				// try to bind field by field.
-				var fieldsPresent bool
-				fieldsPresent, err = bindParamsToExplodedObject(paramName, queryParams, output)
-				// If no fields were set, and there is no error, we will not fall
-				// through to assign the destination.
-				if !fieldsPresent {
-					return nil
-				}
+				err = bindParamsToExplodedObject(paramName, queryParams, output)
 			default:
 				// Primitive object case. We expect to have 1 value to
 				// unmarshal.
@@ -370,15 +363,6 @@ func BindQueryParameter(style string, explode bool, required bool, paramName str
 				}
 				if len(values) != 1 {
 					return fmt.Errorf("multiple values for single value parameter '%s'", paramName)
-				}
-
-				if !found {
-					if required {
-						return fmt.Errorf("query parameter '%s' is required", paramName)
-					} else {
-						// If an optional parameter is not found, we do nothing,
-						return nil
-					}
 				}
 				err = BindStringToObject(values[0], output)
 			}
@@ -444,28 +428,21 @@ func BindQueryParameter(style string, explode bool, required bool, paramName str
 	}
 }
 
-// bindParamsToExplodedObject reflects the destination structure, and pulls the value for
+// This function reflects the destination structure, and pulls the value for
 // each settable field from the given parameters map. This is to deal with the
 // exploded form styled object which may occupy any number of parameter names.
 // We don't try to be smart here, if the field exists as a query argument,
-// set its value. This function returns a boolean, telling us whether there was
-// anything to bind. There will be nothing to bind if a parameter isn't found by name,
-// or none of an exploded object's fields are present.
-func bindParamsToExplodedObject(paramName string, values url.Values, dest interface{}) (bool, error) {
+// set its value.
+func bindParamsToExplodedObject(paramName string, values url.Values, dest interface{}) error {
 	// Dereference pointers to their destination values
 	binder, v, t := indirect(dest)
 	if binder != nil {
-		_, found := values[paramName]
-		if !found {
-			return false, nil
-		}
-		return true, BindStringToObject(values.Get(paramName), dest)
+		return BindStringToObject(values.Get(paramName), dest)
 	}
 	if t.Kind() != reflect.Struct {
-		return false, fmt.Errorf("unmarshalling query arg '%s' into wrong type", paramName)
+		return fmt.Errorf("unmarshaling query arg '%s' into wrong type", paramName)
 	}
 
-	fieldsPresent := false
 	for i := 0; i < t.NumField(); i++ {
 		fieldT := t.Field(i)
 
@@ -490,16 +467,15 @@ func bindParamsToExplodedObject(paramName string, values url.Values, dest interf
 		fieldVal, found := values[fieldName]
 		if found {
 			if len(fieldVal) != 1 {
-				return false, fmt.Errorf("field '%s' specified multiple times for param '%s'", fieldName, paramName)
+				return fmt.Errorf("field '%s' specified multiple times for param '%s'", fieldName, paramName)
 			}
 			err := BindStringToObject(fieldVal[0], v.Field(i).Addr().Interface())
 			if err != nil {
-				return false, fmt.Errorf("could not bind query arg '%s' to request object: %s'", paramName, err)
+				return fmt.Errorf("could not bind query arg '%s' to request object: %s'", paramName, err)
 			}
-			fieldsPresent = true
 		}
 	}
-	return fieldsPresent, nil
+	return nil
 }
 
 // indirect

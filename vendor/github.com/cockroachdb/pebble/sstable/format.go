@@ -25,8 +25,9 @@ const (
 	TableFormatPebblev2 // Range keys.
 	TableFormatPebblev3 // Value blocks.
 	TableFormatPebblev4 // DELSIZED tombstones.
+	NumTableFormats
 
-	TableFormatMax = TableFormatPebblev4
+	TableFormatMax = NumTableFormats - 1
 )
 
 // TableFormatPebblev4, in addition to DELSIZED, introduces the use of

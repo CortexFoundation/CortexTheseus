@@ -23,12 +23,12 @@ import (
 	"fmt"
 	"hash"
 	"io"
-	"sort"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/trie"
 	"golang.org/x/crypto/sha3"
+	"golang.org/x/exp/slices"
 )
 
 type fuzzer struct {
@@ -185,7 +185,9 @@ func (f *fuzzer) fuzz() int {
 	dbA.Commit(rootA, false)
 
 	// Stacktrie requires sorted insertion
-	sort.Sort(vals)
+	slices.SortFunc(vals, func(a, b kv) int {
+		return bytes.Compare(a.k, b.k)
+	})
 	for _, kv := range vals {
 		if f.debugging {
 			fmt.Printf("{\"0x%x\" , \"0x%x\"} // stacktrie.Update\n", kv.k, kv.v)

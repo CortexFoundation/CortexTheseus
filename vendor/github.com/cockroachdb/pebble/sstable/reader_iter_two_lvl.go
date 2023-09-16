@@ -32,6 +32,7 @@ func (i *twoLevelIterator) loadIndex(dir int8) loadBlockResult {
 	// Ensure the index data block iterators are invalidated even if loading of
 	// the index fails.
 	i.data.invalidate()
+	i.index.invalidate()
 	if !i.topLevelIndex.valid() {
 		i.index.offset = 0
 		i.index.restarts = 0
@@ -93,7 +94,7 @@ func (i *twoLevelIterator) resolveMaybeExcluded(dir int8) intersectsResult {
 	// are ≤ topLevelIndex.Key(). For forward iteration, this is all we need.
 	if dir > 0 {
 		// Forward iteration.
-		if i.bpfs.boundLimitedFilter.KeyIsWithinUpperBound(i.topLevelIndex.Key()) {
+		if i.bpfs.boundLimitedFilter.KeyIsWithinUpperBound(i.topLevelIndex.Key().UserKey) {
 			return blockExcluded
 		}
 		return blockIntersects
@@ -122,7 +123,7 @@ func (i *twoLevelIterator) resolveMaybeExcluded(dir int8) intersectsResult {
 		// we knew the lower bound for the entire table, it could provide a
 		// lower bound, but the code refactoring necessary to read it doesn't
 		// seem worth the payoff. We fall through to loading the block.
-	} else if i.bpfs.boundLimitedFilter.KeyIsWithinLowerBound(peekKey) {
+	} else if i.bpfs.boundLimitedFilter.KeyIsWithinLowerBound(peekKey.UserKey) {
 		// The lower-bound on the original index block falls within the filter's
 		// bounds, and we can skip the block (after restoring our current
 		// top-level index position).
@@ -259,8 +260,16 @@ func (i *twoLevelIterator) SeekGE(
 	// the position of the two-level index iterator without remembering the
 	// previous value of maybeFilteredKeys.
 
+	// We fall into the slow path if i.index.isDataInvalidated() even if the
+	// top-level iterator is already positioned correctly and all other
+	// conditions are met. An alternative structure could reuse topLevelIndex's
+	// current position and reload the index block to which it points. Arguably,
+	// an index block load is expensive and the index block may still be earlier
+	// than the index block containing the sought key, resulting in a wasteful
+	// block load.
+
 	var dontSeekWithinSingleLevelIter bool
-	if i.topLevelIndex.isDataInvalidated() || !i.topLevelIndex.valid() || err != nil ||
+	if i.topLevelIndex.isDataInvalidated() || !i.topLevelIndex.valid() || i.index.isDataInvalidated() || err != nil ||
 		(i.boundsCmp <= 0 && !flags.TrySeekUsingNext()) || i.cmp(key, i.topLevelIndex.Key().UserKey) > 0 {
 		// Slow-path: need to position the topLevelIndex.
 
@@ -447,8 +456,16 @@ func (i *twoLevelIterator) SeekPrefixGE(
 	// not reuse the position of the two-level index iterator without
 	// remembering the previous value of maybeFilteredKeysTwoLevel.
 
+	// We fall into the slow path if i.index.isDataInvalidated() even if the
+	// top-level iterator is already positioned correctly and all other
+	// conditions are met. An alternative structure could reuse topLevelIndex's
+	// current position and reload the index block to which it points. Arguably,
+	// an index block load is expensive and the index block may still be earlier
+	// than the index block containing the sought key, resulting in a wasteful
+	// block load.
+
 	var dontSeekWithinSingleLevelIter bool
-	if i.topLevelIndex.isDataInvalidated() || !i.topLevelIndex.valid() || err != nil ||
+	if i.topLevelIndex.isDataInvalidated() || !i.topLevelIndex.valid() || i.index.isDataInvalidated() || err != nil ||
 		(i.boundsCmp <= 0 && !flags.TrySeekUsingNext()) || i.cmp(key, i.topLevelIndex.Key().UserKey) > 0 {
 		// Slow-path: need to position the topLevelIndex.
 

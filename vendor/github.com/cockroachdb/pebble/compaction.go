@@ -18,6 +18,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/cockroachdb/pebble/internal/base"
+	"github.com/cockroachdb/pebble/internal/invalidating"
 	"github.com/cockroachdb/pebble/internal/keyspan"
 	"github.com/cockroachdb/pebble/internal/manifest"
 	"github.com/cockroachdb/pebble/internal/private"
@@ -30,7 +31,6 @@ import (
 )
 
 var errEmptyTable = errors.New("pebble: empty table")
-var errFlushInvariant = errors.New("pebble: flush next log number is unset")
 var errCancelledCompaction = errors.New("pebble: compaction cancelled by a concurrent operation, will retry compaction")
 
 var compactLabels = pprof.Labels("pebble", "compact")
@@ -662,13 +662,16 @@ type compaction struct {
 	allowedZeroSeqNum bool
 
 	metrics map[int]*LevelMetrics
+
+	pickerMetrics compactionPickerMetrics
 }
 
 func (c *compaction) makeInfo(jobID int) CompactionInfo {
 	info := CompactionInfo{
-		JobID:  jobID,
-		Reason: c.kind.String(),
-		Input:  make([]LevelInfo, 0, len(c.inputs)),
+		JobID:       jobID,
+		Reason:      c.kind.String(),
+		Input:       make([]LevelInfo, 0, len(c.inputs)),
+		Annotations: []string{},
 	}
 	for _, cl := range c.inputs {
 		inputInfo := LevelInfo{Level: cl.level, Tables: nil}
@@ -693,6 +696,15 @@ func (c *compaction) makeInfo(jobID int) CompactionInfo {
 		// semantic distinction.
 		info.Output.Level = numLevels - 1
 	}
+
+	for i, score := range c.pickerMetrics.scores {
+		info.Input[i].Score = score
+	}
+	info.SingleLevelOverlappingRatio = c.pickerMetrics.singleLevelOverlappingRatio
+	info.MultiLevelOverlappingRatio = c.pickerMetrics.multiLevelOverlappingRatio
+	if len(info.Input) > 2 {
+		info.Annotations = append(info.Annotations, "multilevel")
+	}
 	return info
 }
 
@@ -713,6 +725,7 @@ func newCompaction(pc *pickedCompaction, opts *Options, beganAt time.Time) *comp
 		maxOutputFileSize: pc.maxOutputFileSize,
 		maxOverlapBytes:   pc.maxOverlapBytes,
 		l0SublevelInfo:    pc.l0SublevelInfo,
+		pickerMetrics:     pc.pickerMetrics,
 	}
 	c.startLevel = &c.inputs[0]
 	c.outputLevel = &c.inputs[1]
@@ -1244,7 +1257,7 @@ func (c *compaction) newInputIter(
 			if rangeKeyIter := f.newRangeKeyIter(nil); rangeKeyIter != nil {
 				mi := &keyspan.MergingIter{}
 				mi.Init(c.cmp, rangeKeyCompactionTransform(c.equal, snapshots, c.elideRangeKey), new(keyspan.MergingBuffers), rangeKeyIter)
-				c.rangeKeyInterleaving.Init(c.comparer, iter, mi, nil /* hooks */, nil /* lowerBound */, nil /* upperBound */)
+				c.rangeKeyInterleaving.Init(c.comparer, iter, mi, keyspan.InterleavingIterOpts{})
 				iter = &c.rangeKeyInterleaving
 			}
 			return iter, nil
@@ -1271,7 +1284,7 @@ func (c *compaction) newInputIter(
 		if len(rangeKeyIters) > 0 {
 			mi := &keyspan.MergingIter{}
 			mi.Init(c.cmp, rangeKeyCompactionTransform(c.equal, snapshots, c.elideRangeKey), new(keyspan.MergingBuffers), rangeKeyIters...)
-			c.rangeKeyInterleaving.Init(c.comparer, iter, mi, nil /* hooks */, nil /* lowerBound */, nil /* upperBound */)
+			c.rangeKeyInterleaving.Init(c.comparer, iter, mi, keyspan.InterleavingIterOpts{})
 			iter = &c.rangeKeyInterleaving
 		}
 		return iter, nil
@@ -1557,7 +1570,7 @@ func (c *compaction) newInputIter(
 		mi.Init(c.cmp, rangeKeyCompactionTransform(c.equal, snapshots, c.elideRangeKey), new(keyspan.MergingBuffers), rangeKeyIters...)
 		di := &keyspan.DefragmentingIter{}
 		di.Init(c.comparer, mi, keyspan.DefragmentInternal, keyspan.StaticDefragmentReducer, new(keyspan.DefragmentingBuffers))
-		c.rangeKeyInterleaving.Init(c.comparer, pointKeyIter, di, nil /* hooks */, nil /* lowerBound */, nil /* upperBound */)
+		c.rangeKeyInterleaving.Init(c.comparer, pointKeyIter, di, keyspan.InterleavingIterOpts{})
 		return &c.rangeKeyInterleaving, nil
 	}
 
@@ -1667,8 +1680,9 @@ func (d *DB) addInProgressCompaction(c *compaction) {
 // indicates whether the compaction state should be rolled back to its original
 // state in the case of an unsuccessful compaction.
 //
-// DB.mu must be held when calling this method. All writes to the manifest for
-// this compaction should have completed by this point.
+// DB.mu must be held when calling this method, however this method can drop and
+// re-acquire that mutex. All writes to the manifest for this compaction should
+// have completed by this point.
 func (d *DB) clearCompactingState(c *compaction, rollback bool) {
 	c.versionEditApplied = true
 	for _, cl := range c.inputs {
@@ -1695,7 +1709,17 @@ func (d *DB) clearCompactingState(c *compaction, rollback bool) {
 		}
 	}
 	l0InProgress := inProgressL0Compactions(d.getInProgressCompactionInfoLocked(c))
-	d.mu.versions.currentVersion().L0Sublevels.InitCompactingFileInfo(l0InProgress)
+	func() {
+		// InitCompactingFileInfo requires that no other manifest writes be
+		// happening in parallel with it, i.e. we're not in the midst of installing
+		// another version. Otherwise, it's possible that we've created another
+		// L0Sublevels instance, but not added it to the versions list, causing
+		// all the indices in FileMetadata to be inaccurate. To ensure this,
+		// grab the manifest lock.
+		d.mu.versions.logLock()
+		defer d.mu.versions.logUnlock()
+		d.mu.versions.currentVersion().L0Sublevels.InitCompactingFileInfo(l0InProgress)
+	}()
 }
 
 func (d *DB) calculateDiskAvailableBytes() uint64 {
@@ -1705,10 +1729,6 @@ func (d *DB) calculateDiskAvailableBytes() uint64 {
 	} else if !errors.Is(err, vfs.ErrUnsupported) {
 		d.opts.EventListener.BackgroundError(err)
 	}
-	return d.diskAvailBytes.Load()
-}
-
-func (d *DB) getDiskAvailableBytesCached() uint64 {
 	return d.diskAvailBytes.Load()
 }
 
@@ -1763,7 +1783,7 @@ func (d *DB) passedFlushThreshold() bool {
 		if d.mu.mem.queue[n].flushForced {
 			// A flush was forced. Pretend the memtable size is the configured
 			// size. See minFlushSize below.
-			size += uint64(d.opts.MemTableSize)
+			size += d.opts.MemTableSize
 		} else {
 			size += d.mu.mem.queue[n].totalBytes()
 		}
@@ -1777,7 +1797,7 @@ func (d *DB) passedFlushThreshold() bool {
 	// configured memtable size. This prevents flushing of memtables at startup
 	// while we're undergoing the ramp period on the memtable size. See
 	// DB.newMemTable().
-	minFlushSize := uint64(d.opts.MemTableSize) / 2
+	minFlushSize := d.opts.MemTableSize / 2
 	return size >= minFlushSize
 }
 
@@ -1827,8 +1847,8 @@ func (d *DB) maybeScheduleDelayedFlush(tbl *memTable, dur time.Duration) {
 				d.makeRoomForWrite(nil)
 			} else {
 				mem.flushForced = true
-				d.maybeScheduleFlush()
 			}
+			d.maybeScheduleFlush()
 		}
 	}()
 }
@@ -1894,8 +1914,6 @@ func (d *DB) runIngestFlush(c *compaction) (*manifest.VersionEdit, error) {
 			levelMetrics = &LevelMetrics{}
 			c.metrics[level] = levelMetrics
 		}
-		levelMetrics.NumFiles++
-		levelMetrics.Size += int64(file.Size)
 		levelMetrics.BytesIngested += file.Size
 		levelMetrics.TablesIngested++
 	}
@@ -1937,8 +1955,7 @@ func (d *DB) flush1() (bytesFlushed uint64, err error) {
 	// the commitPipeline.mu and then holding DB.mu. As an extra defensive
 	// measure, if we try to flush the memtable without also flushing the
 	// flushable batch in the same flush, since the memtable and flushableBatch
-	// have the same logNum, the errFlushInvariant check below will trigger and
-	// prevent the flush from continuing.
+	// have the same logNum, the logNum invariant check below will trigger.
 	var n, inputs int
 	var inputBytes uint64
 	var ingest bool
@@ -1986,9 +2003,11 @@ func (d *DB) flush1() (bytesFlushed uint64, err error) {
 	minUnflushedLogNum := d.mu.mem.queue[n].logNum
 	if !d.opts.DisableWAL {
 		for i := 0; i < n; i++ {
-			logNum := d.mu.mem.queue[i].logNum
-			if logNum >= minUnflushedLogNum {
-				return 0, errFlushInvariant
+			if logNum := d.mu.mem.queue[i].logNum; logNum >= minUnflushedLogNum {
+				panic(errors.AssertionFailedf("logNum invariant violated: flushing %d items; %d:type=%T,logNum=%d; %d:type=%T,logNum=%d",
+					n,
+					i, d.mu.mem.queue[i].flushable, logNum,
+					n, d.mu.mem.queue[n].flushable, minUnflushedLogNum))
 			}
 		}
 	}
@@ -2103,7 +2122,7 @@ func (d *DB) flush1() (bytesFlushed uint64, err error) {
 	d.maybeUpdateDeleteCompactionHints(c)
 	d.clearCompactingState(c, err != nil)
 	delete(d.mu.compact.inProgress, c)
-	d.mu.versions.incrementCompactions(c.kind, c.extraLevels)
+	d.mu.versions.incrementCompactions(c.kind, c.extraLevels, c.pickerMetrics)
 
 	var flushed flushableList
 	if err == nil {
@@ -2236,6 +2255,7 @@ func (d *DB) maybeScheduleCompactionPicker(
 	}
 
 	env := compactionEnv{
+		diskAvailBytes:          d.diskAvailBytes.Load(),
 		earliestSnapshotSeqNum:  d.mu.snapshots.earliest(),
 		earliestUnflushedSeqNum: d.getEarliestUnflushedSeqNumLocked(),
 	}
@@ -2260,9 +2280,10 @@ func (d *DB) maybeScheduleCompactionPicker(
 	}
 
 	for len(d.mu.compact.manual) > 0 && d.mu.compact.compactingCount < maxConcurrentCompactions {
+		v := d.mu.versions.currentVersion()
 		manual := d.mu.compact.manual[0]
 		env.inProgressCompactions = d.getInProgressCompactionInfoLocked(nil)
-		pc, retryLater := d.mu.versions.picker.pickManual(env, manual)
+		pc, retryLater := pickManualCompaction(v, d.opts, env, d.mu.versions.picker.getBaseLevel(), manual)
 		if pc != nil {
 			c := newCompaction(pc, d.opts, d.timeNow())
 			d.mu.compact.manual = d.mu.compact.manual[1:]
@@ -2669,7 +2690,7 @@ func (d *DB) compact1(c *compaction, errChannel chan error) (err error) {
 	// NB: clearing compacting state must occur before updating the read state;
 	// L0Sublevels initialization depends on it.
 	d.clearCompactingState(c, err != nil)
-	d.mu.versions.incrementCompactions(c.kind, c.extraLevels)
+	d.mu.versions.incrementCompactions(c.kind, c.extraLevels, c.pickerMetrics)
 	d.mu.versions.incrementCompactionBytes(-c.bytesWritten)
 
 	info.TotalDuration = d.timeNow().Sub(c.beganAt)
@@ -2728,8 +2749,6 @@ func (d *DB) runCompaction(
 			levelMetrics := &LevelMetrics{}
 			iter := cl.files.Iter()
 			for f := iter.First(); f != nil; f = iter.Next() {
-				levelMetrics.NumFiles--
-				levelMetrics.Size -= int64(f.Size)
 				ve.DeletedFiles[deletedFileEntry{
 					Level:   cl.level,
 					FileNum: f.FileNum,
@@ -2752,13 +2771,7 @@ func (d *DB) runCompaction(
 		iter := c.startLevel.files.Iter()
 		meta := iter.First()
 		c.metrics = map[int]*LevelMetrics{
-			c.startLevel.level: {
-				NumFiles: -1,
-				Size:     -int64(meta.Size),
-			},
 			c.outputLevel.level: {
-				NumFiles:    1,
-				Size:        int64(meta.Size),
 				BytesMoved:  meta.Size,
 				TablesMoved: 1,
 			},
@@ -2782,6 +2795,22 @@ func (d *DB) runCompaction(
 
 	snapshots := d.mu.snapshots.toSlice()
 	formatVers := d.FormatMajorVersion()
+
+	if c.flushing == nil {
+		// Before dropping the db mutex, grab a ref to the current version. This
+		// prevents any concurrent excises from deleting files that this compaction
+		// needs to read/maintain a reference to.
+		//
+		// Note that unlike user iterators, compactionIter does not maintain a ref
+		// of the version or read state.
+		vers := d.mu.versions.currentVersion()
+		vers.Ref()
+		defer vers.UnrefLocked()
+	}
+
+	if c.cancel.Load() {
+		return ve, nil, stats, errCancelledCompaction
+	}
 
 	// Release the d.mu lock while doing I/O.
 	// Note the unusual order: Unlock and then Lock.
@@ -2819,6 +2848,7 @@ func (d *DB) runCompaction(
 		return nil, pendingOutputs, stats, err
 	}
 	c.allowedZeroSeqNum = c.allowZeroSeqNum()
+	iiter = invalidating.MaybeWrapIfInvariants(iiter)
 	iter := newCompactionIter(c.cmp, c.equal, c.formatKey, d.merge, iiter, snapshots,
 		&c.rangeDelFrag, &c.rangeKeyFrag, c.allowedZeroSeqNum, c.elideTombstone,
 		c.elideRangeTombstone, d.FormatMajorVersion())
@@ -2851,8 +2881,9 @@ func (d *DB) runCompaction(
 		DeletedFiles: map[deletedFileEntry]*fileMetadata{},
 	}
 
+	startLevelBytes := c.startLevel.files.SizeSum()
 	outputMetrics := &LevelMetrics{
-		BytesIn:   c.startLevel.files.SizeSum(),
+		BytesIn:   startLevelBytes,
 		BytesRead: c.outputLevel.files.SizeSum(),
 	}
 	if len(c.extraLevels) > 0 {
@@ -2868,6 +2899,9 @@ func (d *DB) runCompaction(
 	}
 	if len(c.extraLevels) > 0 {
 		c.metrics[c.extraLevels[0].level] = &LevelMetrics{}
+		outputMetrics.MultiLevel.BytesInTop = startLevelBytes
+		outputMetrics.MultiLevel.BytesIn = outputMetrics.BytesIn
+		outputMetrics.MultiLevel.BytesRead = outputMetrics.BytesRead
 	}
 
 	// The table is typically written at the maximum allowable format implied by
@@ -3383,8 +3417,6 @@ func (d *DB) runCompaction(
 	for _, cl := range c.inputs {
 		iter := cl.files.Iter()
 		for f := iter.First(); f != nil; f = iter.Next() {
-			c.metrics[cl.level].NumFiles--
-			c.metrics[cl.level].Size -= int64(f.Size)
 			ve.DeletedFiles[deletedFileEntry{
 				Level:   cl.level,
 				FileNum: f.FileNum,

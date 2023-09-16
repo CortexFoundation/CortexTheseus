@@ -11,7 +11,7 @@ features which the standard json package cannot offer.
 
 	gencodec -type MyType -formats json,yaml,toml -out mytype_json.go
 
-Struct Tags
+# Struct Tags
 
 The gencodec:"required" tag can be used to generate a presence check for the field.
 The generated unmarshaling method returns an error if a required field is missing.
@@ -27,7 +27,7 @@ Example:
 		Renamed  string `json:"otherName"`
 	}
 
-Field Type Overrides
+# Field Type Overrides
 
 An invocation of gencodec can specify an additional 'field override' struct from which
 marshaling type replacements are taken. If the override struct contains a field whose name
@@ -52,7 +52,7 @@ field is ignored.
 	}
 
 	func (f foo) Func() string {
-	    return f.Field + "-" + f.SpecialField
+		return f.Field + "-" + f.SpecialField
 	}
 
 	type fooMarshaling struct {
@@ -60,7 +60,7 @@ field is ignored.
 		Func string `json:"id"`    // adds the result of foo.Func() to the serialised object under the key id
 	}
 
-Relaxed Field Conversions
+# Relaxed Field Conversions
 
 Field types in the override struct must be trivially convertible to the original field
 type. gencodec's definition of 'convertible' is less restrictive than the usual rules
@@ -107,6 +107,22 @@ The generated code is similar to this snippet:
 		...
 	}
 
+Conversions between slices and arrays are supported. Example input code:
+
+	type Foo3 struct{ A [2]string }
+
+	type foo3Marshaling struct{ A []string }
+
+The generated code is similar to this snippet:
+
+	func (f *Foo3) UnmarshalJSON(input []byte) error {
+		var dec struct{ A []string }
+		...
+		for i, v := range dec.A {
+			f.A[i] = string(v)
+		}
+		...
+	}
 */
 package main
 

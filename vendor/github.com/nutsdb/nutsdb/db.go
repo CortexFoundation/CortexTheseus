@@ -28,39 +28,11 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gofrs/flock"
 	"github.com/xujiajun/utils/filesystem"
 	"github.com/xujiajun/utils/strconv2"
-)
-
-var (
-	// ErrDBClosed is returned when db is closed.
-	ErrDBClosed = errors.New("db is closed")
-
-	// ErrBucket is returned when bucket is not in the HintIdx.
-	ErrBucket = errors.New("err bucket")
-
-	// ErrFn is returned when fn is nil.
-	ErrFn = errors.New("err fn")
-
-	// ErrBucketNotFound is returned when looking for bucket that does not exist
-	ErrBucketNotFound = errors.New("bucket not found")
-
-	// ErrDataStructureNotSupported is returned when pass a not supported data structure
-	ErrDataStructureNotSupported = errors.New("this data structure is not supported for now")
-
-	// ErrNotSupportHintBPTSparseIdxMode is returned not support mode `HintBPTSparseIdxMode`
-	ErrNotSupportHintBPTSparseIdxMode = errors.New("not support mode `HintBPTSparseIdxMode`")
-
-	// ErrDirLocked is returned when can't get the file lock of dir
-	ErrDirLocked = errors.New("the dir of db is locked")
-
-	// ErrDirUnlocked is returned when the file lock already unlocked
-	ErrDirUnlocked = errors.New("the dir of db is unlocked")
-
-	// ErrIsMerging is returned when merge in progress
-	ErrIsMerging = errors.New("merge in progress")
 )
 
 const (
@@ -148,8 +120,8 @@ const (
 	// DataStructureSortedSet represents the data structure sorted set flag
 	DataStructureSortedSet
 
-	// DataStructureTree represents the data structure b+ tree or b tree flag
-	DataStructureTree
+	// DataStructureBTree represents the data structure b tree flag
+	DataStructureBTree
 
 	// DataStructureList represents the data structure list flag
 	DataStructureList
@@ -163,56 +135,40 @@ const FLockName = "nutsdb-flock"
 type (
 	// DB represents a collection of buckets that persist on disk.
 	DB struct {
-		opt                     Options // the database options
-		BTreeIdx                BTreeIdx
-		BPTreeRootIdxes         []*BPTreeRootIdx
-		BPTreeKeyEntryPosMap    map[string]int64 // key = bucket+key  val = EntryPos
-		bucketMetas             BucketMetasIdx
-		SetIdx                  SetIdx
-		SortedSetIdx            SortedSetIdx
-		Index                   *index
-		ActiveFile              *DataFile
-		ActiveBPTreeIdx         *BPTree
-		ActiveCommittedTxIdsIdx *BPTree
-		MaxFileID               int64
-		mu                      sync.RWMutex
-		KeyCount                int // total key number ,include expired, deleted, repeated.
-		closed                  bool
-		isMerging               bool
-		fm                      *fileManager
-		flock                   *flock.Flock
-		commitBuffer            *bytes.Buffer
-		mergeStartCh            chan struct{}
-		mergeEndCh              chan error
-		mergeWorkCloseCh        chan struct{}
-		writeCh                 chan *request
+		opt              Options // the database options
+		Index            *index
+		ActiveFile       *DataFile
+		MaxFileID        int64
+		mu               sync.RWMutex
+		KeyCount         int // total key number ,include expired, deleted, repeated.
+		closed           bool
+		isMerging        bool
+		fm               *fileManager
+		flock            *flock.Flock
+		commitBuffer     *bytes.Buffer
+		mergeStartCh     chan struct{}
+		mergeEndCh       chan error
+		mergeWorkCloseCh chan struct{}
+		writeCh          chan *request
+		tm               *ttlManager
+		RecordCount      int64 // current valid record count, exclude deleted, repeated
 	}
-
-	// BucketMetasIdx represents the index of the bucket's meta-information
-	BucketMetasIdx map[string]*BucketMeta
 )
 
 // open returns a newly initialized DB object.
 func open(opt Options) (*DB, error) {
 	db := &DB{
-		//BPTreeIdx:               make(BPTreeIdx),
-		BTreeIdx:                make(BTreeIdx),
-		SetIdx:                  make(SetIdx),
-		SortedSetIdx:            make(SortedSetIdx),
-		ActiveBPTreeIdx:         NewTree(),
-		MaxFileID:               0,
-		opt:                     opt,
-		KeyCount:                0,
-		closed:                  false,
-		BPTreeKeyEntryPosMap:    make(map[string]int64),
-		bucketMetas:             make(map[string]*BucketMeta),
-		ActiveCommittedTxIdsIdx: NewTree(),
-		Index:                   NewIndex(),
-		fm:                      newFileManager(opt.RWMode, opt.MaxFdNumsInCache, opt.CleanFdsCacheThreshold),
-		mergeStartCh:            make(chan struct{}),
-		mergeEndCh:              make(chan error),
-		mergeWorkCloseCh:        make(chan struct{}),
-		writeCh:                 make(chan *request, KvWriteChCapacity),
+		MaxFileID:        0,
+		opt:              opt,
+		KeyCount:         0,
+		closed:           false,
+		Index:            newIndex(),
+		fm:               newFileManager(opt.RWMode, opt.MaxFdNumsInCache, opt.CleanFdsCacheThreshold),
+		mergeStartCh:     make(chan struct{}),
+		mergeEndCh:       make(chan error),
+		mergeWorkCloseCh: make(chan struct{}),
+		writeCh:          make(chan *request, KvWriteChCapacity),
+		tm:               newTTLManager(opt.ExpiredDeleteType),
 	}
 
 	commitBuffer := new(bytes.Buffer)
@@ -234,28 +190,13 @@ func open(opt Options) (*DB, error) {
 
 	db.flock = flock
 
-	if err := db.checkEntryIdxMode(); err != nil {
-		return nil, err
-	}
-
-	if opt.EntryIdxMode == HintBPTSparseIdxMode {
-		for _, subDir := range []string{
-			path.Join(db.opt.Dir, bptDir, "root"),
-			path.Join(db.opt.Dir, bptDir, "txid"),
-			path.Join(db.opt.Dir, "meta/bucket"),
-		} {
-			if err := createDirIfNotExist(subDir); err != nil {
-				return nil, err
-			}
-		}
-	}
-
 	if err := db.buildIndexes(); err != nil {
 		return nil, fmt.Errorf("db.buildIndexes error: %s", err)
 	}
 
 	go db.mergeWorker()
 	go db.doWrites()
+	go db.tm.run()
 
 	return db, nil
 }
@@ -267,42 +208,6 @@ func Open(options Options, ops ...Option) (*DB, error) {
 		do(opts)
 	}
 	return open(*opts)
-}
-
-func (db *DB) checkEntryIdxMode() error {
-	hasDataFlag := false
-	hasBptDirFlag := false
-
-	files, err := ioutil.ReadDir(db.opt.Dir)
-	if err != nil {
-		return err
-	}
-
-	for _, f := range files {
-		id := f.Name()
-
-		fileSuffix := path.Ext(path.Base(id))
-		if fileSuffix == DataSuffix {
-			hasDataFlag = true
-			if hasBptDirFlag {
-				break
-			}
-		}
-
-		if id == bptDir {
-			hasBptDirFlag = true
-		}
-	}
-
-	if db.opt.EntryIdxMode != HintBPTSparseIdxMode && hasDataFlag && hasBptDirFlag {
-		return errors.New("not support HintBPTSparseIdxMode switch to the other EntryIdxMode")
-	}
-
-	if db.opt.EntryIdxMode == HintBPTSparseIdxMode && !hasBptDirFlag && hasDataFlag {
-		return errors.New("not support the other EntryIdxMode switch to HintBPTSparseIdxMode")
-	}
-
-	return nil
 }
 
 // Update executes a function within a managed read/write transaction.
@@ -365,23 +270,9 @@ func (db *DB) release() error {
 		return err
 	}
 
-	db.BTreeIdx = nil
-
-	db.BPTreeKeyEntryPosMap = nil
-
-	db.bucketMetas = nil
-
-	db.SetIdx = nil
-
-	db.SortedSetIdx = nil
-
 	db.Index = nil
 
 	db.ActiveFile = nil
-
-	db.ActiveBPTreeIdx = nil
-
-	db.ActiveCommittedTxIdsIdx = nil
 
 	err = db.fm.close()
 
@@ -402,6 +293,8 @@ func (db *DB) release() error {
 
 	db.fm = nil
 
+	db.tm.close()
+
 	db = nil
 
 	if GCEnable {
@@ -416,8 +309,8 @@ func (db *DB) getValueByRecord(r *Record) ([]byte, error) {
 		return nil, errors.New("the record is nil")
 	}
 
-	if r.E != nil {
-		return r.E.Value, nil
+	if r.V != nil {
+		return r.V, nil
 	}
 
 	e, err := db.getEntryByHint(r.H)
@@ -459,7 +352,7 @@ func (db *DB) commitTransaction(tx *Tx) error {
 			panicked = true
 		}
 		if panicked || err != nil {
-			//log.Fatal("panicked=", panicked, ", err=", err)
+			// log.Fatal("panicked=", panicked, ", err=", err)
 			if errRollback := tx.Rollback(); errRollback != nil {
 				err = errRollback
 			}
@@ -471,7 +364,7 @@ func (db *DB) commitTransaction(tx *Tx) error {
 	tx.setStatusRunning()
 	err = tx.Commit()
 	if err != nil {
-		//log.Fatal("txCommit fail,err=", err)
+		// log.Fatal("txCommit fail,err=", err)
 		return err
 	}
 
@@ -511,6 +404,10 @@ func (db *DB) getMaxBatchCount() int64 {
 // MaxBatchSize returns max possible batch size
 func (db *DB) getMaxBatchSize() int64 {
 	return db.opt.MaxBatchSize
+}
+
+func (db *DB) getMaxWriteRecordCount() int64 {
+	return db.opt.MaxWriteRecordCount
 }
 
 func (db *DB) doWrites() {
@@ -622,58 +519,27 @@ func (db *DB) parseDataFiles(dataFileIds []int) (err error) {
 
 	parseDataInTx := func() error {
 		for _, entry := range dataInTx.es {
-			off := dataInTx.startOff
+			h := NewHint().WithKey(entry.Key).WithFileId(entry.fid).WithMeta(entry.Meta).WithDataPos(uint64(entry.off))
+			// This method is entered when the commit record of a transaction is read
+			// So all records of this transaction should be committed
+			h.Meta.Status = Committed
+			r := NewRecord().WithBucket(entry.GetBucketString()).WithValue(entry.Value).WithHint(h)
 
-			if entry.Meta.Status == Committed {
-				meta := NewMetaData().WithFlag(DataSetFlag)
-				h := NewHint().WithMeta(meta)
-				err := db.ActiveCommittedTxIdsIdx.Insert(entry.GetTxIDBytes(), nil, h, CountFlagEnabled)
-				if err != nil {
-					return fmt.Errorf("can not ingest the hint obj to ActiveCommittedTxIdsIdx, err: %s", err.Error())
-				}
-			}
-
-			h := NewHint().WithKey(entry.Key).WithFileId(fID).WithMeta(entry.Meta).WithDataPos(uint64(off))
-			r := NewRecord().WithHint(h).WithEntry(entry).WithBucket(entry.GetBucketString())
-
-			if db.opt.EntryIdxMode == HintBPTSparseIdxMode {
-				db.BPTreeKeyEntryPosMap[string(getNewKey(string(entry.Bucket), entry.Key))] = off
-			}
-
-			bucket := r.Bucket
-
-			if r.H.Meta.Ds == DataStructureTree {
-				if db.opt.EntryIdxMode == HintKeyAndRAMIdxMode {
-					r.E = nil
-				}
-
-				r.H.Meta.Status = Committed
-
-				if db.opt.EntryIdxMode == HintBPTSparseIdxMode {
-					if err = db.buildActiveBPTreeIdx(r); err != nil {
-						return err
-					}
-				} else {
-					db.buildBTreeIdx(bucket, r)
-				}
+			if r.H.Meta.Ds == DataStructureNone {
+				db.buildNotDSIdxes(r)
 			} else {
-				if r.H.Meta.Ds == DataStructureNone {
-					db.buildNotDSIdxes(bucket, r)
-				} else {
-					if err = db.buildOtherIdxes(bucket, r); err != nil {
-						return err
-					}
+				if err = db.buildIdxes(r); err != nil {
+					return err
 				}
 			}
 
 			db.KeyCount++
 
-			off += entry.Size()
 		}
 		return nil
 	}
 
-	var readEntriesFromFile = func() error {
+	readEntriesFromFile := func() error {
 		for {
 			entry, err := f.readEntry()
 			if err != nil {
@@ -693,12 +559,17 @@ func (db *DB) parseDataFiles(dataFileIds []int) (err error) {
 				break
 			}
 
+			entryWhenRecovery := &EntryWhenRecovery{
+				Entry: *entry,
+				fid:   fID,
+				off:   off,
+			}
 			if dataInTx.txId == 0 {
-				dataInTx.appendEntry(entry)
+				dataInTx.appendEntry(entryWhenRecovery)
 				dataInTx.txId = entry.Meta.TxID
 				dataInTx.startOff = off
-			} else if dataInTx.isSameTx(entry) {
-				dataInTx.appendEntry(entry)
+			} else if dataInTx.isSameTx(entryWhenRecovery) {
+				dataInTx.appendEntry(entryWhenRecovery)
 			}
 
 			if entry.Meta.Status == Committed {
@@ -710,7 +581,7 @@ func (db *DB) parseDataFiles(dataFileIds []int) (err error) {
 				dataInTx.startOff = off
 			}
 
-			if !dataInTx.isSameTx(entry) {
+			if !dataInTx.isSameTx(entryWhenRecovery) {
 				dataInTx.reset()
 				dataInTx.startOff = off
 			}
@@ -724,10 +595,6 @@ func (db *DB) parseDataFiles(dataFileIds []int) (err error) {
 		}
 
 		return nil
-	}
-
-	if db.opt.EntryIdxMode == HintBPTSparseIdxMode {
-		dataFileIds = dataFileIds[len(dataFileIds)-1:]
 	}
 
 	for _, dataID := range dataFileIds {
@@ -744,180 +611,158 @@ func (db *DB) parseDataFiles(dataFileIds []int) (err error) {
 		}
 	}
 
-	if HintBPTSparseIdxMode == db.opt.EntryIdxMode {
-		if err = db.buildBPTreeRootIdxes(dataFileIds); err != nil {
-			return err
-		}
-	}
-
+	// compute the valid record count and save it in db.RecordCount
+	db.RecordCount, err = db.getRecordCount()
 	return
 }
 
-func (db *DB) buildBPTreeRootIdxes(dataFileIds []int) error {
-	var off int64
+func (db *DB) getRecordCount() (int64, error) {
+	var res int64
 
-	dataFileIdsSize := len(dataFileIds)
-
-	if dataFileIdsSize == 1 {
-		return nil
+	// Iterate through the BTree indices
+	for _, btree := range db.Index.bTree.idx {
+		res += int64(btree.Count())
 	}
 
-	for i := 0; i < len(dataFileIds[0:dataFileIdsSize-1]); i++ {
-		off = 0
-		path := getBPTRootPath(int64(dataFileIds[i]), db.opt.Dir)
-		fd, err := os.OpenFile(filepath.Clean(path), os.O_RDWR, os.ModePerm)
-		if err != nil {
-			return err
-		}
-
-		for {
-			bs, err := ReadBPTreeRootIdxAt(fd, off)
-
+	// Iterate through the List indices
+	for _, listItem := range db.Index.list.idx {
+		for key := range listItem.Items {
+			curLen, err := listItem.Size(key)
 			if err != nil {
-				if err == io.EOF || err == nil && bs == nil {
-					break
-				}
-				return err
+				return res, err
 			}
-
-			if err == nil && bs != nil {
-				db.BPTreeRootIdxes = append(db.BPTreeRootIdxes, bs)
-				off += bs.Size()
-			}
-
+			res += int64(curLen)
 		}
-
-		fd.Close()
 	}
 
-	return nil
+	// Iterate through the Set indices
+	for _, setItem := range db.Index.set.idx {
+		for key := range setItem.M {
+			res += int64(setItem.SCard(key))
+		}
+	}
+
+	// Iterate through the SortedSet indices
+	for _, zsetItem := range db.Index.sortedSet.idx {
+		for key := range zsetItem.M {
+			curLen, err := zsetItem.ZCard(key)
+			if err != nil {
+				return res, err
+			}
+			res += int64(curLen)
+		}
+	}
+
+	return res, nil
 }
 
-func (db *DB) buildBTreeIdx(bucket string, r *Record) {
+func (db *DB) buildBTreeIdx(r *Record) {
+	db.resetRecordByMode(r)
+
+	bucket, key, meta := r.Bucket, r.H.Key, r.H.Meta
+	b := db.Index.bTree.getWithDefault(bucket)
+
 	if r.IsExpired() {
+		db.tm.del(bucket, string(key))
+		b.Delete(key)
 		return
 	}
 
-	if _, ok := db.BTreeIdx[bucket]; !ok {
-		db.BTreeIdx[bucket] = NewBTree()
-	}
-
-	key := r.H.Key
-
-	if r.H.Meta.Flag == DataDeleteFlag {
-		db.BTreeIdx[bucket].Delete(key)
+	if meta.Flag == DataDeleteFlag {
+		db.tm.del(bucket, string(key))
+		b.Delete(key)
 	} else {
-		db.BTreeIdx[bucket].Insert(key, r.E, r.H)
-	}
-}
+		if meta.TTL != Persistent {
+			now := time.UnixMilli(time.Now().UnixMilli())
+			expireTime := time.UnixMilli(int64(meta.Timestamp))
+			expireTime = expireTime.Add(time.Duration(int64(meta.TTL)) * time.Second)
+			expire := expireTime.Sub(now)
 
-func (db *DB) buildActiveBPTreeIdx(r *Record) error {
-	newKey := getNewKey(r.Bucket, r.H.Key)
-	if err := db.ActiveBPTreeIdx.Insert(newKey, r.E, r.H, CountFlagEnabled); err != nil {
-		return fmt.Errorf("when build BPTreeIdx insert index err: %s", err)
-	}
-
-	return nil
-}
-
-func (db *DB) buildBucketMetaIdx() error {
-	if db.opt.EntryIdxMode == HintBPTSparseIdxMode {
-		files, err := ioutil.ReadDir(getBucketMetaPath(db.opt.Dir))
-		if err != nil {
-			return err
-		}
-
-		if len(files) != 0 {
-			for _, f := range files {
-				name := f.Name()
-				fileSuffix := path.Ext(path.Base(name))
-				if fileSuffix != BucketMetaSuffix {
-					continue
-				}
-
-				name = strings.TrimSuffix(name, BucketMetaSuffix)
-
-				bucketMeta, err := ReadBucketMeta(getBucketMetaFilePath(name, db.opt.Dir))
-				if err == io.EOF {
-					break
-				}
+			callback := func() {
+				err := db.Update(func(tx *Tx) error {
+					if tx.db.tm.exist(bucket, string(key)) {
+						return tx.Delete(bucket, key)
+					}
+					return nil
+				})
 				if err != nil {
-					return err
+					log.Printf("occur error when expired deletion, error: %v", err.Error())
 				}
-
-				db.bucketMetas[name] = bucketMeta
 			}
+
+			db.tm.add(bucket, string(key), expire, callback)
+		} else {
+			db.tm.del(bucket, string(key))
+		}
+
+		b.Insert(key, r.V, r.H)
+	}
+}
+
+func (db *DB) buildIdxes(r *Record) error {
+	switch r.H.Meta.Ds {
+	case DataStructureBTree:
+		db.buildBTreeIdx(r)
+	case DataStructureList:
+		if err := db.buildListIdx(r); err != nil {
+			return err
+		}
+	case DataStructureSet:
+		if err := db.buildSetIdx(r); err != nil {
+			return err
+		}
+	case DataStructureSortedSet:
+		if err := db.buildSortedSetIdx(r); err != nil {
+			return err
 		}
 	}
-
 	return nil
 }
 
-func (db *DB) buildOtherIdxes(bucket string, r *Record) error {
-	if r.H.Meta.Ds == DataStructureSet {
-		if err := db.buildSetIdx(bucket, r); err != nil {
-			return err
-		}
-	} else if r.H.Meta.Ds == DataStructureSortedSet {
-		if err := db.buildSortedSetIdx(bucket, r); err != nil {
-			return err
-		}
-	} else if r.H.Meta.Ds == DataStructureList {
-		if err := db.buildListIdx(bucket, r); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (db *DB) buildNotDSIdxes(bucket string, r *Record) {
+func (db *DB) buildNotDSIdxes(r *Record) {
 	if r.H.Meta.Flag == DataSetBucketDeleteFlag {
-		db.deleteBucket(DataStructureSet, bucket)
+		db.deleteBucket(DataStructureSet, r.Bucket)
 	}
 	if r.H.Meta.Flag == DataSortedSetBucketDeleteFlag {
-		db.deleteBucket(DataStructureSortedSet, bucket)
+		db.deleteBucket(DataStructureSortedSet, r.Bucket)
 	}
 	if r.H.Meta.Flag == DataBPTreeBucketDeleteFlag {
-		db.deleteBucket(DataStructureTree, bucket)
+		db.deleteBucket(DataStructureBTree, r.Bucket)
 	}
 	if r.H.Meta.Flag == DataListBucketDeleteFlag {
-		db.deleteBucket(DataStructureList, bucket)
+		db.deleteBucket(DataStructureList, r.Bucket)
 	}
 }
 
 func (db *DB) deleteBucket(ds uint16, bucket string) {
 	if ds == DataStructureSet {
-		delete(db.SetIdx, bucket)
+		db.Index.set.delete(bucket)
 	}
 	if ds == DataStructureSortedSet {
-		delete(db.SortedSetIdx, bucket)
+		db.Index.sortedSet.delete(bucket)
 	}
-	if ds == DataStructureTree {
-		delete(db.BTreeIdx, bucket)
+	if ds == DataStructureBTree {
+		db.Index.bTree.delete(bucket)
 	}
 	if ds == DataStructureList {
-		db.Index.deleteList(bucket)
+		db.Index.list.delete(bucket)
 	}
 }
 
 // buildSetIdx builds set index when opening the DB.
-func (db *DB) buildSetIdx(bucket string, r *Record) error {
-	if _, ok := db.SetIdx[bucket]; !ok {
-		db.SetIdx[bucket] = NewSet()
-	}
-
-	key, val, meta := r.E.Key, r.E.Value, r.E.Meta
+func (db *DB) buildSetIdx(r *Record) error {
+	bucket, key, val, meta := r.Bucket, r.H.Key, r.V, r.H.Meta
 	db.resetRecordByMode(r)
 
-	if meta.Flag == DataSetFlag {
-		if err := db.SetIdx[bucket].SAdd(string(key), [][]byte{val}, []*Record{r}); err != nil {
+	s := db.Index.set.getWithDefault(bucket)
+
+	switch meta.Flag {
+	case DataSetFlag:
+		if err := s.SAdd(string(key), [][]byte{val}, []*Record{r}); err != nil {
 			return fmt.Errorf("when build SetIdx SAdd index err: %s", err)
 		}
-	}
-
-	if meta.Flag == DataDeleteFlag {
-		if err := db.SetIdx[bucket].SRem(string(key), val); err != nil {
+	case DataDeleteFlag:
+		if err := s.SRem(string(key), val); err != nil {
 			return fmt.Errorf("when build SetIdx SRem index err: %s", err)
 		}
 	}
@@ -926,120 +771,106 @@ func (db *DB) buildSetIdx(bucket string, r *Record) error {
 }
 
 // buildSortedSetIdx builds sorted set index when opening the DB.
-func (db *DB) buildSortedSetIdx(bucket string, r *Record) error {
-	if _, ok := db.SortedSetIdx[bucket]; !ok {
-		db.SortedSetIdx[bucket] = NewSortedSet(db)
-	}
-
-	key, val, meta := r.E.Key, r.E.Value, r.E.Meta
+func (db *DB) buildSortedSetIdx(r *Record) error {
+	bucket, key, val, meta := r.Bucket, r.H.Key, r.V, r.H.Meta
 	db.resetRecordByMode(r)
 
-	if meta.Flag == DataZAddFlag {
+	ss := db.Index.sortedSet.getWithDefault(bucket, db)
+
+	var err error
+
+	switch meta.Flag {
+	case DataZAddFlag:
 		keyAndScore := strings.Split(string(key), SeparatorForZSetKey)
 		if len(keyAndScore) == 2 {
 			key := keyAndScore[0]
 			score, _ := strconv2.StrToFloat64(keyAndScore[1])
-			value := val
-			db.resetRecordByMode(r)
-			_ = db.SortedSetIdx[bucket].ZAdd(key, SCORE(score), value, r)
+			err = ss.ZAdd(key, SCORE(score), val, r)
 		}
-	}
-	if meta.Flag == DataZRemFlag {
-		_, _ = db.SortedSetIdx[bucket].ZRem(string(key), val)
-	}
-	if meta.Flag == DataZRemRangeByRankFlag {
+	case DataZRemFlag:
+		_, err = ss.ZRem(string(key), val)
+	case DataZRemRangeByRankFlag:
 		startAndEnd := strings.Split(string(val), SeparatorForZSetKey)
 		start, _ := strconv2.StrToInt(startAndEnd[0])
 		end, _ := strconv2.StrToInt(startAndEnd[1])
-		_ = db.SortedSetIdx[bucket].ZRemRangeByRank(string(key), start, end)
+		err = ss.ZRemRangeByRank(string(key), start, end)
+	case DataZPopMaxFlag:
+		_, _, err = ss.ZPopMax(string(key))
+	case DataZPopMinFlag:
+		_, _, err = ss.ZPopMin(string(key))
 	}
-	if meta.Flag == DataZPopMaxFlag {
-		_, _, _ = db.SortedSetIdx[bucket].ZPopMax(string(key))
-	}
-	if meta.Flag == DataZPopMinFlag {
-		_, _, _ = db.SortedSetIdx[bucket].ZPopMin(string(key))
+
+	if err != nil {
+		return fmt.Errorf("when build sortedSetIdx err: %s", err)
 	}
 
 	return nil
 }
 
 // buildListIdx builds List index when opening the DB.
-func (db *DB) buildListIdx(bucket string, r *Record) error {
-	l := db.Index.getList(bucket)
-
-	key, val, meta := r.E.Key, r.E.Value, r.E.Meta
+func (db *DB) buildListIdx(r *Record) error {
+	bucket, key, val, meta := r.Bucket, r.H.Key, r.V, r.H.Meta
 	db.resetRecordByMode(r)
+
+	l := db.Index.list.getWithDefault(bucket)
 
 	if IsExpired(meta.TTL, meta.Timestamp) {
 		return nil
 	}
 
+	var err error
+
 	switch meta.Flag {
 	case DataExpireListFlag:
-		t, err := strconv2.StrToInt64(string(val))
-		if err != nil {
-			return err
-		}
+		t, _ := strconv2.StrToInt64(string(val))
 		ttl := uint32(t)
 		l.TTL[string(key)] = ttl
 		l.TimeStamp[string(key)] = meta.Timestamp
 	case DataLPushFlag:
-		_ = l.LPush(string(key), r)
+		err = l.LPush(string(key), r)
 	case DataRPushFlag:
-		_ = l.RPush(string(key), r)
+		err = l.RPush(string(key), r)
 	case DataLRemFlag:
 		countAndValueIndex := strings.Split(string(val), SeparatorForListKey)
 		count, _ := strconv2.StrToInt(countAndValueIndex[0])
 		value := []byte(countAndValueIndex[1])
 
-		if err := l.LRem(string(key), count, func(r *Record) (bool, error) {
+		err = l.LRem(string(key), count, func(r *Record) (bool, error) {
 			v, err := db.getValueByRecord(r)
 			if err != nil {
 				return false, err
 			}
 			return bytes.Equal(value, v), nil
-		}); err != nil {
-			return ErrWhenBuildListIdx(err)
-		}
+		})
 	case DataLPopFlag:
-		if _, err := l.LPop(string(key)); err != nil {
-			return ErrWhenBuildListIdx(err)
-		}
+		_, err = l.LPop(string(key))
 	case DataRPopFlag:
-		if _, err := l.RPop(string(key)); err != nil {
-			return ErrWhenBuildListIdx(err)
-		}
+		_, err = l.RPop(string(key))
 	case DataLSetFlag:
 		keyAndIndex := strings.Split(string(key), SeparatorForListKey)
 		newKey := keyAndIndex[0]
 		index, _ := strconv2.StrToInt(keyAndIndex[1])
-		if err := l.LSet(newKey, index, r); err != nil {
-			return ErrWhenBuildListIdx(err)
-		}
+		err = l.LSet(newKey, index, r)
 	case DataLTrimFlag:
 		keyAndStartIndex := strings.Split(string(key), SeparatorForListKey)
 		newKey := keyAndStartIndex[0]
 		start, _ := strconv2.StrToInt(keyAndStartIndex[1])
 		end, _ := strconv2.StrToInt(string(val))
-		if err := l.LTrim(newKey, start, end); err != nil {
-			return ErrWhenBuildListIdx(err)
-		}
+		err = l.LTrim(newKey, start, end)
 	case DataLRemByIndex:
-		indexes, err := UnmarshalInts(val)
+		var indexes []int
+		indexes, err = UnmarshalInts(val)
 		if err != nil {
-			return err
+			break
 		}
-		if err := l.LRemByIndex(string(key), indexes); err != nil {
-			return ErrWhenBuildListIdx(err)
-		}
+		err = l.LRemByIndex(string(key), indexes)
+	}
+
+	if err != nil {
+		return fmt.Errorf("when build listIdx err: %s", err)
 	}
 
 	return nil
-}
-
-// ErrWhenBuildListIdx returns err when build listIdx
-func ErrWhenBuildListIdx(err error) error {
-	return fmt.Errorf("when build listIdx err: %s", err)
 }
 
 // buildIndexes builds indexes when db initialize resource.
@@ -1063,33 +894,13 @@ func (db *DB) buildIndexes() (err error) {
 		return
 	}
 
-	if err = db.buildBucketMetaIdx(); err != nil {
-		return
-	}
-
 	// build hint index
 	return db.parseDataFiles(dataFileIds)
 }
 
-func (db *DB) buildRecordByEntryAndOffset(entry *Entry, offset int64) *Record {
-	var (
-		h *Hint
-		e *Entry
-	)
-	if db.opt.EntryIdxMode == HintKeyAndRAMIdxMode {
-		h = NewHint().WithFileId(db.ActiveFile.fileID).WithKey(entry.Key).WithMeta(entry.Meta).WithDataPos(uint64(offset))
-	} else {
-		e = entry
-	}
-
-	return NewRecord().WithBucket(string(entry.Bucket)).WithEntry(e).WithHint(h)
-}
-
 func (db *DB) resetRecordByMode(record *Record) {
-	if db.opt.EntryIdxMode == HintKeyValAndRAMIdxMode {
-		record.H = nil
-	} else {
-		record.E = nil
+	if db.opt.EntryIdxMode != HintKeyValAndRAMIdxMode {
+		record.V = nil
 	}
 }
 
@@ -1134,7 +945,7 @@ func (db *DB) sendToWriteCh(tx *Tx) (*request, error) {
 }
 
 func (db *DB) checkListExpired() {
-	db.Index.rangeList(func(l *List) {
+	db.Index.list.rangeIdx(func(l *List) {
 		for key := range l.TTL {
 			l.IsExpire(key)
 		}

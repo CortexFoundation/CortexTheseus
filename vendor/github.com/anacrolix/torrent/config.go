@@ -107,6 +107,8 @@ type ClientConfig struct {
 	Debug  bool `help:"enable debugging"`
 	Logger log.Logger
 
+	// Used for torrent sources and webseeding if set.
+	WebTransport http.RoundTripper
 	// Defines proxy for HTTP requests, such as for trackers. It's commonly set from the result of
 	// "net/http".ProxyURL(HTTPProxy).
 	HTTPProxy func(*http.Request) (*url.URL, error)
@@ -186,6 +188,8 @@ type ClientConfig struct {
 	ICEServers []string
 
 	DialRateLimiter *rate.Limiter
+
+	PieceHashersPerTorrent int // default: 2
 }
 
 func (cfg *ClientConfig) SetListenAddr(addr string) *ClientConfig {
@@ -223,13 +227,14 @@ func NewDefaultClientConfig() *ClientConfig {
 			Preferred:        true,
 			RequirePreferred: false,
 		},
-		CryptoSelector:        mse.DefaultCryptoSelector,
-		CryptoProvides:        mse.AllSupportedCrypto,
-		ListenPort:            42069,
-		Extensions:            defaultPeerExtensionBytes(),
-		AcceptPeerConnections: true,
-		MaxUnverifiedBytes:    64 << 20,
-		DialRateLimiter:       rate.NewLimiter(10, 10),
+		CryptoSelector:         mse.DefaultCryptoSelector,
+		CryptoProvides:         mse.AllSupportedCrypto,
+		ListenPort:             42069,
+		Extensions:             defaultPeerExtensionBytes(),
+		AcceptPeerConnections:  true,
+		MaxUnverifiedBytes:     64 << 20,
+		DialRateLimiter:        rate.NewLimiter(10, 10),
+		PieceHashersPerTorrent: 2,
 	}
 	cc.DhtStartingNodes = func(network string) dht.StartingNodesGetter {
 		return func() ([]dht.Addr, error) { return dht.GlobalBootstrapAddrs(network) }

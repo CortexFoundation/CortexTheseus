@@ -370,24 +370,24 @@ func (m *rangeKeyMasking) Intersects(prop []byte) (bool, error) {
 // KeyIsWithinLowerBound implements the limitedBlockPropertyFilter interface
 // defined in the sstable package. It's used to restrict the masking block
 // property filter to only applying within the bounds of the active range key.
-func (m *rangeKeyMasking) KeyIsWithinLowerBound(ik *InternalKey) bool {
+func (m *rangeKeyMasking) KeyIsWithinLowerBound(key []byte) bool {
 	// Invariant: m.maskSpan != nil
 	//
-	// The provided `ik` is an inclusive lower bound of the block we're
+	// The provided `key` is an inclusive lower bound of the block we're
 	// considering skipping.
-	return m.cmp(m.maskSpan.Start, ik.UserKey) <= 0
+	return m.cmp(m.maskSpan.Start, key) <= 0
 }
 
 // KeyIsWithinUpperBound implements the limitedBlockPropertyFilter interface
 // defined in the sstable package. It's used to restrict the masking block
 // property filter to only applying within the bounds of the active range key.
-func (m *rangeKeyMasking) KeyIsWithinUpperBound(ik *InternalKey) bool {
+func (m *rangeKeyMasking) KeyIsWithinUpperBound(key []byte) bool {
 	// Invariant: m.maskSpan != nil
 	//
-	// The provided `ik` is an *inclusive* upper bound of the block we're
+	// The provided `key` is an *inclusive* upper bound of the block we're
 	// considering skipping, so the range key's end must be strictly greater
 	// than the block bound for the block to be within bounds.
-	return m.cmp(m.maskSpan.End, ik.UserKey) > 0
+	return m.cmp(m.maskSpan.End, key) > 0
 }
 
 // lazyCombinedIter implements the internalIterator interface, wrapping a
@@ -516,7 +516,11 @@ func (i *lazyCombinedIter) initCombinedIteration(
 	// Initialize the Iterator's interleaving iterator.
 	i.parent.rangeKey.iiter.Init(
 		&i.parent.comparer, i.parent.pointIter, i.parent.rangeKey.rangeKeyIter,
-		&i.parent.rangeKeyMasking, i.parent.opts.LowerBound, i.parent.opts.UpperBound)
+		keyspan.InterleavingIterOpts{
+			Mask:       &i.parent.rangeKeyMasking,
+			LowerBound: i.parent.opts.LowerBound,
+			UpperBound: i.parent.opts.UpperBound,
+		})
 
 	// Set the parent's primary iterator to point to the combined, interleaving
 	// iterator that's now initialized with our current state.

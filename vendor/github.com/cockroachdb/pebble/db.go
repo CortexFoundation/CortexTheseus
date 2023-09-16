@@ -18,6 +18,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/cockroachdb/pebble/internal/arenaskl"
 	"github.com/cockroachdb/pebble/internal/base"
+	"github.com/cockroachdb/pebble/internal/invalidating"
 	"github.com/cockroachdb/pebble/internal/invariants"
 	"github.com/cockroachdb/pebble/internal/keyspan"
 	"github.com/cockroachdb/pebble/internal/manifest"
@@ -280,7 +281,7 @@ type DB struct {
 	abbreviatedKey AbbreviatedKey
 	// The threshold for determining when a batch is "large" and will skip being
 	// inserted into a memtable.
-	largeBatchThreshold int
+	largeBatchThreshold uint64
 	// The current OPTIONS file number.
 	optionsFileNum base.DiskFileNum
 	// The on-disk size of the current OPTIONS file.
@@ -407,7 +408,7 @@ type DB struct {
 			// is allocated up to Options.MemTableSize. This reduces the memory
 			// footprint of memtables when lots of DB instances are used concurrently
 			// in test environments.
-			nextSize int
+			nextSize uint64
 		}
 
 		compact struct {
@@ -560,6 +561,7 @@ func (d *DB) getInternal(key []byte, b *Batch, s *Snapshot) ([]byte, io.Closer, 
 		logger:   d.opts.Logger,
 		cmp:      d.cmp,
 		equal:    d.equal,
+		split:    d.split,
 		newIters: d.newIters,
 		snapshot: seqNum,
 		key:      key,
@@ -841,7 +843,7 @@ func (d *DB) applyInternal(batch *Batch, opts *WriteOptions, noSyncWait bool) er
 	if batch.db == nil {
 		batch.refreshMemTableSize()
 	}
-	if int(batch.memTableSize) >= d.largeBatchThreshold {
+	if batch.memTableSize >= d.largeBatchThreshold {
 		batch.flushable = newFlushableBatch(batch, d.opts.Comparer)
 	}
 	if err := d.commit.Commit(batch, sync, noSyncWait); err != nil {
@@ -1148,6 +1150,7 @@ func finishInitializingIter(ctx context.Context, buf *iterAlloc) *Iterator {
 				},
 			}
 			dbi.iter = &dbi.lazyCombinedIter
+			dbi.iter = invalidating.MaybeWrapIfInvariants(dbi.iter)
 		} else {
 			dbi.lazyCombinedIter.combinedIterState = combinedIterState{
 				initialized: true,
@@ -1168,7 +1171,11 @@ func finishInitializingIter(ctx context.Context, buf *iterAlloc) *Iterator {
 			// dbi already had an initialized range key iterator, in case the point
 			// iterator changed or the range key masking suffix changed.
 			dbi.rangeKey.iiter.Init(&dbi.comparer, dbi.iter, dbi.rangeKey.rangeKeyIter,
-				&dbi.rangeKeyMasking, dbi.opts.LowerBound, dbi.opts.UpperBound)
+				keyspan.InterleavingIterOpts{
+					Mask:       &dbi.rangeKeyMasking,
+					LowerBound: dbi.opts.LowerBound,
+					UpperBound: dbi.opts.UpperBound,
+				})
 			dbi.iter = &dbi.rangeKey.iiter
 		}
 	} else {
@@ -1314,7 +1321,10 @@ func finishInitializingInternalIter(buf *iterAlloc, i *scanInternalIterator) *sc
 	// iterator that interleaves range keys pulled from
 	// i.rangeKey.rangeKeyIter.
 	i.rangeKey.iiter.Init(i.comparer, i.iter, i.rangeKey.rangeKeyIter,
-		nil /* mask */, i.opts.LowerBound, i.opts.UpperBound)
+		keyspan.InterleavingIterOpts{
+			LowerBound: i.opts.LowerBound,
+			UpperBound: i.opts.UpperBound,
+		})
 	i.iter = &i.rangeKey.iiter
 
 	return i
@@ -1418,7 +1428,8 @@ func (i *Iterator) constructPointIter(
 		li.initRangeDel(&mlevels[mlevelsIndex].rangeDelIter)
 		li.initBoundaryContext(&mlevels[mlevelsIndex].levelIterBoundaryContext)
 		li.initCombinedIterState(&i.lazyCombinedIter.combinedIterState)
-		mlevels[mlevelsIndex].iter = li
+		mlevels[mlevelsIndex].levelIter = li
+		mlevels[mlevelsIndex].iter = invalidating.MaybeWrapIfInvariants(li)
 
 		levelsIndex++
 		mlevelsIndex++
@@ -1444,7 +1455,7 @@ func (i *Iterator) constructPointIter(
 	buf.merging.snapshot = i.seqNum
 	buf.merging.batchSnapshot = i.batchSeqNum
 	buf.merging.combinedIterState = &i.lazyCombinedIter.combinedIterState
-	i.pointIter = &buf.merging
+	i.pointIter = invalidating.MaybeWrapIfInvariants(&buf.merging)
 	i.merging = &buf.merging
 }
 
@@ -1454,6 +1465,12 @@ func (d *DB) NewBatch() *Batch {
 	return newBatch(d)
 }
 
+// NewBatchWithSize is mostly identical to NewBatch, but it will allocate the
+// the specified memory space for the internal slice in advance.
+func (d *DB) NewBatchWithSize(size int) *Batch {
+	return newBatchWithSize(d, size)
+}
+
 // NewIndexedBatch returns a new empty read-write batch. Any reads on the batch
 // will read from both the batch and the DB. If the batch is committed it will
 // be applied to the DB. An indexed batch is slower that a non-indexed batch
@@ -1461,6 +1478,12 @@ func (d *DB) NewBatch() *Batch {
 // NewBatch instead.
 func (d *DB) NewIndexedBatch() *Batch {
 	return newIndexedBatch(d, d.opts.Comparer)
+}
+
+// NewIndexedBatchWithSize is mostly identical to NewIndexedBatch, but it will
+// allocate the the specified memory space for the internal slice in advance.
+func (d *DB) NewIndexedBatchWithSize(size int) *Batch {
+	return newIndexedBatchWithSize(d, d.opts.Comparer, size)
 }
 
 // NewIter returns an iterator that is unpositioned (Iterator.Valid() will
@@ -1505,8 +1528,9 @@ func (d *DB) NewSnapshot() *Snapshot {
 }
 
 // NewEventuallyFileOnlySnapshot returns a point-in-time view of the current DB
-// state, similar to NewSnapshot. See the comment at EventuallyFileOnlySnapshot
-// for its semantics.
+// state, similar to NewSnapshot, but with consistency constrained to the
+// provided set of key ranges. See the comment at EventuallyFileOnlySnapshot for
+// its semantics.
 func (d *DB) NewEventuallyFileOnlySnapshot(keyRanges []KeyRange) *EventuallyFileOnlySnapshot {
 	if err := d.closed.Load(); err != nil {
 		panic(err)
@@ -1966,7 +1990,11 @@ func (d *DB) Metrics() *Metrics {
 	metrics.BlockCache = d.opts.Cache.Metrics()
 	metrics.TableCache, metrics.Filter = d.tableCache.metrics()
 	metrics.TableIters = int64(d.tableCache.iterCount())
+
+	metrics.SecondaryCacheMetrics = d.objProvider.Metrics()
+
 	metrics.Uptime = d.timeNow().Sub(d.openedAt)
+
 	return metrics
 }
 
@@ -2271,7 +2299,7 @@ func (d *DB) walPreallocateSize() int {
 	// RocksDB. Could a smaller preallocation block size be used?
 	size := d.opts.MemTableSize
 	size = (size / 10) + size
-	return size
+	return int(size)
 }
 
 func (d *DB) newMemTable(logNum FileNum, logSeqNum uint64) (*memTable, *flushableEntry) {
@@ -2298,7 +2326,7 @@ func (d *DB) newMemTable(logNum FileNum, logSeqNum uint64) (*memTable, *flushabl
 	// existing memory.
 	var mem *memTable
 	mem = d.memTableRecycle.Swap(nil)
-	if mem != nil && len(mem.arenaBuf) != size {
+	if mem != nil && uint64(len(mem.arenaBuf)) != size {
 		d.freeMemTable(mem)
 		mem = nil
 	}
@@ -2309,7 +2337,7 @@ func (d *DB) newMemTable(logNum FileNum, logSeqNum uint64) (*memTable, *flushabl
 	} else {
 		mem = new(memTable)
 		memtblOpts.arenaBuf = manual.New(int(size))
-		memtblOpts.releaseAccountingReservation = d.opts.Cache.Reserve(size)
+		memtblOpts.releaseAccountingReservation = d.opts.Cache.Reserve(int(size))
 		d.memTableCount.Add(1)
 		d.memTableReserved.Add(int64(size))
 
@@ -2395,7 +2423,7 @@ func (d *DB) makeRoomForWrite(b *Batch) error {
 			for i := range d.mu.mem.queue {
 				size += d.mu.mem.queue[i].totalBytes()
 			}
-			if size >= uint64(d.opts.MemTableStopWritesThreshold)*uint64(d.opts.MemTableSize) {
+			if size >= uint64(d.opts.MemTableStopWritesThreshold)*d.opts.MemTableSize {
 				// We have filled up the current memtable, but already queued memtables
 				// are still flushing, so we wait.
 				if !stalled {
@@ -2449,7 +2477,7 @@ func (d *DB) makeRoomForWrite(b *Batch) error {
 		// reduces memtable memory pressure when an application is frequently
 		// manually flushing.
 		if (b == nil) && uint64(immMem.availBytes()) > immMem.totalBytes()/2 {
-			d.mu.mem.nextSize = int(immMem.totalBytes())
+			d.mu.mem.nextSize = immMem.totalBytes()
 		}
 
 		if b != nil && b.flushable != nil {
