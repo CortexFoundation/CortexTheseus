@@ -335,7 +335,7 @@ func (t *Torrent) download(p int) error {
 		defer cancel()
 		select {
 		case t.taskCh <- task{s, e}:
-			log.Info(ScaleBar(s, e, t.Torrent.NumPieces()), "ih", t.InfoHash(), "slot", t.slot, "s", s, "e", e, "p", p, "total", t.Torrent.NumPieces())
+			log.Debug(ScaleBar(s, e, t.Torrent.NumPieces()), "ih", t.InfoHash(), "slot", t.slot, "s", s, "e", e, "p", p, "total", t.Torrent.NumPieces())
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-t.closeAll:
