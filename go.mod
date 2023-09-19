@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.54-0.20230917085018-07a7283ab77e
+	github.com/CortexFoundation/torrentfs v1.0.55-0.20230919074135-4a4f37301747
 	github.com/VictoriaMetrics/fastcache v1.12.1
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.19.0
@@ -17,7 +17,7 @@ require (
 	github.com/cespare/cp v1.1.1
 	github.com/charmbracelet/bubbletea v0.24.2
 	github.com/cloudflare/cloudflare-go v0.57.1
-	github.com/cockroachdb/pebble v0.0.0-20230915152238-6d6570bf1e25
+	github.com/cockroachdb/pebble v0.0.0-20230919032055-57e248f9c4d8
 	github.com/consensys/gnark-crypto v0.11.1
 	github.com/crate-crypto/go-kzg-4844 v0.3.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
@@ -82,7 +82,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.0.0 // indirect
 	github.com/CortexFoundation/cvm-runtime v0.0.0-20221117094012-b5a251885572 // indirect
 	github.com/CortexFoundation/merkletree v0.0.0-20230724124840-b6e80265a137 // indirect
-	github.com/CortexFoundation/robot v1.0.5-0.20230917084521-3553591d07e8 // indirect
+	github.com/CortexFoundation/robot v1.0.5 // indirect
 	github.com/CortexFoundation/wormhole v0.0.0-20230908085523-44aea02f16f8 // indirect
 	github.com/DataDog/zstd v1.5.6-0.20230622172052-ea68dcab66c0 // indirect
 	github.com/RoaringBitmap/roaring v1.3.0 // indirect
@@ -141,7 +141,6 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/edsrzf/mmap-go v1.1.1-0.20220903035803-8e5d0fe06024 // indirect
 	github.com/elliotchance/orderedmap v1.5.0 // indirect
-	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/garslo/gogen v0.0.0-20170306192744-1d203ffc1f61 // indirect
 	github.com/getsentry/sentry-go v0.22.0 // indirect
 	github.com/go-llsqlite/adapter v0.0.0-20230912124304-94ed0e573c23 // indirect
@@ -178,7 +177,7 @@ require (
 	github.com/muesli/ansi v0.0.0-20211018074035-2e021307bc4b // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
-	github.com/nutsdb/nutsdb v0.14.1 // indirect
+	github.com/nutsdb/nutsdb v0.14.2-0.20230918090842-697e07722c93 // indirect
 	github.com/otiai10/copy v1.12.0 // indirect
 	github.com/pion/datachannel v1.5.5 // indirect
 	github.com/pion/dtls/v2 v2.2.7 // indirect
@@ -219,7 +218,7 @@ require (
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/ucwong/filecache v1.0.6-0.20230916065457-63847b20001a // indirect
 	github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb // indirect
-	github.com/ucwong/golang-kv v1.0.23-0.20230916174929-65d054a7d48f // indirect
+	github.com/ucwong/golang-kv v1.0.23-0.20230919073300-5fbe4c7285c7 // indirect
 	github.com/ucwong/shard v1.0.1-0.20230902205521-676c0c9c1dd2 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/xujiajun/mmap-go v1.0.1 // indirect

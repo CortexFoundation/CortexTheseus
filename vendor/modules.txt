@@ -36,14 +36,14 @@ github.com/CortexFoundation/inference/synapse
 # github.com/CortexFoundation/merkletree v0.0.0-20230724124840-b6e80265a137
 ## explicit; go 1.19
 github.com/CortexFoundation/merkletree
-# github.com/CortexFoundation/robot v1.0.5-0.20230917084521-3553591d07e8
+# github.com/CortexFoundation/robot v1.0.5
 ## explicit; go 1.20
 github.com/CortexFoundation/robot
 github.com/CortexFoundation/robot/backend
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit; go 1.16
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.54-0.20230917085018-07a7283ab77e
+# github.com/CortexFoundation/torrentfs v1.0.55-0.20230919074135-4a4f37301747
 ## explicit; go 1.21
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/backend
@@ -338,7 +338,7 @@ github.com/cockroachdb/errors/withstack
 # github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b
 ## explicit; go 1.16
 github.com/cockroachdb/logtags
-# github.com/cockroachdb/pebble v0.0.0-20230915152238-6d6570bf1e25
+# github.com/cockroachdb/pebble v0.0.0-20230919032055-57e248f9c4d8
 ## explicit; go 1.19
 github.com/cockroachdb/pebble
 github.com/cockroachdb/pebble/bloom
@@ -484,12 +484,6 @@ github.com/edsrzf/mmap-go
 # github.com/elliotchance/orderedmap v1.5.0
 ## explicit; go 1.12
 github.com/elliotchance/orderedmap
-# github.com/emirpasic/gods v1.18.1
-## explicit; go 1.2
-github.com/emirpasic/gods/containers
-github.com/emirpasic/gods/lists
-github.com/emirpasic/gods/lists/doublylinkedlist
-github.com/emirpasic/gods/utils
 # github.com/ethereum/c-kzg-4844 v0.3.1
 ## explicit; go 1.19
 github.com/ethereum/c-kzg-4844/bindings/go
@@ -753,7 +747,7 @@ github.com/naoina/go-stringutil
 ## explicit
 github.com/naoina/toml
 github.com/naoina/toml/ast
-# github.com/nutsdb/nutsdb v0.14.1
+# github.com/nutsdb/nutsdb v0.14.2-0.20230918090842-697e07722c93
 ## explicit; go 1.18
 github.com/nutsdb/nutsdb
 # github.com/olekukonko/tablewriter v0.0.5
@@ -973,7 +967,7 @@ github.com/ucwong/filecache
 # github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb
 ## explicit; go 1.19
 github.com/ucwong/go-ttlmap
-# github.com/ucwong/golang-kv v1.0.23-0.20230916174929-65d054a7d48f
+# github.com/ucwong/golang-kv v1.0.23-0.20230919073300-5fbe4c7285c7
 ## explicit; go 1.21
 github.com/ucwong/golang-kv
 github.com/ucwong/golang-kv/badger
