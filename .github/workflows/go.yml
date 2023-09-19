@@ -42,7 +42,10 @@ jobs:
           export PATH=$PATH:$(go env GOPATH)/bin
           make -C solution cpu
           go vet $(go list ./... | grep -v /cvm-runtime/)
-
+        
+    - name: Check Spelling
+      uses: check-spelling/check-spelling@v0.0.21
+      
     - name: Build
       run: make clean && make all -j$(nproc)
       
@@ -53,3 +56,4 @@ jobs:
         if [ -f coverage.txt ]; then
             bash <(curl -s https://codecov.io/bash)
         fi
+            
