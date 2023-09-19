@@ -67,8 +67,8 @@ github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66/go.mod h1:
 github.com/CortexFoundation/torrentfs v1.0.13-0.20200623060705-ce027f43f2f8/go.mod h1:Ma+tGhPPvz4CEZHaqEJQMOEGOfHeQBiAoNd1zyc/w3Q=
 github.com/CortexFoundation/torrentfs v1.0.14-0.20200703071639-3fcabcabf274/go.mod h1:qnb3YlIJmuetVBtC6Lsejr0Xru+1DNmDCdTqnwy7lhk=
 github.com/CortexFoundation/torrentfs v1.0.20-0.20200810031954-d36d26f82fcc/go.mod h1:N5BsicP5ynjXIi/Npl/SRzlJ630n1PJV2sRj0Z0t2HA=
-github.com/CortexFoundation/torrentfs v1.0.54-0.20230914082442-9fa79908ebeb h1:nuUQp2+9zp42pueAKLN39yV6gnBR1/T+BokRlWb5z1s=
-github.com/CortexFoundation/torrentfs v1.0.54-0.20230914082442-9fa79908ebeb/go.mod h1:i9gUHtZjrjBA9GIVTdShbNICjUcc25yKVc4gIM/3Vco=
+github.com/CortexFoundation/torrentfs v1.0.54-0.20230915085716-6cbd302e0627 h1:vULTDqs/5d2WC1A9EkFQw6ajDGWZ1GE2r914eMWIj2w=
+github.com/CortexFoundation/torrentfs v1.0.54-0.20230915085716-6cbd302e0627/go.mod h1:Y6GlMai90VF/Ql47VA3Ko3eUHiXq7XNwrVFCv/btoVs=
 github.com/CortexFoundation/wormhole v0.0.0-20230908085523-44aea02f16f8 h1:Cvtqm62iaQx0KBC2ZuEseIsuBh3v1BvIpcHvwIe4yq8=
 github.com/CortexFoundation/wormhole v0.0.0-20230908085523-44aea02f16f8/go.mod h1:62dTMtfdf0W71ZfM7xDFJTFdzMfaKeYUrx7fB5/iQ1s=
 github.com/DATA-DOG/go-sqlmock v1.3.3/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
@@ -211,8 +211,8 @@ github.com/anacrolix/torrent v1.15.0/go.mod h1:MFc6KcbpAyfwGqOyRkdarUK9QnKA/FkVg
 github.com/anacrolix/torrent v1.15.1-0.20200504230043-cc5d2abe18e5/go.mod h1:QlOfgrCz5kbvhOz8M58dUwHY5SfZ9VbIvReZ0z0MdIk=
 github.com/anacrolix/torrent v1.15.1-0.20200619022403-dd51e99b88cc/go.mod h1:wuopQPC5+/M+zHYvhcA2vp5UCTm9rUc+VqjyBa882Q8=
 github.com/anacrolix/torrent v1.15.1-0.20200715061614-dd906f8fa72e/go.mod h1:XWo/fJN1oKgcjgxM+pUZpvalHfqHDs27BY5mBZjIQWo=
-github.com/anacrolix/torrent v1.52.6-0.20230913111536-bd2839cb9ca1 h1:t7IiL4GakRC5LQoBR9ZZdoFNOk85okJHrNv+gMx/AJs=
-github.com/anacrolix/torrent v1.52.6-0.20230913111536-bd2839cb9ca1/go.mod h1:U1BtbBNsjLeOGIukQaqXV5OqjOwkHaaWKFUThinxkE0=
+github.com/anacrolix/torrent v1.52.6-0.20230914125831-4fb12d06b31b h1:Asaf/ETwCIEIYya0+oX2ZCIhHsV6Zt77VGHCP82fchA=
+github.com/anacrolix/torrent v1.52.6-0.20230914125831-4fb12d06b31b/go.mod h1:6lKyJNzkkY68p+LeSfv62auyyceWn12Uji+kme5cpaI=
 github.com/anacrolix/upnp v0.1.1/go.mod h1:LXsbsp5h+WGN7YR+0A7iVXm5BL1LYryDev1zuJMWYQo=
 github.com/anacrolix/upnp v0.1.2-0.20200416075019-5e9378ed1425/go.mod h1:Pz94W3kl8rf+wxH3IbCa9Sq+DTJr8OSbV2Q3/y51vYs=
 github.com/anacrolix/upnp v0.1.3-0.20220123035249-922794e51c96 h1:QAVZ3pN/J4/UziniAhJR2OZ9Ox5kOY2053tBbbqUPYA=
@@ -348,8 +348,8 @@ github.com/cockroachdb/errors v1.10.0 h1:lfxS8zZz1+OjtV4MtNWgboi/W5tyLEB6VQZBXN+
 github.com/cockroachdb/errors v1.10.0/go.mod h1:lknhIsEVQ9Ss/qKDBQS/UqFSvPQjOwNq2qyKAxtHRqE=
 github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b h1:r6VH0faHjZeQy818SGhaone5OnYfxFR/+AzdY3sf5aE=
 github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b/go.mod h1:Vz9DsVWQQhf3vs21MhPMZpMGSht7O/2vFW2xusFUVOs=
-github.com/cockroachdb/pebble v0.0.0-20230913170726-3db8edc31693 h1:538FMQLRjL4Q+hLIFkmCEnw56JRAD7grMpK/UJ1b/Nc=
-github.com/cockroachdb/pebble v0.0.0-20230913170726-3db8edc31693/go.mod h1:nindLFinxeDPjP4qI9LtVHAwDef57/0s5KMfWgdktQc=
+github.com/cockroachdb/pebble v0.0.0-20230915084130-336c99798a6d h1:mjzaC4nhcXdT14czQqI4klj/+aExMh3g5pb1EQHbwys=
+github.com/cockroachdb/pebble v0.0.0-20230915084130-336c99798a6d/go.mod h1:nindLFinxeDPjP4qI9LtVHAwDef57/0s5KMfWgdktQc=
 github.com/cockroachdb/redact v1.1.5 h1:u1PMllDkdFfPWaNGMyLD1+so+aq3uUItthCFqzwPJ30=
 github.com/cockroachdb/redact v1.1.5/go.mod h1:BVNblN9mBWFyMyqK1k3AAiSxhvhfK2oOZZ2lK+dpvRg=
 github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 h1:zuQyyAKVxetITBuuhv3BI9cMrmStnpT18zmgmTxunpo=
@@ -472,8 +472,8 @@ github.com/franela/goblin v0.0.0-20200105215937-c9ffbefa60db/go.mod h1:7dvUGVsVB
 github.com/franela/goreq v0.0.0-20171204163338-bcd34c9993f8/go.mod h1:ZhphrRTfi2rbfLwlschooIH4+wKKDR4Pdxhh+TRoA20=
 github.com/frankban/quicktest v1.7.2/go.mod h1:jaStnuzAqU1AJdCO0l53JDCJrVDKcS03DbaAcR7Ks/o=
 github.com/frankban/quicktest v1.9.0/go.mod h1:ui7WezCLWMWxVWr1GETZY3smRy0G4KWq9vcPtJmFl7Y=
-github.com/frankban/quicktest v1.14.4 h1:g2rn0vABPOOXmZUj+vbmUp0lPoXEMuhTpIluN0XL9UY=
-github.com/frankban/quicktest v1.14.4/go.mod h1:4ptaffx2x8+WTWXmUCuVU6aPUX1/Mz7zb5vbUoiM6w0=
+github.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHkI4W8=
+github.com/frankban/quicktest v1.14.6/go.mod h1:4ptaffx2x8+WTWXmUCuVU6aPUX1/Mz7zb5vbUoiM6w0=
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
 github.com/fsnotify/fsnotify v1.4.9/go.mod h1:znqG4EE+3YCdAaPaxE2ZRY/06pZUdp0tY4IgpuI1SZQ=
 github.com/fsnotify/fsnotify v1.5.4/go.mod h1:OVB6XrOHzAwXMpEM7uPOzcehqUV2UqJxmVXmkdnm1bU=
@@ -506,8 +506,8 @@ github.com/go-gl/glfw/v3.3/glfw v0.0.0-20191125211704-12ad95a8df72/go.mod h1:tQ2
 github.com/go-kit/kit v0.8.0/go.mod h1:xBxKIO96dXMWWy0MnWVtmwkA9/13aqxPnvrjFYMA2as=
 github.com/go-kit/kit v0.9.0/go.mod h1:xBxKIO96dXMWWy0MnWVtmwkA9/13aqxPnvrjFYMA2as=
 github.com/go-kit/kit v0.10.0/go.mod h1:xUsJbQ/Fp4kEt7AFgCuvyX4a71u8h9jB8tj/ORgOZ7o=
-github.com/go-llsqlite/adapter v0.0.0-20230910110622-f955011c1e41 h1:1Us730PRZRfoXzS6fVIog/HNtQwZbMWfHgHfIPOuRuo=
-github.com/go-llsqlite/adapter v0.0.0-20230910110622-f955011c1e41/go.mod h1:DADrR88ONKPPeSGjFp5iEN55Arx3fi2qXZeKCYDpbmU=
+github.com/go-llsqlite/adapter v0.0.0-20230912124304-94ed0e573c23 h1:7krbnPREaxbmEaAkZovTNCMjmiZXEy/Gz9isFbqFK0I=
+github.com/go-llsqlite/adapter v0.0.0-20230912124304-94ed0e573c23/go.mod h1:DADrR88ONKPPeSGjFp5iEN55Arx3fi2qXZeKCYDpbmU=
 github.com/go-llsqlite/crawshaw v0.0.0-20230910110433-7e901377eb6c h1:pm7z8uwA2q3s8fAsJmKuGckNohqIrw2PRtv6yJ6z0Ro=
 github.com/go-llsqlite/crawshaw v0.0.0-20230910110433-7e901377eb6c/go.mod h1:UdTSzmN3nr5dJNuZCsbPLfhSQB76u16rWh8pn+WFx9Q=
 github.com/go-logfmt/logfmt v0.3.0/go.mod h1:Qt1PoO58o5twSAckw1HlFXLmHsOX5/0LbT9GBnD5lWE=
@@ -1255,8 +1255,8 @@ github.com/ucwong/filecache v1.0.6-0.20230405163841-810d53ced4bd h1:gBtlvLAsgLk+
 github.com/ucwong/filecache v1.0.6-0.20230405163841-810d53ced4bd/go.mod h1:ddwX+NCjMZPdpzcGh1fcEbNTUTCtKgt2hC2rqvmLKgA=
 github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb h1:dVZH3AH9f7zB3VBmsjn25B7lfcAyMP4QxdFYTrfj7tg=
 github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb/go.mod h1:3yswsBsVuwsOjDvFfC5Na9XSEf4HC7mj3W3g6jvSY/s=
-github.com/ucwong/golang-kv v1.0.23-0.20230914080359-4f6598d896b9 h1:79AxVXG4Y/wbFXyXZYNkwoM4uhVvdXK1631iqx9gFRM=
-github.com/ucwong/golang-kv v1.0.23-0.20230914080359-4f6598d896b9/go.mod h1:xg9ilaeJDxhh39RW7VZgYNzEos5gfA/g6RplnKMLOfQ=
+github.com/ucwong/golang-kv v1.0.23-0.20230915085246-c67539220a59 h1:fMcvIaopvpEZ07oc05KEzOruRT9eTx/oaZLd7i1HhqM=
+github.com/ucwong/golang-kv v1.0.23-0.20230915085246-c67539220a59/go.mod h1:0jx7UE8mJhqH6YmhJ++055ctsw4TJIorapX049ps750=
 github.com/ucwong/golang-set v1.8.1-0.20200419153428-d7b0b1ac2d43/go.mod h1:xu0FaiQFGbBcFZj2o7udZ5rbA8jRTsv47hkPoG5qQNM=
 github.com/ucwong/goleveldb v1.0.3-0.20200508074755-578cba616f37/go.mod h1:dgJUTtDxq/ne6/JzZhHzF24OL/uqILz9IWk8HmT4V2g=
 github.com/ucwong/goleveldb v1.0.3-0.20200618184106-f1c6bc3a428b/go.mod h1:7Sq6w7AfEZuB/a6mrlvHCSXCSkqojCMMrM3Ei12QAT0=
