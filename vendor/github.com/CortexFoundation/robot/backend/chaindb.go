@@ -129,8 +129,6 @@ func NewChainDB(config *params.Config) (*ChainDB, error) {
 
 	//fs.history()
 
-	log.Info("Storage ID generated", "id", fs.id.Load(), "version", fs.version)
-
 	return fs, nil
 }
 
@@ -154,6 +152,8 @@ func (fs *ChainDB) Init() (err error) {
 			log.Error("Init node id error", "err", err)
 			//return err
 		}
+
+		log.Info("Storage ID generated", "id", fs.id.Load(), "version", fs.version)
 	})
 
 	return
@@ -609,6 +609,8 @@ func (fs *ChainDB) initID() error {
 			return err
 		}
 		id := binary.LittleEndian.Uint64([]byte(uid[:]))
+
+		log.Info("New random id generated !!!", "key", ID_+fs.version, "id", id)
 		e := buk.Put([]byte("key"), []byte(strconv.FormatUint(id, 16)))
 		fs.id.Store(id) //binary.LittleEndian.Uint64([]byte(id[:]))//uint64(id[:])
 

@@ -141,6 +141,9 @@ func New(flag *params.Config, cache, compress, listen bool, callback chan any) (
 	} else {
 		m.fs = fs_
 	}
+
+	m.fs.Init()
+
 	m.lastNumber.Store(0)
 	m.currentNumber.Store(0)
 	m.startNumber.Store(0)
@@ -599,7 +602,7 @@ func (m *Monitor) Start() error {
 		m.wg.Add(1)
 		go func() {
 			defer m.wg.Done()
-			m.fs.Init()
+			//m.fs.Init()
 			if err := m.run(); err != nil {
 				log.Error("Fs monitor start failed", "err", err)
 			}
