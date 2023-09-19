@@ -532,6 +532,15 @@ func (db *Database) dereference(child common.Hash, parent common.Hash) {
 	}
 }
 
+// Preimage retrieves a cached trie node pre-image from memory. If it cannot be
+// found cached, the method queries the persistent database for the content.
+func (db *Database) Preimage(hash common.Hash) []byte {
+	if db.preimages == nil {
+		return nil
+	}
+	return db.preimages.preimage(hash)
+}
+
 // Cap iteratively flushes old but still referenced trie nodes until the total
 // memory usage goes below the given threshold.
 //
