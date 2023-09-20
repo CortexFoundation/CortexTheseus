@@ -361,6 +361,8 @@ func (m *Header) GoString() string {
 		"Truncated: " + printBool(m.Truncated) + ", " +
 		"RecursionDesired: " + printBool(m.RecursionDesired) + ", " +
 		"RecursionAvailable: " + printBool(m.RecursionAvailable) + ", " +
+		"AuthenticData: " + printBool(m.AuthenticData) + ", " +
+		"CheckingDisabled: " + printBool(m.CheckingDisabled) + ", " +
 		"RCode: " + m.RCode.GoString() + "}"
 }
 
@@ -540,11 +542,13 @@ type Parser struct {
 	msg    []byte
 	header header
 
-	section        section
-	off            int
-	index          int
-	resHeaderValid bool
-	resHeader      ResourceHeader
+	section         section
+	off             int
+	index           int
+	resHeaderValid  bool
+	resHeaderOffset int
+	resHeaderType   Type
+	resHeaderLength uint16
 }
 
 // Start parses the header and enables the parsing of Questions.
@@ -595,8 +599,9 @@ func (p *Parser) resource(sec section) (Resource, error) {
 
 func (p *Parser) resourceHeader(sec section) (ResourceHeader, error) {
 	if p.resHeaderValid {
-		return p.resHeader, nil
+		p.off = p.resHeaderOffset
 	}
+
 	if err := p.checkAdvance(sec); err != nil {
 		return ResourceHeader{}, err
 	}
@@ -606,14 +611,16 @@ func (p *Parser) resourceHeader(sec section) (ResourceHeader, error) {
 		return ResourceHeader{}, err
 	}
 	p.resHeaderValid = true
-	p.resHeader = hdr
+	p.resHeaderOffset = p.off
+	p.resHeaderType = hdr.Type
+	p.resHeaderLength = hdr.Length
 	p.off = off
 	return hdr, nil
 }
 
 func (p *Parser) skipResource(sec section) error {
-	if p.resHeaderValid {
-		newOff := p.off + int(p.resHeader.Length)
+	if p.resHeaderValid && p.section == sec {
+		newOff := p.off + int(p.resHeaderLength)
 		if newOff > len(p.msg) {
 			return errResourceLen
 		}
@@ -864,14 +871,14 @@ func (p *Parser) SkipAllAdditionals() error {
 // One of the XXXHeader methods must have been called before calling this
 // method.
 func (p *Parser) CNAMEResource() (CNAMEResource, error) {
-	if !p.resHeaderValid || p.resHeader.Type != TypeCNAME {
+	if !p.resHeaderValid || p.resHeaderType != TypeCNAME {
 		return CNAMEResource{}, ErrNotStarted
 	}
 	r, err := unpackCNAMEResource(p.msg, p.off)
 	if err != nil {
 		return CNAMEResource{}, err
 	}
-	p.off += int(p.resHeader.Length)
+	p.off += int(p.resHeaderLength)
 	p.resHeaderValid = false
 	p.index++
 	return r, nil
@@ -882,14 +889,14 @@ func (p *Parser) CNAMEResource() (CNAMEResource, error) {
 // One of the XXXHeader methods must have been called before calling this
 // method.
 func (p *Parser) MXResource() (MXResource, error) {
-	if !p.resHeaderValid || p.resHeader.Type != TypeMX {
+	if !p.resHeaderValid || p.resHeaderType != TypeMX {
 		return MXResource{}, ErrNotStarted
 	}
 	r, err := unpackMXResource(p.msg, p.off)
 	if err != nil {
 		return MXResource{}, err
 	}
-	p.off += int(p.resHeader.Length)
+	p.off += int(p.resHeaderLength)
 	p.resHeaderValid = false
 	p.index++
 	return r, nil
@@ -900,14 +907,14 @@ func (p *Parser) MXResource() (MXResource, error) {
 // One of the XXXHeader methods must have been called before calling this
 // method.
 func (p *Parser) NSResource() (NSResource, error) {
-	if !p.resHeaderValid || p.resHeader.Type != TypeNS {
+	if !p.resHeaderValid || p.resHeaderType != TypeNS {
 		return NSResource{}, ErrNotStarted
 	}
 	r, err := unpackNSResource(p.msg, p.off)
 	if err != nil {
 		return NSResource{}, err
 	}
-	p.off += int(p.resHeader.Length)
+	p.off += int(p.resHeaderLength)
 	p.resHeaderValid = false
 	p.index++
 	return r, nil
@@ -918,14 +925,14 @@ func (p *Parser) NSResource() (NSResource, error) {
 // One of the XXXHeader methods must have been called before calling this
 // method.
 func (p *Parser) PTRResource() (PTRResource, error) {
-	if !p.resHeaderValid || p.resHeader.Type != TypePTR {
+	if !p.resHeaderValid || p.resHeaderType != TypePTR {
 		return PTRResource{}, ErrNotStarted
 	}
 	r, err := unpackPTRResource(p.msg, p.off)
 	if err != nil {
 		return PTRResource{}, err
 	}
-	p.off += int(p.resHeader.Length)
+	p.off += int(p.resHeaderLength)
 	p.resHeaderValid = false
 	p.index++
 	return r, nil
@@ -936,14 +943,14 @@ func (p *Parser) PTRResource() (PTRResource, error) {
 // One of the XXXHeader methods must have been called before calling this
 // method.
 func (p *Parser) SOAResource() (SOAResource, error) {
-	if !p.resHeaderValid || p.resHeader.Type != TypeSOA {
+	if !p.resHeaderValid || p.resHeaderType != TypeSOA {
 		return SOAResource{}, ErrNotStarted
 	}
 	r, err := unpackSOAResource(p.msg, p.off)
 	if err != nil {
 		return SOAResource{}, err
 	}
-	p.off += int(p.resHeader.Length)
+	p.off += int(p.resHeaderLength)
 	p.resHeaderValid = false
 	p.index++
 	return r, nil
@@ -954,14 +961,14 @@ func (p *Parser) SOAResource() (SOAResource, error) {
 // One of the XXXHeader methods must have been called before calling this
 // method.
 func (p *Parser) TXTResource() (TXTResource, error) {
-	if !p.resHeaderValid || p.resHeader.Type != TypeTXT {
+	if !p.resHeaderValid || p.resHeaderType != TypeTXT {
 		return TXTResource{}, ErrNotStarted
 	}
-	r, err := unpackTXTResource(p.msg, p.off, p.resHeader.Length)
+	r, err := unpackTXTResource(p.msg, p.off, p.resHeaderLength)
 	if err != nil {
 		return TXTResource{}, err
 	}
-	p.off += int(p.resHeader.Length)
+	p.off += int(p.resHeaderLength)
 	p.resHeaderValid = false
 	p.index++
 	return r, nil
@@ -972,14 +979,14 @@ func (p *Parser) TXTResource() (TXTResource, error) {
 // One of the XXXHeader methods must have been called before calling this
 // method.
 func (p *Parser) SRVResource() (SRVResource, error) {
-	if !p.resHeaderValid || p.resHeader.Type != TypeSRV {
+	if !p.resHeaderValid || p.resHeaderType != TypeSRV {
 		return SRVResource{}, ErrNotStarted
 	}
 	r, err := unpackSRVResource(p.msg, p.off)
 	if err != nil {
 		return SRVResource{}, err
 	}
-	p.off += int(p.resHeader.Length)
+	p.off += int(p.resHeaderLength)
 	p.resHeaderValid = false
 	p.index++
 	return r, nil
@@ -990,14 +997,14 @@ func (p *Parser) SRVResource() (SRVResource, error) {
 // One of the XXXHeader methods must have been called before calling this
 // method.
 func (p *Parser) AResource() (AResource, error) {
-	if !p.resHeaderValid || p.resHeader.Type != TypeA {
+	if !p.resHeaderValid || p.resHeaderType != TypeA {
 		return AResource{}, ErrNotStarted
 	}
 	r, err := unpackAResource(p.msg, p.off)
 	if err != nil {
 		return AResource{}, err
 	}
-	p.off += int(p.resHeader.Length)
+	p.off += int(p.resHeaderLength)
 	p.resHeaderValid = false
 	p.index++
 	return r, nil
@@ -1008,14 +1015,14 @@ func (p *Parser) AResource() (AResource, error) {
 // One of the XXXHeader methods must have been called before calling this
 // method.
 func (p *Parser) AAAAResource() (AAAAResource, error) {
-	if !p.resHeaderValid || p.resHeader.Type != TypeAAAA {
+	if !p.resHeaderValid || p.resHeaderType != TypeAAAA {
 		return AAAAResource{}, ErrNotStarted
 	}
 	r, err := unpackAAAAResource(p.msg, p.off)
 	if err != nil {
 		return AAAAResource{}, err
 	}
-	p.off += int(p.resHeader.Length)
+	p.off += int(p.resHeaderLength)
 	p.resHeaderValid = false
 	p.index++
 	return r, nil
@@ -1026,14 +1033,14 @@ func (p *Parser) AAAAResource() (AAAAResource, error) {
 // One of the XXXHeader methods must have been called before calling this
 // method.
 func (p *Parser) OPTResource() (OPTResource, error) {
-	if !p.resHeaderValid || p.resHeader.Type != TypeOPT {
+	if !p.resHeaderValid || p.resHeaderType != TypeOPT {
 		return OPTResource{}, ErrNotStarted
 	}
-	r, err := unpackOPTResource(p.msg, p.off, p.resHeader.Length)
+	r, err := unpackOPTResource(p.msg, p.off, p.resHeaderLength)
 	if err != nil {
 		return OPTResource{}, err
 	}
-	p.off += int(p.resHeader.Length)
+	p.off += int(p.resHeaderLength)
 	p.resHeaderValid = false
 	p.index++
 	return r, nil
@@ -1047,11 +1054,11 @@ func (p *Parser) UnknownResource() (UnknownResource, error) {
 	if !p.resHeaderValid {
 		return UnknownResource{}, ErrNotStarted
 	}
-	r, err := unpackUnknownResource(p.resHeader.Type, p.msg, p.off, p.resHeader.Length)
+	r, err := unpackUnknownResource(p.resHeaderType, p.msg, p.off, p.resHeaderLength)
 	if err != nil {
 		return UnknownResource{}, err
 	}
-	p.off += int(p.resHeader.Length)
+	p.off += int(p.resHeaderLength)
 	p.resHeaderValid = false
 	p.index++
 	return r, nil
@@ -1954,6 +1961,8 @@ func (n *Name) pack(msg []byte, compression map[string]int, compressionOff int) 
 		return append(msg, 0), nil
 	}
 
+	var nameAsStr string
+
 	// Emit sequence of counted strings, chopping at dots.
 	for i, begin := 0, 0; i < int(n.Length); i++ {
 		// Check for the end of the segment.
@@ -1984,16 +1993,22 @@ func (n *Name) pack(msg []byte, compression map[string]int, compressionOff int) 
 		// segment. A pointer is two bytes with the two most significant
 		// bits set to 1 to indicate that it is a pointer.
 		if (i == 0 || n.Data[i-1] == '.') && compression != nil {
-			if ptr, ok := compression[string(n.Data[i:])]; ok {
+			if ptr, ok := compression[string(n.Data[i:n.Length])]; ok {
 				// Hit. Emit a pointer instead of the rest of
 				// the domain.
 				return append(msg, byte(ptr>>8|0xC0), byte(ptr)), nil
 			}
 
 			// Miss. Add the suffix to the compression table if the
-			// offset can be stored in the available 14 bytes.
-			if len(msg) <= int(^uint16(0)>>2) {
-				compression[string(n.Data[i:])] = len(msg) - compressionOff
+			// offset can be stored in the available 14 bits.
+			newPtr := len(msg) - compressionOff
+			if newPtr <= int(^uint16(0)>>2) {
+				if nameAsStr == "" {
+					// allocate n.Data on the heap once, to avoid allocating it
+					// multiple times (for next labels).
+					nameAsStr = string(n.Data[:n.Length])
+				}
+				compression[nameAsStr[i:]] = newPtr
 			}
 		}
 	}
