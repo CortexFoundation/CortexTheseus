@@ -500,6 +500,9 @@ github.com/fjl/memsize/memsizeui
 # github.com/fogleman/ease v0.0.0-20170301025033-8da417bf1776
 ## explicit
 github.com/fogleman/ease
+# github.com/fsnotify/fsnotify v1.6.0
+## explicit; go 1.16
+github.com/fsnotify/fsnotify
 # github.com/garslo/gogen v0.0.0-20170306192744-1d203ffc1f61
 ## explicit
 github.com/garslo/gogen
@@ -888,9 +891,6 @@ github.com/remyoudompheng/bigfft
 # github.com/rivo/uniseg v0.4.4
 ## explicit; go 1.18
 github.com/rivo/uniseg
-# github.com/rjeczalik/notify v0.9.3
-## explicit; go 1.11
-github.com/rjeczalik/notify
 # github.com/rogpeppe/go-internal v1.11.0
 ## explicit; go 1.19
 github.com/rogpeppe/go-internal/fmtsort
