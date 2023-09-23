@@ -720,8 +720,11 @@ func (tm *TorrentManager) updateGlobalTrackers() error {
 			log.Info("Tracker status", "url", url, "score", score)
 		}
 	} else {
+		// TODO
 		return errors.New("best trackers failed")
 	}
+
+	// TODO
 
 	return nil
 }
