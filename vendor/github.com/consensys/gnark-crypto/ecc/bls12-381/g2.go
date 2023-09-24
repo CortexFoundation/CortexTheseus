@@ -1,4 +1,4 @@
-// Copyright 2020 ConsenSys Software Inc.
+// Copyright 2020 Consensys Software Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -573,6 +573,10 @@ func (p *g2JacExtended) setInfinity() *g2JacExtended {
 	return p
 }
 
+func (p *g2JacExtended) IsZero() bool {
+	return p.ZZ.IsZero()
+}
+
 // fromJacExtended sets Q in affine coordinates
 func (p *G2Affine) fromJacExtended(Q *g2JacExtended) *G2Affine {
 	if Q.ZZ.IsZero() {
@@ -945,7 +949,7 @@ func BatchScalarMultiplicationG2(base *G2Affine, scalars []fr.Element) []G2Affin
 					continue
 				}
 
-				// if msbWindow bit is set, we need to substract
+				// if msbWindow bit is set, we need to subtract
 				if digit&1 == 0 {
 					// add
 					p.AddAssign(&baseTable[(digit>>1)-1])

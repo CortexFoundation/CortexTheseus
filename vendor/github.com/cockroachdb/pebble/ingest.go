@@ -113,11 +113,28 @@ func ingestSynthesizeShared(
 	meta.FileBacking.Size = sm.Size
 	if sm.LargestRangeKey.Valid() && sm.LargestRangeKey.UserKey != nil {
 		// Initialize meta.{HasRangeKeys,Smallest,Largest}, etc.
-		meta.ExtendRangeKeyBounds(opts.Comparer.Compare, sm.SmallestRangeKey, sm.LargestRangeKey)
+		//
+		// NB: We create new internal keys and pass them into ExternalRangeKeyBounds
+		// so that we can sub a zero sequence number into the bounds. We can set
+		// the sequence number to anything here; it'll be reset in ingestUpdateSeqNum
+		// anyway. However we do need to use the same sequence number across all
+		// bound keys at this step so that we end up with bounds that are consistent
+		// across point/range keys.
+		smallestRangeKey := base.MakeInternalKey(sm.SmallestRangeKey.UserKey, 0, sm.SmallestRangeKey.Kind())
+		largestRangeKey := base.MakeExclusiveSentinelKey(sm.LargestRangeKey.Kind(), sm.LargestRangeKey.UserKey)
+		meta.ExtendRangeKeyBounds(opts.Comparer.Compare, smallestRangeKey, largestRangeKey)
 	}
 	if sm.LargestPointKey.Valid() && sm.LargestPointKey.UserKey != nil {
 		// Initialize meta.{HasPointKeys,Smallest,Largest}, etc.
-		meta.ExtendPointKeyBounds(opts.Comparer.Compare, sm.SmallestPointKey, sm.LargestPointKey)
+		//
+		// See point above in the ExtendRangeKeyBounds call on why we use a zero
+		// sequence number here.
+		smallestPointKey := base.MakeInternalKey(sm.SmallestPointKey.UserKey, 0, sm.SmallestPointKey.Kind())
+		largestPointKey := base.MakeInternalKey(sm.LargestPointKey.UserKey, 0, sm.LargestPointKey.Kind())
+		if sm.LargestPointKey.IsExclusiveSentinel() {
+			largestPointKey = base.MakeRangeDeleteSentinelKey(sm.LargestPointKey.UserKey)
+		}
+		meta.ExtendPointKeyBounds(opts.Comparer.Compare, smallestPointKey, largestPointKey)
 	}
 	if err := meta.Validate(opts.Comparer.Compare, opts.Comparer.FormatKey); err != nil {
 		return nil, err
@@ -2004,26 +2021,29 @@ func (d *DB) ingestApply(
 	// The ingestion may have pushed a level over the threshold for compaction,
 	// so check to see if one is necessary and schedule it.
 	d.maybeScheduleCompaction()
-	d.maybeValidateSSTablesLocked(ve.NewFiles)
+	var toValidate []manifest.NewFileEntry
+	dedup := make(map[base.DiskFileNum]struct{})
+	for _, entry := range ve.NewFiles {
+		if _, ok := dedup[entry.Meta.FileBacking.DiskFileNum]; !ok {
+			toValidate = append(toValidate, entry)
+			dedup[entry.Meta.FileBacking.DiskFileNum] = struct{}{}
+		}
+	}
+	d.maybeValidateSSTablesLocked(toValidate)
 	return ve, nil
 }
 
 // maybeValidateSSTablesLocked adds the slice of newFileEntrys to the pending
 // queue of files to be validated, when the feature is enabled.
-// DB.mu must be locked when calling.
 //
-// TODO(bananabrick): Make sure that the ingestion step only passes in the
-// physical sstables for validation here.
+// Note that if two entries with the same backing file are added twice, then the
+// block checksums for the backing file will be validated twice.
+//
+// DB.mu must be locked when calling.
 func (d *DB) maybeValidateSSTablesLocked(newFiles []newFileEntry) {
 	// Only add to the validation queue when the feature is enabled.
 	if !d.opts.Experimental.ValidateOnIngest {
 		return
-	}
-
-	for _, f := range newFiles {
-		if f.Meta.Virtual {
-			panic("pebble: invalid call to maybeValidateSSTablesLocked")
-		}
 	}
 
 	d.mu.tableValidation.pending = append(d.mu.tableValidation.pending, newFiles...)
@@ -2085,10 +2105,19 @@ func (d *DB) validateSSTables() {
 			}
 		}
 
-		err := d.tableCache.withReader(
-			f.Meta.PhysicalMeta(), func(r *sstable.Reader) error {
-				return r.ValidateBlockChecksums()
-			})
+		var err error
+		if f.Meta.Virtual {
+			err = d.tableCache.withVirtualReader(
+				f.Meta.VirtualMeta(), func(v sstable.VirtualReader) error {
+					return v.ValidateBlockChecksumsOnBacking()
+				})
+		} else {
+			err = d.tableCache.withReader(
+				f.Meta.PhysicalMeta(), func(r *sstable.Reader) error {
+					return r.ValidateBlockChecksums()
+				})
+		}
+
 		if err != nil {
 			// TODO(travers): Hook into the corruption reporting pipeline, once
 			// available. See pebble#1192.
