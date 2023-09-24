@@ -1007,7 +1007,7 @@ func (tm *TorrentManager) Start() (err error) {
 		tm.wg.Add(1)
 		go tm.mainLoop()
 
-		//err = tm.init()
+		err = tm.init()
 	})
 
 	return
@@ -1018,7 +1018,7 @@ func (tm *TorrentManager) prepare() bool {
 }
 
 func (tm *TorrentManager) init() error {
-	log.Debug("Chain files init", "files", len(params.GoodFiles))
+	log.Info("Chain files init", "files", len(params.GoodFiles))
 
 	//if tm.mode == params.DEV || tm.mode == params.LAZY {
 	//	tm.Simulate()
@@ -1044,7 +1044,7 @@ func (tm *TorrentManager) init() error {
 	}*/
 	//}
 
-	log.Debug("Chain files OK !!!")
+	log.Info("Chain files OK !!!")
 	return nil
 }
 
@@ -1467,6 +1467,7 @@ func (tm *TorrentManager) Drop(ih string) error {
 	return nil
 }
 
+/*
 func (tm *TorrentManager) Exists(ih string, rawSize uint64) (bool, uint64, mclock.AbsTime, error) {
 	availableMeter.Mark(1)
 
@@ -1539,7 +1540,7 @@ func (tm *TorrentManager) GetFile(ctx context.Context, infohash, subpath string)
 	}
 
 	return
-}
+}*/
 
 func (tm *TorrentManager) unzip(data []byte) ([]byte, error) {
 	if tm.compress {
