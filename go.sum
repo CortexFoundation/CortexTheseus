@@ -1248,8 +1248,8 @@ github.com/ucwong/color v1.10.1-0.20200504093835-6ffe517dac74/go.mod h1:ctQ7afqe
 github.com/ucwong/color v1.10.1-0.20200518131954-915014f7ee11/go.mod h1:v1b0ANLmRpK9Q+qquVwSF2eELmmrF/IafbyK0UgrmEA=
 github.com/ucwong/color v1.10.1-0.20200624105241-fba1e010fe1e h1:HvK1iHNK69zvKCmoMPGt5SvCFf3BZ1LE7Yhi+1+t8v0=
 github.com/ucwong/color v1.10.1-0.20200624105241-fba1e010fe1e/go.mod h1:/b4wmbSWmKYSHQQC4tshp/xGngyZwSOrjkfWZ2XEMZU=
-github.com/ucwong/filecache v1.0.6-0.20230916065457-63847b20001a h1:MkUqY4r4iTzEn4JwbGOmE04a6Wsgw54UOjR1AXFmpQ4=
-github.com/ucwong/filecache v1.0.6-0.20230916065457-63847b20001a/go.mod h1:ddwX+NCjMZPdpzcGh1fcEbNTUTCtKgt2hC2rqvmLKgA=
+github.com/ucwong/filecache v1.0.6-0.20230405163841-810d53ced4bd h1:gBtlvLAsgLk+WcCXQ6K26u+POLm4oV0fiZ2UyBEQ0QU=
+github.com/ucwong/filecache v1.0.6-0.20230405163841-810d53ced4bd/go.mod h1:ddwX+NCjMZPdpzcGh1fcEbNTUTCtKgt2hC2rqvmLKgA=
 github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb h1:dVZH3AH9f7zB3VBmsjn25B7lfcAyMP4QxdFYTrfj7tg=
 github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb/go.mod h1:3yswsBsVuwsOjDvFfC5Na9XSEf4HC7mj3W3g6jvSY/s=
 github.com/ucwong/golang-kv v1.0.23-0.20230922081610-18db1b66e400 h1:ijNlzGwvSJ9B4wUe1nv8fuwOsNL1eXJ5qEiud32cIWc=
