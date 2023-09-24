@@ -964,7 +964,7 @@ github.com/tklauser/numcpus
 # github.com/ucwong/color v1.10.1-0.20200624105241-fba1e010fe1e
 ## explicit; go 1.14
 github.com/ucwong/color
-# github.com/ucwong/filecache v1.0.6-0.20230916065457-63847b20001a
+# github.com/ucwong/filecache v1.0.6-0.20230405163841-810d53ced4bd
 ## explicit; go 1.20
 github.com/ucwong/filecache
 # github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb
