@@ -22,7 +22,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/CortexFoundation/robot/backend"
 	"github.com/CortexFoundation/torrentfs/params"
@@ -36,13 +35,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-)
-
-var (
-	rpcBlockMeter   = metrics.NewRegisteredMeter("torrent/block/call", nil)
-	rpcCurrentMeter = metrics.NewRegisteredMeter("torrent/current/call", nil)
-	rpcUploadMeter  = metrics.NewRegisteredMeter("torrent/upload/call", nil)
-	rpcReceiptMeter = metrics.NewRegisteredMeter("torrent/receipt/call", nil)
 )
 
 // Monitor observes the data changes on the blockchain and synchronizes.
@@ -188,7 +180,7 @@ func (m *Monitor) Callback() chan any {
 	return m.callback
 }
 
-func (m *Monitor) loadHistory() error {
+/*func (m *Monitor) loadHistory() error {
 	torrents, _ := m.fs.InitTorrents()
 	if m.mode != params.LAZY {
 		for k, v := range torrents {
@@ -206,7 +198,7 @@ func (m *Monitor) loadHistory() error {
 	}
 
 	return nil
-}
+}*/
 
 func (m *Monitor) download(ctx context.Context, k string, v uint64) error {
 	if m.mode != params.LAZY && m.callback != nil {

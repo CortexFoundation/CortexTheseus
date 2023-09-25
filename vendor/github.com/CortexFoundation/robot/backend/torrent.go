@@ -47,14 +47,14 @@ func (fs *ChainDB) SetTorrentProgress(ih string, size uint64) (bool, uint64, err
 		v := buk.Get([]byte(ih))
 
 		if v == nil {
-			err = buk.Put([]byte(ih), []byte(strconv.FormatUint(size, 16)))
+			err = buk.Put([]byte(ih), uint64ToHex(size))
 		} else {
 			s, err := strconv.ParseUint(string(v), 16, 64)
 			if err != nil {
 				return err
 			}
 			if size > s {
-				err = buk.Put([]byte(ih), []byte(strconv.FormatUint(size, 16)))
+				err = buk.Put([]byte(ih), uint64ToHex(size))
 			} else {
 				size = s
 			}
