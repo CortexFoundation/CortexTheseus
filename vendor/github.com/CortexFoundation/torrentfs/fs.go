@@ -352,27 +352,13 @@ func (fs *TorrentFS) sampling() (s string) {
 
 	log.Warn("No random seeding founded", "pos", pos, "total", total)
 
-	//s = fs.sampling()
-
 	return
 }
 
+/*
 func (fs *TorrentFS) MaxMessageSize() uint32 {
 	return params.DefaultMaxMessageSize
 }
-
-/*func (fs *TorrentFS) find(ih string) (*Peer, error) {
-	for s, p := range fs.peers {
-		if p.seeding.Contains(ih) {
-			// TODO
-			log.Debug("Seed found !!!", "from", s, "ih", ih)
-			return p, nil
-		}
-	}
-
-	log.Debug("Seed not found !!!", "neighbors", len(fs.peers), "ih", ih)
-	return nil, nil
-}*/
 
 func (fs *TorrentFS) HandlePeer(peer *p2p.Peer, rw p2p.MsgReadWriter) error {
 	//tfsPeer := newPeer(fmt.Sprintf("%x", peer.ID().Bytes()[:8]), fs, peer, rw)
@@ -473,7 +459,7 @@ func (fs *TorrentFS) handleMsg(p *Peer) error {
 	// TODO
 
 	return nil
-}
+}*/
 
 func (fs *TorrentFS) progress(ih string) (uint64, error) {
 	return fs.monitor.DB().GetTorrentProgress(ih)
@@ -626,7 +612,7 @@ func (fs *TorrentFS) Stop() error {
 	return nil
 }
 
-func (fs *TorrentFS) collapse(ih string, rawSize uint64) bool {
+/*func (fs *TorrentFS) collapse(ih string, rawSize uint64) bool {
 	if s, err := fs.tunnel.Get(ih); err == nil && s.Value().(uint64) >= rawSize {
 		return true
 	}
@@ -659,7 +645,7 @@ func (fs *TorrentFS) broadcast(ih string, rawSize uint64) bool {
 	}
 
 	return true
-}
+}*/
 
 /*func (fs *TorrentFS) notify(infohash string) bool {
 	if !common.IsHexAddress(infohash) {
@@ -925,7 +911,7 @@ func (fs *TorrentFS) download(ctx context.Context, ih string, request uint64) er
 	if err != nil {
 		return err
 	}
-	if exist, _, _, _ := fs.storage().Exists(ih, request); !exist {
+	if exist, _, _, _ := fs.storage().ExistsOrActive(ctx, ih, request); !exist {
 		fs.wg.Add(1)
 		go func(ih string, p uint64) {
 			defer fs.wg.Done()
@@ -988,7 +974,7 @@ func (fs *TorrentFS) Nominee() int {
 	return fs.storage().Nominee()
 }
 
-func (fs *TorrentFS) Envelopes() *ttlmap.Map {
+/*func (fs *TorrentFS) Envelopes() *ttlmap.Map {
 	fs.peerMu.RLock()
 	defer fs.peerMu.RUnlock()
 
@@ -1001,4 +987,4 @@ func (fs *TorrentFS) Neighbors() int {
 	}
 
 	return len(fs.peers)
-}
+}*/

@@ -319,7 +319,7 @@ func (t *Torrent) Leech() error {
 func (t *Torrent) download(p int) error {
 	var s, e int
 	s = (t.Torrent.NumPieces() * t.slot) / bucket
-	s = s - p/2
+	s = s - p>>1
 	if s < 0 {
 		s = 0
 	}
