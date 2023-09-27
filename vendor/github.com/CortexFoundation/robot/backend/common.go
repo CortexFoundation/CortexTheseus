@@ -18,10 +18,15 @@ package backend
 
 import (
 	"encoding/binary"
+	"strconv"
 )
 
 func uint64ToBytes(i uint64) []byte {
 	var buf [8]byte
 	binary.BigEndian.PutUint64(buf[:], i)
 	return buf[:]
+}
+
+func uint64ToHex(i uint64) []byte {
+	return []byte(strconv.FormatUint(i, 16))
 }

@@ -79,6 +79,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 		start  = mclock.Now()
 		final  []types.Transaction
 	)
+
 	for _, tx := range b.Txs {
 		if meta := tx.Parse(); meta != nil {
 			log.Debug("Data encounter", "ih", meta.InfoHash, "number", b.Number, "meta", meta)
@@ -112,7 +113,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 				file.LeftSize = remainingSize
 				if _, progress, err := m.fs.AddFile(file); err != nil {
 					return false, err
-				} else if progress { // && progress {
+				} else if progress {
 					log.Debug("Update storage success", "ih", file.Meta.InfoHash, "left", file.LeftSize)
 					var bytesRequested uint64
 					if file.Meta.RawSize > file.LeftSize {
@@ -134,10 +135,12 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 			final = append(final, tx)
 		}
 	}
+
 	if len(final) > 0 && len(final) < len(b.Txs) {
 		log.Debug("Final txs layout", "total", len(b.Txs), "final", len(final), "num", b.Number, "txs", m.fs.Txs())
 		b.Txs = final
 	}
+
 	if record {
 		if err := m.fs.AddBlock(b); err == nil {
 			log.Info("Root has been changed", "number", b.Number, "hash", b.Hash, "root", m.fs.Root())
@@ -145,9 +148,11 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 			log.Warn("Block added failed", "number", b.Number, "hash", b.Hash, "root", m.fs.Root(), "err", err)
 		}
 	}
+
 	if len(b.Txs) > 0 {
 		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
 		log.Trace("Transactions scanning", "count", len(b.Txs), "number", b.Number, "elapsed", common.PrettyDuration(elapsed))
 	}
+
 	return record, nil
 }
