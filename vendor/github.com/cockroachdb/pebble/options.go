@@ -119,6 +119,16 @@ type IterOptions struct {
 	// false to skip scanning. This function must be thread-safe since the same
 	// function can be used by multiple iterators, if the iterator is cloned.
 	TableFilter func(userProps map[string]string) bool
+	// SkipPoint may be used to skip over point keys that don't match an
+	// arbitrary predicate during iteration. If set, the Iterator invokes
+	// SkipPoint for keys encountered. If SkipPoint returns true, the iterator
+	// will skip the key without yielding it to the iterator operation in
+	// progress.
+	//
+	// SkipPoint must be a pure function and always return the same result when
+	// provided the same arguments. The iterator may call SkipPoint multiple
+	// times for the same user key.
+	SkipPoint func(userKey []byte) bool
 	// PointKeyFilters can be used to avoid scanning tables and blocks in tables
 	// when iterating over point keys. This slice represents an intersection
 	// across all filters, i.e., all filters must indicate that the block is
@@ -539,6 +549,11 @@ type Options struct {
 		// L0CompactionConcurrency, so the higher of the count of compaction
 		// concurrency slots as determined by the two options is chosen.
 		CompactionDebtConcurrency uint64
+
+		// IngestSplit, if it returns true, allows for ingest-time splitting of
+		// existing sstables into two virtual sstables to allow ingestion sstables to
+		// slot into a lower level than they otherwise would have.
+		IngestSplit func() bool
 
 		// ReadCompactionRate controls the frequency of read triggered
 		// compactions by adjusting `AllowedSeeks` in manifest.FileMetadata:
