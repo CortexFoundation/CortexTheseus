@@ -381,7 +381,7 @@ func upperBound(prefix []byte) (limit []byte) {
 
 // Stat returns a particular internal stat of the database.
 func (d *Database) Stat(property string) (string, error) {
-	return "", nil
+	return d.db.Metrics().String(), nil
 }
 
 // Compact flattens the underlying data store for the given key range. In essence,
