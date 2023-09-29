@@ -32,7 +32,10 @@ import (
 )
 
 var errEmptyTable = errors.New("pebble: empty table")
-var errCancelledCompaction = errors.New("pebble: compaction cancelled by a concurrent operation, will retry compaction")
+
+// ErrCancelledCompaction is returned if a compaction is cancelled by a
+// concurrent excise or ingest-split operation.
+var ErrCancelledCompaction = errors.New("pebble: compaction cancelled by a concurrent operation, will retry compaction")
 
 var compactLabels = pprof.Labels("pebble", "compact")
 var flushLabels = pprof.Labels("pebble", "flush")
@@ -1337,7 +1340,7 @@ func (c *compaction) newInputIter(
 			// initRangeDel, the levelIter will close and forget the range
 			// deletion iterator when it steps on to a new file. Surfacing range
 			// deletions to compactions are handled below.
-			iters = append(iters, newLevelIter(iterOpts, c.cmp, nil /* split */, newIters,
+			iters = append(iters, newLevelIter(iterOpts, c.comparer, newIters,
 				level.files.Iter(), l, internalIterOpts{
 					bytesIterated: &c.bytesIterated,
 					bufferPool:    &c.bufferPool,
@@ -1905,15 +1908,27 @@ func (d *DB) runIngestFlush(c *compaction) (*manifest.VersionEdit, error) {
 	ve := &versionEdit{}
 	var level int
 	var err error
+	var fileToSplit *fileMetadata
+	var ingestSplitFiles []ingestSplitFile
 	for _, file := range c.flushing[0].flushable.(*ingestedFlushable).files {
-		level, err = ingestTargetLevel(
-			d.newIters, d.tableNewRangeKeyIter, iterOpts, d.cmp,
+		suggestSplit := d.opts.Experimental.IngestSplit != nil && d.opts.Experimental.IngestSplit() &&
+			d.FormatMajorVersion() >= FormatVirtualSSTables
+		level, fileToSplit, err = ingestTargetLevel(
+			d.newIters, d.tableNewRangeKeyIter, iterOpts, d.opts.Comparer,
 			c.version, baseLevel, d.mu.compact.inProgress, file.FileMetadata,
+			suggestSplit,
 		)
 		if err != nil {
 			return nil, err
 		}
 		ve.NewFiles = append(ve.NewFiles, newFileEntry{Level: level, Meta: file.FileMetadata})
+		if fileToSplit != nil {
+			ingestSplitFiles = append(ingestSplitFiles, ingestSplitFile{
+				ingestFile: file.FileMetadata,
+				splitFile:  fileToSplit,
+				level:      level,
+			})
+		}
 		levelMetrics := c.metrics[level]
 		if levelMetrics == nil {
 			levelMetrics = &LevelMetrics{}
@@ -1921,6 +1936,28 @@ func (d *DB) runIngestFlush(c *compaction) (*manifest.VersionEdit, error) {
 		}
 		levelMetrics.BytesIngested += file.Size
 		levelMetrics.TablesIngested++
+	}
+
+	updateLevelMetricsOnExcise := func(m *fileMetadata, level int, added []newFileEntry) {
+		levelMetrics := c.metrics[level]
+		if levelMetrics == nil {
+			levelMetrics = &LevelMetrics{}
+			c.metrics[level] = levelMetrics
+		}
+		levelMetrics.NumFiles--
+		levelMetrics.Size -= int64(m.Size)
+		for i := range added {
+			levelMetrics.NumFiles++
+			levelMetrics.Size += int64(added[i].Meta.Size)
+		}
+	}
+
+	if len(ingestSplitFiles) > 0 {
+		ve.DeletedFiles = make(map[manifest.DeletedFileEntry]*manifest.FileMetadata)
+		replacedFiles := make(map[base.FileNum][]newFileEntry)
+		if err := d.ingestSplit(ve, updateLevelMetricsOnExcise, ingestSplitFiles, replacedFiles); err != nil {
+			return nil, err
+		}
 	}
 
 	return ve, nil
@@ -2091,6 +2128,24 @@ func (d *DB) flush1() (bytesFlushed uint64, err error) {
 				metrics := c.metrics[0]
 				for i := 0; i < n; i++ {
 					metrics.BytesIn += d.mu.mem.queue[i].logSize
+				}
+			}
+		} else if len(ve.DeletedFiles) > 0 {
+			// c.kind == compactionKindIngestedFlushable && we have deleted files due
+			// to ingest-time splits.
+			//
+			// Iterate through all other compactions, and check if their inputs have
+			// been replaced due to an ingest-time split. In that case, cancel the
+			// compaction.
+			for c2 := range d.mu.compact.inProgress {
+				for i := range c2.inputs {
+					iter := c2.inputs[i].files.Iter()
+					for f := iter.First(); f != nil; f = iter.Next() {
+						if _, ok := ve.DeletedFiles[deletedFileEntry{FileNum: f.FileNum, Level: c2.inputs[i].level}]; ok {
+							c2.cancel.Store(true)
+							break
+						}
+					}
 				}
 			}
 		}
@@ -2654,7 +2709,7 @@ func (d *DB) compact1(c *compaction, errChannel chan error) (err error) {
 			// the manifest lock, we don't expect this bool to change its value
 			// as only the holder of the manifest lock will ever write to it.
 			if c.cancel.Load() {
-				err = firstError(err, errCancelledCompaction)
+				err = firstError(err, ErrCancelledCompaction)
 			}
 			if err != nil {
 				// logAndApply calls logUnlock. If we didn't call it, we need to call
@@ -2819,7 +2874,7 @@ func (d *DB) runCompaction(
 	}
 
 	if c.cancel.Load() {
-		return ve, nil, stats, errCancelledCompaction
+		return ve, nil, stats, ErrCancelledCompaction
 	}
 
 	// Release the d.mu lock while doing I/O.
@@ -2952,7 +3007,7 @@ func (d *DB) runCompaction(
 	newOutput := func() error {
 		// Check if we've been cancelled by a concurrent operation.
 		if c.cancel.Load() {
-			return errCancelledCompaction
+			return ErrCancelledCompaction
 		}
 		fileMeta := &fileMetadata{}
 		d.mu.Lock()

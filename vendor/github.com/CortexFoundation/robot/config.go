@@ -17,7 +17,6 @@
 package robot
 
 import (
-	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"time"
 )
 
@@ -25,11 +24,4 @@ const (
 	batch   = 4096 * 2 //params.SyncBatch
 	delay   = 12       //params.Delay
 	timeout = 30 * time.Second
-)
-
-var (
-	rpcBlockMeter   = metrics.NewRegisteredMeter("torrent/block/call", nil)
-	rpcCurrentMeter = metrics.NewRegisteredMeter("torrent/current/call", nil)
-	rpcUploadMeter  = metrics.NewRegisteredMeter("torrent/upload/call", nil)
-	rpcReceiptMeter = metrics.NewRegisteredMeter("torrent/receipt/call", nil)
 )
