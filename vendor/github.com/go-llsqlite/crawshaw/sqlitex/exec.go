@@ -25,7 +25,7 @@ import (
 	"strings"
 
 	"github.com/go-llsqlite/crawshaw"
-	"github.com/go-llsqlite/crawshaw/fs"
+	"io/fs"
 )
 
 // ExecOptions is the set of optional arguments executing a statement.

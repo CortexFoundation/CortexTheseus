@@ -19,7 +19,7 @@ type (
 	Context    = sqlite.Context
 	Value      = sqlite.Value
 	OpenFlags  = sqlite.OpenFlags
-	ResultCode = sqlite.ErrorCode
+	ResultCode sqlite.ErrorCode
 	Blob       = sqlite.Blob
 )
 
@@ -34,11 +34,13 @@ const (
 	OpenReadWrite   = sqlite.SQLITE_OPEN_READWRITE
 	OpenSharedCache = sqlite.SQLITE_OPEN_SHAREDCACHE
 
-	ResultCodeInterrupt        = sqlite.SQLITE_INTERRUPT
-	ResultCodeBusy             = sqlite.SQLITE_BUSY
-	ResultCodeAbort            = sqlite.SQLITE_ABORT
-	ResultCodeConstraintUnique = sqlite.SQLITE_CONSTRAINT_UNIQUE
-	ResultCodeGenericError     = sqlite.SQLITE_ERROR
+	ResultCodeInterrupt        = ResultCode(sqlite.SQLITE_INTERRUPT)
+	ResultCodeBusy             = ResultCode(sqlite.SQLITE_BUSY)
+	ResultCodeAbort            = ResultCode(sqlite.SQLITE_ABORT)
+	ResultCodeConstraintUnique = ResultCode(sqlite.SQLITE_CONSTRAINT_UNIQUE)
+	ResultCodeGenericError     = ResultCode(sqlite.SQLITE_ERROR)
+
+	LimitLength = sqlite.SQLITE_LIMIT_LENGTH
 )
 
 var (
@@ -91,7 +93,7 @@ func GetResultCode(err error) (_ ResultCode, ok bool) {
 		// here?
 		return
 	}
-	return crawshawError.Code, true
+	return ResultCode(crawshawError.Code), true
 }
 
 // Deprecated. This may differ from GetResultCode in that it returns SQLITE_OK if there's no error,

@@ -10,7 +10,7 @@ type (
 	FunctionImpl = sqlite.FunctionImpl
 	Context      = sqlite.Context
 	Value        = sqlite.Value
-	ResultCode   = sqlite.ResultCode
+	ResultCode   sqlite.ResultCode
 	Blob         = sqlite.Blob
 )
 

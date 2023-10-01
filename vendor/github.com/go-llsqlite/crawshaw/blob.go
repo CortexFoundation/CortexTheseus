@@ -21,6 +21,8 @@ package sqlite
 import "C"
 import (
 	"errors"
+	"fmt"
+	"io"
 	"unsafe"
 )
 
@@ -103,6 +105,14 @@ func (blob *Blob) ReadAt(p []byte, off int64) (n int, err error) {
 	if blob.blob == nil {
 		return 0, ErrBlobClosed
 	}
+	if off < 0 {
+		err = fmt.Errorf("bad offset %v", off)
+		return
+	}
+	if off >= blob.size {
+		err = io.EOF
+		return
+	}
 	if err := blob.conn.interrupted("Blob.ReadAt", ""); err != nil {
 		return 0, err
 	}
@@ -114,7 +124,11 @@ func (blob *Blob) ReadAt(p []byte, off int64) (n int, err error) {
 	if err := blob.conn.reserr("Blob.ReadAt", "", res); err != nil {
 		return 0, err
 	}
-	return len(p), nil
+	n = len(p)
+	if off+int64(len(p)) >= blob.size {
+		err = io.EOF
+	}
+	return
 }
 
 // https://www.sqlite.org/c3ref/blob_write.html

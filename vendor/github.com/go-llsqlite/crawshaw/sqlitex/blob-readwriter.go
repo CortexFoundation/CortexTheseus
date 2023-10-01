@@ -2,8 +2,9 @@ package sqlitex
 
 import (
 	"errors"
-	sqlite "github.com/go-llsqlite/crawshaw"
 	"io"
+
+	sqlite "github.com/go-llsqlite/crawshaw"
 )
 
 // This wraps a sqlite.Blob with positional state provide extra io implementations.

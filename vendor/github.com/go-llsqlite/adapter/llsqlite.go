@@ -16,3 +16,8 @@ func IsResultCode(err error, code ResultCode) bool {
 	actual, ok := GetResultCode(err)
 	return ok && actual == code
 }
+
+func IsPrimaryResultCodeErr(err error, code ResultCode) bool {
+	actual, ok := GetResultCode(err)
+	return ok && actual.ToPrimary() == code.ToPrimary()
+}

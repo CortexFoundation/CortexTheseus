@@ -24,6 +24,8 @@ import (
 	"sync"
 	"time"
 	"unsafe"
+
+	"github.com/anacrolix/chansync"
 )
 
 /*
@@ -93,8 +95,10 @@ type Conn struct {
 	tracer     Tracer
 	doneCh     <-chan struct{}
 	unlockNote *C.unlock_note
-	file       string
-	line       int
+
+	// This flag is set to on if the Go busy handler is invoked (enabled with BlockOnBusy). It
+	// should be okay to clear it between calls to sqlite (it's also concurrent safe anyway).
+	BlockedOnBusy chansync.Flag
 }
 
 func (me *Conn) CSqliteObject() *C.sqlite3 {
@@ -342,6 +346,7 @@ func (c *Conn) SetBlockOnBusy() {
 		return
 	}
 	c.setBusyHandler(func(count int) bool {
+		c.BlockedOnBusy.Set()
 		delay := getDelayForCount(sqliteMsDelays[:], count)
 		t := time.NewTimer(time.Duration(delay) * time.Millisecond)
 		defer t.Stop()
