@@ -31,6 +31,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
+
+	"github.com/cockroachdb/errors"
 	"github.com/cockroachdb/pebble"
 	"github.com/cockroachdb/pebble/bloom"
 )
@@ -118,6 +120,15 @@ func (d *Database) onWriteStallEnd() {
 	d.writeDelayTime.Add(int64(time.Since(d.writeDelayStartTime)))
 }
 
+type panicLogger struct{}
+
+func (l panicLogger) Infof(format string, args ...interface{}) {
+}
+
+func (l panicLogger) Fatalf(format string, args ...interface{}) {
+	panic(errors.Errorf("fatal: "+format, args...))
+}
+
 // New returns a wrapped pebble DB object. The namespace is the prefix that the
 // metrics reporting should use for surfacing internal stats.
 func New(file string, cache int, handles int, namespace string, readonly bool, ephemeral bool) (*Database, error) {
@@ -189,6 +200,7 @@ func New(file string, cache int, handles int, namespace string, readonly bool, e
 			WriteStallBegin: db.onWriteStallBegin,
 			WriteStallEnd:   db.onWriteStallEnd,
 		},
+		Logger: panicLogger{}, // TODO(karalabe): Delete when this is upstreamed in Pebble
 	}
 	// Disable seek compaction explicitly. Check https://github.com/CortexFoundation/CortexTheseus/pull/20130
 	// for more details.
@@ -308,9 +320,9 @@ func (d *Database) NewBatch() ctxcdb.Batch {
 // It's not supported by pebble, but pebble has better memory allocation strategy
 // which turns out a lot faster than leveldb. It's performant enough to construct
 // batch object without any pre-allocated space.
-func (d *Database) NewBatchWithSize(_ int) ctxcdb.Batch {
+func (d *Database) NewBatchWithSize(size int) ctxcdb.Batch {
 	return &batch{
-		b:  d.db.NewBatch(),
+		b:  d.db.NewBatchWithSize(size),
 		db: d,
 	}
 }
