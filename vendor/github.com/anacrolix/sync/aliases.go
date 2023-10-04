@@ -10,5 +10,3 @@ type (
 	Once      = sync.Once
 	Map       = sync.Map
 )
-
-var OnceFunc = sync.OnceFunc
