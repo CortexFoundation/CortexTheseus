@@ -44,8 +44,12 @@ type LevelMetrics struct {
 	Sublevels int32
 	// The total number of files in the level.
 	NumFiles int64
+	// The total number of virtual sstables in the level.
+	NumVirtualFiles uint64
 	// The total size in bytes of the files in the level.
 	Size int64
+	// The total size of the virtual sstables in the level.
+	VirtualSize uint64
 	// The level's compaction score. This is the compensatedScoreRatio in the
 	// candidateLevelInfo.
 	Score float64
@@ -107,6 +111,8 @@ type LevelMetrics struct {
 // Add updates the counter metrics for the level.
 func (m *LevelMetrics) Add(u *LevelMetrics) {
 	m.NumFiles += u.NumFiles
+	m.NumVirtualFiles += u.NumVirtualFiles
+	m.VirtualSize += u.VirtualSize
 	m.Size += u.Size
 	m.BytesIn += u.BytesIn
 	m.BytesIngested += u.BytesIngested
@@ -253,6 +259,10 @@ type Metrics struct {
 		ZombieSize uint64
 		// The count of zombie tables.
 		ZombieCount int64
+		// The count of the backing sstables.
+		BackingTableCount uint64
+		// The sum of the sizes of the all of the backing sstables.
+		BackingTableSize uint64
 	}
 
 	TableCache CacheMetrics
@@ -327,6 +337,27 @@ func (m *Metrics) DiskSpaceUsage() uint64 {
 	return usageBytes
 }
 
+// NumVirtual is the number of virtual sstables in the latest version
+// summed over every level in the lsm.
+func (m *Metrics) NumVirtual() uint64 {
+	var n uint64
+	for _, level := range m.Levels {
+		n += level.NumVirtualFiles
+	}
+	return n
+}
+
+// VirtualSize is the sum of the sizes of the virtual sstables in the
+// latest version. BackingTableSize - VirtualSize gives an estimate for
+// the space amplification caused by not compacting virtual sstables.
+func (m *Metrics) VirtualSize() uint64 {
+	var size uint64
+	for _, level := range m.Levels {
+		size += level.VirtualSize
+	}
+	return size
+}
+
 // ReadAmp returns the current read amplification of the database.
 // It's computed as the number of sublevels in L0 + the number of non-empty
 // levels below L0.
@@ -357,24 +388,25 @@ func (m *Metrics) Total() LevelMetrics {
 
 // String pretty-prints the metrics as below:
 //
-//	      |                     |       |       |   ingested   |     moved    |    written   |       |    amp
-//	level | tables  size val-bl | score |   in  | tables  size | tables  size | tables  size |  read |   r   w
-//	------+---------------------+-------+-------+--------------+--------------+--------------+-------+---------
-//	    0 |   101   102B     0B | 103.0 |  104B |   112   104B |   113   106B |   221   217B |  107B |   1  2.1
-//	    1 |   201   202B     0B | 203.0 |  204B |   212   204B |   213   206B |   421   417B |  207B |   2  2.0
-//	    2 |   301   302B     0B | 303.0 |  304B |   312   304B |   313   306B |   621   617B |  307B |   3  2.0
-//	    3 |   401   402B     0B | 403.0 |  404B |   412   404B |   413   406B |   821   817B |  407B |   4  2.0
-//	    4 |   501   502B     0B | 503.0 |  504B |   512   504B |   513   506B |  1.0K  1017B |  507B |   5  2.0
-//	    5 |   601   602B     0B | 603.0 |  604B |   612   604B |   613   606B |  1.2K  1.2KB |  607B |   6  2.0
-//	    6 |   701   702B     0B |     - |  704B |   712   704B |   713   706B |  1.4K  1.4KB |  707B |   7  2.0
-//	total |  2.8K  2.7KB     0B |     - | 2.8KB |  2.9K  2.8KB |  2.9K  2.8KB |  5.7K  8.4KB | 2.8KB |  28  3.0
-//	-----------------------------------------------------------------------------------------------------------
+//	      |                             |       |       |   ingested   |     moved    |    written   |       |    amp
+//	level | tables  size val-bl vtables | score |   in  | tables  size | tables  size | tables  size |  read |   r   w
+//	------+-----------------------------+-------+-------+--------------+--------------+--------------+-------+---------
+//	    0 |   101   102B     0B       0 | 103.0 |  104B |   112   104B |   113   106B |   221   217B |  107B |   1  2.1
+//	    1 |   201   202B     0B       0 | 203.0 |  204B |   212   204B |   213   206B |   421   417B |  207B |   2  2.0
+//	    2 |   301   302B     0B       0 | 303.0 |  304B |   312   304B |   313   306B |   621   617B |  307B |   3  2.0
+//	    3 |   401   402B     0B       0 | 403.0 |  404B |   412   404B |   413   406B |   821   817B |  407B |   4  2.0
+//	    4 |   501   502B     0B       0 | 503.0 |  504B |   512   504B |   513   506B |  1.0K  1017B |  507B |   5  2.0
+//	    5 |   601   602B     0B       0 | 603.0 |  604B |   612   604B |   613   606B |  1.2K  1.2KB |  607B |   6  2.0
+//	    6 |   701   702B     0B       0 |     - |  704B |   712   704B |   713   706B |  1.4K  1.4KB |  707B |   7  2.0
+//	total |  2.8K  2.7KB     0B       0 |     - | 2.8KB |  2.9K  2.8KB |  2.9K  2.8KB |  5.7K  8.4KB | 2.8KB |  28  3.0
+//	-------------------------------------------------------------------------------------------------------------------
 //	WAL: 22 files (24B)  in: 25B  written: 26B (4% overhead)
 //	Flushes: 8
 //	Compactions: 5  estimated debt: 6B  in progress: 2 (7B)
 //	default: 27  delete: 28  elision: 29  move: 30  read: 31  rewrite: 32  multi-level: 33
 //	MemTables: 12 (11B)  zombie: 14 (13B)
 //	Zombie tables: 16 (15B)
+//	Backing tables: 0 (0B)
 //	Block cache: 2 entries (1B)  hit rate: 42.9%
 //	Table cache: 18 entries (17B)  hit rate: 48.7%
 //	Secondary cache: 40 entries (40B)  hit rate: 49.9%
@@ -412,13 +444,13 @@ func (m *Metrics) SafeFormat(w redact.SafePrinter, _ rune) {
 		w.SafeString("\n")
 	}
 
-	w.SafeString("      |                     |       |       |   ingested   |     moved    |    written   |       |    amp")
+	w.SafeString("      |                             |       |       |   ingested   |     moved    |    written   |       |    amp")
 	appendIfMulti("   |     multilevel")
 	newline()
-	w.SafeString("level | tables  size val-bl | score |   in  | tables  size | tables  size | tables  size |  read |   r   w")
+	w.SafeString("level | tables  size val-bl vtables | score |   in  | tables  size | tables  size | tables  size |  read |   r   w")
 	appendIfMulti("  |    top   in  read")
 	newline()
-	w.SafeString("------+---------------------+-------+-------+--------------+--------------+--------------+-------+---------")
+	w.SafeString("------+-----------------------------+-------+-------+--------------+--------------+--------------+-------+---------")
 	appendIfMulti("-+------------------")
 	newline()
 
@@ -443,10 +475,11 @@ func (m *Metrics) SafeFormat(w redact.SafePrinter, _ rune) {
 			wampStr = fmt.Sprintf("%.1f", wamp)
 		}
 
-		w.Printf("| %5s %6s %6s | %5s | %5s | %5s %6s | %5s %6s | %5s %6s | %5s | %3d %4s",
+		w.Printf("| %5s %6s %6s %7s | %5s | %5s | %5s %6s | %5s %6s | %5s %6s | %5s | %3d %4s",
 			humanize.Count.Int64(m.NumFiles),
 			humanize.Bytes.Int64(m.Size),
 			humanize.Bytes.Uint64(m.Additional.ValueBlocksSize),
+			humanize.Count.Uint64(m.NumVirtualFiles),
 			redact.Safe(scoreStr),
 			humanize.Bytes.Uint64(m.BytesIn),
 			humanize.Count.Uint64(m.TablesIngested),
@@ -491,7 +524,7 @@ func (m *Metrics) SafeFormat(w redact.SafePrinter, _ rune) {
 	w.SafeString("total ")
 	formatRow(&total, math.NaN())
 
-	w.SafeString("-----------------------------------------------------------------------------------------------------------")
+	w.SafeString("-------------------------------------------------------------------------------------------------------------------")
 	appendIfMulti("--------------------")
 	newline()
 	w.Printf("WAL: %d files (%s)  in: %s  written: %s (%.0f%% overhead)\n",
@@ -527,6 +560,13 @@ func (m *Metrics) SafeFormat(w redact.SafePrinter, _ rune) {
 	w.Printf("Zombie tables: %d (%s)\n",
 		redact.Safe(m.Table.ZombieCount),
 		humanize.Bytes.Uint64(m.Table.ZombieSize))
+
+	w.Printf("Backing tables: %d (%s)\n",
+		redact.Safe(m.Table.BackingTableCount),
+		humanize.Bytes.Uint64(m.Table.BackingTableSize))
+	w.Printf("Virtual tables: %d (%s)\n",
+		redact.Safe(m.NumVirtual()),
+		humanize.Bytes.Uint64(m.VirtualSize()))
 
 	formatCacheMetrics := func(m *CacheMetrics, name redact.SafeString) {
 		w.Printf("%s: %s entries (%s)  hit rate: %.1f%%\n",

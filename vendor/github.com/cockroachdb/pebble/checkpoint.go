@@ -135,9 +135,6 @@ func mkdirAllAndSyncParents(fs vfs.FS, destDir string) (vfs.File, error) {
 // space overhead for a checkpoint if hard links are disabled. Also beware that
 // even if hard links are used, the space overhead for the checkpoint will
 // increase over time as the DB performs compactions.
-//
-// TODO(bananabrick): Test checkpointing of virtual sstables once virtual
-// sstables is running e2e.
 func (d *DB) Checkpoint(
 	destDir string, opts ...CheckpointOption,
 ) (
@@ -192,7 +189,7 @@ func (d *DB) Checkpoint(
 	manifestSize := d.mu.versions.manifest.Size()
 	optionsFileNum := d.optionsFileNum
 	virtualBackingFiles := make(map[base.DiskFileNum]struct{})
-	for diskFileNum := range d.mu.versions.fileBackingMap {
+	for diskFileNum := range d.mu.versions.backingState.fileBackingMap {
 		virtualBackingFiles[diskFileNum] = struct{}{}
 	}
 	// Release the manifest and DB.mu so we don't block other operations on
