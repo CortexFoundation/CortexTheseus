@@ -316,9 +316,6 @@ type DB struct {
 	closedCh chan struct{}
 
 	cleanupManager *cleanupManager
-	// testingAlwaysWaitForCleanup is set by some tests to force waiting for
-	// obsolete file deletion (to make events deterministic).
-	testingAlwaysWaitForCleanup bool
 
 	// During an iterator close, we may asynchronously schedule read compactions.
 	// We want to wait for those goroutines to finish, before closing the DB.
@@ -1963,6 +1960,17 @@ func (d *DB) Metrics() *Metrics {
 
 	d.mu.versions.logLock()
 	metrics.private.manifestFileSize = uint64(d.mu.versions.manifest.Size())
+	metrics.Table.BackingTableCount = uint64(len(d.mu.versions.backingState.fileBackingMap))
+	metrics.Table.BackingTableSize = d.mu.versions.backingState.fileBackingSize
+	if invariants.Enabled {
+		var totalSize uint64
+		for _, backing := range d.mu.versions.backingState.fileBackingMap {
+			totalSize += backing.Size
+		}
+		if totalSize != metrics.Table.BackingTableSize {
+			panic("pebble: invalid backing table size accounting")
+		}
+	}
 	d.mu.versions.logUnlock()
 
 	metrics.LogWriter.FsyncLatency = d.mu.log.metrics.fsyncLatency

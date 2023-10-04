@@ -196,3 +196,9 @@ func (fs *TorrentFS) Neighbors() int {
 
 	return len(fs.peers)
 }
+
+func (fs *TorrentFS) record(id string) {
+	if !fs.history.Contains(id) {
+		fs.history.Add(id)
+	}
+}
