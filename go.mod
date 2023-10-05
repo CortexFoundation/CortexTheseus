@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.55-0.20231004070553-d499c9365f23
+	github.com/CortexFoundation/torrentfs v1.0.55-0.20231004223744-a7e0b5dd46b2
 	github.com/VictoriaMetrics/fastcache v1.12.1
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.21.0
@@ -18,7 +18,7 @@ require (
 	github.com/charmbracelet/bubbletea v0.24.2
 	github.com/cloudflare/cloudflare-go v0.57.1
 	github.com/cockroachdb/errors v1.10.0
-	github.com/cockroachdb/pebble v0.0.0-20231003235536-b013ca78e9dc
+	github.com/cockroachdb/pebble v0.0.0-20231004191855-d4bf20c546d3
 	github.com/consensys/gnark-crypto v0.12.0
 	github.com/crate-crypto/go-kzg-4844 v0.3.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
@@ -218,7 +218,7 @@ require (
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/ucwong/filecache v1.0.6-0.20230405163841-810d53ced4bd // indirect
 	github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb // indirect
-	github.com/ucwong/golang-kv v1.0.23-0.20231004070104-1aab71d44655 // indirect
+	github.com/ucwong/golang-kv v1.0.23-0.20231004194712-d186bd015978 // indirect
 	github.com/ucwong/shard v1.0.1-0.20230924231639-2ac2d8ab288c // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/xujiajun/mmap-go v1.0.1 // indirect
