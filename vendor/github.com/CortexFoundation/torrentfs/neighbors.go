@@ -19,32 +19,17 @@ package torrentfs
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/torrentfs/params"
-
 	"github.com/ucwong/go-ttlmap"
 )
 
 func (fs *TorrentFS) MaxMessageSize() uint32 {
 	return params.DefaultMaxMessageSize
 }
-
-/*func (fs *TorrentFS) find(ih string) (*Peer, error) {
-        for s, p := range fs.peers {
-                if p.seeding.Contains(ih) {
-                        // TODO
-                        log.Debug("Seed found !!!", "from", s, "ih", ih)
-                        return p, nil
-                }
-        }
-
-        log.Debug("Seed not found !!!", "neighbors", len(fs.peers), "ih", ih)
-        return nil, nil
-}*/
 
 func (fs *TorrentFS) HandlePeer(peer *p2p.Peer, rw p2p.MsgReadWriter) error {
 	//tfsPeer := newPeer(fmt.Sprintf("%x", peer.ID().Bytes()[:8]), fs, peer, rw)
@@ -118,10 +103,12 @@ func (fs *TorrentFS) handleMsg(p *Peer) error {
 				return errors.New("invalid address")
 			}
 
+			// already in
 			if ok := fs.collapse(info.Hash, info.Size); ok {
 				return nil
 			}
 
+			// wake up service
 			if err := fs.wakeup(context.Background(), info.Hash); err == nil {
 				if err := fs.traverse(info.Hash, info.Size); err == nil {
 					fs.received.Add(1)
@@ -147,48 +134,6 @@ func (fs *TorrentFS) handleMsg(p *Peer) error {
 	return nil
 }
 
-func (fs *TorrentFS) collapse(ih string, rawSize uint64) bool {
-	if s, err := fs.tunnel.Get(ih); err == nil && s.Value().(uint64) >= rawSize {
-		return true
-	}
-
-	return false
-}
-
-func (fs *TorrentFS) traverse(ih string, rawSize uint64) error {
-	if err := fs.tunnel.Set(ih, ttlmap.NewItem(rawSize, ttlmap.WithTTL(60*time.Second)), nil); err == nil {
-		log.Trace("Wormhole traverse", "ih", ih, "size", common.StorageSize(rawSize))
-	} else {
-		return err
-	}
-	return nil
-}
-
-func (fs *TorrentFS) broadcast(ih string, rawSize uint64) bool {
-	if !common.IsHexAddress(ih) {
-		return false
-	}
-
-	//if s, err := fs.tunnel.Get(ih); err == nil && s.Value().(uint64) >= rawSize {
-	if fs.collapse(ih, rawSize) {
-		return false
-	}
-
-	//fs.tunnel.Set(ih, ttlmap.NewItem(rawSize, ttlmap.WithTTL(60*time.Second)), nil)
-	if err := fs.traverse(ih, rawSize); err != nil {
-		return false
-	}
-
-	return true
-}
-
-func (fs *TorrentFS) Envelopes() *ttlmap.Map {
-	fs.peerMu.RLock()
-	defer fs.peerMu.RUnlock()
-
-	return fs.tunnel
-}
-
 func (fs *TorrentFS) Neighbors() int {
 	if fs.net != nil {
 		return fs.net.PeerCount()
@@ -197,8 +142,9 @@ func (fs *TorrentFS) Neighbors() int {
 	return len(fs.peers)
 }
 
-func (fs *TorrentFS) record(id string) {
-	if !fs.history.Contains(id) {
-		fs.history.Add(id)
-	}
+func (fs *TorrentFS) Envelopes() *ttlmap.Map {
+	fs.peerMu.RLock()
+	defer fs.peerMu.RUnlock()
+
+	return fs.tunnel
 }

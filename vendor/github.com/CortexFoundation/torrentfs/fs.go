@@ -85,10 +85,6 @@ func (t *TorrentFS) storage() *backend.TorrentManager {
 	return t.handler
 }
 
-/*func (t *TorrentFS) chain() *backend.ChainDB {
-	return t.db
-}*/
-
 var (
 	inst    *TorrentFS = nil
 	mut     sync.RWMutex
