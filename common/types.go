@@ -49,6 +49,11 @@ var (
 	EmptyHash = HexToHash("0000000000000000000000000000000000000000000000000000000000000000")
 	//	EmptyAddress = HexToAddress("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
 	EmptyAddress = HexToAddress("0000000000000000000000000000000000000000000000000000000000000000")
+	// MaxAddress represents the maximum possible address value.
+	MaxAddress = HexToAddress("0xffffffffffffffffffffffffffffffffffffffff")
+
+	// MaxHash represents the maximum possible hash value.
+	MaxHash = HexToHash("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 )
 
 // Hash represents the 32 byte Keccak256 hash of arbitrary data.
