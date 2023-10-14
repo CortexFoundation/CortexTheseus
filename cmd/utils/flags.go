@@ -841,6 +841,13 @@ var (
 		Usage: "Comma-separated InfluxDB tags (key/values) attached to all measurements",
 		Value: "host=localhost",
 	}
+
+	// DatabaseFlags is the flag group of all database flags.
+	DatabaseFlags = []cli.Flag{
+		DataDirFlag,
+		AncientFlag,
+		DBEngineFlag,
+	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
