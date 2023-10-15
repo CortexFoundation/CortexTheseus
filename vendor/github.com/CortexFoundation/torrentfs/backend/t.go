@@ -133,7 +133,6 @@ func (t *Torrent) Seed() bool {
 		//t.Lock()
 		//defer t.Unlock()
 
-		//t.status = torrentSeeding
 		t.status.Store(torrentSeeding)
 		t.stopListen()
 
@@ -165,7 +164,6 @@ func (t *Torrent) Pause() {
 	//t.Torrent.SetMaxEstablishedConns(t.minEstablishedConns)
 	//}
 	if t.status.Load() != torrentPaused {
-		//t.status = torrentPaused
 		t.status.Store(torrentPaused)
 		//t.maxPieces = 0 //t.minEstablishedConns
 		t.maxPieces.Store(0)
@@ -255,7 +253,6 @@ func (t *Torrent) Stop() {
 
 	if t.Status() != torrentStopping {
 		log.Debug(ProgressBar(t.BytesCompleted(), t.Torrent.Length(), ""), "ih", t.InfoHash(), "total", common.StorageSize(t.Torrent.Length()), "req", common.StorageSize(t.BytesRequested()), "finish", common.StorageSize(t.Torrent.BytesCompleted()), "status", t.Status(), "cited", t.Cited())
-		//t.status = torrentStopping
 		t.status.Store(torrentStopping)
 	}
 }
