@@ -23,9 +23,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
-	//"math"
 	"math"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -37,24 +36,12 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/torrentfs/compress"
 	"github.com/CortexFoundation/torrentfs/params"
-	//"github.com/CortexFoundation/torrentfs/shard"
 	"github.com/CortexFoundation/torrentfs/tool"
 	"github.com/CortexFoundation/torrentfs/types"
 	"github.com/CortexFoundation/wormhole"
 	"github.com/ucwong/shard"
 
-	//"github.com/allegro/bigcache/v3"
-	"github.com/bradfitz/iter"
-	"github.com/edsrzf/mmap-go"
-	//lru "github.com/hashicorp/golang-lru"
-
-	//mapset "github.com/deckarep/golang-set/v2"
-	//"golang.org/x/time/rate"
-
-	//xlog "github.com/anacrolix/log"
-	//"github.com/anacrolix/missinggo/v2/filecache"
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/analysis"
 	"github.com/anacrolix/torrent/bencode"
@@ -63,6 +50,8 @@ import (
 	"github.com/anacrolix/torrent/mmap_span"
 	pp "github.com/anacrolix/torrent/peer_protocol"
 	"github.com/anacrolix/torrent/storage"
+	"github.com/bradfitz/iter"
+	"github.com/edsrzf/mmap-go"
 	"github.com/ucwong/golang-kv"
 
 	"github.com/anacrolix/dht/v2"
@@ -1361,7 +1350,7 @@ func (tm *TorrentManager) GetFile(ctx context.Context, infohash, subpath string)
 	}
 
 	return
-}*/
+}
 
 func (tm *TorrentManager) unzip(data []byte) ([]byte, error) {
 	if tm.compress {
@@ -1375,4 +1364,4 @@ func (tm *TorrentManager) zip(data []byte) ([]byte, error) {
 		return compress.ZipData(data)
 	}
 	return data, nil
-}
+}*/
