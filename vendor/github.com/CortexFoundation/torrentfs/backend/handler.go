@@ -1010,12 +1010,12 @@ func (tm *TorrentManager) pendingLoop() {
 							elapsed := time.Duration(mclock.Now()) - time.Duration(t.Birth())
 							log.Debug("Imported new seed", "ih", t.InfoHash(), "request", common.StorageSize(t.Length()), "ts", common.StorageSize(len(b)), "good", params.IsGood(t.InfoHash()), "elapsed", common.PrettyDuration(elapsed))
 							tm.wg.Add(1)
-							go func() {
+							go func(tt *Torrent, bb []byte) {
 								tm.wg.Done()
-								if err := t.WriteTorrent(); err == nil {
-									tm.kvdb.Set([]byte(SEED_PRE+t.InfoHash()), b)
+								if err := tt.WriteTorrent(); err == nil {
+									tm.kvdb.Set([]byte(SEED_PRE+t.InfoHash()), bb)
 								}
-							}()
+							}(t, b)
 						}
 						//t.lock.Lock()
 						//t.Birth() = mclock.Now()
