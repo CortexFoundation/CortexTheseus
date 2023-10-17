@@ -133,7 +133,6 @@ func (t *Torrent) run() bool {
 	defer t.Unlock()
 
 	if t.Info() != nil {
-		//t.status = torrentRunning
 		t.status.Store(torrentRunning)
 	} else {
 		log.Warn("Task listener not ready", "ih", t.InfoHash())

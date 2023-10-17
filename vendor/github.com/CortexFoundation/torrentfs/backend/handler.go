@@ -168,7 +168,7 @@ func (tm *TorrentManager) register(t *torrent.Torrent, requested int64, ih strin
 	tt := NewTorrent(t, requested, ih, filepath.Join(tm.TmpDataDir, ih), tm.slot, spec)
 	tm.setTorrent(tt)
 
-	tm.forPending(tt)
+	tm.Pending(tt)
 	return tt
 }
 
@@ -909,21 +909,21 @@ func (tm *TorrentManager) commit(ctx context.Context, hex string, request uint64
 	return nil
 }
 
-func (tm *TorrentManager) forPending(t *Torrent) {
+func (tm *TorrentManager) Pending(t *Torrent) {
 	select {
 	case tm.pendingChan <- t:
 	case <-tm.closeAll:
 	}
 }
 
-func (tm *TorrentManager) forRunning(t *Torrent) {
+func (tm *TorrentManager) Running(t *Torrent) {
 	select {
 	case tm.activeChan <- t:
 	case <-tm.closeAll:
 	}
 }
 
-func (tm *TorrentManager) forSeeding(t *Torrent) {
+func (tm *TorrentManager) Seeding(t *Torrent) {
 	select {
 	case tm.seedingChan <- t:
 	case <-tm.closeAll:
@@ -955,7 +955,7 @@ func (tm *TorrentManager) mainLoop() {
 						t.start = mclock.Now()
 						t.Unlock()
 
-						tm.forPending(t)
+						tm.Pending(t)
 						tm.recovery.Add(1)
 						tm.stops.Add(-1)
 					} else {
@@ -1010,18 +1010,19 @@ func (tm *TorrentManager) pendingLoop() {
 							elapsed := time.Duration(mclock.Now()) - time.Duration(t.Birth())
 							log.Debug("Imported new seed", "ih", t.InfoHash(), "request", common.StorageSize(t.Length()), "ts", common.StorageSize(len(b)), "good", params.IsGood(t.InfoHash()), "elapsed", common.PrettyDuration(elapsed))
 							tm.wg.Add(1)
-							go func() {
+							go func(tt *Torrent, bb []byte) {
 								tm.wg.Done()
-								t.WriteTorrent()
-							}()
-							tm.kvdb.Set([]byte(SEED_PRE+t.InfoHash()), b)
+								if err := tt.WriteTorrent(); err == nil {
+									tm.kvdb.Set([]byte(SEED_PRE+t.InfoHash()), bb)
+								}
+							}(t, b)
 						}
 						//t.lock.Lock()
 						//t.Birth() = mclock.Now()
 						//t.lock.Unlock()
 					} else {
 						log.Error("Meta info marshal failed", "ih", t.InfoHash(), "err", err)
-						tm.Drop(t.InfoHash())
+						tm.Dropping(t.InfoHash())
 						return
 					}
 
@@ -1057,11 +1058,11 @@ func (tm *TorrentManager) pendingLoop() {
 					//tm.pendingTorrents.Delete(t.InfoHash())
 
 					//tm.activeChan <- t
-					tm.forRunning(t)
+					tm.Running(t)
 				case <-t.Closed():
 				case <-tm.closeAll:
 				case <-ctx.Done():
-					tm.Drop(t.InfoHash())
+					tm.Dropping(t.InfoHash())
 				}
 			}(t)
 		case <-tm.closeAll:
@@ -1078,7 +1079,7 @@ func (tm *TorrentManager) finish(t *Torrent) {
 	if _, err := os.Stat(filepath.Join(tm.DataDir, t.InfoHash())); err == nil {
 		//tm.activeTorrents.Delete(t.InfoHash())
 		//tm.seedingChan <- t
-		tm.forSeeding(t)
+		tm.Seeding(t)
 	} else {
 		if err := os.Symlink(
 			filepath.Join(params.DefaultTmpPath, t.InfoHash()),
@@ -1086,7 +1087,7 @@ func (tm *TorrentManager) finish(t *Torrent) {
 		); err == nil {
 			//tm.activeTorrents.Delete(t.InfoHash())
 			//tm.seedingChan <- t
-			tm.forSeeding(t)
+			tm.Seeding(t)
 		}
 	}
 }
@@ -1150,7 +1151,7 @@ func (tm *TorrentManager) activeLoop() {
 					case <-timer.C:
 						if t := tm.getTorrent(i); t != nil { //&& t.Ready() {
 							if t.Cited() <= 0 {
-								tm.Drop(i)
+								tm.Dropping(i)
 								return
 							} else {
 								t.CitedDec()
@@ -1269,7 +1270,7 @@ func (tm *TorrentManager) droppingLoop() {
 	}
 }
 
-func (tm *TorrentManager) Drop(ih string) error {
+func (tm *TorrentManager) Dropping(ih string) error {
 	select {
 	case tm.droppingChan <- ih:
 	case <-tm.closeAll:
