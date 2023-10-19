@@ -62,8 +62,8 @@ var (
 	jsonContentType = "application/json"
 	formContentType = "application/x-www-form-urlencoded"
 
-	jsonCheck = regexp.MustCompile(`(?i:(application|text)/(json|.*\+json|json\-.*)(;|$))`)
-	xmlCheck  = regexp.MustCompile(`(?i:(application|text)/(xml|.*\+xml)(;|$))`)
+	jsonCheck = regexp.MustCompile(`(?i:(application|text)/(.*json.*)(;|$))`)
+	xmlCheck  = regexp.MustCompile(`(?i:(application|text)/(.*xml.*)(;|$))`)
 
 	hdrUserAgentValue = "go-resty/" + Version + " (https://github.com/go-resty/resty)"
 	bufPool           = &sync.Pool{New: func() interface{} { return &bytes.Buffer{} }}
@@ -152,6 +152,7 @@ type Client struct {
 	errorHooks          []ErrorHook
 	invalidHooks        []ErrorHook
 	panicHooks          []ErrorHook
+	rateLimiter         RateLimiter
 }
 
 // User type is to hold an username and password information
@@ -433,17 +434,18 @@ func (c *Client) SetDigestAuth(username, password string) *Client {
 // R method creates a new request instance, its used for Get, Post, Put, Delete, Patch, Head, Options, etc.
 func (c *Client) R() *Request {
 	r := &Request{
-		QueryParam: url.Values{},
-		FormData:   url.Values{},
-		Header:     http.Header{},
-		Cookies:    make([]*http.Cookie, 0),
+		QueryParam:    url.Values{},
+		FormData:      url.Values{},
+		Header:        http.Header{},
+		Cookies:       make([]*http.Cookie, 0),
+		PathParams:    map[string]string{},
+		RawPathParams: map[string]string{},
+		Debug:         c.Debug,
 
 		client:          c,
 		multipartFiles:  []*File{},
 		multipartFields: []*MultipartField{},
-		PathParams:      map[string]string{},
-		RawPathParams:   map[string]string{},
-		jsonEscapeHTML:  true,
+		jsonEscapeHTML:  c.jsonEscapeHTML,
 		log:             c.log,
 	}
 	return r
@@ -455,9 +457,9 @@ func (c *Client) NewRequest() *Request {
 	return c.R()
 }
 
-// OnBeforeRequest method appends request middleware into the before request chain.
-// Its gets applied after default Resty request middlewares and before request
-// been sent from Resty to host server.
+// OnBeforeRequest method appends a request middleware into the before request chain.
+// The user defined middlewares get applied before the default Resty request middlewares.
+// After all middlewares have been applied, the request is sent from Resty to the host server.
 //
 //	client.OnBeforeRequest(func(c *resty.Client, r *resty.Request) error {
 //			// Now you have access to Client and Request instance
@@ -919,6 +921,15 @@ func (c *Client) SetOutputDirectory(dirPath string) *Client {
 	return c
 }
 
+// SetRateLimiter sets an optional `RateLimiter`. If set the rate limiter will control
+// all requests made with this client.
+//
+// Since v2.9.0
+func (c *Client) SetRateLimiter(rl RateLimiter) *Client {
+	c.rateLimiter = rl
+	return c
+}
+
 // SetTransport method sets custom `*http.Transport` or any `http.RoundTripper`
 // compatible interface implementation in the resty client.
 //
@@ -1137,6 +1148,14 @@ func (c *Client) execute(req *Request) (*Response, error) {
 	for _, f := range c.udBeforeRequest {
 		if err = f(c, req); err != nil {
 			return nil, wrapNoRetryErr(err)
+		}
+	}
+
+	// If there is a rate limiter set for this client, the Execute call
+	// will return an error if the rate limit is exceeded.
+	if req.client.rateLimiter != nil {
+		if !req.client.rateLimiter.Allow() {
+			return nil, wrapNoRetryErr(ErrRateLimitExceeded)
 		}
 	}
 
