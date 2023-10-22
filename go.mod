@@ -20,7 +20,7 @@ require (
 	github.com/cockroachdb/errors v1.11.1
 	github.com/cockroachdb/pebble v0.0.0-20231020221949-babd592d2360
 	github.com/consensys/gnark-crypto v0.12.1
-	github.com/crate-crypto/go-kzg-4844 v0.3.0
+	github.com/crate-crypto/go-kzg-4844 v0.7.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/deckarep/golang-set/v2 v2.3.1
 	github.com/docker/docker v24.0.6+incompatible

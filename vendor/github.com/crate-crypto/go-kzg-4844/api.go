@@ -35,10 +35,11 @@ var BlsModulus = [32]byte{
 // [G1_POINT_AT_INFINITY]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#constants
 var PointAtInfinity = [48]byte{0xc0}
 
-// NewContext4096Insecure1337 creates a new context object which will hold the state needed for one to use the KZG
-// methods. "4096" denotes that we will only be able to commit to polynomials with at most 4096 evaluations. "Insecure"
-// denotes that this method should not be used in production since the secret (1337) is known.
-func NewContext4096Insecure1337() (*Context, error) {
+// NewContext4096Secure creates a new context object which will hold the state needed for one to use the KZG
+// methods. "4096" denotes that we will only be able to commit to polynomials with at most 4096 evaluations. "Secure"
+// denotes that this method is using a trusted setup file that was generated in an official
+// ceremony. In particular, the trusted file being used was taken from the ethereum KZG ceremony.
+func NewContext4096Secure() (*Context, error) {
 	if ScalarsPerBlob != 4096 {
 		// This is a library bug and so we panic.
 		panic("this method is named `NewContext4096Insecure1337` we expect SCALARS_PER_BLOB to be 4096")
@@ -51,7 +52,7 @@ func NewContext4096Insecure1337() (*Context, error) {
 		return nil, err
 	}
 
-	if ScalarsPerBlob != len(parsedSetup.SetupG1) {
+	if ScalarsPerBlob != len(parsedSetup.SetupG1Lagrange) {
 		// This is a library method and so we panic
 		panic("this method is named `NewContext4096Insecure1337` we expect the number of G1 elements in the trusted setup to be 4096")
 	}
@@ -83,10 +84,7 @@ func NewContext4096(trustedSetup *JSONTrustedSetup) (*Context, error) {
 	}
 
 	// Parse the trusted setup from hex strings to G1 and G2 points
-	genG1, setupLagrangeG1Points, setupG2Points, err := parseTrustedSetup(trustedSetup)
-	if err != nil {
-		return nil, err
-	}
+	genG1, setupLagrangeG1Points, setupG2Points := parseTrustedSetup(trustedSetup)
 
 	// Get the generator points and the degree-1 element for G2 points
 	// The generators are the degree-0 elements in the trusted setup
