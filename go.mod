@@ -6,11 +6,11 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.55-0.20231019083249-c068d2c1e575
+	github.com/CortexFoundation/torrentfs v1.0.55-0.20231019131926-295dd33a172c
 	github.com/VictoriaMetrics/fastcache v1.12.1
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.21.2
-	github.com/aws/aws-sdk-go-v2/config v1.18.45
+	github.com/aws/aws-sdk-go-v2/config v1.19.0
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.43
 	github.com/aws/aws-sdk-go-v2/service/route53 v1.30.2
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2
@@ -18,14 +18,14 @@ require (
 	github.com/charmbracelet/bubbletea v0.24.2
 	github.com/cloudflare/cloudflare-go v0.57.1
 	github.com/cockroachdb/errors v1.11.1
-	github.com/cockroachdb/pebble v0.0.0-20231018212520-f6cde3fc2fa4
+	github.com/cockroachdb/pebble v0.0.0-20231019221832-593a72bf8976
 	github.com/consensys/gnark-crypto v0.12.1
 	github.com/crate-crypto/go-kzg-4844 v0.3.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/deckarep/golang-set/v2 v2.3.1
 	github.com/docker/docker v24.0.6+incompatible
 	github.com/dop251/goja v0.0.0-20231014103939-873a1496dc8e
-	github.com/ethereum/c-kzg-4844 v0.3.1
+	github.com/ethereum/c-kzg-4844 v0.4.0
 	github.com/fjl/gencodec v0.0.0-20230517082657-f9840df7b83e
 	github.com/fjl/memsize v0.0.1
 	github.com/fogleman/ease v0.0.0-20170301025033-8da417bf1776
@@ -49,7 +49,7 @@ require (
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/lucasb-eyer/go-colorful v1.2.0
 	github.com/mattn/go-colorable v0.1.13
-	github.com/mattn/go-isatty v0.0.19
+	github.com/mattn/go-isatty v0.0.20
 	github.com/muesli/reflow v0.3.0
 	github.com/muesli/termenv v0.15.2
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
