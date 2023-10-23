@@ -24,8 +24,8 @@ import (
 	"sync"
 
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
-	ckzg4844 "github.com/ethereum/c-kzg-4844/bindings/go"
 	gokzg4844 "github.com/crate-crypto/go-kzg-4844"
+	ckzg4844 "github.com/ethereum/c-kzg-4844/bindings/go"
 )
 
 // ckzgAvailable signals whether the library was compiled into Geth.
