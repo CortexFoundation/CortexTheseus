@@ -10,7 +10,7 @@ type OpeningKey struct {
 	// This is the degree-0 G_1 element in the trusted setup.
 	// In the specs, this is denoted as `KZG_SETUP_G1[0]`
 	GenG1 bls12381.G1Affine
-	// This is the degree-0 G_1 element in the trusted setup.
+	// This is the degree-0 G_2 element in the trusted setup.
 	// In the specs, this is denoted as `KZG_SETUP_G2[0]`
 	GenG2 bls12381.G2Affine
 	// This is the degree-1 G_2 element in the trusted setup.
