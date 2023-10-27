@@ -1759,9 +1759,15 @@ func (d *DB) Compact(start, end []byte, parallelize bool) error {
 	}
 
 	for level := 0; level < maxLevelWithFiles; {
-		if err := d.manualCompact(
-			iStart.UserKey, iEnd.UserKey, level, parallelize); err != nil {
-			return err
+		for {
+			if err := d.manualCompact(
+				iStart.UserKey, iEnd.UserKey, level, parallelize); err != nil {
+				if errors.Is(err, ErrCancelledCompaction) {
+					continue
+				}
+				return err
+			}
+			break
 		}
 		level++
 		if level == numLevels-1 {
@@ -1979,7 +1985,7 @@ func (d *DB) Metrics() *Metrics {
 
 	metrics.LogWriter.FsyncLatency = d.mu.log.metrics.fsyncLatency
 	if err := metrics.LogWriter.Merge(&d.mu.log.metrics.LogWriterMetrics); err != nil {
-		d.opts.Logger.Infof("metrics error: %s", err)
+		d.opts.Logger.Errorf("metrics error: %s", err)
 	}
 	metrics.Flush.WriteThroughput = d.mu.compact.flushWriteThroughput
 	if d.mu.compact.flushing {
@@ -2576,7 +2582,7 @@ func (d *DB) recycleWAL() (newLogNum base.DiskFileNum, prevLogSize uint64) {
 	metrics := d.mu.log.LogWriter.Metrics()
 	d.mu.Lock()
 	if err := d.mu.log.metrics.Merge(metrics); err != nil {
-		d.opts.Logger.Infof("metrics error: %s", err)
+		d.opts.Logger.Errorf("metrics error: %s", err)
 	}
 	d.mu.Unlock()
 
