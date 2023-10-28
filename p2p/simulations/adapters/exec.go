@@ -34,12 +34,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/CortexFoundation/CortexTheseus/internal/reexec"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/node"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
-	"github.com/docker/docker/pkg/reexec"
 	"github.com/gorilla/websocket"
 )
 
