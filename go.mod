@@ -24,7 +24,7 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/deckarep/golang-set/v2 v2.3.1
 	github.com/docker/docker v24.0.6+incompatible
-	github.com/dop251/goja v0.0.0-20231014103939-873a1496dc8e
+	github.com/dop251/goja v0.0.0-20231024180952-594410467bc6
 	github.com/ethereum/c-kzg-4844 v0.4.0
 	github.com/fjl/gencodec v0.0.0-20230517082657-f9840df7b83e
 	github.com/fjl/memsize v0.0.1
