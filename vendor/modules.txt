@@ -43,7 +43,7 @@ github.com/CortexFoundation/robot/backend
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit; go 1.16
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.55-0.20231022164315-feb0c7a257d7
+# github.com/CortexFoundation/torrentfs v1.0.55-0.20231027203605-3f8792552f00
 ## explicit; go 1.21
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/backend
@@ -342,8 +342,8 @@ github.com/cockroachdb/errors/withstack
 # github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b
 ## explicit; go 1.16
 github.com/cockroachdb/logtags
-# github.com/cockroachdb/pebble v0.0.0-20231020221949-babd592d2360
-## explicit; go 1.20
+# github.com/cockroachdb/pebble v0.0.0-20231027194153-ed45a7767175
+## explicit; go 1.21
 github.com/cockroachdb/pebble
 github.com/cockroachdb/pebble/bloom
 github.com/cockroachdb/pebble/internal/arenaskl
@@ -755,7 +755,7 @@ github.com/naoina/go-stringutil
 ## explicit
 github.com/naoina/toml
 github.com/naoina/toml/ast
-# github.com/nutsdb/nutsdb v0.14.2-0.20231022095000-b569ba811ad7
+# github.com/nutsdb/nutsdb v0.14.2-0.20231027074712-e6f23063dbc6
 ## explicit; go 1.18
 github.com/nutsdb/nutsdb
 # github.com/olekukonko/tablewriter v0.0.5
@@ -972,7 +972,7 @@ github.com/ucwong/filecache
 # github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb
 ## explicit; go 1.19
 github.com/ucwong/go-ttlmap
-# github.com/ucwong/golang-kv v1.0.23-0.20231022113740-11fa860cbd92
+# github.com/ucwong/golang-kv v1.0.23-0.20231027202923-47a531158579
 ## explicit; go 1.21
 github.com/ucwong/golang-kv
 github.com/ucwong/golang-kv/badger
