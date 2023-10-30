@@ -23,7 +23,6 @@ require (
 	github.com/crate-crypto/go-kzg-4844 v0.7.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/deckarep/golang-set/v2 v2.3.1
-	github.com/docker/docker v24.0.6+incompatible
 	github.com/dop251/goja v0.0.0-20231024180952-594410467bc6
 	github.com/ethereum/c-kzg-4844 v0.4.0
 	github.com/fjl/gencodec v0.0.0-20230517082657-f9840df7b83e
@@ -234,7 +233,6 @@ require (
 	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/term v0.13.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	gotest.tools/v3 v3.5.1 // indirect
 	modernc.org/libc v1.22.3 // indirect
 	modernc.org/mathutil v1.5.0 // indirect
 	modernc.org/memory v1.5.0 // indirect
