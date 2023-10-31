@@ -166,6 +166,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	}
 	// Create a new context to be used in the CVM environment
 	blockContext := NewCVMBlockContext(header, bc, author)
-	vmenv := vm.NewCVM(blockContext, vm.TxContext{}, statedb, config, cfg)
+	txContext := NewCVMTxContext(msg)
+	vmenv := vm.NewCVM(blockContext, txContext, statedb, config, cfg)
 	return applyTransaction(msg, config, gp, qp, statedb, header, header.Number, header.Hash(), tx, usedGas, vmenv)
 }
