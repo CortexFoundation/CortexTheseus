@@ -6,11 +6,13 @@ package pebble
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"fmt"
 	"io"
 	"math"
 	"runtime/pprof"
+	"slices"
 	"sort"
 	"sync/atomic"
 	"time"
@@ -29,7 +31,6 @@ import (
 	"github.com/cockroachdb/pebble/objstorage/remote"
 	"github.com/cockroachdb/pebble/sstable"
 	"github.com/cockroachdb/pebble/vfs"
-	"golang.org/x/exp/constraints"
 )
 
 var errEmptyTable = errors.New("pebble: empty table")
@@ -306,19 +307,12 @@ func (f *fileSizeSplitter) shouldSplitBefore(key *InternalKey, tw *sstable.Write
 		// NB: Subtract 1 from `boundariesObserved` to account for the current
 		// boundary we're considering splitting at. `reached` will have
 		// incremented it at the same time it set `atGrandparentBoundary`.
-		minimumPctOfTargetSize := 50 + 5*minUint64(f.boundariesObserved-1, 8)
+		minimumPctOfTargetSize := 50 + 5*min(f.boundariesObserved-1, 8)
 		if estSize < (minimumPctOfTargetSize*f.targetFileSize)/100 {
 			return noSplit
 		}
 		return splitNow
 	}
-}
-
-func minUint64(a, b uint64) uint64 {
-	if b < a {
-		a = b
-	}
-	return a
 }
 
 func (f *fileSizeSplitter) onNewOutput(key []byte) []byte {
@@ -1329,7 +1323,7 @@ func (c *compaction) newInputIter(
 	// numInputLevels is an approximation of the number of iterator levels. Due
 	// to idiosyncrasies in iterator construction, we may (rarely) exceed this
 	// initial capacity.
-	numInputLevels := max[int](len(c.flushing), len(c.inputs))
+	numInputLevels := max(len(c.flushing), len(c.inputs))
 	iters := make([]internalIterator, 0, numInputLevels)
 	rangeDelIters := make([]keyspan.FragmentIterator, 0, numInputLevels)
 	rangeKeyIters := make([]keyspan.FragmentIterator, 0, numInputLevels)
@@ -3801,9 +3795,8 @@ func (d *DB) deleteObsoleteFiles(jobID int) {
 
 	// Sort the manifests cause we want to delete some contiguous prefix
 	// of the older manifests.
-	sort.Slice(d.mu.versions.obsoleteManifests, func(i, j int) bool {
-		return d.mu.versions.obsoleteManifests[i].fileNum.FileNum() <
-			d.mu.versions.obsoleteManifests[j].fileNum.FileNum()
+	slices.SortFunc(d.mu.versions.obsoleteManifests, func(a, b fileInfo) int {
+		return cmp.Compare(a.fileNum, b.fileNum)
 	})
 
 	var obsoleteManifests []fileInfo
@@ -3838,8 +3831,8 @@ func (d *DB) deleteObsoleteFiles(jobID int) {
 	for _, f := range files {
 		// We sort to make the order of deletions deterministic, which is nice for
 		// tests.
-		sort.Slice(f.obsolete, func(i, j int) bool {
-			return f.obsolete[i].fileNum.FileNum() < f.obsolete[j].fileNum.FileNum()
+		slices.SortFunc(f.obsolete, func(a, b fileInfo) int {
+			return cmp.Compare(a.fileNum, b.fileNum)
 		})
 		for _, fi := range f.obsolete {
 			dir := d.dirname
@@ -3889,23 +3882,10 @@ func merge(a, b []fileInfo) []fileInfo {
 	}
 
 	a = append(a, b...)
-	sort.Slice(a, func(i, j int) bool {
-		return a[i].fileNum.FileNum() < a[j].fileNum.FileNum()
+	slices.SortFunc(a, func(a, b fileInfo) int {
+		return cmp.Compare(a.fileNum, b.fileNum)
 	})
-
-	n := 0
-	for i := 0; i < len(a); i++ {
-		if n == 0 || a[i].fileNum != a[n-1].fileNum {
-			a[n] = a[i]
-			n++
-		}
-	}
-	return a[:n]
-}
-
-func max[I constraints.Ordered](a, b I) I {
-	if b > a {
-		return b
-	}
-	return a
+	return slices.CompactFunc(a, func(a, b fileInfo) bool {
+		return a.fileNum == b.fileNum
+	})
 }
