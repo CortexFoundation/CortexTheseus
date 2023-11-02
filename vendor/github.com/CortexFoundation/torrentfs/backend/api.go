@@ -25,7 +25,9 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/torrentfs/backend/caffe"
 	"github.com/CortexFoundation/torrentfs/params"
+	"github.com/CortexFoundation/torrentfs/types"
 )
 
 // can only call by fs.go: 'SeedingLocal()'
@@ -120,7 +122,7 @@ func (tm *TorrentManager) ListAllTorrents() map[string]map[string]int {
 		}
 	}*/
 
-	tm.torrents.Range(func(ih string, tt *Torrent) bool {
+	tm.torrents.Range(func(ih string, tt *caffe.Torrent) bool {
 		tType := torrentTypeOnChain
 		if _, ok := tm.localSeedFiles[ih]; ok {
 			tType = torrentTypeLocal
@@ -162,7 +164,7 @@ func (tm *TorrentManager) IsPending(ih string) bool {
 	//return ok
 	//	return tm.pendingTorrents.Has(ih)
 	if t := tm.getTorrent(ih); t != nil {
-		return t.Status() == torrentPending
+		return t.Status() == caffe.TorrentPending
 	}
 	return false
 }
@@ -173,7 +175,7 @@ func (tm *TorrentManager) IsDownloading(ih string) bool {
 	//return ok
 	//return tm.activeTorrents.Has(ih)
 	if t := tm.getTorrent(ih); t != nil {
-		return t.Status() == torrentRunning
+		return t.Status() == caffe.TorrentRunning
 	}
 	return false
 }
@@ -183,7 +185,7 @@ func (tm *TorrentManager) IsSeeding(ih string) bool {
 	//_, ok := tm.seedingTorrents.Get(ih)
 	//return ok
 	if t := tm.getTorrent(ih); t != nil {
-		return t.Status() == torrentSeeding
+		return t.Status() == caffe.TorrentSeeding
 	}
 	return false //tm.seedingTorrents.Has(ih)
 }
@@ -222,4 +224,15 @@ func (tm *TorrentManager) Search(ctx context.Context, hex string, request uint64
 	downloadMeter.Mark(1)
 
 	return tm.commit(ctx, hex, request)
+}
+
+func (tm *TorrentManager) commit(ctx context.Context, hex string, request uint64) error {
+	select {
+	case tm.taskChan <- types.NewBitsFlow(hex, request):
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-tm.closeAll:
+	}
+
+	return nil
 }
