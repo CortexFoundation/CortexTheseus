@@ -36,9 +36,10 @@ func init() {
 }
 
 type callLog struct {
-	Address common.Address `json:"address"`
-	Topics  []common.Hash  `json:"topics"`
-	Data    hexutil.Bytes  `json:"data"`
+	Address  common.Address `json:"address"`
+	Topics   []common.Hash  `json:"topics"`
+	Data     hexutil.Bytes  `json:"data"`
+	Position hexutil.Uint   `json:"position"`
 }
 
 type callFrame struct {
@@ -184,7 +185,12 @@ func (t *callTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, sco
 			// mSize was unrealistically large
 			return
 		}
-		log := callLog{Address: scope.Contract.Address(), Topics: topics, Data: hexutil.Bytes(data)}
+		log := callLog{
+			Address:  scope.Contract.Address(),
+			Topics:   topics,
+			Data:     hexutil.Bytes(data),
+			Position: hexutil.Uint(len(t.callstack[len(t.callstack)-1].Calls)),
+		}
 		t.callstack[len(t.callstack)-1].Logs = append(t.callstack[len(t.callstack)-1].Logs, log)
 	}
 }
