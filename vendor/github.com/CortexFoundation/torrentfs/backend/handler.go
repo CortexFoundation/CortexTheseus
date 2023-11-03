@@ -36,6 +36,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/torrentfs/backend/caffe"
+	//"github.com/CortexFoundation/torrentfs/backend/job"
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/tool"
 	"github.com/CortexFoundation/torrentfs/types"
@@ -65,7 +67,7 @@ type TorrentManager struct {
 	client *torrent.Client
 	//bytes               map[metainfo.Hash]int64
 	//torrents        map[string]*Torrent
-	torrents *shard.Map[*Torrent]
+	torrents *shard.Map[*caffe.Torrent]
 	//seedingTorrents map[string]*Torrent
 	//seedingTorrents *shard.Map[*Torrent]
 	//activeTorrents  map[string]*Torrent
@@ -85,9 +87,9 @@ type TorrentManager struct {
 	//active_lock  sync.RWMutex
 	//seeding_lock sync.RWMutex
 	wg          sync.WaitGroup
-	seedingChan chan *Torrent
-	activeChan  chan *Torrent
-	pendingChan chan *Torrent
+	seedingChan chan *caffe.Torrent
+	activeChan  chan *caffe.Torrent
+	pendingChan chan *caffe.Torrent
 	//pendingRemoveChan chan string
 	droppingChan chan string
 	mode         string
@@ -143,7 +145,7 @@ func (tm *TorrentManager) blockCaculate(value int64) int64 {
 	return ((value + block - 1) / block)
 }
 
-func (tm *TorrentManager) register(t *torrent.Torrent, requested int64, ih string, spec *torrent.TorrentSpec) *Torrent {
+func (tm *TorrentManager) register(t *torrent.Torrent, requested int64, ih string, spec *torrent.TorrentSpec) *caffe.Torrent {
 	/*tt := &Torrent{
 		Torrent: t,
 		//maxEstablishedConns: tm.maxEstablishedConns,
@@ -165,14 +167,14 @@ func (tm *TorrentManager) register(t *torrent.Torrent, requested int64, ih strin
 		start: mclock.Now(),
 	}*/
 
-	tt := NewTorrent(t, requested, ih, filepath.Join(tm.TmpDataDir, ih), tm.slot, spec)
+	tt := caffe.NewTorrent(t, requested, ih, filepath.Join(tm.TmpDataDir, ih), tm.slot, spec)
 	tm.setTorrent(tt)
 
 	tm.Pending(tt)
 	return tt
 }
 
-func (tm *TorrentManager) getTorrent(ih string) *Torrent {
+func (tm *TorrentManager) getTorrent(ih string) *caffe.Torrent {
 	/*tm.lock.RLock()
 	defer tm.lock.RUnlock()
 	if torrent, ok := tm.torrents[ih]; ok {
@@ -186,7 +188,7 @@ func (tm *TorrentManager) getTorrent(ih string) *Torrent {
 	return nil
 }
 
-func (tm *TorrentManager) setTorrent(t *Torrent) {
+func (tm *TorrentManager) setTorrent(t *caffe.Torrent) {
 	/*tm.lock.Lock()
 	defer tm.lock.Unlock()
 
@@ -194,7 +196,7 @@ func (tm *TorrentManager) setTorrent(t *Torrent) {
 	tm.torrents.Set(t.InfoHash(), t)
 }
 
-func (tm *TorrentManager) dropTorrent(t *Torrent) {
+func (tm *TorrentManager) dropTorrent(t *caffe.Torrent) {
 	//tm.lock.Lock()
 	//defer tm.lock.Unlock()
 
@@ -204,11 +206,11 @@ func (tm *TorrentManager) dropTorrent(t *Torrent) {
 	}()
 
 	switch t.Status() {
-	case torrentPending:
-	case torrentRunning:
+	case caffe.TorrentPending:
+	case caffe.TorrentRunning:
 		tm.actives.Add(-1)
-	case torrentPaused:
-	case torrentSeeding:
+	case caffe.TorrentPaused:
+	case caffe.TorrentSeeding:
 		tm.seeds.Add(-1)
 	//case torrentStopping:
 	default:
@@ -444,7 +446,7 @@ func (tm *TorrentManager) loadSpec(ih string, filePath string) *torrent.TorrentS
 	return spec
 }
 
-func (tm *TorrentManager) addInfoHash(ih string, bytesRequested int64) *Torrent {
+func (tm *TorrentManager) addInfoHash(ih string, bytesRequested int64) *caffe.Torrent {
 	if t := tm.getTorrent(ih); t != nil {
 		tm.updateInfoHash(t, bytesRequested)
 		return t
@@ -603,8 +605,8 @@ func (tm *TorrentManager) ColaList() mapset.Set[string] {
 	return tm.colaList
 }*/
 
-func (tm *TorrentManager) updateInfoHash(t *Torrent, bytesRequested int64) {
-	if t.Status() != torrentSeeding {
+func (tm *TorrentManager) updateInfoHash(t *caffe.Torrent, bytesRequested int64) {
+	if t.Status() != caffe.TorrentSeeding {
 		if t.BytesRequested() < bytesRequested {
 			//if bytesRequested > t.Length() {
 			//	bytesRequested = t.Length()
@@ -721,7 +723,7 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 	torrentManager := &TorrentManager{
 		client: cl,
 		//torrents:        make(map[string]*Torrent),
-		torrents: shard.New[*Torrent](),
+		torrents: shard.New[*caffe.Torrent](),
 		//pendingTorrents: make(map[string]*Torrent),
 		//pendingTorrents: shard.New[*Torrent](),
 		//seedingTorrents: make(map[string]*Torrent),
@@ -738,9 +740,9 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 		//initCh:              make(chan struct{}),
 		//simulate:          false,
 		taskChan:    make(chan any, taskChanBuffer),
-		seedingChan: make(chan *Torrent, torrentChanSize),
-		activeChan:  make(chan *Torrent, torrentChanSize),
-		pendingChan: make(chan *Torrent, torrentChanSize),
+		seedingChan: make(chan *caffe.Torrent, torrentChanSize),
+		activeChan:  make(chan *caffe.Torrent, torrentChanSize),
+		pendingChan: make(chan *caffe.Torrent, torrentChanSize),
 		//pendingRemoveChan: make(chan string, torrentChanSize),
 		droppingChan: make(chan string, 1),
 		mode:         config.Mode,
@@ -895,7 +897,7 @@ func (tm *TorrentManager) init() error {
 		tm.simulate = true
 	}
 	log.Info("Do simulate")
-}*/
+}
 
 func (tm *TorrentManager) commit(ctx context.Context, hex string, request uint64) error {
 	select {
@@ -907,23 +909,23 @@ func (tm *TorrentManager) commit(ctx context.Context, hex string, request uint64
 	}
 
 	return nil
-}
+}*/
 
-func (tm *TorrentManager) Pending(t *Torrent) {
+func (tm *TorrentManager) Pending(t *caffe.Torrent) {
 	select {
 	case tm.pendingChan <- t:
 	case <-tm.closeAll:
 	}
 }
 
-func (tm *TorrentManager) Running(t *Torrent) {
+func (tm *TorrentManager) Running(t *caffe.Torrent) {
 	select {
 	case tm.activeChan <- t:
 	case <-tm.closeAll:
 	}
 }
 
-func (tm *TorrentManager) Seeding(t *Torrent) {
+func (tm *TorrentManager) Seeding(t *caffe.Torrent) {
 	select {
 	case tm.seedingChan <- t:
 	case <-tm.closeAll:
@@ -948,11 +950,11 @@ func (tm *TorrentManager) mainLoop() {
 				if t.Stopping() {
 					log.Debug("Nas recovery", "ih", t.InfoHash(), "status", t.Status(), "complete", common.StorageSize(t.Torrent.BytesCompleted()))
 					if tt, err := tm.injectSpec(t.InfoHash(), t.Spec()); err == nil && tt != nil {
-						t.status.Store(torrentPending)
+						t.SetStatus(caffe.TorrentPending)
 						t.Lock()
 						//t.status = torrentPending
 						t.Torrent = tt
-						t.start = mclock.Now()
+						t.SetStart(mclock.Now())
 						t.Unlock()
 
 						tm.Pending(t)
@@ -991,7 +993,7 @@ func (tm *TorrentManager) pendingLoop() {
 			//tm.pendingTorrents.Set(t.InfoHash(), t)
 			tm.wg.Add(1)
 			tm.pends.Add(1)
-			go func(t *Torrent) {
+			go func(t *caffe.Torrent) {
 				defer func() {
 					tm.wg.Done()
 					tm.pends.Add(-1)
@@ -1010,12 +1012,44 @@ func (tm *TorrentManager) pendingLoop() {
 							elapsed := time.Duration(mclock.Now()) - time.Duration(t.Birth())
 							log.Debug("Imported new seed", "ih", t.InfoHash(), "request", common.StorageSize(t.Length()), "ts", common.StorageSize(len(b)), "good", params.IsGood(t.InfoHash()), "elapsed", common.PrettyDuration(elapsed))
 							tm.wg.Add(1)
-							go func(tt *Torrent, bb []byte) {
+							go func(tt *caffe.Torrent, bb []byte) {
 								tm.wg.Done()
 								if err := tt.WriteTorrent(); err == nil {
 									tm.kvdb.Set([]byte(SEED_PRE+t.InfoHash()), bb)
 								}
 							}(t, b)
+
+							// job TODO
+							/*log.Info("Job started", "ih", t.InfoHash())
+							finish := func(a *caffe.Torrent) bool {
+								if a.Seed() {
+									return true
+								}
+								return false
+							}
+
+							tm.wg.Add(1)
+							go func(t *caffe.Torrent) {
+								defer tm.wg.Done()
+
+								j := job.New(t)
+								ct := j.Completed(finish)
+								//t.SetJob(ct)
+								defer func() {
+									close(ct)
+								}()
+
+								ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+								defer cancel()
+
+								select {
+								case suc := <-ct:
+									log.Info("Job has been completed", "ih", t.InfoHash(), "suc", suc, "id", j.ID())
+								case <-tm.closeAll:
+									log.Info("Job quit", "ih", t.InfoHash(), "id", j.ID())
+								case <-ctx.Done():
+								}
+							}(t)*/
 						}
 						//t.lock.Lock()
 						//t.Birth() = mclock.Now()
@@ -1072,7 +1106,7 @@ func (tm *TorrentManager) pendingLoop() {
 	}
 }
 
-func (tm *TorrentManager) finish(t *Torrent) {
+func (tm *TorrentManager) finish(t *caffe.Torrent) {
 	t.Lock()
 	defer t.Unlock()
 
@@ -1198,7 +1232,7 @@ func (tm *TorrentManager) activeLoop() {
 				}
 			}*/
 
-			tm.torrents.Range(func(ih string, t *Torrent) bool {
+			tm.torrents.Range(func(ih string, t *caffe.Torrent) bool {
 				if t.Running() {
 					if t.Torrent.BytesMissing() == 0 {
 						//clean = append(clean, t)

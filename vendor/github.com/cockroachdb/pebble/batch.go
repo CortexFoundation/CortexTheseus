@@ -183,6 +183,13 @@ func (d DeferredBatchOp) Finish() error {
 // WAL, and thus stable. New record kinds may be added, but the existing ones
 // will not be modified.
 type Batch struct {
+	batchInternal
+	applied atomic.Bool
+}
+
+// batchInternal contains the set of fields within Batch that are non-atomic and
+// capable of being reset using a *b = batchInternal{} struct copy.
+type batchInternal struct {
 	// Data is the wire format of a batch's log entry:
 	//   - 8 bytes for a sequence number of the first batch element,
 	//     or zeroes if the batch has not yet been applied,
@@ -260,11 +267,6 @@ type Batch struct {
 	// memtable.
 	flushable *flushableBatch
 
-	// ingestedSSTBatch indicates that the batch contains one or more key kinds
-	// of InternalKeyKindIngestSST. If the batch contains key kinds of IngestSST
-	// then it will only contain key kinds of IngestSST.
-	ingestedSSTBatch bool
-
 	// minimumFormatMajorVersion indicates the format major version required in
 	// order to commit this batch. If an operation requires a particular format
 	// major version, it ratchets the batch's minimumFormatMajorVersion. When
@@ -292,7 +294,22 @@ type Batch struct {
 	commitStats BatchCommitStats
 
 	commitErr error
-	applied   atomic.Bool
+
+	// Position bools together to reduce the sizeof the struct.
+
+	// ingestedSSTBatch indicates that the batch contains one or more key kinds
+	// of InternalKeyKindIngestSST. If the batch contains key kinds of IngestSST
+	// then it will only contain key kinds of IngestSST.
+	ingestedSSTBatch bool
+
+	// committing is set to true when a batch begins to commit. It's used to
+	// ensure the batch is not mutated concurrently. It is not an atomic
+	// deliberately, so as to avoid the overhead on batch mutations. This is
+	// okay, because under correct usage this field will never be accessed
+	// concurrently. It's only under incorrect usage the memory accesses of this
+	// variable may violate memory safety. Since we don't use atomics here,
+	// false negatives are possible.
+	committing bool
 }
 
 // BatchCommitStats exposes stats related to committing a batch.
@@ -554,6 +571,9 @@ func (b *Batch) Get(key []byte) ([]byte, io.Closer, error) {
 }
 
 func (b *Batch) prepareDeferredKeyValueRecord(keyLen, valueLen int, kind InternalKeyKind) {
+	if b.committing {
+		panic("pebble: batch already committing")
+	}
 	if len(b.data) == 0 {
 		b.init(keyLen + valueLen + 2*binary.MaxVarintLen64 + batchHeaderLen)
 	}
@@ -603,6 +623,9 @@ func (b *Batch) prepareDeferredKeyValueRecord(keyLen, valueLen int, kind Interna
 }
 
 func (b *Batch) prepareDeferredKeyRecord(keyLen int, kind InternalKeyKind) {
+	if b.committing {
+		panic("pebble: batch already committing")
+	}
 	if len(b.data) == 0 {
 		b.init(keyLen + binary.MaxVarintLen64 + batchHeaderLen)
 	}
@@ -1333,33 +1356,27 @@ func (b *Batch) init(size int) {
 	if cap(b.data) < n {
 		b.data = rawalloc.New(batchHeaderLen, n)
 	}
-	b.setCount(0)
-	b.setSeqNum(0)
 	b.data = b.data[:batchHeaderLen]
+	clear(b.data) // Zero the sequence number in the header
 }
 
 // Reset resets the batch for reuse. The underlying byte slice (that is
-// returned by Repr()) is not modified. It is only necessary to call this
+// returned by Repr()) may not be modified. It is only necessary to call this
 // method if a batch is explicitly being reused. Close automatically takes are
 // of releasing resources when appropriate for batches that are internally
 // being reused.
 func (b *Batch) Reset() {
-	b.count = 0
-	b.countRangeDels = 0
-	b.countRangeKeys = 0
-	b.memTableSize = 0
-	b.deferredOp = DeferredBatchOp{}
-	b.tombstones = nil
-	b.tombstonesSeqNum = 0
-	b.rangeKeys = nil
-	b.rangeKeysSeqNum = 0
-	b.flushable = nil
-	b.commit = sync.WaitGroup{}
-	b.fsyncWait = sync.WaitGroup{}
-	b.commitStats = BatchCommitStats{}
-	b.commitErr = nil
+	// Zero out the struct, retaining only the fields necessary for manual
+	// reuse.
+	b.batchInternal = batchInternal{
+		data:           b.data,
+		cmp:            b.cmp,
+		formatKey:      b.formatKey,
+		abbreviatedKey: b.abbreviatedKey,
+		index:          b.index,
+		db:             b.db,
+	}
 	b.applied.Store(false)
-	b.minimumFormatMajorVersion = 0
 	if b.data != nil {
 		if cap(b.data) > batchMaxRetainedSize {
 			// If the capacity of the buffer is larger than our maximum
@@ -1370,13 +1387,11 @@ func (b *Batch) Reset() {
 		} else {
 			// Otherwise, reset the buffer for re-use.
 			b.data = b.data[:batchHeaderLen]
-			b.setSeqNum(0)
+			clear(b.data)
 		}
 	}
 	if b.index != nil {
 		b.index.Init(&b.data, b.cmp, b.abbreviatedKey)
-		b.rangeDelIndex = nil
-		b.rangeKeyIndex = nil
 	}
 }
 

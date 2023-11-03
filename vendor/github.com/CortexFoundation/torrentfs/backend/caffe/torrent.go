@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
 
-package backend
+package caffe
 
 import (
 	"context"
@@ -25,15 +25,16 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/anacrolix/torrent"
 )
 
 const (
-	torrentPending = iota + 1
-	torrentPaused
-	torrentRunning
-	torrentSeeding
-	torrentStopping
+	TorrentPending = iota + 1
+	TorrentPaused
+	TorrentRunning
+	TorrentSeeding
+	TorrentStopping
 )
 
 type Torrent struct {
@@ -70,6 +71,8 @@ type Torrent struct {
 	stopOnce  sync.Once
 
 	spec *torrent.TorrentSpec
+
+	//jobCh chan bool
 }
 
 type task struct {
@@ -92,7 +95,7 @@ func NewTorrent(t *torrent.Torrent, requested int64, ih string, path string, slo
 	}
 
 	tor.bytesRequested.Store(requested)
-	tor.status.Store(torrentPending)
+	tor.status.Store(TorrentPending)
 
 	return &tor
 }
@@ -100,7 +103,7 @@ func NewTorrent(t *torrent.Torrent, requested int64, ih string, path string, slo
 // Find out the start and end
 func (t *Torrent) download(p int) error {
 	var s, e int
-	s = (t.Torrent.NumPieces() * t.slot) / bucket
+	s = (t.Torrent.NumPieces() * t.slot) / params.Bucket
 	s = s - p>>1
 	if s < 0 {
 		s = 0
@@ -117,7 +120,7 @@ func (t *Torrent) download(p int) error {
 		defer cancel()
 		select {
 		case t.taskCh <- task{s, e}:
-			log.Debug(ScaleBar(s, e, t.Torrent.NumPieces()), "ih", t.InfoHash(), "slot", t.slot, "s", s, "e", e, "p", p, "total", t.Torrent.NumPieces())
+			//log.Debug(ScaleBar(s, e, t.Torrent.NumPieces()), "ih", t.InfoHash(), "slot", t.slot, "s", s, "e", e, "p", p, "total", t.Torrent.NumPieces())
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-t.closeAll:
@@ -133,7 +136,7 @@ func (t *Torrent) run() bool {
 	defer t.Unlock()
 
 	if t.Info() != nil {
-		t.status.Store(torrentRunning)
+		t.status.Store(TorrentRunning)
 	} else {
 		log.Warn("Task listener not ready", "ih", t.InfoHash())
 		return false
