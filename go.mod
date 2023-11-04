@@ -6,19 +6,19 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.56-0.20231102090025-331bc1b9dd93
+	github.com/CortexFoundation/torrentfs v1.0.56-0.20231103081928-232ce36121d5
 	github.com/VictoriaMetrics/fastcache v1.12.1
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.22.1
-	github.com/aws/aws-sdk-go-v2/config v1.21.0
-	github.com/aws/aws-sdk-go-v2/credentials v1.15.0
+	github.com/aws/aws-sdk-go-v2/config v1.22.0
+	github.com/aws/aws-sdk-go-v2/credentials v1.15.1
 	github.com/aws/aws-sdk-go-v2/service/route53 v1.33.0
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2
 	github.com/cespare/cp v1.1.1
 	github.com/charmbracelet/bubbletea v0.24.2
 	github.com/cloudflare/cloudflare-go v0.57.1
 	github.com/cockroachdb/errors v1.11.1
-	github.com/cockroachdb/pebble v0.0.0-20231101195458-481da04154d6
+	github.com/cockroachdb/pebble v0.0.0-20231102162011-844f0582c2eb
 	github.com/consensys/gnark-crypto v0.12.1
 	github.com/crate-crypto/go-kzg-4844 v0.7.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
@@ -107,7 +107,7 @@ require (
 	github.com/antlabs/stl v0.0.1 // indirect
 	github.com/antlabs/timer v0.0.11 // indirect
 	github.com/arsham/rainbow v1.2.1 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.14.1 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.14.2 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.2.1 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.5.1 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.5.0 // indirect
@@ -176,7 +176,7 @@ require (
 	github.com/muesli/ansi v0.0.0-20211018074035-2e021307bc4b // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
-	github.com/nutsdb/nutsdb v0.14.2-0.20231030013203-ab48e22d420c // indirect
+	github.com/nutsdb/nutsdb v0.14.2-0.20231103034711-27317a34fc58 // indirect
 	github.com/otiai10/copy v1.12.0 // indirect
 	github.com/pion/datachannel v1.5.5 // indirect
 	github.com/pion/dtls/v2 v2.2.7 // indirect
@@ -217,7 +217,7 @@ require (
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/ucwong/filecache v1.0.6-0.20230405163841-810d53ced4bd // indirect
 	github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb // indirect
-	github.com/ucwong/golang-kv v1.0.23-0.20231102085720-fe813f9ba0c0 // indirect
+	github.com/ucwong/golang-kv v1.0.23-0.20231103081528-b24191f4801b // indirect
 	github.com/ucwong/shard v1.0.1-0.20230924231639-2ac2d8ab288c // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/xujiajun/mmap-go v1.0.1 // indirect
