@@ -36,7 +36,7 @@ require (
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb
 	github.com/google/gofuzz v1.2.1-0.20210524182514-9eed411d8615
 	github.com/google/uuid v1.4.0
-	github.com/gorilla/websocket v1.5.1
+	github.com/gorilla/websocket v1.5.0
 	github.com/hashicorp/golang-lru v1.0.2
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/holiman/uint256 v1.2.3
