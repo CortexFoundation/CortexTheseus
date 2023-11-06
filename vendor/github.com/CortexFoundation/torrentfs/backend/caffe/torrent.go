@@ -29,14 +29,6 @@ import (
 	"github.com/anacrolix/torrent"
 )
 
-const (
-	TorrentPending = iota + 1
-	TorrentPaused
-	TorrentRunning
-	TorrentSeeding
-	TorrentStopping
-)
-
 type Torrent struct {
 	*torrent.Torrent
 	//maxEstablishedConns int

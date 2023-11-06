@@ -37,7 +37,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/torrentfs/backend/caffe"
-	//"github.com/CortexFoundation/torrentfs/backend/job"
+	"github.com/CortexFoundation/torrentfs/backend/job"
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/tool"
 	"github.com/CortexFoundation/torrentfs/types"
@@ -1011,45 +1011,60 @@ func (tm *TorrentManager) pendingLoop() {
 						if tm.kvdb != nil && tm.kvdb.Get([]byte(SEED_PRE+t.InfoHash())) == nil {
 							elapsed := time.Duration(mclock.Now()) - time.Duration(t.Birth())
 							log.Debug("Imported new seed", "ih", t.InfoHash(), "request", common.StorageSize(t.Length()), "ts", common.StorageSize(len(b)), "good", params.IsGood(t.InfoHash()), "elapsed", common.PrettyDuration(elapsed))
-							tm.wg.Add(1)
+							/*tm.wg.Add(1)
 							go func(tt *caffe.Torrent, bb []byte) {
 								tm.wg.Done()
 								if err := tt.WriteTorrent(); err == nil {
 									tm.kvdb.Set([]byte(SEED_PRE+t.InfoHash()), bb)
 								}
-							}(t, b)
+							}(t, b)*/
+
+							if err := t.WriteTorrent(); err == nil {
+								tm.kvdb.Set([]byte(SEED_PRE+t.InfoHash()), b)
+							}
 
 							// job TODO
-							/*log.Info("Job started", "ih", t.InfoHash())
-							finish := func(a *caffe.Torrent) bool {
-								if a.Seed() {
+							log.Info("Job started", "ih", t.InfoHash())
+							valid := func(a *caffe.Torrent) bool {
+								switch a.Status() {
+								case caffe.TorrentPending:
+									log.Info("Caffe is pending", "ih", t.InfoHash())
+								case caffe.TorrentPaused:
+									log.Info("Caffe is pausing", "ih", t.InfoHash())
+								case caffe.TorrentRunning:
+									log.Trace("Caffe is running", "ih", t.InfoHash())
+								case caffe.TorrentSeeding:
+									log.Info("Caffe is seeding", "ih", t.InfoHash())
+									return true
+								case caffe.TorrentStopping:
+									log.Info("Caffe is stopping", "ih", t.InfoHash(), "complete", t.BytesCompleted(), "miss", t.BytesMissing())
 									return true
 								}
 								return false
 							}
 
 							tm.wg.Add(1)
-							go func(t *caffe.Torrent) {
+							go func(t *caffe.Torrent, fn func(t *caffe.Torrent) bool) {
 								defer tm.wg.Done()
 
 								j := job.New(t)
-								ct := j.Completed(finish)
-								//t.SetJob(ct)
+								ch := j.Completed(fn)
 								defer func() {
-									close(ct)
+									close(ch)
+									// TODO
 								}()
 
-								ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
-								defer cancel()
+								//ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Minute)
+								//defer cancel()
 
 								select {
-								case suc := <-ct:
+								case suc := <-ch:
 									log.Info("Job has been completed", "ih", t.InfoHash(), "suc", suc, "id", j.ID())
+								//case <-ctx.Done():
 								case <-tm.closeAll:
 									log.Info("Job quit", "ih", t.InfoHash(), "id", j.ID())
-								case <-ctx.Done():
 								}
-							}(t)*/
+							}(t, valid)
 						}
 						//t.lock.Lock()
 						//t.Birth() = mclock.Now()
@@ -1215,7 +1230,7 @@ func (tm *TorrentManager) activeLoop() {
 
 			//if tm.dur() > 0 {
 			//stopped := int32(tm.torrents.Len()) - tm.seeds.Load() - tm.actives.Load() - tm.pends.Load()
-			log.Info("Fs status", "pending", tm.pends.Load(), "downloading", tm.actives.Load(), "seeding", tm.seeds.Load(), "stopping", tm.stops.Load(), "all", tm.torrents.Len(), "recovery", tm.recovery.Load(), "metrics", common.PrettyDuration(tm.Updates)) //, "total", common.StorageSize(tm.total()), "cost", common.PrettyDuration(time.Duration(tm.dur())), "speed", common.StorageSize(float64(tm.total()*1000*1000*1000)/float64(tm.dur())).String()+"/s")
+			log.Info("Fs status", "pending", tm.pends.Load(), "downloading", tm.actives.Load(), "seeding", tm.seeds.Load(), "stopping", tm.stops.Load(), "all", tm.torrents.Len(), "recovery", tm.recovery.Load(), "metrics", common.PrettyDuration(tm.Updates), "job", job.SEQ()) //, "total", common.StorageSize(tm.total()), "cost", common.PrettyDuration(time.Duration(tm.dur())), "speed", common.StorageSize(float64(tm.total()*1000*1000*1000)/float64(tm.dur())).String()+"/s")
 			//}
 		//case <-timer_2.C:
 		//	go tm.updateGlobalTrackers()
