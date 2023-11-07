@@ -295,7 +295,7 @@ func (es *EventSystem) SubscribeLogs(crit cortex.FilterQuery, logs chan []*types
 	if from >= 0 && to == rpc.LatestBlockNumber {
 		return es.subscribeLogs(crit, logs), nil
 	}
-	return nil, fmt.Errorf("invalid from and to block combination: from > to")
+	return nil, errInvalidBlockRange
 }
 
 // subscribeMinedPendingLogs creates a subscription that returned mined and
