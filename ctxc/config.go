@@ -50,7 +50,7 @@ var DefaultLightGPOConfig = gasprice.Config{
 var DefaultConfig = Config{
 	SyncMode:                downloader.FullSync,
 	Cuckoo:                  cuckoo.Config{},
-	NetworkId:               21,
+	NetworkId:               0,
 	DatabaseCache:           512,
 	TrieCleanCache:          154,
 	TrieCleanCacheJournal:   "triecache",
