@@ -132,6 +132,10 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 
 	engine := CreateConsensusEngine(stack, chainConfig, &config.Cuckoo, config.Miner.Notify, config.Miner.Noverify, chainDb)
 
+	networkID := config.NetworkId
+	if networkID == 0 {
+		networkID = chainConfig.ChainID.Uint64()
+	}
 	ctxc := &Cortex{
 		config:            config,
 		chainDb:           chainDb,
@@ -140,7 +144,7 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 		accountManager:    stack.AccountManager(),
 		engine:            engine,
 		closeBloomHandler: make(chan struct{}),
-		networkID:         config.NetworkId,
+		networkID:         networkID,
 		gasPrice:          config.Miner.GasPrice,
 		coinbase:          config.Coinbase,
 		bloomRequests:     make(chan chan *bloombits.Retrieval),
@@ -154,7 +158,7 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 		dbVer = fmt.Sprintf("%d", *bcVersion)
 	}
 
-	log.Info("Initialising Cortex protocol", "versions", ProtocolVersions, "network", config.NetworkId, "dbversion", dbVer)
+	log.Info("Initialising Cortex protocol", "versions", ProtocolVersions, "network", networkID, "dbversion", dbVer)
 
 	if !config.SkipBcVersionCheck {
 		if bcVersion != nil && *bcVersion > core.BlockChainVersion {
@@ -217,7 +221,7 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 
 	cacheLimit := cacheConfig.TrieCleanLimit + cacheConfig.TrieDirtyLimit + cacheConfig.SnapshotLimit
 
-	if ctxc.protocolManager, err = NewProtocolManager(ctxc.chainConfig, config.SyncMode, config.NetworkId, ctxc.eventMux, ctxc.txPool, ctxc.engine, ctxc.blockchain, chainDb, cacheLimit, config.Whitelist); err != nil {
+	if ctxc.protocolManager, err = NewProtocolManager(ctxc.chainConfig, config.SyncMode, networkID, ctxc.eventMux, ctxc.txPool, ctxc.engine, ctxc.blockchain, chainDb, cacheLimit, config.Whitelist); err != nil {
 		return nil, err
 	}
 
