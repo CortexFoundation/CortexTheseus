@@ -94,16 +94,16 @@ func (r *serviceRegistry) registerName(name string, rcvr interface{}) error {
 
 // callback returns the callback corresponding to the given RPC method name.
 func (r *serviceRegistry) callback(method string) *callback {
-	elems := strings.SplitN(method, serviceMethodSeparator, 2)
-	if len(elems) != 2 {
+	before, after, found := strings.Cut(method, serviceMethodSeparator)
+	if !found {
 		return nil
 	}
-	if elems[0] == "eth" {
-		elems[0] = "ctxc"
+	if before == "eth" {
+		before = "ctxc"
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	return r.services[elems[0]].callbacks[elems[1]]
+	return r.services[before].callbacks[after]
 }
 
 // subscription returns a subscription callback in the given service.
