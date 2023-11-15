@@ -18,6 +18,7 @@ package rawdb
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
@@ -101,6 +102,8 @@ func InspectFreezerTable(ancient string, freezerName string, tableName string, s
 	switch freezerName {
 	case chainFreezerName:
 		path, tables = resolveChainFreezerDir(ancient), chainFreezerNoSnappy
+	case stateFreezerName:
+		path, tables = filepath.Join(ancient, freezerName), stateFreezerNoSnappy
 	default:
 		return fmt.Errorf("unknown freezer, supported ones: %v", freezers)
 	}
