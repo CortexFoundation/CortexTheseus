@@ -125,6 +125,7 @@ type nodeIterator struct {
 	err   error                // Failure set in case of an internal error in the iterator
 
 	resolver ctxcdb.KeyValueReader // Optional intermediate resolver above the disk layer
+	pool     []*nodeIteratorState  // local pool for iteratorstates
 }
 
 // errIteratorEnd is stored in nodeIterator.err when iteration is done.
@@ -370,9 +371,9 @@ func (st *nodeIteratorState) resolve(tr *Trie, path []byte) error {
 	}
 	return nil
 }
-
-func findChild(n *fullNode, index int, path []byte, ancestor common.Hash) (node, *nodeIteratorState, []byte, int) {
+func (it *nodeIterator) findChild(n *fullNode, index int, ancestor common.Hash) (node, *nodeIteratorState, []byte, int) {
 	var (
+		path      = it.path
 		child     node
 		state     *nodeIteratorState
 		childPath []byte
@@ -381,13 +382,12 @@ func findChild(n *fullNode, index int, path []byte, ancestor common.Hash) (node,
 		if n.Children[index] != nil {
 			child = n.Children[index]
 			hash, _ := child.cache()
-			state = &nodeIteratorState{
-				hash:    common.BytesToHash(hash),
-				node:    child,
-				parent:  ancestor,
-				index:   -1,
-				pathlen: len(path),
-			}
+			state = it.getFromPool()
+			state.hash = common.BytesToHash(hash)
+			state.node = child
+			state.parent = ancestor
+			state.index = -1
+			state.pathlen = len(path)
 			childPath = append(childPath, path...)
 			childPath = append(childPath, byte(index))
 			return child, state, childPath, index
@@ -400,7 +400,7 @@ func (it *nodeIterator) nextChild(parent *nodeIteratorState, ancestor common.Has
 	switch node := parent.node.(type) {
 	case *fullNode:
 		// Full node, move to the first non-nil child.
-		if child, state, path, index := findChild(node, parent.index+1, it.path, ancestor); child != nil {
+		if child, state, path, index := it.findChild(node, parent.index+1, ancestor); child != nil {
 			parent.index = index - 1
 			return state, path, true
 		}
@@ -408,13 +408,12 @@ func (it *nodeIterator) nextChild(parent *nodeIteratorState, ancestor common.Has
 		// Short node, return the pointer singleton child
 		if parent.index < 0 {
 			hash, _ := node.Val.cache()
-			state := &nodeIteratorState{
-				hash:    common.BytesToHash(hash),
-				node:    node.Val,
-				parent:  ancestor,
-				index:   -1,
-				pathlen: len(it.path),
-			}
+			state := it.getFromPool()
+			state.hash = common.BytesToHash(hash)
+			state.node = node.Val
+			state.parent = ancestor
+			state.index = -1
+			state.pathlen = len(it.path)
 			path := append(it.path, node.Key...)
 			return state, path, true
 		}
@@ -428,7 +427,7 @@ func (it *nodeIterator) nextChildAt(parent *nodeIteratorState, ancestor common.H
 	switch n := parent.node.(type) {
 	case *fullNode:
 		// Full node, move to the first non-nil child before the desired key position
-		child, state, path, index := findChild(n, parent.index+1, it.path, ancestor)
+		child, state, path, index := it.findChild(n, parent.index+1, ancestor)
 		if child == nil {
 			// No more children in this fullnode
 			return parent, it.path, false
@@ -440,7 +439,7 @@ func (it *nodeIterator) nextChildAt(parent *nodeIteratorState, ancestor common.H
 		}
 		// The child is before the seek position. Try advancing
 		for {
-			nextChild, nextState, nextPath, nextIndex := findChild(n, index+1, it.path, ancestor)
+			nextChild, nextState, nextPath, nextIndex := it.findChild(n, index+1, ancestor)
 			// If we run out of children, or skipped past the target, return the
 			// previous one
 			if nextChild == nil || bytes.Compare(nextPath, key) >= 0 {
@@ -454,13 +453,12 @@ func (it *nodeIterator) nextChildAt(parent *nodeIteratorState, ancestor common.H
 		// Short node, return the pointer singleton child
 		if parent.index < 0 {
 			hash, _ := n.Val.cache()
-			state := &nodeIteratorState{
-				hash:    common.BytesToHash(hash),
-				node:    n.Val,
-				parent:  ancestor,
-				index:   -1,
-				pathlen: len(it.path),
-			}
+			state := it.getFromPool()
+			state.hash = common.BytesToHash(hash)
+			state.node = n.Val
+			state.parent = ancestor
+			state.index = -1
+			state.pathlen = len(it.path)
 			path := append(it.path, n.Key...)
 			return state, path, true
 		}
@@ -481,6 +479,8 @@ func (it *nodeIterator) pop() {
 	it.path = it.path[:last.pathlen]
 	it.stack[len(it.stack)-1] = nil
 	it.stack = it.stack[:len(it.stack)-1]
+	// last is now unused
+	it.putInPool(last)
 }
 
 func compareNodes(a, b NodeIterator) int {
@@ -671,6 +671,24 @@ func (it *unionIterator) Path() []byte {
 }
 func (it *unionIterator) NodeBlob() []byte {
 	return (*it.items)[0].NodeBlob()
+}
+
+func (it *nodeIterator) putInPool(item *nodeIteratorState) {
+	if len(it.pool) < 40 {
+		item.node = nil
+		it.pool = append(it.pool, item)
+	}
+}
+
+func (it *nodeIterator) getFromPool() *nodeIteratorState {
+	idx := len(it.pool) - 1
+	if idx < 0 {
+		return new(nodeIteratorState)
+	}
+	el := it.pool[idx]
+	it.pool[idx] = nil
+	it.pool = it.pool[:idx]
+	return el
 }
 
 func (it *unionIterator) AddResolver(resolver ctxcdb.KeyValueReader) {
