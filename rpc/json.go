@@ -82,11 +82,11 @@ func (msg *jsonrpcMessage) isUnsubscribe() bool {
 }
 
 func (msg *jsonrpcMessage) namespace() string {
-	elem := strings.SplitN(msg.Method, serviceMethodSeparator, 2)
-	if elem[0] == "eth" {
-		elem[0] = "ctxc"
+	before, _, _ := strings.Cut(msg.Method, serviceMethodSeparator)
+	if before == "eth" {
+		before = "ctxc"
 	}
-	return elem[0]
+	return before
 }
 
 func (msg *jsonrpcMessage) String() string {
