@@ -927,6 +927,9 @@ func (pool *TxPool) AddRemote(tx *types.Transaction) error {
 }
 
 func (pool *TxPool) addTxs(txs []*types.Transaction, local, sync bool) []error {
+	// Do not treat as local if local transactions have been disabled
+	local = local && !pool.config.NoLocals
+
 	// Filter out known ones without obtaining the pool lock or recovering signatures
 	var (
 		errs = make([]error, len(txs))
