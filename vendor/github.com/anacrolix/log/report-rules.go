@@ -48,7 +48,7 @@ func (me *reportedNamesType) putReport(names []string) bool {
 var reportRulesLogger = log.New(os.Stderr, "anacrolix/log: ", 0)
 
 func init() {
-	if os.Getenv("GO_LOG_REPORT_RULES") == "" {
+	if os.Getenv(EnvReportRules) == "" {
 		reportRulesLogger.SetOutput(io.Discard)
 	}
 }

@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	lru "github.com/hashicorp/golang-lru/v2"
+	"github.com/valyala/bytebufferpool"
 )
 
 type ChunkType = byte
@@ -37,6 +38,10 @@ const (
 	blockSize = 32 * KB
 
 	fileModePerm = 0644
+
+	// uin32 + uint32 + int64 + uin32
+	// segmentId + BlockNumber + ChunkOffset + ChunkSize
+	maxLen = binary.MaxVarintLen32*3 + binary.MaxVarintLen64
 )
 
 // Segment represents a single segment file in WAL.
@@ -157,98 +162,180 @@ func (seg *segment) Close() error {
 
 // Size returns the size of the segment file.
 func (seg *segment) Size() int64 {
-	return int64(seg.currentBlockNumber*blockSize + seg.currentBlockSize)
+	size := int64(seg.currentBlockNumber) * int64(blockSize)
+	return size + int64(seg.currentBlockSize)
 }
 
-// Write writes the data to the segment file.
+// writeToBuffer calculate chunkPosition for data, write data to bytebufferpool, update segment status
 // The data will be written in chunks, and the chunk has four types:
 // ChunkTypeFull, ChunkTypeFirst, ChunkTypeMiddle, ChunkTypeLast.
 //
 // Each chunk has a header, and the header contains the length, type and checksum.
-// And the payload of the chunk is the real data you want to write.
-func (seg *segment) Write(data []byte) (*ChunkPosition, error) {
+// And the payload of the chunk is the real data you want to Write.
+func (seg *segment) writeToBuffer(data []byte, chunkBuffer *bytebufferpool.ByteBuffer) (*ChunkPosition, error) {
+	startBufferLen := chunkBuffer.Len()
+	padding := uint32(0)
+
 	if seg.closed {
 		return nil, ErrClosed
 	}
 
-	// The left block space is not enough for a chunk header
+	// if the left block size can not hold the chunk header, padding the block
 	if seg.currentBlockSize+chunkHeaderSize >= blockSize {
 		// padding if necessary
 		if seg.currentBlockSize < blockSize {
-			padding := make([]byte, blockSize-seg.currentBlockSize)
-			if _, err := seg.fd.Write(padding); err != nil {
-				return nil, err
-			}
-		}
+			p := make([]byte, blockSize-seg.currentBlockSize)
+			chunkBuffer.B = append(chunkBuffer.B, p...)
+			padding += blockSize - seg.currentBlockSize
 
-		// A new block, clear the current block size.
-		seg.currentBlockNumber += 1
-		seg.currentBlockSize = 0
+			// a new block
+			seg.currentBlockNumber += 1
+			seg.currentBlockSize = 0
+		}
 	}
 
-	// the start position(for read operation)
+	// return the start position of the chunk, then the user can use it to read the data.
 	position := &ChunkPosition{
 		SegmentId:   seg.id,
 		BlockNumber: seg.currentBlockNumber,
 		ChunkOffset: int64(seg.currentBlockSize),
 	}
+
 	dataSize := uint32(len(data))
 	// The entire chunk can fit into the block.
 	if seg.currentBlockSize+dataSize+chunkHeaderSize <= blockSize {
-		err := seg.writeInternal(data, ChunkTypeFull)
-		if err != nil {
-			return nil, err
-		}
+		seg.appendChunkBuffer(chunkBuffer, data, ChunkTypeFull)
 		position.ChunkSize = dataSize + chunkHeaderSize
-		return position, nil
+	} else {
+		// If the size of the data exceeds the size of the block,
+		// the data should be written to the block in batches.
+		var (
+			leftSize             = dataSize
+			blockCount    uint32 = 0
+			currBlockSize        = seg.currentBlockSize
+		)
+
+		for leftSize > 0 {
+			chunkSize := blockSize - currBlockSize - chunkHeaderSize
+			if chunkSize > leftSize {
+				chunkSize = leftSize
+			}
+
+			var end = dataSize - leftSize + chunkSize
+			if end > dataSize {
+				end = dataSize
+			}
+
+			// append the chunks to the buffer
+			var chunkType ChunkType
+			switch leftSize {
+			case dataSize: // First chunk
+				chunkType = ChunkTypeFirst
+			case chunkSize: // Last chunk
+				chunkType = ChunkTypeLast
+			default: // Middle chunk
+				chunkType = ChunkTypeMiddle
+			}
+			seg.appendChunkBuffer(chunkBuffer, data[dataSize-leftSize:end], chunkType)
+
+			leftSize -= chunkSize
+			blockCount += 1
+			currBlockSize = (currBlockSize + chunkSize + chunkHeaderSize) % blockSize
+		}
+		position.ChunkSize = blockCount*chunkHeaderSize + dataSize
 	}
 
-	// If the size of the data exceeds the size of the block,
-	// the data should be written to the block in batches.
-	var leftSize = dataSize
-	var blockCount uint32 = 0
-	for leftSize > 0 {
-		chunkSize := blockSize - seg.currentBlockSize - chunkHeaderSize
-		if chunkSize > leftSize {
-			chunkSize = leftSize
-		}
-		chunk := make([]byte, chunkSize)
-
-		var end = dataSize - leftSize + chunkSize
-		if end > dataSize {
-			end = dataSize
-		}
-
-		copy(chunk[:], data[dataSize-leftSize:end])
-
-		// write the chunks
-		var err error
-		if leftSize == dataSize {
-			// First Chunk
-			err = seg.writeInternal(chunk, ChunkTypeFirst)
-		} else if leftSize == chunkSize {
-			// Last Chunk
-			err = seg.writeInternal(chunk, ChunkTypeLast)
-		} else {
-			// Middle Chunk
-			err = seg.writeInternal(chunk, ChunkTypeMiddle)
-		}
-		if err != nil {
-			return nil, err
-		}
-		leftSize -= chunkSize
-		blockCount += 1
+	// the buffer length must be equal to chunkSize+padding length
+	endBufferLen := chunkBuffer.Len()
+	if position.ChunkSize+padding != uint32(endBufferLen-startBufferLen) {
+		panic(fmt.Sprintf("wrong!!! the chunk size %d is not equal to the buffer len %d",
+			position.ChunkSize+padding, endBufferLen-startBufferLen))
 	}
 
-	position.ChunkSize = blockCount*chunkHeaderSize + dataSize
+	// update segment status
+	seg.currentBlockSize += position.ChunkSize
+	if seg.currentBlockSize >= blockSize {
+		seg.currentBlockNumber += seg.currentBlockSize / blockSize
+		seg.currentBlockSize = seg.currentBlockSize % blockSize
+	}
+
 	return position, nil
 }
 
-func (seg *segment) writeInternal(data []byte, chunkType ChunkType) error {
-	dataSize := uint32(len(data))
+// writeAll write batch data to the segment file.
+func (seg *segment) writeAll(data [][]byte) (positions []*ChunkPosition, err error) {
+	if seg.closed {
+		return nil, ErrClosed
+	}
 
+	// if any error occurs, restore the segment status
+	originBlockNumber := seg.currentBlockNumber
+	originBlockSize := seg.currentBlockSize
+
+	// init chunk buffer
+	chunkBuffer := bytebufferpool.Get()
+	chunkBuffer.Reset()
+	defer func() {
+		if err != nil {
+			seg.currentBlockNumber = originBlockNumber
+			seg.currentBlockSize = originBlockSize
+		}
+		bytebufferpool.Put(chunkBuffer)
+	}()
+
+	// write all data to the chunk buffer
+	var pos *ChunkPosition
+	positions = make([]*ChunkPosition, len(data))
+	for i := 0; i < len(positions); i++ {
+		pos, err = seg.writeToBuffer(data[i], chunkBuffer)
+		if err != nil {
+			return
+		}
+		positions[i] = pos
+	}
+	// write the chunk buffer to the segment file
+	if err = seg.writeChunkBuffer(chunkBuffer); err != nil {
+		return
+	}
+	return
+}
+
+// Write writes the data to the segment file.
+func (seg *segment) Write(data []byte) (pos *ChunkPosition, err error) {
+	if seg.closed {
+		return nil, ErrClosed
+	}
+
+	originBlockNumber := seg.currentBlockNumber
+	originBlockSize := seg.currentBlockSize
+
+	// init chunk buffer
+	chunkBuffer := bytebufferpool.Get()
+	chunkBuffer.Reset()
+	defer func() {
+		if err != nil {
+			seg.currentBlockNumber = originBlockNumber
+			seg.currentBlockSize = originBlockSize
+		}
+		bytebufferpool.Put(chunkBuffer)
+	}()
+
+	// write all data to the chunk buffer
+	pos, err = seg.writeToBuffer(data, chunkBuffer)
+	if err != nil {
+		return
+	}
+	// write the chunk buffer to the segment file
+	if err = seg.writeChunkBuffer(chunkBuffer); err != nil {
+		return
+	}
+
+	return
+}
+
+func (seg *segment) appendChunkBuffer(buf *bytebufferpool.ByteBuffer, data []byte, chunkType ChunkType) {
 	// Length	2 Bytes	index:4-5
-	binary.LittleEndian.PutUint16(seg.header[4:6], uint16(dataSize))
+	binary.LittleEndian.PutUint16(seg.header[4:6], uint16(len(data)))
 	// Type	1 Byte	index:6
 	seg.header[6] = chunkType
 	// Checksum	4 Bytes index:0-3
@@ -256,25 +343,22 @@ func (seg *segment) writeInternal(data []byte, chunkType ChunkType) error {
 	sum = crc32.Update(sum, crc32.IEEETable, data)
 	binary.LittleEndian.PutUint32(seg.header[:4], sum)
 
-	// append to the file
-	if _, err := seg.fd.Write(seg.header); err != nil {
-		return err
-	}
-	if _, err := seg.fd.Write(data); err != nil {
-		return err
-	}
+	// append the header and data to segment chunk buffer
+	buf.B = append(buf.B, seg.header...)
+	buf.B = append(buf.B, data...)
+}
 
+// write the pending chunk buffer to the segment file
+func (seg *segment) writeChunkBuffer(buf *bytebufferpool.ByteBuffer) error {
 	if seg.currentBlockSize > blockSize {
 		panic("wrong! can not exceed the block size")
 	}
 
-	// update the corresponding fields
-	seg.currentBlockSize += dataSize + chunkHeaderSize
-	// A new block
-	if seg.currentBlockSize == blockSize {
-		seg.currentBlockNumber += 1
-		seg.currentBlockSize = 0
+	// write the data into underlying file
+	if _, err := seg.fd.Write(buf.Bytes()); err != nil {
+		return err
 	}
+
 	return nil
 }
 
@@ -301,7 +385,7 @@ func (seg *segment) readInternal(blockNumber uint32, chunkOffset int64) ([]byte,
 
 	for {
 		size := int64(blockSize)
-		offset := int64(blockNumber * blockSize)
+		offset := int64(blockNumber) * blockSize
 		if size+offset > segSize {
 			size = segSize - offset
 		}
@@ -377,7 +461,7 @@ func (seg *segment) getCacheKey(blockNumber uint32) uint64 {
 	return uint64(seg.id)<<32 | uint64(blockNumber)
 }
 
-// Next returns the next chunk data.
+// Next returns the Next chunk data.
 // You can call it repeatedly until io.EOF is returned.
 func (segReader *segmentReader) Next() ([]byte, *ChunkPosition, error) {
 	// The segment file is closed
@@ -415,9 +499,21 @@ func (segReader *segmentReader) Next() ([]byte, *ChunkPosition, error) {
 }
 
 // Encode encodes the chunk position to a byte slice.
+// Return the slice with the actual occupied elements.
 // You can decode it by calling wal.DecodeChunkPosition().
 func (cp *ChunkPosition) Encode() []byte {
-	maxLen := binary.MaxVarintLen32*3 + binary.MaxVarintLen64
+	return cp.encode(true)
+}
+
+// EncodeFixedSize encodes the chunk position to a byte slice.
+// Return a slice of size "maxLen".
+// You can decode it by calling wal.DecodeChunkPosition().
+func (cp *ChunkPosition) EncodeFixedSize() []byte {
+	return cp.encode(false)
+}
+
+// encode the chunk position to a byte slice.
+func (cp *ChunkPosition) encode(shrink bool) []byte {
 	buf := make([]byte, maxLen)
 
 	var index = 0
@@ -430,7 +526,10 @@ func (cp *ChunkPosition) Encode() []byte {
 	// ChunkSize
 	index += binary.PutUvarint(buf[index:], uint64(cp.ChunkSize))
 
-	return buf[:index]
+	if shrink {
+		return buf[:index]
+	}
+	return buf
 }
 
 // DecodeChunkPosition decodes the chunk position from a byte slice.

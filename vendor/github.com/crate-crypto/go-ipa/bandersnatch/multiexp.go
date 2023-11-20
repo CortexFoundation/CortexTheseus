@@ -172,19 +172,20 @@ func partitionScalars(scalars []fr.Element, c uint64, scalarsMont bool, nbTasks 
 }
 
 // MultiExp implements section 4 of https://eprint.iacr.org/2012/549.pdf
-func (p *PointAffine) MultiExp(points []PointAffine, scalars []fr.Element, config MultiExpConfig) (*PointAffine, error) {
+func MultiExpAffine(points []PointAffine, scalars []fr.Element, config MultiExpConfig) (PointAffine, error) {
 	var _p PointProj
-	if _, err := _p.MultiExp(points, scalars, config); err != nil {
-		return nil, err
+	if _, err := MultiExp(&_p,points, scalars, config); err != nil {
+		return PointAffine{}, err
 	}
 
+	var p PointAffine
 	p.FromProj(&_p)
 	return p, nil
 }
 
 // MultiExp implements section 4 of https://eprint.iacr.org/2012/549.pdf
 //Note: We rely on this algortithm not use Equal functionality, since it is called by a banderwagon element
-func (p *PointProj) MultiExp(points []PointAffine, scalars []fr.Element, config MultiExpConfig) (*PointProj, error) {
+func MultiExp(p *PointProj, points []PointAffine, scalars []fr.Element, config MultiExpConfig) (*PointProj, error) {
 	// note:
 	// each of the msmCX method is the same, except for the c constant it declares
 	// duplicating (through template generation) these methods allows to declare the buckets on the stack
@@ -300,52 +301,52 @@ func msmInnerPointProj(p *PointProj, c int, points []PointAffine, scalars []fr.E
 	switch c {
 
 	case 4:
-		p.msmC4(points, scalars, splitFirstChunk)
+		msmC4(p,points, scalars, splitFirstChunk)
 
 	case 5:
-		p.msmC5(points, scalars, splitFirstChunk)
+		msmC5(p,points, scalars, splitFirstChunk)
 
 	case 6:
-		p.msmC6(points, scalars, splitFirstChunk)
+		msmC6(p,points, scalars, splitFirstChunk)
 
 	case 7:
-		p.msmC7(points, scalars, splitFirstChunk)
+		msmC7(p,points, scalars, splitFirstChunk)
 
 	case 8:
-		p.msmC8(points, scalars, splitFirstChunk)
+		msmC8(p,points, scalars, splitFirstChunk)
 
 	case 9:
-		p.msmC9(points, scalars, splitFirstChunk)
+		msmC9(p,points, scalars, splitFirstChunk)
 
 	case 10:
-		p.msmC10(points, scalars, splitFirstChunk)
+		msmC10(p,points, scalars, splitFirstChunk)
 
 	case 11:
-		p.msmC11(points, scalars, splitFirstChunk)
+		msmC11(p,points, scalars, splitFirstChunk)
 
 	case 12:
-		p.msmC12(points, scalars, splitFirstChunk)
+		msmC12(p,points, scalars, splitFirstChunk)
 
 	case 13:
-		p.msmC13(points, scalars, splitFirstChunk)
+		msmC13(p,points, scalars, splitFirstChunk)
 
 	case 14:
-		p.msmC14(points, scalars, splitFirstChunk)
+		msmC14(p,points, scalars, splitFirstChunk)
 
 	case 15:
-		p.msmC15(points, scalars, splitFirstChunk)
+		msmC15(p,points, scalars, splitFirstChunk)
 
 	case 16:
-		p.msmC16(points, scalars, splitFirstChunk)
+		msmC16(p,points, scalars, splitFirstChunk)
 
 	case 20:
-		p.msmC20(points, scalars, splitFirstChunk)
+		msmC20(p,points, scalars, splitFirstChunk)
 
 	case 21:
-		p.msmC21(points, scalars, splitFirstChunk)
+		msmC21(p,points, scalars, splitFirstChunk)
 
 	case 22:
-		p.msmC22(points, scalars, splitFirstChunk)
+		msmC22(p,points, scalars, splitFirstChunk)
 
 	default:
 		panic("not implemented")
@@ -409,7 +410,7 @@ func msmProcessChunkPointAffineDMA(chunk uint64,
 	msbWindow := uint64(1 << (c - 1))
 
 	for i := 0; i < len(buckets); i++ {
-		buckets[i].Identity()
+		buckets[i] = Identity
 	}
 
 	jc := uint64(chunk * c)
@@ -453,9 +454,7 @@ func msmProcessChunkPointAffineDMA(chunk uint64,
 	// reduce buckets into total
 	// total =  bucket[0] + 2*bucket[1] + 3*bucket[2] ... + n*bucket[n-1]
 
-	var runningSum, total PointProj
-	runningSum.Identity()
-	total.Identity()
+	runningSum, total := Identity, Identity
 	for k := len(buckets) - 1; k >= 0; k-- {
 
 		runningSum.Add(&runningSum, &buckets[k])
@@ -467,7 +466,7 @@ func msmProcessChunkPointAffineDMA(chunk uint64,
 
 }
 
-func (p *PointProj) msmC4(points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
+func msmC4(p *PointProj, points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
 	const (
 		c        = 4                   // scalars partitioned into c-bit radixes
 		nbChunks = (fr.Limbs * 64 / c) // number of c-bit radixes in a scalar
@@ -519,7 +518,7 @@ func (p *PointProj) msmC4(points []PointAffine, scalars []fr.Element, splitFirst
 	return msmReduceChunkPointAffineDMA(p, c, chChunks[:])
 }
 
-func (p *PointProj) msmC5(points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
+func msmC5(p *PointProj,points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
 	const (
 		c        = 5                   // scalars partitioned into c-bit radixes
 		nbChunks = (fr.Limbs * 64 / c) // number of c-bit radixes in a scalar
@@ -571,7 +570,7 @@ func (p *PointProj) msmC5(points []PointAffine, scalars []fr.Element, splitFirst
 	return msmReduceChunkPointAffine(p, c, chChunks[:])
 }
 
-func (p *PointProj) msmC6(points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
+func  msmC6(p *PointProj,points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
 	const (
 		c        = 6                   // scalars partitioned into c-bit radixes
 		nbChunks = (fr.Limbs * 64 / c) // number of c-bit radixes in a scalar
@@ -623,7 +622,7 @@ func (p *PointProj) msmC6(points []PointAffine, scalars []fr.Element, splitFirst
 	return msmReduceChunkPointAffine(p, c, chChunks[:])
 }
 
-func (p *PointProj) msmC7(points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
+func msmC7(p *PointProj,points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
 	const (
 		c        = 7                   // scalars partitioned into c-bit radixes
 		nbChunks = (fr.Limbs * 64 / c) // number of c-bit radixes in a scalar
@@ -675,7 +674,7 @@ func (p *PointProj) msmC7(points []PointAffine, scalars []fr.Element, splitFirst
 	return msmReduceChunkPointAffine(p, c, chChunks[:])
 }
 
-func (p *PointProj) msmC8(points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
+func msmC8(p *PointProj,points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
 	const (
 		c        = 8                   // scalars partitioned into c-bit radixes
 		nbChunks = (fr.Limbs * 64 / c) // number of c-bit radixes in a scalar
@@ -720,7 +719,7 @@ func (p *PointProj) msmC8(points []PointAffine, scalars []fr.Element, splitFirst
 	return msmReduceChunkPointAffine(p, c, chChunks[:])
 }
 
-func (p *PointProj) msmC9(points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
+func msmC9(p *PointProj,points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
 	const (
 		c        = 9                   // scalars partitioned into c-bit radixes
 		nbChunks = (fr.Limbs * 64 / c) // number of c-bit radixes in a scalar
@@ -772,7 +771,7 @@ func (p *PointProj) msmC9(points []PointAffine, scalars []fr.Element, splitFirst
 	return msmReduceChunkPointAffine(p, c, chChunks[:])
 }
 
-func (p *PointProj) msmC10(points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
+func msmC10(p *PointProj,points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
 	const (
 		c        = 10                  // scalars partitioned into c-bit radixes
 		nbChunks = (fr.Limbs * 64 / c) // number of c-bit radixes in a scalar
@@ -824,7 +823,7 @@ func (p *PointProj) msmC10(points []PointAffine, scalars []fr.Element, splitFirs
 	return msmReduceChunkPointAffine(p, c, chChunks[:])
 }
 
-func (p *PointProj) msmC11(points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
+func msmC11(p *PointProj,points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
 	const (
 		c        = 11                  // scalars partitioned into c-bit radixes
 		nbChunks = (fr.Limbs * 64 / c) // number of c-bit radixes in a scalar
@@ -876,7 +875,7 @@ func (p *PointProj) msmC11(points []PointAffine, scalars []fr.Element, splitFirs
 	return msmReduceChunkPointAffine(p, c, chChunks[:])
 }
 
-func (p *PointProj) msmC12(points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
+func  msmC12(p *PointProj,points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
 	const (
 		c        = 12                  // scalars partitioned into c-bit radixes
 		nbChunks = (fr.Limbs * 64 / c) // number of c-bit radixes in a scalar
@@ -928,7 +927,7 @@ func (p *PointProj) msmC12(points []PointAffine, scalars []fr.Element, splitFirs
 	return msmReduceChunkPointAffine(p, c, chChunks[:])
 }
 
-func (p *PointProj) msmC13(points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
+func msmC13(p *PointProj,points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
 	const (
 		c        = 13                  // scalars partitioned into c-bit radixes
 		nbChunks = (fr.Limbs * 64 / c) // number of c-bit radixes in a scalar
@@ -980,7 +979,7 @@ func (p *PointProj) msmC13(points []PointAffine, scalars []fr.Element, splitFirs
 	return msmReduceChunkPointAffine(p, c, chChunks[:])
 }
 
-func (p *PointProj) msmC14(points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
+func  msmC14(p *PointProj,points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
 	const (
 		c        = 14                  // scalars partitioned into c-bit radixes
 		nbChunks = (fr.Limbs * 64 / c) // number of c-bit radixes in a scalar
@@ -1032,7 +1031,7 @@ func (p *PointProj) msmC14(points []PointAffine, scalars []fr.Element, splitFirs
 	return msmReduceChunkPointAffine(p, c, chChunks[:])
 }
 
-func (p *PointProj) msmC15(points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
+func  msmC15(p *PointProj,points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
 	const (
 		c        = 15                  // scalars partitioned into c-bit radixes
 		nbChunks = (fr.Limbs * 64 / c) // number of c-bit radixes in a scalar
@@ -1084,7 +1083,7 @@ func (p *PointProj) msmC15(points []PointAffine, scalars []fr.Element, splitFirs
 	return msmReduceChunkPointAffine(p, c, chChunks[:])
 }
 
-func (p *PointProj) msmC16(points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
+func  msmC16(p *PointProj,points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
 	const (
 		c        = 16                  // scalars partitioned into c-bit radixes
 		nbChunks = (fr.Limbs * 64 / c) // number of c-bit radixes in a scalar
@@ -1129,7 +1128,7 @@ func (p *PointProj) msmC16(points []PointAffine, scalars []fr.Element, splitFirs
 	return msmReduceChunkPointAffine(p, c, chChunks[:])
 }
 
-func (p *PointProj) msmC20(points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
+func  msmC20(p *PointProj,points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
 	const (
 		c        = 20                  // scalars partitioned into c-bit radixes
 		nbChunks = (fr.Limbs * 64 / c) // number of c-bit radixes in a scalar
@@ -1181,7 +1180,7 @@ func (p *PointProj) msmC20(points []PointAffine, scalars []fr.Element, splitFirs
 	return msmReduceChunkPointAffine(p, c, chChunks[:])
 }
 
-func (p *PointProj) msmC21(points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
+func  msmC21(p *PointProj,points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
 	const (
 		c        = 21                  // scalars partitioned into c-bit radixes
 		nbChunks = (fr.Limbs * 64 / c) // number of c-bit radixes in a scalar
@@ -1233,7 +1232,7 @@ func (p *PointProj) msmC21(points []PointAffine, scalars []fr.Element, splitFirs
 	return msmReduceChunkPointAffine(p, c, chChunks[:])
 }
 
-func (p *PointProj) msmC22(points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
+func msmC22(p *PointProj,points []PointAffine, scalars []fr.Element, splitFirstChunk bool) *PointProj {
 	const (
 		c        = 22                  // scalars partitioned into c-bit radixes
 		nbChunks = (fr.Limbs * 64 / c) // number of c-bit radixes in a scalar

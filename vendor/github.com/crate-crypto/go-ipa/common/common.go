@@ -1,15 +1,16 @@
 package common
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/crate-crypto/go-ipa/bandersnatch/fr"
 	"github.com/crate-crypto/go-ipa/banderwagon"
 )
 
-// TODO: This is not entirely correct, the degree is 255. We can change this to VECTOR_LENGTH or NUM_EVAL_POINTS?
-// note: degree 255, means 256 evaluation points
-const POLY_DEGREE = 256
+// VectorLength is the number of elements in the vector. This value is fixed.
+// Note that this means that the degree of the polynomial is one less than this value.
+const VectorLength = 256
 
 // Returns powers of x from 0 to degree-1
 // <1, x, x^2, x^3, x^4,...,x^(degree-1)>
@@ -28,36 +29,27 @@ func PowersOf(x fr.Element, degree int) []fr.Element {
 	return result
 }
 
-func ReadPoint(r io.Reader) *banderwagon.Element {
+func ReadPoint(r io.Reader) (*banderwagon.Element, error) {
 	var x = make([]byte, 32)
-	n, err := r.Read(x)
-	if err != nil {
-		panic("error reading bytes")
-	}
-	if n != 32 {
-		panic("did not read enough bytes")
+	if _, err := io.ReadAtLeast(r, x, 32); err != nil {
+		return nil, fmt.Errorf("reading x coordinate: %w", err)
 	}
 	var p = &banderwagon.Element{}
-	err = p.SetBytes(x)
-	if err != nil {
-		panic("could not deserialize point")
+	if err := p.SetBytes(x); err != nil {
+		return nil, fmt.Errorf("deserializing point: %w", err)
 	}
-	return p
+	return p, nil
 }
 
-func ReadScalar(r io.Reader) *fr.Element {
+func ReadScalar(r io.Reader) (*fr.Element, error) {
 	var x = make([]byte, 32)
-	n, err := r.Read(x)
-	if err != nil {
-		panic("error reading bytes")
-	}
-	if n != 32 {
-		panic("did not read enough bytes")
+	if _, err := io.ReadAtLeast(r, x, 32); err != nil {
+		return nil, fmt.Errorf("reading scalar: %w", err)
 	}
 	var scalar = &fr.Element{}
-	scalar.SetBytesLE(x)
-	if err != nil {
-		panic("could not deserialize point")
+	if _, err := scalar.SetBytesLECanonical(x); err != nil {
+		return nil, fmt.Errorf("deserializing scalar: %s", err)
 	}
-	return scalar
+
+	return scalar, nil
 }

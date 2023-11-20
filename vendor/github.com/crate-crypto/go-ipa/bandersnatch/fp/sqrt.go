@@ -9,7 +9,7 @@ import "math/big"
 // - The type `feType_SquareRoot` was aliased to `Element` so everything looks the same. These types didn't have the exact
 //   same underlying representation, so it leaded to some minor adjustements. (e.g: accessing the limbs)
 // - Original APIs regarding finite-field multiplications (e.g: MulEq) were adjusted to use gnark Mul APIs.
-// - The original code had to explicitely do `Normalize()` after field element operations, but this isn't needed in gnark.
+// - The original code had to explicitly do `Normalize()` after field element operations, but this isn't needed in gnark.
 // - The primitive 2^32-root-of unity value (see init()) was pulled from gnark FFT domain code.
 // - The original code used anonymous functions to define global vars, but we changed to use a init() function.
 //   This was required since we have other init() in the package that configure other globals (e.g: _modulus).
@@ -43,13 +43,15 @@ var (
 
 func init() {
 	sqrtPrecomp_PrimitiveDyadicRoots = func() (ret [BaseField2Adicity + 1]feType_SquareRoot) {
-		ret[0].SetString("10238227357739495823651030575849232062558860180284477541189508159991286009131")
+		if _, err := ret[0].SetString("10238227357739495823651030575849232062558860180284477541189508159991286009131"); err != nil {
+			panic(err)
+		}
 		for i := 1; i <= BaseField2Adicity; i++ { // Note <= here
 			ret[i].Square(&ret[i-1])
 		}
 		// 31th one must be -1. We check that here.
 		x := big.NewInt(0)
-		ret[BaseField2Adicity-1].ToBigIntRegular(x)
+		ret[BaseField2Adicity-1].BigInt(x)
 		if ret[BaseField2Adicity-1].String() != "-1" {
 			panic("something is wrong with the dyadic roots of unity")
 		}
@@ -87,7 +89,7 @@ func init() {
 	}() // immediately invoked lambda
 }
 
-// sqrtAlg_NegDlogInSmallDyadicSubgroup takes a (not neccessarily primitive) root of unity x of order 2^sqrtParam_BlockSize.
+// sqrtAlg_NegDlogInSmallDyadicSubgroup takes a (not necessarily primitive) root of unity x of order 2^sqrtParam_BlockSize.
 // x has the form sqrtPrecomp_ReconstructionDyadicRoot^a and returns its negative dlog -a.
 //
 // The returned value is only meaningful modulo 1<<sqrtParam_BlockSize and is fully reduced, i.e. in [0, 1<<sqrtParam_BlockSize )
@@ -111,22 +113,22 @@ func sqrtAlg_GetPrecomputedRootOfUnity(target *feType_SquareRoot, multiplier int
 // Note: accessed through sqrtAlg_getPrecomputedRootOfUnity
 var sqrtPrecomp_PrecomputedBlocks [sqrtParam_Blocks][1 << sqrtParam_BlockSize]feType_SquareRoot
 
-func (z *Element) SqrtPrecomp(x *Element) *Element {
+func SqrtPrecomp(x *Element) *Element {
+	res := Zero()
 	if x.IsZero() {
-		z.SetZero()
-		return z
+		return &res
 	}
 	var xCopy feType_SquareRoot = *x
 	var candidate, rootOfUnity feType_SquareRoot
-	xCopy.sqrtAlg_ComputeRelevantPowers(&candidate, &rootOfUnity)
-	if !rootOfUnity.invSqrtEqDyadic() {
+	sqrtAlg_ComputeRelevantPowers(&xCopy, &candidate, &rootOfUnity)
+	if !invSqrtEqDyadic(&rootOfUnity) {
 		return nil
 	}
-	z.Mul(&candidate, &rootOfUnity)
-	return z
+
+	return res.Mul(&candidate, &rootOfUnity)
 }
 
-func (z *Element) invSqrtEqDyadic() bool {
+func invSqrtEqDyadic(z *Element) bool {
 	// The algorithm works by essentially computing the dlog of z and then halving it.
 
 	// negExponent is intended to hold the negative of the dlog of z.
@@ -187,7 +189,7 @@ func (z *Element) invSqrtEqDyadic() bool {
 	return true
 }
 
-func (z *feType_SquareRoot) sqrtAlg_ComputeRelevantPowers(squareRootCandidate *feType_SquareRoot, rootOfUnity *feType_SquareRoot) {
+func sqrtAlg_ComputeRelevantPowers(z *Element, squareRootCandidate *feType_SquareRoot, rootOfUnity *feType_SquareRoot) {
 	SquareEqNTimes := func(z *feType_SquareRoot, n int) {
 		for i := 0; i < n; i++ {
 			z.Square(z)

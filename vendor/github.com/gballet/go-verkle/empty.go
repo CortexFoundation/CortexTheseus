@@ -49,11 +49,11 @@ func (n Empty) Commit() *Point {
 
 func (Empty) Commitment() *Point {
 	var id Point
-	id.Identity()
+	id.SetIdentity()
 	return &id
 }
 
-func (Empty) GetProofItems(keylist) (*ProofElements, []byte, [][]byte, error) {
+func (Empty) GetProofItems(keylist, NodeResolverFn) (*ProofElements, []byte, [][]byte, error) {
 	return nil, nil, nil, errors.New("trying to produce a commitment for an empty subtree")
 }
 

@@ -3,6 +3,7 @@ package missinggo
 import "sync"
 
 type ongoing struct {
+	// Waiters can proceed, someone finished the task.
 	do    sync.Mutex
 	users int
 }

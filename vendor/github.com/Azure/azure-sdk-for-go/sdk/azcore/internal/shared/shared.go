@@ -8,13 +8,16 @@ package shared
 
 import (
 	"context"
-	"errors"
-	"io"
+	"fmt"
 	"net/http"
 	"reflect"
+	"regexp"
 	"strconv"
 	"time"
 )
+
+// NOTE: when adding a new context key type, it likely needs to be
+// added to the deny-list of key types in ContextWithDeniedValues
 
 // CtxWithHTTPHeaderKey is used as a context key for adding/retrieving http.Header.
 type CtxWithHTTPHeaderKey struct{}
@@ -22,8 +25,14 @@ type CtxWithHTTPHeaderKey struct{}
 // CtxWithRetryOptionsKey is used as a context key for adding/retrieving RetryOptions.
 type CtxWithRetryOptionsKey struct{}
 
-// CtxIncludeResponseKey is used as a context key for retrieving the raw response.
-type CtxIncludeResponseKey struct{}
+// CtxWithCaptureResponse is used as a context key for retrieving the raw response.
+type CtxWithCaptureResponse struct{}
+
+// CtxWithTracingTracer is used as a context key for adding/retrieving tracing.Tracer.
+type CtxWithTracingTracer struct{}
+
+// CtxAPINameKey is used as a context key for adding/retrieving the API name.
+type CtxAPINameKey struct{}
 
 // Delay waits for the duration to elapse or the context to be cancelled.
 func Delay(ctx context.Context, delay time.Duration) error {
@@ -61,75 +70,38 @@ func TypeOfT[T any]() reflect.Type {
 	return reflect.TypeOf((*T)(nil)).Elem()
 }
 
-// BytesSetter abstracts replacing a byte slice on some type.
-type BytesSetter interface {
-	Set(b []byte)
-}
-
-// NewNopClosingBytesReader creates a new *NopClosingBytesReader for the specified slice.
-func NewNopClosingBytesReader(data []byte) *NopClosingBytesReader {
-	return &NopClosingBytesReader{s: data}
-}
-
-// NopClosingBytesReader is an io.ReadSeekCloser around a byte slice.
-// It also provides direct access to the byte slice to avoid rereading.
-type NopClosingBytesReader struct {
-	s []byte
-	i int64
-}
-
-// Bytes returns the underlying byte slice.
-func (r *NopClosingBytesReader) Bytes() []byte {
-	return r.s
-}
-
-// Close implements the io.Closer interface.
-func (*NopClosingBytesReader) Close() error {
-	return nil
-}
-
-// Read implements the io.Reader interface.
-func (r *NopClosingBytesReader) Read(b []byte) (n int, err error) {
-	if r.i >= int64(len(r.s)) {
-		return 0, io.EOF
-	}
-	n = copy(b, r.s[r.i:])
-	r.i += int64(n)
-	return
-}
-
-// Set replaces the existing byte slice with the specified byte slice and resets the reader.
-func (r *NopClosingBytesReader) Set(b []byte) {
-	r.s = b
-	r.i = 0
-}
-
-// Seek implements the io.Seeker interface.
-func (r *NopClosingBytesReader) Seek(offset int64, whence int) (int64, error) {
-	var i int64
-	switch whence {
-	case io.SeekStart:
-		i = offset
-	case io.SeekCurrent:
-		i = r.i + offset
-	case io.SeekEnd:
-		i = int64(len(r.s)) + offset
-	default:
-		return 0, errors.New("nopClosingBytesReader: invalid whence")
-	}
-	if i < 0 {
-		return 0, errors.New("nopClosingBytesReader: negative position")
-	}
-	r.i = i
-	return i, nil
-}
-
-var _ BytesSetter = (*NopClosingBytesReader)(nil)
-
 // TransportFunc is a helper to use a first-class func to satisfy the Transporter interface.
 type TransportFunc func(*http.Request) (*http.Response, error)
 
 // Do implements the Transporter interface for the TransportFunc type.
 func (pf TransportFunc) Do(req *http.Request) (*http.Response, error) {
 	return pf(req)
+}
+
+// ValidateModVer verifies that moduleVersion is a valid semver 2.0 string.
+func ValidateModVer(moduleVersion string) error {
+	modVerRegx := regexp.MustCompile(`^v\d+\.\d+\.\d+(?:-[a-zA-Z0-9_.-]+)?$`)
+	if !modVerRegx.MatchString(moduleVersion) {
+		return fmt.Errorf("malformed moduleVersion param value %s", moduleVersion)
+	}
+	return nil
+}
+
+// ContextWithDeniedValues wraps an existing [context.Context], denying access to certain context values.
+// Pipeline policies that create new requests to be sent down their own pipeline MUST wrap the caller's
+// context with an instance of this type. This is to prevent context values from flowing across disjoint
+// requests which can have unintended side-effects.
+type ContextWithDeniedValues struct {
+	context.Context
+}
+
+// Value implements part of the [context.Context] interface.
+// It acts as a deny-list for certain context keys.
+func (c *ContextWithDeniedValues) Value(key any) any {
+	switch key.(type) {
+	case CtxAPINameKey, CtxWithCaptureResponse, CtxWithHTTPHeaderKey, CtxWithRetryOptionsKey, CtxWithTracingTracer:
+		return nil
+	default:
+		return c.Context.Value(key)
+	}
 }

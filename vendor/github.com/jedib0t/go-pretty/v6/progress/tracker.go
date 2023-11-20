@@ -17,6 +17,10 @@ type Tracker struct {
 	// instead use UpdateMessage() to do this safely without hitting any race
 	// conditions
 	Message string
+	// DeferStart prevents the tracker from starting immediately when appended.
+	// It will be rendered but remain dormant until Start, Increment,
+	// IncrementWithError or SetValue is called.
+	DeferStart bool
 	// ExpectedDuration tells how long this task is expected to take; and will
 	// be used in calculation of the ETA value
 	ExpectedDuration time.Duration
@@ -31,6 +35,7 @@ type Tracker struct {
 	timeStart time.Time
 	timeStop  time.Time
 	value     int64
+	minETA    time.Duration
 }
 
 // ETA returns the expected time of "arrival" or completion of this tracker. It
@@ -38,6 +43,10 @@ type Tracker struct {
 func (t *Tracker) ETA() time.Duration {
 	t.mutex.RLock()
 	defer t.mutex.RUnlock()
+
+	if t.timeStart.IsZero() {
+		return time.Duration(0)
+	}
 
 	timeTaken := time.Since(t.timeStart)
 	if t.ExpectedDuration > time.Duration(0) && t.ExpectedDuration > timeTaken {
@@ -48,7 +57,11 @@ func (t *Tracker) ETA() time.Duration {
 	if pDone == 0 {
 		return time.Duration(0)
 	}
-	return time.Duration((int64(timeTaken) / pDone) * (100 - pDone))
+	eta := time.Duration((int64(timeTaken) / pDone) * (100 - pDone))
+	if eta < t.minETA {
+		eta = t.minETA
+	}
+	return eta
 }
 
 // Increment updates the current value of the task being tracked.
@@ -65,6 +78,15 @@ func (t *Tracker) IncrementWithError(value int64) {
 	t.incrementWithoutLock(value)
 	t.err = true
 	t.mutex.Unlock()
+}
+
+// IsStarted true if the tracker has started, false when using DeferStart
+// prior to Start, Increment, IncrementWithError or SetValue being called.
+func (t *Tracker) IsStarted() bool {
+	t.mutex.RLock()
+	defer t.mutex.RUnlock()
+
+	return !t.timeStart.IsZero()
 }
 
 // IsDone returns true if the tracker is done (value has reached the expected
@@ -191,6 +213,9 @@ func (t *Tracker) valueAndTotal() (int64, int64) {
 
 func (t *Tracker) incrementWithoutLock(value int64) {
 	if !t.done {
+		if t.timeStart.IsZero() {
+			t.startWithoutLock()
+		}
 		t.value += value
 		if t.Total > 0 && t.value >= t.Total {
 			t.stop()
@@ -198,15 +223,25 @@ func (t *Tracker) incrementWithoutLock(value int64) {
 	}
 }
 
+func (t *Tracker) Start() {
+	if t.timeStart.IsZero() {
+		t.start()
+	}
+}
+
 func (t *Tracker) start() {
 	t.mutex.Lock()
+	t.startWithoutLock()
+	t.mutex.Unlock()
+}
+
+func (t *Tracker) startWithoutLock() {
 	if t.Total < 0 {
 		t.Total = math.MaxInt64
 	}
 	t.done = false
 	t.err = false
 	t.timeStart = time.Now()
-	t.mutex.Unlock()
 }
 
 // this must be called with the mutex held with a write lock

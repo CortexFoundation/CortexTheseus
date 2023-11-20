@@ -83,6 +83,6 @@ func (l Logger) LevelPrint(level Level, a ...interface{}) {
 
 func (l Logger) Println(a ...interface{}) {
 	l.LazyLogDefaultLevel(func() Msg {
-		return Str(fmt.Sprintln(a...)).Skip(1)
+		return Msgln(a...).Skip(1)
 	})
 }

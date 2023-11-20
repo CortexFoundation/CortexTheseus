@@ -13,70 +13,69 @@ import (
 	"github.com/crate-crypto/go-ipa/common"
 )
 
+// IPAConfig contains all the necessary information to create an IPA related proofs,
+// such as the SRS, Q, and precomputed weights for the barycentric formula.
 type IPAConfig struct {
-	// SRSPrecompPoints contains precomputed values for the SRS.
-	SRSPrecompPoints *SRSPrecompPoints
+	SRS []banderwagon.Element
+	Q   banderwagon.Element
 
+	PrecompMSM         banderwagon.MSMPrecomp
 	PrecomputedWeights *PrecomputedWeights
-
 	// The number of rounds the prover and verifier must complete
 	// in the IPA argument, this will be log2 of the size of the input vectors
 	// since the vector is halved on each round
-	num_ipa_rounds uint32
+	numRounds uint32
 }
 
-// This function creates common.POLY_DEGREE random generator points where the relative discrete log is
-// not known between each generator and all of the other necessary information needed to verify
-// and create an IPA proof.
-func NewIPASettings() *IPAConfig {
-	return &IPAConfig{
-		SRSPrecompPoints:   NewSRSPrecomp(common.POLY_DEGREE),
-		PrecomputedWeights: NewPrecomputedWeights(),
-		num_ipa_rounds:     compute_num_rounds(common.POLY_DEGREE),
+// NewIPASettings generates the SRS, Q and precomputed weights for the barycentric formula.
+// The SRS is generated as common.VectorLength random points where the relative discrete log is
+// not known between each generator.
+func NewIPASettings() (*IPAConfig, error) {
+	srs := GenerateRandomPoints(common.VectorLength)
+	precompMSM, err := banderwagon.NewPrecompMSM(srs)
+	if err != nil {
+		return nil, fmt.Errorf("creating precomputed MSM: %s", err)
 	}
-}
-
-func NewIPASettingsWithSRSPrecomp(srs_precomp *SRSPrecompPoints) *IPAConfig {
 	return &IPAConfig{
-		SRSPrecompPoints:   srs_precomp,
+		SRS:                srs,
+		Q:                  banderwagon.Generator,
+		PrecompMSM:         precompMSM,
 		PrecomputedWeights: NewPrecomputedWeights(),
-		num_ipa_rounds:     compute_num_rounds(common.POLY_DEGREE),
-	}
+		numRounds:          computeNumRounds(common.VectorLength),
+	}, nil
 }
 
-func MultiScalar(points []banderwagon.Element, scalars []fr.Element) banderwagon.Element {
+// MultiScalar computes the multi scalar multiplication of points and scalars.
+func MultiScalar(points []banderwagon.Element, scalars []fr.Element) (banderwagon.Element, error) {
 	var result banderwagon.Element
-	result.Identity()
+	result.SetIdentity()
 
 	res, err := result.MultiExp(points, scalars, banderwagon.MultiExpConfig{NbTasks: runtime.NumCPU(), ScalarsMont: true})
 	if err != nil {
-		panic("mult exponentiation was not successful. TODO: replace panics by bubbling up error")
+		return banderwagon.Element{}, fmt.Errorf("mult exponentiation was not successful: %w", err)
 	}
 
-	return *res
+	return *res, nil
 }
 
-// Commits to a polynomial using the SRS
-// panics if the length of the SRS does not equal the number of polynomial coefficients
+// Commit calculates the Pedersen Commitment of a polynomial polynomial
+// in evaluation form using the SRS.
 func (ic *IPAConfig) Commit(polynomial []fr.Element) banderwagon.Element {
-	return ic.SRSPrecompPoints.PrecompLag.Commit(polynomial)
+	return ic.PrecompMSM.MSM(polynomial)
 }
 
-// Commits to a polynomial using the input group elements
-// panics if the number of group elements does not equal the number of polynomial coefficients
-// This is used when the generators are not fixed
-func commit(group_elements []banderwagon.Element, polynomial []fr.Element) banderwagon.Element {
-	if len(group_elements) != len(polynomial) {
-		panic(fmt.Sprintf("diff sizes, %d != %d", len(group_elements), len(polynomial)))
+// commit commits to a polynomial using the input group elements
+func commit(groupElements []banderwagon.Element, polynomial []fr.Element) (banderwagon.Element, error) {
+	if len(groupElements) != len(polynomial) {
+		return banderwagon.Element{}, fmt.Errorf("group elements and polynomial are different sizes, %d != %d", len(groupElements), len(polynomial))
 	}
-	return MultiScalar(group_elements, polynomial)
+	return MultiScalar(groupElements, polynomial)
 }
 
-// Computes the inner product of a and b
-// panics if len(a) != len(b)
-func InnerProd(a []fr.Element, b []fr.Element) fr.Element {
+// InnerProd computes the inner product of a and b.
+func InnerProd(a []fr.Element, b []fr.Element) (fr.Element, error) {
 	if len(a) != len(b) {
-		panic("two vectors must have the same lengths")
+		return fr.Element{}, fmt.Errorf("a and b are different sizes, %d != %d", len(a), len(b))
 	}
 
 	result := fr.Zero()
@@ -87,32 +86,30 @@ func InnerProd(a []fr.Element, b []fr.Element) fr.Element {
 		result.Add(&result, &tmp)
 	}
 
-	return result
+	return result, nil
 }
 
 // Computes c[i] =a[i] + b[i] * x
 // returns c
-// panics if len(a) != len(b)
-func foldScalars(a []fr.Element, b []fr.Element, x fr.Element) []fr.Element {
+func foldScalars(a []fr.Element, b []fr.Element, x fr.Element) ([]fr.Element, error) {
 	if len(a) != len(b) {
-		panic("slices not equal length")
+		return nil, fmt.Errorf("slices not equal length")
 	}
-
 	result := make([]fr.Element, len(a))
 	for i := 0; i < len(a); i++ {
 		var bx fr.Element
 		bx.Mul(&x, &b[i])
 		result[i].Add(&bx, &a[i])
 	}
-	return result
+
+	return result, nil
 }
 
 // Computes c[i] =a[i] + b[i] * x
 // returns c
-// panics if len(a) != len(b)
-func foldPoints(a []banderwagon.Element, b []banderwagon.Element, x fr.Element) []banderwagon.Element {
+func foldPoints(a []banderwagon.Element, b []banderwagon.Element, x fr.Element) ([]banderwagon.Element, error) {
 	if len(a) != len(b) {
-		panic("slices not equal length")
+		return nil, fmt.Errorf("slices not equal length")
 	}
 
 	result := make([]banderwagon.Element, len(a))
@@ -121,31 +118,29 @@ func foldPoints(a []banderwagon.Element, b []banderwagon.Element, x fr.Element) 
 		bx.ScalarMul(&b[i], &x)
 		result[i].Add(&bx, &a[i])
 	}
-	return result
+	return result, nil
 }
 
 // Splits a slice of scalars into two slices of equal length
 // Eg [S1,S2,S3,S4] becomes [S1,S2] , [S3,S4]
-// panics if the number of scalars is not even
-func splitScalars(x []fr.Element) ([]fr.Element, []fr.Element) {
+func splitScalars(x []fr.Element) ([]fr.Element, []fr.Element, error) {
 	if len(x)%2 != 0 {
-		panic("slice should have an even length")
+		return nil, nil, fmt.Errorf("slice should have an even length")
 	}
 
 	mid := len(x) / 2
-	return x[:mid], x[mid:]
+	return x[:mid], x[mid:], nil
 }
 
 // Splits a slice of points into two slices of equal length
 // Eg [P1,P2,P3,P4,P5,P6] becomes [P1,P2,P3] , [P4,P5,P6]
-// panics if the number of points is not even
-func splitPoints(x []banderwagon.Element) ([]banderwagon.Element, []banderwagon.Element) {
+func splitPoints(x []banderwagon.Element) ([]banderwagon.Element, []banderwagon.Element, error) {
 	if len(x)%2 != 0 {
-		panic("slice should have an even length")
+		return nil, nil, fmt.Errorf("slice should have an even length")
 	}
-
 	mid := len(x) / 2
-	return x[:mid], x[mid:]
+
+	return x[:mid], x[mid:], nil
 }
 
 // This function does log2(vector_size)
@@ -155,27 +150,29 @@ func splitPoints(x []banderwagon.Element) ([]banderwagon.Element, []banderwagon.
 //
 // It is okay to panic here, because the input is a constant, so it will panic before
 // any proofs are made.
-func compute_num_rounds(vector_size uint32) uint32 {
+func computeNumRounds(vectorSize uint32) uint32 {
 	// Check if this number is 0
 	// zero is not a valid input to this function for our usecase
-	if vector_size == 0 {
+	if vectorSize == 0 {
 		panic("zero is not a valid input")
 	}
 
 	// See: https://stackoverflow.com/a/600306
-	isPow2 := (vector_size & (vector_size - 1)) == 0
+	isPow2 := (vectorSize & (vectorSize - 1)) == 0
 
 	if !isPow2 {
 		panic("non power of 2 numbers are not valid inputs")
 	}
 
-	res := math.Log2(float64(vector_size))
+	res := math.Log2(float64(vectorSize))
 
 	return uint32(res)
 }
 
+// GenerateRandomPoints generates numPoints random points on the curve using
+// hardcoded seed.
 func GenerateRandomPoints(numPoints uint64) []banderwagon.Element {
-	seed := "eth_verkle_oct_2021" // incase it changes or needs updating, we can use eth_verkle_month_year
+	seed := "eth_verkle_oct_2021"
 
 	points := []banderwagon.Element{}
 

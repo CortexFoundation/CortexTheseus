@@ -63,7 +63,7 @@ func parseRuleString(s string) (_ Rule, ok bool, _ error) {
 }
 
 func parseEnvRules() (rules []Rule, err error) {
-	rulesStr := os.Getenv("GO_LOG")
+	rulesStr := os.Getenv(EnvRules)
 	ruleStrs := strings.Split(rulesStr, ",")
 	for _, ruleStr := range ruleStrs {
 		rule, ok, err := parseRuleString(ruleStr)

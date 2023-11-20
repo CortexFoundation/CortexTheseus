@@ -1307,6 +1307,9 @@ func (s *Server) getQuestionableNode() (ret *node) {
 }
 
 func (s *Server) shouldStopRefreshingBucket(bucketIndex int) bool {
+	if s.closed.IsSet() {
+		return true
+	}
 	b := &s.table.buckets[bucketIndex]
 	// Stop if the bucket is full, and none of the nodes are bad.
 	return b.Len() == s.table.K() && b.EachNode(func(n *node) bool {
@@ -1327,6 +1330,10 @@ func (s *Server) refreshBucket(bucketIndex int) *traversal.Stats {
 		K: s.table.K(),
 		DoQuery: func(ctx context.Context, addr krpc.NodeAddr) traversal.QueryResult {
 			res := s.FindNode(NewAddr(addr.UDP()), id, QueryRateLimiting{})
+			err := res.Err
+			if err != nil && !errors.Is(err, TransactionTimeout) {
+				s.logger().Levelf(log.Warning, "error doing find node while refreshing bucket: %v", err)
+			}
 			return res.TraversalQueryResult(addr)
 		},
 		NodeFilter: s.TraversalNodeFilter,
@@ -1344,12 +1351,14 @@ wait:
 		}
 		op.AddNodes(types.AddrMaybeIdSliceFromNodeInfoSlice(s.notBadNodes()))
 		bucketChanged := b.changed.Signaled()
+		serverClosed := s.closed.C()
 		s.mu.RUnlock()
 		select {
 		case <-op.Stalled():
 			s.mu.RLock()
 			break wait
 		case <-bucketChanged:
+		case <-serverClosed:
 		}
 		s.mu.RLock()
 	}
