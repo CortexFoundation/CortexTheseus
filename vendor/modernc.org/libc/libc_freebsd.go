@@ -1932,3 +1932,13 @@ func Xbswap64(t *TLS, x uint64) uint64 {
 	}
 	return X__builtin_bswap64(t, x)
 }
+
+// int nanosleep(const struct timespec *req, struct timespec *rem);
+func Xnanosleep(t *TLS, req, rem uintptr) int32 {
+	if __ccgo_strace {
+		trc("t=%v rem=%v, (%v:)", t, rem, origin(2))
+	}
+	v := *(*time.Timespec)(unsafe.Pointer(req))
+	gotime.Sleep(gotime.Second*gotime.Duration(v.Ftv_sec) + gotime.Duration(v.Ftv_nsec))
+	return 0
+}

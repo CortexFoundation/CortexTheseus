@@ -97,6 +97,9 @@ type Set[T comparable] interface {
 	// panic.
 	Intersect(other Set[T]) Set[T]
 
+	// IsEmpty determines if there are elements in the set.
+	IsEmpty() bool
+
 	// IsProperSubset determines if every element in this set is in
 	// the other set but the two sets are not equal.
 	//
@@ -169,7 +172,7 @@ type Set[T comparable] interface {
 	//
 	// Note that the argument to Union must be of the
 	// same type as the receiver of the method.
-	// Otherwise, IsSuperset will panic.
+	// Otherwise, Union will panic.
 	Union(other Set[T]) Set[T]
 
 	// Pop removes and returns an arbitrary item from the set.

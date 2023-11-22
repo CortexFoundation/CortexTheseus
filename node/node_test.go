@@ -611,7 +611,7 @@ func TestWebsocketHTTPOnSamePort_WebsocketRequest(t *testing.T) {
 	wsReq.Header.Set("Connection", "upgrade")
 	wsReq.Header.Set("Upgrade", "websocket")
 	wsReq.Header.Set("Sec-WebSocket-Version", "13")
-	wsReq.Header.Set("Sec-Websocket-Key", "SGVsbG8sIHdvcmxkIQ==")
+	wsReq.Header.Set("Sec-Websocket-Key", "dGhlIHNhbXBsZSBub25jZQ==")
 
 	resp := doHTTPRequest(t, wsReq)
 	assert.Equal(t, "websocket", resp.Header.Get("Upgrade"))
