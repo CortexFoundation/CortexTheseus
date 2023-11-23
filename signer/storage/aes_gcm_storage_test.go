@@ -27,6 +27,7 @@ import (
 )
 
 func TestEncryption(t *testing.T) {
+	t.Parallel()
 	//	key := []byte("AES256Key-32Characters1234567890")
 	//	plaintext := []byte(value)
 	key := []byte("AES256Key-32Characters1234567890")
@@ -49,7 +50,7 @@ func TestEncryption(t *testing.T) {
 }
 
 func TestFileStorage(t *testing.T) {
-
+	t.Parallel()
 	a := map[string]storedCredential{
 		"secret": {
 			Iv:         common.Hex2Bytes("cdb30036279601aeee60f16b"),
@@ -91,6 +92,7 @@ func TestFileStorage(t *testing.T) {
 	}
 }
 func TestEnd2End(t *testing.T) {
+	t.Parallel()
 	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(3), log.StreamHandler(colorable.NewColorableStderr(), log.TerminalFormat(true))))
 
 	d, err := os.MkdirTemp("", "ctxc-encrypted-storage-test")
