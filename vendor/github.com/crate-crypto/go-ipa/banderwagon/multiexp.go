@@ -11,21 +11,19 @@ type MultiExpConfig struct {
 	ScalarsMont bool // indicates if the scalars are in montgomery form. Default to false.
 }
 
-func (p *Element) MultiExp(points []Element, scalars []fr.Element, _config MultiExpConfig) (*Element, error) {
-	var pointsAffs = make([]bandersnatch.PointAffine, len(points))
-	for i := 0; i < len(points); i++ {
-		// TODO: improve speed by using Montgomery batch normalisation algorithm
-		var AffRepr bandersnatch.PointAffine
-		AffRepr.FromProj(&points[i].inner)
-		pointsAffs[i] = AffRepr
+// MultiExp calculates the multi exponentiation of points and scalars.
+func (p *Element) MultiExp(points []Element, scalars []fr.Element, config MultiExpConfig) (*Element, error) {
+	var projPoints = make([]bandersnatch.PointProj, len(points))
+	for i := range points {
+		projPoints[i] = points[i].inner
 	}
+	affinePoints := batchProjToAffine(projPoints)
 
-	config := bandersnatch.MultiExpConfig{
-		NbTasks:     _config.NbTasks,
-		ScalarsMont: _config.ScalarsMont,
-	}
 	// NOTE: This is fine as long MultiExp does not use Equal functionality
-	_, err := p.inner.MultiExp(pointsAffs, scalars, config)
+	_, err := bandersnatch.MultiExp(&p.inner, affinePoints, scalars, bandersnatch.MultiExpConfig{
+		NbTasks:     config.NbTasks,
+		ScalarsMont: config.ScalarsMont,
+	})
 
 	return p, err
 }

@@ -17,7 +17,7 @@ func init() {
 		filterLevel: Warning,
 		Handlers:    []Handler{DefaultHandler},
 	}.asLogger()
-	Default.defaultLevel, _, err = levelFromString(os.Getenv("GO_LOG_DEFAULT_LEVEL"))
+	Default.defaultLevel, _, err = levelFromString(os.Getenv(EnvDefaultLevel))
 	if err != nil {
 		panic(err)
 	}

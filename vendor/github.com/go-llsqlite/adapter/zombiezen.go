@@ -24,6 +24,17 @@ const (
 	OpenCreate      = sqlite.OpenCreate
 	OpenReadWrite   = sqlite.OpenReadWrite
 	OpenSharedCache = sqlite.OpenSharedCache
+	// I don't see this in the version of zombiezen I'm currently using. It might be in an updated
+	// version. Here's the documentation about it from
+	// https://sqlite.org/capi3ref.html#sqlite3_open:
+	//
+	// Note in particular that the SQLITE_OPEN_EXCLUSIVE flag is a no-op for sqlite3_open_v2(). The
+	// SQLITE_OPEN_EXCLUSIVE does *not* cause the open to fail if the database already exists. The
+	// SQLITE_OPEN_EXCLUSIVE flag is intended for use by the VFS interface only, and not by
+	// sqlite3_open_v2().
+	//
+	// This would suggest it's okay to set it to 0 if there's no appropriate value for it.
+	//OpenExclusive   = 0
 
 	ResultCodeConstraintUnique = sqlite.ResultConstraintUnique
 	ResultCodeInterrupt        = sqlite.ResultInterrupt

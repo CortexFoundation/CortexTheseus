@@ -47,11 +47,11 @@ func (n UnknownNode) Commit() *Point {
 
 func (UnknownNode) Commitment() *Point {
 	var id Point
-	id.Identity()
+	id.SetIdentity()
 	return &id
 }
 
-func (UnknownNode) GetProofItems(keylist) (*ProofElements, []byte, [][]byte, error) {
+func (UnknownNode) GetProofItems(keylist, NodeResolverFn) (*ProofElements, []byte, [][]byte, error) {
 	return nil, nil, nil, errors.New("can't generate proof items for unknown node")
 }
 

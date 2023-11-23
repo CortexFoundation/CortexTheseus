@@ -5,21 +5,12 @@ import (
 	"time"
 )
 
-// Deprecated: Use SDKVersion instead.
-const Version = SDKVersion
-
-// Version is the version of the SDK.
-const SDKVersion = "0.22.0"
-
-// The identifier of the SDK.
-const SDKIdentifier = "sentry.go"
+// The version of the SDK.
+const SDKVersion = "0.25.0"
 
 // apiVersion is the minimum version of the Sentry API compatible with the
 // sentry-go SDK.
 const apiVersion = "7"
-
-// userAgent is the User-Agent of outgoing HTTP requests.
-const userAgent = "sentry-go/" + SDKVersion
 
 // Init initializes the SDK with options. The returned error is non-nil if
 // options is invalid, for instance if a malformed DSN is provided.
@@ -52,6 +43,12 @@ func CaptureMessage(message string) *EventID {
 func CaptureException(exception error) *EventID {
 	hub := CurrentHub()
 	return hub.CaptureException(exception)
+}
+
+// CaptureCheckIn captures a (cron) monitor check-in.
+func CaptureCheckIn(checkIn *CheckIn, monitorConfig *MonitorConfig) *EventID {
+	hub := CurrentHub()
+	return hub.CaptureCheckIn(checkIn, monitorConfig)
 }
 
 // CaptureEvent captures an event on the currently active client if any.

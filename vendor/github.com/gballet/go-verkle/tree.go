@@ -30,12 +30,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"runtime"
+	"sync"
 
 	"github.com/crate-crypto/go-ipa/banderwagon"
 )
 
 type (
-	NodeFlushFn    func(VerkleNode)
+	NodeFlushFn    func([]byte, VerkleNode)
 	NodeResolverFn func([]byte) ([]byte, error)
 )
 
@@ -78,7 +80,7 @@ type VerkleNode interface {
 	// returns them breadth-first. On top of that, it returns
 	// one "extension status" per stem, and an alternate stem
 	// if the key is missing but another stem has been found.
-	GetProofItems(keylist) (*ProofElements, []byte, [][]byte, error)
+	GetProofItems(keylist, NodeResolverFn) (*ProofElements, []byte, [][]byte, error)
 
 	// Serialize encodes the node to RLP.
 	Serialize() ([]byte, error)
@@ -181,6 +183,11 @@ type (
 		c1, c2     *Point
 
 		depth byte
+
+		// IsPOAStub indicates if this LeafNode is a proof of absence
+		// for a steam that isn't present in the tree. This flag is only
+		// true in the context of a stateless tree.
+		isPOAStub bool
 	}
 )
 
@@ -195,7 +202,7 @@ func (n *InternalNode) toExportable() *ExportableInternalNode {
 		switch child := n.children[i].(type) {
 		case Empty:
 			exportable.Children[i] = nil
-		case *HashedNode:
+		case HashedNode:
 			exportable.Children[i] = n.commitment.Bytes()
 		case *InternalNode:
 			exportable.Children[i] = child.toExportable()
@@ -225,7 +232,7 @@ func newInternalNode(depth byte) VerkleNode {
 		node.children[idx] = Empty(struct{}{})
 	}
 	node.depth = depth
-	node.commitment = new(Point).Identity()
+	node.commitment = new(Point).SetIdentity()
 	return node
 }
 
@@ -247,13 +254,16 @@ func NewStatelessInternal(depth byte, comm *Point) VerkleNode {
 }
 
 // New creates a new leaf node
-func NewLeafNode(stem []byte, values [][]byte) *LeafNode {
+func NewLeafNode(stem []byte, values [][]byte) (*LeafNode, error) {
 	cfg := GetConfig()
 
 	// C1.
 	var c1poly [NodeWidth]Fr
 	var c1 *Point
-	count := fillSuffixTreePoly(c1poly[:], values[:NodeWidth/2])
+	count, err := fillSuffixTreePoly(c1poly[:], values[:NodeWidth/2])
+	if err != nil {
+		return nil, err
+	}
 	containsEmptyCodeHash := len(c1poly) >= EmptyCodeHashSecondHalfIdx &&
 		c1poly[EmptyCodeHashFirstHalfIdx].Equal(&EmptyCodeHashFirstHalfValue) &&
 		c1poly[EmptyCodeHashSecondHalfIdx].Equal(&EmptyCodeHashSecondHalfValue)
@@ -271,15 +281,22 @@ func NewLeafNode(stem []byte, values [][]byte) *LeafNode {
 
 	// C2.
 	var c2poly [NodeWidth]Fr
-	count = fillSuffixTreePoly(c2poly[:], values[NodeWidth/2:])
+	count, err = fillSuffixTreePoly(c2poly[:], values[NodeWidth/2:])
+	if err != nil {
+		return nil, err
+	}
 	c2 := cfg.CommitToPoly(c2poly[:], NodeWidth-count)
 
 	// Root commitment preparation for calculation.
 	stem = stem[:StemSize] // enforce a 31-byte length
 	var poly [NodeWidth]Fr
 	poly[0].SetUint64(1)
-	StemFromBytes(&poly[1], stem)
-	toFrMultiple([]*Fr{&poly[2], &poly[3]}, []*Point{c1, c2})
+	if err := StemFromBytes(&poly[1], stem); err != nil {
+		return nil, err
+	}
+	if err := banderwagon.BatchMapToScalarField([]*Fr{&poly[2], &poly[3]}, []*Point{c1, c2}); err != nil {
+		return nil, fmt.Errorf("batch mapping to scalar fields: %s", err)
+	}
 
 	return &LeafNode{
 		// depth will be 0, but the commitment calculation
@@ -289,7 +306,7 @@ func NewLeafNode(stem []byte, values [][]byte) *LeafNode {
 		commitment: cfg.CommitToPoly(poly[:], NodeWidth-4),
 		c1:         c1,
 		c2:         c2,
-	}
+	}, nil
 }
 
 // NewLeafNodeWithNoComms create a leaf node but does compute its
@@ -326,47 +343,57 @@ func (n *InternalNode) cowChild(index byte) {
 
 	if n.cow[index] == nil {
 		n.cow[index] = new(Point)
-		CopyPoint(n.cow[index], n.children[index].Commitment())
+		n.cow[index].Set(n.children[index].Commitment())
 	}
 }
 
 func (n *InternalNode) Insert(key []byte, value []byte, resolver NodeResolverFn) error {
 	values := make([][]byte, NodeWidth)
 	values[key[31]] = value
-	return n.InsertStem(key[:31], values, resolver)
+	return n.InsertValuesAtStem(key[:31], values, resolver)
 }
 
-func (n *InternalNode) InsertStem(stem []byte, values [][]byte, resolver NodeResolverFn) error {
+func (n *InternalNode) InsertValuesAtStem(stem []byte, values [][]byte, resolver NodeResolverFn) error {
 	nChild := offset2key(stem, n.depth) // index of the child pointed by the next byte in the key
-	n.cowChild(nChild)
 
 	switch child := n.children[nChild].(type) {
 	case UnknownNode:
 		return errMissingNodeInStateless
 	case Empty:
-		n.children[nChild] = NewLeafNode(stem, values)
+		n.cowChild(nChild)
+		var err error
+		n.children[nChild], err = NewLeafNode(stem, values)
+		if err != nil {
+			return err
+		}
 		n.children[nChild].setDepth(n.depth + 1)
-	case *HashedNode:
+	case HashedNode:
 		if resolver == nil {
 			return errInsertIntoHash
 		}
-		hash := child.commitment
-		serialized, err := resolver(hash)
+		serialized, err := resolver(stem[:n.depth+1])
 		if err != nil {
 			return fmt.Errorf("verkle tree: error resolving node %x at depth %d: %w", stem, n.depth, err)
 		}
-		resolved, err := ParseNode(serialized, n.depth+1, hash)
+		resolved, err := ParseNode(serialized, n.depth+1)
 		if err != nil {
 			return fmt.Errorf("verkle tree: error parsing resolved node %x: %w", stem, err)
 		}
 		n.children[nChild] = resolved
+		n.cowChild(nChild)
 		// recurse to handle the case of a LeafNode child that
 		// splits.
-		return n.InsertStem(stem, values, resolver)
+		return n.InsertValuesAtStem(stem, values, resolver)
 	case *LeafNode:
 		if equalPaths(child.stem, stem) {
+			// We can't insert any values into a POA leaf node.
+			if child.isPOAStub {
+				return errIsPOAStub
+			}
+			n.cowChild(nChild)
 			return child.insertMultiple(stem, values)
 		}
+		n.cowChild(nChild)
 
 		// A new branch node has to be inserted. Depending
 		// on the next word in both keys, a recursion into
@@ -380,18 +407,22 @@ func (n *InternalNode) InsertStem(stem []byte, values [][]byte, resolver NodeRes
 
 		nextWordInInsertedKey := offset2key(stem, n.depth+1)
 		if nextWordInInsertedKey == nextWordInExistingKey {
-			return newBranch.InsertStem(stem, values, resolver)
+			return newBranch.InsertValuesAtStem(stem, values, resolver)
 		}
 
 		// Next word differs, so this was the last level.
 		// Insert it directly into its final slot.
-		leaf := NewLeafNode(stem, values)
+		leaf, err := NewLeafNode(stem, values)
+		if err != nil {
+			return err
+		}
 		leaf.setDepth(n.depth + 2)
 		newBranch.cowChild(nextWordInInsertedKey)
 		newBranch.children[nextWordInInsertedKey] = leaf
 	case *InternalNode:
-		return child.InsertStem(stem, values, resolver)
-	default: // It should be an UknonwnNode.
+		n.cowChild(nChild)
+		return child.InsertValuesAtStem(stem, values, resolver)
+	default: // It should be an UknownNode.
 		return errUnknownNodeType
 	}
 
@@ -403,7 +434,7 @@ func (n *InternalNode) InsertStem(stem []byte, values [][]byte, resolver NodeRes
 // commitments that have not been assigned a node. It returns
 // the same list, save the commitments that were consumed
 // during this call.
-func (n *InternalNode) CreatePath(path []byte, stemInfo stemInfo, comms []*Point, values [][]byte) ([]*Point, error) {
+func (n *InternalNode) CreatePath(path []byte, stemInfo stemInfo, comms []*Point, values [][]byte) ([]*Point, error) { // skipcq: GO-R1005
 	if len(path) == 0 {
 		return comms, errors.New("invalid path")
 	}
@@ -417,8 +448,29 @@ func (n *InternalNode) CreatePath(path []byte, stemInfo stemInfo, comms []*Point
 			// unknown node.
 			n.children[path[0]] = Empty{}
 		case extStatusAbsentOther:
+			if len(comms) == 0 {
+				return comms, fmt.Errorf("missing commitment for stem %x", stemInfo.stem)
+			}
+			if len(stemInfo.stem) != StemSize {
+				return comms, fmt.Errorf("invalid stem size %d", len(stemInfo.stem))
+			}
 			// insert poa stem
+			newchild := &LeafNode{
+				commitment: comms[0],
+				stem:       stemInfo.stem,
+				values:     nil,
+				depth:      n.depth + 1,
+				isPOAStub:  true,
+			}
+			n.children[path[0]] = newchild
+			comms = comms[1:]
 		case extStatusPresent:
+			if len(comms) == 0 {
+				return comms, fmt.Errorf("missing commitment for stem %x", stemInfo.stem)
+			}
+			if len(stemInfo.stem) != StemSize {
+				return comms, fmt.Errorf("invalid stem size %d", len(stemInfo.stem))
+			}
 			// insert stem
 			newchild := &LeafNode{
 				commitment: comms[0],
@@ -429,12 +481,18 @@ func (n *InternalNode) CreatePath(path []byte, stemInfo stemInfo, comms []*Point
 			n.children[path[0]] = newchild
 			comms = comms[1:]
 			if stemInfo.has_c1 {
+				if len(comms) == 0 {
+					return comms, fmt.Errorf("missing commitment for stem %x", stemInfo.stem)
+				}
 				newchild.c1 = comms[0]
 				comms = comms[1:]
 			} else {
 				newchild.c1 = new(Point)
 			}
 			if stemInfo.has_c2 {
+				if len(comms) == 0 {
+					return comms, fmt.Errorf("missing commitment for stem %x", stemInfo.stem)
+				}
 				newchild.c2 = comms[0]
 				comms = comms[1:]
 			} else {
@@ -443,6 +501,8 @@ func (n *InternalNode) CreatePath(path []byte, stemInfo stemInfo, comms []*Point
 			for b, value := range stemInfo.values {
 				newchild.values[b] = value
 			}
+		default:
+			return comms, fmt.Errorf("invalid stem type %d", stemInfo.stemType)
 		}
 		return comms, nil
 	}
@@ -469,51 +529,47 @@ func (n *InternalNode) CreatePath(path []byte, stemInfo stemInfo, comms []*Point
 	return child.CreatePath(path[1:], stemInfo, comms, values)
 }
 
-// GetStem returns the all NodeWidth values of the stem.
+// GetValuesAtStem returns the all NodeWidth values of the stem.
 // The returned slice is internal to the tree, so it *must* be considered readonly
 // for callers.
-func (n *InternalNode) GetStem(stem []byte, resolver NodeResolverFn) ([][]byte, error) {
+func (n *InternalNode) GetValuesAtStem(stem []byte, resolver NodeResolverFn) ([][]byte, error) {
 	nchild := offset2key(stem, n.depth) // index of the child pointed by the next byte in the key
 	switch child := n.children[nchild].(type) {
 	case UnknownNode:
 		return nil, errMissingNodeInStateless
 	case Empty:
 		return nil, nil
-	case *HashedNode:
+	case HashedNode:
 		if resolver == nil {
 			return nil, fmt.Errorf("hashed node %x at depth %d along stem %x could not be resolved: %w", child.Commitment().Bytes(), n.depth, stem, errReadFromInvalid)
 		}
-		hash := child.commitment
-		serialized, err := resolver(hash)
+		serialized, err := resolver(stem[:n.depth+1])
 		if err != nil {
 			return nil, fmt.Errorf("resolving node %x at depth %d: %w", stem, n.depth, err)
 		}
-		resolved, err := ParseNode(serialized, n.depth+1, hash)
+		resolved, err := ParseNode(serialized, n.depth+1)
 		if err != nil {
 			return nil, fmt.Errorf("verkle tree: error parsing resolved node %x: %w", stem, err)
 		}
 		n.children[nchild] = resolved
 		// recurse to handle the case of a LeafNode child that
 		// splits.
-		return n.GetStem(stem, resolver)
+		return n.GetValuesAtStem(stem, resolver)
 	case *LeafNode:
 		if equalPaths(child.stem, stem) {
+			// We can't return the values since it's a POA leaf node, so we know nothing
+			// about its values.
+			if child.isPOAStub {
+				return nil, errIsPOAStub
+			}
 			return child.values, nil
 		}
 		return nil, nil
 	case *InternalNode:
-		return child.GetStem(stem, resolver)
+		return child.GetValuesAtStem(stem, resolver)
 	default:
 		return nil, errUnknownNodeType
 	}
-}
-
-func (n *InternalNode) toHashedNode() *HashedNode {
-	if n.commitment == nil {
-		panic("nil commitment")
-	}
-	comm := n.commitment.Bytes()
-	return &HashedNode{commitment: comm[:]}
 }
 
 func (n *InternalNode) Delete(key []byte, resolver NodeResolverFn) (bool, error) {
@@ -521,17 +577,16 @@ func (n *InternalNode) Delete(key []byte, resolver NodeResolverFn) (bool, error)
 	switch child := n.children[nChild].(type) {
 	case Empty:
 		return false, nil
-	case *HashedNode:
+	case HashedNode:
 		if resolver == nil {
 			return false, errDeleteHash
 		}
-		comm := child.commitment
-		payload, err := resolver(comm)
+		payload, err := resolver(key[:n.depth+1])
 		if err != nil {
 			return false, err
 		}
 		// deserialize the payload and set it as the child
-		c, err := ParseNode(payload, n.depth+1, comm)
+		c, err := ParseNode(payload, n.depth+1)
 		if err != nil {
 			return false, err
 		}
@@ -568,19 +623,33 @@ func (n *InternalNode) Delete(key []byte, resolver NodeResolverFn) (bool, error)
 // Flush hashes the children of an internal node and replaces them
 // with HashedNode. It also sends the current node on the flush channel.
 func (n *InternalNode) Flush(flush NodeFlushFn) {
+	//
+	var (
+		path                []byte
+		flushAndCapturePath = func(p []byte, vn VerkleNode) {
+			// wrap the flush function into a function that will
+			// capture the path of the first leaf being flushed,
+			// so that it can be used as the path to call `flush`.
+			if len(path) == 0 {
+				path = p[:n.depth]
+			}
+			flush(p, vn)
+		}
+	)
+
 	n.Commit()
 	for i, child := range n.children {
 		if c, ok := child.(*InternalNode); ok {
 			c.Commit()
-			c.Flush(flush)
-			n.children[i] = c.toHashedNode()
+			c.Flush(flushAndCapturePath)
+			n.children[i] = HashedNode{}
 		} else if c, ok := child.(*LeafNode); ok {
 			c.Commit()
-			flush(n.children[i])
-			n.children[i] = c.ToHashedNode()
+			flushAndCapturePath(c.stem[:n.depth+1], n.children[i])
+			n.children[i] = HashedNode{}
 		}
 	}
-	flush(n)
+	flush(path, n)
 }
 
 // FlushAtDepth goes over all internal nodes of a given depth, and
@@ -593,8 +662,8 @@ func (n *InternalNode) FlushAtDepth(depth uint8, flush NodeFlushFn) {
 		if !ok {
 			if c, ok := child.(*LeafNode); ok {
 				c.Commit()
-				flush(c)
-				n.children[i] = c.ToHashedNode()
+				flush(c.stem[:c.depth], c)
+				n.children[i] = HashedNode{}
 			}
 			continue
 		}
@@ -607,7 +676,7 @@ func (n *InternalNode) FlushAtDepth(depth uint8, flush NodeFlushFn) {
 
 		child.Commit()
 		c.Flush(flush)
-		n.children[i] = c.toHashedNode()
+		n.children[i] = HashedNode{}
 	}
 }
 
@@ -615,7 +684,7 @@ func (n *InternalNode) Get(key []byte, resolver NodeResolverFn) ([]byte, error) 
 	if len(key) != StemSize+1 {
 		return nil, fmt.Errorf("invalid key length, expected %d, got %d", StemSize+1, len(key))
 	}
-	stemValues, err := n.GetStem(key[:StemSize], resolver)
+	stemValues, err := n.GetValuesAtStem(key[:StemSize], resolver)
 	if err != nil {
 		return nil, err
 	}
@@ -633,7 +702,7 @@ func (n *InternalNode) Get(key []byte, resolver NodeResolverFn) ([]byte, error) 
 
 func (n *InternalNode) Hash() *Fr {
 	var hash Fr
-	toFr(&hash, n.Commitment())
+	n.Commitment().MapToScalarField(&hash)
 	return &hash
 }
 
@@ -662,62 +731,97 @@ func (n *InternalNode) Commit() *Point {
 	internalNodeLevels := make([][]*InternalNode, StemSize)
 	n.fillLevels(internalNodeLevels)
 
-	points := make([]*Point, 0, 1024)
-	cowIndexes := make([]int, 0, 1024)
-	poly := make([]Fr, NodeWidth)
 	for level := len(internalNodeLevels) - 1; level >= 0; level-- {
 		nodes := internalNodeLevels[level]
 		if len(nodes) == 0 {
 			continue
 		}
-		points = points[:0]
-		cowIndexes = cowIndexes[:0]
 
-		// For each internal node, we collect in `points` all the ones we need to map to a field element.
-		// That is, for each touched children in a node, we collect the old and new commitment to do the diff updating
-		// later.
-		for _, node := range nodes {
-			for idx, nodeChildComm := range node.cow {
-				points = append(points, nodeChildComm)
-				points = append(points, node.children[idx].Commitment())
-				cowIndexes = append(cowIndexes, int(idx))
+		minBatchSize := 4
+		if len(nodes) <= minBatchSize {
+			if err := commitNodesAtLevel(nodes); err != nil {
+				// TODO: make Commit() return an error
+				panic(err)
 			}
-		}
-
-		// We generate `frs` which will contain the result for each element in `points`.
-		frs := make([]*Fr, len(points))
-		for i := range frs {
-			frs[i] = &Fr{}
-		}
-
-		// Do a single batch calculation for all the points in this level.
-		toFrMultiple(frs, points)
-
-		// We calculate the difference between each (new commitment - old commitment) pair, and store it
-		// in the same slice to avoid allocations.
-		for i := 0; i < len(frs); i += 2 {
-			frs[i/2].Sub(frs[i+1], frs[i])
-		}
-		// Now `frs` have half of the elements, and these are the Frs differences to update commitments.
-		frs = frs[:len(frs)/2]
-
-		// Now we iterate on the nodes, and use this calculated differences to update their commitment.
-		var frsIdx int
-		var cowIndex int
-		for _, node := range nodes {
-			for i := range poly {
-				poly[i].SetZero()
+		} else {
+			var wg sync.WaitGroup
+			numBatches := runtime.NumCPU()
+			batchSize := (len(nodes) + numBatches - 1) / numBatches
+			if batchSize < minBatchSize {
+				batchSize = minBatchSize
 			}
-			for i := 0; i < len(node.cow); i++ {
-				poly[cowIndexes[cowIndex]] = *frs[frsIdx]
-				frsIdx++
-				cowIndex++
+			for i := 0; i < len(nodes); i += batchSize {
+				start := i
+				end := i + batchSize
+				if end > len(nodes) {
+					end = len(nodes)
+				}
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					if err := commitNodesAtLevel(nodes[start:end]); err != nil {
+						// TODO: make Commit() return an error
+						panic(err)
+					}
+
+				}()
 			}
-			node.cow = nil
-			node.commitment.Add(node.commitment, cfg.CommitToPoly(poly, 0))
+			wg.Wait()
 		}
 	}
 	return n.commitment
+}
+
+func commitNodesAtLevel(nodes []*InternalNode) error {
+	points := make([]*Point, 0, 1024)
+	cowIndexes := make([]int, 0, 1024)
+
+	// For each internal node, we collect in `points` all the ones we need to map to a field element.
+	// That is, for each touched children in a node, we collect the old and new commitment to do the diff updating
+	// later.
+	for _, node := range nodes {
+		for idx, nodeChildComm := range node.cow {
+			points = append(points, nodeChildComm)
+			points = append(points, node.children[idx].Commitment())
+			cowIndexes = append(cowIndexes, int(idx))
+		}
+	}
+
+	// We generate `frs` which will contain the result for each element in `points`.
+	frs := make([]*Fr, len(points))
+	for i := range frs {
+		frs[i] = &Fr{}
+	}
+
+	// Do a single batch calculation for all the points in this level.
+	if err := banderwagon.BatchMapToScalarField(frs, points); err != nil {
+		return fmt.Errorf("batch mapping to scalar fields: %s", err)
+	}
+
+	// We calculate the difference between each (new commitment - old commitment) pair, and store it
+	// in the same slice to avoid allocations.
+	for i := 0; i < len(frs); i += 2 {
+		frs[i/2].Sub(frs[i+1], frs[i])
+	}
+	// Now `frs` have half of the elements, and these are the Frs differences to update commitments.
+	frs = frs[:len(frs)/2]
+
+	// Now we iterate on the nodes, and use this calculated differences to update their commitment.
+	var frsIdx int
+	var cowIndex int
+
+	for _, node := range nodes {
+		poly := make([]Fr, NodeWidth)
+		for i := 0; i < len(node.cow); i++ {
+			poly[cowIndexes[cowIndex]] = *frs[frsIdx]
+			frsIdx++
+			cowIndex++
+		}
+		node.cow = nil
+		node.commitment.Add(node.commitment, cfg.CommitToPoly(poly, 0))
+	}
+
+	return nil
 }
 
 // groupKeys groups a set of keys based on their byte at a given depth.
@@ -751,7 +855,7 @@ func groupKeys(keys keylist, depth byte) []keylist {
 	return groups
 }
 
-func (n *InternalNode) GetProofItems(keys keylist) (*ProofElements, []byte, [][]byte, error) {
+func (n *InternalNode) GetProofItems(keys keylist, resolver NodeResolverFn) (*ProofElements, []byte, [][]byte, error) {
 	var (
 		groups = groupKeys(keys, n.depth)
 		pe     = &ProofElements{
@@ -773,20 +877,43 @@ func (n *InternalNode) GetProofItems(keys keylist) (*ProofElements, []byte, [][]
 	for i, child := range n.children {
 		fiPtrs[i] = &fi[i]
 		if child != nil {
-			points[i] = child.Commitment()
+			var c VerkleNode
+			if _, ok := child.(HashedNode); ok {
+				childpath := make([]byte, n.depth+1)
+				copy(childpath[:n.depth+1], keys[0][:n.depth])
+				childpath[n.depth] = byte(i)
+				if resolver == nil {
+					return nil, nil, nil, fmt.Errorf("no resolver for path %x", childpath)
+				}
+				serialized, err := resolver(childpath)
+				if err != nil {
+					return nil, nil, nil, fmt.Errorf("error resolving for path %x: %w", childpath, err)
+				}
+				c, err = ParseNode(serialized, n.depth+1)
+				if err != nil {
+					return nil, nil, nil, err
+				}
+				n.children[i] = c
+			} else {
+				c = child
+			}
+			points[i] = c.Commitment()
 		} else {
 			// TODO: add a test case to cover this scenario.
 			points[i] = new(Point)
 		}
 	}
-	toFrMultiple(fiPtrs[:], points[:])
+	if err := banderwagon.BatchMapToScalarField(fiPtrs[:], points[:]); err != nil {
+		return nil, nil, nil, fmt.Errorf("batch mapping to scalar fields: %s", err)
+	}
 
 	for _, group := range groups {
 		childIdx := offset2key(group[0], n.depth)
 
 		// Build the list of elements for this level
 		var yi Fr
-		CopyFr(&yi, &fi[childIdx])
+		yi.Set(&fi[childIdx])
+
 		pe.Cis = append(pe.Cis, n.commitment)
 		pe.Zis = append(pe.Zis, childIdx)
 		pe.Yis = append(pe.Yis, &yi)
@@ -808,16 +935,23 @@ func (n *InternalNode) GetProofItems(keys keylist) (*ProofElements, []byte, [][]
 		// commitment, as the value is 0.
 		_, isempty := n.children[childIdx].(Empty)
 		if isempty {
-			// A question arises here: what if this proof of absence
-			// corresponds to several stems? Should the ext status be
-			// repeated as many times? It would be wasteful, so the
-			// decoding code has to be aware of this corner case.
-			esses = append(esses, extStatusAbsentEmpty|((n.depth+1)<<3))
-			pe.Vals = append(pe.Vals, nil)
+			addedStems := map[string]struct{}{}
+			for i := 0; i < len(group); i++ {
+				if _, ok := addedStems[string(group[i][:StemSize])]; !ok {
+					// A question arises here: what if this proof of absence
+					// corresponds to several stems? Should the ext status be
+					// repeated as many times? It's wasteful, so consider if the
+					// decoding code can be aware of this corner case.
+					esses = append(esses, extStatusAbsentEmpty|((n.depth+1)<<3))
+					addedStems[string(group[i][:StemSize])] = struct{}{}
+				}
+				// Append one nil value per key in this missing stem
+				pe.Vals = append(pe.Vals, nil)
+			}
 			continue
 		}
 
-		pec, es, other, err := n.children[childIdx].GetProofItems(group)
+		pec, es, other, err := n.children[childIdx].GetProofItems(group, resolver)
 		if err != nil {
 			// TODO: add a test case to cover this scenario.
 			return nil, nil, nil, err
@@ -830,51 +964,25 @@ func (n *InternalNode) GetProofItems(keys keylist) (*ProofElements, []byte, [][]
 	return pe, esses, poass, nil
 }
 
+// Serialize returns the serialized form of the internal node.
+// The format is: <nodeType><bitlist><commitment>
 func (n *InternalNode) Serialize() ([]byte, error) {
-	var (
-		bitlist, hashlist [NodeWidth / 8]byte
-		nhashed           int // number of children who are hashed nodes
-	)
-	commitments := make([]*Point, 0, NodeWidth)
+	ret := make([]byte, nodeTypeSize+bitlistSize+banderwagon.UncompressedSize)
+
+	// Write the <bitlist>.
+	bitlist := ret[internalBitlistOffset:internalCommitmentOffset]
 	for i, c := range n.children {
 		if _, ok := c.(Empty); !ok {
-			setBit(bitlist[:], i)
-			if _, ok := c.(*HashedNode); ok {
-				// don't trigger the commitment on hashed nodes,
-				// as they already hold a serialized version of
-				// their commitment. Instead, just mark them as
-				// hashes so they can be added directly.
-				setBit(hashlist[:], i)
-				nhashed++
-			} else {
-				commitments = append(commitments, c.Commitment())
-			}
+			setBit(bitlist, i)
 		}
 	}
 
-	ret := make([]byte, nodeTypeSize+bitlistSize+(len(commitments)+nhashed)*SerializedPointCompressedSize)
-
-	// We create a children slice from ret ready to start appending children without allocations.
-	children := ret[internalNodeChildrenOffset:internalNodeChildrenOffset]
-	bytecomms := banderwagon.ElementsToBytes(commitments)
-	consumed := 0
-	for i := 0; i < NodeWidth; i++ {
-		if bit(bitlist[:], i) {
-			// if a child is present and is a hash, add its
-			// internal, serialized representation directly.
-			if bit(hashlist[:], i) {
-				children = append(children, n.children[i].(*HashedNode).commitment...)
-			} else {
-				children = append(children, bytecomms[consumed][:]...)
-				consumed++
-			}
-		}
-	}
-
-	// Store in ret the serialized result
+	// Write the <node-type>
 	ret[nodeTypeOffset] = internalRLPType
-	copy(ret[internalBitlistOffset:], bitlist[:])
-	// Note that children were already appended in ret through the children slice.
+
+	// Write the <commitment>
+	comm := n.commitment.BytesUncompressed()
+	copy(ret[internalCommitmentOffset:], comm[:])
 
 	return ret, nil
 }
@@ -891,14 +999,14 @@ func (n *InternalNode) Copy() VerkleNode {
 	}
 
 	if n.commitment != nil {
-		CopyPoint(ret.commitment, n.commitment)
+		ret.commitment.Set(n.commitment)
 	}
 
 	if n.cow != nil {
 		ret.cow = make(map[byte]*Point)
 		for k, v := range n.cow {
 			ret.cow[k] = new(Point)
-			CopyPoint(ret.cow[k], v)
+			ret.cow[k].Set(v)
 		}
 	}
 
@@ -908,7 +1016,7 @@ func (n *InternalNode) Copy() VerkleNode {
 func (n *InternalNode) toDot(parent, path string) string {
 	me := fmt.Sprintf("internal%s", path)
 	var hash Fr
-	toFr(&hash, n.commitment)
+	n.commitment.MapToScalarField(&hash)
 	ret := fmt.Sprintf("%s [label=\"I: %x\"]\n", me, hash.BytesLE())
 	if len(parent) > 0 {
 		ret = fmt.Sprintf("%s %s -> %s\n", ret, parent, me)
@@ -954,15 +1062,11 @@ func (n *InternalNode) touchCoW(index byte) {
 	n.cowChild(index)
 }
 
-func (n *LeafNode) ToHashedNode() *HashedNode {
-	if n.commitment == nil {
-		panic("nil commitment")
-	}
-	comm := n.commitment.Bytes()
-	return &HashedNode{commitment: comm[:]}
-}
-
 func (n *LeafNode) Insert(key []byte, value []byte, _ NodeResolverFn) error {
+	if n.isPOAStub {
+		return errIsPOAStub
+	}
+
 	if len(key) != StemSize+1 {
 		return fmt.Errorf("invalid key size: %d", len(key))
 	}
@@ -980,9 +1084,7 @@ func (n *LeafNode) insertMultiple(stem []byte, values [][]byte) error {
 		return errInsertIntoOtherStem
 	}
 
-	n.updateMultipleLeaves(values)
-
-	return nil
+	return n.updateMultipleLeaves(values)
 }
 
 func (n *LeafNode) updateC(cxIndex int, newC Fr, oldC Fr) {
@@ -998,7 +1100,7 @@ func (n *LeafNode) updateC(cxIndex int, newC Fr, oldC Fr) {
 	n.commitment.Add(n.commitment, cfg.CommitToPoly(poly[:], 0))
 }
 
-func (n *LeafNode) updateCn(index byte, value []byte, c *Point) {
+func (n *LeafNode) updateCn(index byte, value []byte, c *Point) error {
 	var (
 		old, newH [2]Fr
 		diff      Point
@@ -1011,8 +1113,13 @@ func (n *LeafNode) updateCn(index byte, value []byte, c *Point) {
 	// do not include it. The result should be the same,
 	// but the computation time should be faster as one doesn't need to
 	// compute 1 - 1 mod N.
-	leafToComms(old[:], n.values[index])
-	leafToComms(newH[:], value)
+	err := leafToComms(old[:], n.values[index])
+	if err != nil {
+		return err
+	}
+	if err = leafToComms(newH[:], value); err != nil {
+		return err
+	}
 
 	newH[0].Sub(&newH[0], &old[0])
 	poly[2*(index%128)] = newH[0]
@@ -1024,9 +1131,11 @@ func (n *LeafNode) updateCn(index byte, value []byte, c *Point) {
 	poly[2*(index%128)+1] = newH[1]
 	diff = cfg.conf.Commit(poly[:])
 	c.Add(c, &diff)
+
+	return nil
 }
 
-func (n *LeafNode) updateLeaf(index byte, value []byte) {
+func (n *LeafNode) updateLeaf(index byte, value []byte) error {
 	// Update the corresponding C1 or C2 commitment.
 	var c *Point
 	var oldC Point
@@ -1037,20 +1146,25 @@ func (n *LeafNode) updateLeaf(index byte, value []byte) {
 		c = n.c2
 		oldC = *n.c2
 	}
-	n.updateCn(index, value, c)
+	if err := n.updateCn(index, value, c); err != nil {
+		return err
+	}
 
 	// Batch the Fr transformation of the new and old CX.
 	var frs [2]Fr
-	toFrMultiple([]*Fr{&frs[0], &frs[1]}, []*Point{c, &oldC})
+	if err := banderwagon.BatchMapToScalarField([]*Fr{&frs[0], &frs[1]}, []*Point{c, &oldC}); err != nil {
+		return fmt.Errorf("batch mapping to scalar fields: %s", err)
+	}
 
 	// If index is in the first NodeWidth/2 elements, we need to update C1. Otherwise, C2.
 	cxIndex := 2 + int(index)/(NodeWidth/2) // [1, stem, -> C1, C2 <-]
 	n.updateC(cxIndex, frs[0], frs[1])
 
 	n.values[index] = value
+	return nil
 }
 
-func (n *LeafNode) updateMultipleLeaves(values [][]byte) {
+func (n *LeafNode) updateMultipleLeaves(values [][]byte) error { // skipcq: GO-R1005
 	var oldC1, oldC2 *Point
 
 	// We iterate the values, and we update the C1 and/or C2 commitments depending on the index.
@@ -1066,7 +1180,9 @@ func (n *LeafNode) updateMultipleLeaves(values [][]byte) {
 					oldC1.Set(n.c1)
 				}
 				// We update C1 directly in `n`. We have our original copy in oldC1.
-				n.updateCn(byte(i), v, n.c1)
+				if err := n.updateCn(byte(i), v, n.c1); err != nil {
+					return err
+				}
 			} else {
 				// First time we touch C2? Save the original point for later.
 				if oldC2 == nil {
@@ -1074,7 +1190,9 @@ func (n *LeafNode) updateMultipleLeaves(values [][]byte) {
 					oldC2.Set(n.c2)
 				}
 				// We update C2 directly in `n`. We have our original copy in oldC2.
-				n.updateCn(byte(i), v, n.c2)
+				if err := n.updateCn(byte(i), v, n.c2); err != nil {
+					return err
+				}
 			}
 			n.values[i] = v
 		}
@@ -1089,16 +1207,24 @@ func (n *LeafNode) updateMultipleLeaves(values [][]byte) {
 	const c2Idx = 3 // [1, stem, C1, ->C2<-]
 
 	if oldC1 != nil && oldC2 != nil { // Case 1.
-		toFrMultiple([]*Fr{&frs[0], &frs[1], &frs[2], &frs[3]}, []*Point{n.c1, oldC1, n.c2, oldC2})
+		if err := banderwagon.BatchMapToScalarField([]*Fr{&frs[0], &frs[1], &frs[2], &frs[3]}, []*Point{n.c1, oldC1, n.c2, oldC2}); err != nil {
+			return fmt.Errorf("batch mapping to scalar fields: %s", err)
+		}
 		n.updateC(c1Idx, frs[0], frs[1])
 		n.updateC(c2Idx, frs[2], frs[3])
 	} else if oldC1 != nil { // Case 2. (C1 touched)
-		toFrMultiple([]*Fr{&frs[0], &frs[1]}, []*Point{n.c1, oldC1})
+		if err := banderwagon.BatchMapToScalarField([]*Fr{&frs[0], &frs[1]}, []*Point{n.c1, oldC1}); err != nil {
+			return fmt.Errorf("batch mapping to scalar fields: %s", err)
+		}
 		n.updateC(c1Idx, frs[0], frs[1])
 	} else if oldC2 != nil { // Case 2. (C2 touched)
-		toFrMultiple([]*Fr{&frs[0], &frs[1]}, []*Point{n.c2, oldC2})
+		if err := banderwagon.BatchMapToScalarField([]*Fr{&frs[0], &frs[1]}, []*Point{n.c2, oldC2}); err != nil {
+			return fmt.Errorf("batch mapping to scalar fields: %s", err)
+		}
 		n.updateC(c2Idx, frs[0], frs[1])
 	}
+
+	return nil
 }
 
 // Delete deletes a value from the leaf, return `true` as a second
@@ -1167,7 +1293,7 @@ func (n *LeafNode) Delete(k []byte, _ NodeResolverFn) (bool, error) {
 		// operation which is slow no matter what, so ensuring correctness
 		// is more important than
 		var poly [4]Fr
-		toFr(&poly[subtreeindex], cn)
+		cn.MapToScalarField(&poly[subtreeindex])
 		n.commitment.Sub(n.commitment, cfg.CommitToPoly(poly[:], 0))
 
 		// Clear the corresponding commitment
@@ -1191,11 +1317,14 @@ func (n *LeafNode) Delete(k []byte, _ NodeResolverFn) (bool, error) {
 	// the method, as it needs the original
 	// value to compute the commitment diffs.
 	n.values[k[31]] = original
-	n.updateLeaf(k[31], nil)
-	return false, nil
+	return false, n.updateLeaf(k[31], nil)
 }
 
 func (n *LeafNode) Get(k []byte, _ NodeResolverFn) ([]byte, error) {
+	if n.isPOAStub {
+		return nil, errIsPOAStub
+	}
+
 	if !equalPaths(k, n.stem) {
 		// If keys differ, return nil in order to
 		// signal that the key isn't present in the
@@ -1212,7 +1341,7 @@ func (n *LeafNode) Hash() *Fr {
 	// to reduce complexity.
 	// TODO use n.commitment once all Insert* are diff-inserts
 	var hash Fr
-	toFr(&hash, n.Commitment())
+	n.Commitment().MapToScalarField(&hash)
 	return &hash
 }
 
@@ -1230,7 +1359,7 @@ func (n *LeafNode) Commit() *Point {
 // fillSuffixTreePoly takes one of the two suffix tree and
 // builds the associated polynomial, to be used to compute
 // the corresponding C{1,2} commitment.
-func fillSuffixTreePoly(poly []Fr, values [][]byte) int {
+func fillSuffixTreePoly(poly []Fr, values [][]byte) (int, error) {
 	count := 0
 	for idx, val := range values {
 		if val == nil {
@@ -1238,36 +1367,44 @@ func fillSuffixTreePoly(poly []Fr, values [][]byte) int {
 		}
 		count++
 
-		leafToComms(poly[(idx<<1)&0xFF:], val)
+		if err := leafToComms(poly[(idx<<1)&0xFF:], val); err != nil {
+			return 0, err
+		}
 	}
-	return count
+	return count, nil
 }
 
 // leafToComms turns a leaf into two commitments of the suffix
 // and extension tree.
-func leafToComms(poly []Fr, val []byte) {
+func leafToComms(poly []Fr, val []byte) error {
 	if len(val) == 0 {
-		return
+		return nil
 	}
 	if len(val) > 32 {
-		panic(fmt.Sprintf("invalid leaf length %d, %v", len(val), val))
+		return fmt.Errorf("invalid leaf length %d, %v", len(val), val)
 	}
 	var (
 		valLoWithMarker [17]byte
 		loEnd           = 16
+		err             error
 	)
 	if len(val) < loEnd {
 		loEnd = len(val)
 	}
 	copy(valLoWithMarker[:loEnd], val[:loEnd])
 	valLoWithMarker[16] = 1 // 2**128
-	FromLEBytes(&poly[0], valLoWithMarker[:])
-	if len(val) >= 16 {
-		FromLEBytes(&poly[1], val[16:])
+	if err = FromLEBytes(&poly[0], valLoWithMarker[:]); err != nil {
+		return err
 	}
+	if len(val) >= 16 {
+		if err = FromLEBytes(&poly[1], val[16:]); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func (n *LeafNode) GetProofItems(keys keylist) (*ProofElements, []byte, [][]byte, error) {
+func (n *LeafNode) GetProofItems(keys keylist, _ NodeResolverFn) (*ProofElements, []byte, [][]byte, error) { // skipcq: GO-R1005
 	var (
 		poly [NodeWidth]Fr // top-level polynomial
 		pe                 = &ProofElements{
@@ -1285,18 +1422,39 @@ func (n *LeafNode) GetProofItems(keys keylist) (*ProofElements, []byte, [][]byte
 
 	// Initialize the top-level polynomial with 1 + stem + C1 + C2
 	poly[0].SetUint64(1)
-	StemFromBytes(&poly[1], n.stem)
-	toFrMultiple([]*Fr{&poly[2], &poly[3]}, []*Point{n.c1, n.c2})
+	if err := StemFromBytes(&poly[1], n.stem); err != nil {
+		return nil, nil, nil, fmt.Errorf("error serializing stem '%x': %w", n.stem, err)
+	}
 
 	// First pass: add top-level elements first
 	var hasC1, hasC2 bool
 	for _, key := range keys {
-		hasC1 = hasC1 || (key[31] < 128)
-		hasC2 = hasC2 || (key[31] >= 128)
-		if hasC2 {
-			break
+		// Note that keys might contain keys that don't correspond to this leaf node.
+		// We should only analize the inclusion of C1/C2 for keys corresponding to this
+		// leaf node stem.
+		if equalPaths(n.stem, key) {
+			hasC1 = hasC1 || (key[31] < 128)
+			hasC2 = hasC2 || (key[31] >= 128)
+			if hasC2 {
+				break
+			}
 		}
 	}
+
+	// If this tree is a full tree (i.e: not a stateless tree), we know we have c1 and c2 values.
+	// Also, we _need_ them independently of hasC1 or hasC2 since the prover needs `Fis`.
+	if !n.isPOAStub {
+		if err := banderwagon.BatchMapToScalarField([]*Fr{&poly[2], &poly[3]}, []*Point{n.c1, n.c2}); err != nil {
+			return nil, nil, nil, fmt.Errorf("batch mapping to scalar fields: %s", err)
+		}
+	} else if hasC1 || hasC2 || n.c1 != nil || n.c2 != nil {
+		// This LeafNode is a proof of absence stub. It must be true that
+		// both c1 and c2 are nil, and that hasC1 and hasC2 are false.
+		// Let's just check that to be sure, since the code below can't use
+		// poly[2] or poly[3].
+		return nil, nil, nil, fmt.Errorf("invalid proof of absence stub")
+	}
+
 	if hasC1 {
 		pe.Cis = append(pe.Cis, n.commitment)
 		pe.Zis = append(pe.Zis, 2)
@@ -1310,69 +1468,59 @@ func (n *LeafNode) GetProofItems(keys keylist) (*ProofElements, []byte, [][]byte
 		pe.Fis = append(pe.Fis, poly[:])
 	}
 
+	addedStems := map[string]struct{}{}
+
 	// Second pass: add the cn-level elements
 	for _, key := range keys {
 		pe.ByPath[string(key[:n.depth])] = n.commitment
 
 		// Proof of absence: case of a differing stem.
-		// Add an unopened stem-level node.
 		if !equalPaths(n.stem, key) {
-			// Corner case: don't add the poa stem if it's
-			// already present as a proof-of-absence for a
-			// different key, or for the same key (case of
-			// multiple missing keys being absent).
-			// The list of extension statuses has to be of
-			// length 1 at this level, so skip otherwise.
+			// If this is the first extension status added for this path,
+			// add the proof of absence stem (only once). If later we detect a proof of
+			// presence, we'll clear the list since that proof of presence
+			// will be enough to provide the stem.
 			if len(esses) == 0 {
-				esses = append(esses, extStatusAbsentOther|(n.depth<<3))
 				poass = append(poass, n.stem)
-				pe.Vals = append(pe.Vals, nil)
 			}
+			// Add an extension status absent other for this stem.
+			// Note we keep a cache to avoid adding the same stem twice (or more) if
+			// there're multiple keys with the same stem.
+			if _, ok := addedStems[string(key[:StemSize])]; !ok {
+				esses = append(esses, extStatusAbsentOther|(n.depth<<3))
+				addedStems[string(key[:StemSize])] = struct{}{}
+			}
+			pe.Vals = append(pe.Vals, nil)
 			continue
 		}
 
-		// corner case (see previous corner case): if a proof-of-absence
-		// stem was found, and it now turns out the same stem is used as
-		// a proof of presence, clear the proof-of-absence list to avoid
-		// redundancy.
+		// As mentioned above, if a proof-of-absence stem was found, and
+		// it now turns out the same stem is used as a proof of presence,
+		// clear the proof-of-absence list to avoid redundancy. Note that
+		// we don't delete the extension statuses since that is needed to
+		// figure out which is the correct stem for this path.
 		if len(poass) > 0 {
 			poass = nil
-			esses = nil
 		}
 
 		var (
 			suffix   = key[31]
 			suffPoly [NodeWidth]Fr // suffix-level polynomial
-			count    int
+			err      error
+			scomm    *Point
 		)
 		if suffix >= 128 {
-			count = fillSuffixTreePoly(suffPoly[:], n.values[128:])
-		} else {
-			count = fillSuffixTreePoly(suffPoly[:], n.values[:128])
-		}
-
-		// Proof of absence: case of a missing suffix tree.
-		//
-		// The suffix tree for this value is missing, i.e. all
-		// values in the extension-and-suffix tree are grouped
-		// in the other suffix tree (e.g. C2 if we are looking
-		// at C1).
-		if count == 0 {
-			// TODO(gballet) maintain a count variable at LeafNode level
-			// so that we know not to build the polynomials in this case,
-			// as all the information is available before fillSuffixTreePoly
-			// has to be called, save the count.
-			esses = append(esses, extStatusAbsentEmpty|(n.depth<<3))
-			pe.Vals = append(pe.Vals, nil)
-			continue
-		}
-
-		var scomm *Point
-		if suffix < 128 {
-			scomm = n.c1
-		} else {
+			if _, err = fillSuffixTreePoly(suffPoly[:], n.values[128:]); err != nil {
+				return nil, nil, nil, fmt.Errorf("filling suffix tree poly: %w", err)
+			}
 			scomm = n.c2
+		} else {
+			if _, err = fillSuffixTreePoly(suffPoly[:], n.values[:128]); err != nil {
+				return nil, nil, nil, fmt.Errorf("filling suffix tree poly: %w", err)
+			}
+			scomm = n.c1
 		}
+
 		var leaves [2]Fr
 		if n.values[suffix] == nil {
 			// Proof of absence: case of a missing value.
@@ -1392,9 +1540,12 @@ func (n *LeafNode) GetProofItems(keys keylist) (*ProofElements, []byte, [][]byte
 		pe.Yis = append(pe.Yis, &leaves[0], &leaves[1])
 		pe.Fis = append(pe.Fis, suffPoly[:], suffPoly[:])
 		pe.Vals = append(pe.Vals, n.values[key[31]])
-		if len(esses) == 0 || esses[len(esses)-1] != extStatusPresent|(n.depth<<3) {
+
+		if _, ok := addedStems[string(key[:StemSize])]; !ok {
 			esses = append(esses, extStatusPresent|(n.depth<<3))
+			addedStems[string(key[:StemSize])] = struct{}{}
 		}
+
 		slotPath := string(key[:n.depth]) + string([]byte{2 + suffix/128})
 		pe.ByPath[slotPath] = scomm
 	}
@@ -1403,10 +1554,10 @@ func (n *LeafNode) GetProofItems(keys keylist) (*ProofElements, []byte, [][]byte
 }
 
 // Serialize serializes a LeafNode.
-// The format is: <nodeType><stem><bitlist><c1comm><c2comm><children...>
+// The format is: <nodeType><stem><bitlist><comm><c1comm><c2comm><children...>
 func (n *LeafNode) Serialize() ([]byte, error) {
-	cBytes := banderwagon.ElementsToBytes([]*banderwagon.Element{n.c1, n.c2})
-	return n.serializeWithCompressedCommitments(cBytes[0], cBytes[1]), nil
+	cBytes := banderwagon.BatchToBytesUncompressed(n.commitment, n.c1, n.c2)
+	return n.serializeLeafWithUncompressedCommitments(cBytes[0], cBytes[1], cBytes[2]), nil
 }
 
 func (n *LeafNode) Copy() VerkleNode {
@@ -1421,16 +1572,17 @@ func (n *LeafNode) Copy() VerkleNode {
 	}
 	if n.commitment != nil {
 		l.commitment = new(Point)
-		CopyPoint(l.commitment, n.commitment)
+		l.commitment.Set(n.commitment)
 	}
 	if n.c1 != nil {
 		l.c1 = new(Point)
-		CopyPoint(l.c1, n.c1)
+		l.c1.Set(n.c1)
 	}
 	if n.c2 != nil {
 		l.c2 = new(Point)
-		CopyPoint(l.c2, n.c2)
+		l.c2.Set(n.c2)
 	}
+	l.isPOAStub = n.isPOAStub
 
 	return l
 }
@@ -1451,10 +1603,10 @@ func (n *LeafNode) Value(i int) []byte {
 
 func (n *LeafNode) toDot(parent, path string) string {
 	var hash Fr
-	toFr(&hash, n.Commitment())
+	n.Commitment().MapToScalarField(&hash)
 	ret := fmt.Sprintf("leaf%s [label=\"L: %x\nC: %x\nC₁: %x\nC₂:%x\"]\n%s -> leaf%s\n", path, hash.Bytes(), n.commitment.Bytes(), n.c1.Bytes(), n.c2.Bytes(), parent, path)
 	for i, v := range n.values {
-		if v != nil {
+		if len(v) != 0 {
 			ret = fmt.Sprintf("%sval%s%02x [label=\"%x\"]\nleaf%s -> val%s%02x\n", ret, path, i, v, path, path, i)
 		}
 	}
@@ -1484,7 +1636,8 @@ func ToDot(root VerkleNode) string {
 // Providing both allows this library to do more optimizations.
 type SerializedNode struct {
 	Node            VerkleNode
-	CommitmentBytes [32]byte
+	CommitmentBytes [banderwagon.UncompressedSize]byte
+	Path            []byte
 	SerializedBytes []byte
 }
 
@@ -1496,25 +1649,25 @@ func (n *InternalNode) BatchSerialize() ([]SerializedNode, error) {
 
 	// Collect all nodes that we need to serialize.
 	nodes := make([]VerkleNode, 0, 1024)
-	nodes = n.collectNonHashedNodes(nodes)
+	paths := make([][]byte, 0, 1024)
+	nodes, paths = n.collectNonHashedNodes(nodes, paths, nil)
 
 	// We collect all the *Point, so we can batch all projective->affine transformations.
 	pointsToCompress := make([]*Point, 0, 3*len(nodes))
-	// Contains a map between VerkleNode and the index in the `compressedPoints` containing the commitment below.
-	compressedPointsIdxs := make(map[VerkleNode]int, 3*len(nodes))
+	// Contains a map between VerkleNode and the index in the serializedPoints containing the commitment below.
+	serializedPointsIdxs := make(map[VerkleNode]int, len(nodes))
 	for i := range nodes {
 		switch n := nodes[i].(type) {
 		case *InternalNode:
 			pointsToCompress = append(pointsToCompress, n.commitment)
-			compressedPointsIdxs[n] = len(pointsToCompress) - 1
+			serializedPointsIdxs[n] = len(pointsToCompress) - 1
 		case *LeafNode:
 			pointsToCompress = append(pointsToCompress, n.commitment, n.c1, n.c2)
-			compressedPointsIdxs[n] = len(pointsToCompress) - 3
 		}
 	}
 
 	// Now we do the all transformations in a single-shot.
-	compressedPoints := banderwagon.ElementsToBytes(pointsToCompress)
+	serializedPoints := banderwagon.BatchToBytesUncompressed(pointsToCompress...)
 
 	// Now we that we did the heavy CPU work, we have to do the rest of `nodes` serialization
 	// taking the compressed points from this single list.
@@ -1523,20 +1676,27 @@ func (n *InternalNode) BatchSerialize() ([]SerializedNode, error) {
 	for i := range nodes {
 		switch n := nodes[i].(type) {
 		case *InternalNode:
+			serialized, err := n.serializeInternalWithUncompressedCommitment(serializedPointsIdxs, serializedPoints)
+			if err != nil {
+				return nil, err
+			}
 			sn := SerializedNode{
 				Node:            n,
-				CommitmentBytes: compressedPoints[idx],
-				SerializedBytes: n.serializeWithCompressedChildren(compressedPointsIdxs, compressedPoints),
+				Path:            paths[i],
+				CommitmentBytes: serializedPoints[idx],
+				SerializedBytes: serialized,
 			}
 			ret = append(ret, sn)
 			idx++
 		case *LeafNode:
-			c1Bytes := compressedPoints[idx+1]
-			c2Bytes := compressedPoints[idx+2]
+			cBytes := serializedPoints[idx]
+			c1Bytes := serializedPoints[idx+1]
+			c2Bytes := serializedPoints[idx+2]
 			sn := SerializedNode{
 				Node:            n,
-				CommitmentBytes: compressedPoints[idx],
-				SerializedBytes: n.serializeWithCompressedCommitments(c1Bytes, c2Bytes),
+				Path:            paths[i],
+				CommitmentBytes: serializedPoints[idx],
+				SerializedBytes: n.serializeLeafWithUncompressedCommitments(cBytes, c1Bytes, c2Bytes),
 			}
 			ret = append(ret, sn)
 			idx += 3
@@ -1546,67 +1706,44 @@ func (n *InternalNode) BatchSerialize() ([]SerializedNode, error) {
 	return ret, nil
 }
 
-func (n *InternalNode) collectNonHashedNodes(list []VerkleNode) []VerkleNode {
+func (n *InternalNode) collectNonHashedNodes(list []VerkleNode, paths [][]byte, path []byte) ([]VerkleNode, [][]byte) {
 	list = append(list, n)
-	for _, child := range n.children {
+	paths = append(paths, path)
+	for i, child := range n.children {
 		switch childNode := child.(type) {
 		case *LeafNode:
 			list = append(list, childNode)
+			paths = append(paths, childNode.stem[:len(path)+1])
 		case *InternalNode:
-			list = childNode.collectNonHashedNodes(list)
+			childpath := make([]byte, len(path)+1)
+			copy(childpath, path)
+			childpath[len(path)] = byte(i)
+			list, paths = childNode.collectNonHashedNodes(list, paths, childpath)
 		}
 	}
-	return list
+	return list, paths
 }
 
-func (n *InternalNode) serializeWithCompressedChildren(compressedPointsIdxs map[VerkleNode]int, compressedPoints [][32]byte) []byte {
-	var (
-		hashlist                    [NodeWidth / 8]byte
-		nonHashedCount, hashedCount int
-	)
-
-	ret := make([]byte, nodeTypeSize+bitlistSize+NodeWidth*SerializedPointCompressedSize)
-	bitlist := ret[internalBitlistOffset:]
+// unpack one compressed commitment from the list of batch-compressed commitments
+func (n *InternalNode) serializeInternalWithUncompressedCommitment(pointsIdx map[VerkleNode]int, serializedPoints [][banderwagon.UncompressedSize]byte) ([]byte, error) {
+	serialized := make([]byte, nodeTypeSize+bitlistSize+banderwagon.UncompressedSize)
+	bitlist := serialized[internalBitlistOffset:internalCommitmentOffset]
 	for i, c := range n.children {
 		if _, ok := c.(Empty); !ok {
 			setBit(bitlist, i)
-			if _, ok := c.(*HashedNode); ok {
-				setBit(hashlist[:], i)
-				hashedCount++
-			} else {
-				nonHashedCount++
-			}
 		}
 	}
-
-	ret = ret[:nodeTypeSize+bitlistSize+(nonHashedCount+hashedCount)*SerializedPointCompressedSize]
-	children := ret[internalNodeChildrenOffset:internalNodeChildrenOffset]
-	consumed := 0
-	for i := 0; i < NodeWidth; i++ {
-		if bit(bitlist, i) {
-			if bit(hashlist[:], i) {
-				children = append(children, n.children[i].(*HashedNode).commitment...)
-			} else {
-				childIdx, ok := compressedPointsIdxs[n.children[i]]
-				if !ok {
-					panic("children commitment not found in cache")
-				}
-				children = append(children, compressedPoints[childIdx][:]...)
-				consumed++
-			}
-		}
+	serialized[nodeTypeOffset] = internalRLPType
+	pointidx, ok := pointsIdx[n]
+	if !ok {
+		return nil, fmt.Errorf("child node not found in cache")
 	}
+	copy(serialized[internalCommitmentOffset:], serializedPoints[pointidx][:])
 
-	// Store in ret the serialized result
-	ret[nodeTypeOffset] = internalRLPType
-	// Note that:
-	// - Children were already appended in ret through the children slice.
-	// - Bitlist was embedded in ret.
-
-	return ret
+	return serialized, nil
 }
 
-func (n *LeafNode) serializeWithCompressedCommitments(c1Bytes [32]byte, c2Bytes [32]byte) []byte {
+func (n *LeafNode) serializeLeafWithUncompressedCommitments(cBytes, c1Bytes, c2Bytes [banderwagon.UncompressedSize]byte) []byte {
 	// Empty value in LeafNode used for padding.
 	var emptyValue [LeafValueSize]byte
 
@@ -1624,14 +1761,14 @@ func (n *LeafNode) serializeWithCompressedCommitments(c1Bytes [32]byte, c2Bytes 
 	}
 
 	// Create the serialization.
-	baseSize := nodeTypeSize + StemSize + bitlistSize + 2*SerializedPointCompressedSize
-	result := make([]byte, baseSize, baseSize+4*32) // Extra pre-allocated capacity for 4 values.
+	result := make([]byte, nodeTypeSize+StemSize+bitlistSize+3*banderwagon.UncompressedSize+len(children))
 	result[0] = leafRLPType
 	copy(result[leafSteamOffset:], n.stem[:StemSize])
 	copy(result[leafBitlistOffset:], bitlist[:])
+	copy(result[leafCommitmentOffset:], cBytes[:])
 	copy(result[leafC1CommitmentOffset:], c1Bytes[:])
 	copy(result[leafC2CommitmentOffset:], c2Bytes[:])
-	result = append(result, children...)
+	copy(result[leafChildrenOffset:], children)
 
 	return result
 }

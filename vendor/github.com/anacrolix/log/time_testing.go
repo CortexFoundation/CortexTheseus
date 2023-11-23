@@ -2,10 +2,13 @@
 
 package log
 
-import "testing"
+import (
+	"testing"
+)
 
 func init() {
 	if testing.Testing() {
 		DefaultTimeFormatter = TimeFormatSecondsSinceInit
+		DefaultTimeAppendFormatter = TimeAppendFormatSecondsSinceInit
 	}
 }

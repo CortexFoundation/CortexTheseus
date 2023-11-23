@@ -1,3 +1,4 @@
+//go:build linux || dragonfly || openbsd || solaris
 // +build linux dragonfly openbsd solaris
 
 package missinggo

@@ -5,7 +5,6 @@ package bitmap
 
 import (
 	"github.com/RoaringBitmap/roaring"
-
 	"github.com/anacrolix/missinggo/iter"
 )
 

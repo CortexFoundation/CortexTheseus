@@ -26,59 +26,37 @@
 package verkle
 
 import (
-	"github.com/crate-crypto/go-ipa/bandersnatch/fr"
+	"errors"
+
 	"github.com/crate-crypto/go-ipa/banderwagon"
 )
 
 type (
-	Fr                        = fr.Element
+	Fr                        = banderwagon.Fr
 	Point                     = banderwagon.Element
 	SerializedPoint           = []byte
 	SerializedPointCompressed = []byte
 )
 
-const (
-	SerializedPointCompressedSize = 32
-)
-
-func CopyFr(dst, src *Fr) {
-	copy(dst[:], src[:])
-}
-
-func CopyPoint(dst, src *Point) {
-	dst.Set(src)
-}
-
-func toFr(fr *Fr, p *Point) {
-	p.MapToScalarField(fr)
-}
-
-func toFrMultiple(res []*Fr, ps []*Point) {
-	banderwagon.MultiMapToScalarField(res, ps)
-}
-
-func FromLEBytes(fr *Fr, data []byte) {
+func FromLEBytes(fr *Fr, data []byte) error {
 	if len(data) > 32 {
-		panic("data is too long")
+		return errors.New("data is too long")
 	}
 	var aligned [32]byte
 	copy(aligned[:], data)
 	fr.SetBytesLE(aligned[:])
+	return nil
 }
 
-func StemFromBytes(fr *Fr, data []byte) {
+func StemFromBytes(fr *Fr, data []byte) error {
 	if len(data) != StemSize {
-		panic("data length must be StemSize")
+		return errors.New("data length must be StemSize")
 	}
-	FromLEBytes(fr, data)
+	return FromLEBytes(fr, data)
 }
 
 func FromBytes(fr *Fr, data []byte) {
 	var aligned [32]byte
 	copy(aligned[32-len(data):], data)
 	fr.SetBytes(aligned[:])
-}
-
-func Equal(self *Point, other *Point) bool {
-	return other.Equal(self)
 }

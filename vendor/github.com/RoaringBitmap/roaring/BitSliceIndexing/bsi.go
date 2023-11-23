@@ -2,11 +2,12 @@ package roaring
 
 import (
 	"fmt"
-	"github.com/RoaringBitmap/roaring"
 	"math/bits"
 	"runtime"
 	"sync"
 	"sync/atomic"
+
+	"github.com/RoaringBitmap/roaring"
 )
 
 const (
@@ -93,8 +94,7 @@ func (b *BSI) SetValue(columnID uint64, value int64) {
 
 	// If max/min values are set to zero then automatically determine bit array size
 	if b.MaxValue == 0 && b.MinValue == 0 {
-		ba := make([]*roaring.Bitmap, bits.Len64(uint64(value)))
-		for i := len(ba) - b.BitCount(); i > 0; i-- {
+		for i := bits.Len64(uint64(value)) - b.BitCount(); i > 0; i-- {
 			b.bA = append(b.bA, roaring.NewBitmap())
 			if b.runOptimized {
 				b.bA[i].RunOptimize()
@@ -102,24 +102,18 @@ func (b *BSI) SetValue(columnID uint64, value int64) {
 		}
 	}
 
-	var wg sync.WaitGroup
-
+	exists := b.eBM.Contains(uint32(columnID))
 	for i := 0; i < b.BitCount(); i++ {
-		wg.Add(1)
-		go func(j int) {
-			defer wg.Done()
-			if uint64(value)&(1<<uint64(j)) > 0 {
-				b.bA[j].Add(uint32(columnID))
-			} else {
-				b.bA[j].Remove(uint32(columnID))
-			}
-		}(i)
+		if uint64(value)&(1<<uint64(i)) > 0 {
+			b.bA[i].Add(uint32(columnID))
+		} else if exists {
+			b.bA[i].Remove(uint32(columnID))
+		}
 	}
-	wg.Wait()
 	b.eBM.Add(uint32(columnID))
 }
 
-// GetValue gets the value at the column ID.  Second param will be false for non-existant values.
+// GetValue gets the value at the column ID.  Second param will be false for non-existent values.
 func (b *BSI) GetValue(columnID uint64) (int64, bool) {
 	value := int64(0)
 	exists := b.eBM.Contains(uint32(columnID))
@@ -263,7 +257,6 @@ type task struct {
 // For the RANGE parameter the comparison criteria is >= valueOrStart and <= end.
 // The parallelism parameter indicates the number of CPU threads to be applied for processing.  A value
 // of zero indicates that all available CPU resources will be potentially utilized.
-//
 func (b *BSI) CompareValue(parallelism int, op Operation, valueOrStart, end int64,
 	foundSet *roaring.Bitmap) *roaring.Bitmap {
 
@@ -523,7 +516,6 @@ func (b *BSI) minOrMax(op Operation, batch []uint32, resultsChan chan int64, wg 
 
 // Sum all values contained within the foundSet.   As a convenience, the cardinality of the foundSet
 // is also returned (for calculating the average).
-//
 func (b *BSI) Sum(foundSet *roaring.Bitmap) (sum int64, count uint64) {
 
 	count = foundSet.GetCardinality()
@@ -752,27 +744,17 @@ func (b *BSI) ClearValues(foundSet *roaring.Bitmap) {
 	wg.Wait()
 }
 
-// NewBSIRetainSet - Construct a new BSI from a clone of existing BSI, retain only values contained in foundSet
+// NewBSIRetainSet - Construct a new BSI from a clone of existing BSI, retain only values contained
+// in foundSet
 func (b *BSI) NewBSIRetainSet(foundSet *roaring.Bitmap) *BSI {
-
 	newBSI := NewBSI(b.MaxValue, b.MinValue)
 	newBSI.bA = make([]*roaring.Bitmap, b.BitCount())
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		newBSI.eBM = b.eBM.Clone()
-		newBSI.eBM.And(foundSet)
-	}()
+	newBSI.eBM = b.eBM.Clone()
+	newBSI.eBM.And(foundSet)
 	for i := 0; i < b.BitCount(); i++ {
-		wg.Add(1)
-		go func(j int) {
-			defer wg.Done()
-			newBSI.bA[j] = b.bA[j].Clone()
-			newBSI.bA[j].And(foundSet)
-		}(i)
+		newBSI.bA[i] = b.bA[i].Clone()
+		newBSI.bA[i].And(foundSet)
 	}
-	wg.Wait()
 	return newBSI
 }
 
@@ -809,7 +791,6 @@ func (b *BSI) addDigit(foundSet *roaring.Bitmap, i int) {
 // contained within the input BSI.   Given that for BSIs, different columnIDs can have the same value.  TransposeWithCounts
 // is useful for situations where there is a one-to-many relationship between the vectored integer sets.  The resulting BSI
 // contains the number of times a particular value appeared in the input BSI as an integer count.
-//
 func (b *BSI) TransposeWithCounts(parallelism int, foundSet *roaring.Bitmap) *BSI {
 
 	return parallelExecutorBSIResults(parallelism, b, transposeWithCounts, foundSet, true)

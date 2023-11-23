@@ -70,10 +70,14 @@ func (p *Progress) extractDoneAndActiveTrackers() ([]*Tracker, []*Tracker) {
 	var trackersActive, trackersDone []*Tracker
 	var activeTrackersProgress int64
 	p.trackersActiveMutex.RLock()
+	var maxETA time.Duration
 	for _, tracker := range p.trackersActive {
 		if !tracker.IsDone() {
 			trackersActive = append(trackersActive, tracker)
 			activeTrackersProgress += int64(tracker.PercentDone())
+			if eta := tracker.ETA(); eta > maxETA {
+				maxETA = eta
+			}
 		} else {
 			trackersDone = append(trackersDone, tracker)
 		}
@@ -85,6 +89,7 @@ func (p *Progress) extractDoneAndActiveTrackers() ([]*Tracker, []*Tracker) {
 	// calculate the overall tracker's progress value
 	p.overallTracker.value = int64(p.LengthDone()+len(trackersDone)) * 100
 	p.overallTracker.value += activeTrackersProgress
+	p.overallTracker.minETA = maxETA
 	if len(trackersActive) == 0 {
 		p.overallTracker.MarkAsDone()
 	}
@@ -93,7 +98,7 @@ func (p *Progress) extractDoneAndActiveTrackers() ([]*Tracker, []*Tracker) {
 
 func (p *Progress) generateTrackerStr(t *Tracker, maxLen int, hint renderHint) string {
 	value, total := t.valueAndTotal()
-	if !hint.isOverallTracker && (total == 0 || value > total) {
+	if !hint.isOverallTracker && t.IsStarted() && (total == 0 || value > total) {
 		return p.generateTrackerStrIndeterminate(maxLen)
 	}
 	return p.generateTrackerStrDeterminate(value, total, maxLen)
@@ -149,7 +154,7 @@ func (p *Progress) generateTrackerStrIndeterminate(maxLen int) string {
 	}
 
 	return p.style.Colors.Tracker.Sprintf("%s%s%s",
-		p.style.Chars.BoxLeft, string(pUnfinished), p.style.Chars.BoxRight,
+		p.style.Chars.BoxLeft, pUnfinished, p.style.Chars.BoxRight,
 	)
 }
 
@@ -185,12 +190,8 @@ func (p *Progress) renderPinnedMessages(out *strings.Builder) {
 
 func (p *Progress) renderTracker(out *strings.Builder, t *Tracker, hint renderHint) {
 	message := t.message()
-	if strings.Contains(message, "\t") {
-		message = strings.Replace(message, "\t", "    ", -1)
-	}
-	if strings.Contains(message, "\r") {
-		message = strings.Replace(message, "\r", "", -1)
-	}
+	message = strings.ReplaceAll(message, "\t", "    ")
+	message = strings.ReplaceAll(message, "\r", "")
 	if p.messageWidth > 0 {
 		messageLen := text.RuneWidthWithoutEscSequences(message)
 		if messageLen < p.messageWidth {
@@ -382,14 +383,16 @@ func (p *Progress) renderTrackerStatsSpeed(out *strings.Builder, t *Tracker, hin
 
 		p.trackersActiveMutex.RLock()
 		for _, tracker := range p.trackersActive {
-			speed += float64(tracker.Value()) / time.Since(tracker.timeStart).Round(speedPrecision).Seconds()
+			if !tracker.timeStart.IsZero() {
+				speed += float64(tracker.Value()) / time.Since(tracker.timeStart).Round(speedPrecision).Seconds()
+			}
 		}
 		p.trackersActiveMutex.RUnlock()
 
 		if speed > 0 {
 			p.renderTrackerStatsSpeedInternal(out, p.style.Options.SpeedOverallFormatter(int64(speed)))
 		}
-	} else {
+	} else if !t.timeStart.IsZero() {
 		timeTaken := time.Since(t.timeStart)
 		if timeTakenRounded := timeTaken.Round(speedPrecision); timeTakenRounded > speedPrecision {
 			p.renderTrackerStatsSpeedInternal(out, t.Units.Sprint(int64(float64(t.Value())/timeTakenRounded.Seconds())))
@@ -410,10 +413,12 @@ func (p *Progress) renderTrackerStatsSpeedInternal(out *strings.Builder, speed s
 
 func (p *Progress) renderTrackerStatsTime(outStats *strings.Builder, t *Tracker, hint renderHint) {
 	var td, tp time.Duration
-	if t.IsDone() {
-		td = t.timeStop.Sub(t.timeStart)
-	} else {
-		td = time.Since(t.timeStart)
+	if !t.timeStart.IsZero() {
+		if t.IsDone() {
+			td = t.timeStop.Sub(t.timeStart)
+		} else {
+			td = time.Since(t.timeStart)
+		}
 	}
 	if hint.isOverallTracker {
 		tp = p.style.Options.TimeOverallPrecision

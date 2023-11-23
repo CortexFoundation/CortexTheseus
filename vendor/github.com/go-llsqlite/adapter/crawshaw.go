@@ -33,12 +33,14 @@ const (
 	OpenCreate      = sqlite.SQLITE_OPEN_CREATE
 	OpenReadWrite   = sqlite.SQLITE_OPEN_READWRITE
 	OpenSharedCache = sqlite.SQLITE_OPEN_SHAREDCACHE
+	OpenExclusive   = sqlite.SQLITE_OPEN_EXCLUSIVE
 
 	ResultCodeInterrupt        = ResultCode(sqlite.SQLITE_INTERRUPT)
 	ResultCodeBusy             = ResultCode(sqlite.SQLITE_BUSY)
 	ResultCodeAbort            = ResultCode(sqlite.SQLITE_ABORT)
 	ResultCodeConstraintUnique = ResultCode(sqlite.SQLITE_CONSTRAINT_UNIQUE)
 	ResultCodeGenericError     = ResultCode(sqlite.SQLITE_ERROR)
+	ResultCodeCantOpen         = ResultCode(sqlite.SQLITE_CANTOPEN)
 
 	LimitLength = sqlite.SQLITE_LIMIT_LENGTH
 )

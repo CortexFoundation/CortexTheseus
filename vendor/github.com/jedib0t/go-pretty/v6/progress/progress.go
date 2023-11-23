@@ -67,7 +67,9 @@ const (
 // to a queue, which gets picked up by the Render logic in the next rendering
 // cycle.
 func (p *Progress) AppendTracker(t *Tracker) {
-	t.start()
+	if !t.DeferStart {
+		t.start()
+	}
 	p.overallTrackerMutex.Lock()
 	defer p.overallTrackerMutex.Unlock()
 
@@ -197,7 +199,7 @@ func (p *Progress) SetPinnedMessages(messages ...string) {
 }
 
 // SetSortBy defines the sorting mechanism to use to sort the Active Trackers
-// before rendering the. Default: no-sorting == sort-by-insertion-order.
+// before rendering. Default: no-sorting == sort-by-insertion-order.
 func (p *Progress) SetSortBy(sortBy SortBy) {
 	p.sortBy = sortBy
 }
@@ -219,7 +221,7 @@ func (p *Progress) SetTrackerPosition(position Position) {
 }
 
 // SetUpdateFrequency sets the update frequency while rendering the trackers.
-// the lower the value, the more number of times the Trackers get refreshed. A
+// the lower the value, the more frequently the Trackers get refreshed. A
 // sane value would be 250ms.
 func (p *Progress) SetUpdateFrequency(frequency time.Duration) {
 	p.updateFrequency = frequency

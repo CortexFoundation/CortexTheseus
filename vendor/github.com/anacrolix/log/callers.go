@@ -2,6 +2,7 @@ package log
 
 import (
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"sync"
 )
@@ -19,12 +20,28 @@ type Loc struct {
 	Line     int
 }
 
+// This is the package returned for a caller frame that is in the main package for a binary.
+const mainPackageFrameImport = "main"
+
+// Reads the build info to get the true full import path for the main package.
+var mainPackagePath = sync.OnceValue(func() string {
+	info, ok := debug.ReadBuildInfo()
+	if ok {
+		return info.Path
+	}
+	return mainPackageFrameImport
+})
+
 func locFromPc(pc uintptr) Loc {
 	f, _ := runtime.CallersFrames([]uintptr{pc}).Next()
 	lastSlash := strings.LastIndexByte(f.Function, '/')
 	firstDot := strings.IndexByte(f.Function[lastSlash+1:], '.')
+	pkg := f.Function[:lastSlash+1+firstDot]
+	if pkg == mainPackageFrameImport {
+		pkg = mainPackagePath()
+	}
 	return Loc{
-		Package:  f.Function[:lastSlash+1+firstDot],
+		Package:  pkg,
 		Function: f.Function,
 		File:     f.File,
 		Line:     f.Line,
