@@ -564,3 +564,7 @@ func Xsetrlimit64(t *TLS, resource int32, rlim uintptr) int32 {
 
 	return 0
 }
+
+func AtomicLoadNUint8(ptr uintptr, memorder int32) uint8 {
+	return byte(a_load_8(ptr))
+}

@@ -24,7 +24,7 @@ func TestNewWebsocketUpgradeHandler_websocket(t *testing.T) {
 		req.Header.Set("Connection", "upgrade")
 		req.Header.Set("Upgrade", "websocket")
 		req.Header.Set("Sec-WebSocket-Version", "13")
-		req.Header.Set("Sec-Websocket-Key", "SGVsbG8sIHdvcmxkIQ==")
+		req.Header.Set("Sec-Websocket-Key", "dGhlIHNhbXBsZSBub25jZQ==")
 
 		resp, err := client.Do(req)
 		if err != nil {
