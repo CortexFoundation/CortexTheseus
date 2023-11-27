@@ -102,9 +102,9 @@ plugins/cpu_helper_for_node.so:
 	$(MAKE) -C $(BASE)/solution cpu
 
 plugins/libcvm_runtime.so: submodule
-	$(MAKE) -C ${INFER_NET_DIR} -j8 lib
+	$(MAKE) -C ${INFER_NET_DIR} lib
 	@mkdir -p plugins
-	ln -sf ${INFER_NET_DIR}/build/libcvm_runtime.so $@
+	ln -sfn ${INFER_NET_DIR}/build/libcvm_runtime.so $@
 
 clib_cpu: plugins/cpu_helper_for_node.so plugins/libcvm_runtime.so
 
