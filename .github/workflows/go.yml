@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v4.1.0
+      uses: actions/checkout@v4.1.1
       with:
         fetch-depth: 0
 
@@ -57,7 +57,7 @@ jobs:
           go vet $(go list ./... | grep -v /cvm-runtime/)
 
     - name: Build
-      run: make clean && make all -j$(nproc)
+      run: make clean && make all
       
     - name: CodeCov
       run: |
