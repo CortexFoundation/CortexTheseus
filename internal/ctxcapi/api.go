@@ -778,8 +778,8 @@ func (s *PublicBlockChainAPI) GetSolidityBytes(ctx context.Context, address comm
 		header := block.Header()
 		msg, err := core.TransactionToMessage(tx, types.MakeSigner(s.b.ChainConfig(), block.Number(), block.Time()))
 		cvm := s.b.GetCVM(ctx, msg, state, header, vm.Config{})
-		_, _, _, failed, err := core.ApplyMessage(cvm, msg, gp, qp)
-		if err != nil || failed {
+		result, err := core.ApplyMessage(cvm, msg, gp, qp)
+		if err != nil || result.Failed() {
 			return nil, err
 		}
 		state.Finalise(true)
@@ -911,7 +911,7 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 	// and apply the message.
 	gp := new(core.GasPool).AddGas(math.MaxUint64)
 	qp := new(core.QuotaPool).AddQuota(math.MaxUint64)
-	res, gas, _, failed, err := core.ApplyMessage(cvm, msg, gp, qp)
+	result, err := core.ApplyMessage(cvm, msg, gp, qp)
 	if err := state.Error(); err != nil {
 		return nil, 0, false, err
 	}
@@ -921,7 +921,7 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 		return nil, 0, false, fmt.Errorf("execution aborted (timeout = %v)", timeout)
 	}
 
-	return res, gas, failed, err
+	return result.Return(), result.UsedGas, result.Failed(), err
 }
 
 // Call executes the given transaction on the state for the given block number.

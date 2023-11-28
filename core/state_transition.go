@@ -33,6 +33,43 @@ import (
 	torrentfs "github.com/CortexFoundation/torrentfs/types"
 )
 
+// ExecutionResult includes all output after executing given evm
+// message no matter the execution itself is successful or not.
+type ExecutionResult struct {
+	UsedGas     uint64 // Total used gas, not including the refunded gas
+	Quota       uint64
+	RefundedGas uint64 // Total gas refunded after execution
+	Err         error  // Any error encountered during the execution(listed in core/vm/errors.go)
+	ReturnData  []byte // Returned data from evm(function result or data supplied with revert opcode)
+}
+
+// Unwrap returns the internal evm error which allows us for further
+// analysis outside.
+func (result *ExecutionResult) Unwrap() error {
+	return result.Err
+}
+
+// Failed returns the indicator whether the execution is successful or not
+func (result *ExecutionResult) Failed() bool { return result.Err != nil }
+
+// Return is a helper function to help caller distinguish between revert reason
+// and function return. Return returns the data after execution if no error occurs.
+func (result *ExecutionResult) Return() []byte {
+	if result.Err != nil {
+		return nil
+	}
+	return common.CopyBytes(result.ReturnData)
+}
+
+// Revert returns the concrete revert reason if the execution is aborted by `REVERT`
+// opcode. Note the reason can be nil if no data supplied with revert opcode.
+func (result *ExecutionResult) Revert() []byte {
+	if result.Err != vm.ErrExecutionReverted {
+		return nil
+	}
+	return common.CopyBytes(result.ReturnData)
+}
+
 var (
 	errInsufficientBalanceForGas = errors.New("insufficient balance to pay for gas")
 	//PER_UPLOAD_BYTES             uint64 = 10 * 512 * 1024
@@ -161,7 +198,7 @@ func NewStateTransition(cvm *vm.CVM, msg *Message, gp *GasPool, qp *QuotaPool) *
 // the gas used (which includes gas refunds) and an error if it failed. An error always
 // indicates a core error meaning that the message would always fail for that particular
 // state and would never be accepted within a block.
-func ApplyMessage(cvm *vm.CVM, msg *Message, gp *GasPool, qp *QuotaPool) ([]byte, uint64, uint64, bool, error) {
+func ApplyMessage(cvm *vm.CVM, msg *Message, gp *GasPool, qp *QuotaPool) (*ExecutionResult, error) {
 	return NewStateTransition(cvm, msg, gp, qp).TransitionDb()
 }
 
@@ -295,9 +332,9 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 // TransitionDb will transition the state by applying the current message and
 // returning the result including the used gas. It returns an error if failed.
 // An error indicates a consensus issue.
-func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed uint64, failed bool, err error) {
-	if err = st.preCheck(); err != nil {
-		return
+func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
+	if err := st.preCheck(); err != nil {
+		return nil, err
 	}
 
 	msg := st.msg
@@ -316,20 +353,20 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 	// Pay intrinsic gas
 	gas, err := IntrinsicGas(msg.Data, contractCreation, st.uploading(), homestead, istanbul)
 	if err != nil {
-		return nil, 0, 0, false, err
+		return nil, err
 	}
 	if st.gas < gas {
-		return nil, 0, 0, false, fmt.Errorf("%w: have %d, want %d", vm.ErrOutOfGas, st.gas, gas)
+		return nil, fmt.Errorf("%w: have %d, want %d", vm.ErrOutOfGas, st.gas, gas)
 	}
 	st.gas -= gas
 
 	if msg.Value.Sign() > 0 && !st.cvm.Context.CanTransfer(st.state, msg.From, msg.Value) {
-		return nil, 0, 0, false, fmt.Errorf("%w: address %v", ErrInsufficientFundsForTransfer, msg.From.Hex())
+		return nil, fmt.Errorf("%w: address %v", ErrInsufficientFundsForTransfer, msg.From.Hex())
 	}
 
 	if blocked, num := security.IsBlocked(msg.From); blocked && st.cvm.Context.BlockNumber.Cmp(big.NewInt(num)) >= 0 {
 		log.Debug("Bad address encounter!!", "addr", msg.From, "number", num)
-		return nil, 0, 0, false, fmt.Errorf("%w: address %v", errors.New("Bad address encounter"), msg.From.Hex())
+		return nil, fmt.Errorf("%w: address %v", errors.New("Bad address encounter"), msg.From.Hex())
 	}
 
 	var (
@@ -337,6 +374,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 		// vm errors do not effect consensus and are therefor
 		// not assigned to err, except for insufficient balance
 		// error.
+		ret   []byte
 		vmerr error
 	)
 	if contractCreation {
@@ -352,7 +390,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 
 	if vmerr != nil {
 		if vmerr == vm.ErrRuntime {
-			return nil, 0, 0, false, vmerr
+			return nil, vmerr
 		}
 
 		log.Debug("VM returned with error", "err", vmerr, "number", cvm.Context.BlockNumber, "from", msg.From.Hex())
@@ -361,7 +399,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 		// sufficient balance to make the transfer happen. The first
 		// balance transfer may never fail.
 		if vmerr == vm.ErrInsufficientBalance {
-			return nil, 0, 0, false, vmerr
+			return nil, vmerr
 		}
 
 		//if vmerr == vm.ErrMetaInfoNotMature {
@@ -371,7 +409,8 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 
 	//gas cost below this line
 
-	st.refundGas()
+	var gasRefund uint64
+	gasRefund = st.refundGas()
 	//model gas
 	gu := st.gasUsed()
 	//if (vmerr == nil || vmerr == vm.ErrOutOfGas) && st.modelGas != nil && len(st.modelGas) > 0 { //pay ctx to the model authors by the model gas * current price
@@ -382,7 +421,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 			}
 
 			if gu < mgas {
-				return nil, 0, 0, false, vm.ErrInsufficientBalance
+				return nil, vm.ErrInsufficientBalance
 			}
 
 			gu -= mgas
@@ -431,23 +470,29 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, quotaUsed
 					request = inputMeta.RawSize - remain
 				}
 			} else {
-				return nil, 0, 0, false, vm.ErrRuntime
+				return nil, vm.ErrRuntime
 			}
 
 			if err != nil {
-				return nil, 0, 0, false, vm.ErrRuntime
+				return nil, vm.ErrRuntime
 			}
 			info := common.StorageEntry{
 				Hash: ih,
 				Size: request,
 			}
 			if err = synapse.Engine().Download(info); err != nil {
-				return nil, 0, 0, false, err
+				return nil, err
 			}
 		}
 	}
 
-	return ret, st.gasUsed(), quota, vmerr != nil, err
+	return &ExecutionResult{
+		UsedGas:     st.gasUsed(),
+		Quota:       quota,
+		RefundedGas: gasRefund,
+		Err:         vmerr,
+		ReturnData:  ret,
+	}, err
 }
 
 // vote to model
@@ -455,7 +500,7 @@ func (st *StateTransition) uploading() bool {
 	return st.msg != nil && st.msg.To != nil && st.msg.Value.Sign() == 0 && st.state.Uploading(st.to()) // && st.gas >= params.UploadGas
 }
 
-func (st *StateTransition) refundGas() {
+func (st *StateTransition) refundGas() uint64 {
 	// Apply refund counter, capped to half of the used gas.
 	refund := st.gasUsed() / 2
 	if refund > st.state.GetRefund() {
@@ -470,6 +515,8 @@ func (st *StateTransition) refundGas() {
 	// Also return remaining gas to the block gas counter so it is
 	// available for the next transaction.
 	st.gp.AddGas(st.gas)
+
+	return refund
 }
 
 // gasUsed returns the amount of gas used up by the state transition.
