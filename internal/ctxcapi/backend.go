@@ -57,7 +57,7 @@ type Backend interface {
 	GetBlock(ctx context.Context, blockHash common.Hash) (*types.Block, error)
 	GetReceipts(ctx context.Context, blockHash common.Hash) (types.Receipts, error)
 	GetTd(ctx context.Context, blockHash common.Hash) *big.Int
-	GetCVM(ctx context.Context, msg *core.Message, state *state.StateDB, header *types.Header, vmCfg vm.Config) (*vm.CVM, func() error)
+	GetCVM(ctx context.Context, msg *core.Message, state *state.StateDB, header *types.Header, vmCfg vm.Config) *vm.CVM
 	SubscribeChainEvent(ch chan<- core.ChainEvent) event.Subscription
 	SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription
 	SubscribeChainSideEvent(ch chan<- core.ChainSideEvent) event.Subscription

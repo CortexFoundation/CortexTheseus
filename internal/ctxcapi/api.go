@@ -777,7 +777,7 @@ func (s *PublicBlockChainAPI) GetSolidityBytes(ctx context.Context, address comm
 		}
 		header := block.Header()
 		msg, err := core.TransactionToMessage(tx, types.MakeSigner(s.b.ChainConfig(), block.Number(), block.Time()))
-		cvm, _ := s.b.GetCVM(ctx, msg, state, header, vm.Config{})
+		cvm := s.b.GetCVM(ctx, msg, state, header, vm.Config{})
 		_, _, _, failed, err := core.ApplyMessage(cvm, msg, gp, qp)
 		if err != nil || failed {
 			return nil, err
@@ -899,7 +899,7 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 
 	// Get a new instance of the CVM.
 	vmCfg.CallFakeVM = true
-	cvm, vmError := s.b.GetCVM(ctx, msg, state, header, vmCfg)
+	cvm := s.b.GetCVM(ctx, msg, state, header, vmCfg)
 	// Wait for the context to be done and cancel the cvm. Even if the
 	// CVM has finished, cancelling may be done (repeatedly)
 	go func() {
@@ -912,7 +912,7 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 	gp := new(core.GasPool).AddGas(math.MaxUint64)
 	qp := new(core.QuotaPool).AddQuota(math.MaxUint64)
 	res, gas, _, failed, err := core.ApplyMessage(cvm, msg, gp, qp)
-	if err := vmError(); err != nil {
+	if err := state.Error(); err != nil {
 		return nil, 0, false, err
 	}
 
