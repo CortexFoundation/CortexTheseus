@@ -64,7 +64,7 @@ func (b *NutsDB) Get(k []byte) (v []byte) {
 		if e, err := tx.Get(GLOBAL, k); err != nil {
 			return err
 		} else {
-			v = e.Value
+			v = e
 		}
 		return nil
 	})
@@ -91,7 +91,7 @@ func (b *NutsDB) Prefix(prefix []byte) (res [][]byte) {
 			return err
 		} else {
 			for _, entry := range entries {
-				res = append(res, common.SafeCopy(nil, entry.Value))
+				res = append(res, common.SafeCopy(nil, entry))
 			}
 		}
 
@@ -109,8 +109,8 @@ func (b *NutsDB) Suffix(suffix []byte) (res [][]byte) {
 		}
 
 		for _, entry := range entries {
-			if bytes.HasSuffix(entry.Key, suffix) {
-				res = append(res, common.SafeCopy(nil, entry.Value))
+			if bytes.HasSuffix(entry, suffix) {
+				res = append(res, common.SafeCopy(nil, entry))
 			}
 		}
 
@@ -128,7 +128,7 @@ func (b *NutsDB) Scan() (res [][]byte) {
 		}
 
 		for _, entry := range entries {
-			res = append(res, common.SafeCopy(nil, entry.Value))
+			res = append(res, common.SafeCopy(nil, entry))
 		}
 		return nil
 	})
@@ -153,7 +153,7 @@ func (b *NutsDB) Range(start, limit []byte) (res [][]byte) {
 			return err
 		} else {
 			for _, entry := range entries {
-				res = append(res, common.SafeCopy(nil, entry.Value))
+				res = append(res, common.SafeCopy(nil, entry))
 			}
 		}
 

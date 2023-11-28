@@ -7,6 +7,7 @@ package pebble
 import (
 	"context"
 
+	"github.com/cockroachdb/errors"
 	"github.com/cockroachdb/pebble/internal/base"
 	"github.com/cockroachdb/pebble/internal/invariants"
 	"github.com/cockroachdb/pebble/internal/keyspan"
@@ -19,12 +20,13 @@ import (
 func (i *Iterator) constructRangeKeyIter() {
 	i.rangeKey.rangeKeyIter = i.rangeKey.iterConfig.Init(
 		&i.comparer, i.seqNum, i.opts.LowerBound, i.opts.UpperBound,
-		&i.hasPrefix, &i.prefixOrFullSeekKey, true /* onlySets */, &i.rangeKey.rangeKeyBuffers.internal)
+		&i.hasPrefix, &i.prefixOrFullSeekKey, false /* internalKeys */, &i.rangeKey.rangeKeyBuffers.internal)
 
 	// If there's an indexed batch with range keys, include it.
 	if i.batch != nil {
 		if i.batch.index == nil {
-			i.rangeKey.iterConfig.AddLevel(newErrorKeyspanIter(ErrNotIndexed))
+			// This isn't an indexed batch. We shouldn't have gotten this far.
+			panic(errors.AssertionFailedf("creating an iterator over an unindexed batch"))
 		} else {
 			// Only include the batch's range key iterator if it has any keys.
 			// NB: This can force reconstruction of the rangekey iterator stack

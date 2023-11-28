@@ -117,11 +117,10 @@ func (y *MemFS) String() string {
 // SetIgnoreSyncs sets the MemFS.ignoreSyncs field. See the usage comment with NewStrictMem() for
 // details.
 func (y *MemFS) SetIgnoreSyncs(ignoreSyncs bool) {
-	y.mu.Lock()
 	if !y.strict {
-		// noop
-		return
+		panic("SetIgnoreSyncs can only be used on a strict MemFS")
 	}
+	y.mu.Lock()
 	y.ignoreSyncs = ignoreSyncs
 	y.mu.Unlock()
 }
@@ -130,8 +129,7 @@ func (y *MemFS) SetIgnoreSyncs(ignoreSyncs bool) {
 // NewStrictMem() for details.
 func (y *MemFS) ResetToSyncedState() {
 	if !y.strict {
-		// noop
-		return
+		panic("ResetToSyncedState can only be used on a strict MemFS")
 	}
 	y.mu.Lock()
 	y.root.resetToSyncedState()
@@ -775,22 +773,23 @@ func (f *memFile) Stat() (os.FileInfo, error) {
 }
 
 func (f *memFile) Sync() error {
-	if f.fs != nil && f.fs.strict {
-		f.fs.mu.Lock()
-		defer f.fs.mu.Unlock()
-		if f.fs.ignoreSyncs {
-			return nil
+	if f.fs == nil || !f.fs.strict {
+		return nil
+	}
+	f.fs.mu.Lock()
+	defer f.fs.mu.Unlock()
+	if f.fs.ignoreSyncs {
+		return nil
+	}
+	if f.n.isDir {
+		f.n.syncedChildren = make(map[string]*memNode)
+		for k, v := range f.n.children {
+			f.n.syncedChildren[k] = v
 		}
-		if f.n.isDir {
-			f.n.syncedChildren = make(map[string]*memNode)
-			for k, v := range f.n.children {
-				f.n.syncedChildren[k] = v
-			}
-		} else {
-			f.n.mu.Lock()
-			f.n.mu.syncedData = slices.Clone(f.n.mu.data)
-			f.n.mu.Unlock()
-		}
+	} else {
+		f.n.mu.Lock()
+		f.n.mu.syncedData = slices.Clone(f.n.mu.data)
+		f.n.mu.Unlock()
 	}
 	return nil
 }

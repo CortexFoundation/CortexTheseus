@@ -1024,7 +1024,6 @@ func (tm *TorrentManager) pendingLoop() {
 							}
 
 							// job TODO
-							log.Info("Job started", "ih", t.InfoHash())
 							valid := func(a *caffe.Torrent) bool {
 								switch a.Status() {
 								case caffe.TorrentPending:
@@ -1048,6 +1047,7 @@ func (tm *TorrentManager) pendingLoop() {
 								defer tm.wg.Done()
 
 								j := job.New(t)
+								log.Info("Job started", "ih", t.InfoHash(), "id", j.ID())
 								ch := j.Completed(fn)
 								defer func() {
 									close(ch)
