@@ -19,12 +19,14 @@ package core
 import (
 	"context"
 	"encoding/json"
+	"os"
 
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/internal/ctxcapi"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"golang.org/x/exp/slog"
 )
 
 type AuditLogger struct {
@@ -98,12 +100,13 @@ func (l *AuditLogger) Import(ctx context.Context, keyJSON json.RawMessage) (Acco
 }
 
 func NewAuditLogger(path string, api ExternalAPI) (*AuditLogger, error) {
-	l := log.New("api", "signer")
-	handler, err := log.FileHandler(path, log.LogfmtFormat())
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return nil, err
 	}
-	l.SetHandler(handler)
+
+	handler := slog.NewTextHandler(f, nil)
+	l := log.NewLogger(handler).With("api", "signer")
 	l.Info("Configured", "audit log", path)
 	return &AuditLogger{l, api}, nil
 }

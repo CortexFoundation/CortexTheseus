@@ -173,7 +173,7 @@ func cvmServer(ctx *cli.Context) error {
 
 	c = make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(ctx.GlobalInt(CVMVerbosity.Name)), log.StreamHandler(os.Stdout, log.TerminalFormat(true))))
+	log.SetDefault(log.NewLogger(log.NewTerminalHandlerWithLevel(os.Stderr, log.LevelTrace, true)))
 
 	fsCfg := params.DefaultConfig
 	utils.SetTorrentFsConfig(ctx, &fsCfg)
