@@ -112,16 +112,16 @@ func applyTransaction(msg *Message, config *params.ChainConfig, gp *GasPool, qp 
 	// Update the evm with the new transaction context.
 	cvm.Reset(txContext, statedb)
 	// Apply the transaction to the current state (included in the env)
-	_, gas, quota, failed, err := ApplyMessage(cvm, msg, gp, qp)
+	result, err := ApplyMessage(cvm, msg, gp, qp)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	if quota > 0 {
-		header.QuotaUsed += quota
+	if result.Quota > 0 {
+		header.QuotaUsed += result.Quota
 
 		if header.Quota < header.QuotaUsed {
-			header.QuotaUsed -= quota
+			header.QuotaUsed -= result.Quota
 			return nil, 0, ErrQuotaLimitReached //errors.New("quota")
 		}
 	}
@@ -134,13 +134,13 @@ func applyTransaction(msg *Message, config *params.ChainConfig, gp *GasPool, qp 
 		root = statedb.IntermediateRoot(config.IsEIP158(header.Number)).Bytes()
 	}
 
-	*usedGas += gas
+	*usedGas += result.UsedGas
 
 	// Create a new receipt for the transaction, storing the intermediate root and gas used
 	// by the tx.
-	receipt := types.NewReceipt(root, failed, *usedGas)
+	receipt := types.NewReceipt(root, result.Failed(), *usedGas)
 	receipt.TxHash = tx.Hash()
-	receipt.GasUsed = gas
+	receipt.GasUsed = result.UsedGas
 	// if the transaction created a contract, store the creation address in the receipt.
 	if msg.To == nil {
 		receipt.ContractAddress = crypto.CreateAddress(cvm.TxContext.Origin, tx.Nonce())
@@ -152,7 +152,7 @@ func applyTransaction(msg *Message, config *params.ChainConfig, gp *GasPool, qp 
 	receipt.BlockNumber = blockNumber
 	receipt.TransactionIndex = uint(statedb.TxIndex())
 
-	return receipt, gas, err
+	return receipt, result.UsedGas, err
 }
 
 // ApplyTransaction attempts to apply a transaction to the given state database

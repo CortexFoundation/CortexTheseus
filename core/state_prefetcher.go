@@ -94,6 +94,6 @@ func precacheTransaction(config *params.ChainConfig, bc ChainContext, author *co
 	txContext := NewCVMTxContext(msg)
 	vm := vm.NewCVM(context, txContext, statedb, config, cfg)
 
-	_, _, _, _, err = ApplyMessage(vm, msg, gaspool, quotaPool)
+	_, err = ApplyMessage(vm, msg, gaspool, quotaPool)
 	return err
 }
