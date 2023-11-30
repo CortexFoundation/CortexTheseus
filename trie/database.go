@@ -167,10 +167,10 @@ func (n *cachedNode) obj(hash common.Hash) node {
 	return expandNode(hash[:], n.node)
 }
 
-// forChilds invokes the callback for all the tracked children of this node,
+// forChildren invokes the callback for all the tracked children of this node,
 // both the implicit ones from inside the node as well as the explicit ones
 // from outside the node.
-func (n *cachedNode) forChilds(onChild func(hash common.Hash)) {
+func (n *cachedNode) forChildren(onChild func(hash common.Hash)) {
 	for child := range n.children {
 		onChild(child)
 	}
@@ -317,7 +317,7 @@ func (db *Database) insert(hash common.Hash, size int, node node) {
 		size:      uint16(size),
 		flushPrev: db.newest,
 	}
-	entry.forChilds(func(child common.Hash) {
+	entry.forChildren(func(child common.Hash) {
 		if c := db.dirties[child]; c != nil {
 			c.parents++
 		}
@@ -521,7 +521,7 @@ func (db *Database) dereference(child common.Hash, parent common.Hash) {
 			db.dirties[node.flushNext].flushPrev = node.flushPrev
 		}
 		// Dereference all children and delete the node
-		node.forChilds(func(hash common.Hash) {
+		node.forChildren(func(hash common.Hash) {
 			db.dereference(hash, child)
 		})
 		delete(db.dirties, child)
@@ -547,12 +547,14 @@ func (db *Database) Preimage(hash common.Hash) []byte {
 // Note, this method is a non-synchronized mutator. It is unsafe to call this
 // concurrently with other mutators.
 func (db *Database) Cap(limit common.StorageSize) error {
+	db.lock.Lock()
+	defer db.lock.Unlock()
 	// Create a database batch to flush persistent data out. It is important that
 	// outside code doesn't see an inconsistent state (referenced data removed from
 	// memory cache during commit but not yet in persistent storage). This is ensured
 	// by only uncaching existing data when the database write finalizes.
-	nodes, storage, start := len(db.dirties), db.dirtiesSize, time.Now()
 	batch := db.diskdb.NewBatch()
+	nodes, storage, start := len(db.dirties), db.dirtiesSize, time.Now()
 
 	// db.dirtiesSize only contains the useful data in the cache, but when reporting
 	// the total memory consumption, the maintenance metadata is also needed to be
@@ -597,8 +599,6 @@ func (db *Database) Cap(limit common.StorageSize) error {
 		return err
 	}
 	// Write successful, clear out the flushed data
-	db.lock.Lock()
-	defer db.lock.Unlock()
 
 	for db.oldest != oldest {
 		node := db.dirties[db.oldest]
@@ -634,6 +634,8 @@ func (db *Database) Cap(limit common.StorageSize) error {
 // Note, this method is a non-synchronized mutator. It is unsafe to call this
 // concurrently with other mutators.
 func (db *Database) Commit(node common.Hash, report bool) error {
+	db.lock.Lock()
+	defer db.lock.Unlock()
 	// Create a database batch to flush persistent data out. It is important that
 	// outside code doesn't see an inconsistent state (referenced data removed from
 	// memory cache during commit but not yet in persistent storage). This is ensured
@@ -661,8 +663,6 @@ func (db *Database) Commit(node common.Hash, report bool) error {
 		return err
 	}
 	// Uncache any leftovers in the last batch
-	db.lock.Lock()
-	defer db.lock.Unlock()
 	if err := batch.Replay(uncacher); err != nil {
 		return err
 	}
@@ -695,7 +695,7 @@ func (db *Database) commit(hash common.Hash, batch ctxcdb.Batch, uncacher *clean
 		return nil
 	}
 	var err error
-	node.forChilds(func(child common.Hash) {
+	node.forChildren(func(child common.Hash) {
 		if err == nil {
 			err = db.commit(child, batch, uncacher)
 		}
@@ -709,13 +709,11 @@ func (db *Database) commit(hash common.Hash, batch ctxcdb.Batch, uncacher *clean
 		if err := batch.Write(); err != nil {
 			return err
 		}
-		db.lock.Lock()
 		err := batch.Replay(uncacher)
-		batch.Reset()
-		db.lock.Unlock()
 		if err != nil {
 			return err
 		}
+		batch.Reset()
 	}
 	return nil
 }
