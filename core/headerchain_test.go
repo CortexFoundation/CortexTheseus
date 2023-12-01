@@ -19,6 +19,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -28,6 +29,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
+	"golang.org/x/exp/slog"
 )
 
 func verifyUnbrokenCanonchain(hc *HeaderChain) error {
@@ -81,7 +83,7 @@ func TestHeaderInsertion(t *testing.T) {
 	chainA := makeHeaderChain(genesis.Header(), 128, cuckoo.NewFaker(), db, 10)
 	// chain B: G->A1->B2...B128
 	chainB := makeHeaderChain(chainA[0], 128, cuckoo.NewFaker(), db, 10)
-	log.Root().SetHandler(log.StdoutHandler)
+	log.SetDefault(log.NewLogger(slog.NewTextHandler(os.Stdout, nil)))
 
 	// Inserting 64 headers on an empty chain, expecting
 	// 1 callbacks, 1 canon-status, 0 sidestatus,

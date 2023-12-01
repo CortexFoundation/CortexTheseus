@@ -24,6 +24,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/mattn/go-colorable"
+	"golang.org/x/exp/slog"
 )
 
 func TestEncryption(t *testing.T) {
@@ -93,7 +94,7 @@ func TestFileStorage(t *testing.T) {
 }
 func TestEnd2End(t *testing.T) {
 	t.Parallel()
-	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(3), log.StreamHandler(colorable.NewColorableStderr(), log.TerminalFormat(true))))
+	log.SetDefault(log.NewLogger(log.NewTerminalHandlerWithLevel(colorable.NewColorableStderr(), slog.LevelInfo, true)))
 
 	d, err := os.MkdirTemp("", "ctxc-encrypted-storage-test")
 	if err != nil {

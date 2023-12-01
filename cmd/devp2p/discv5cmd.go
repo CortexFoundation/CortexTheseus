@@ -26,6 +26,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/internal/utesting"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p/discover"
+	"golang.org/x/exp/slog"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -121,7 +122,7 @@ func discv5Crawl(ctx *cli.Context) error {
 func discv5Test(ctx *cli.Context) error {
 	// Disable logging unless explicitly enabled.
 	if !ctx.GlobalIsSet("verbosity") && !ctx.GlobalIsSet("vmodule") {
-		log.Root().SetHandler(log.DiscardHandler())
+		log.SetDefault(log.NewLogger(slog.NewTextHandler(os.Stdout, nil)))
 	}
 
 	// Filter and run test cases.

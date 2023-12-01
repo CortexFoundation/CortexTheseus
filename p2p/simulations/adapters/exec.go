@@ -41,6 +41,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/gorilla/websocket"
+	"golang.org/x/exp/slog"
 )
 
 func init() {
@@ -362,13 +363,47 @@ type execNodeConfig struct {
 	PeerAddrs map[string]string `json:"peer_addrs,omitempty"`
 }
 
+func initLogging() {
+	// Initialize the logging by default first.
+	var innerHandler slog.Handler
+	innerHandler = slog.NewTextHandler(os.Stderr, nil)
+	glogger := log.NewGlogHandler(innerHandler)
+	glogger.Verbosity(log.LevelInfo)
+	log.SetDefault(log.NewLogger(glogger))
+
+	confEnv := os.Getenv(envNodeConfig)
+	if confEnv == "" {
+		return
+	}
+	var conf execNodeConfig
+	if err := json.Unmarshal([]byte(confEnv), &conf); err != nil {
+		return
+	}
+	var writer = os.Stderr
+	if conf.Node.LogFile != "" {
+		logWriter, err := os.Create(conf.Node.LogFile)
+		if err != nil {
+			return
+		}
+		writer = logWriter
+	}
+	var verbosity = log.LevelInfo
+	if conf.Node.LogVerbosity <= log.LevelTrace && conf.Node.LogVerbosity >= log.LevelCrit {
+		verbosity = log.FromLegacyLevel(int(conf.Node.LogVerbosity))
+	}
+	// Reinitialize the logger
+	innerHandler = log.NewTerminalHandler(writer, true)
+	glogger = log.NewGlogHandler(innerHandler)
+	glogger.Verbosity(verbosity)
+	log.SetDefault(log.NewLogger(glogger))
+}
+
 // execP2PNode starts a simulation node when the current binary is executed with
 // argv[0] being "p2p-node", reading the service / ID from argv[1] / argv[2]
 // and the node config from an environment variable.
 func execP2PNode() {
-	glogger := log.NewGlogHandler(log.StreamHandler(os.Stderr, log.LogfmtFormat()))
-	glogger.Verbosity(log.LvlInfo)
-	log.Root().SetHandler(glogger)
+	initLogging()
+
 	statusURL := os.Getenv(envStatusURL)
 	if statusURL == "" {
 		log.Crit("missing " + envStatusURL)

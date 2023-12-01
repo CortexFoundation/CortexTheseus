@@ -34,6 +34,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p/enr"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/gorilla/websocket"
+	"golang.org/x/exp/slog"
 )
 
 // Node represents a node in a simulation network which is created by a
@@ -116,6 +117,17 @@ type NodeConfig struct {
 	Reachable func(id enode.ID) bool
 
 	Port uint16
+
+	// LogFile is the log file name of the p2p node at runtime.
+	//
+	// The default value is empty so that the default log writer
+	// is the system standard output.
+	LogFile string
+
+	// LogVerbosity is the log verbosity of the p2p node at runtime.
+	//
+	// The default verbosity is INFO.
+	LogVerbosity slog.Level
 }
 
 // nodeConfigJSON is used to encode and decode NodeConfig as JSON by encoding
@@ -128,6 +140,8 @@ type nodeConfigJSON struct {
 	Properties      []string `json:"properties"`
 	EnableMsgEvents bool     `json:"enable_msg_events"`
 	Port            uint16   `json:"port"`
+	LogFile         string   `json:"logfile"`
+	LogVerbosity    int      `json:"log_verbosity"`
 }
 
 // MarshalJSON implements the json.Marshaler interface by encoding the config
@@ -140,6 +154,8 @@ func (n *NodeConfig) MarshalJSON() ([]byte, error) {
 		Properties:      n.Properties,
 		Port:            n.Port,
 		EnableMsgEvents: n.EnableMsgEvents,
+		LogFile:         n.LogFile,
+		LogVerbosity:    int(n.LogVerbosity),
 	}
 	if n.PrivateKey != nil {
 		confJSON.PrivateKey = hex.EncodeToString(crypto.FromECDSA(n.PrivateKey))
@@ -178,6 +194,8 @@ func (n *NodeConfig) UnmarshalJSON(data []byte) error {
 	n.Properties = confJSON.Properties
 	n.Port = confJSON.Port
 	n.EnableMsgEvents = confJSON.EnableMsgEvents
+	n.LogFile = confJSON.LogFile
+	n.LogVerbosity = slog.Level(confJSON.LogVerbosity)
 
 	return nil
 }

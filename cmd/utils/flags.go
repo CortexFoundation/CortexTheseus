@@ -161,6 +161,17 @@ var (
 	// 	Name:  "nousb",
 	// 	Usage: "Disables monitoring for and managing USB hardware wallets",
 	// }
+
+	// Deprecated November 2023
+	LogBacktraceAtFlag = &cli.StringFlag{
+		Name:  "log.backtrace",
+		Usage: "Request a stack trace at a specific logging statement (deprecated)",
+		Value: "",
+	}
+	LogDebugFlag = &cli.BoolFlag{
+		Name:  "log.debug",
+		Usage: "Prepends log messages with call-site location (deprecated)",
+	}
 	NetworkIdFlag = cli.Uint64Flag{
 		Name:  "networkid",
 		Usage: "Network identifier (integer, 21=Mainnet, 42=Bernard, 43=Dolores)",
@@ -1259,6 +1270,13 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 		}
 		log.Info(fmt.Sprintf("Using %s as db engine", dbEngine))
 		cfg.DBEngine = dbEngine
+	}
+	// deprecation notice for log debug flags (TODO: find a more appropriate place to put these?)
+	if ctx.IsSet(LogBacktraceAtFlag.Name) {
+		log.Warn("log.backtrace flag is deprecated")
+	}
+	if ctx.IsSet(LogDebugFlag.Name) {
+		log.Warn("log.debug flag is deprecated")
 	}
 }
 

@@ -94,7 +94,7 @@ var (
 	testMode       = flag.Bool("test", false, "use of predefined parameters for diagnostics (password, etc.)")
 	echoMode       = flag.Bool("echo", false, "echo mode: prints some arguments for diagnostics")
 
-	argVerbosity = flag.Int("verbosity", int(log.LvlError), "log verbosity level")
+	argVerbosity = flag.Int("verbosity", int(log.LevelError), "log verbosity level")
 	argTTL       = flag.Uint("ttl", 30, "time-to-live for messages in seconds")
 	argWorkTime  = flag.Uint("work", 5, "work time in seconds")
 	argMaxSize   = flag.Uint("maxsize", uint(whisper.DefaultMaxMessageSize), "max size of message")
@@ -176,7 +176,7 @@ func echo() {
 }
 
 func initialize() {
-	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(*argVerbosity), log.StreamHandler(os.Stderr, log.TerminalFormat(false))))
+	log.SetDefault(log.NewLogger(log.NewTerminalHandlerWithLevel(os.Stderr, log.LevelTrace, false)))
 
 	done = make(chan struct{})
 	var peers []*enode.Node
