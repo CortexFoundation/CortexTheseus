@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/accounts"
+	"github.com/CortexFoundation/CortexTheseus/accounts/abi"
 	"github.com/CortexFoundation/CortexTheseus/accounts/keystore"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
@@ -848,12 +849,43 @@ func (args *CallArgs) ToMessage(globalGasCap uint64, baseFee *big.Int) (*core.Me
 
 }
 
-func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr rpc.BlockNumber, vmCfg vm.Config, timeout time.Duration) ([]byte, uint64, bool, error) {
+func newRevertError(revert []byte) *revertError {
+	err := vm.ErrExecutionReverted
+
+	reason, errUnpack := abi.UnpackRevert(revert)
+	if errUnpack == nil {
+		err = fmt.Errorf("%w: %v", vm.ErrExecutionReverted, reason)
+	}
+	return &revertError{
+		error:  err,
+		reason: hexutil.Encode(revert),
+	}
+}
+
+// revertError is an API error that encompasses an EVM revertal with JSON error
+// code and a binary data blob.
+type revertError struct {
+	error
+	reason string // revert reason hex encoded
+}
+
+// ErrorCode returns the JSON error code for a revertal.
+// See: https://github.com/ethereum/wiki/wiki/JSON-RPC-Error-Codes-Improvement-Proposal
+func (e *revertError) ErrorCode() int {
+	return 3
+}
+
+// ErrorData returns the hex encoded revert reason.
+func (e *revertError) ErrorData() interface{} {
+	return e.reason
+}
+
+func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr rpc.BlockNumber, vmCfg vm.Config, timeout time.Duration) (*core.ExecutionResult, error) {
 	defer func(start time.Time) { log.Debug("Executing CVM call finished", "runtime", time.Since(start)) }(time.Now())
 
 	state, header, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
 	if state == nil || err != nil {
-		return nil, 0, false, err
+		return nil, err
 	}
 
 	/*addr := args.From
@@ -882,7 +914,7 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 	msg := types.NewMessage(addr, args.To, 0, args.Value.ToInt(), gas, gasPrice, args.Data, false)*/
 	msg, err := args.ToMessage(s.b.RPCGasCap(), nil) //types.NewMessage(addr, args.To, 0, args.Value.ToInt(), gas, gasPrice, args.Data, false)
 	if err != nil {
-		return nil, 0, false, err
+		return nil, err
 	}
 
 	// Setup context so it may be cancelled the call has completed
@@ -913,28 +945,35 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 	qp := new(core.QuotaPool).AddQuota(math.MaxUint64)
 	result, err := core.ApplyMessage(cvm, msg, gp, qp)
 	if err := state.Error(); err != nil {
-		return nil, 0, false, err
+		return nil, err
 	}
 
 	// If the timer caused an abort, return an appropriate error message
 	if cvm.Cancelled() {
-		return nil, 0, false, fmt.Errorf("execution aborted (timeout = %v)", timeout)
+		return nil, fmt.Errorf("execution aborted (timeout = %v)", timeout)
 	}
 
-	return result.Return(), result.UsedGas, result.Failed(), err
+	return result, err
 }
 
 // Call executes the given transaction on the state for the given block number.
 // It doesn't make and changes in the state/blockchain and is useful to execute and retrieve values.
 func (s *PublicBlockChainAPI) Call(ctx context.Context, args CallArgs, blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
-	result, _, _, err := s.doCall(ctx, args, blockNr, vm.Config{}, 5*time.Second)
-	return result, err
+	result, err := s.doCall(ctx, args, blockNr, vm.Config{}, 5*time.Second)
+	if err != nil {
+		return nil, err
+	}
+	// If the result contains a revert reason, try to unpack and return it.
+	if len(result.Revert()) > 0 {
+		return nil, newRevertError(result.Revert())
+	}
+	return result.Return(), err
 }
 
 // same as Call, except for RPC_GetInternalTransaction flag with overwritten returns.
 func (s *PublicBlockChainAPI) GetInternalTransaction(ctx context.Context, args CallArgs, blockNr rpc.BlockNumber) (string, error) {
-	result, _, _, err := s.doCall(ctx, args, blockNr, vm.Config{RPC_GetInternalTransaction: true}, 5*time.Second)
-	return (string)(result), err
+	result, err := s.doCall(ctx, args, blockNr, vm.Config{RPC_GetInternalTransaction: true}, 5*time.Second)
+	return (string)(result.Return()), err
 }
 
 // EstimateGas returns an estimate of the amount of gas needed to execute the
@@ -965,12 +1004,13 @@ func (s *PublicBlockChainAPI) EstimateGas(ctx context.Context, args CallArgs) (h
 	executable := func(gas uint64) bool {
 		args.Gas = hexutil.Uint64(gas)
 
-		_, _, failed, err := s.doCall(ctx, args, rpc.LatestBlockNumber, vm.Config{}, 0)
-		if err != nil || failed {
+		result, err := s.doCall(ctx, args, rpc.LatestBlockNumber, vm.Config{}, 0)
+		if err != nil || result.Failed() {
 			return false
 		}
 		return true
 	}
+
 	// Execute the binary search and hone in on an executable gas limit
 	for lo+1 < hi {
 		mid := (hi + lo) / 2
