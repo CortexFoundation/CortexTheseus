@@ -439,21 +439,16 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		cur := st.state.Upload(st.to()).Uint64()
 		if cur > 0 {
 			quota = math2.Uint64Min(params.PER_UPLOAD_BYTES, cur)
-
 			remain := st.state.SubUpload(st.to(), new(big.Int).SetUint64(quota)).Uint64()
 
 			var (
 				ih      string
 				request uint64
-				//remain  uint64
 			)
-			//if !st.state.Uploading(st.to()) {
 			if remain == 0 {
 				st.state.SetNum(st.to(), st.cvm.Context.BlockNumber)
 				log.Debug("Upload OK", "address", st.to().Hex(), "number", cvm.Context.BlockNumber, "nonce", st.msg.Nonce)
-				//todo block maturing log
 			} else {
-				//remain = st.state.Upload(st.to()).Uint64()
 				log.Debug("Waiting ...", "address", st.to().Hex(), "number", cvm.Context.BlockNumber, "remain", remain)
 			}
 			raw := st.state.GetCode(st.to())
@@ -476,11 +471,11 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 			if err != nil {
 				return nil, vm.ErrRuntime
 			}
-			info := common.StorageEntry{
+
+			if err = synapse.Engine().Download(common.StorageEntry{
 				Hash: ih,
 				Size: request,
-			}
-			if err = synapse.Engine().Download(info); err != nil {
+			}); err != nil {
 				return nil, err
 			}
 		}
@@ -492,7 +487,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		RefundedGas: gasRefund,
 		Err:         vmerr,
 		ReturnData:  ret,
-	}, err
+	}, nil
 }
 
 // vote to model
