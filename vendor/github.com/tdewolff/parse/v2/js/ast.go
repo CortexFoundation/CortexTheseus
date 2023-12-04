@@ -430,8 +430,10 @@ func (n Comment) String() string {
 
 // JS writes JavaScript to writer.
 func (n Comment) JS(w io.Writer) {
+	if wi, ok := w.(Indenter); ok {
+		w = wi.w
+	}
 	w.Write(n.Value)
-	w.Write([]byte("\n"))
 }
 
 // BlockStmt is a block statement.
@@ -1194,6 +1196,8 @@ func (n BindingArray) String() string {
 			s += ","
 		}
 		s += " ...Binding(" + n.Rest.String() + ")"
+	} else if 0 < len(n.List) && n.List[len(n.List)-1].Binding == nil {
+		s += ","
 	}
 	return s + " ]"
 }
@@ -1203,9 +1207,14 @@ func (n BindingArray) JS(w io.Writer) {
 	w.Write([]byte("["))
 	for j, item := range n.List {
 		if j != 0 {
-			w.Write([]byte(", "))
+			w.Write([]byte(","))
 		}
-		item.JS(w)
+		if item.Binding != nil {
+			if j != 0 {
+				w.Write([]byte(" "))
+			}
+			item.JS(w)
+		}
 	}
 	if n.Rest != nil {
 		if len(n.List) != 0 {
@@ -1213,6 +1222,8 @@ func (n BindingArray) JS(w io.Writer) {
 		}
 		w.Write([]byte("..."))
 		n.Rest.JS(w)
+	} else if 0 < len(n.List) && n.List[len(n.List)-1].Binding == nil {
+		w.Write([]byte(","))
 	}
 	w.Write([]byte("]"))
 }
