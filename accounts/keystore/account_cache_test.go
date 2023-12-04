@@ -133,6 +133,7 @@ func TestWatchNoDir(t *testing.T) {
 }
 
 func TestCacheInitialReload(t *testing.T) {
+	t.Parallel()
 	cache, _ := newAccountCache(cachetestDir)
 	accounts := cache.accounts()
 	if !reflect.DeepEqual(accounts, cachetestAccounts) {
@@ -141,6 +142,7 @@ func TestCacheInitialReload(t *testing.T) {
 }
 
 func TestCacheAddDeleteOrder(t *testing.T) {
+	t.Parallel()
 	cache, _ := newAccountCache("testdata/no-such-dir")
 	cache.watcher.running = true // prevent unexpected reloads
 
@@ -225,6 +227,7 @@ func TestCacheAddDeleteOrder(t *testing.T) {
 }
 
 func TestCacheFind(t *testing.T) {
+	t.Parallel()
 	dir := filepath.Join("testdata", "dir")
 	cache, _ := newAccountCache(dir)
 	cache.watcher.running = true // prevent unexpected reloads

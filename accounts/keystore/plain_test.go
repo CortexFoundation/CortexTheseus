@@ -44,6 +44,7 @@ func tmpKeyStoreIface(t *testing.T, encrypted bool) (dir string, ks keyStore) {
 }
 
 func TestKeyStorePlain(t *testing.T) {
+	t.Parallel()
 	dir, ks := tmpKeyStoreIface(t, false)
 	defer os.RemoveAll(dir)
 
@@ -65,6 +66,7 @@ func TestKeyStorePlain(t *testing.T) {
 }
 
 func TestKeyStorePassphrase(t *testing.T) {
+	t.Parallel()
 	dir, ks := tmpKeyStoreIface(t, true)
 	defer os.RemoveAll(dir)
 
@@ -86,6 +88,7 @@ func TestKeyStorePassphrase(t *testing.T) {
 }
 
 func TestKeyStorePassphraseDecryptionFail(t *testing.T) {
+	t.Parallel()
 	dir, ks := tmpKeyStoreIface(t, true)
 	defer os.RemoveAll(dir)
 
@@ -100,6 +103,7 @@ func TestKeyStorePassphraseDecryptionFail(t *testing.T) {
 }
 
 func TestImportPreSaleKey(t *testing.T) {
+	t.Parallel()
 	dir, ks := tmpKeyStoreIface(t, true)
 	defer os.RemoveAll(dir)
 

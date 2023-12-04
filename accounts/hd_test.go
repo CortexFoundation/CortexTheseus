@@ -17,6 +17,7 @@
 package accounts
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -24,6 +25,7 @@ import (
 // Tests that HD derivation paths can be correctly parsed into our internal binary
 // representation.
 func TestHDPathParsing(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		input  string
 		output DerivationPath
@@ -74,6 +76,15 @@ func TestHDPathParsing(t *testing.T) {
 			t.Errorf("test %d: parse mismatch: have %v (%v), want %v", i, path, err, tt.output)
 		} else if path == nil && err == nil {
 			t.Errorf("test %d: nil path and error: %v", i, err)
+		}
+	}
+}
+
+func testDerive(t *testing.T, next func() DerivationPath, expected []string) {
+	t.Helper()
+	for i, want := range expected {
+		if have := next(); fmt.Sprintf("%v", have) != want {
+			t.Errorf("step %d, have %v, want %v", i, have, want)
 		}
 	}
 }

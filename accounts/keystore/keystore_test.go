@@ -33,6 +33,7 @@ import (
 var testSigData = make([]byte, 32)
 
 func TestKeyStore(t *testing.T) {
+	t.Parallel()
 	dir, ks := tmpKeyStore(t, true)
 	defer os.RemoveAll(dir)
 
@@ -68,6 +69,7 @@ func TestKeyStore(t *testing.T) {
 }
 
 func TestSign(t *testing.T) {
+	t.Parallel()
 	dir, ks := tmpKeyStore(t, true)
 	defer os.RemoveAll(dir)
 
@@ -85,6 +87,7 @@ func TestSign(t *testing.T) {
 }
 
 func TestSignWithPassphrase(t *testing.T) {
+	t.Parallel()
 	dir, ks := tmpKeyStore(t, true)
 	defer os.RemoveAll(dir)
 
@@ -279,6 +282,7 @@ type walletEvent struct {
 // Tests that wallet notifications and correctly fired when accounts are added
 // or deleted from the keystore.
 func TestWalletNotifications(t *testing.T) {
+	t.Parallel()
 	dir, ks := tmpKeyStore(t, false)
 	defer os.RemoveAll(dir)
 
