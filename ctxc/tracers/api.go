@@ -183,6 +183,7 @@ type TraceCallConfig struct {
 	TraceConfig
 	StateOverrides *ctxcapi.StateOverride
 	BlockOverrides *ctxcapi.BlockOverrides
+	TxIndex        *hexutil.Uint
 }
 
 // StdTraceConfig holds extra parameters to standard-json trace functions.
@@ -850,8 +851,10 @@ func (api *API) TraceTransaction(ctx context.Context, hash common.Hash, config *
 func (api *API) TraceCall(ctx context.Context, args ctxcapi.CallArgs, blockNrOrHash rpc.BlockNumberOrHash, config *TraceCallConfig) (interface{}, error) {
 	// Try to retrieve the specified block
 	var (
-		err   error
-		block *types.Block
+		err     error
+		block   *types.Block
+		statedb *state.StateDB
+		release StateReleaseFunc
 	)
 	if hash, ok := blockNrOrHash.Hash(); ok {
 		block, err = api.blockByHash(ctx, hash)
@@ -876,7 +879,12 @@ func (api *API) TraceCall(ctx context.Context, args ctxcapi.CallArgs, blockNrOrH
 	if config != nil && config.Reexec != nil {
 		reexec = *config.Reexec
 	}
-	statedb, release, err := api.backend.StateAtBlock(ctx, block, reexec, nil, true, false)
+
+	if config != nil && config.TxIndex != nil {
+		_, _, statedb, release, err = api.backend.StateAtTransaction(ctx, block, int(*config.TxIndex), reexec)
+	} else {
+		statedb, release, err = api.backend.StateAtBlock(ctx, block, reexec, nil, true, false)
+	}
 	if err != nil {
 		return nil, err
 	}
