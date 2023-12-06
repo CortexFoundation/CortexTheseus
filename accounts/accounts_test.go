@@ -24,6 +24,7 @@ import (
 )
 
 func TestTextHash(t *testing.T) {
+	t.Parallel()
 	hash := TextHash([]byte("Hello Joe"))
 	want := hexutil.MustDecode("0xada3fecbe8293124da26413125b72e666e52ba5553a4bc66a26fbf81a13dc4bd")
 	if !bytes.Equal(hash, want) {
