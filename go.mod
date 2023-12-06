@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.56-0.20231202145520-c35c2b07f596
+	github.com/CortexFoundation/torrentfs v1.0.56-0.20231204190721-6f6cee9fb1d9
 	github.com/VictoriaMetrics/fastcache v1.12.2
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.23.5
@@ -60,7 +60,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d
 	github.com/ucwong/color v1.10.1-0.20200624105241-fba1e010fe1e
-	github.com/urfave/cli/v2 v2.25.7
+	github.com/urfave/cli/v2 v2.26.0
 	go.uber.org/automaxprocs v1.5.3
 	golang.org/x/crypto v0.16.0
 	golang.org/x/exp v0.0.0-20231127185646-65229373498e
@@ -177,7 +177,7 @@ require (
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/flatbuffers v23.5.26+incompatible // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
-	github.com/google/pprof v0.0.0-20231127191134-f3a68a39ae15 // indirect
+	github.com/google/pprof v0.0.0-20231203200248-ad67f76aa53d // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.5 // indirect
@@ -215,7 +215,7 @@ require (
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
-	github.com/nutsdb/nutsdb v1.0.2-0.20231202041844-6a3bb4076cbb // indirect
+	github.com/nutsdb/nutsdb v1.0.2-0.20231203103502-0940bfe266a2 // indirect
 	github.com/otiai10/copy v1.14.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/pion/datachannel v1.5.5 // indirect
@@ -253,7 +253,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
 	github.com/supranational/blst v0.3.11 // indirect
-	github.com/tdewolff/minify/v2 v2.20.8 // indirect
+	github.com/tdewolff/minify/v2 v2.20.9 // indirect
 	github.com/tdewolff/parse/v2 v2.7.6 // indirect
 	github.com/tidwall/btree v1.7.0 // indirect
 	github.com/tidwall/hashmap v1.8.1 // indirect
@@ -262,7 +262,7 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ucwong/filecache v1.0.6-0.20230405163841-810d53ced4bd // indirect
 	github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb // indirect
-	github.com/ucwong/golang-kv v1.0.23-0.20231202144924-3192b356ec6d // indirect
+	github.com/ucwong/golang-kv v1.0.23-0.20231203142559-1c12ee0f9d79 // indirect
 	github.com/ucwong/shard v1.0.1-0.20230924231639-2ac2d8ab288c // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
