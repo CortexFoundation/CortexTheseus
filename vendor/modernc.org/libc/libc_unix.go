@@ -16,6 +16,7 @@ import (
 	"os"
 	gosignal "os/signal"
 	"reflect"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -1164,3 +1165,92 @@ func Xpread(t *TLS, fd int32, buf uintptr, count types.Size_t, offset types.Off_
 	// }
 	return types.Ssize_t(n)
 }
+
+// // malloc_zone_t * malloc_create_zone(vm_size_t start_size, unsigned flags);
+// func Xmalloc_create_zone(t *TLS, start_size types.Size_t, flags uint32) uintptr {
+// 	if __ccgo_strace {
+// 		trc("t=%v start_size=%v flags=%v, (%v:)", t, start_size, flags, origin(2))
+// 	}
+// 	panic(todo(""))
+// }
+// 
+// // void * malloc_zone_malloc(malloc_zone_t *zone, size_t size);
+// func Xmalloc_zone_malloc(t *TLS, zone uintptr, size types.Size_t) uintptr {
+// 	if __ccgo_strace {
+// 		trc("t=%v zone=%v size=%v, (%v:)", t, zone, size, origin(2))
+// 	}
+// 	if zone == defaultZone {
+// 		return Xmalloc(t, size)
+// 	}
+// 
+// 	panic(todo(""))
+// }
+// 
+// // malloc_zone_t *  malloc_default_zone(void);
+// func Xmalloc_default_zone(t *TLS) uintptr {
+// 	if __ccgo_strace {
+// 		trc("t=%v (%v:)", t, origin(2))
+// 	}
+// 	return defaultZone
+// }
+// 
+// // void malloc_zone_free(malloc_zone_t *zone, void *ptr);
+// func Xmalloc_zone_free(t *TLS, zone, ptr uintptr) {
+// 	if __ccgo_strace {
+// 		trc("t=%v zone=%v ptr=%v, (%v:)", t, zone, ptr, origin(2))
+// 	}
+// 
+// 	if zone == defaultZone {
+// 		Xfree(t, ptr)
+// 		return
+// 	}
+// 
+// 	panic(todo(""))
+// }
+// 
+// // void * malloc_zone_realloc(malloc_zone_t *zone, void *ptr, size_t size);
+// func Xmalloc_zone_realloc(t *TLS, zone, ptr uintptr, size types.Size_t) uintptr {
+// 	if __ccgo_strace {
+// 		trc("t=%v zone=%v ptr=%v size=%v, (%v:)", t, zone, ptr, size, origin(2))
+// 	}
+// 	panic(todo(""))
+// }
+
+// int sysctlbyname(const char *name, void *oldp, size_t *oldlenp, void *newp, size_t newlen);
+func Xsysctlbyname(t *TLS, name, oldp, oldlenp, newp uintptr, newlen types.Size_t) int32 {
+	if __ccgo_strace {
+		trc("t=%v name=%q oldp=%#0x oldlenp=%v newp=%v newlen=%v, (%v:)", t, GoString(name), oldp, *(*types.Size_t)(unsafe.Pointer(oldlenp)), newp, newlen, origin(2))
+	}
+	oldlen := *(*types.Size_t)(unsafe.Pointer(oldlenp))
+	switch GoString(name) {
+	case "hw.ncpu":
+		if oldlen != 4 {
+			panic(todo(""))
+		}
+
+		*(*int32)(unsafe.Pointer(oldp)) = int32(runtime.GOMAXPROCS(-1))
+		return 0
+	default:
+		t.setErrno(errno.ENOENT)
+		return -1
+	}
+}
+
+// type mallocZone struct {
+// 	a memory.Allocator
+// 	mu sync.Mutex
+// 
+// 	isDefault bool
+// }
+// 
+// func newMallocZone(isDefault bool) *mallocZone {
+// 	return &mallocZone{isDefault: isDefault}
+// }
+// 
+// var (
+// 	defaultZone uintptr
+// )
+// 
+// func init() {
+// 	defaultZone = addObject(newMallocZone(true))
+// }

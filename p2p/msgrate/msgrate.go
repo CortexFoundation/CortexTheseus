@@ -1,23 +1,24 @@
-// Copyright 2021 The CortexTheseus Authors
-// This file is part of the CortexTheseus library.
+// Copyright 2021 The go-ethereum Authors
+// This file is part of The go-ethereum library.
 //
-// The CortexTheseus library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexTheseus library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
+// along with The go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 // Package msgrate allows estimating the throughput of peers for more balanced syncs.
 package msgrate
 
 import (
+	"context"
 	"errors"
 	"math"
 	"sort"
@@ -410,7 +411,9 @@ func (t *Trackers) tune() {
 
 	t.tuned = time.Now()
 	t.log.Debug("Recalculated msgrate QoS values", "rtt", t.roundtrip, "confidence", t.confidence, "ttl", t.targetTimeout(), "next", t.tuned.Add(t.roundtrip))
-	t.log.Trace("Debug dump of mean capacities", "caps", log.Lazy{Fn: t.meanCapacities})
+	if t.log.Enabled(context.Background(), log.LevelTrace) {
+		t.log.Trace("Debug dump of mean capacities", "caps", t.meanCapacities())
+	}
 }
 
 // detune reduces the tracker's confidence in order to make fresh measurements

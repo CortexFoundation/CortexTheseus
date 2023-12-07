@@ -1,4 +1,4 @@
-// Copyright 2018 The CortexTheseus Authors
+// Copyright 2018 The go-ethereum Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -18,21 +18,16 @@ package vm
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"github.com/CortexFoundation/inference/synapse"
-	torrentfs "github.com/CortexFoundation/torrentfs/types"
 )
 
 // Config are the configuration options for the Interpreter
 type Config struct {
-	// Debug enabled debugging Interpreter options
-	Debug bool
 	// Tracer is the op code logger
 	Tracer CVMLogger
 	// NoRecursion disabled Interpreter call, callcode,
@@ -175,7 +170,6 @@ func (in *CVMInterpreter) IsInputMeta(code []byte) bool {
 // considered a revert-and-consume-all-gas operation except for
 // errExecutionReverted which means revert-and-keep-gas-left.
 func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
-
 	// Cortex code category solved
 	in.cvm.category.IsCode, in.cvm.category.IsModel, in.cvm.category.IsInput = in.cvm.IsCode(contract.Code), in.cvm.IsModel(contract.Code), in.cvm.IsInput(contract.Code)
 
@@ -199,116 +193,9 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		return nil, nil
 	}
 
-	//if in.IsModelMeta(contract.Code) {
-	if in.cvm.category.IsModel {
-		if in.cvm.vmConfig.RPC_GetInternalTransaction {
-			return nil, nil
-		}
-
-		if input != nil {
-			log.Debug("Readonly for model meta")
-			return nil, nil
-		}
-
-		var modelMeta torrentfs.ModelMeta
-		if err := modelMeta.DecodeRLP(contract.Code); err != nil {
-			log.Error("Failed decode model meta", "code", contract.Code, "err", err)
-			return nil, err
-		} else {
-			log.Debug("Model meta",
-				"meta", modelMeta,
-				"modelMeta.RawSize", modelMeta.RawSize,
-				"Upload", in.cvm.StateDB.Upload(contract.Address()),
-				"params.MODEL_MIN_UPLOAD_BYTES", params.MODEL_MIN_UPLOAD_BYTES)
-			if modelMeta.BlockNum.Sign() == 0 {
-				if modelMeta.RawSize > params.MODEL_MIN_UPLOAD_BYTES && modelMeta.RawSize <= params.MODEL_MAX_UPLOAD_BYTES { // 1Byte ~ 1TB
-					if modelMeta.RawSize > params.DEFAULT_UPLOAD_BYTES {
-						in.cvm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize-params.DEFAULT_UPLOAD_BYTES))
-					}
-				} else {
-					return nil, ErrInvalidMetaRawSize
-				}
-
-				if !common.IsHexAddress(modelMeta.AuthorAddress.String()) {
-					return nil, ErrInvalidMetaAuthor
-				}
-
-				if modelMeta.Gas == uint64(0) {
-					//modelMeta.SetGas(params.MODEL_GAS_LIMIT)
-					modelMeta.SetGas(0)
-				} else if modelMeta.Gas > params.MODEL_GAS_UP_LIMIT {
-					modelMeta.SetGas(params.MODEL_GAS_LIMIT)
-				} else if int64(modelMeta.Gas) < 0 {
-					modelMeta.SetGas(0)
-				}
-
-				in.cvm.StateDB.SetNum(contract.Address(), in.cvm.Context.BlockNumber)
-				modelMeta.SetBlockNum(*in.cvm.Context.BlockNumber)
-				if tmpCode, err := modelMeta.ToBytes(); err != nil {
-					return nil, err
-				} else {
-					contract.Code = append([]byte{0, 1}, tmpCode...)
-				}
-				log.Debug("Model created", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "birth", modelMeta.BlockNum.Uint64())
-			} else {
-				log.Debug("Invalid model meta", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "birth", modelMeta.BlockNum.Uint64())
-			}
-			info := common.StorageEntry{
-				Hash: modelMeta.Hash.Hex(),
-				Size: 0,
-			}
-			if err := synapse.Engine().Download(info); err != nil {
-				return nil, err
-			}
-			return contract.Code, nil
-		}
-	}
-
-	//if in.IsInputMeta(contract.Code) {
-	if in.cvm.category.IsInput {
-		if in.cvm.vmConfig.RPC_GetInternalTransaction {
-			return nil, nil
-		}
-
-		if input != nil {
-			log.Debug("Readonly for input meta")
-			return nil, nil
-		}
-
-		var inputMeta torrentfs.InputMeta
-		if err := inputMeta.DecodeRLP(contract.Code); err != nil {
-			log.Error("Failed decode input meta", "code", contract.Code, "err", err)
-			return nil, err
-		} else {
-			if inputMeta.BlockNum.Sign() == 0 {
-				if inputMeta.RawSize > 0 {
-					if inputMeta.RawSize > params.DEFAULT_UPLOAD_BYTES {
-						in.cvm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize-params.DEFAULT_UPLOAD_BYTES))
-					}
-				} else {
-					return nil, ErrInvalidMetaRawSize
-				}
-
-				inputMeta.SetBlockNum(*in.cvm.Context.BlockNumber)
-				in.cvm.StateDB.SetNum(contract.Address(), in.cvm.Context.BlockNumber)
-				if tmpCode, err := inputMeta.ToBytes(); err != nil {
-					return nil, err
-				} else {
-					contract.Code = append([]byte{0, 2}, tmpCode...)
-				}
-				//log.Info("Input meta created", "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress)
-			} else {
-				log.Warn("Invalid input meta", "size", inputMeta.RawSize, "hash", inputMeta.Hash.Hex(), "birth", inputMeta.BlockNum.Uint64())
-			}
-			info := common.StorageEntry{
-				Hash: inputMeta.Hash.Hex(),
-				Size: 0,
-			}
-			if err := synapse.Engine().Download(info); err != nil {
-				return nil, err
-			}
-			return contract.Code, nil
-		}
+	// Inference data prepare
+	if in.cvm.category.IsModel || in.cvm.category.IsInput {
+		return in.prepareData(contract, input)
 	}
 
 	var (
@@ -330,6 +217,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		gasCopy uint64 // for Tracer to log gas remaining before execution
 		logged  bool   // deferred Tracer should ignore already logged steps
 		res     []byte
+		debug   = in.cvm.Config().Tracer != nil
 	)
 	// Don't move this deferrred function, it's placed before the capturestate-deferred method,
 	// so that it get's executed _after_: the capturestate needs the stacks before
@@ -340,7 +228,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	contract.Input = input
 
 	// Reclaim the stack as an int pool when the execution stops
-	if in.cvm.Config().Debug {
+	if debug {
 		defer func() {
 			if err != nil {
 				if !logged {
@@ -362,7 +250,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	cgas := uint64(0)
 	//for atomic.LoadInt32(&in.cvm.abort) == 0 {
 	for {
-		if in.cvm.Config().Debug {
+		if debug {
 			// Capture pre-execution values for tracing.
 			logged, pcCopy, gasCopy = false, pc, contract.Gas
 		}
@@ -400,7 +288,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		cost, err = operation.gasCost(in.gasTable, in.cvm, contract, stack, mem, memorySize)
 		cgas += cost
 
-		if in.cvm.vmConfig.DebugInferVM {
+		if in.cvm.Config().DebugInferVM {
 			fmt.Println("gasCost: ", cost, "err: ", err, " op: ", op, "cgas: ", cgas)
 		}
 
@@ -435,14 +323,14 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			mem.Resize(memorySize)
 		}
 
-		if in.cvm.Config().Debug {
+		if debug {
 			in.cvm.Config().Tracer.CaptureState(pc, op, gasCopy, cost, callContext, in.returnData, in.cvm.depth, err)
 			logged = true
 		}
 
 		// execute the operation
 		ret, err = operation.execute(&pc, in, callContext)
-		if in.cvm.vmConfig.RPC_GetInternalTransaction {
+		if in.cvm.Config().RPC_GetInternalTransaction {
 			if op == CALL {
 				res = append(res, ret...)
 			}

@@ -2423,3 +2423,29 @@ func X__swbuf(t *TLS, i int32, f uintptr) int32 {
 	}
 	panic(todo(""))
 }
+
+// int nanosleep(const struct timespec *req, struct timespec *rem);
+func Xnanosleep(t *TLS, req, rem uintptr) int32 {
+	if __ccgo_strace {
+		trc("t=%v rem=%v, (%v:)", t, rem, origin(2))
+	}
+	v := *(*time.Timespec)(unsafe.Pointer(req))
+	gotime.Sleep(gotime.Second*gotime.Duration(v.Ftv_sec) + gotime.Duration(v.Ftv_nsec))
+	return 0
+}
+
+// // void malloc_set_zone_name(malloc_zone_t *zone, const char *name)
+// func Xmalloc_set_zone_name(t *TLS, zone, name uintptr) {
+// 	if __ccgo_strace {
+// 		trc("t=%v zone=%v name=%v, (%v:)", t, zone, name, origin(2))
+// 	}
+// 	// nop
+// }
+
+// size_t malloc_size(const void *ptr);
+func Xmalloc_size(t *TLS, ptr uintptr) types.Size_t {
+	if __ccgo_strace {
+		trc("t=%v ptr=%v, (%v:)", t, ptr, origin(2))
+	}
+	panic(todo(""))
+}

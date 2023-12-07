@@ -1,4 +1,4 @@
-// Copyright 2018 The CortexTheseus Authors
+// Copyright 2018 The go-ethereum Authors
 // This file is part of CortexFoundation.
 //
 // CortexFoundation is free software: you can redistribute it and/or modify
