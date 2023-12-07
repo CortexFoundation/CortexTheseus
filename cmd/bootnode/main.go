@@ -1,4 +1,4 @@
-// Copyright 2015 The CortexTheseus Authors
+// Copyright 2015 The go-ethereum Authors
 // This file is part of CortexTheseus.
 //
 // CortexTheseus is free software: you can redistribute it and/or modify

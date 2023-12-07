@@ -1,18 +1,18 @@
-// Copyright 2019 The CortexTheseus Authors
-// This file is part of the CortexTheseus library.
+// Copyright 2019 The go-ethereum Authors
+// This file is part of The go-ethereum library.
 //
-// The CortexTheseus library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexTheseus library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
+// along with The go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 // Package testlog provides a log handler for unit tests.
 package testlog
@@ -100,6 +100,10 @@ func LoggerWithHandler(t *testing.T, handler slog.Handler) log.Logger {
 
 func (l *logger) Write(level slog.Level, msg string, ctx ...interface{}) {}
 
+func (l *logger) Enabled(ctx context.Context, level slog.Level) bool {
+	return l.l.Enabled(ctx, level)
+}
+
 func (l *logger) Trace(msg string, ctx ...interface{}) {
 	l.t.Helper()
 	l.mu.Lock()
@@ -183,7 +187,7 @@ func (h *bufHandler) terminalFormat(r slog.Record) string {
 	}
 
 	for _, attr := range attrs {
-		fmt.Fprintf(buf, " %s=%s", attr.Key, string(log.FormatSlogValue(attr.Value, true, nil)))
+		fmt.Fprintf(buf, " %s=%s", attr.Key, string(log.FormatSlogValue(attr.Value, nil)))
 	}
 	buf.WriteByte('\n')
 	return buf.String()

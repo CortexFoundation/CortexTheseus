@@ -1,6 +1,7 @@
 package banderwagon
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"math/big"
@@ -243,16 +244,26 @@ func (p *Element) SetBytesUncompressed(buf []byte, trusted bool) error {
 	var x fp.Element
 	x.SetBytes(buf[:coordinateSize])
 
-	// subgroup check
+	var y fp.Element
+	// point in curve & subgroup check
 	if !trusted {
+		point := bandersnatch.GetPointFromX(&x, true)
+		if point == nil {
+			return fmt.Errorf("point not in the curve")
+		}
+		calculatedYBytes := point.Y.Bytes()
+		if !bytes.Equal(calculatedYBytes[:], buf[coordinateSize:]) {
+			return fmt.Errorf("provided Y coordinate doesn't correspond to X")
+		}
+		y = point.Y
+
 		err := subgroupCheck(x)
 		if err != nil {
 			return err
 		}
+	} else {
+		y.SetBytes(buf[coordinateSize:])
 	}
-
-	var y fp.Element
-	y.SetBytes(buf[coordinateSize:])
 
 	*p = Element{inner: bandersnatch.PointProj{
 		X: x,

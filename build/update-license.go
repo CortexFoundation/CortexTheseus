@@ -1,18 +1,18 @@
-// Copyright 2018 The CortexTheseus Authors
-// This file is part of the CortexTheseus library.
+// Copyright 2018 The go-ethereum Authors
+// This file is part of The go-ethereum library.
 //
-// The CortexTheseus library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexTheseus library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
+// along with The go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 //go:build none
 // +build none
@@ -95,7 +95,7 @@ var (
 // this template generates the license comment.
 // its input is an info structure.
 var licenseT = template.Must(template.New("").Parse(`
-// Copyright {{.Year}} The CortexTheseus Authors
+// Copyright {{.Year}} The go-ethereum Authors
 // This file is part of {{.Whole false}}.
 //
 // {{.Whole true}} is free software: you can redistribute it and/or modify
@@ -137,9 +137,9 @@ func (i info) Whole(startOfSentence bool) string {
 		return "CortexTheseus"
 	}
 	if startOfSentence {
-		return "The CortexTheseus library"
+		return "The go-ethereum library"
 	}
-	return "the CortexTheseus library"
+	return "The go-ethereum library"
 }
 
 func (i info) gpl() bool {

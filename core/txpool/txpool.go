@@ -1,18 +1,18 @@
-// Copyright 2018 The CortexTheseus Authors
-// This file is part of the CortexTheseus library.
+// Copyright 2018 The go-ethereum Authors
+// This file is part of The go-ethereum library.
 //
-// The CortexTheseus library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The CortexTheseus library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the CortexTheseus library. If not, see <http://www.gnu.org/licenses/>.
+// along with The go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package txpool
 
@@ -893,8 +893,7 @@ func (pool *TxPool) AddLocals(txs []*types.Transaction) []error {
 // AddLocal enqueues a single local transaction into the pool if it is valid. This is
 // a convenience wrapper aroundd AddLocals.
 func (pool *TxPool) AddLocal(tx *types.Transaction) error {
-	errs := pool.AddLocals([]*types.Transaction{tx})
-	return errs[0]
+	return pool.AddLocals([]*types.Transaction{tx})[0]
 }
 
 // AddRemotes enqueues a batch of transactions into the pool if they are valid. If the
@@ -913,8 +912,7 @@ func (pool *TxPool) AddRemotesSync(txs []*types.Transaction) []error {
 
 // This is like AddRemotes with a single transaction, but waits for pool reorganization. Tests use this method.
 func (pool *TxPool) addRemoteSync(tx *types.Transaction) error {
-	errs := pool.AddRemotesSync([]*types.Transaction{tx})
-	return errs[0]
+	return pool.AddRemotesSync([]*types.Transaction{tx})[0]
 }
 
 // AddRemote enqueues a single transaction into the pool if it is valid. This is a convenience
@@ -922,8 +920,7 @@ func (pool *TxPool) addRemoteSync(tx *types.Transaction) error {
 //
 // Deprecated: use AddRemotes
 func (pool *TxPool) AddRemote(tx *types.Transaction) error {
-	errs := pool.AddRemotes([]*types.Transaction{tx})
-	return errs[0]
+	return pool.AddRemotes([]*types.Transaction{tx})[0]
 }
 
 func (pool *TxPool) addTxs(txs []*types.Transaction, local, sync bool) []error {

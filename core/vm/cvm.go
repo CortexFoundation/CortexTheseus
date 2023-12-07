@@ -1,4 +1,4 @@
-// Copyright 2018 The CortexTheseus Authors
+// Copyright 2018 The go-ethereum Authors
 // This file is part of the CortexFoundation library.
 //
 // The CortexFoundation library is free software: you can redistribute it and/or modify
@@ -232,13 +232,19 @@ func (cvm *CVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	}
 	snapshot := cvm.StateDB.Snapshot()
 	p, isPrecompile := cvm.precompile(addr)
+	debug := cvm.Config().Tracer != nil
 
 	if !cvm.StateDB.Exist(addr) {
 		if !isPrecompile && cvm.chainRules.IsEIP158 && value.Sign() == 0 {
 			// Calling a non existing account, don't do anything, but ping the tracer
-			if cvm.vmConfig.Debug && cvm.depth == 0 {
-				cvm.vmConfig.Tracer.CaptureStart(cvm, caller.Address(), addr, false, input, gas, value)
-				cvm.vmConfig.Tracer.CaptureEnd(ret, 0, nil)
+			if debug {
+				if cvm.depth == 0 {
+					cvm.vmConfig.Tracer.CaptureStart(cvm, caller.Address(), addr, false, input, gas, value)
+					cvm.vmConfig.Tracer.CaptureEnd(ret, 0, nil)
+				} else {
+					cvm.Config().Tracer.CaptureEnter(CALL, caller.Address(), addr, input, gas, value)
+					cvm.Config().Tracer.CaptureExit(ret, 0, nil)
+				}
 			}
 			return nil, gas, nil, nil
 		}
@@ -247,11 +253,19 @@ func (cvm *CVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	cvm.Context.Transfer(cvm.StateDB, caller.Address(), addr, value)
 
 	// Capture the tracer start/end events in debug mode
-	if cvm.vmConfig.Debug && cvm.depth == 0 {
-		cvm.vmConfig.Tracer.CaptureStart(cvm, caller.Address(), addr, false, input, gas, value)
-		defer func(startGas uint64) { // Lazy evaluation of the parameters
-			cvm.vmConfig.Tracer.CaptureEnd(ret, startGas-gas, err)
-		}(gas)
+	if debug {
+		if cvm.depth == 0 {
+			cvm.vmConfig.Tracer.CaptureStart(cvm, caller.Address(), addr, false, input, gas, value)
+			defer func(startGas uint64) { // Lazy evaluation of the parameters
+				cvm.vmConfig.Tracer.CaptureEnd(ret, startGas-gas, err)
+			}(gas)
+		} else {
+			// Handle tracer events for entering and exiting a call frame
+			cvm.Config().Tracer.CaptureEnter(CALL, caller.Address(), addr, input, gas, value)
+			defer func(startGas uint64) {
+				cvm.Config().Tracer.CaptureExit(ret, startGas-gas, err)
+			}(gas)
+		}
 	}
 
 	if isPrecompile {
@@ -436,7 +450,7 @@ func (c *codeAndHash) Hash() common.Hash {
 }
 
 // create creates a new contract using code as deployment code.
-func (cvm *CVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64, value *big.Int, address common.Address) ([]byte, common.Address, uint64, map[common.Address]uint64, error) {
+func (cvm *CVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64, value *big.Int, address common.Address, typ OpCode) ([]byte, common.Address, uint64, map[common.Address]uint64, error) {
 	// Depth check execution. Fail if we're trying to execute above the
 	// limit.
 	if cvm.depth > int(params.CallCreateDepth) {
@@ -473,8 +487,12 @@ func (cvm *CVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	//	return nil, address, gas, nil, nil
 	//}
 
-	if cvm.vmConfig.Debug && cvm.depth == 0 {
-		cvm.vmConfig.Tracer.CaptureStart(cvm, caller.Address(), address, true, codeAndHash.code, gas, value)
+	if cvm.Config().Tracer != nil {
+		if cvm.depth == 0 {
+			cvm.vmConfig.Tracer.CaptureStart(cvm, caller.Address(), address, true, codeAndHash.code, gas, value)
+		} else {
+			cvm.Config().Tracer.CaptureEnter(typ, caller.Address(), address, codeAndHash.code, gas, value)
+		}
 	}
 
 	ret, err := cvm.interpreter.Run(contract, nil, false)
@@ -509,8 +527,12 @@ func (cvm *CVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 			contract.UseGas(contract.Gas)
 		}
 	}
-	if cvm.vmConfig.Debug && cvm.depth == 0 {
-		cvm.vmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, err)
+	if cvm.Config().Tracer != nil {
+		if cvm.depth == 0 {
+			cvm.vmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, err)
+		} else {
+			cvm.Config().Tracer.CaptureExit(ret, gas-contract.Gas, err)
+		}
 	}
 	return ret, address, contract.Gas, contract.ModelGas, err
 }
@@ -520,7 +542,7 @@ func (cvm *CVM) Create(caller ContractRef, code []byte, gas uint64, value *big.I
 	//contractAddr = crypto.CreateAddress(caller.Address(), cvm.StateDB.GetNonce(caller.Address()))
 	contractAddr = crypto.CreateAddress(caller.Address(), cvm.StateDB.GetNonce(caller.Address()))
 	//return cvm.create(caller, code, gas, value, contractAddr)
-	return cvm.create(caller, &codeAndHash{code: code}, gas, value, contractAddr)
+	return cvm.create(caller, &codeAndHash{code: code}, gas, value, contractAddr, CREATE)
 }
 
 // Create2 creates a new contract using code as deployment code.
@@ -532,7 +554,7 @@ func (cvm *CVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *
 	//	return cvm.create(caller, code, gas, endowment, contractAddr)
 	codeAndHash := &codeAndHash{code: code}
 	contractAddr = crypto.CreateAddress2(caller.Address(), salt.Bytes32(), codeAndHash.Hash().Bytes())
-	return cvm.create(caller, codeAndHash, gas, endowment, contractAddr)
+	return cvm.create(caller, codeAndHash, gas, endowment, contractAddr, CREATE2)
 }
 
 // ChainConfig returns the environment's chain configuration
