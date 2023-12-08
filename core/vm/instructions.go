@@ -18,14 +18,11 @@ package vm
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
-	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	torrentfs "github.com/CortexFoundation/torrentfs/types"
 	"github.com/holiman/uint256"
 )
 
@@ -600,11 +597,7 @@ func opGas(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) (
 	return nil, nil
 }
 
-var (
-// confirmTime = params.CONFIRM_TIME * time.Second //-3600 * 24 * 30 * time.Second
-)
-
-func opInfer(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
+/*func opInfer(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
 	_modelAddr, _inputAddr, _outputOffset := callContext.Stack.pop(), callContext.Stack.pop(), callContext.Stack.pop()
 	modelAddr := common.Address(_modelAddr.Bytes20())
 	inputAddr := common.Address(_inputAddr.Bytes20())
@@ -777,7 +770,7 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeCon
 	callContext.Stack.push(new(uint256.Int).SetOne())
 
 	return nil, nil
-}
+}*/
 
 func opCreate(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
 	if interpreter.readOnly {
