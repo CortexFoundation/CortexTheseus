@@ -18,26 +18,15 @@ package vm
 
 import (
 	_ "encoding/hex"
-	"fmt"
 	"math/big"
 	"sync/atomic"
-	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
-	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
-	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"github.com/CortexFoundation/inference/synapse"
-	torrentfs "github.com/CortexFoundation/torrentfs/types"
 	"github.com/holiman/uint256"
 )
-
-type Category struct {
-	IsCode, IsModel, IsInput bool
-}
 
 type (
 	// CanTransferFunc is the signature of a transfer guard function
@@ -48,27 +37,6 @@ type (
 	// and is used by the BLOCKHASH CVM op code.
 	GetHashFunc func(uint64) common.Hash
 )
-
-func (cvm *CVM) IsCode(code []byte) bool {
-	if len(code) < 2 {
-		return false
-	}
-	return code[0]|code[1] == 0x00
-}
-
-func (cvm *CVM) IsModel(code []byte) bool {
-	if len(code) < 2 {
-		return false
-	}
-	return code[0]^0x00|code[1]^0x01 == 0x00
-}
-
-func (cvm *CVM) IsInput(code []byte) bool {
-	if len(code) < 2 {
-		return false
-	}
-	return code[0]^0x00|code[1]^0x02 == 0x00
-}
 
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
 func (cvm *CVM) precompile(addr common.Address) (PrecompiledContract, bool) {
@@ -606,7 +574,7 @@ func (cvm *CVM) DataSync(meta common.Address, dir string, errCh chan error) {
 }*/
 
 // infer function that returns an int64 as output, can be used a categorical output
-func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRawSize uint64) ([]byte, error) {
+/*func (cvm *CVM) Infer(modelInfoHash, inputInfoHash string, modelRawSize, inputRawSize uint64) ([]byte, error) {
 	var (
 		inferRes []byte
 		errRes   error
@@ -707,4 +675,4 @@ func (cvm *CVM) GetInputMeta(addr common.Address) (meta *torrentfs.InputMeta, er
 	} else {
 		return &inputMeta, nil
 	}
-}
+}*/
