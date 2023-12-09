@@ -5,7 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-[Unreleased]: https://github.com/zombiezen/go-sqlite/compare/v0.13.1...main
+[Unreleased]: https://github.com/zombiezen/go-sqlite/compare/v1.0.0...main
+
+## [1.0.0][] - 2023-12-07
+
+Version 1.0 is the first officially stable release of `zombiezen.com/go/sqlite`.
+It includes improved documentation and is cleaned up for current versions of Go.
+There are no breaking changes to the API:
+this release is more a recognition that the API has been stable
+and a promise that it will continue to be stable.
+
+[1.0.0]: https://github.com/zombiezen/go-sqlite/releases/tag/v1.0.0
+
+### Added
+
+- Added `*Stmt.ColumnIsNull` and `*Stmt.IsNull` methods
+  ([#55](https://github.com/zombiezen/go-sqlite/issues/55)).
+- Added more documentation to `sqlitefile` and `sqlitex`.
+
+### Changed
+
+- Replaced `interface{}` with `any`. This should be a compatible change.
+- The minimum supported Go version for this library is now Go 1.20.
+- The minimum `modernc.org/sqlite` version updated to 1.27.0.
+
+### Removed
+
+- Removed the `io.*` interface fields on `sqlitefile.Buffer` and `sqlitefile.File`.
+  These were unused.
+- Removed the `zombiezen.com/go/sqlite/fs` package.
+  It existed to help transition around Go 1.16,
+  but is no longer useful.
 
 ## [0.13.1][] - 2023-08-15
 
