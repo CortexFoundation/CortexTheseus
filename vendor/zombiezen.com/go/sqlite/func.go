@@ -34,7 +34,7 @@ import (
 
 var auxdata struct {
 	mu  sync.RWMutex
-	m   map[uintptr]interface{}
+	m   map[uintptr]any
 	ids idGen
 }
 
@@ -68,7 +68,7 @@ func (ctx Context) Conn() *Conn {
 // invocations of the same function.
 //
 // For more details, see https://www.sqlite.org/c3ref/get_auxdata.html
-func (ctx Context) AuxData(arg int) interface{} {
+func (ctx Context) AuxData(arg int) any {
 	id := lib.Xsqlite3_get_auxdata(ctx.tls, ctx.ptr, int32(arg))
 	if id == 0 {
 		return nil
@@ -93,11 +93,11 @@ func (ctx Context) AuxData(arg int) interface{} {
 // invocations of the same function.
 //
 // For more details, see https://www.sqlite.org/c3ref/get_auxdata.html
-func (ctx Context) SetAuxData(arg int, data interface{}) {
+func (ctx Context) SetAuxData(arg int, data any) {
 	auxdata.mu.Lock()
 	id := auxdata.ids.next()
 	if auxdata.m == nil {
-		auxdata.m = make(map[uintptr]interface{})
+		auxdata.m = make(map[uintptr]any)
 	}
 	auxdata.m[id] = data
 	auxdata.mu.Unlock()
@@ -207,7 +207,7 @@ func BlobValue(b []byte) Value {
 }
 
 // Unchanged returns a NULL Value for which [Value.NoChange] reports true.
-// This is only significant as the return value for [VTableCursor.Column].
+// This is only significant as the return value for the Column method of [VTableCursor].
 func Unchanged() Value {
 	return Value{n: 1}
 }
@@ -365,10 +365,10 @@ func (v Value) Blob() []byte {
 }
 
 // NoChange reports whether a column
-// corresponding to this value in a [VTable.Update] method
+// corresponding to this value in a [VTable] Update method
 // is unchanged by the UPDATE operation
-// that the VTable.Update method call was invoked to implement
-// and if the prior [VTableCursor.Column] method call that was invoked
+// that the Update method call was invoked to implement
+// and if the prior [VTableCursor] Column method call that was invoked
 // to extract the value for that column returned [Unchanged].
 func (v Value) NoChange() bool {
 	if v.ptrOrType == 0 {
