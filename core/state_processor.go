@@ -84,7 +84,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 			return nil, nil, 0, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
 		}
 		statedb.SetTxContext(tx.Hash(), i)
-		receipt, _, err := applyTransaction(msg, p.config, gp, qp, statedb, header, blockNumber, blockHash, tx, usedGas, vmenv)
+		receipt, err := applyTransaction(msg, p.config, gp, qp, statedb, header, blockNumber, blockHash, tx, usedGas, vmenv)
 		if err != nil {
 			return nil, nil, 0, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
 		}
@@ -106,15 +106,14 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 // and uses the input parameters for its environment. It returns the receipt
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
-func applyTransaction(msg *Message, config *params.ChainConfig, gp *GasPool, qp *QuotaPool, statedb *state.StateDB, header *types.Header, blockNumber *big.Int, blockHash common.Hash, tx *types.Transaction, usedGas *uint64, cvm *vm.CVM) (*types.Receipt, uint64, error) {
+func applyTransaction(msg *Message, config *params.ChainConfig, gp *GasPool, qp *QuotaPool, statedb *state.StateDB, header *types.Header, blockNumber *big.Int, blockHash common.Hash, tx *types.Transaction, usedGas *uint64, cvm *vm.CVM) (*types.Receipt, error) {
 	// Create a new context to be used in the CVM environment
 	txContext := NewCVMTxContext(msg)
-	// Update the evm with the new transaction context.
 	cvm.Reset(txContext, statedb)
 	// Apply the transaction to the current state (included in the env)
 	result, err := ApplyMessage(cvm, msg, gp, qp)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
 	if result.Quota > 0 {
@@ -122,7 +121,7 @@ func applyTransaction(msg *Message, config *params.ChainConfig, gp *GasPool, qp 
 
 		if header.Quota < header.QuotaUsed {
 			header.QuotaUsed -= result.Quota
-			return nil, 0, ErrQuotaLimitReached //errors.New("quota")
+			return nil, ErrQuotaLimitReached //errors.New("quota")
 		}
 	}
 
@@ -151,18 +150,17 @@ func applyTransaction(msg *Message, config *params.ChainConfig, gp *GasPool, qp 
 	receipt.BlockHash = blockHash
 	receipt.BlockNumber = blockNumber
 	receipt.TransactionIndex = uint(statedb.TxIndex())
-
-	return receipt, result.UsedGas, err
+	return receipt, err
 }
 
 // ApplyTransaction attempts to apply a transaction to the given state database
 // and uses the input parameters for its environment. It returns the receipt
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
-func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *common.Address, gp *GasPool, qp *QuotaPool, statedb *state.StateDB, header *types.Header, tx *types.Transaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, uint64, error) {
+func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *common.Address, gp *GasPool, qp *QuotaPool, statedb *state.StateDB, header *types.Header, tx *types.Transaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, error) {
 	msg, err := TransactionToMessage(tx, types.MakeSigner(config, header.Number, header.Time))
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 	// Create a new context to be used in the CVM environment
 	blockContext := NewCVMBlockContext(header, bc, author)
