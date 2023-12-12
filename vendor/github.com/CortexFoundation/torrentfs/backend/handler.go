@@ -1005,7 +1005,7 @@ func (tm *TorrentManager) pendingLoop() {
 				ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Minute)
 				defer cancel()
 				select {
-				case <-t.GotInfo():
+				case <-t.Torrent.GotInfo():
 					if b, err := bencode.Marshal(t.Torrent.Info()); err == nil {
 						log.Debug("Record full nas in history", "ih", t.InfoHash(), "info", len(b))
 						if tm.kvdb != nil && tm.kvdb.Get([]byte(SEED_PRE+t.InfoHash())) == nil {

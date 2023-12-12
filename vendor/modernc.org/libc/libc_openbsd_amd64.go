@@ -11,6 +11,7 @@ import (
 
 	"golang.org/x/sys/unix"
 	"modernc.org/libc/fcntl"
+	"modernc.org/libc/stdio"
 	"modernc.org/libc/fts"
 	"modernc.org/libc/sys/types"
 	"modernc.org/libc/time"
@@ -709,3 +710,12 @@ func Xopendir(t *TLS, name uintptr) uintptr {
 	(*darwinDir)(unsafe.Pointer(p)).eof = false
 	return p
 }
+
+func Xrewinddir(tls *TLS, f uintptr) {
+	if __ccgo_strace {
+		trc("tls=%v f=%v, (%v:)", tls, f, origin(2))
+	}
+	Xfseek(tls, f, 0, stdio.SEEK_SET)
+}
+
+

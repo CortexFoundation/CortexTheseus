@@ -1951,12 +1951,12 @@ func Xsetattrlist(t *TLS, path, attrList, attrBuf uintptr, attrBufSize types.Siz
 }
 
 // int copyfile(const char *from, const char *to, copyfile_state_t state, copyfile_flags_t flags);
-func Xcopyfile(...interface{}) int32 {
+func Xcopyfile(t *TLS, _ ...interface{}) int32 {
 	panic(todo(""))
 }
 
 // int truncate(const char *path, off_t length);
-func Xtruncate(...interface{}) int32 {
+func Xtruncate(t *TLS, _ ...interface{}) int32 {
 	panic(todo(""))
 }
 
@@ -2448,4 +2448,29 @@ func Xmalloc_size(t *TLS, ptr uintptr) types.Size_t {
 		trc("t=%v ptr=%v, (%v:)", t, ptr, origin(2))
 	}
 	panic(todo(""))
+}
+
+// int open(const char *pathname, int flags, ...);
+func Xopen64(t *TLS, pathname uintptr, flags int32, args uintptr) int32 {
+	if __ccgo_strace {
+		trc("t=%v pathname=%v flags=%v args=%v, (%v:)", t, pathname, flags, args, origin(2))
+	}
+	var mode types.Mode_t
+	if args != 0 {
+		mode = (types.Mode_t)(VaUint32(&args))
+	}
+	fdcwd := fcntl.AT_FDCWD
+	n, _, err := unix.Syscall6(unix.SYS_OPENAT, uintptr(fdcwd), pathname, uintptr(flags), uintptr(mode), 0, 0)
+	if err != 0 {
+		// if dmesgs {
+		// 	dmesg("%v: %q %#x: %v", origin(1), GoString(pathname), flags, err)
+		// }
+		t.setErrno(err)
+		return -1
+	}
+
+	// if dmesgs {
+	// 	dmesg("%v: %q flags %#x mode %#o: fd %v", origin(1), GoString(pathname), flags, mode, n)
+	// }
+	return int32(n)
 }
