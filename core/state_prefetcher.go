@@ -19,7 +19,6 @@ package core
 import (
 	"sync/atomic"
 
-	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
 	"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
@@ -50,9 +49,12 @@ func newStatePrefetcher(config *params.ChainConfig, bc *BlockChain, engine conse
 // only goal is to pre-cache transaction signatures and state trie nodes.
 func (p *statePrefetcher) Prefetch(block *types.Block, statedb *state.StateDB, cfg vm.Config, interrupt *atomic.Bool) {
 	var (
-		header    = block.Header()
-		gaspool   = new(GasPool).AddGas(block.GasLimit())
-		quotaPool = NewQuotaPool(header.Quota)
+		header       = block.Header()
+		gaspool      = new(GasPool).AddGas(block.GasLimit())
+		blockContext = NewCVMBlockContext(header, p.bc, nil)
+		cvm          = vm.NewCVM(blockContext, vm.TxContext{}, statedb, p.config, cfg)
+		signer       = types.MakeSigner(p.config, header.Number, header.Time)
+		quotaPool    = NewQuotaPool(header.Quota)
 	)
 	if err := quotaPool.SubQuota(header.QuotaUsed); err != nil {
 		return
@@ -64,9 +66,13 @@ func (p *statePrefetcher) Prefetch(block *types.Block, statedb *state.StateDB, c
 		if interrupt != nil && interrupt.Load() {
 			return
 		}
-		// Block precaching permitted to continue, execute the transaction
+		// Convert the transaction into an executable message and pre-cache its sender
+		msg, err := TransactionToMessage(tx, signer)
+		if err != nil {
+			return // Also invalid block, bail out
+		}
 		statedb.SetTxContext(tx.Hash(), i)
-		if err := precacheTransaction(p.config, p.bc, nil, gaspool, quotaPool, statedb, header, tx, cfg); err != nil {
+		if err := precacheTransaction(msg, p.config, gaspool, quotaPool, statedb, header, cvm); err != nil {
 			return // Ugh, something went horribly wrong, bail out
 		}
 		// If we're pre-byzantium, pre-load trie nodes for the intermediate root
@@ -83,17 +89,9 @@ func (p *statePrefetcher) Prefetch(block *types.Block, statedb *state.StateDB, c
 // precacheTransaction attempts to apply a transaction to the given state database
 // and uses the input parameters for its environment. The goal is not to execute
 // the transaction successfully, rather to warm up touched data slots.
-func precacheTransaction(config *params.ChainConfig, bc ChainContext, author *common.Address, gaspool *GasPool, quotaPool *QuotaPool, statedb *state.StateDB, header *types.Header, tx *types.Transaction, cfg vm.Config) error {
-	// Convert the transaction into an executable message and pre-cache its sender
-	msg, err := TransactionToMessage(tx, types.MakeSigner(config, header.Number, header.Time))
-	if err != nil {
-		return err
-	}
-	// Create the CVM and execute the transaction
-	context := NewCVMBlockContext(header, bc, author)
-	txContext := NewCVMTxContext(msg)
-	vm := vm.NewCVM(context, txContext, statedb, config, cfg)
+func precacheTransaction(msg *Message, config *params.ChainConfig, gaspool *GasPool, quotaPool *QuotaPool, statedb *state.StateDB, header *types.Header, cvm *vm.CVM) error {
+	cvm.Reset(NewCVMTxContext(msg), statedb)
 
-	_, err = ApplyMessage(vm, msg, gaspool, quotaPool)
+	_, err := ApplyMessage(cvm, msg, gaspool, quotaPool)
 	return err
 }
