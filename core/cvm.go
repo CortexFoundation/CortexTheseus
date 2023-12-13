@@ -78,6 +78,11 @@ func GetHashFn(ref *types.Header, chain ChainContext) func(n uint64) common.Hash
 	var cache []common.Hash
 
 	return func(n uint64) common.Hash {
+		if ref.Number.Uint64() <= n {
+			// This situation can happen if we're doing tracing and using
+			// block overrides.
+			return common.Hash{}
+		}
 		// If there's no hash cache yet, make one
 		if len(cache) == 0 {
 			cache = append(cache, ref.ParentHash)
@@ -89,6 +94,7 @@ func GetHashFn(ref *types.Header, chain ChainContext) func(n uint64) common.Hash
 		// No luck in the cache, but we can start iterating from the last element we already know
 		lastKnownHash := cache[len(cache)-1]
 		lastKnownNumber := ref.Number.Uint64() - uint64(len(cache))
+
 		for {
 			header := chain.GetHeader(lastKnownHash, lastKnownNumber)
 			if header == nil {
