@@ -91,9 +91,6 @@ The state transitioning model does all the necessary work to work out a valid ne
 5) Run Script section
 6) Derive new state root
 */
-var (
-	big0 = big.NewInt(0)
-)
 
 // StateTransition is the state of current tx in vm
 type StateTransition struct {
