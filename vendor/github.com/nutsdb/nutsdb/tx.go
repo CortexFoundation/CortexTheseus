@@ -18,10 +18,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/bwmarrin/snowflake"
-	"github.com/xujiajun/utils/strconv2"
 	"strings"
 	"sync/atomic"
+
+	"github.com/bwmarrin/snowflake"
+	"github.com/xujiajun/utils/strconv2"
 )
 
 const (
@@ -279,7 +280,7 @@ func (tx *Tx) Commit() (err error) {
 	}
 	tx.db.RecordCount += curWriteCount
 
-	if err := tx.DeleteBucketInIndex(); err != nil {
+	if err := tx.buildBucketInIndex(); err != nil {
 		return err
 	}
 
@@ -288,8 +289,8 @@ func (tx *Tx) Commit() (err error) {
 
 func (tx *Tx) getNewAddRecordCount() (int64, error) {
 	var res int64
-	changeCountInEntries := tx.GetChangeCountInEntriesChanges()
-	changeCountInBucket := tx.GetChangeCountInBucketChanges()
+	changeCountInEntries := tx.getChangeCountInEntriesChanges()
+	changeCountInBucket := tx.getChangeCountInBucketChanges()
 	res += changeCountInEntries
 	res += changeCountInBucket
 	return res, nil
@@ -716,10 +717,24 @@ func (tx *Tx) SubmitBucket() error {
 	return tx.db.bm.SubmitPendingBucketChange(bucketReqs)
 }
 
-func (tx *Tx) DeleteBucketInIndex() error {
+// buildBucketInIndex build indexes on creation and deletion of buckets
+func (tx *Tx) buildBucketInIndex() error {
 	for _, mapper := range tx.pendingBucketList {
 		for _, bucket := range mapper {
-			if bucket.Meta.Op == BucketDeleteOperation {
+			if bucket.Meta.Op == BucketInsertOperation {
+				switch bucket.Ds {
+				case DataStructureBTree:
+					tx.db.Index.bTree.getWithDefault(bucket.Id)
+				case DataStructureList:
+					tx.db.Index.list.getWithDefault(bucket.Id)
+				case DataStructureSet:
+					tx.db.Index.set.getWithDefault(bucket.Id)
+				case DataStructureSortedSet:
+					tx.db.Index.sortedSet.getWithDefault(bucket.Id, tx.db)
+				default:
+					return ErrDataStructureNotSupported
+				}
+			} else if bucket.Meta.Op == BucketDeleteOperation {
 				switch bucket.Ds {
 				case DataStructureBTree:
 					tx.db.Index.bTree.delete(bucket.Id)
@@ -738,7 +753,7 @@ func (tx *Tx) DeleteBucketInIndex() error {
 	return nil
 }
 
-func (tx *Tx) GetChangeCountInEntriesChanges() int64 {
+func (tx *Tx) getChangeCountInEntriesChanges() int64 {
 	var res int64
 	var err error
 	writeLen := len(tx.pendingWrites)
@@ -753,7 +768,7 @@ func (tx *Tx) GetChangeCountInEntriesChanges() int64 {
 	return res
 }
 
-func (tx *Tx) GetChangeCountInBucketChanges() int64 {
+func (tx *Tx) getChangeCountInBucketChanges() int64 {
 	var res int64
 	for _, bucketsInDs := range tx.pendingBucketList {
 		for _, bucket := range bucketsInDs {
@@ -793,7 +808,7 @@ func (tx *Tx) GetChangeCountInBucketChanges() int64 {
 	return res
 }
 
-func (tx *Tx) GetBucketStatus(ds Ds, name BucketName) BucketStatus {
+func (tx *Tx) getBucketStatus(ds Ds, name BucketName) BucketStatus {
 	if len(tx.pendingBucketList) > 0 {
 		if bucketInDs, exist := tx.pendingBucketList[ds]; exist {
 			if bucket, exist := bucketInDs[name]; exist {

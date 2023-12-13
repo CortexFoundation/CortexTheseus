@@ -1989,6 +1989,13 @@ func Xbswap16(t *TLS, x uint16) uint16 {
 	return X__builtin_bswap16(t, x)
 }
 
+func X__swap16md(t *TLS, x uint16) uint16 {
+	if __ccgo_strace {
+		trc("t=%v x=%v, (%v:)", t, x, origin(2))
+	}
+	return X__builtin_bswap16(t, x)
+}
+
 // uint32_t __builtin_bswap32 (uint32_t x)
 func Xbswap32(t *TLS, x uint32) uint32 {
 	if __ccgo_strace {

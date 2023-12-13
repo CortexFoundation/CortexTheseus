@@ -442,7 +442,7 @@ func (db *DB) parseDataFiles(dataFileIds []int) (err error) {
 			// its because it already deleted in the feature WAL log.
 			// so we can just ignore here.
 			bucketId := entry.Meta.BucketId
-			if b, err := db.bm.GetBucketById(bucketId); b == nil && err == nil {
+			if _, err := db.bm.GetBucketById(bucketId); errors.Is(err, ErrBucketNotExist) {
 				continue
 			}
 
@@ -702,7 +702,8 @@ func (db *DB) buildSortedSetIdx(record *Record, entry *Entry) error {
 		_, _, err = ss.ZPopMin(string(key))
 	}
 
-	if err != nil {
+	// We don't need to panic if sorted set is not found.
+	if err != nil && !errors.Is(err, ErrSortedSetNotFound) {
 		return fmt.Errorf("when build sortedSetIdx err: %s", err)
 	}
 
