@@ -630,59 +630,6 @@ func gasDelegateCall(gt params.GasTable, cvm *CVM, contract *Contract, stack *St
 	return gas, nil
 }
 
-func gasInfer(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
-	modelAddr := common.Address(stack.Back(0).Bytes20())
-	inputAddr := common.Address(stack.Back(1).Bytes20())
-	_, modelErr := checkModel(cvm, stack, modelAddr)
-	if modelErr != nil {
-		return 0, modelErr
-	}
-	_, inputErr := checkInputMeta(cvm, stack, inputAddr)
-	if inputErr != nil {
-		return 0, inputErr
-	}
-
-	gas, err := memoryGasCost(mem, 0)
-	if err != nil {
-		return 0, err
-	}
-	modelOps, errOps := cvm.OpsInfer(modelAddr)
-	if errOps != nil {
-		return 0, errOps
-	}
-	modelGas := modelOps / params.InferOpsPerGas
-	var overflow bool
-	if gas, overflow = math.SafeAdd(gas, modelGas); overflow {
-		return 0, ErrGasUintOverflow
-	}
-	return gas, nil
-}
-
-func gasInferArray(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
-	modelAddr := common.Address(stack.Back(0).Bytes20())
-	_, modelErr := checkModel(cvm, stack, modelAddr)
-	if modelErr != nil {
-		return 0, modelErr
-	}
-	gas, err := memoryGasCost(mem, 0)
-	if err != nil {
-		return 0, err
-	}
-	modelOps, errOps := cvm.OpsInfer(modelAddr)
-	if errOps != nil {
-		return 0, errOps
-	}
-	modelGas := modelOps / params.InferOpsPerGas
-	if modelGas < params.CallInferGas {
-		modelGas = params.CallInferGas
-	}
-	var overflow bool
-	if gas, overflow = math.SafeAdd(gas, modelGas); overflow {
-		return 0, ErrGasUintOverflow
-	}
-	return gas, nil
-}
-
 func gasStaticCall(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
 	gas, err := memoryGasCost(mem, memorySize)
 	if err != nil {
