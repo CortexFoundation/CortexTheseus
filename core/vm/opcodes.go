@@ -28,10 +28,6 @@ func (op OpCode) IsPush() bool {
 	return PUSH0 <= op && op <= PUSH32
 }
 
-func (op OpCode) IsInfer() bool {
-	return op == INFER || op == INFERARRAY
-}
-
 const (
 	STOP       OpCode = 0x0
 	ADD        OpCode = 0x1
@@ -199,12 +195,6 @@ const (
 	LOG2
 	LOG3
 	LOG4
-)
-
-const (
-	INFER      OpCode = 0xc0
-	INFERARRAY        = 0xc1
-	// NNFORWARD         = 0xc2
 )
 
 // 0xf0 range - closures.
