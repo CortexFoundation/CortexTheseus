@@ -28,6 +28,10 @@ import (
 	"math/big"
 )
 
+var (
+	big0 = big.NewInt(0)
+)
+
 func (st *StateTransition) preQuotaCheck() error {
 	if st.uploading() {
 		// log.Debug("state_transition", "uploading", st.uploading(), "st.state.GetNum(st.to())", st.state.GetNum(st.to()))
