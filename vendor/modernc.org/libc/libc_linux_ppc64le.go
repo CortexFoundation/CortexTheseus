@@ -17,8 +17,8 @@ import (
 	"modernc.org/libc/signal"
 	"modernc.org/libc/stdio"
 	"modernc.org/libc/sys/types"
-	"modernc.org/libc/wctype"
 	"modernc.org/libc/time"
+	"modernc.org/libc/wctype"
 )
 
 var (

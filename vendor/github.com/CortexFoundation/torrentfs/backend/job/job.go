@@ -17,6 +17,7 @@
 package job
 
 import (
+	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/torrentfs/backend/caffe"
 
@@ -34,13 +35,19 @@ type Job struct {
 	ref      *caffe.Torrent
 
 	//wg sync.WaitGroup
+	start mclock.AbsTime
 }
 
 func New(_ref *caffe.Torrent) *Job {
 	job := new(Job)
 	job.id = seq.Add(1)
 	job.ref = _ref
+	job.start = mclock.Now()
 	return job
+}
+
+func (j *Job) Birth() mclock.AbsTime {
+	return j.start
 }
 
 func (j *Job) ID() uint64 {
@@ -69,7 +76,7 @@ func SEQ() uint64 {
 func (j *Job) Completed(fn func(t *caffe.Torrent) bool) (result chan bool) {
 	result = make(chan bool)
 	go func() {
-		tick := time.NewTicker(time.Second * 10)
+		tick := time.NewTicker(time.Second * 1)
 		defer tick.Stop()
 		for {
 			select {

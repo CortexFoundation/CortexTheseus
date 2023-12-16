@@ -708,5 +708,5 @@ func X__fdelt_chk(tls *TLS, d int64) (r int64) {
 		defer func() { trc("-> %v", r) }()
 	}
 
-	return d/__NFDBITS
+	return d / __NFDBITS
 }

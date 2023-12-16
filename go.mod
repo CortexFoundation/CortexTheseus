@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.56-0.20231212120813-41a5945e7136
+	github.com/CortexFoundation/torrentfs v1.0.56-0.20231216192420-89d0e1363db7
 	github.com/VictoriaMetrics/fastcache v1.12.2
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.24.0
@@ -15,9 +15,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/route53 v1.35.5
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2
 	github.com/cespare/cp v1.1.1
-	github.com/charmbracelet/bubbletea v0.24.2
+	github.com/charmbracelet/bubbletea v0.25.0
 	github.com/cloudflare/cloudflare-go v0.57.1
-	github.com/cockroachdb/pebble v0.0.0-20231211223132-9848bcdb0fe9
+	github.com/cockroachdb/pebble v0.0.0-20231214172447-ab4952c5f87b
 	github.com/consensys/gnark-crypto v0.12.1
 	github.com/crate-crypto/go-kzg-4844 v0.7.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
@@ -33,7 +33,7 @@ require (
 	github.com/gofrs/flock v0.8.1
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb
 	github.com/google/gofuzz v1.2.1-0.20210524182514-9eed411d8615
-	github.com/google/uuid v1.4.0
+	github.com/google/uuid v1.5.0
 	github.com/gorilla/websocket v1.5.2-0.20231113005423-6f5d2139f4b9
 	github.com/hashicorp/golang-lru v1.0.2
 	github.com/holiman/bloomfilter/v2 v2.0.3
@@ -62,13 +62,13 @@ require (
 	github.com/urfave/cli/v2 v2.26.0
 	go.uber.org/automaxprocs v1.5.3
 	golang.org/x/crypto v0.16.0
-	golang.org/x/exp v0.0.0-20231206192017-f3f8817b8deb
+	golang.org/x/exp v0.0.0-20231214170342-aacd6d4b4611
 	golang.org/x/mobile v0.0.0-20201217150744-e6ae53a27f4f
 	golang.org/x/sync v0.5.0
 	golang.org/x/sys v0.15.0
 	golang.org/x/text v0.14.0
 	golang.org/x/time v0.5.0
-	golang.org/x/tools v0.16.0
+	golang.org/x/tools v0.16.1
 	google.golang.org/protobuf v1.31.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
@@ -178,7 +178,7 @@ require (
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
-	github.com/nutsdb/nutsdb v1.0.2-0.20231211145816-3468fe949461 // indirect
+	github.com/nutsdb/nutsdb v1.0.3-0.20231216104420-099901a09ea1 // indirect
 	github.com/nxadm/tail v1.4.11 // indirect
 	github.com/oapi-codegen/runtime v1.1.0 // indirect
 	github.com/otiai10/copy v1.14.0 // indirect
@@ -197,7 +197,7 @@ require (
 	github.com/pion/stun v0.6.1 // indirect
 	github.com/pion/transport/v2 v2.2.4 // indirect
 	github.com/pion/turn/v2 v2.1.4 // indirect
-	github.com/pion/webrtc/v3 v3.2.23 // indirect
+	github.com/pion/webrtc/v3 v3.2.24 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.17.0 // indirect
@@ -207,7 +207,7 @@ require (
 	github.com/rakyll/statik v0.1.7 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
-	github.com/rogpeppe/go-internal v1.11.0 // indirect
+	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/rosedblabs/go-immutable-radix/v2 v2.0.1-0.20230614125820-f2a7bc058c90 // indirect
 	github.com/rosedblabs/rosedb/v2 v2.2.2 // indirect
 	github.com/rosedblabs/wal v1.3.6 // indirect
@@ -221,10 +221,10 @@ require (
 	github.com/tklauser/numcpus v0.7.0 // indirect
 	github.com/ucwong/filecache v1.0.6-0.20230405163841-810d53ced4bd // indirect
 	github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb // indirect
-	github.com/ucwong/golang-kv v1.0.23-0.20231212115239-d45c3e24ca4a // indirect
+	github.com/ucwong/golang-kv v1.0.23-0.20231216115725-4f38a0fd08a6 // indirect
 	github.com/ucwong/shard v1.0.1-0.20230924231639-2ac2d8ab288c // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
+	github.com/xrash/smetrics v0.0.0-20231213231151-1d8dd44e695e // indirect
 	github.com/xujiajun/mmap-go v1.0.1 // indirect
 	github.com/xujiajun/utils v0.0.0-20220904132955-5f7c5b914235 // indirect
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
@@ -238,10 +238,10 @@ require (
 	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/term v0.15.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	modernc.org/libc v1.37.1 // indirect
+	modernc.org/libc v1.37.6 // indirect
 	modernc.org/mathutil v1.6.0 // indirect
 	modernc.org/memory v1.7.2 // indirect
-	modernc.org/sqlite v1.27.0 // indirect
+	modernc.org/sqlite v1.28.0 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
 	zombiezen.com/go/sqlite v1.0.0 // indirect
 )

@@ -7,6 +7,7 @@ package libc // import "modernc.org/libc"
 import (
 	"os"
 	"strings"
+	"time"
 	"unsafe"
 
 	"golang.org/x/sys/unix"
@@ -16,6 +17,11 @@ import (
 	"modernc.org/libc/stdio"
 	"modernc.org/libc/sys/stat"
 	"modernc.org/libc/sys/types"
+	ctime "modernc.org/libc/time"
+)
+
+var (
+	startTime = time.Now() // For clock(3)
 )
 
 // int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact);
@@ -732,4 +738,12 @@ func AtomicLoadPUint16(addr uintptr) uint16 {
 
 func AtomicLoadNUint8(ptr uintptr, memorder int32) uint8 {
 	return byte(a_load_8(ptr))
+}
+
+// clock_t clock(void);
+func Xclock(t *TLS) ctime.Clock_t {
+	if __ccgo_strace {
+		trc("t=%v, (%v:)", t, origin(2))
+	}
+	return ctime.Clock_t(time.Since(startTime) * time.Duration(ctime.CLOCKS_PER_SEC) / time.Second)
 }
