@@ -14,8 +14,8 @@ import (
 	"modernc.org/libc/errno"
 	"modernc.org/libc/fcntl"
 	"modernc.org/libc/signal"
-	"modernc.org/libc/sys/types"
 	"modernc.org/libc/stdio"
+	"modernc.org/libc/sys/types"
 	"modernc.org/libc/time"
 )
 

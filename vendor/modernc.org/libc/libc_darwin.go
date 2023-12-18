@@ -1294,12 +1294,18 @@ func Xtzset(t *TLS) {
 	//TODO
 }
 
+var strerrorBuf [100]byte
+
 // char *strerror(int errnum);
 func Xstrerror(t *TLS, errnum int32) uintptr {
 	if __ccgo_strace {
 		trc("t=%v errnum=%v, (%v:)", t, errnum, origin(2))
 	}
-	panic(todo(""))
+	// 	if dmesgs {
+	// 		dmesg("%v: %v\n%s", origin(1), errnum, debug.Stack())
+	// 	}
+	copy(strerrorBuf[:], fmt.Sprintf("strerror(%d)\x00", errnum))
+	return uintptr(unsafe.Pointer(&strerrorBuf[0]))
 }
 
 // void *dlopen(const char *filename, int flags);
@@ -2473,4 +2479,30 @@ func Xopen64(t *TLS, pathname uintptr, flags int32, args uintptr) int32 {
 	// 	dmesg("%v: %q flags %#x mode %#o: fd %v", origin(1), GoString(pathname), flags, mode, n)
 	// }
 	return int32(n)
+}
+
+// int getrlimit(int resource, struct rlimit *rlim);
+func Xgetrlimit(t *TLS, resource int32, rlim uintptr) int32 {
+	if __ccgo_strace {
+		trc("t=%v resource=%v rlim=%v, (%v:)", t, resource, rlim, origin(2))
+	}
+	if _, _, err := unix.Syscall(unix.SYS_GETRLIMIT, uintptr(resource), uintptr(rlim), 0); err != 0 {
+		t.setErrno(err)
+		return -1
+	}
+
+	return 0
+}
+
+// int setrlimit(int resource, const struct rlimit *rlim);
+func Xsetrlimit(t *TLS, resource int32, rlim uintptr) int32 {
+	if __ccgo_strace {
+		trc("t=%v resource=%v rlim=%v, (%v:)", t, resource, rlim, origin(2))
+	}
+	if _, _, err := unix.Syscall(unix.SYS_SETRLIMIT, uintptr(resource), uintptr(rlim), 0); err != 0 {
+		t.setErrno(err)
+		return -1
+	}
+
+	return 0
 }

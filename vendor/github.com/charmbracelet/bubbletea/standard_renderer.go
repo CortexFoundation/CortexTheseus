@@ -16,7 +16,8 @@ import (
 const (
 	// defaultFramerate specifies the maximum interval at which we should
 	// update the view.
-	defaultFramerate = time.Second / 60
+	defaultFPS = 60
+	maxFPS     = 120
 )
 
 // standardRenderer is a framerate-based terminal renderer, updating the view
@@ -54,12 +55,17 @@ type standardRenderer struct {
 
 // newRenderer creates a new renderer. Normally you'll want to initialize it
 // with os.Stdout as the first argument.
-func newRenderer(out *termenv.Output, useANSICompressor bool) renderer {
+func newRenderer(out *termenv.Output, useANSICompressor bool, fps int) renderer {
+	if fps < 1 {
+		fps = defaultFPS
+	} else if fps > maxFPS {
+		fps = maxFPS
+	}
 	r := &standardRenderer{
 		out:                out,
 		mtx:                &sync.Mutex{},
 		done:               make(chan struct{}),
-		framerate:          defaultFramerate,
+		framerate:          time.Second / time.Duration(fps),
 		useANSICompressor:  useANSICompressor,
 		queuedMessageLines: []string{},
 	}
@@ -202,10 +208,8 @@ func (r *standardRenderer) flush() {
 
 	// Merge the set of lines we're skipping as a rendering optimization with
 	// the set of lines we've explicitly asked the renderer to ignore.
-	if r.ignoreLines != nil {
-		for k, v := range r.ignoreLines {
-			skipLines[k] = v
-		}
+	for k, v := range r.ignoreLines {
+		skipLines[k] = v
 	}
 
 	// Paint new lines
@@ -390,6 +394,20 @@ func (r *standardRenderer) disableMouseAllMotion() {
 	defer r.mtx.Unlock()
 
 	r.out.DisableMouseAllMotion()
+}
+
+func (r *standardRenderer) enableMouseSGRMode() {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+
+	r.out.EnableMouseExtendedMode()
+}
+
+func (r *standardRenderer) disableMouseSGRMode() {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+
+	r.out.DisableMouseExtendedMode()
 }
 
 // setIgnoredLines specifies lines not to be touched by the standard Bubble Tea

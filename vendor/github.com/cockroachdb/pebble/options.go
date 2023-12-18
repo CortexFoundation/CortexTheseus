@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/cockroachdb/errors"
 	"github.com/cockroachdb/pebble/internal/base"
@@ -703,6 +704,30 @@ type Options struct {
 		// CacheSizeBytesBytes is the size of the on-disk block cache for objects
 		// on shared storage in bytes. If it is 0, no cache is used.
 		SecondaryCacheSizeBytes int64
+
+		// IneffectualPointDeleteCallback is called in compactions/flushes if any
+		// single delete is being elided without deleting a point set/merge.
+		IneffectualSingleDeleteCallback func(userKey []byte)
+
+		// SingleDeleteInvariantViolationCallback is called in compactions/flushes if any
+		// single delete has consumed a Set/Merge, and there is another immediately older
+		// Set/SetWithDelete/Merge. The user of Pebble has violated the invariant under
+		// which SingleDelete can be used correctly.
+		//
+		// Consider the sequence SingleDelete#3, Set#2, Set#1. There are three
+		// ways some of these keys can first meet in a compaction.
+		//
+		// - All 3 keys in the same compaction: this callback will detect the
+		//   violation.
+		//
+		// - SingleDelete#3, Set#2 meet in a compaction first: Both keys will
+		//   disappear. The violation will not be detected, and the DB will have
+		//   Set#1 which is likely incorrect (from the user's perspective).
+		//
+		// - Set#2, Set#1 meet in a compaction first: The output will be Set#2,
+		//   which will later be consumed by SingleDelete#3. The violation will
+		//   not be detected and the DB will be correct.
+		SingleDeleteInvariantViolationCallback func(userKey []byte)
 	}
 
 	// Filters is a map from filter policy name to filter policy. It is used for
@@ -973,6 +998,11 @@ type Options struct {
 		// against the FS are made after the DB is closed, the FS may leak a
 		// goroutine indefinitely.
 		fsCloser io.Closer
+
+		// efosAlwaysCreatesIterators is set by some tests to force
+		// EventuallyFileOnlySnapshots to always create iterators, even after a
+		// conflicting excise.
+		efosAlwaysCreatesIterators bool
 	}
 }
 
@@ -1146,6 +1176,13 @@ func (o *Options) AddEventListener(l EventListener) {
 	o.EventListener = &l
 }
 
+// TestingAlwaysCreateEFOSIterators is used to toggle a private option for
+// having EventuallyFileOnlySnapshots always create iterators. Meant to only
+// be used in tests.
+func (o *Options) TestingAlwaysCreateEFOSIterators(value bool) {
+	o.private.efosAlwaysCreatesIterators = value
+}
+
 func (o *Options) equal() Equal {
 	if o.Comparer.Equal == nil {
 		return bytes.Equal
@@ -1238,6 +1275,9 @@ func (o *Options) String() string {
 	fmt.Fprintf(&buf, "  mem_table_stop_writes_threshold=%d\n", o.MemTableStopWritesThreshold)
 	fmt.Fprintf(&buf, "  min_deletion_rate=%d\n", o.TargetByteDeletionRate)
 	fmt.Fprintf(&buf, "  merger=%s\n", o.Merger.Name)
+	if o.Experimental.MultiLevelCompactionHeuristic != nil {
+		fmt.Fprintf(&buf, "  multilevel_compaction_heuristic=%s\n", o.Experimental.MultiLevelCompactionHeuristic.String())
+	}
 	fmt.Fprintf(&buf, "  read_compaction_rate=%d\n", o.Experimental.ReadCompactionRate)
 	fmt.Fprintf(&buf, "  read_sampling_multiplier=%d\n", o.Experimental.ReadSamplingMultiplier)
 	fmt.Fprintf(&buf, "  strict_wal_tail=%t\n", o.private.strictWALTail)
@@ -1492,6 +1532,32 @@ func (o *Options) Parse(s string, hooks *ParseHooks) error {
 			case "min_flush_rate":
 				// Do nothing; option existed in older versions of pebble, and
 				// may be meaningful again eventually.
+			case "multilevel_compaction_heuristic":
+				switch {
+				case value == "none":
+					o.Experimental.MultiLevelCompactionHeuristic = NoMultiLevel{}
+				case strings.HasPrefix(value, "wamp"):
+					fields := strings.FieldsFunc(strings.TrimPrefix(value, "wamp"), func(r rune) bool {
+						return unicode.IsSpace(r) || r == ',' || r == '(' || r == ')'
+					})
+					if len(fields) != 2 {
+						err = errors.Newf("require 2 arguments")
+					}
+					var h WriteAmpHeuristic
+					if err == nil {
+						h.AddPropensity, err = strconv.ParseFloat(fields[0], 64)
+					}
+					if err == nil {
+						h.AllowL0, err = strconv.ParseBool(fields[1])
+					}
+					if err == nil {
+						o.Experimental.MultiLevelCompactionHeuristic = h
+					} else {
+						err = errors.Wrapf(err, "unexpected wamp heuristic arguments: %s", value)
+					}
+				default:
+					err = errors.Newf("unrecognized multilevel compaction heuristic: %s", value)
+				}
 			case "point_tombstone_weight":
 				// Do nothing; deprecated.
 			case "strict_wal_tail":

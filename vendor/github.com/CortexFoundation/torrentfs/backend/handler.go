@@ -1060,9 +1060,9 @@ func (tm *TorrentManager) pendingLoop() {
 								select {
 								case suc := <-ch:
 									if !suc {
-										log.Warn("Uncompleted jobs", "ih", t.InfoHash(), "suc", suc, "id", j.ID())
+										log.Warn("Uncompleted jobs", "ih", t.InfoHash(), "suc", suc, "job", j.ID(), "ready", common.PrettyDuration(time.Duration(j.Birth()-t.Birth())), "elapse", common.PrettyDuration(time.Duration(mclock.Now()-j.Birth())))
 									} else {
-										log.Info("Job has been completed", "ih", t.InfoHash(), "suc", suc, "id", j.ID())
+										log.Info("Job has been completed", "ih", t.InfoHash(), "suc", suc, "job", j.ID(), "ready", common.PrettyDuration(time.Duration(j.Birth()-t.Birth())), "elapse", common.PrettyDuration(time.Duration(mclock.Now()-j.Birth())))
 									}
 								//case <-ctx.Done():
 								case <-tm.closeAll:

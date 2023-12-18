@@ -8,11 +8,12 @@ import (
 	"strings"
 	"syscall"
 	"unsafe"
+	gotime "time"
 
 	"golang.org/x/sys/unix"
 	"modernc.org/libc/fcntl"
-	"modernc.org/libc/stdio"
 	"modernc.org/libc/fts"
+	"modernc.org/libc/stdio"
 	"modernc.org/libc/sys/types"
 	"modernc.org/libc/time"
 	"modernc.org/libc/utime"
@@ -21,6 +22,10 @@ import (
 type (
 	long  = int64
 	ulong = uint64
+)
+
+var (
+	startTime = gotime.Now() // For clock(3)
 )
 
 // int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact);
@@ -718,4 +723,10 @@ func Xrewinddir(tls *TLS, f uintptr) {
 	Xfseek(tls, f, 0, stdio.SEEK_SET)
 }
 
-
+// clock_t clock(void);
+func Xclock(t *TLS) time.Clock_t {
+	if __ccgo_strace {
+		trc("t=%v, (%v:)", t, origin(2))
+	}
+	return time.Clock_t(gotime.Since(startTime) * gotime.Duration(time.CLOCKS_PER_SEC) / gotime.Second)
+}

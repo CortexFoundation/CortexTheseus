@@ -7,14 +7,14 @@ package libc // import "modernc.org/libc"
 import (
 	"strings"
 	"syscall"
-	"unsafe"
 	gotime "time"
+	"unsafe"
 
 	"golang.org/x/sys/unix"
 	"modernc.org/libc/fcntl"
 	"modernc.org/libc/fts"
-	"modernc.org/libc/sys/types"
 	"modernc.org/libc/stdio"
+	"modernc.org/libc/sys/types"
 	"modernc.org/libc/time"
 	"modernc.org/libc/utime"
 )

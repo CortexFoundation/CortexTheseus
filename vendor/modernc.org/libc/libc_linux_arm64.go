@@ -16,8 +16,8 @@ import (
 	"modernc.org/libc/signal"
 	"modernc.org/libc/stdio"
 	"modernc.org/libc/sys/stat"
-	"modernc.org/libc/time"
 	"modernc.org/libc/sys/types"
+	"modernc.org/libc/time"
 )
 
 var (
@@ -515,6 +515,10 @@ func Xutime(t *TLS, filename, times uintptr) int32 {
 	if __ccgo_strace {
 		trc("t=%v times=%v, (%v:)", t, times, origin(2))
 	}
+	if times == 0 {
+		return Xutimes(t, filename, 0)
+	}
+
 	if err := unix.Utime(GoString(filename), (*unix.Utimbuf)(unsafe.Pointer(times))); err != nil {
 		t.setErrno(err)
 		return -1
@@ -721,5 +725,5 @@ func X__fdelt_chk(tls *TLS, d int64) (r int64) {
 		defer func() { trc("-> %v", r) }()
 	}
 
-	return d/__NFDBITS
+	return d / __NFDBITS
 }
