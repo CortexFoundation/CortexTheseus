@@ -32,7 +32,7 @@ import (
 	"time"
 )
 
-func NewTestCmd(t *testing.T, data interface{}) *TestCmd {
+func NewTestCmd(t *testing.T, data any) *TestCmd {
 	return &TestCmd{T: t, Data: data}
 }
 
@@ -41,7 +41,7 @@ type TestCmd struct {
 	*testing.T
 
 	Func    template.FuncMap
-	Data    interface{}
+	Data    any
 	Cleanup func()
 
 	cmd    *exec.Cmd
@@ -81,9 +81,9 @@ func (tt *TestCmd) InputLine(s string) string {
 	return ""
 }
 
-func (tt *TestCmd) SetTemplateFunc(name string, fn interface{}) {
+func (tt *TestCmd) SetTemplateFunc(name string, fn any) {
 	if tt.Func == nil {
-		tt.Func = make(map[string]interface{})
+		tt.Func = make(map[string]any)
 	}
 	tt.Func[name] = fn
 }

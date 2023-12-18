@@ -305,7 +305,7 @@ func (p *peer) AsyncSendNewBlockHash(block *types.Block) {
 func (p *peer) SendNewBlock(block *types.Block, td *big.Int) error {
 	// Mark all the block hash as known, but ensure we don't overflow our limits
 	p.knownBlocks.Add(block.Hash())
-	return p2p.Send(p.rw, ctxc.NewBlockMsg, []interface{}{block, td})
+	return p2p.Send(p.rw, ctxc.NewBlockMsg, []any{block, td})
 }
 
 // AsyncSendNewBlock queues an entire block for propagation to a remote peer. If

@@ -141,7 +141,7 @@ func ws(n int) string {
 	return strings.Repeat("  ", n)
 }
 
-func die(args ...interface{}) {
+func die(args ...any) {
 	fmt.Fprintln(os.Stderr, args...)
 	os.Exit(1)
 }

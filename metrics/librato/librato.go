@@ -14,8 +14,8 @@ import (
 var unitRegexp = regexp.MustCompile(`[^\\d]+$`)
 
 // a helper that turns a time.Duration into librato display attributes for timer metrics
-func translateTimerAttributes(d time.Duration) (attrs map[string]interface{}) {
-	attrs = make(map[string]interface{})
+func translateTimerAttributes(d time.Duration) (attrs map[string]any) {
+	attrs = make(map[string]any)
 	attrs[DisplayTransform] = fmt.Sprintf("x/%d", int64(d))
 	attrs[DisplayUnitsShort] = string(unitRegexp.Find([]byte(d.String())))
 	return
@@ -27,8 +27,8 @@ type Reporter struct {
 	Source          string
 	Interval        time.Duration
 	Registry        metrics.Registry
-	Percentiles     []float64              // percentiles to report on histogram metrics
-	TimerAttributes map[string]interface{} // units in which timers will be displayed
+	Percentiles     []float64      // percentiles to report on histogram metrics
+	TimerAttributes map[string]any // units in which timers will be displayed
 	intervalSec     int64
 }
 
@@ -89,7 +89,7 @@ func (rep *Reporter) BuildRequest(now time.Time, r metrics.Registry) (snapshot B
 	snapshot.Gauges = make([]Measurement, 0)
 	snapshot.Counters = make([]Measurement, 0)
 	histogramGaugeCount := 1 + len(rep.Percentiles)
-	r.Each(func(name string, metric interface{}) {
+	r.Each(func(name string, metric any) {
 		if rep.Namespace != "" {
 			name = fmt.Sprintf("%s.%s", rep.Namespace, name)
 		}
@@ -101,7 +101,7 @@ func (rep *Reporter) BuildRequest(now time.Time, r metrics.Registry) (snapshot B
 			if ms.Count() > 0 {
 				measurement[Name] = fmt.Sprintf("%s.%s", name, "count")
 				measurement[Value] = float64(ms.Count())
-				measurement[Attributes] = map[string]interface{}{
+				measurement[Attributes] = map[string]any{
 					DisplayUnitsLong:  Operations,
 					DisplayUnitsShort: OperationsShort,
 					DisplayMin:        "0",
@@ -112,7 +112,7 @@ func (rep *Reporter) BuildRequest(now time.Time, r metrics.Registry) (snapshot B
 			if count := m.Snapshot().Count(); count > 0 {
 				measurement[Name] = fmt.Sprintf("%s.%s", name, "count")
 				measurement[Value] = count
-				measurement[Attributes] = map[string]interface{}{
+				measurement[Attributes] = map[string]any{
 					DisplayUnitsLong:  Operations,
 					DisplayUnitsShort: OperationsShort,
 					DisplayMin:        "0",
@@ -161,7 +161,7 @@ func (rep *Reporter) BuildRequest(now time.Time, r metrics.Registry) (snapshot B
 					Name:   fmt.Sprintf("%s.%s", name, "1min"),
 					Value:  ms.Rate1(),
 					Period: int64(rep.Interval.Seconds()),
-					Attributes: map[string]interface{}{
+					Attributes: map[string]any{
 						DisplayUnitsLong:  Operations,
 						DisplayUnitsShort: OperationsShort,
 						DisplayMin:        "0",
@@ -171,7 +171,7 @@ func (rep *Reporter) BuildRequest(now time.Time, r metrics.Registry) (snapshot B
 					Name:   fmt.Sprintf("%s.%s", name, "5min"),
 					Value:  ms.Rate5(),
 					Period: int64(rep.Interval.Seconds()),
-					Attributes: map[string]interface{}{
+					Attributes: map[string]any{
 						DisplayUnitsLong:  Operations,
 						DisplayUnitsShort: OperationsShort,
 						DisplayMin:        "0",
@@ -181,7 +181,7 @@ func (rep *Reporter) BuildRequest(now time.Time, r metrics.Registry) (snapshot B
 					Name:   fmt.Sprintf("%s.%s", name, "15min"),
 					Value:  ms.Rate15(),
 					Period: int64(rep.Interval.Seconds()),
-					Attributes: map[string]interface{}{
+					Attributes: map[string]any{
 						DisplayUnitsLong:  Operations,
 						DisplayUnitsShort: OperationsShort,
 						DisplayMin:        "0",
@@ -220,7 +220,7 @@ func (rep *Reporter) BuildRequest(now time.Time, r metrics.Registry) (snapshot B
 						Name:   fmt.Sprintf("%s.%s", name, "rate.1min"),
 						Value:  ms.Rate1(),
 						Period: int64(rep.Interval.Seconds()),
-						Attributes: map[string]interface{}{
+						Attributes: map[string]any{
 							DisplayUnitsLong:  Operations,
 							DisplayUnitsShort: OperationsShort,
 							DisplayMin:        "0",
@@ -230,7 +230,7 @@ func (rep *Reporter) BuildRequest(now time.Time, r metrics.Registry) (snapshot B
 						Name:   fmt.Sprintf("%s.%s", name, "rate.5min"),
 						Value:  ms.Rate5(),
 						Period: int64(rep.Interval.Seconds()),
-						Attributes: map[string]interface{}{
+						Attributes: map[string]any{
 							DisplayUnitsLong:  Operations,
 							DisplayUnitsShort: OperationsShort,
 							DisplayMin:        "0",
@@ -240,7 +240,7 @@ func (rep *Reporter) BuildRequest(now time.Time, r metrics.Registry) (snapshot B
 						Name:   fmt.Sprintf("%s.%s", name, "rate.15min"),
 						Value:  ms.Rate15(),
 						Period: int64(rep.Interval.Seconds()),
-						Attributes: map[string]interface{}{
+						Attributes: map[string]any{
 							DisplayUnitsLong:  Operations,
 							DisplayUnitsShort: OperationsShort,
 							DisplayMin:        "0",

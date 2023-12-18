@@ -761,7 +761,7 @@ func (cuckoo *Cuckoo) FinalizeWithoutParent(chain consensus.ChainHeaderReader, h
 func (cuckoo *Cuckoo) SealHash(header *types.Header) (hash common.Hash) {
 	hasher := sha3.NewLegacyKeccak256()
 
-	rlp.Encode(hasher, []interface{}{
+	rlp.Encode(hasher, []any{
 		header.ParentHash,
 		header.UncleHash,
 		header.Coinbase,

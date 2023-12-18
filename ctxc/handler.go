@@ -62,7 +62,7 @@ var (
 	syncChallengeTimeout = 15 * time.Second
 )
 
-func errResp(code errCode, format string, v ...interface{}) error {
+func errResp(code errCode, format string, v ...any) error {
 	return fmt.Errorf("%v - %v", code, fmt.Sprintf(format, v...))
 }
 
@@ -305,10 +305,10 @@ func (pm *ProtocolManager) makeProtocol(version uint) p2p.Protocol {
 		Run: func(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 			return pm.runPeer(pm.newPeer(version, p, rw, pm.txpool.Get))
 		},
-		NodeInfo: func() interface{} {
+		NodeInfo: func() any {
 			return pm.NodeInfo()
 		},
-		PeerInfo: func(id enode.ID) interface{} {
+		PeerInfo: func(id enode.ID) any {
 			if p := pm.peers.Peer(fmt.Sprintf("%x", id[:8])); p != nil {
 				return p.Info()
 			}

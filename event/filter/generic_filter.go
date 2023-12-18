@@ -20,7 +20,7 @@ type Generic struct {
 	Str1, Str2, Str3 string
 	Data             map[string]struct{}
 
-	Fn func(data interface{})
+	Fn func(data any)
 }
 
 // self = registered, f = incoming
@@ -43,6 +43,6 @@ func (self Generic) Compare(f Filter) bool {
 	return strMatch && dataMatch
 }
 
-func (self Generic) Trigger(data interface{}) {
+func (self Generic) Trigger(data any) {
 	self.Fn(data)
 }

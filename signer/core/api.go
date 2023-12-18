@@ -182,7 +182,7 @@ type (
 		Text string `json:"text"`
 	}
 	StartupInfo struct {
-		Info map[string]interface{} `json:"info"`
+		Info map[string]any `json:"info"`
 	}
 )
 

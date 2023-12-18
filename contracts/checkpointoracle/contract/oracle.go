@@ -153,7 +153,7 @@ func bindCheckpointOracle(address common.Address, caller bind.ContractCaller, tr
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_CheckpointOracle *CheckpointOracleRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_CheckpointOracle *CheckpointOracleRaw) Call(opts *bind.CallOpts, result any, method string, params ...any) error {
 	return _CheckpointOracle.Contract.CheckpointOracleCaller.contract.Call(opts, result, method, params...)
 }
 
@@ -164,7 +164,7 @@ func (_CheckpointOracle *CheckpointOracleRaw) Transfer(opts *bind.TransactOpts) 
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_CheckpointOracle *CheckpointOracleRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_CheckpointOracle *CheckpointOracleRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _CheckpointOracle.Contract.CheckpointOracleTransactor.contract.Transact(opts, method, params...)
 }
 
@@ -172,7 +172,7 @@ func (_CheckpointOracle *CheckpointOracleRaw) Transact(opts *bind.TransactOpts, 
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_CheckpointOracle *CheckpointOracleCallerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_CheckpointOracle *CheckpointOracleCallerRaw) Call(opts *bind.CallOpts, result any, method string, params ...any) error {
 	return _CheckpointOracle.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -183,7 +183,7 @@ func (_CheckpointOracle *CheckpointOracleTransactorRaw) Transfer(opts *bind.Tran
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_CheckpointOracle *CheckpointOracleTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_CheckpointOracle *CheckpointOracleTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _CheckpointOracle.Contract.contract.Transact(opts, method, params...)
 }
 
@@ -222,7 +222,7 @@ func (_CheckpointOracle *CheckpointOracleCaller) GetLatestCheckpoint(opts *bind.
 		ret1 = new([32]byte)
 		ret2 = new(*big.Int)
 	)
-	out := &[]interface{}{
+	out := &[]any{
 		ret0,
 		ret1,
 		ret2,
@@ -348,7 +348,7 @@ type CheckpointOracleNewCheckpointVote struct {
 // Solidity: event NewCheckpointVote(uint64 indexed index, bytes32 checkpointHash, uint8 v, bytes32 r, bytes32 s)
 func (_CheckpointOracle *CheckpointOracleFilterer) FilterNewCheckpointVote(opts *bind.FilterOpts, index []uint64) (*CheckpointOracleNewCheckpointVoteIterator, error) {
 
-	var indexRule []interface{}
+	var indexRule []any
 	for _, indexItem := range index {
 		indexRule = append(indexRule, indexItem)
 	}
@@ -365,7 +365,7 @@ func (_CheckpointOracle *CheckpointOracleFilterer) FilterNewCheckpointVote(opts 
 // Solidity: event NewCheckpointVote(uint64 indexed index, bytes32 checkpointHash, uint8 v, bytes32 r, bytes32 s)
 func (_CheckpointOracle *CheckpointOracleFilterer) WatchNewCheckpointVote(opts *bind.WatchOpts, sink chan<- *CheckpointOracleNewCheckpointVote, index []uint64) (event.Subscription, error) {
 
-	var indexRule []interface{}
+	var indexRule []any
 	for _, indexItem := range index {
 		indexRule = append(indexRule, indexItem)
 	}

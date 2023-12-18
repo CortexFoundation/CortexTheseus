@@ -59,11 +59,11 @@ func TestStatusMsgErrors64(t *testing.T) {
 
 	tests := []struct {
 		code      uint64
-		data      interface{}
+		data      any
 		wantError error
 	}{
 		{
-			code: ctxc.TransactionMsg, data: []interface{}{},
+			code: ctxc.TransactionMsg, data: []any{},
 			wantError: errResp(ErrNoStatusMsg, "first msg has code 2 (!= 0)"),
 		},
 		{
@@ -208,7 +208,7 @@ func testRecvTransactions(t *testing.T, protocol int) {
 	defer p.close()
 
 	tx := newTestTransaction(testAccount, 0, 0)
-	if err := p2p.Send(p.app, ctxc.TransactionMsg, []interface{}{tx}); err != nil {
+	if err := p2p.Send(p.app, ctxc.TransactionMsg, []any{tx}); err != nil {
 		t.Fatalf("send error: %v", err)
 	}
 	select {

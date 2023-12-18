@@ -73,7 +73,7 @@ type ServiceContext struct {
 //}
 
 // Service retrieves a currently running service registered of a specific type.
-func (ctx *ServiceContext) Service(service interface{}) error {
+func (ctx *ServiceContext) Service(service any) error {
 	element := reflect.ValueOf(service).Elem()
 	if running, ok := ctx.services[element.Type()]; ok {
 		element.Set(reflect.ValueOf(running))

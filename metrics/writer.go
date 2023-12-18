@@ -21,7 +21,7 @@ func Write(r Registry, d time.Duration, w io.Writer) {
 // io.Writer.
 func WriteOnce(r Registry, w io.Writer) {
 	var namedMetrics []namedMetric
-	r.Each(func(name string, i interface{}) {
+	r.Each(func(name string, i any) {
 		namedMetrics = append(namedMetrics, namedMetric{name, i})
 	})
 	slices.SortFunc(namedMetrics, namedMetric.cmp)
@@ -92,7 +92,7 @@ func WriteOnce(r Registry, w io.Writer) {
 
 type namedMetric struct {
 	name string
-	m    interface{}
+	m    any
 }
 
 func (m namedMetric) cmp(other namedMetric) int {

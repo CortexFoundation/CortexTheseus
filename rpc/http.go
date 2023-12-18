@@ -46,13 +46,13 @@ type httpConn struct {
 	client    *http.Client
 	url       string
 	closeOnce sync.Once
-	closeCh   chan interface{}
+	closeCh   chan any
 	mu        sync.Mutex // protects headers
 	headers   http.Header
 }
 
 // httpConn is treated specially by Client.
-func (hc *httpConn) writeJSON(context.Context, interface{}, bool) error {
+func (hc *httpConn) writeJSON(context.Context, any, bool) error {
 	panic("writeJSON called on httpConn")
 }
 
@@ -69,7 +69,7 @@ func (hc *httpConn) close() {
 	hc.closeOnce.Do(func() { close(hc.closeCh) })
 }
 
-func (hc *httpConn) closed() <-chan interface{} {
+func (hc *httpConn) closed() <-chan any {
 	return hc.closeCh
 }
 
@@ -132,7 +132,7 @@ func DialHTTPWithClient(endpoint string, client *http.Client) (*Client, error) {
 			client:  client,
 			headers: headers,
 			url:     endpoint,
-			closeCh: make(chan interface{}),
+			closeCh: make(chan any),
 		}
 		return hc, nil
 	})
@@ -143,7 +143,7 @@ func DialHTTP(endpoint string) (*Client, error) {
 	return DialHTTPWithClient(endpoint, new(http.Client))
 }
 
-func (c *Client) sendHTTP(ctx context.Context, op *requestOp, msg interface{}) error {
+func (c *Client) sendHTTP(ctx context.Context, op *requestOp, msg any) error {
 	hc := c.writeConn.(*httpConn)
 	respBody, err := hc.doRequest(ctx, msg)
 	if err != nil {
@@ -176,7 +176,7 @@ func (c *Client) sendBatchHTTP(ctx context.Context, op *requestOp, msgs []*jsonr
 	return nil
 }
 
-func (hc *httpConn) doRequest(ctx context.Context, msg interface{}) (io.ReadCloser, error) {
+func (hc *httpConn) doRequest(ctx context.Context, msg any) (io.ReadCloser, error) {
 	body, err := json.Marshal(msg)
 	if err != nil {
 		return nil, err

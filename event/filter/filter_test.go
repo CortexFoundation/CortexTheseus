@@ -30,7 +30,7 @@ func TestFilters(t *testing.T) {
 	first := make(chan struct{})
 	fm.Install(Generic{
 		Str1: "hello",
-		Fn: func(data interface{}) {
+		Fn: func(data any) {
 			first <- struct{}{}
 		},
 	})
@@ -38,7 +38,7 @@ func TestFilters(t *testing.T) {
 	fm.Install(Generic{
 		Str1: "hello1",
 		Str2: "hello",
-		Fn: func(data interface{}) {
+		Fn: func(data any) {
 			second <- struct{}{}
 		},
 	})

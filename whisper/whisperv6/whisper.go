@@ -126,8 +126,8 @@ func New(cfg *Config) *Whisper {
 		Version: uint(ProtocolVersion),
 		Length:  NumberOfMessageCodes,
 		Run:     whisper.HandlePeer,
-		NodeInfo: func() interface{} {
-			return map[string]interface{}{
+		NodeInfo: func() any {
+			return map[string]any{
 				"version":        ProtocolVersionStr,
 				"maxMessageSize": whisper.MaxMessageSize(),
 				"minimumPoW":     whisper.MinPow(),

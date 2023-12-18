@@ -55,7 +55,7 @@ func (e *Envelope) size() int {
 
 // rlpWithoutNonce returns the RLP encoded envelope contents, except the nonce.
 func (e *Envelope) rlpWithoutNonce() []byte {
-	res, _ := rlp.EncodeToBytes([]interface{}{e.Expiry, e.TTL, e.Topic, e.Data})
+	res, _ := rlp.EncodeToBytes([]any{e.Expiry, e.TTL, e.Topic, e.Data})
 	return res
 }
 

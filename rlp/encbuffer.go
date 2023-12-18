@@ -19,7 +19,7 @@ type encBuffer struct {
 
 // The global encBuffer pool.
 var encBufferPool = sync.Pool{
-	New: func() interface{} { return new(encBuffer) },
+	New: func() any { return new(encBuffer) },
 }
 
 func getEncBuffer() *encBuffer {
@@ -190,7 +190,7 @@ func (buf *encBuffer) listEnd(index int) {
 	}
 }
 
-func (buf *encBuffer) encode(val interface{}) error {
+func (buf *encBuffer) encode(val any) error {
 	rval := reflect.ValueOf(val)
 	writer, err := cachedWriter(rval.Type())
 	if err != nil {

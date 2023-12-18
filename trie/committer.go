@@ -48,7 +48,7 @@ type committer struct {
 
 // committers live in a global sync.Pool
 var committerPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return &committer{}
 	},
 }

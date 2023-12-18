@@ -317,13 +317,13 @@ func init() {
 
 	// Define a one shot struct to pass to the usage template
 	type helpData struct {
-		App        interface{}
+		App        any
 		FlagGroups []flagGroup
 	}
 
 	// Override the default app help printer, but only for the global app help
 	originalHelpPrinter := cli.HelpPrinter
-	cli.HelpPrinter = func(w io.Writer, tmpl string, data interface{}) {
+	cli.HelpPrinter = func(w io.Writer, tmpl string, data any) {
 		if tmpl == AppHelpTemplate {
 			// Iterate over all the flags and add any uncategorized ones
 			categorized := make(map[string]struct{})
@@ -370,7 +370,7 @@ func init() {
 			sort.Sort(byCategory(sorted))
 
 			// add sorted array to data and render with default printer
-			originalHelpPrinter(w, tmpl, map[string]interface{}{
+			originalHelpPrinter(w, tmpl, map[string]any{
 				"cmd":              data,
 				"categorizedFlags": sorted,
 			})

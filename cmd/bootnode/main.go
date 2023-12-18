@@ -32,7 +32,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/p2p/nat"
 	"github.com/CortexFoundation/CortexTheseus/p2p/netutil"
-	"golang.org/x/exp/slog"
 )
 
 type sharedUDPConn struct {
@@ -50,7 +49,7 @@ func main() {
 		natdesc     = flag.String("nat", "none", "port mapping mechanism (any|none|upnp|pmp|extip:<IP>)")
 		netrestrict = flag.String("netrestrict", "", "restrict network communication to the given IP networks (CIDR masks)")
 		runv5       = flag.Bool("v5", false, "run a v5 topic discovery bootnode")
-		verbosity   = flag.Int("verbosity", int(log.LvlInfo), "log verbosity (0-9)")
+		verbosity   = flag.Int("verbosity", 3, "log verbosity (0-5)")
 		vmodule     = flag.String("vmodule", "", "log verbosity pattern")
 
 		nodeKey *ecdsa.PrivateKey
@@ -59,7 +58,8 @@ func main() {
 	flag.Parse()
 
 	glogger := log.NewGlogHandler(log.NewTerminalHandler(os.Stderr, false))
-	glogger.Verbosity(slog.Level(*verbosity))
+	slogVerbosity := log.FromLegacyLevel(*verbosity)
+	glogger.Verbosity(slogVerbosity)
 	glogger.Vmodule(*vmodule)
 	log.SetDefault(log.NewLogger(glogger))
 
