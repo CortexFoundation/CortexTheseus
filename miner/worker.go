@@ -831,10 +831,10 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 				if ratio < 0.1 {
 					ratio = 0.1
 				}
-				w.resubmitAdjustCh <- &intervalAdjust{
+				w.adjustResubmitInterval(&intervalAdjust{
 					ratio: ratio,
 					inc:   true,
-				}
+				})
 				return errBlockInterruptedByRecommit
 			}
 			return errBlockInterruptedByNewHead
@@ -904,7 +904,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 	// Notify resubmit loop to decrease resubmitting interval if current interval is larger
 	// than the user-specified one.
 	if interrupt != nil {
-		w.resubmitAdjustCh <- &intervalAdjust{inc: false}
+		w.adjustResubmitInterval(&intervalAdjust{inc: false})
 	}
 	return nil
 }
@@ -1054,6 +1054,15 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		w.updateSnapshot()
 	}
 	return nil
+}
+
+// adjustResubmitInterval adjusts the resubmit interval.
+func (w *worker) adjustResubmitInterval(message *intervalAdjust) {
+	select {
+	case w.resubmitAdjustCh <- message:
+	default:
+		log.Warn("the resubmitAdjustCh is full, discard the message")
+	}
 }
 
 // copyReceipts makes a deep copy of the given receipts.
