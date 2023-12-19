@@ -94,7 +94,7 @@ func TestBlockDecoding(t *testing.T) {
 		t.Fatal("decode error: ", err)
 	}
 
-	check := func(f string, got, want interface{}) {
+	check := func(f string, got, want any) {
 		if !reflect.DeepEqual(got, want) {
 			t.Errorf("%s mismatch: got %v, want %v", f, got, want)
 		}

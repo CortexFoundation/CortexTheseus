@@ -248,7 +248,7 @@ func newWebsocketCodec(conn *websocket.Conn) ServerCodec {
 		return nil
 	})
 
-	encode := func(v interface{}, isErrorResponse bool) error {
+	encode := func(v any, isErrorResponse bool) error {
 		return conn.WriteJSON(v)
 	}
 	wc := &websocketCodec{
@@ -266,7 +266,7 @@ func (wc *websocketCodec) close() {
 	wc.wg.Wait()
 }
 
-func (wc *websocketCodec) writeJSON(ctx context.Context, v interface{}, isError bool) error {
+func (wc *websocketCodec) writeJSON(ctx context.Context, v any, isError bool) error {
 	err := wc.jsonCodec.writeJSON(ctx, v, isError)
 	if err == nil {
 		// Notify pingLoop to delay the next idle ping.

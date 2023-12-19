@@ -34,7 +34,7 @@ var (
 	ErrInvalidInferTaskType = errors.New("unknown request property type")
 )
 
-func RespErrorText(w http.ResponseWriter, ctx ...interface{}) {
+func RespErrorText(w http.ResponseWriter, ctx ...any) {
 	var info = ""
 	if len(ctx)%2 != 0 {
 		info = fmt.Sprintf("%v", ctx[0])

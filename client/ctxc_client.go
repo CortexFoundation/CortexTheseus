@@ -119,7 +119,7 @@ type rpcBlock struct {
 	UncleHashes  []common.Hash    `json:"uncles"`
 }
 
-func (ec *Client) getBlock(ctx context.Context, method string, args ...interface{}) (*types.Block, error) {
+func (ec *Client) getBlock(ctx context.Context, method string, args ...any) (*types.Block, error) {
 	var raw json.RawMessage
 	err := ec.c.CallContext(ctx, &raw, method, args...)
 	if err != nil {
@@ -157,7 +157,7 @@ func (ec *Client) getBlock(ctx context.Context, method string, args ...interface
 		for i := range reqs {
 			reqs[i] = rpc.BatchElem{
 				Method: "ctxc_getUncleByBlockHashAndIndex",
-				Args:   []interface{}{body.Hash, hexutil.EncodeUint64(uint64(i))},
+				Args:   []any{body.Hash, hexutil.EncodeUint64(uint64(i))},
 				Result: &uncles[i],
 			}
 		}
@@ -443,8 +443,8 @@ func (ec *Client) SubscribeFilterLogs(ctx context.Context, q cortex.FilterQuery,
 	return sub, nil
 }
 
-func toFilterArg(q cortex.FilterQuery) (interface{}, error) {
-	arg := map[string]interface{}{
+func toFilterArg(q cortex.FilterQuery) (any, error) {
+	arg := map[string]any{
 		"address": q.Addresses,
 		"topics":  q.Topics,
 	}
@@ -584,8 +584,8 @@ func (ec *Client) PendingUploadAt(ctx context.Context, account common.Address) (
 	return (*big.Int)(&result), err
 }
 
-func toCallArg(msg cortex.CallMsg) interface{} {
-	arg := map[string]interface{}{
+func toCallArg(msg cortex.CallMsg) any {
+	arg := map[string]any{
 		"from": msg.From,
 		"to":   msg.To,
 	}

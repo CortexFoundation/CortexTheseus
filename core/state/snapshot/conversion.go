@@ -114,21 +114,21 @@ func (stat *generateStats) report() {
 	stat.lock.RLock()
 	defer stat.lock.RUnlock()
 
-	var ctx []interface{}
+	var ctx []any
 	if stat.curSlot != (common.Hash{}) {
-		ctx = append(ctx, []interface{}{
+		ctx = append(ctx, []any{
 			"in", stat.curAccount,
 			"at", stat.curSlot,
 		}...)
 	} else {
-		ctx = append(ctx, []interface{}{"at", stat.curAccount}...)
+		ctx = append(ctx, []any{"at", stat.curAccount}...)
 	}
 	// Add the usual measurements
-	ctx = append(ctx, []interface{}{"accounts", stat.accounts}...)
+	ctx = append(ctx, []any{"accounts", stat.accounts}...)
 	if stat.slots != 0 {
-		ctx = append(ctx, []interface{}{"slots", stat.slots}...)
+		ctx = append(ctx, []any{"slots", stat.slots}...)
 	}
-	ctx = append(ctx, []interface{}{"elapsed", common.PrettyDuration(time.Since(stat.start))}...)
+	ctx = append(ctx, []any{"elapsed", common.PrettyDuration(time.Since(stat.start))}...)
 	log.Info("Generating trie hash from snapshot", ctx...)
 }
 
@@ -137,12 +137,12 @@ func (stat *generateStats) reportDone() {
 	stat.lock.RLock()
 	defer stat.lock.RUnlock()
 
-	var ctx []interface{}
-	ctx = append(ctx, []interface{}{"accounts", stat.accounts}...)
+	var ctx []any
+	ctx = append(ctx, []any{"accounts", stat.accounts}...)
 	if stat.slots != 0 {
-		ctx = append(ctx, []interface{}{"slots", stat.slots}...)
+		ctx = append(ctx, []any{"slots", stat.slots}...)
 	}
-	ctx = append(ctx, []interface{}{"elapsed", common.PrettyDuration(time.Since(stat.start))}...)
+	ctx = append(ctx, []any{"elapsed", common.PrettyDuration(time.Since(stat.start))}...)
 	log.Info("Generated trie hash from snapshot", ctx...)
 }
 

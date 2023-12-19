@@ -6,7 +6,7 @@ import (
 
 func TestLRUAdd(t *testing.T) {
 	evictCounter := 0
-	onEvicted := func(k Key, v interface{}) {
+	onEvicted := func(k Key, v any) {
 		evictCounter++
 	}
 	l := New(7)
@@ -44,7 +44,7 @@ func TestLRUGet(t *testing.T) {
 	}
 	tests := []struct {
 		key       Key
-		wantValue interface{}
+		wantValue any
 		wantOK    bool
 	}{
 		{1, 2, true},
@@ -64,7 +64,7 @@ func TestLRUGet(t *testing.T) {
 
 func TestLRURemove(t *testing.T) {
 	evictCounter := 0
-	onEvicted := func(k Key, v interface{}) {
+	onEvicted := func(k Key, v any) {
 		evictCounter++
 	}
 	l := New(128)
@@ -112,7 +112,7 @@ func TestLRULen(t *testing.T) {
 
 func TestLRUClear(t *testing.T) {
 	evictCounter := 0
-	onEvicted := func(k Key, v interface{}) {
+	onEvicted := func(k Key, v any) {
 		evictCounter++
 	}
 	l := New(128)

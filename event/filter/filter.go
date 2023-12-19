@@ -21,12 +21,12 @@ import "reflect"
 
 type Filter interface {
 	Compare(Filter) bool
-	Trigger(data interface{})
+	Trigger(data any)
 }
 
 type FilterEvent struct {
 	filter Filter
-	data   interface{}
+	data   any
 }
 
 type Filters struct {
@@ -53,7 +53,7 @@ func (f *Filters) Stop() {
 	close(f.quit)
 }
 
-func (f *Filters) Notify(filter Filter, data interface{}) {
+func (f *Filters) Notify(filter Filter, data any) {
 	f.ch <- FilterEvent{filter, data}
 }
 

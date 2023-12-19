@@ -108,7 +108,7 @@ func (s *Vyper) run(cmd *exec.Cmd, source string) (map[string]*Contract, error) 
 // Returns an error if the JSON is malformed or missing data, or if the JSON
 // embedded within the JSON is malformed.
 func ParseVyperJSON(combinedJSON []byte, source string, languageVersion string, compilerVersion string, compilerOptions string) (map[string]*Contract, error) {
-	var output map[string]interface{}
+	var output map[string]any
 	if err := json.Unmarshal(combinedJSON, &output); err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func ParseVyperJSON(combinedJSON []byte, source string, languageVersion string, 
 		if name == "version" {
 			continue
 		}
-		c := info.(map[string]interface{})
+		c := info.(map[string]any)
 
 		contracts[name] = &Contract{
 			Code:        c["bytecode"].(string),

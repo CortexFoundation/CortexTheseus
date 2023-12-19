@@ -194,7 +194,7 @@ func newTestPeer(name string, version int, pm *ProtocolManager, shake bool) (*te
 // handshake simulates a trivial handshake that expects the same state from the
 // remote side as we are simulating locally.
 func (p *testPeer) handshake(t *testing.T, td *big.Int, head common.Hash, genesis common.Hash, forkID forkid.ID, forkFilter forkid.Filter) {
-	var msg interface{}
+	var msg any
 	msg = &statusData{
 		ProtocolVersion: uint32(p.version),
 		NetworkID:       DefaultConfig.NetworkId,

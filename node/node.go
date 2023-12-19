@@ -599,7 +599,7 @@ func (n *Node) Server() *p2p.Server {
 }
 
 // Service retrieves a currently running service registered of a specific type.
-func (n *Node) Service(service interface{}) error {
+func (n *Node) Service(service any) error {
 	n.lock.RLock()
 	defer n.lock.RUnlock()
 

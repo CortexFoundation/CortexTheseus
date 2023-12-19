@@ -40,7 +40,7 @@ func Root() Logger {
 //	log.Trace("msg")
 //	log.Trace("msg", "key1", val1)
 //	log.Trace("msg", "key1", val1, "key2", val2)
-func Trace(msg string, ctx ...interface{}) {
+func Trace(msg string, ctx ...any) {
 	Root().Write(LevelTrace, msg, ctx...)
 }
 
@@ -53,7 +53,7 @@ func Trace(msg string, ctx ...interface{}) {
 //	log.Debug("msg")
 //	log.Debug("msg", "key1", val1)
 //	log.Debug("msg", "key1", val1, "key2", val2)
-func Debug(msg string, ctx ...interface{}) {
+func Debug(msg string, ctx ...any) {
 	Root().Write(slog.LevelDebug, msg, ctx...)
 }
 
@@ -66,7 +66,7 @@ func Debug(msg string, ctx ...interface{}) {
 //	log.Info("msg")
 //	log.Info("msg", "key1", val1)
 //	log.Info("msg", "key1", val1, "key2", val2)
-func Info(msg string, ctx ...interface{}) {
+func Info(msg string, ctx ...any) {
 	Root().Write(slog.LevelInfo, msg, ctx...)
 }
 
@@ -79,7 +79,7 @@ func Info(msg string, ctx ...interface{}) {
 //	log.Warn("msg")
 //	log.Warn("msg", "key1", val1)
 //	log.Warn("msg", "key1", val1, "key2", val2)
-func Warn(msg string, ctx ...interface{}) {
+func Warn(msg string, ctx ...any) {
 	Root().Write(slog.LevelWarn, msg, ctx...)
 }
 
@@ -92,7 +92,7 @@ func Warn(msg string, ctx ...interface{}) {
 //	log.Error("msg")
 //	log.Error("msg", "key1", val1)
 //	log.Error("msg", "key1", val1, "key2", val2)
-func Error(msg string, ctx ...interface{}) {
+func Error(msg string, ctx ...any) {
 	Root().Write(slog.LevelError, msg, ctx...)
 }
 
@@ -105,13 +105,13 @@ func Error(msg string, ctx ...interface{}) {
 //	log.Crit("msg")
 //	log.Crit("msg", "key1", val1)
 //	log.Crit("msg", "key1", val1, "key2", val2)
-func Crit(msg string, ctx ...interface{}) {
+func Crit(msg string, ctx ...any) {
 	Root().Write(LevelCrit, msg, ctx...)
 	os.Exit(1)
 }
 
 // New returns a new logger with the given context.
 // New is a convenient alias for Root().New
-func New(ctx ...interface{}) Logger {
+func New(ctx ...any) Logger {
 	return Root().With(ctx...)
 }

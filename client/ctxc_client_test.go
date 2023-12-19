@@ -63,7 +63,7 @@ var (
 //	for _, testCase := range []struct {
 //		name   string
 //		input  cortex.FilterQuery
-//		output interface{}
+//		output any
 //		err    error
 //	}{
 //		{
@@ -74,7 +74,7 @@ var (
 //				ToBlock:   big.NewInt(2),
 //				Topics:    [][]common.Hash{},
 //			},
-//			map[string]interface{}{
+//			map[string]any{
 //				"address":   addresses,
 //				"fromBlock": "0x1",
 //				"toBlock":   "0x2",
@@ -88,7 +88,7 @@ var (
 //				Addresses: addresses,
 //				Topics:    [][]common.Hash{},
 //			},
-//			map[string]interface{}{
+//			map[string]any{
 //				"address":   addresses,
 //				"fromBlock": "0x0",
 //				"toBlock":   "latest",
@@ -103,7 +103,7 @@ var (
 //				BlockHash: &blockHash,
 //				Topics:    [][]common.Hash{},
 //			},
-//			map[string]interface{}{
+//			map[string]any{
 //				"address":   addresses,
 //				"blockHash": blockHash,
 //				"topics":    [][]common.Hash{},

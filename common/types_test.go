@@ -225,7 +225,7 @@ func TestMixedcaseAccount_Address(t *testing.T) {
 
 func TestHash_Scan(t *testing.T) {
 	type args struct {
-		src interface{}
+		src any
 	}
 	tests := []struct {
 		name    string
@@ -316,7 +316,7 @@ func TestHash_Value(t *testing.T) {
 
 func TestAddress_Scan(t *testing.T) {
 	type args struct {
-		src interface{}
+		src any
 	}
 	tests := []struct {
 		name    string

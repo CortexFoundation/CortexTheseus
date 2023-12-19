@@ -169,12 +169,12 @@ func (h *Header) SanityCheck() error {
 
 // hasherPool holds LegacyKeccak hashers.
 var hasherPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return sha3.NewLegacyKeccak256()
 	},
 }
 
-func rlpHash(x interface{}) (h common.Hash) {
+func rlpHash(x any) (h common.Hash) {
 	sha := hasherPool.Get().(crypto.KeccakState)
 	defer hasherPool.Put(sha)
 	sha.Reset()
@@ -218,7 +218,7 @@ type Block struct {
 	// These fields are used by package ctxc to track
 	// inter-peer block relay.
 	ReceivedAt   time.Time
-	ReceivedFrom interface{}
+	ReceivedFrom any
 }
 
 // DeprecatedTd is an old relic for extracting the TD of a block. It is in the

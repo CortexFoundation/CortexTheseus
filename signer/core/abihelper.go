@@ -30,7 +30,7 @@ import (
 
 type decodedArgument struct {
 	soltype abi.Argument
-	value   interface{}
+	value   any
 }
 type decodedCallData struct {
 	signature string

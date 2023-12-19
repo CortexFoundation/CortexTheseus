@@ -157,7 +157,7 @@ type SignerFn func(signer accounts.Account, mimeType string, message []byte) ([]
 func SealHash(header *types.Header) (hash common.Hash) {
 	hasher := sha3.NewLegacyKeccak256()
 
-	rlp.Encode(hasher, []interface{}{
+	rlp.Encode(hasher, []any{
 		header.ParentHash,
 		header.UncleHash,
 		header.Coinbase,
@@ -736,7 +736,7 @@ func CliqueRLP(header *types.Header) []byte {
 }
 
 func encodeSigHeader(w io.Writer, header *types.Header) {
-	err := rlp.Encode(w, []interface{}{
+	err := rlp.Encode(w, []any{
 		header.ParentHash,
 		header.UncleHash,
 		header.Coinbase,

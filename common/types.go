@@ -166,7 +166,7 @@ func (h Hash) Generate(rand *rand.Rand, size int) reflect.Value {
 }
 
 // Scan implements Scanner for database/sql.
-func (h *Hash) Scan(src interface{}) error {
+func (h *Hash) Scan(src any) error {
 	srcB, ok := src.([]byte)
 	if !ok {
 		return fmt.Errorf("can't scan %T into Hash", src)
@@ -334,7 +334,7 @@ func (a *Address) UnmarshalJSON(input []byte) error {
 }
 
 // Scan implements Scanner for database/sql.
-func (a *Address) Scan(src interface{}) error {
+func (a *Address) Scan(src any) error {
 	srcB, ok := src.([]byte)
 	if !ok {
 		return fmt.Errorf("can't scan %T into Address", src)
@@ -424,7 +424,7 @@ func (ma *MixedcaseAddress) Original() string {
 	return ma.original
 }
 
-func Car(data interface{}, err error) interface{} {
+func Car(data any, err error) any {
 	if err != nil {
 		return nil
 	}
