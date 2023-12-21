@@ -63,6 +63,7 @@ const (
 	customTagPathID            = 65
 	customTagNonSafeIgnoreMask = 1 << 6
 	customTagVirtual           = 66
+	customTagPrefixRewrite     = 67
 )
 
 // DeletedFileEntry holds the state for a file deletion from a level. The file
@@ -336,6 +337,7 @@ func (v *VersionEdit) Decode(r io.Reader) error {
 				virtual        bool
 				backingFileNum uint64
 			}{}
+			var virtualPrefix *PrefixReplacement
 			if tag == tagNewFile4 || tag == tagNewFile5 {
 				for {
 					customTag, err := d.readUvarint()
@@ -351,6 +353,20 @@ func (v *VersionEdit) Decode(r io.Reader) error {
 							return err
 						}
 						virtualState.backingFileNum = n
+						continue
+					} else if customTag == customTagPrefixRewrite {
+						content, err := d.readBytes()
+						if err != nil {
+							return err
+						}
+						synthetic, err := d.readBytes()
+						if err != nil {
+							return err
+						}
+						virtualPrefix = &PrefixReplacement{
+							ContentPrefix:   content,
+							SyntheticPrefix: synthetic,
+						}
 						continue
 					}
 
@@ -390,6 +406,7 @@ func (v *VersionEdit) Decode(r io.Reader) error {
 				LargestSeqNum:       largestSeqNum,
 				MarkedForCompaction: markedForCompaction,
 				Virtual:             virtualState.virtual,
+				PrefixReplacement:   virtualPrefix,
 			}
 			if tag != tagNewFile5 { // no range keys present
 				m.SmallestPointKey = base.DecodeInternalKey(smallestPointKey)
@@ -605,6 +622,11 @@ func (v *VersionEdit) Encode(w io.Writer) error {
 			if x.Meta.Virtual {
 				e.writeUvarint(customTagVirtual)
 				e.writeUvarint(uint64(x.Meta.FileBacking.DiskFileNum.FileNum()))
+			}
+			if x.Meta.PrefixReplacement != nil {
+				e.writeUvarint(customTagPrefixRewrite)
+				e.writeBytes(x.Meta.PrefixReplacement.ContentPrefix)
+				e.writeBytes(x.Meta.PrefixReplacement.SyntheticPrefix)
 			}
 			e.writeUvarint(customTagTerminate)
 		}
@@ -855,7 +877,6 @@ func AccumulateIncompleteAndApplySingleVE(
 	backingStateMap map[base.DiskFileNum]*FileBacking,
 	addBackingFunc func(*FileBacking),
 	removeBackingFunc func(base.DiskFileNum),
-	orderingInvariants OrderingInvariants,
 ) (_ *Version, zombies map[base.DiskFileNum]uint64, _ error) {
 	if len(ve.RemovedBackingTables) != 0 {
 		panic("pebble: invalid incomplete version edit")
@@ -866,9 +887,7 @@ func AccumulateIncompleteAndApplySingleVE(
 		return nil, nil, err
 	}
 	zombies = make(map[base.DiskFileNum]uint64)
-	v, err := b.Apply(
-		curr, cmp, formatKey, flushSplitBytes, readCompactionRate, zombies, orderingInvariants,
-	)
+	v, err := b.Apply(curr, cmp, formatKey, flushSplitBytes, readCompactionRate, zombies)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -908,7 +927,6 @@ func (b *BulkVersionEdit) Apply(
 	flushSplitBytes int64,
 	readCompactionRate int64,
 	zombies map[base.DiskFileNum]uint64,
-	orderingInvariants OrderingInvariants,
 ) (*Version, error) {
 	addZombie := func(state *FileBacking) {
 		if zombies != nil {
@@ -1092,7 +1110,7 @@ func (b *BulkVersionEdit) Apply(
 			} else if err := v.InitL0Sublevels(cmp, formatKey, flushSplitBytes); err != nil {
 				return nil, errors.Wrap(err, "pebble: internal error")
 			}
-			if err := CheckOrdering(cmp, formatKey, Level(0), v.Levels[level].Iter(), orderingInvariants); err != nil {
+			if err := CheckOrdering(cmp, formatKey, Level(0), v.Levels[level].Iter()); err != nil {
 				return nil, errors.Wrap(err, "pebble: internal error")
 			}
 			continue
@@ -1113,7 +1131,7 @@ func (b *BulkVersionEdit) Apply(
 					end.Prev()
 				}
 			})
-			if err := CheckOrdering(cmp, formatKey, Level(level), check.Iter(), orderingInvariants); err != nil {
+			if err := CheckOrdering(cmp, formatKey, Level(level), check.Iter()); err != nil {
 				return nil, errors.Wrap(err, "pebble: internal error")
 			}
 		}

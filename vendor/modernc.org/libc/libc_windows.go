@@ -7307,3 +7307,29 @@ func X__stdio_common_vsscanf(t *TLS, args ...interface{}) int32      { panic("TO
 func X__stdio_common_vswprintf(t *TLS, args ...interface{}) int32    { panic("TODO") }
 func X__stdio_common_vswprintf_s(t *TLS, args ...interface{}) int32  { panic("TODO") }
 func X__stdio_common_vswscanf(t *TLS, args ...interface{}) int32     { panic("TODO") }
+
+func X_lseeki64(t *TLS, fd int32, offset int64, whence int32) int64 {
+	if __ccgo_strace {
+		trc("t=%v fd=%v offset=%v whence=%v, (%v:)", t, fd, offset, whence, origin(2))
+	}
+
+	f, ok := fdToFile(fd)
+	if !ok {
+		t.setErrno(errno.EBADF)
+		return -1
+	}
+
+	n, err := syscall.Seek(f.Handle, offset, int(whence))
+	if err != nil {
+		if dmesgs {
+			dmesg("%v: fd %v, off %#x, whence %v: %v", origin(1), f._fd, offset, whenceStr(whence), n)
+		}
+		t.setErrno(err)
+		return -1
+	}
+
+	if dmesgs {
+		dmesg("%v: fd %v, off %#x, whence %v: ok", origin(1), f._fd, offset, whenceStr(whence))
+	}
+	return n
+}

@@ -118,9 +118,12 @@ func ingestSynthesizeShared(
 		// NB: We create new internal keys and pass them into ExternalRangeKeyBounds
 		// so that we can sub a zero sequence number into the bounds. We can set
 		// the sequence number to anything here; it'll be reset in ingestUpdateSeqNum
-		// anyway. However we do need to use the same sequence number across all
+		// anyway. However, we do need to use the same sequence number across all
 		// bound keys at this step so that we end up with bounds that are consistent
 		// across point/range keys.
+		// Note that the kind of the smallest key might change because of the seqnum
+		// rewriting. For example, the sstable could start with a.SET.2 and
+		// a.RANGEDEL.1 (with smallest key being a.SET.2) but after rewriting the seqnum we have `a.RANGEDEL.1`a.SET.100
 		smallestRangeKey := base.MakeInternalKey(sm.SmallestRangeKey.UserKey, 0, sm.SmallestRangeKey.Kind())
 		largestRangeKey := base.MakeExclusiveSentinelKey(sm.LargestRangeKey.Kind(), sm.LargestRangeKey.UserKey)
 		meta.ExtendRangeKeyBounds(opts.Comparer.Compare, smallestRangeKey, largestRangeKey)
@@ -210,6 +213,13 @@ func ingestLoad1External(
 	// sstable for compaction just yet, as we do not have a clear sense of
 	// what parts of this sstable are referenced by other nodes.
 	meta.FileBacking.Size = e.Size
+
+	if len(e.SyntheticPrefix) != 0 {
+		meta.PrefixReplacement = &manifest.PrefixReplacement{
+			ContentPrefix:   e.ContentPrefix,
+			SyntheticPrefix: e.SyntheticPrefix,
+		}
+	}
 
 	if err := meta.Validate(opts.Comparer.Compare, opts.Comparer.FormatKey); err != nil {
 		return nil, err
@@ -1109,6 +1119,11 @@ type ExternalFile struct {
 	// or range keys. If both structs are false, an error is returned during
 	// ingestion.
 	HasPointKey, HasRangeKey bool
+	// ContentPrefix and SyntheticPrefix denote a prefix replacement rule causing
+	// a file, in which all keys have prefix ContentPrefix, to appear whenever it
+	// is accessed as if those keys all instead have prefix SyntheticPrefix.
+	// SyntheticPrefix must be a prefix of both SmallestUserKey and LargestUserKey.
+	ContentPrefix, SyntheticPrefix []byte
 }
 
 // IngestWithStats does the same as Ingest, and additionally returns
@@ -1292,6 +1307,13 @@ func (d *DB) ingest(
 	}
 	if (exciseSpan.Valid() || len(shared) > 0 || len(external) > 0) && d.FormatMajorVersion() < FormatVirtualSSTables {
 		return IngestOperationStats{}, errors.New("pebble: format major version too old for excise, shared or external sstable ingestion")
+	}
+	if len(external) > 0 && d.FormatMajorVersion() < FormatSyntheticPrefixes {
+		for i := range external {
+			if len(external[i].SyntheticPrefix) > 0 {
+				return IngestOperationStats{}, errors.New("pebble: format major version too old for synthetic prefix ingestion")
+			}
+		}
 	}
 	// Allocate file numbers for all of the files being ingested and mark them as
 	// pending in order to prevent them from being deleted. Note that this causes

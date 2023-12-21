@@ -532,6 +532,7 @@ func (tm *TorrentManager) addInfoHash(ih string, bytesRequested int64) *caffe.To
 	}
 }
 
+// Start the torrent leeching
 func (tm *TorrentManager) injectSpec(ih string, spec *torrent.TorrentSpec) (*torrent.Torrent, error) {
 	if t, n, err := tm.client.AddTorrentSpec(spec); err == nil {
 		if !n {
@@ -952,7 +953,6 @@ func (tm *TorrentManager) mainLoop() {
 					if tt, err := tm.injectSpec(t.InfoHash(), t.Spec()); err == nil && tt != nil {
 						t.SetStatus(caffe.TorrentPending)
 						t.Lock()
-						//t.status = torrentPending
 						t.Torrent = tt
 						t.SetStart(mclock.Now())
 						t.Unlock()
