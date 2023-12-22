@@ -65,6 +65,7 @@ type Torrent struct {
 	spec *torrent.TorrentSpec
 
 	//jobCh chan bool
+	priority int
 }
 
 type task struct {
