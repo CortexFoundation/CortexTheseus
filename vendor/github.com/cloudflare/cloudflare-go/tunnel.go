@@ -2,12 +2,38 @@ package cloudflare
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
+
+	"github.com/goccy/go-json"
 )
+
+// A TunnelDuration is a Duration that has custom serialization for JSON.
+// JSON in Javascript assumes that int fields are 32 bits and Duration fields
+// are deserialized assuming that numbers are in nanoseconds, which in 32bit
+// integers limits to just 2 seconds. This type assumes that when
+// serializing/deserializing from JSON, that the number is in seconds, while it
+// maintains the YAML serde assumptions.
+type TunnelDuration struct {
+	time.Duration
+}
+
+func (s TunnelDuration) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.Duration.Seconds())
+}
+
+func (s *TunnelDuration) UnmarshalJSON(data []byte) error {
+	seconds, err := strconv.ParseInt(string(data), 10, 64)
+	if err != nil {
+		return err
+	}
+
+	s.Duration = time.Duration(seconds * int64(time.Second))
+	return nil
+}
 
 // ErrMissingTunnelID is for when a required tunnel ID is missing from the
 // parameters.
@@ -23,16 +49,20 @@ type Tunnel struct {
 	Connections    []TunnelConnection `json:"connections,omitempty"`
 	ConnsActiveAt  *time.Time         `json:"conns_active_at,omitempty"`
 	ConnInactiveAt *time.Time         `json:"conns_inactive_at,omitempty"`
+	TunnelType     string             `json:"tun_type,omitempty"`
+	Status         string             `json:"status,omitempty"`
+	RemoteConfig   bool               `json:"remote_config,omitempty"`
 }
 
 // Connection is the struct definition of a connection.
 type Connection struct {
-	ID          string             `json:"id,omitempty"`
-	Features    []string           `json:"features,omitempty"`
-	Version     string             `json:"version,omitempty"`
-	Arch        string             `json:"arch,omitempty"`
-	Connections []TunnelConnection `json:"conns,omitempty"`
-	RunAt       *time.Time         `json:"run_at,omitempty"`
+	ID            string             `json:"id,omitempty"`
+	Features      []string           `json:"features,omitempty"`
+	Version       string             `json:"version,omitempty"`
+	Arch          string             `json:"arch,omitempty"`
+	Connections   []TunnelConnection `json:"conns,omitempty"`
+	RunAt         *time.Time         `json:"run_at,omitempty"`
+	ConfigVersion int                `json:"config_version,omitempty"`
 }
 
 // TunnelConnection represents the connections associated with a tunnel.
@@ -51,7 +81,11 @@ type TunnelConnection struct {
 type TunnelsDetailResponse struct {
 	Result []Tunnel `json:"result"`
 	Response
+	ResultInfo `json:"result_info"`
 }
+
+// listTunnelsDefaultPageSize represents the default per_page size of the API.
+var listTunnelsDefaultPageSize int = 100
 
 // TunnelDetailResponse is used for representing the API response payload for
 // a single tunnel.
@@ -87,8 +121,9 @@ type TunnelTokenResponse struct {
 }
 
 type TunnelCreateParams struct {
-	Name   string `json:"name,omitempty"`
-	Secret string `json:"tunnel_secret,omitempty"`
+	Name      string `json:"name,omitempty"`
+	Secret    string `json:"tunnel_secret,omitempty"`
+	ConfigSrc string `json:"config_src,omitempty"`
 }
 
 type TunnelUpdateParams struct {
@@ -97,9 +132,10 @@ type TunnelUpdateParams struct {
 }
 
 type UnvalidatedIngressRule struct {
-	Hostname string `json:"hostname,omitempty"`
-	Path     string `json:"path,omitempty"`
-	Service  string `json:"service,omitempty"`
+	Hostname      string               `json:"hostname,omitempty"`
+	Path          string               `json:"path,omitempty"`
+	Service       string               `json:"service,omitempty"`
+	OriginRequest *OriginRequestConfig `json:"originRequest,omitempty"`
 }
 
 // OriginRequestConfig is a set of optional fields that users may set to
@@ -108,17 +144,17 @@ type UnvalidatedIngressRule struct {
 // config.
 type OriginRequestConfig struct {
 	// HTTP proxy timeout for establishing a new connection
-	ConnectTimeout *time.Duration `json:"connectTimeout,omitempty"`
+	ConnectTimeout *TunnelDuration `json:"connectTimeout,omitempty"`
 	// HTTP proxy timeout for completing a TLS handshake
-	TLSTimeout *time.Duration `json:"tlsTimeout,omitempty"`
+	TLSTimeout *TunnelDuration `json:"tlsTimeout,omitempty"`
 	// HTTP proxy TCP keepalive duration
-	TCPKeepAlive *time.Duration `json:"tcpKeepAlive,omitempty"`
+	TCPKeepAlive *TunnelDuration `json:"tcpKeepAlive,omitempty"`
 	// HTTP proxy should disable "happy eyeballs" for IPv4/v6 fallback
 	NoHappyEyeballs *bool `json:"noHappyEyeballs,omitempty"`
 	// HTTP proxy maximum keepalive connection pool size
 	KeepAliveConnections *int `json:"keepAliveConnections,omitempty"`
 	// HTTP proxy timeout for closing an idle connection
-	KeepAliveTimeout *time.Duration `json:"keepAliveTimeout,omitempty"`
+	KeepAliveTimeout *TunnelDuration `json:"keepAliveTimeout,omitempty"`
 	// Sets the HTTP Host header for the local webserver.
 	HTTPHostHeader *string `json:"httpHostHeader,omitempty"`
 	// Hostname on the origin server certificate.
@@ -143,6 +179,20 @@ type OriginRequestConfig struct {
 	ProxyType *string `json:"proxyType,omitempty"`
 	// IP rules for the proxy service
 	IPRules []IngressIPRule `json:"ipRules,omitempty"`
+	// Attempt to connect to origin with HTTP/2
+	Http2Origin *bool `json:"http2Origin,omitempty"`
+	// Access holds all access related configs
+	Access *AccessConfig `json:"access,omitempty"`
+}
+
+type AccessConfig struct {
+	// Required when set to true will fail every request that does not arrive
+	// through an access authenticated endpoint.
+	Required bool `yaml:"required" json:"required,omitempty"`
+	// TeamName is the organization team name to get the public key certificates for.
+	TeamName string `yaml:"teamName" json:"teamName"`
+	// AudTag is the AudTag to verify access JWT against.
+	AudTag []string `yaml:"audTag" json:"audTag"`
 }
 
 type IngressIPRule struct {
@@ -167,39 +217,66 @@ type TunnelConfigurationParams struct {
 }
 
 type TunnelListParams struct {
-	Name      string     `url:"name,omitempty"`
-	UUID      string     `url:"uuid,omitempty"` // the tunnel ID
-	IsDeleted *bool      `url:"is_deleted,omitempty"`
-	ExistedAt *time.Time `url:"existed_at,omitempty"`
+	Name          string     `url:"name,omitempty"`
+	UUID          string     `url:"uuid,omitempty"` // the tunnel ID
+	IsDeleted     *bool      `url:"is_deleted,omitempty"`
+	ExistedAt     *time.Time `url:"existed_at,omitempty"`
+	IncludePrefix string     `url:"include_prefix,omitempty"`
+	ExcludePrefix string     `url:"exclude_prefix,omitempty"`
+
+	ResultInfo
 }
 
-// Tunnels lists all tunnels.
+// ListTunnels lists all tunnels.
 //
 // API reference: https://api.cloudflare.com/#cloudflare-tunnel-list-cloudflare-tunnels
-func (api *API) Tunnels(ctx context.Context, rc *ResourceContainer, params TunnelListParams) ([]Tunnel, error) {
+func (api *API) ListTunnels(ctx context.Context, rc *ResourceContainer, params TunnelListParams) ([]Tunnel, *ResultInfo, error) {
 	if rc.Identifier == "" {
-		return []Tunnel{}, ErrMissingAccountID
+		return []Tunnel{}, &ResultInfo{}, ErrMissingAccountID
 	}
 
-	uri := buildURI(fmt.Sprintf("/accounts/%s/cfd_tunnel", rc.Identifier), params)
-
-	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
-	if err != nil {
-		return []Tunnel{}, err
+	autoPaginate := true
+	if params.PerPage >= 1 || params.Page >= 1 {
+		autoPaginate = false
 	}
 
-	var argoDetailsResponse TunnelsDetailResponse
-	err = json.Unmarshal(res, &argoDetailsResponse)
-	if err != nil {
-		return []Tunnel{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+	if params.PerPage < 1 {
+		params.PerPage = listTunnelsDefaultPageSize
 	}
-	return argoDetailsResponse.Result, nil
+
+	if params.Page < 1 {
+		params.Page = 1
+	}
+
+	var records []Tunnel
+	var listResponse TunnelsDetailResponse
+
+	for {
+		uri := buildURI(fmt.Sprintf("/accounts/%s/cfd_tunnel", rc.Identifier), params)
+		res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
+		if err != nil {
+			return []Tunnel{}, &ResultInfo{}, err
+		}
+
+		err = json.Unmarshal(res, &listResponse)
+		if err != nil {
+			return []Tunnel{}, &ResultInfo{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		}
+
+		records = append(records, listResponse.Result...)
+		params.ResultInfo = listResponse.ResultInfo.Next()
+		if params.ResultInfo.Done() || !autoPaginate {
+			break
+		}
+	}
+
+	return records, &listResponse.ResultInfo, nil
 }
 
-// Tunnel returns a single Argo tunnel.
+// GetTunnel returns a single Argo tunnel.
 //
 // API reference: https://api.cloudflare.com/#cloudflare-tunnel-get-cloudflare-tunnel
-func (api *API) Tunnel(ctx context.Context, rc *ResourceContainer, tunnelID string) (Tunnel, error) {
+func (api *API) GetTunnel(ctx context.Context, rc *ResourceContainer, tunnelID string) (Tunnel, error) {
 	if rc.Identifier == "" {
 		return Tunnel{}, ErrMissingAccountID
 	}
@@ -241,9 +318,7 @@ func (api *API) CreateTunnel(ctx context.Context, rc *ResourceContainer, params 
 
 	uri := fmt.Sprintf("/accounts/%s/cfd_tunnel", rc.Identifier)
 
-	tunnel := Tunnel{Name: params.Name, Secret: params.Secret}
-
-	res, err := api.makeRequestContext(ctx, http.MethodPost, uri, tunnel)
+	res, err := api.makeRequestContext(ctx, http.MethodPost, uri, params)
 	if err != nil {
 		return Tunnel{}, err
 	}
@@ -357,10 +432,10 @@ func (api *API) GetTunnelConfiguration(ctx context.Context, rc *ResourceContaine
 	return tunnelDetails, nil
 }
 
-// TunnelConnections gets all connections on a tunnel.
+// ListTunnelConnections gets all connections on a tunnel.
 //
 // API reference: https://api.cloudflare.com/#cloudflare-tunnel-list-cloudflare-tunnel-connections
-func (api *API) TunnelConnections(ctx context.Context, rc *ResourceContainer, tunnelID string) ([]Connection, error) {
+func (api *API) ListTunnelConnections(ctx context.Context, rc *ResourceContainer, tunnelID string) ([]Connection, error) {
 	if rc.Identifier == "" {
 		return []Connection{}, ErrMissingAccountID
 	}
@@ -432,10 +507,10 @@ func (api *API) CleanupTunnelConnections(ctx context.Context, rc *ResourceContai
 	return nil
 }
 
-// TunnelToken that allows to run a tunnel.
+// GetTunnelToken that allows to run a tunnel.
 //
 // API reference: https://api.cloudflare.com/#cloudflare-tunnel-get-cloudflare-tunnel-token
-func (api *API) TunnelToken(ctx context.Context, rc *ResourceContainer, tunnelID string) (string, error) {
+func (api *API) GetTunnelToken(ctx context.Context, rc *ResourceContainer, tunnelID string) (string, error) {
 	if rc.Identifier == "" {
 		return "", ErrMissingAccountID
 	}

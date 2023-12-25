@@ -2,11 +2,12 @@ package cloudflare
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/goccy/go-json"
 )
 
 var (
@@ -78,14 +79,8 @@ type QueueConsumerResponse struct {
 }
 
 type UpdateQueueParams struct {
-	ID                  string          `json:"queue_id,omitempty"`
-	Name                string          `json:"queue_name,omitempty"`
-	CreatedOn           *time.Time      `json:"created_on,omitempty"`
-	ModifiedOn          *time.Time      `json:"modified_on,omitempty"`
-	ProducersTotalCount int             `json:"producers_total_count,omitempty"`
-	Producers           []QueueProducer `json:"producers,omitempty"`
-	ConsumersTotalCount int             `json:"consumers_total_count,omitempty"`
-	Consumers           []QueueConsumer `json:"consumers,omitempty"`
+	Name        string `json:"-"`
+	UpdatedName string `json:"queue_name,omitempty"`
 }
 
 type ListQueueConsumersParams struct {
@@ -129,6 +124,7 @@ func (api *API) ListQueues(ctx context.Context, rc *ResourceContainer, params Li
 	var queues []Queue
 	var qResponse QueueListResponse
 	for {
+		qResponse = QueueListResponse{}
 		uri := buildURI(fmt.Sprintf("/accounts/%s/workers/queues", rc.Identifier), params)
 
 		res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
@@ -232,12 +228,12 @@ func (api *API) UpdateQueue(ctx context.Context, rc *ResourceContainer, params U
 		return Queue{}, ErrMissingAccountID
 	}
 
-	if params.Name == "" {
+	if params.Name == "" || params.UpdatedName == "" {
 		return Queue{}, ErrMissingQueueName
 	}
 
 	uri := fmt.Sprintf("/accounts/%s/workers/queues/%s", rc.Identifier, params.Name)
-	res, err := api.makeRequestContext(ctx, http.MethodPut, uri, nil)
+	res, err := api.makeRequestContext(ctx, http.MethodPut, uri, params)
 	if err != nil {
 		return Queue{}, fmt.Errorf("%s: %w", errMakeRequestError, err)
 	}
@@ -276,6 +272,7 @@ func (api *API) ListQueueConsumers(ctx context.Context, rc *ResourceContainer, p
 	var queuesConsumers []QueueConsumer
 	var qResponse ListQueueConsumersResponse
 	for {
+		qResponse = ListQueueConsumersResponse{}
 		uri := buildURI(fmt.Sprintf("/accounts/%s/workers/queues/%s/consumers", rc.Identifier, params.QueueName), params)
 
 		res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)

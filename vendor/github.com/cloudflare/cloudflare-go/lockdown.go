@@ -2,10 +2,11 @@ package cloudflare
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/goccy/go-json"
 )
 
 // ZoneLockdown represents a Zone Lockdown rule. A rule only permits access to
@@ -166,6 +167,7 @@ func (api *API) ListZoneLockdowns(ctx context.Context, rc *ResourceContainer, pa
 	var zoneLockdowns []ZoneLockdown
 	var zResponse ZoneLockdownListResponse
 	for {
+		zResponse = ZoneLockdownListResponse{}
 		uri := buildURI(fmt.Sprintf("/zones/%s/firewall/lockdowns", rc.Identifier), params)
 
 		res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)

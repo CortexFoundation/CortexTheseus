@@ -2,10 +2,11 @@ package cloudflare
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+
+	"github.com/goccy/go-json"
 )
 
 var ErrMissingRuleID = errors.New("required rule id missing")
@@ -103,6 +104,7 @@ func (api *API) ListEmailRoutingRules(ctx context.Context, rc *ResourceContainer
 	var rules []EmailRoutingRule
 	var rResponse ListEmailRoutingRuleResponse
 	for {
+		rResponse = ListEmailRoutingRuleResponse{}
 		uri := buildURI(fmt.Sprintf("/zones/%s/email/routing/rules", rc.Identifier), params)
 
 		res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)

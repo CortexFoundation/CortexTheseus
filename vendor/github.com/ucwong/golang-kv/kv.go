@@ -21,7 +21,6 @@ import (
 	"github.com/ucwong/golang-kv/leveldb"
 	"github.com/ucwong/golang-kv/nutsdb"
 	"github.com/ucwong/golang-kv/pebble"
-	"github.com/ucwong/golang-kv/rosedb"
 )
 
 func Badger(path string, opt ...badger.BadgerOption) Bucket {
@@ -42,8 +41,4 @@ func Pebble(path string, opt ...pebble.PebbleOption) Bucket {
 
 func NutsDB(path string, opt ...nutsdb.NutsDBOption) Bucket {
 	return nutsdb.Open(path, opt...)
-}
-
-func RoseDB(path string, opt ...rosedb.RoseDBOption) Bucket {
-	return rosedb.Open(path, opt...)
 }

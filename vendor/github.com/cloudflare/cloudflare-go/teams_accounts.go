@@ -2,10 +2,11 @@ package cloudflare
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/goccy/go-json"
 )
 
 type TeamsAccount struct {
@@ -36,16 +37,19 @@ type TeamsConfiguration struct {
 }
 
 type TeamsAccountSettings struct {
-	Antivirus        *TeamsAntivirus   `json:"antivirus,omitempty"`
-	TLSDecrypt       *TeamsTLSDecrypt  `json:"tls_decrypt,omitempty"`
-	ActivityLog      *TeamsActivityLog `json:"activity_log,omitempty"`
-	BlockPage        *TeamsBlockPage   `json:"block_page,omitempty"`
-	BrowserIsolation *BrowserIsolation `json:"browser_isolation,omitempty"`
-	FIPS             *TeamsFIPS        `json:"fips,omitempty"`
+	Antivirus         *TeamsAntivirus         `json:"antivirus,omitempty"`
+	TLSDecrypt        *TeamsTLSDecrypt        `json:"tls_decrypt,omitempty"`
+	ActivityLog       *TeamsActivityLog       `json:"activity_log,omitempty"`
+	BlockPage         *TeamsBlockPage         `json:"block_page,omitempty"`
+	BrowserIsolation  *BrowserIsolation       `json:"browser_isolation,omitempty"`
+	FIPS              *TeamsFIPS              `json:"fips,omitempty"`
+	ProtocolDetection *TeamsProtocolDetection `json:"protocol_detection,omitempty"`
+	BodyScanning      *TeamsBodyScanning      `json:"body_scanning,omitempty"`
 }
 
 type BrowserIsolation struct {
-	UrlBrowserIsolationEnabled bool `json:"url_browser_isolation_enabled"`
+	UrlBrowserIsolationEnabled *bool `json:"url_browser_isolation_enabled,omitempty"`
+	NonIdentityEnabled         *bool `json:"non_identity_enabled,omitempty"`
 }
 
 type TeamsAntivirus struct {
@@ -59,6 +63,10 @@ type TeamsFIPS struct {
 }
 
 type TeamsTLSDecrypt struct {
+	Enabled bool `json:"enabled"`
+}
+
+type TeamsProtocolDetection struct {
 	Enabled bool `json:"enabled"`
 }
 
@@ -76,6 +84,17 @@ type TeamsBlockPage struct {
 	MailtoAddress   string `json:"mailto_address,omitempty"`
 	MailtoSubject   string `json:"mailto_subject,omitempty"`
 	SuppressFooter  *bool  `json:"suppress_footer,omitempty"`
+}
+
+type TeamsInspectionMode = string
+
+const (
+	TeamsShallowInspectionMode TeamsInspectionMode = "shallow"
+	TeamsDeepInspectionMode    TeamsInspectionMode = "deep"
+)
+
+type TeamsBodyScanning struct {
+	InspectionMode TeamsInspectionMode `json:"inspection_mode,omitempty"`
 }
 
 type TeamsRuleType = string
@@ -97,8 +116,9 @@ type TeamsLoggingSettings struct {
 }
 
 type TeamsDeviceSettings struct {
-	GatewayProxyEnabled    bool `json:"gateway_proxy_enabled"`
-	GatewayProxyUDPEnabled bool `json:"gateway_udp_proxy_enabled"`
+	GatewayProxyEnabled                bool `json:"gateway_proxy_enabled"`
+	GatewayProxyUDPEnabled             bool `json:"gateway_udp_proxy_enabled"`
+	RootCertificateInstallationEnabled bool `json:"root_certificate_installation_enabled"`
 }
 
 type TeamsDeviceSettingsResponse struct {
