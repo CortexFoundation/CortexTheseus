@@ -31,8 +31,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 )
 
-var big0 = big.NewInt(0)
-
 type Code []byte
 
 func (s Code) String() string {
@@ -434,53 +432,6 @@ func (s *stateObject) setBalance(amount *big.Int) {
 	s.data.Balance = amount
 }
 
-//func (s *stateObject) AddUpload(amount *big.Int) {
-//	if amount.Sign() == 0 {
-//		if s.empty() {
-//			s.touch()
-//		}
-//
-//		return
-//	}
-//	s.SetUpload(new(big.Int).Add(s.Upload(), amount))
-//}
-
-func (s *stateObject) SubUpload(amount *big.Int) *big.Int {
-	if amount.Sign() == 0 {
-		return s.Upload()
-	}
-	var ret *big.Int = big0
-	if s.Upload().Cmp(amount) > 0 {
-		ret = new(big.Int).Sub(s.Upload(), amount)
-	}
-	s.SetUpload(ret)
-	return ret
-}
-
-func (s *stateObject) SetUpload(amount *big.Int) {
-	s.db.journal.append(uploadChange{
-		account: &s.address,
-		prev:    new(big.Int).Set(s.data.Upload),
-	})
-	s.setUpload(amount)
-}
-
-func (s *stateObject) setNum(num *big.Int) {
-	s.data.Num = num
-}
-
-func (s *stateObject) SetNum(num *big.Int) {
-	s.db.journal.append(numChange{
-		account: &s.address,
-		prev:    new(big.Int).Set(s.data.Num),
-	})
-	s.setNum(num)
-}
-
-func (s *stateObject) setUpload(amount *big.Int) {
-	s.data.Upload = amount
-}
-
 // Return the gas back to the origin. Used by the Virtual machine or Closures
 func (s *stateObject) ReturnGas(gas *big.Int) {}
 
@@ -581,13 +532,6 @@ func (s *stateObject) CodeHash() []byte {
 
 func (s *stateObject) Balance() *big.Int {
 	return s.data.Balance
-}
-
-func (s *stateObject) Upload() *big.Int {
-	return s.data.Upload
-}
-func (s *stateObject) Num() *big.Int {
-	return s.data.Num
 }
 
 func (s *stateObject) Nonce() uint64 {
