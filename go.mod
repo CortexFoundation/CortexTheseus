@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.2.1
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.57-0.20231225161207-cb412696ee0d
+	github.com/CortexFoundation/torrentfs v1.0.57-0.20231226110207-0dcdbe74690d
 	github.com/VictoriaMetrics/fastcache v1.12.2
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.24.0
@@ -62,7 +62,7 @@ require (
 	github.com/urfave/cli/v2 v2.26.0
 	go.uber.org/automaxprocs v1.5.3
 	golang.org/x/crypto v0.17.0
-	golang.org/x/exp v0.0.0-20231219180239-dc181d75b848
+	golang.org/x/exp v0.0.0-20231226003508-02704c960a9b
 	golang.org/x/mobile v0.0.0-20201217150744-e6ae53a27f4f
 	golang.org/x/sync v0.5.0
 	golang.org/x/sys v0.15.0
@@ -178,7 +178,7 @@ require (
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
-	github.com/nutsdb/nutsdb v1.0.3-0.20231224042427-ed51a64e0297 // indirect
+	github.com/nutsdb/nutsdb v1.0.3-0.20231226101940-cfd8c3bba692 // indirect
 	github.com/nxadm/tail v1.4.11 // indirect
 	github.com/oapi-codegen/runtime v1.1.0 // indirect
 	github.com/otiai10/copy v1.14.0 // indirect
@@ -218,7 +218,7 @@ require (
 	github.com/tklauser/numcpus v0.7.0 // indirect
 	github.com/ucwong/filecache v1.0.6-0.20230405163841-810d53ced4bd // indirect
 	github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb // indirect
-	github.com/ucwong/golang-kv v1.0.23 // indirect
+	github.com/ucwong/golang-kv v1.0.24-0.20231226105423-b6530d5b2b9f // indirect
 	github.com/ucwong/shard v1.0.1-0.20231225143310-3022d14f9c3e // indirect
 	github.com/xrash/smetrics v0.0.0-20231213231151-1d8dd44e695e // indirect
 	github.com/xujiajun/mmap-go v1.0.1 // indirect
