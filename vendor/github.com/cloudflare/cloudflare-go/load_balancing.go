@@ -2,11 +2,12 @@ package cloudflare
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/goccy/go-json"
 )
 
 // LoadBalancerPool represents a load balancer pool's properties.
@@ -17,7 +18,7 @@ type LoadBalancerPool struct {
 	Description       string                      `json:"description"`
 	Name              string                      `json:"name"`
 	Enabled           bool                        `json:"enabled"`
-	MinimumOrigins    int                         `json:"minimum_origins,omitempty"`
+	MinimumOrigins    *int                        `json:"minimum_origins,omitempty"`
 	Monitor           string                      `json:"monitor,omitempty"`
 	Origins           []LoadBalancerOrigin        `json:"origins"`
 	NotificationEmail string                      `json:"notification_email,omitempty"`
@@ -25,6 +26,7 @@ type LoadBalancerPool struct {
 	Longitude         *float32                    `json:"longitude,omitempty"`
 	LoadShedding      *LoadBalancerLoadShedding   `json:"load_shedding,omitempty"`
 	OriginSteering    *LoadBalancerOriginSteering `json:"origin_steering,omitempty"`
+	Healthy           *bool                       `json:"healthy,omitempty"`
 
 	// CheckRegions defines the geographic region(s) from where to run health-checks from - e.g. "WNAM", "WEU", "SAF", "SAM".
 	// Providing a null/empty value means "all regions", which may not be available to all plan types.
@@ -33,16 +35,40 @@ type LoadBalancerPool struct {
 
 // LoadBalancerOrigin represents a Load Balancer origin's properties.
 type LoadBalancerOrigin struct {
-	Name    string              `json:"name"`
-	Address string              `json:"address"`
-	Enabled bool                `json:"enabled"`
-	Weight  float64             `json:"weight"`
-	Header  map[string][]string `json:"header"`
+	Name    string `json:"name"`
+	Address string `json:"address"`
+	Enabled bool   `json:"enabled"`
+	// Weight of this origin relative to other origins in the pool.
+	// Based on the configured weight the total traffic is distributed
+	// among origins within the pool.
+	//
+	// When LoadBalancerOriginSteering.Policy="least_outstanding_requests", this
+	// weight is used to scale the origin's outstanding requests.
+	// When LoadBalancerOriginSteering.Policy="least_connections", this
+	// weight is used to scale the origin's open connections.
+	Weight float64             `json:"weight"`
+	Header map[string][]string `json:"header"`
+	// The virtual network subnet ID the origin belongs in.
+	// Virtual network must also belong to the account.
+	VirtualNetworkID string `json:"virtual_network_id,omitempty"`
 }
 
 // LoadBalancerOriginSteering controls origin selection for new sessions and traffic without session affinity.
 type LoadBalancerOriginSteering struct {
-	// Policy defaults to "random" (weighted) when empty or unspecified.
+	// Policy determines the type of origin steering policy to use.
+	// It defaults to "random" (weighted) when empty or unspecified.
+	//
+	// "random": Select an origin randomly.
+	//
+	// "hash": Select an origin by computing a hash over the CF-Connecting-IP address.
+	//
+	// "least_outstanding_requests": Select an origin by taking into consideration origin weights,
+	// as well as each origin's number of outstanding requests. Origins with more pending requests
+	// are weighted proportionately less relative to others.
+	//
+	// "least_connections": Select an origin by taking into consideration origin weights,
+	// as well as each origin's number of open connections. Origins with more open connections
+	// are weighted proportionately less relative to others. Supported for HTTP/1 and HTTP/2 connections.
 	Policy string `json:"policy,omitempty"`
 }
 
@@ -59,6 +85,8 @@ type LoadBalancerMonitor struct {
 	Timeout         int                 `json:"timeout"`
 	Retries         int                 `json:"retries"`
 	Interval        int                 `json:"interval"`
+	ConsecutiveUp   int                 `json:"consecutive_up"`
+	ConsecutiveDown int                 `json:"consecutive_down"`
 	Port            uint16              `json:"port,omitempty"`
 	ExpectedBody    string              `json:"expected_body"`
 	ExpectedCodes   string              `json:"expected_codes"`
@@ -104,6 +132,15 @@ type LoadBalancer struct {
 	// "proximity": Use the pools' latitude and longitude to select the closest pool using
 	// the Cloudflare PoP location for proxied requests or the location determined by
 	// LocationStrategy for non-proxied requests.
+	//
+	// "least_outstanding_requests": Select a pool by taking into consideration
+	// RandomSteering weights, as well as each pool's number of outstanding requests.
+	// Pools with more pending requests are weighted proportionately less relative to others.
+	//
+	// "least_connections": Select a pool by taking into consideration
+	// RandomSteering weights, as well as each pool's number of open connections.
+	// Pools with more open connections are weighted proportionately less relative to others.
+	// Supported for HTTP/1 and HTTP/2 connections.
 	//
 	// "": Maps to "geo" if RegionPools or PopPools or CountryPools have entries otherwise "off".
 	SteeringPolicy string `json:"steering_policy,omitempty"`
@@ -178,8 +215,16 @@ type LoadBalancerRuleOverrides struct {
 	LocationStrategy *LocationStrategy `json:"location_strategy,omitempty"`
 }
 
-// RandomSteering represents fields used to set pool weights on a load balancer
-// with "random" steering policy.
+// RandomSteering configures pool weights.
+//
+// SteeringPolicy="random": A random pool is selected with probability
+// proportional to pool weights.
+//
+// SteeringPolicy="least_outstanding_requests": Use pool weights to
+// scale each pool's outstanding requests.
+//
+// SteeringPolicy="least_connections": Use pool weights to
+// scale each pool's open connections.
 type RandomSteering struct {
 	DefaultWeight float64            `json:"default_weight,omitempty"`
 	PoolWeights   map[string]float64 `json:"pool_weights,omitempty"`
@@ -229,17 +274,21 @@ type LocationStrategy struct {
 // LoadBalancerRuleOverridesSessionAffinityAttrs mimics SessionAffinityAttributes without the
 // DrainDuration field as that field can not be overwritten via rules.
 type LoadBalancerRuleOverridesSessionAffinityAttrs struct {
-	SameSite             string `json:"samesite,omitempty"`
-	Secure               string `json:"secure,omitempty"`
-	ZeroDowntimeFailover string `json:"zero_downtime_failover,omitempty"`
+	SameSite             string   `json:"samesite,omitempty"`
+	Secure               string   `json:"secure,omitempty"`
+	ZeroDowntimeFailover string   `json:"zero_downtime_failover,omitempty"`
+	Headers              []string `json:"headers,omitempty"`
+	RequireAllHeaders    *bool    `json:"require_all_headers,omitempty"`
 }
 
-// SessionAffinityAttributes represents the fields used to set attributes in a load balancer session affinity cookie.
+// SessionAffinityAttributes represents additional configuration options for session affinity.
 type SessionAffinityAttributes struct {
-	SameSite             string `json:"samesite,omitempty"`
-	Secure               string `json:"secure,omitempty"`
-	DrainDuration        int    `json:"drain_duration,omitempty"`
-	ZeroDowntimeFailover string `json:"zero_downtime_failover,omitempty"`
+	SameSite             string   `json:"samesite,omitempty"`
+	Secure               string   `json:"secure,omitempty"`
+	DrainDuration        int      `json:"drain_duration,omitempty"`
+	ZeroDowntimeFailover string   `json:"zero_downtime_failover,omitempty"`
+	Headers              []string `json:"headers,omitempty"`
+	RequireAllHeaders    bool     `json:"require_all_headers,omitempty"`
 }
 
 // LoadBalancerOriginHealth represents the health of the origin.

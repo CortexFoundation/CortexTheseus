@@ -2,20 +2,23 @@ package cloudflare
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/goccy/go-json"
 )
 
 // DevicePostureIntegrationConfig contains authentication information
 // for a device posture integration.
 type DevicePostureIntegrationConfig struct {
-	ClientID     string `json:"client_id,omitempty"`
-	ClientSecret string `json:"client_secret,omitempty"`
-	AuthUrl      string `json:"auth_url,omitempty"`
-	ApiUrl       string `json:"api_url,omitempty"`
-	ClientKey    string `json:"client_key,omitempty"`
-	CustomerID   string `json:"customer_id,omitempty"`
+	ClientID           string `json:"client_id,omitempty"`
+	ClientSecret       string `json:"client_secret,omitempty"`
+	AuthUrl            string `json:"auth_url,omitempty"`
+	ApiUrl             string `json:"api_url,omitempty"`
+	ClientKey          string `json:"client_key,omitempty"`
+	CustomerID         string `json:"customer_id,omitempty"`
+	AccessClientID     string `json:"access_client_id,omitempty"`
+	AccessClientSecret string `json:"access_client_secret,omitempty"`
 }
 
 // DevicePostureIntegration represents a device posture integration.
@@ -162,25 +165,39 @@ type DevicePostureRuleMatch struct {
 
 // DevicePostureRuleInput represents the value to be checked against.
 type DevicePostureRuleInput struct {
-	ID               string `json:"id,omitempty"`
-	Path             string `json:"path,omitempty"`
-	Exists           bool   `json:"exists,omitempty"`
-	Thumbprint       string `json:"thumbprint,omitempty"`
-	Sha256           string `json:"sha256,omitempty"`
-	Running          bool   `json:"running,omitempty"`
-	RequireAll       bool   `json:"requireAll,omitempty"`
-	Enabled          bool   `json:"enabled,omitempty"`
-	Version          string `json:"version,omitempty"`
-	VersionOperator  string `json:"versionOperator,omitempty"`
-	Overall          string `json:"overall,omitempty"`
-	SensorConfig     string `json:"sensor_config,omitempty"`
-	Os               string `json:"os,omitempty"`
-	OsDistroName     string `json:"os_distro_name,omitempty"`
-	OsDistroRevision string `json:"os_distro_revision,omitempty"`
-	Operator         string `json:"operator,omitempty"`
-	Domain           string `json:"domain,omitempty"`
-	ComplianceStatus string `json:"compliance_status,omitempty"`
-	ConnectionID     string `json:"connection_id,omitempty"`
+	ID               string   `json:"id,omitempty"`
+	Path             string   `json:"path,omitempty"`
+	Exists           bool     `json:"exists,omitempty"`
+	Thumbprint       string   `json:"thumbprint,omitempty"`
+	Sha256           string   `json:"sha256,omitempty"`
+	Running          bool     `json:"running,omitempty"`
+	RequireAll       bool     `json:"requireAll,omitempty"`
+	CheckDisks       []string `json:"checkDisks,omitempty"`
+	Enabled          bool     `json:"enabled,omitempty"`
+	Version          string   `json:"version,omitempty"`
+	VersionOperator  string   `json:"versionOperator,omitempty"`
+	Overall          string   `json:"overall,omitempty"`
+	SensorConfig     string   `json:"sensor_config,omitempty"`
+	Os               string   `json:"os,omitempty"`
+	OsDistroName     string   `json:"os_distro_name,omitempty"`
+	OsDistroRevision string   `json:"os_distro_revision,omitempty"`
+	OSVersionExtra   string   `json:"os_version_extra,omitempty"`
+	Operator         string   `json:"operator,omitempty"`
+	Domain           string   `json:"domain,omitempty"`
+	ComplianceStatus string   `json:"compliance_status,omitempty"`
+	ConnectionID     string   `json:"connection_id,omitempty"`
+	IssueCount       string   `json:"issue_count,omitempty"`
+	CountOperator    string   `json:"countOperator,omitempty"`
+	TotalScore       int      `json:"total_score,omitempty"`
+	ScoreOperator    string   `json:"scoreOperator,omitempty"`
+	CertificateID    string   `json:"certificate_id,omitempty"`
+	CommonName       string   `json:"cn,omitempty"`
+	ActiveThreats    int      `json:"active_threats,omitempty"`
+	NetworkStatus    string   `json:"network_status,omitempty"`
+	Infected         bool     `json:"infected,omitempty"`
+	IsActive         bool     `json:"is_active,omitempty"`
+	EidLastSeen      string   `json:"eid_last_seen,omitempty"`
+	RiskLevel        string   `json:"risk_level,omitempty"`
 }
 
 // DevicePostureRuleListResponse represents the response from the list

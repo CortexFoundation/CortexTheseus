@@ -2,10 +2,11 @@ package cloudflare
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/goccy/go-json"
 )
 
 // CertificatePackGeoRestrictions is for the structure of the geographic
@@ -38,6 +39,7 @@ type CertificatePack struct {
 	Hosts                []string                     `json:"hosts"`
 	Certificates         []CertificatePackCertificate `json:"certificates"`
 	PrimaryCertificate   string                       `json:"primary_certificate"`
+	Status               string                       `json:"status"`
 	ValidationRecords    []SSLValidationRecord        `json:"validation_records,omitempty"`
 	ValidationErrors     []SSLValidationError         `json:"validation_errors,omitempty"`
 	ValidationMethod     string                       `json:"validation_method"`

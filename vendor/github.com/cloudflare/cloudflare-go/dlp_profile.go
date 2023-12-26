@@ -2,11 +2,12 @@ package cloudflare
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/goccy/go-json"
 )
 
 var (
@@ -37,10 +38,11 @@ type DLPEntry struct {
 // DLPProfile represents a DLP Profile, which contains a set
 // of entries.
 type DLPProfile struct {
-	ID          string `json:"id,omitempty"`
-	Name        string `json:"name,omitempty"`
-	Type        string `json:"type,omitempty"`
-	Description string `json:"description,omitempty"`
+	ID                string `json:"id,omitempty"`
+	Name              string `json:"name,omitempty"`
+	Type              string `json:"type,omitempty"`
+	Description       string `json:"description,omitempty"`
+	AllowedMatchCount int    `json:"allowed_match_count"`
 
 	// The following fields are omitted for predefined DLP
 	// profiles

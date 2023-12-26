@@ -3,7 +3,6 @@ package cloudflare
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"mime"
@@ -12,6 +11,8 @@ import (
 	"net/textproto"
 	"strings"
 	"time"
+
+	"github.com/goccy/go-json"
 )
 
 // WorkerRequestParams provides parameters for worker requests for both enterprise and standard requests.
@@ -24,13 +25,109 @@ type CreateWorkerParams struct {
 	ScriptName string
 	Script     string
 
+	// DispatchNamespaceName uploads the worker to a WFP dispatch namespace if provided
+	DispatchNamespaceName *string
+
 	// Module changes the Content-Type header to specify the script is an
 	// ES Module syntax script.
 	Module bool
 
+	// Logpush opts the worker into Workers Logpush logging. A nil value leaves
+	// the current setting unchanged.
+	//
+	// Documentation: https://developers.cloudflare.com/workers/platform/logpush/
+	Logpush *bool
+
+	// TailConsumers specifies a list of Workers that will consume the logs of
+	// the attached Worker.
+	// Documentation: https://developers.cloudflare.com/workers/platform/tail-workers/
+	TailConsumers *[]WorkersTailConsumer
+
 	// Bindings should be a map where the keys are the binding name, and the
 	// values are the binding content
 	Bindings map[string]WorkerBinding
+
+	// CompatibilityDate is a date in the form yyyy-mm-dd,
+	// which will be used to determine which version of the Workers runtime is used.
+	//  https://developers.cloudflare.com/workers/platform/compatibility-dates/
+	CompatibilityDate string
+
+	// CompatibilityFlags are the names of features of the Workers runtime to be enabled or disabled,
+	// usually used together with CompatibilityDate.
+	//  https://developers.cloudflare.com/workers/platform/compatibility-dates/#compatibility-flags
+	CompatibilityFlags []string
+
+	Placement *Placement
+
+	// Tags are used to better manage CRUD operations at scale.
+	//  https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/platform/tags/
+	Tags []string
+}
+
+func (p CreateWorkerParams) RequiresMultipart() bool {
+	switch {
+	case p.Module:
+		return true
+	case p.Logpush != nil:
+		return true
+	case p.Placement != nil:
+		return true
+	case len(p.Bindings) > 0:
+		return true
+	case p.CompatibilityDate != "":
+		return true
+	case len(p.CompatibilityFlags) > 0:
+		return true
+	case p.TailConsumers != nil:
+		return true
+	case len(p.Tags) > 0:
+		return true
+	}
+
+	return false
+}
+
+type UpdateWorkersScriptContentParams struct {
+	ScriptName string
+	Script     string
+
+	// DispatchNamespaceName uploads the worker to a WFP dispatch namespace if provided
+	DispatchNamespaceName *string
+
+	// Module changes the Content-Type header to specify the script is an
+	// ES Module syntax script.
+	Module bool
+}
+
+type UpdateWorkersScriptSettingsParams struct {
+	ScriptName string
+
+	// Logpush opts the worker into Workers Logpush logging. A nil value leaves
+	// the current setting unchanged.
+	//
+	// Documentation: https://developers.cloudflare.com/workers/platform/logpush/
+	Logpush *bool
+
+	// TailConsumers specifies a list of Workers that will consume the logs of
+	// the attached Worker.
+	// Documentation: https://developers.cloudflare.com/workers/platform/tail-workers/
+	TailConsumers *[]WorkersTailConsumer
+
+	// Bindings should be a map where the keys are the binding name, and the
+	// values are the binding content
+	Bindings map[string]WorkerBinding
+
+	// CompatibilityDate is a date in the form yyyy-mm-dd,
+	// which will be used to determine which version of the Workers runtime is used.
+	//  https://developers.cloudflare.com/workers/platform/compatibility-dates/
+	CompatibilityDate string
+
+	// CompatibilityFlags are the names of features of the Workers runtime to be enabled or disabled,
+	// usually used together with CompatibilityDate.
+	//  https://developers.cloudflare.com/workers/platform/compatibility-dates/#compatibility-flags
+	CompatibilityFlags []string
+
+	Placement *Placement
 }
 
 // WorkerScriptParams provides a worker script and the associated bindings.
@@ -74,13 +171,25 @@ type WorkerScript struct {
 	UsageModel string `json:"usage_model,omitempty"`
 }
 
+type WorkersTailConsumer struct {
+	Service     string  `json:"service"`
+	Environment *string `json:"environment,omitempty"`
+	Namespace   *string `json:"namespace,omitempty"`
+}
+
 // WorkerMetaData contains worker script information such as size, creation & modification dates.
 type WorkerMetaData struct {
-	ID         string    `json:"id,omitempty"`
-	ETAG       string    `json:"etag,omitempty"`
-	Size       int       `json:"size,omitempty"`
-	CreatedOn  time.Time `json:"created_on,omitempty"`
-	ModifiedOn time.Time `json:"modified_on,omitempty"`
+	ID               string                 `json:"id,omitempty"`
+	ETAG             string                 `json:"etag,omitempty"`
+	Size             int                    `json:"size,omitempty"`
+	CreatedOn        time.Time              `json:"created_on,omitempty"`
+	ModifiedOn       time.Time              `json:"modified_on,omitempty"`
+	Logpush          *bool                  `json:"logpush,omitempty"`
+	TailConsumers    *[]WorkersTailConsumer `json:"tail_consumers,omitempty"`
+	LastDeployedFrom *string                `json:"last_deployed_from,omitempty"`
+	DeploymentId     *string                `json:"deployment_id,omitempty"`
+	PlacementMode    *PlacementMode         `json:"placement_mode,omitempty"`
+	PipelineHash     *string                `json:"pipeline_hash,omitempty"`
 }
 
 // WorkerListResponse wrapper struct for API response to worker script list API call.
@@ -97,15 +206,32 @@ type WorkerScriptResponse struct {
 	WorkerScript `json:"result"`
 }
 
+// WorkerScriptSettingsResponse wrapper struct for API response to worker script settings calls.
+type WorkerScriptSettingsResponse struct {
+	Response
+	WorkerMetaData
+}
+
 type ListWorkersParams struct{}
 
 type DeleteWorkerParams struct {
 	ScriptName string
 }
 
+type PlacementMode string
+
+const (
+	PlacementModeOff   PlacementMode = ""
+	PlacementModeSmart PlacementMode = "smart"
+)
+
+type Placement struct {
+	Mode PlacementMode `json:"mode"`
+}
+
 // DeleteWorker deletes a single Worker.
 //
-// API reference: https://api.cloudflare.com/#worker-script-delete-worker
+// API reference: https://developers.cloudflare.com/api/operations/worker-script-delete-worker
 func (api *API) DeleteWorker(ctx context.Context, rc *ResourceContainer, params DeleteWorkerParams) error {
 	if rc.Level != AccountRouteLevel {
 		return ErrRequiredAccountLevelResourceContainer
@@ -134,7 +260,7 @@ func (api *API) DeleteWorker(ctx context.Context, rc *ResourceContainer, params 
 // GetWorker fetch raw script content for your worker returns string containing
 // worker code js.
 //
-// API reference: https://developers.cloudflare.com/workers/tooling/api/scripts/
+// API reference: https://developers.cloudflare.com/api/operations/worker-script-download-worker
 func (api *API) GetWorker(ctx context.Context, rc *ResourceContainer, scriptName string) (WorkerScriptResponse, error) {
 	if rc.Level != AccountRouteLevel {
 		return WorkerScriptResponse{}, ErrRequiredAccountLevelResourceContainer
@@ -177,7 +303,7 @@ func (api *API) GetWorker(ctx context.Context, rc *ResourceContainer, scriptName
 
 // ListWorkers returns list of Workers for given account.
 //
-// API reference: https://developers.cloudflare.com/workers/tooling/api/scripts/
+// API reference: https://developers.cloudflare.com/api/operations/worker-script-list-workers
 func (api *API) ListWorkers(ctx context.Context, rc *ResourceContainer, params ListWorkersParams) (WorkerListResponse, *ResultInfo, error) {
 	if rc.Level != AccountRouteLevel {
 		return WorkerListResponse{}, &ResultInfo{}, ErrRequiredAccountLevelResourceContainer
@@ -204,7 +330,7 @@ func (api *API) ListWorkers(ctx context.Context, rc *ResourceContainer, params L
 
 // UploadWorker pushes raw script content for your Worker.
 //
-// API reference: https://api.cloudflare.com/#worker-script-upload-worker
+// API reference: https://developers.cloudflare.com/api/operations/worker-script-upload-worker-module
 func (api *API) UploadWorker(ctx context.Context, rc *ResourceContainer, params CreateWorkerParams) (WorkerScriptResponse, error) {
 	if rc.Level != AccountRouteLevel {
 		return WorkerScriptResponse{}, ErrRequiredAccountLevelResourceContainer
@@ -220,7 +346,7 @@ func (api *API) UploadWorker(ctx context.Context, rc *ResourceContainer, params 
 		err         error
 	)
 
-	if params.Module || len(params.Bindings) > 0 {
+	if params.RequiresMultipart() {
 		contentType, body, err = formatMultipartBody(params)
 		if err != nil {
 			return WorkerScriptResponse{}, err
@@ -228,6 +354,10 @@ func (api *API) UploadWorker(ctx context.Context, rc *ResourceContainer, params 
 	}
 
 	uri := fmt.Sprintf("/accounts/%s/workers/scripts/%s", rc.Identifier, params.ScriptName)
+	if params.DispatchNamespaceName != nil {
+		uri = fmt.Sprintf("/accounts/%s/workers/dispatch/namespaces/%s/scripts/%s", rc.Identifier, *params.DispatchNamespaceName, params.ScriptName)
+	}
+
 	headers := make(http.Header)
 	headers.Set("Content-Type", contentType)
 	res, err := api.makeRequestContextWithHeaders(ctx, http.MethodPut, uri, body, headers)
@@ -245,6 +375,144 @@ func (api *API) UploadWorker(ctx context.Context, rc *ResourceContainer, params 
 	return r, nil
 }
 
+// GetWorkersScriptContent returns the pure script content of a worker.
+//
+// API reference: https://developers.cloudflare.com/api/operations/worker-script-get-content
+func (api *API) GetWorkersScriptContent(ctx context.Context, rc *ResourceContainer, scriptName string) (string, error) {
+	if rc.Level != AccountRouteLevel {
+		return "", ErrRequiredAccountLevelResourceContainer
+	}
+
+	if rc.Identifier == "" {
+		return "", ErrMissingAccountID
+	}
+
+	uri := fmt.Sprintf("/accounts/%s/workers/scripts/%s/content/v2", rc.Identifier, scriptName)
+	res, err := api.makeRequestContextWithHeadersComplete(ctx, http.MethodGet, uri, nil, nil)
+	if err != nil {
+		return "", err
+	}
+
+	return string(res.Body), nil
+}
+
+// UpdateWorkersScriptContent pushes only script content, no metadata.
+//
+// API reference: https://developers.cloudflare.com/api/operations/worker-script-put-content
+func (api *API) UpdateWorkersScriptContent(ctx context.Context, rc *ResourceContainer, params UpdateWorkersScriptContentParams) (WorkerScriptResponse, error) {
+	if rc.Level != AccountRouteLevel {
+		return WorkerScriptResponse{}, ErrRequiredAccountLevelResourceContainer
+	}
+
+	if rc.Identifier == "" {
+		return WorkerScriptResponse{}, ErrMissingAccountID
+	}
+
+	body := []byte(params.Script)
+	var (
+		contentType = "application/javascript"
+		err         error
+	)
+
+	if params.Module {
+		var formattedParams CreateWorkerParams
+		formattedParams.Script = params.Script
+		formattedParams.ScriptName = params.ScriptName
+		formattedParams.Module = params.Module
+		formattedParams.DispatchNamespaceName = params.DispatchNamespaceName
+		contentType, body, err = formatMultipartBody(formattedParams)
+		if err != nil {
+			return WorkerScriptResponse{}, err
+		}
+	}
+
+	uri := fmt.Sprintf("/accounts/%s/workers/scripts/%s/content", rc.Identifier, params.ScriptName)
+	if params.DispatchNamespaceName != nil {
+		uri = fmt.Sprintf("/accounts/%s/workers/dispatch_namespaces/%s/scripts/%s/content", rc.Identifier, *params.DispatchNamespaceName, params.ScriptName)
+	}
+
+	headers := make(http.Header)
+	headers.Set("Content-Type", contentType)
+	res, err := api.makeRequestContextWithHeaders(ctx, http.MethodPut, uri, body, headers)
+
+	var r WorkerScriptResponse
+	if err != nil {
+		return r, err
+	}
+
+	err = json.Unmarshal(res, &r)
+	if err != nil {
+		return r, fmt.Errorf("%s: %w", errUnmarshalError, err)
+	}
+
+	return r, nil
+}
+
+// GetWorkersScriptSettings returns the metadata of a worker.
+//
+// API reference: https://developers.cloudflare.com/api/operations/worker-script-get-settings
+func (api *API) GetWorkersScriptSettings(ctx context.Context, rc *ResourceContainer, scriptName string) (WorkerScriptSettingsResponse, error) {
+	if rc.Level != AccountRouteLevel {
+		return WorkerScriptSettingsResponse{}, ErrRequiredAccountLevelResourceContainer
+	}
+
+	if rc.Identifier == "" {
+		return WorkerScriptSettingsResponse{}, ErrMissingAccountID
+	}
+
+	uri := fmt.Sprintf("/accounts/%s/workers/scripts/%s/settings", rc.Identifier, scriptName)
+	res, err := api.makeRequestContextWithHeaders(ctx, http.MethodGet, uri, nil, nil)
+	var r WorkerScriptSettingsResponse
+	if err != nil {
+		return r, err
+	}
+
+	err = json.Unmarshal(res, &r)
+	if err != nil {
+		return r, fmt.Errorf("%s: %w", errUnmarshalError, err)
+	}
+
+	r.Success = true
+
+	return r, nil
+}
+
+// UpdateWorkersScriptSettings pushes only script metadata.
+//
+// API reference: https://developers.cloudflare.com/api/operations/worker-script-patch-settings
+func (api *API) UpdateWorkersScriptSettings(ctx context.Context, rc *ResourceContainer, params UpdateWorkersScriptSettingsParams) (WorkerScriptSettingsResponse, error) {
+	if rc.Level != AccountRouteLevel {
+		return WorkerScriptSettingsResponse{}, ErrRequiredAccountLevelResourceContainer
+	}
+
+	if rc.Identifier == "" {
+		return WorkerScriptSettingsResponse{}, ErrMissingAccountID
+	}
+
+	body, err := json.Marshal(params)
+	if err != nil {
+		return WorkerScriptSettingsResponse{}, err
+	}
+	headers := make(http.Header)
+	headers.Set("Content-Type", "application/json")
+
+	uri := fmt.Sprintf("/accounts/%s/workers/scripts/%s/settings", rc.Identifier, params.ScriptName)
+	res, err := api.makeRequestContextWithHeaders(ctx, http.MethodPatch, uri, body, headers)
+	var r WorkerScriptSettingsResponse
+	if err != nil {
+		return r, err
+	}
+
+	err = json.Unmarshal(res, &r)
+	if err != nil {
+		return r, fmt.Errorf("%s: %w", errUnmarshalError, err)
+	}
+
+	r.Success = true
+
+	return r, nil
+}
+
 // Returns content-type, body, error.
 func formatMultipartBody(params CreateWorkerParams) (string, []byte, error) {
 	var buf = &bytes.Buffer{}
@@ -254,11 +522,23 @@ func formatMultipartBody(params CreateWorkerParams) (string, []byte, error) {
 	// Write metadata part
 	var scriptPartName string
 	meta := struct {
-		BodyPart   string              `json:"body_part,omitempty"`
-		MainModule string              `json:"main_module,omitempty"`
-		Bindings   []workerBindingMeta `json:"bindings"`
+		BodyPart           string                 `json:"body_part,omitempty"`
+		MainModule         string                 `json:"main_module,omitempty"`
+		Bindings           []workerBindingMeta    `json:"bindings"`
+		Logpush            *bool                  `json:"logpush,omitempty"`
+		TailConsumers      *[]WorkersTailConsumer `json:"tail_consumers,omitempty"`
+		CompatibilityDate  string                 `json:"compatibility_date,omitempty"`
+		CompatibilityFlags []string               `json:"compatibility_flags,omitempty"`
+		Placement          *Placement             `json:"placement,omitempty"`
+		Tags               []string               `json:"tags"`
 	}{
-		Bindings: make([]workerBindingMeta, 0, len(params.Bindings)),
+		Bindings:           make([]workerBindingMeta, 0, len(params.Bindings)),
+		Logpush:            params.Logpush,
+		TailConsumers:      params.TailConsumers,
+		CompatibilityDate:  params.CompatibilityDate,
+		CompatibilityFlags: params.CompatibilityFlags,
+		Placement:          params.Placement,
+		Tags:               params.Tags,
 	}
 
 	if params.Module {

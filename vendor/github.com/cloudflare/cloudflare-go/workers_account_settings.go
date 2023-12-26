@@ -2,9 +2,10 @@ package cloudflare
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/goccy/go-json"
 )
 
 type WorkersAccountSettings struct {
@@ -31,7 +32,7 @@ type WorkersAccountSettingsResponse struct {
 
 // CreateWorkersAccountSettings sets the account settings for Workers.
 //
-// API reference: https://api.cloudflare.com/#worker-account-settings-create-worker-account-settings
+// API reference: https://developers.cloudflare.com/api/operations/worker-account-settings-create-worker-account-settings
 func (api *API) CreateWorkersAccountSettings(ctx context.Context, rc *ResourceContainer, params CreateWorkersAccountSettingsParameters) (WorkersAccountSettings, error) {
 	if rc.Identifier == "" {
 		return WorkersAccountSettings{}, ErrMissingAccountID
@@ -57,7 +58,7 @@ func (api *API) CreateWorkersAccountSettings(ctx context.Context, rc *ResourceCo
 
 // WorkersAccountSettings returns the current account settings for Workers.
 //
-// API reference: https://api.cloudflare.com/#worker-account-settings-fetch-worker-account-settings
+// API reference: https://developers.cloudflare.com/api/operations/worker-account-settings-fetch-worker-account-settings
 func (api *API) WorkersAccountSettings(ctx context.Context, rc *ResourceContainer, params WorkersAccountSettingsParameters) (WorkersAccountSettings, error) {
 	if rc.Identifier == "" {
 		return WorkersAccountSettings{}, ErrMissingAccountID

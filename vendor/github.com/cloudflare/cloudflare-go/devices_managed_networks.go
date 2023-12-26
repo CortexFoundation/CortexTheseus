@@ -2,9 +2,10 @@ package cloudflare
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/goccy/go-json"
 )
 
 type Config struct {
@@ -103,7 +104,7 @@ func (api *API) UpdateDeviceManagedNetwork(ctx context.Context, rc *ResourceCont
 
 	uri := fmt.Sprintf("/%s/%s/devices/networks/%s", rc.Level, rc.Identifier, params.NetworkID)
 
-	res, err := api.makeRequestContext(ctx, http.MethodPatch, uri, params)
+	res, err := api.makeRequestContext(ctx, http.MethodPut, uri, params)
 	if err != nil {
 		return DeviceManagedNetwork{}, err
 	}

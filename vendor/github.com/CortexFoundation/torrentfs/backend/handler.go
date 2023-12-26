@@ -560,6 +560,11 @@ func (tm *TorrentManager) updateGlobalTrackers() error {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
 
+	// TODO light mode without global trackers
+	if tm.mode == params.LAZY {
+		//return nil
+	}
+
 	if global := tm.worm.BestTrackers(); len(global) > 0 {
 		tm.globalTrackers = [][]string{global}
 		log.Info("Global trackers update", "size", len(global), "cap", wormhole.CAP, "health", float32(len(global))/float32(wormhole.CAP))
@@ -771,8 +776,6 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 		torrentManager.kvdb = kv.Bolt(config.DataDir)
 	case "nutsdb":
 		torrentManager.kvdb = kv.NutsDB(config.DataDir)
-	case "rosedb":
-		torrentManager.kvdb = kv.RoseDB(config.DataDir)
 	default:
 		panic("Invalid nas engine " + config.Engine)
 	}

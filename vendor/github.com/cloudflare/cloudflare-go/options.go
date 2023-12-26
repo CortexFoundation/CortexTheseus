@@ -2,7 +2,6 @@ package cloudflare
 
 import (
 	"net/http"
-
 	"time"
 
 	"golang.org/x/time/rate"
@@ -24,17 +23,6 @@ func HTTPClient(client *http.Client) Option {
 func Headers(headers http.Header) Option {
 	return func(api *API) error {
 		api.headers = headers
-		return nil
-	}
-}
-
-// UsingAccount allows you to apply account-level changes (Load Balancing,
-// Railguns) to an account instead.
-//
-// Deprecated: Resources should define the `AccountID` parameter explicitly.
-func UsingAccount(accountID string) Option {
-	return func(api *API) error {
-		api.AccountID = accountID
 		return nil
 	}
 }
