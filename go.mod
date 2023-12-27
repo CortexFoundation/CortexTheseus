@@ -3,7 +3,7 @@ module github.com/CortexFoundation/CortexTheseus
 go 1.21
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
+	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.2.1
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 	github.com/CortexFoundation/torrentfs v1.0.57-0.20231225161207-cb412696ee0d
@@ -152,7 +152,6 @@ require (
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang/glog v1.2.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
