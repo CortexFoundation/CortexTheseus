@@ -18,8 +18,6 @@
 package state
 
 import (
-	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"math/big"
@@ -271,22 +269,6 @@ func (s *StateDB) GetBalance(addr common.Address) *big.Int {
 	return common.Big0
 }
 
-func (s *StateDB) GetUpload(addr common.Address) *big.Int {
-	stateObject := s.getStateObject(addr)
-	if stateObject != nil {
-		return stateObject.Upload()
-	}
-	return common.Big0
-}
-
-func (s *StateDB) GetNum(addr common.Address) *big.Int {
-	stateObject := s.getStateObject(addr)
-	if stateObject != nil {
-		return stateObject.Num()
-	}
-	return common.Big0
-}
-
 func (s *StateDB) GetNonce(addr common.Address) uint64 {
 	stateObject := s.getStateObject(addr)
 	if stateObject != nil {
@@ -343,64 +325,6 @@ func (s *StateDB) GetState(addr common.Address, bhash common.Hash) common.Hash {
 	}
 	return common.Hash{}
 }
-
-// GetState returns a value in account storage.
-// func (s *StateDB) GetSolidityUint256(addr common.Address, slot common.Hash) ([]byte, error) {
-func (s *StateDB) GetSolidityBytes(addr common.Address, slot common.Hash) ([]byte, error) {
-	length := s.GetState(addr, slot).Big().Uint64()
-	if length == uint64(0) {
-		return nil, nil
-	}
-	hashBig := new(big.Int).SetBytes(crypto.Keccak256(slot.Bytes()))
-	//log.Warn(fmt.Sprintf("Pos %v, %v => %v, %v", addr, slot, length, hash))
-	//log.Trace("solid", "addr", addr, "slot", slot, "length", length, "hash", hash, "x", s.GetState(addr, slot), "y", common.Hash{})
-	// fmt.Println(fmt.Sprintf("Pos %v, %v => %v, %v", addr, slot, length, hash))
-
-	//buffSize := length * 32
-
-	buff := new(bytes.Buffer) //make([]byte, length * 32)
-	for i := int64(0); i < int64(length); i++ {
-		slotAddr := common.BigToHash(big.NewInt(0).Add(hashBig, big.NewInt(i)))
-		payload := s.GetState(addr, slotAddr).Bytes()
-		//copy(buff[idx*32:], payload[:])
-		binary.Write(buff, binary.LittleEndian, payload[:])
-		//binary.LittleEndian.Put(buff[idx*32:], payload[:])
-		// fmt.Println(fmt.Sprintf("load[%v]: %x, %x => %x, %x", idx, addr, slotAddr, payload, hash))
-	}
-	// fmt.Println(fmt.Sprintf("data: %v", buff))
-	return buff.Bytes(), nil
-}
-
-// GetState returns a value in account storage.
-//func (s *StateDB) GetSolidityBytes(addr common.Address, slot common.Hash) ([]byte, error) {
-//	return s.GetSolidityUint256(addr, slot)
-// pos := s.GetState(addr, slot).Big().Uint64()
-// cont := pos % 2
-// length := pos / 2
-// hash := crypto.Keccak256(slot.Bytes())
-// hashBig := new(big.Int).SetBytes(hash)
-// log.Trace(fmt.Sprintf("Pos %v, %v => %v, %v", addr, slot, pos, hash))
-// if length < 32 || cont == 0 {
-// 	return []byte{}, errors.New("not implemented for data size less than 32!")
-// }
-
-// buffSize := uint(length/32) * 32
-// if length%32 != 0 {
-// 	buffSize += 32
-// }
-
-// buff := make([]byte, buffSize)
-// var idx int64
-// for idx = 0; idx < int64(length)/32; idx++ {
-// 	slotAddr := common.BigToHash(big.NewInt(0).Add(hashBig, big.NewInt(idx)))
-// 	payload := s.GetState(addr, slotAddr).Bytes()
-// 	copy(buff[idx*32:], payload[:])
-// 	log.Trace2(fmt.Sprintf("load[%v]: %x, %x => %x, %x", idx, addr, slotAddr, payload, hash))
-// }
-// buff = buff[:length]
-// log.Trace2(fmt.Sprintf("data: %v", buff))
-// return buff, nil
-//}
 
 // GetProof returns the MerkleProof for a given Account
 func (s *StateDB) GetProof(addr common.Address) ([][]byte, error) {
@@ -482,14 +406,6 @@ func (s *StateDB) AddBalance(addr common.Address, amount *big.Int) {
 	}
 }
 
-func (s *StateDB) Upload(addr common.Address) *big.Int {
-	stateObject := s.getStateObject(addr)
-	if stateObject != nil {
-		return stateObject.Upload()
-	}
-	return nil
-}
-
 // SubBalance subtracts amount from the account associated with addr.
 func (s *StateDB) SubBalance(addr common.Address, amount *big.Int) {
 	stateObject := s.GetOrNewStateObject(addr)
@@ -505,35 +421,6 @@ func (s *StateDB) SetBalance(addr common.Address, amount *big.Int) {
 	}
 }
 
-//func (s *StateDB) AddUpload(addr common.Address, amount *big.Int) {
-//	stateObject := s.GetOrNewStateObject(addr)
-//	if stateObject != nil {
-//		stateObject.AddUpload(amount)
-//	}
-//}
-
-func (s *StateDB) SubUpload(addr common.Address, amount *big.Int) *big.Int {
-	stateObject := s.GetOrNewStateObject(addr)
-	if stateObject != nil {
-		return stateObject.SubUpload(amount)
-	}
-	return big0
-}
-
-func (s *StateDB) SetUpload(addr common.Address, amount *big.Int) {
-	stateObject := s.GetOrNewStateObject(addr)
-	if stateObject != nil {
-		stateObject.SetUpload(amount)
-	}
-}
-
-func (s *StateDB) SetNum(addr common.Address, num *big.Int) {
-	stateObject := s.GetOrNewStateObject(addr)
-	if stateObject != nil {
-		stateObject.SetNum(num)
-	}
-}
-
 func (s *StateDB) SetNonce(addr common.Address, nonce uint64) {
 	stateObject := s.GetOrNewStateObject(addr)
 	if stateObject != nil {
@@ -546,13 +433,6 @@ func (s *StateDB) SetCode(addr common.Address, code []byte) {
 	if stateObject != nil {
 		stateObject.SetCode(crypto.Keccak256Hash(code), code)
 	}
-}
-func (s *StateDB) Uploading(addr common.Address) bool {
-	stateObject := s.getStateObject(addr)
-	if stateObject != nil {
-		return stateObject.Upload().Sign() > 0
-	}
-	return false
 }
 
 func (s *StateDB) SetState(addr common.Address, key, value common.Hash) {
