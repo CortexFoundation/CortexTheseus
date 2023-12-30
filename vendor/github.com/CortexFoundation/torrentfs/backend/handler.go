@@ -918,21 +918,30 @@ func (tm *TorrentManager) commit(ctx context.Context, hex string, request uint64
 func (tm *TorrentManager) Pending(t *caffe.Torrent) {
 	select {
 	case tm.pendingChan <- t:
+		log.Trace("Stable pending", "ih", t.InfoHash())
 	case <-tm.closeAll:
+	default:
+		log.Trace("Unstable pending", "ih", t.InfoHash())
 	}
 }
 
 func (tm *TorrentManager) Running(t *caffe.Torrent) {
 	select {
 	case tm.activeChan <- t:
+		log.Trace("Stable running", "ih", t.InfoHash())
 	case <-tm.closeAll:
+	default:
+		log.Trace("Unstable running", "ih", t.InfoHash())
 	}
 }
 
 func (tm *TorrentManager) Seeding(t *caffe.Torrent) {
 	select {
 	case tm.seedingChan <- t:
+		log.Debug("Stable seeding", "ih", t.InfoHash())
 	case <-tm.closeAll:
+	default:
+		log.Debug("Unstable seeding", "ih", t.InfoHash())
 	}
 }
 
@@ -943,7 +952,11 @@ func (tm *TorrentManager) mainLoop() {
 	for {
 		select {
 		case msg := <-tm.taskChan:
-			meta := msg.(*types.BitsFlow)
+			meta, ok := msg.(*types.BitsFlow)
+			if !ok {
+				continue
+			}
+
 			if params.IsBad(meta.InfoHash()) {
 				continue
 			}
@@ -1030,16 +1043,16 @@ func (tm *TorrentManager) pendingLoop() {
 							valid := func(a *caffe.Torrent) bool {
 								switch a.Status() {
 								case caffe.TorrentPending:
-									log.Info("Caffe is pending", "ih", t.InfoHash())
+									log.Trace("Caffe is pending", "ih", t.InfoHash(), "complete", t.BytesCompleted(), "miss", t.BytesMissing(), "request", t.BytesRequested())
 								case caffe.TorrentPaused:
-									log.Info("Caffe is pausing", "ih", t.InfoHash())
+									log.Trace("Caffe is pausing", "ih", t.InfoHash(), "complete", t.BytesCompleted(), "miss", t.BytesMissing(), "request", t.BytesRequested())
 								case caffe.TorrentRunning:
-									log.Trace("Caffe is running", "ih", t.InfoHash())
+									log.Trace("Caffe is running", "ih", t.InfoHash(), "complete", t.BytesCompleted(), "miss", t.BytesMissing(), "request", t.BytesRequested())
 								case caffe.TorrentSeeding:
-									log.Info("Caffe is seeding", "ih", t.InfoHash())
+									log.Info("Caffe is seeding", "ih", t.InfoHash(), "complete", t.BytesCompleted(), "miss", t.BytesMissing(), "request", t.BytesRequested())
 									return true
 								case caffe.TorrentStopping:
-									log.Info("Caffe is stopping", "ih", t.InfoHash(), "complete", t.BytesCompleted(), "miss", t.BytesMissing())
+									log.Info("Caffe is stopping", "ih", t.InfoHash(), "complete", t.BytesCompleted(), "miss", t.BytesMissing(), "request", t.BytesRequested())
 									return true
 								}
 								return false
@@ -1330,6 +1343,7 @@ func (tm *TorrentManager) Dropping(ih string) error {
 	select {
 	case tm.droppingChan <- ih:
 	case <-tm.closeAll:
+	default:
 	}
 	return nil
 }

@@ -103,7 +103,7 @@ func (b *NutsDB) Prefix(prefix []byte) (res [][]byte) {
 
 func (b *NutsDB) Suffix(suffix []byte) (res [][]byte) {
 	b.engine.View(func(tx *nutsdb.Tx) error {
-		entries, err := tx.GetAll(GLOBAL)
+		_, entries, err := tx.GetAll(GLOBAL)
 		if err != nil {
 			return err
 		}
@@ -122,7 +122,7 @@ func (b *NutsDB) Suffix(suffix []byte) (res [][]byte) {
 
 func (b *NutsDB) Scan() (res [][]byte) {
 	b.engine.View(func(tx *nutsdb.Tx) error {
-		entries, err := tx.GetAll(GLOBAL)
+		_, entries, err := tx.GetAll(GLOBAL)
 		if err != nil {
 			return err
 		}

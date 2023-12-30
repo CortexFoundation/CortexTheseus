@@ -42,7 +42,6 @@ func (s *StateDB) GetNum(addr common.Address) *big.Int {
 }
 
 // GetState returns a value in account storage.
-// func (s *StateDB) GetSolidityUint256(addr common.Address, slot common.Hash) ([]byte, error) {
 func (s *StateDB) GetSolidityBytes(addr common.Address, slot common.Hash) ([]byte, error) {
 	length := s.GetState(addr, slot).Big().Uint64()
 	if length == uint64(0) {

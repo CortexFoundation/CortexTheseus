@@ -276,10 +276,12 @@ func (fs *TorrentFS) listen() {
 	for {
 		select {
 		case msg := <-fs.callback:
-			meta := msg.(*types.BitsFlow)
-			//if meta.Request() > 0 || (params.IsGood(meta.InfoHash()) && fs.config.Mode != params.LAZY) {
-			//	if meta.Request() > 0 || params.IsGood(meta.InfoHash()) {
-			fs.download(context.Background(), meta.InfoHash(), meta.Request())
+			meta, ok := msg.(*types.BitsFlow)
+			if ok {
+				//if meta.Request() > 0 || (params.IsGood(meta.InfoHash()) && fs.config.Mode != params.LAZY) {
+				//	if meta.Request() > 0 || params.IsGood(meta.InfoHash()) {
+				fs.download(context.Background(), meta.InfoHash(), meta.Request())
+			}
 		//	} else {
 		//		fs.ttlchan <- msg
 		//	}
