@@ -131,13 +131,13 @@ var (
 	// Note: the following Ubuntu releases have been officially deprecated on Launchpad:
 	//   wily, yakkety, zesty, artful, cosmic, disco, eoan, groovy, hirsuite, impish
 	debDistroGoBoots = map[string]string{
-		"trusty":  "golang-1.19.4", // EOL: 04/2024
-		"xenial":  "golang-go",     // EOL: 04/2026
-		"bionic":  "golang-go",     // EOL: 04/2028
-		"focal":   "golang-go",     // EOL: 04/2030
-		"jammy":   "golang-go",     // EOL: 04/2032
-		"kinetic": "golang-go",     // EOL: 07/2023
-		//"lunar": "golang-go",  // EOL: 01/2024
+		"trusty": "golang-1.11", // 14.04, EOL: 04/2024
+		"xenial": "golang-go",   // 16.04, EOL: 04/2026
+		"bionic": "golang-go",   // 18.04, EOL: 04/2028
+		"focal":  "golang-go",   // 20.04, EOL: 04/2030
+		"jammy":  "golang-go",   // 22.04, EOL: 04/2032
+		"lunar":  "golang-go",   // 23.04, EOL: 01/2024
+		"mantic": "golang-go",   // 23.10, EOL: 07/2024
 	}
 
 	debGoBootPaths = map[string]string{
