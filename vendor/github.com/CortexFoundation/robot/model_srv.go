@@ -143,7 +143,7 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 
 	if record {
 		if err := m.fs.AddBlock(b); err == nil {
-			log.Info("Root has been changed", "number", b.Number, "hash", b.Hash, "root", m.fs.Root())
+			log.Debug("Root has been changed", "number", b.Number, "hash", b.Hash, "root", m.fs.Root())
 		} else {
 			log.Warn("Block added failed", "number", b.Number, "hash", b.Hash, "root", m.fs.Root(), "err", err)
 		}

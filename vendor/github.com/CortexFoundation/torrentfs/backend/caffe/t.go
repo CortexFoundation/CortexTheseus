@@ -24,6 +24,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
+	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/anacrolix/torrent"
 	//"github.com/anacrolix/torrent/metainfo"
@@ -44,6 +45,10 @@ func (t *Torrent) Spec() *torrent.TorrentSpec {
 
 func (t *Torrent) Birth() mclock.AbsTime {
 	return t.start
+}
+
+func (t *Torrent) Mux() *event.TypeMux {
+	return t.mux
 }
 
 func (t *Torrent) SetStart(s mclock.AbsTime) {
@@ -303,7 +308,8 @@ func (t *Torrent) Close() {
 	t.Lock()
 	defer t.Unlock()
 
-	defer t.Torrent.Drop()
+	t.Torrent.Drop()
+	t.mux.Stop()
 
 	log.Info("Nas closed", "ih", t.InfoHash(), "total", common.StorageSize(t.Torrent.Length()), "req", common.StorageSize(t.BytesRequested()), "finish", common.StorageSize(t.Torrent.BytesCompleted()), "status", t.Status(), "cited", t.Cited())
 	t = nil

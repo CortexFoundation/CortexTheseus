@@ -224,7 +224,9 @@ func (tm *TorrentManager) Search(ctx context.Context, hex string, request uint64
 	downloadMeter.Mark(1)
 
 	if request == 0 {
-		// TODO
+		// sync create torrent
+		//	tm.addInfoHash(hex, int64(request))
+		//	return nil
 	}
 
 	return tm.commit(ctx, hex, request)
@@ -232,12 +234,14 @@ func (tm *TorrentManager) Search(ctx context.Context, hex string, request uint64
 
 // Add torrent to the leeching loop
 func (tm *TorrentManager) commit(ctx context.Context, hex string, request uint64) error {
-	select {
+	/*select {
 	case tm.taskChan <- types.NewBitsFlow(hex, request):
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-tm.closeAll:
 	}
 
-	return nil
+	return nil */
+
+	return tm.taskEvent.Post(mainEvent{types.NewBitsFlow(hex, request)})
 }

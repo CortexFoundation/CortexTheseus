@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.2.1
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.58-0.20231230153252-90d728965095
+	github.com/CortexFoundation/torrentfs v1.0.58-0.20240102144405-7ab415d2fc90
 	github.com/VictoriaMetrics/fastcache v1.12.2
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.24.0
@@ -16,7 +16,7 @@ require (
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2
 	github.com/cespare/cp v1.1.1
 	github.com/charmbracelet/bubbletea v0.25.0
-	github.com/cloudflare/cloudflare-go v0.84.0
+	github.com/cloudflare/cloudflare-go v0.85.0
 	github.com/cockroachdb/pebble v0.0.0-20231222152533-1cce3d01f6d9
 	github.com/consensys/gnark-crypto v0.12.1
 	github.com/crate-crypto/go-kzg-4844 v0.7.0
@@ -80,7 +80,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.5.1 // indirect
 	github.com/CortexFoundation/cvm-runtime v0.0.0-20221117094012-b5a251885572 // indirect
 	github.com/CortexFoundation/merkletree v0.0.0-20230724124840-b6e80265a137 // indirect
-	github.com/CortexFoundation/robot v1.0.7-0.20231001204802-6299a9ffd845 // indirect
+	github.com/CortexFoundation/robot v1.0.7-0.20240101144533-02756bceae73 // indirect
 	github.com/CortexFoundation/wormhole v0.0.2-0.20231221155549-5c938553b5fc // indirect
 	github.com/DataDog/zstd v1.5.6-0.20230622172052-ea68dcab66c0 // indirect
 	github.com/RoaringBitmap/roaring v1.7.0 // indirect
@@ -183,7 +183,7 @@ require (
 	github.com/oapi-codegen/runtime v1.1.0 // indirect
 	github.com/otiai10/copy v1.14.0 // indirect
 	github.com/pion/datachannel v1.5.5 // indirect
-	github.com/pion/dtls/v2 v2.2.8 // indirect
+	github.com/pion/dtls/v2 v2.2.9 // indirect
 	github.com/pion/ice/v2 v2.3.11 // indirect
 	github.com/pion/interceptor v0.1.25 // indirect
 	github.com/pion/logging v0.2.2 // indirect
