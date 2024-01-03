@@ -966,6 +966,8 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 // already have the given transaction.
 func (pm *ProtocolManager) BroadcastTransactions(txs types.Transactions) {
 	var (
+		largeTxs int // Number of large transactions to announce only
+
 		annoCount   int // Count of announcements made
 		annoPeers   int
 		directCount int // Count of the txs sent directly to peers
@@ -979,9 +981,14 @@ func (pm *ProtocolManager) BroadcastTransactions(txs types.Transactions) {
 		peers := pm.peers.PeersWithoutTx(tx.Hash())
 		// Send the tx unconditionally to a subset of our peers
 		var numDirect int
-		if tx.Size() <= txMaxBroadcastSize {
+
+		switch {
+		case tx.Size() > txMaxBroadcastSize:
+			largeTxs++
+		default:
 			numDirect = int(math.Sqrt(float64(len(peers))))
 		}
+		// Send the tx unconditionally to a subset of our peers
 		for _, peer := range peers[:numDirect] {
 			txset[peer] = append(txset[peer], tx.Hash())
 		}
@@ -1004,7 +1011,7 @@ func (pm *ProtocolManager) BroadcastTransactions(txs types.Transactions) {
 			peer.AsyncSendTransactions(hashes)
 		}
 	}
-	log.Debug("Transaction broadcast", "txs", len(txs),
+	log.Debug("Transaction broadcast", "txs", len(txs)-largeTxs, "largetxs", largeTxs,
 		"announce packs", annoPeers, "announced hashes", annoCount,
 		"tx packs", directPeers, "broadcast txs", directCount)
 }
@@ -1021,9 +1028,9 @@ func (pm *ProtocolManager) minedBroadcastLoop() {
 	}
 }
 
+// txBroadcastLoop announces new transactions to connected peers.
 func (pm *ProtocolManager) txBroadcastLoop() {
 	defer pm.wg.Done()
-
 	for {
 		select {
 		case event := <-pm.txsCh:
