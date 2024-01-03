@@ -21,6 +21,7 @@ import (
 	"errors"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
+	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"os"
 	"path/filepath"
@@ -58,14 +59,14 @@ func (tm *TorrentManager) ExistsOrActive(ctx context.Context, ih string, rawSize
 	}
 }
 
-func (tm *TorrentManager) GetFile(ctx context.Context, infohash, subpath string) (data []byte, err error) {
+func (tm *TorrentManager) GetFile(ctx context.Context, infohash, subpath string) (data []byte, mu *event.TypeMux, err error) {
 	getfileMeter.Mark(1)
 	if tm.metrics {
 		defer func(start time.Time) { tm.Updates += time.Since(start) }(time.Now())
 	}
 
 	if !common.IsHexAddress(infohash) {
-		return nil, errors.New("invalid infohash format")
+		return nil, nil, errors.New("invalid infohash format")
 	}
 
 	infohash = strings.TrimPrefix(strings.ToLower(infohash), common.Prefix)
@@ -78,13 +79,14 @@ func (tm *TorrentManager) GetFile(ctx context.Context, infohash, subpath string)
 
 	if t := tm.getTorrent(infohash); t != nil {
 		if !t.Ready() {
-			return nil, ErrUnfinished
+			return nil, t.Mux(), ErrUnfinished
 		}
 
 		// Data protection when torrent is active
 		t.RLock()
 		defer t.RUnlock()
 
+		mu = t.Mux()
 	}
 
 	diskReadMeter.Mark(1)

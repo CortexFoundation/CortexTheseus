@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
+	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/anacrolix/torrent"
@@ -66,11 +67,17 @@ type Torrent struct {
 
 	//jobCh chan bool
 	priority int
+
+	mux *event.TypeMux
 }
 
 type task struct {
 	start int
 	end   int
+}
+
+type TorrentEvent struct {
+	S int
 }
 
 func NewTorrent(t *torrent.Torrent, requested int64, ih string, path string, slot int, spec *torrent.TorrentSpec) *Torrent {
@@ -85,6 +92,7 @@ func NewTorrent(t *torrent.Torrent, requested int64, ih string, path string, slo
 		closeAll: make(chan any),
 		slot:     slot,
 		spec:     spec,
+		mux:      new(event.TypeMux),
 	}
 
 	tor.bytesRequested.Store(requested)
