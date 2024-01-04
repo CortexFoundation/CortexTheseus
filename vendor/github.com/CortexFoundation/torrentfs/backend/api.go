@@ -229,19 +229,20 @@ func (tm *TorrentManager) Search(ctx context.Context, hex string, request uint64
 		//	return nil
 	}
 
-	return tm.commit(ctx, hex, request)
+	//return tm.commit(ctx, hex, request)
+	return tm.taskEvent.Post(mainEvent{B: types.NewBitsFlow(hex, request)})
 }
 
 // Add torrent to the leeching loop
-func (tm *TorrentManager) commit(ctx context.Context, hex string, request uint64) error {
-	/*select {
-	case tm.taskChan <- types.NewBitsFlow(hex, request):
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-tm.closeAll:
-	}
-
-	return nil */
-
-	return tm.taskEvent.Post(mainEvent{types.NewBitsFlow(hex, request)})
+//func (tm *TorrentManager) commit(ctx context.Context, hex string, request uint64) error {
+/*select {
+case tm.taskChan <- types.NewBitsFlow(hex, request):
+case <-ctx.Done():
+	return ctx.Err()
+case <-tm.closeAll:
 }
+
+return nil */
+
+//	return tm.taskEvent.Post(mainEvent{types.NewBitsFlow(hex, request)})
+//}
