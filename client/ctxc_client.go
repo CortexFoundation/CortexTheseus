@@ -295,10 +295,8 @@ func (ec *Client) TransactionInBlock(ctx context.Context, blockHash common.Hash,
 func (ec *Client) TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error) {
 	var r *types.Receipt
 	err := ec.c.CallContext(ctx, &r, "ctxc_getTransactionReceipt", txHash)
-	if err == nil {
-		if r == nil {
-			return nil, cortex.NotFound
-		}
+	if err == nil && r == nil {
+		return nil, cortex.NotFound
 	}
 	return r, err
 }
