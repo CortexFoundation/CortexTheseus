@@ -1303,7 +1303,7 @@ func (tm *TorrentManager) seedingLoop() {
 					tm.seeds.Add(1)
 
 					evn := caffe.TorrentEvent{S: t.Status()}
-					go t.Mux().Post(evn)
+					t.Mux().Post(evn)
 				}
 			}
 		case <-tm.closeAll:
