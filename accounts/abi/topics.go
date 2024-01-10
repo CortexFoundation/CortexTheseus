@@ -24,6 +24,7 @@ import (
 	"reflect"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 )
 
@@ -41,8 +42,7 @@ func MakeTopics(query ...[]any) ([][]common.Hash, error) {
 			case common.Address:
 				copy(topic[common.HashLength-common.AddressLength:], rule[:])
 			case *big.Int:
-				blob := rule.Bytes()
-				copy(topic[common.HashLength-len(blob):], blob)
+				copy(topic[:], math.U256Bytes(rule))
 			case bool:
 				if rule {
 					topic[common.HashLength-1] = 1
