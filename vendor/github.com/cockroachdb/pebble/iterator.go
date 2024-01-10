@@ -1088,8 +1088,14 @@ func (i *Iterator) findPrevEntry(limit []byte) {
 			return
 		}
 	}
-
 	// i.iterKey == nil, so broke out of the preceding loop.
+
+	// Is iterKey nil due to an error?
+	if i.err = i.iter.Error(); i.err != nil {
+		i.iterValidityState = IterExhausted
+		return
+	}
+
 	if i.iterValidityState == IterValid {
 		i.pos = iterPosPrev
 		if valueMerger != nil {
@@ -1141,6 +1147,9 @@ func (i *Iterator) mergeNext(key InternalKey, valueMerger ValueMerger) {
 		i.iterKey, i.iterValue = i.iter.Next()
 		i.stats.ForwardStepCount[InternalIterCall]++
 		if i.iterKey == nil {
+			if i.err = i.iter.Error(); i.err != nil {
+				return
+			}
 			i.pos = iterPosNext
 			return
 		}
@@ -1766,6 +1775,16 @@ func (i *Iterator) nextPrefix() IterValidityState {
 			// key with the user key less than i.key, so we're guaranteed to
 			// land on the correct key with a single Next.
 			i.iterKey, i.iterValue = i.iter.Next()
+			if i.iterKey == nil {
+				// This should only be possible if i.iter.Next() encountered an
+				// error.
+				if i.iter.Error() == nil {
+					i.opts.logger.Fatalf("pebble: invariant violation: Nexting internal iterator from iterPosPrev found nothing")
+				}
+				// NB: Iterator.Error() will return i.iter.Error().
+				i.iterValidityState = IterExhausted
+				return i.iterValidityState
+			}
 			if invariants.Enabled && !i.equal(i.iterKey.UserKey, i.key) {
 				i.opts.logger.Fatalf("pebble: invariant violation: Nexting internal iterator from iterPosPrev landed on %q, not %q",
 					i.iterKey.UserKey, i.key)

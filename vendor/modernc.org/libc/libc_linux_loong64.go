@@ -7,6 +7,7 @@ package libc // import "modernc.org/libc"
 import (
 	"os"
 	"strings"
+	"syscall"
 	"unicode"
 	"unsafe"
 
@@ -98,19 +99,18 @@ func Xlstat64(t *TLS, pathname, statbuf uintptr) int32 {
 	if __ccgo_strace {
 		trc("t=%v statbuf=%v, (%v:)", t, statbuf, origin(2))
 	}
-	panic(todo(""))
-	// if _, _, err := unix.Syscall(unix.SYS_LSTAT, pathname, statbuf, 0); err != 0 {
-	// 	// if dmesgs {
-	// 	// 	dmesg("%v: %q: %v", origin(1), GoString(pathname), err)
-	// 	// }
-	// 	t.setErrno(err)
-	// 	return -1
-	// }
+	if err := syscall.Lstat(GoString(pathname), (*syscall.Stat_t)(unsafe.Pointer(statbuf))); err != nil {
+		// if dmesgs {
+		// 	dmesg("%v: %q: %v", origin(1), GoString(pathname), err)
+		// }
+		t.setErrno(err)
+		return -1
+	}
 
-	// // if dmesgs {
-	// // 	dmesg("%v: %q: ok", origin(1), GoString(pathname))
-	// // }
-	// return 0
+	// if dmesgs {
+	// 	dmesg("%v: %q: ok", origin(1), GoString(pathname))
+	// }
+	return 0
 }
 
 // int stat(const char *pathname, struct stat *statbuf);
@@ -118,19 +118,18 @@ func Xstat64(t *TLS, pathname, statbuf uintptr) int32 {
 	if __ccgo_strace {
 		trc("t=%v statbuf=%v, (%v:)", t, statbuf, origin(2))
 	}
-	panic(todo(""))
-	// if _, _, err := unix.Syscall(unix.SYS_STAT, pathname, statbuf, 0); err != 0 {
-	// 	// if dmesgs {
-	// 	// 	dmesg("%v: %q: %v", origin(1), GoString(pathname), err)
-	// 	// }
-	// 	t.setErrno(err)
-	// 	return -1
-	// }
+	if err := syscall.Stat(GoString(pathname), (*syscall.Stat_t)(unsafe.Pointer(statbuf))); err != nil {
+		// if dmesgs {
+		// 	dmesg("%v: %q: %v", origin(1), GoString(pathname), err)
+		// }
+		t.setErrno(err)
+		return -1
+	}
 
-	// // if dmesgs {
-	// // 	dmesg("%v: %q: ok", origin(1), GoString(pathname))
-	// // }
-	// return 0
+	// if dmesgs {
+	// 	dmesg("%v: %q: ok", origin(1), GoString(pathname))
+	// }
+	return 0
 }
 
 // int fstat(int fd, struct stat *statbuf);
@@ -138,19 +137,18 @@ func Xfstat64(t *TLS, fd int32, statbuf uintptr) int32 {
 	if __ccgo_strace {
 		trc("t=%v fd=%v statbuf=%v, (%v:)", t, fd, statbuf, origin(2))
 	}
-	panic(todo(""))
-	// if _, _, err := unix.Syscall(unix.SYS_FSTAT, uintptr(fd), statbuf, 0); err != 0 {
-	// 	// if dmesgs {
-	// 	// 	dmesg("%v: fd %d: %v", origin(1), fd, err)
-	// 	// }
-	// 	t.setErrno(err)
-	// 	return -1
-	// }
+	if err := syscall.Fstat(int(fd), (*syscall.Stat_t)(unsafe.Pointer(statbuf))); err != nil {
+		// if dmesgs {
+		// 	dmesg("%v: fd %d: %v", origin(1), fd, err)
+		// }
+		t.setErrno(err)
+		return -1
+	}
 
-	// // if dmesgs {
-	// // 	dmesg("%v: %d size %#x: ok\n%+v", origin(1), fd, (*stat.Stat)(unsafe.Pointer(statbuf)).Fst_size, (*stat.Stat)(unsafe.Pointer(statbuf)))
-	// // }
-	// return 0
+	// if dmesgs {
+	// 	dmesg("%v: %d size %#x: ok\n%+v", origin(1), fd, (*stat.Stat)(unsafe.Pointer(statbuf)).Fst_size, (*stat.Stat)(unsafe.Pointer(statbuf)))
+	// }
+	return 0
 }
 
 func Xmmap(t *TLS, addr uintptr, length types.Size_t, prot, flags, fd int32, offset types.Off_t) uintptr {
@@ -376,16 +374,15 @@ func Xunlink(t *TLS, pathname uintptr) int32 {
 	if __ccgo_strace {
 		trc("t=%v pathname=%v, (%v:)", t, pathname, origin(2))
 	}
-	panic(todo(""))
-	// if _, _, err := unix.Syscall(unix.SYS_UNLINK, pathname, 0, 0); err != 0 {
-	// 	t.setErrno(err)
-	// 	return -1
-	// }
+	if err := syscall.Unlink(GoString(pathname)); err != nil {
+		t.setErrno(err)
+		return -1
+	}
 
-	// // if dmesgs {
-	// // 	dmesg("%v: %q: ok", origin(1), GoString(pathname))
-	// // }
-	// return 0
+	// if dmesgs {
+	// 	dmesg("%v: %q: ok", origin(1), GoString(pathname))
+	// }
+	return 0
 }
 
 // int access(const char *pathname, int mode);
@@ -393,19 +390,15 @@ func Xaccess(t *TLS, pathname uintptr, mode int32) int32 {
 	if __ccgo_strace {
 		trc("t=%v pathname=%v mode=%v, (%v:)", t, pathname, mode, origin(2))
 	}
-	panic(todo(""))
-	// if _, _, err := unix.Syscall(unix.SYS_ACCESS, pathname, uintptr(mode), 0); err != 0 {
-	// 	// if dmesgs {
-	// 	// 	dmesg("%v: %q: %v", origin(1), GoString(pathname), err)
-	// 	// }
-	// 	t.setErrno(err)
-	// 	return -1
-	// }
+	if err := syscall.Access(GoString(pathname), uint32(mode)); err != nil {
+		t.setErrno(err)
+		return -1
+	}
 
-	// // if dmesgs {
-	// // 	dmesg("%v: %q %#o: ok", origin(1), GoString(pathname), mode)
-	// // }
-	// return 0
+	// if dmesgs {
+	// 	dmesg("%v: %q %#o: ok", origin(1), GoString(pathname), mode)
+	// }
+	return 0
 }
 
 // int rmdir(const char *pathname);
@@ -591,4 +584,24 @@ func Xsetrlimit64(t *TLS, resource int32, rlim uintptr) int32 {
 	// }
 
 	// return 0
+}
+
+func AtomicLoadPInt8(addr uintptr) (val int8) {
+	return int8(a_load_8(addr))
+}
+
+func AtomicLoadPInt16(addr uintptr) (val int16) {
+	return int16(a_load_16(addr))
+}
+
+func AtomicLoadPUint8(addr uintptr) byte {
+	return byte(a_load_8(addr))
+}
+
+func AtomicLoadPUint16(addr uintptr) uint16 {
+	return uint16(a_load_16(addr))
+}
+
+func AtomicLoadNUint8(ptr uintptr, memorder int32) uint8 {
+	return byte(a_load_8(ptr))
 }

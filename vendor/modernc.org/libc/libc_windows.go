@@ -7355,3 +7355,17 @@ func X_lseeki64(t *TLS, fd int32, offset int64, whence int32) int64 {
 	}
 	return n
 }
+
+func Xislower(tls *TLS, c int32) int32 { /* islower.c:4:5: */
+	if __ccgo_strace {
+		trc("tls=%v c=%v, (%v:)", tls, c, origin(2))
+	}
+	return Bool32(uint32(c)-uint32('a') < uint32(26))
+}
+
+func Xisupper(tls *TLS, c int32) int32 { /* isupper.c:4:5: */
+	if __ccgo_strace {
+		trc("tls=%v c=%v, (%v:)", tls, c, origin(2))
+	}
+	return Bool32(uint32(c)-uint32('A') < uint32(26))
+}
