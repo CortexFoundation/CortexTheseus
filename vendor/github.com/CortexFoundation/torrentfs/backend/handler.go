@@ -848,8 +848,8 @@ func (tm *TorrentManager) Start() (err error) {
 			}
 		}
 
-		tm.wg.Add(1)
-		go tm.droppingLoop()
+		//tm.wg.Add(1)
+		//go tm.droppingLoop()
 		tm.wg.Add(1)
 		go tm.seedingLoop()
 		tm.wg.Add(1)
@@ -990,13 +990,17 @@ func (tm *TorrentManager) mainLoop() {
 	timer := time.NewTimer(time.Second * params.QueryTimeInterval * 3600 * 24)
 	defer timer.Stop()
 
-	sub := tm.taskEvent.Subscribe(mainEvent{})
+	sub := tm.taskEvent.Subscribe(mainEvent{}) //, pendingEvent{}, runningEvent{}, seedingEvent{}, droppingEvent{})
 	defer sub.Unsubscribe()
 
 	for {
 		select {
-		//case msg := <-tm.taskChan:
 		case ev := <-sub.Chan():
+			if ev == nil {
+				continue
+			}
+			//switch ev.Data.(type) {
+			//case mainEvent:
 			if m, ok := ev.Data.(mainEvent); ok {
 				meta := m.B
 				if params.IsBad(meta.InfoHash()) {
@@ -1024,6 +1028,11 @@ func (tm *TorrentManager) mainLoop() {
 					}
 				}
 			}
+			//case pendingEvent:
+			//case runningEvent:
+			//case seedingEvent:
+			//case droppingEvent:
+			//}
 		case <-timer.C:
 			tm.wg.Add(1)
 			go func() {
@@ -1048,6 +1057,9 @@ func (tm *TorrentManager) pendingLoop() {
 	for {
 		select {
 		case ev := <-sub.Chan():
+			if ev == nil {
+				continue
+			}
 			if m, ok := ev.Data.(pendingEvent); ok {
 				t := m.T
 				tm.wg.Add(1)
@@ -1196,6 +1208,9 @@ func (tm *TorrentManager) activeLoop() {
 	for {
 		select {
 		case ev := <-sub.Chan():
+			if ev == nil {
+				continue
+			}
 			if m, ok := ev.Data.(runningEvent); ok {
 				t := m.T
 				n := tm.blockCaculate(t.Torrent.Length())
@@ -1291,19 +1306,38 @@ func (tm *TorrentManager) activeLoop() {
 
 func (tm *TorrentManager) seedingLoop() {
 	defer tm.wg.Done()
-	sub := tm.taskEvent.Subscribe(seedingEvent{})
+	sub := tm.taskEvent.Subscribe(seedingEvent{}, droppingEvent{})
 	defer sub.Unsubscribe()
 	for {
 		select {
 		case ev := <-sub.Chan():
-			if m, ok := ev.Data.(seedingEvent); ok {
-				t := m.T
-				if t.Seed() {
-					tm.actives.Add(-1)
-					tm.seeds.Add(1)
+			if ev == nil {
+				continue
+			}
 
-					evn := caffe.TorrentEvent{S: t.Status()}
-					t.Mux().Post(evn)
+			switch ev.Data.(type) {
+			case seedingEvent:
+				if m, ok := ev.Data.(seedingEvent); ok {
+					t := m.T
+					if t.Seed() {
+						tm.actives.Add(-1)
+						tm.seeds.Add(1)
+
+						evn := caffe.TorrentEvent{S: t.Status()}
+						t.Mux().Post(evn)
+					}
+				}
+			case droppingEvent:
+				if m, ok := ev.Data.(droppingEvent); ok {
+					ih := m.S
+					if t := tm.getTorrent(ih); t != nil { //&& t.Ready() {
+						tm.dropTorrent(t)
+
+						elapsed := time.Duration(mclock.Now()) - time.Duration(t.Birth())
+						log.Debug("Seed has been dropped", "ih", ih, "cited", t.Cited(), "status", t.Status(), "elapsed", common.PrettyDuration(elapsed))
+					} else {
+						log.Warn("Drop seed not found", "ih", ih)
+					}
 				}
 			}
 		case <-tm.closeAll:
@@ -1319,7 +1353,6 @@ func (tm *TorrentManager) droppingLoop() {
 	defer sub.Unsubscribe()
 	for {
 		select {
-		//case ih := <-tm.droppingChan:
 		case ev := <-sub.Chan():
 			if m, ok := ev.Data.(droppingEvent); ok {
 				ih := m.S
