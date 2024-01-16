@@ -76,14 +76,14 @@ func (s *StateDB) Upload(addr common.Address) *big.Int {
 }
 
 func (s *StateDB) SetUpload(addr common.Address, amount *big.Int) {
-	stateObject := s.GetOrNewStateObject(addr)
+	stateObject := s.getOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.SetUpload(amount)
 	}
 }
 
 func (s *StateDB) SetNum(addr common.Address, num *big.Int) {
-	stateObject := s.GetOrNewStateObject(addr)
+	stateObject := s.getOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.SetNum(num)
 	}
@@ -98,7 +98,7 @@ func (s *StateDB) Uploading(addr common.Address) bool {
 }
 
 func (s *StateDB) SubUpload(addr common.Address, amount *big.Int) *big.Int {
-	stateObject := s.GetOrNewStateObject(addr)
+	stateObject := s.getOrNewStateObject(addr)
 	if stateObject != nil {
 		return stateObject.SubUpload(amount)
 	}
