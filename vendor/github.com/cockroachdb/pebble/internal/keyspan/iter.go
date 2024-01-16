@@ -17,6 +17,11 @@ import (
 // positioning method. Some implementations (eg, keyspan.Iter) may provide
 // longer lifetimes but implementations need only guarantee stability until the
 // next positioning method.
+//
+// If any positioning method fails to find a span, the iterator is left
+// positioned at an exhausted position in the direction of iteration. For
+// example, a caller than finds SeekGE(k)=nil may call Prev to move the iterator
+// to the last span.
 type FragmentIterator interface {
 	// SeekGE moves the iterator to the first span covering a key greater than
 	// or equal to the given key. This is equivalent to seeking to the first
@@ -60,6 +65,11 @@ type FragmentIterator interface {
 	// multiple times. Other methods should not be called after the iterator has
 	// been closed.
 	Close() error
+
+	// WrapChildren wraps any child iterators using the given function. The
+	// function can call WrapChildren to recursively wrap an entire iterator
+	// stack. Used only for debug logging.
+	WrapChildren(wrap WrapFn)
 }
 
 // TableNewSpanIter creates a new iterator for range key spans for the given
@@ -218,3 +228,6 @@ func (i *Iter) Close() error {
 func (i *Iter) String() string {
 	return "fragmented-spans"
 }
+
+// WrapChildren implements FragmentIterator.
+func (i *Iter) WrapChildren(wrap WrapFn) {}
