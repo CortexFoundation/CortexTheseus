@@ -10,6 +10,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+	// The default formatter should be parsed here when it is implemented.
 	Default = loggerCore{
 		nonZero: true,
 		// This is the level if no rules apply, unless overridden in this logger, or any derived

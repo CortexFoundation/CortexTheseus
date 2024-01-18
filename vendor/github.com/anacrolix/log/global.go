@@ -9,7 +9,7 @@ import (
 var (
 	DefaultHandler = StreamHandler{
 		W:   os.Stderr,
-		Fmt: LineFormatter,
+		Fmt: twoLineFormatter,
 	}
 	Default        Logger // Inited after GO_LOG is parsed.
 	DiscardHandler = StreamHandler{

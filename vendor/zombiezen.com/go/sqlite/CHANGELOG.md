@@ -5,7 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-[Unreleased]: https://github.com/zombiezen/go-sqlite/compare/v1.0.0...main
+[Unreleased]: https://github.com/zombiezen/go-sqlite/compare/v1.1.0...main
+
+## [1.1.0][] - 2024-01-14
+
+Version 1.1 introduces the ability to prepare connections on `sqlitex.Pool`,
+improves performance, and improves documentation.
+
+[1.1.0]: https://github.com/zombiezen/go-sqlite/releases/tag/v1.1.0
+
+### Added
+
+- Added a `sqlitex.NewPool` function
+  with support for a `ConnPrepareFunc`
+  ([#65](https://github.com/zombiezen/go-sqlite/issues/65)).
+- Added a documentation example for `SetCollation`
+  ([#64](https://github.com/zombiezen/go-sqlite/issues/64)).
+
+### Deprecated
+
+- Deprecated `sqlitex.Open` in favor of `sqlitex.NewPool`.
+
+### Fixed
+
+- Speed up internal string conversions
+  ([#66](https://github.com/zombiezen/go-sqlite/pull/66)).
+  Thank you [@ffmiruz](https://github.com/ffmiruz) for the profiling work!
 
 ## [1.0.0][] - 2023-12-07
 
