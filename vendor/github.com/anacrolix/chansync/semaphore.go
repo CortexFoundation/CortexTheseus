@@ -24,3 +24,8 @@ func (me Semaphore) Acquire() events.Acquire {
 func (me Semaphore) Release() events.Release {
 	return me.ch
 }
+
+// Returns the current number of acquired values.
+func (me Semaphore) Value() int {
+	return len(me.ch)
+}

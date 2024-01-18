@@ -1,4 +1,16 @@
-## 0.86.0 (Unreleased)
+## 0.87.0 (Unreleased)
+
+## 0.86.0 (January 17, 2024)
+
+ENHANCEMENTS:
+
+* access_application: Add support for default_relay_state in saas apps ([#1477](https://github.com/cloudflare/cloudflare-go/issues/1477))
+* zaraz: Add support for CRUD APIs ([#1474](https://github.com/cloudflare/cloudflare-go/issues/1474))
+
+DEPENDENCIES:
+
+* deps: bumps github.com/cloudflare/circl from 1.3.3 to 1.3.7 ([#1475](https://github.com/cloudflare/cloudflare-go/issues/1475))
+* deps: bumps golang.org/x/net from 0.19.0 to 0.20.0 ([#1476](https://github.com/cloudflare/cloudflare-go/issues/1476))
 
 ## 0.85.0 (January 3rd, 2024)
 
