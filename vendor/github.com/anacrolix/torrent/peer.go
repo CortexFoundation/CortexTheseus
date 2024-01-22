@@ -244,11 +244,11 @@ func (cn *Peer) downloadRate() float64 {
 	return float64(num) / cn.totalExpectingTime().Seconds()
 }
 
-func (cn *Peer) DownloadRate() float64 {
-	cn.locker().RLock()
-	defer cn.locker().RUnlock()
+func (p *Peer) DownloadRate() float64 {
+	p.locker().RLock()
+	defer p.locker().RUnlock()
 
-	return cn.downloadRate()
+	return p.downloadRate()
 }
 
 func (cn *Peer) iterContiguousPieceRequests(f func(piece pieceIndex, count int)) {
@@ -465,6 +465,7 @@ func (me *Peer) cancel(r RequestIndex) {
 		panic("request not existing should have been guarded")
 	}
 	if me._cancel(r) {
+		// Record that we expect to get a cancel ack.
 		if !me.requestState.Cancelled.CheckedAdd(r) {
 			panic("request already cancelled")
 		}
@@ -478,9 +479,6 @@ func (me *Peer) cancel(r RequestIndex) {
 // Sets a reason to update requests, and if there wasn't already one, handle it.
 func (cn *Peer) updateRequests(reason string) {
 	if cn.needRequestUpdate != "" {
-		return
-	}
-	if reason != peerUpdateRequestsTimerReason && !cn.isLowOnRequests() {
 		return
 	}
 	cn.needRequestUpdate = reason
