@@ -245,6 +245,8 @@ func (t *Torrent) KnownSwarm() (ks []PeerInfo) {
 	}
 
 	// Add active peers to the list
+	t.cl.rLock()
+	defer t.cl.rUnlock()
 	for conn := range t.conns {
 		ks = append(ks, PeerInfo{
 			Id:     conn.PeerID,
@@ -1677,14 +1679,14 @@ func (t *Torrent) onWebRtcConn(
 	pc.conn.SetWriteDeadline(time.Time{})
 	t.cl.lock()
 	defer t.cl.unlock()
-	err = t.cl.runHandshookConn(pc, t)
+	err = t.runHandshookConn(pc)
 	if err != nil {
 		t.logger.WithDefaultLevel(log.Debug).Printf("error running handshook webrtc conn: %v", err)
 	}
 }
 
 func (t *Torrent) logRunHandshookConn(pc *PeerConn, logAll bool, level log.Level) {
-	err := t.cl.runHandshookConn(pc, t)
+	err := t.runHandshookConn(pc)
 	if err != nil || logAll {
 		t.logger.WithDefaultLevel(level).Levelf(log.ErrorLevel(err), "error running handshook conn: %v", err)
 	}
@@ -2483,15 +2485,27 @@ func (t *Torrent) onWriteChunkErr(err error) {
 }
 
 func (t *Torrent) DisallowDataDownload() {
+	t.cl.lock()
+	defer t.cl.unlock()
 	t.disallowDataDownloadLocked()
 }
 
 func (t *Torrent) disallowDataDownloadLocked() {
 	t.dataDownloadDisallowed.Set()
+	t.iterPeers(func(p *Peer) {
+		// Could check if peer request state is empty/not interested?
+		p.updateRequests("disallow data download")
+		p.cancelAllRequests()
+	})
 }
 
 func (t *Torrent) AllowDataDownload() {
+	t.cl.lock()
+	defer t.cl.unlock()
 	t.dataDownloadDisallowed.Clear()
+	t.iterPeers(func(p *Peer) {
+		p.updateRequests("allow data download")
+	})
 }
 
 // Enables uploading data, if it was disabled.
@@ -2499,9 +2513,9 @@ func (t *Torrent) AllowDataUpload() {
 	t.cl.lock()
 	defer t.cl.unlock()
 	t.dataUploadDisallowed = false
-	for c := range t.conns {
-		c.updateRequests("allow data upload")
-	}
+	t.iterPeers(func(p *Peer) {
+		p.updateRequests("allow data upload")
+	})
 }
 
 // Disables uploading data, if it was enabled.

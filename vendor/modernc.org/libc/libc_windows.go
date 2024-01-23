@@ -214,6 +214,7 @@ var (
 
 	modcrt = syscall.NewLazyDLL("msvcrt.dll")
 	procAccess = modcrt.NewProc("_access")
+	procStat64i32 = modcrt.NewProc("_stat64i32")
 )
 
 var (
@@ -7392,4 +7393,16 @@ func X_vscprintf(t *TLS, format uintptr, argptr uintptr) int32 {
 	}
 
 	return int32(len(printf(format, argptr)))
+}
+
+// int _stat32i64(const char *path, struct _stat32i64 *buffer);
+func X_stat64i32(t *TLS, path uintptr, buffer uintptr) int32 {
+	if __ccgo_strace {
+		trc("t=%v path=%v buffer=%v, (%v:)", t, path, buffer, origin(2))
+	}
+	r0, _, err := syscall.SyscallN(procStat64i32.Addr(), uintptr(path), uintptr(buffer))
+	if err != 0 {
+		t.setErrno(err)
+	}
+	return int32(r0)
 }

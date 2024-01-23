@@ -297,9 +297,23 @@ func (me *PeerConn) _request(r Request) bool {
 
 func (me *PeerConn) _cancel(r RequestIndex) bool {
 	me.write(makeCancelMessage(me.t.requestIndexToRequest(r)))
-	// Transmission does not send rejects for received cancels. See
-	// https://github.com/transmission/transmission/pull/2275.
-	return me.fastEnabled() && !me.remoteIsTransmission()
+	return me.remoteRejectsCancels()
+}
+
+// Whether we should expect a reject message after sending a cancel.
+func (me *PeerConn) remoteRejectsCancels() bool {
+	if !me.fastEnabled() {
+		return false
+	}
+	if me.remoteIsTransmission() {
+		// Transmission did not send rejects for received cancels. See
+		// https://github.com/transmission/transmission/pull/2275. Fixed in 4.0.0-beta.1 onward in
+		// https://github.com/transmission/transmission/commit/76719bf34c255da4fca991c2ad3fa4b65d2154b1.
+		// Peer ID prefix scheme described
+		// https://github.com/transmission/transmission/blob/7ec7607bbcf0fa99bd4b157b9b0f0c411d59f45d/CMakeLists.txt#L128-L149.
+		return me.PeerID[3] >= '4'
+	}
+	return true
 }
 
 func (cn *PeerConn) fillWriteBuffer() {
@@ -310,6 +324,7 @@ func (cn *PeerConn) fillWriteBuffer() {
 		// request reason will not be cleared, so we'll come right back here when there's space. We
 		// can't do this in maybeUpdateActualRequestState because it's a method on Peer and has no
 		// knowledge of write buffers.
+		return
 	}
 	cn.maybeUpdateActualRequestState()
 	if cn.pex.IsEnabled() {
@@ -969,8 +984,8 @@ func (c *PeerConn) setRetryUploadTimer(delay time.Duration) {
 
 // Also handles choking and unchoking of the remote peer.
 func (c *PeerConn) upload(msg func(pp.Message) bool) bool {
-	// Breaking or completing this loop means we don't want to upload to the
-	// peer anymore, and we choke them.
+	// Breaking or completing this loop means we don't want to upload to the peer anymore, and we
+	// choke them.
 another:
 	for c.uploadAllowed() {
 		// We want to upload to the peer.
@@ -1082,16 +1097,16 @@ func (c *PeerConn) pexEvent(t pexEventType) (_ pexEvent, err error) {
 	return pexEvent{t, addr, f, nil}, nil
 }
 
-func (c *PeerConn) String() string {
-	return fmt.Sprintf("%T %p [id=%+q, exts=%v, v=%q]", c, c, c.PeerID, c.PeerExtensionBytes, c.PeerClientName.Load())
+func (pc *PeerConn) String() string {
+	return fmt.Sprintf("%T %p [id=%+q, exts=%v, v=%q]", pc, pc, pc.PeerID, pc.PeerExtensionBytes, pc.PeerClientName.Load())
 }
 
 // Returns the pieces the peer could have based on their claims. If we don't know how many pieces
-// are in the torrent, it could be a very large range the peer has sent HaveAll.
-func (cn *PeerConn) PeerPieces() *roaring.Bitmap {
-	cn.locker().RLock()
-	defer cn.locker().RUnlock()
-	return cn.newPeerPieces()
+// are in the torrent, it could be a very large range if the peer has sent HaveAll.
+func (pc *PeerConn) PeerPieces() *roaring.Bitmap {
+	pc.locker().RLock()
+	defer pc.locker().RUnlock()
+	return pc.newPeerPieces()
 }
 
 func (pc *PeerConn) remoteIsTransmission() bool {
