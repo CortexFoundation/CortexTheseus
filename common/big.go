@@ -16,7 +16,10 @@
 
 package common
 
-import "math/big"
+import (
+	"github.com/holiman/uint256"
+	"math/big"
+)
 
 // Common big integers often used
 var (
@@ -36,6 +39,7 @@ var (
 	Big256   = big.NewInt(256)
 	Big257   = big.NewInt(257)
 	MaxBig   = String2Big("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+	U2560    = uint256.NewInt(0)
 )
 
 // Big pow
