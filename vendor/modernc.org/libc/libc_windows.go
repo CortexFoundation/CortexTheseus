@@ -212,8 +212,8 @@ var (
 	userenvapi                = syscall.NewLazyDLL("userenv.dll")
 	procGetProfilesDirectoryW = userenvapi.NewProc("GetProfilesDirectoryW")
 
-	modcrt = syscall.NewLazyDLL("msvcrt.dll")
-	procAccess = modcrt.NewProc("_access")
+	modcrt        = syscall.NewLazyDLL("msvcrt.dll")
+	procAccess    = modcrt.NewProc("_access")
 	procStat64i32 = modcrt.NewProc("_stat64i32")
 )
 

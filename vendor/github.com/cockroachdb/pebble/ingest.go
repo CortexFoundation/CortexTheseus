@@ -99,7 +99,7 @@ func ingestValidateKey(opts *Options, key *InternalKey) error {
 // ingestSynthesizeShared constructs a fileMetadata for one shared sstable owned
 // or shared by another node.
 func ingestSynthesizeShared(
-	opts *Options, sm SharedSSTMeta, fileNum base.DiskFileNum,
+	opts *Options, sm SharedSSTMeta, fileNum base.FileNum,
 ) (*fileMetadata, error) {
 	if sm.Size == 0 {
 		// Disallow 0 file sizes
@@ -108,14 +108,14 @@ func ingestSynthesizeShared(
 	// Don't load table stats. Doing a round trip to shared storage, one SST
 	// at a time is not worth it as it slows down ingestion.
 	meta := &fileMetadata{
-		// For simplicity, we use the same number for both the FileNum and the
-		// DiskFileNum (even though this is a virtual sstable).
-		FileNum:      FileNum(fileNum),
+		FileNum:      fileNum,
 		CreationTime: time.Now().Unix(),
 		Virtual:      true,
 		Size:         sm.Size,
 	}
-	meta.InitProviderBacking(fileNum)
+	// For simplicity, we use the same number for both the FileNum and the
+	// DiskFileNum (even though this is a virtual sstable).
+	meta.InitProviderBacking(base.DiskFileNum(fileNum))
 	// Set the underlying FileBacking's size to the same size as the virtualized
 	// view of the sstable. This ensures that we don't over-prioritize this
 	// sstable for compaction just yet, as we do not have a clear sense of what
@@ -166,11 +166,7 @@ func ingestSynthesizeShared(
 // ingestLoad1External loads the fileMetadata for one external sstable.
 // Sequence number and target level calculation happens during prepare/apply.
 func ingestLoad1External(
-	opts *Options,
-	e ExternalFile,
-	fileNum base.DiskFileNum,
-	objProvider objstorage.Provider,
-	jobID int,
+	opts *Options, e ExternalFile, fileNum base.FileNum, objProvider objstorage.Provider, jobID int,
 ) (*fileMetadata, error) {
 	if e.Size == 0 {
 		// Disallow 0 file sizes
@@ -182,36 +178,15 @@ func ingestLoad1External(
 	// Don't load table stats. Doing a round trip to shared storage, one SST
 	// at a time is not worth it as it slows down ingestion.
 	meta := &fileMetadata{
-		// For simplicity, we use the same number for both the FileNum and the
-		// DiskFileNum (even though this is a virtual sstable).
-		FileNum:      FileNum(fileNum),
+		FileNum:      fileNum,
 		CreationTime: time.Now().Unix(),
 		Virtual:      true,
 		Size:         e.Size,
 	}
-	meta.InitProviderBacking(fileNum)
+	// For simplicity, we use the same number for both the FileNum and the
+	// DiskFileNum (even though this is a virtual sstable).
+	meta.InitProviderBacking(base.DiskFileNum(fileNum))
 
-	// Try to resolve a reference to the external file.
-	backing, err := objProvider.CreateExternalObjectBacking(e.Locator, e.ObjName)
-	if err != nil {
-		return nil, err
-	}
-	metas, err := objProvider.AttachRemoteObjects([]objstorage.RemoteObjectToAttach{{
-		FileNum:  fileNum,
-		FileType: fileTypeTable,
-		Backing:  backing,
-	}})
-	if err != nil {
-		return nil, err
-	}
-	if opts.EventListener.TableCreated != nil {
-		opts.EventListener.TableCreated(TableCreateInfo{
-			JobID:   jobID,
-			Reason:  "ingesting",
-			Path:    objProvider.Path(metas[0]),
-			FileNum: fileNum,
-		})
-	}
 	// In the name of keeping this ingestion as fast as possible, we avoid
 	// *all* existence checks and synthesize a file metadata with smallest/largest
 	// keys that overlap whatever the passed-in span was.
@@ -220,12 +195,18 @@ func ingestLoad1External(
 	largestCopy := make([]byte, len(e.LargestUserKey))
 	copy(largestCopy, e.LargestUserKey)
 	if e.HasPointKey {
-		meta.ExtendPointKeyBounds(opts.Comparer.Compare, base.MakeInternalKey(smallestCopy, 0, InternalKeyKindMax),
-			base.MakeRangeDeleteSentinelKey(largestCopy))
+		meta.ExtendPointKeyBounds(
+			opts.Comparer.Compare,
+			base.MakeInternalKey(smallestCopy, 0, InternalKeyKindMax),
+			base.MakeRangeDeleteSentinelKey(largestCopy),
+		)
 	}
 	if e.HasRangeKey {
-		meta.ExtendRangeKeyBounds(opts.Comparer.Compare, base.MakeInternalKey(smallestCopy, 0, InternalKeyKindRangeKeySet),
-			base.MakeExclusiveSentinelKey(InternalKeyKindRangeKeyDelete, largestCopy))
+		meta.ExtendRangeKeyBounds(
+			opts.Comparer.Compare,
+			base.MakeInternalKey(smallestCopy, 0, InternalKeyKindRangeKeyMax),
+			base.MakeExclusiveSentinelKey(InternalKeyKindRangeKeyMin, largestCopy),
+		)
 	}
 
 	// Set the underlying FileBacking's size to the same size as the virtualized
@@ -254,9 +235,9 @@ func ingestLoad1(
 	fmv FormatMajorVersion,
 	readable objstorage.Readable,
 	cacheID uint64,
-	fileNum base.DiskFileNum,
+	fileNum base.FileNum,
 ) (*fileMetadata, error) {
-	cacheOpts := private.SSTableCacheOpts(cacheID, fileNum).(sstable.ReaderOption)
+	cacheOpts := private.SSTableCacheOpts(cacheID, base.PhysicalTableDiskFileNum(fileNum)).(sstable.ReaderOption)
 	r, err := sstable.NewReader(readable, opts.MakeReaderOptions(), cacheOpts)
 	if err != nil {
 		return nil, err
@@ -276,7 +257,7 @@ func ingestLoad1(
 	}
 
 	meta := &fileMetadata{}
-	meta.FileNum = base.PhysicalTableFileNum(fileNum)
+	meta.FileNum = fileNum
 	meta.Size = uint64(readable.Size())
 	meta.CreationTime = time.Now().Unix()
 	meta.InitPhysicalBacking()
@@ -407,7 +388,7 @@ func ingestLoad(
 	shared []SharedSSTMeta,
 	external []ExternalFile,
 	cacheID uint64,
-	pending []base.DiskFileNum,
+	pending []base.FileNum,
 	objProvider objstorage.Provider,
 	jobID int,
 ) (ingestLoadResult, error) {
@@ -577,6 +558,7 @@ func ingestLink(
 	objProvider objstorage.Provider,
 	lr ingestLoadResult,
 	shared []SharedSSTMeta,
+	external []ExternalFile,
 ) error {
 	for i := range lr.localPaths {
 		objMeta, err := objProvider.LinkOrCopyFromLocal(
@@ -598,23 +580,37 @@ func ingestLink(
 			})
 		}
 	}
-	sharedObjs := make([]objstorage.RemoteObjectToAttach, 0, len(shared))
+	remoteObjs := make([]objstorage.RemoteObjectToAttach, 0, len(shared)+len(external))
 	for i := range shared {
 		backing, err := shared[i].Backing.Get()
 		if err != nil {
 			return err
 		}
-		sharedObjs = append(sharedObjs, objstorage.RemoteObjectToAttach{
+		remoteObjs = append(remoteObjs, objstorage.RemoteObjectToAttach{
 			FileNum:  lr.sharedMeta[i].FileBacking.DiskFileNum,
 			FileType: fileTypeTable,
 			Backing:  backing,
 		})
 	}
-	sharedObjMetas, err := objProvider.AttachRemoteObjects(sharedObjs)
+	for i := range external {
+		// Try to resolve a reference to the external file.
+		backing, err := objProvider.CreateExternalObjectBacking(external[i].Locator, external[i].ObjName)
+		if err != nil {
+			return err
+		}
+		remoteObjs = append(remoteObjs, objstorage.RemoteObjectToAttach{
+			FileNum:  lr.externalMeta[i].FileBacking.DiskFileNum,
+			FileType: fileTypeTable,
+			Backing:  backing,
+		})
+	}
+
+	remoteObjMetas, err := objProvider.AttachRemoteObjects(remoteObjs)
 	if err != nil {
 		return err
 	}
-	for i := range sharedObjMetas {
+
+	for i := range shared {
 		// One corner case around file sizes we need to be mindful of, is that
 		// if one of the shareObjs was initially created by us (and has boomeranged
 		// back from another node), we'll need to update the FileBacking's size
@@ -622,24 +618,25 @@ func ingestLink(
 		// open the db again after a crash/restart (see checkConsistency in open.go),
 		// plus it more accurately allows us to prioritize compactions of files
 		// that were originally created by us.
-		if sharedObjMetas[i].IsShared() && !objProvider.IsSharedForeign(sharedObjMetas[i]) {
-			size, err := objProvider.Size(sharedObjMetas[i])
+		if remoteObjMetas[i].IsShared() && !objProvider.IsSharedForeign(remoteObjMetas[i]) {
+			size, err := objProvider.Size(remoteObjMetas[i])
 			if err != nil {
 				return err
 			}
 			lr.sharedMeta[i].FileBacking.Size = uint64(size)
 		}
-		if opts.EventListener.TableCreated != nil {
+	}
+
+	if opts.EventListener.TableCreated != nil {
+		for i := range remoteObjMetas {
 			opts.EventListener.TableCreated(TableCreateInfo{
 				JobID:   jobID,
 				Reason:  "ingesting",
-				Path:    objProvider.Path(sharedObjMetas[i]),
-				FileNum: sharedObjMetas[i].DiskFileNum,
+				Path:    objProvider.Path(remoteObjMetas[i]),
+				FileNum: remoteObjMetas[i].DiskFileNum,
 			})
 		}
 	}
-	// We do not need to do anything about lr.externalMetas. Those were already
-	// linked in ingestLoad.
 
 	return nil
 }
@@ -1326,9 +1323,9 @@ func (d *DB) ingest(
 	// ordering. The sorting of L0 tables by sequence number avoids relying on
 	// that (busted) invariant.
 	d.mu.Lock()
-	pendingOutputs := make([]base.DiskFileNum, len(paths)+len(shared)+len(external))
+	pendingOutputs := make([]base.FileNum, len(paths)+len(shared)+len(external))
 	for i := 0; i < len(paths)+len(shared)+len(external); i++ {
-		pendingOutputs[i] = d.mu.versions.getNextDiskFileNum()
+		pendingOutputs[i] = d.mu.versions.getNextFileNum()
 	}
 
 	jobID := d.mu.nextJobID
@@ -1357,7 +1354,7 @@ func (d *DB) ingest(
 	// (e.g. because the files reside on a different filesystem), ingestLink will
 	// fall back to copying, and if that fails we undo our work and return an
 	// error.
-	if err := ingestLink(jobID, d.opts, d.objProvider, loadResult, shared); err != nil {
+	if err := ingestLink(jobID, d.opts, d.objProvider, loadResult, shared, external); err != nil {
 		return IngestOperationStats{}, err
 	}
 

@@ -29,7 +29,7 @@ const (
 )
 
 // The word break parser's state transitions. It's anologous to grTransitions,
-// see comments there for details. Unicode version 14.0.0.
+// see comments there for details. Unicode version 15.0.0.
 var wbTransitions = map[[2]int][3]int{
 	// WB3b.
 	{wbAny, prNewline}: {wbNewline, wbBreak, 32},
@@ -97,7 +97,7 @@ var wbTransitions = map[[2]int][3]int{
 	{wbExtendNumLet, prALetter}:      {wbALetter, wbDontBreak, 132},
 	{wbExtendNumLet, prHebrewLetter}: {wbHebrewLetter, wbDontBreak, 132},
 	{wbExtendNumLet, prNumeric}:      {wbNumeric, wbDontBreak, 132},
-	{wbExtendNumLet, prKatakana}:     {prKatakana, wbDontBreak, 132},
+	{wbExtendNumLet, prKatakana}:     {wbKatakana, wbDontBreak, 132},
 }
 
 // transitionWordBreakState determines the new state of the word break parser

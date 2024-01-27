@@ -8,17 +8,17 @@ import (
 	"os"
 	"strings"
 	"syscall"
+	gotime "time"
 	"unicode"
 	"unsafe"
-	gotime "time"
 
-	"modernc.org/libc/stdio"
-	"modernc.org/libc/time"
 	"golang.org/x/sys/unix"
 	"modernc.org/libc/errno"
 	"modernc.org/libc/fcntl"
 	"modernc.org/libc/signal"
+	"modernc.org/libc/stdio"
 	"modernc.org/libc/sys/types"
+	"modernc.org/libc/time"
 	"modernc.org/libc/wctype"
 )
 
