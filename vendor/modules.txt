@@ -58,7 +58,7 @@ github.com/CortexFoundation/robot/backend
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit; go 1.16
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.59-0.20240127141413-4bf19d565523
+# github.com/CortexFoundation/torrentfs v1.0.59-0.20240129113837-7f5c3c53b617
 ## explicit; go 1.21
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/backend
@@ -928,7 +928,7 @@ github.com/rakyll/statik/fs
 # github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec
 ## explicit; go 1.12
 github.com/remyoudompheng/bigfft
-# github.com/rivo/uniseg v0.4.5
+# github.com/rivo/uniseg v0.4.6
 ## explicit; go 1.18
 github.com/rivo/uniseg
 # github.com/rogpeppe/go-internal v1.12.0
@@ -1024,7 +1024,7 @@ github.com/xujiajun/mmap-go
 ## explicit; go 1.13
 github.com/xujiajun/utils/filesystem
 github.com/xujiajun/utils/strconv2
-# github.com/yusufpapurcu/wmi v1.2.3
+# github.com/yusufpapurcu/wmi v1.2.4
 ## explicit; go 1.16
 github.com/yusufpapurcu/wmi
 # github.com/zeebo/xxh3 v1.0.3-0.20230502181907-3808c706a06a
@@ -1236,7 +1236,7 @@ gopkg.in/urfave/cli.v1
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
-# modernc.org/libc v1.40.7
+# modernc.org/libc v1.40.8
 ## explicit; go 1.20
 modernc.org/libc
 modernc.org/libc/errno
