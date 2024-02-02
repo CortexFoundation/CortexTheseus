@@ -161,6 +161,7 @@ var (
 	procSleepEx                    = modkernel32.NewProc("SleepEx")
 	procSystemTimeToFileTime       = modkernel32.NewProc("SystemTimeToFileTime")
 	procTerminateThread            = modkernel32.NewProc("TerminateThread")
+	procTryEnterCriticalSection    = modkernel32.NewProc("TryEnterCriticalSection")
 	procUnlockFile                 = modkernel32.NewProc("UnlockFile")
 	procUnlockFileEx               = modkernel32.NewProc("UnlockFileEx")
 	procWaitForSingleObjectEx      = modkernel32.NewProc("WaitForSingleObjectEx")
@@ -2940,6 +2941,22 @@ func XEnterCriticalSection(t *TLS, lpCriticalSection uintptr) {
 		trc("t=%v lpCriticalSection=%v, (%v:)", t, lpCriticalSection, origin(2))
 	}
 	syscall.Syscall(procEnterCriticalSection.Addr(), 1, lpCriticalSection, 0, 0)
+}
+
+// BOOL TryEnterCriticalSection(
+//
+//	LPCRITICAL_SECTION lpCriticalSection
+//
+// );
+func XTryEnterCriticalSection(t *TLS, lpCriticalSection uintptr) (r int32) {
+	if __ccgo_strace {
+		trc("t=%v lpCriticalSection=%v, (%v:)", t, lpCriticalSection, origin(2))
+	}
+	r0, _, err := syscall.SyscallN(procTryEnterCriticalSection.Addr(), lpCriticalSection)
+	if err != 0 {
+		t.setErrno(err)
+	}
+	return int32(r0)
 }
 
 // void LeaveCriticalSection(
@@ -7405,4 +7422,8 @@ func X_stat64i32(t *TLS, path uintptr, buffer uintptr) int32 {
 		t.setErrno(err)
 	}
 	return int32(r0)
+}
+
+func AtomicLoadNUint8(ptr uintptr, memorder int32) uint8 {
+	return byte(a_load_8(ptr))
 }

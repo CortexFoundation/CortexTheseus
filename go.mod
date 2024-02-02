@@ -6,18 +6,18 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.2.1
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.59-0.20240129113837-7f5c3c53b617
+	github.com/CortexFoundation/torrentfs v1.0.59-0.20240202155446-7354cfa88cb3
 	github.com/VictoriaMetrics/fastcache v1.12.2
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.24.1
 	github.com/aws/aws-sdk-go-v2/config v1.26.6
 	github.com/aws/aws-sdk-go-v2/credentials v1.16.16
-	github.com/aws/aws-sdk-go-v2/service/route53 v1.37.0
+	github.com/aws/aws-sdk-go-v2/service/route53 v1.37.1
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2
 	github.com/cespare/cp v1.1.1
 	github.com/charmbracelet/bubbletea v0.25.0
-	github.com/cloudflare/cloudflare-go v0.86.0
-	github.com/cockroachdb/pebble v0.0.0-20240123194302-5b280af78f31
+	github.com/cloudflare/cloudflare-go v0.87.0
+	github.com/cockroachdb/pebble v0.0.0-20240202151741-904a6c99689c
 	github.com/consensys/gnark-crypto v0.12.1
 	github.com/crate-crypto/go-kzg-4844 v0.7.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
@@ -83,7 +83,7 @@ require (
 	github.com/CortexFoundation/robot v1.0.7-0.20240101144533-02756bceae73 // indirect
 	github.com/CortexFoundation/wormhole v0.0.2-0.20231221155549-5c938553b5fc // indirect
 	github.com/DataDog/zstd v1.5.6-0.20230622172052-ea68dcab66c0 // indirect
-	github.com/RoaringBitmap/roaring v1.8.0 // indirect
+	github.com/RoaringBitmap/roaring v1.9.0 // indirect
 	github.com/ajwerner/btree v0.0.0-20211221152037-f427b3e689c0 // indirect
 	github.com/alecthomas/atomic v0.1.0-alpha2 // indirect
 	github.com/anacrolix/chansync v0.4.0 // indirect
@@ -102,8 +102,8 @@ require (
 	github.com/anacrolix/torrent v1.53.3 // indirect
 	github.com/anacrolix/upnp v0.1.3 // indirect
 	github.com/anacrolix/utp v0.2.0 // indirect
-	github.com/antlabs/stl v0.0.1 // indirect
-	github.com/antlabs/timer v0.0.12 // indirect
+	github.com/antlabs/stl v0.0.2 // indirect
+	github.com/antlabs/timer v0.1.1 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/arsham/rainbow v1.2.1 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.14.11 // indirect
@@ -158,13 +158,13 @@ require (
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/flatbuffers v23.5.26+incompatible // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
-	github.com/google/pprof v0.0.0-20240125082051-42cd04596328 // indirect
+	github.com/google/pprof v0.0.0-20240130152714-0ed6a68c8d9e // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.5 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/influxdata/line-protocol v0.0.0-20210922203350-b1ad95c89adf // indirect
-	github.com/jedib0t/go-pretty/v6 v6.5.3 // indirect
+	github.com/jedib0t/go-pretty/v6 v6.5.4 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/klauspost/compress v1.17.5 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.6 // indirect
@@ -177,6 +177,7 @@ require (
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
+	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/nutsdb/nutsdb v1.0.4-0.20240108030426-a4ca1b95b3d6 // indirect
 	github.com/nxadm/tail v1.4.11 // indirect
 	github.com/oapi-codegen/runtime v1.1.1 // indirect
@@ -217,7 +218,7 @@ require (
 	github.com/tklauser/numcpus v0.7.0 // indirect
 	github.com/ucwong/filecache v1.0.6-0.20230405163841-810d53ced4bd // indirect
 	github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb // indirect
-	github.com/ucwong/golang-kv v1.0.24-0.20240123222739-ef750e9bde39 // indirect
+	github.com/ucwong/golang-kv v1.0.24-0.20240202153641-e1b6e9221f93 // indirect
 	github.com/ucwong/shard v1.0.1-0.20231225143310-3022d14f9c3e // indirect
 	github.com/xrash/smetrics v0.0.0-20231213231151-1d8dd44e695e // indirect
 	github.com/xujiajun/mmap-go v1.0.1 // indirect
@@ -233,7 +234,7 @@ require (
 	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/term v0.16.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	modernc.org/libc v1.40.8 // indirect
+	modernc.org/libc v1.40.13 // indirect
 	modernc.org/mathutil v1.6.0 // indirect
 	modernc.org/memory v1.7.2 // indirect
 	modernc.org/sqlite v1.28.0 // indirect
