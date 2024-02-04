@@ -1475,6 +1475,7 @@ func Xrealpath(t *TLS, path, resolved_path uintptr) uintptr {
 	}
 	return resolved_path
 }
+
 // char *inet_ntoa(struct in_addr in);
 func Xinet_ntoa(t *TLS, in1 in.In_addr) uintptr {
 	if __ccgo_strace {

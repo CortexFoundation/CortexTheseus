@@ -24,8 +24,8 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/ncruces/go-strftime"
 	guuid "github.com/google/uuid"
+	"github.com/ncruces/go-strftime"
 	"golang.org/x/sys/unix"
 	"modernc.org/libc/errno"
 	"modernc.org/libc/grp"
@@ -1255,7 +1255,6 @@ func Xgmtime(tls *TLS, t uintptr) (r uintptr) { // /tmp/libc/musl-master/src/tim
 	return Xgmtime_r(tls, t, uintptr(unsafe.Pointer(&_tm)))
 }
 
-
 var _days_in_month = [12]int8{
 	0:  int8(31),
 	1:  int8(30),
@@ -1278,11 +1277,20 @@ func Xstrftime(tls *TLS, s uintptr, n size_t, f uintptr, tm uintptr) (r size_t) 
 		trc("tls=%v s=%v n=%v f=%v tm=%v, (%v:)", tls, s, n, f, tm, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	t := Xmktime(tls, tm)
+	tt := time.Date(
+		int((*ctime.Tm)(unsafe.Pointer(tm)).Ftm_year+1900),
+		time.Month((*ctime.Tm)(unsafe.Pointer(tm)).Ftm_mon+1),
+		int((*ctime.Tm)(unsafe.Pointer(tm)).Ftm_mday),
+		int((*ctime.Tm)(unsafe.Pointer(tm)).Ftm_hour),
+		int((*ctime.Tm)(unsafe.Pointer(tm)).Ftm_min),
+		int((*ctime.Tm)(unsafe.Pointer(tm)).Ftm_sec),
+		0,
+		time.UTC,
+	)
 	fmt := GoString(f)
 	var result string
 	if fmt != "" {
-		result = strftime.Format(fmt, time.Unix(int64(t), 0))
+		result = strftime.Format(fmt, tt)
 	}
 	switch r = size_t(len(result)); {
 	case r > n:
