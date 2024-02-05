@@ -165,6 +165,10 @@ type singleLevelIterator struct {
 	lastBloomFilterMatched bool
 
 	hideObsoletePoints bool
+
+	// inPool is set to true before putting the iterator in the reusable pool;
+	// used to detect double-close.
+	inPool bool
 }
 
 // singleLevelIterator implements the base.InternalIterator interface.
@@ -203,6 +207,7 @@ func (i *singleLevelIterator) init(
 		i.endKeyInclusive, lower, upper = v.constrainBounds(lower, upper, false /* endInclusive */)
 	}
 
+	i.inPool = false
 	i.ctx = ctx
 	i.lower = lower
 	i.upper = upper
@@ -274,8 +279,9 @@ func (i *singleLevelIterator) setupForCompaction() {
 
 func (i *singleLevelIterator) resetForReuse() singleLevelIterator {
 	return singleLevelIterator{
-		index: i.index.resetForReuse(),
-		data:  i.data.resetForReuse(),
+		index:  i.index.resetForReuse(),
+		data:   i.data.resetForReuse(),
+		inPool: true,
 	}
 }
 
@@ -919,6 +925,11 @@ func (i *singleLevelIterator) virtualLastSeekLE(key []byte) (*InternalKey, base.
 		return nil, base.LazyValue{}
 	}
 	if result == loadBlockIrrelevant {
+		// Enforce the lower bound here, as we could have gone past it.
+		if i.lower != nil && i.cmp(ikey.UserKey, i.lower) < 0 {
+			i.exhaustedBounds = -1
+			return nil, base.LazyValue{}
+		}
 		// Want to skip to the previous block.
 		return i.skipBackward()
 	}
@@ -931,6 +942,11 @@ func (i *singleLevelIterator) virtualLastSeekLE(key []byte) (*InternalKey, base.
 	}
 	ikey, val = i.data.Prev()
 	if ikey != nil {
+		// Enforce the lower bound here, as we could have gone past it.
+		if i.blockLower != nil && i.cmp(ikey.UserKey, i.blockLower) < 0 {
+			i.exhaustedBounds = -1
+			return nil, base.LazyValue{}
+		}
 		return ikey, val
 	}
 	return i.skipBackward()
@@ -953,7 +969,7 @@ func (i *singleLevelIterator) SeekLT(
 		// first internal key with user key < key.
 		if cmp > 0 {
 			// Return the last key in the virtual sstable.
-			return i.virtualLast()
+			return i.maybeVerifyKey(i.virtualLast())
 		}
 	}
 
@@ -1133,7 +1149,7 @@ func (i *singleLevelIterator) firstInternal() (*InternalKey, base.LazyValue) {
 // SeekLT(upper))
 func (i *singleLevelIterator) Last() (*InternalKey, base.LazyValue) {
 	if i.vState != nil {
-		return i.virtualLast()
+		return i.maybeVerifyKey(i.virtualLast())
 	}
 
 	if i.upper != nil {
@@ -1440,6 +1456,9 @@ func firstError(err0, err1 error) error {
 // Close implements internalIterator.Close, as documented in the pebble
 // package.
 func (i *singleLevelIterator) Close() error {
+	if invariants.Enabled && i.inPool {
+		panic("Close called on interator in pool")
+	}
 	i.iterStats.close()
 	var err error
 	if i.closeHook != nil {

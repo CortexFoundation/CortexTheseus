@@ -1,4 +1,25 @@
-## 0.87.0 (Unreleased)
+## 0.88.0 (Unreleased)
+
+## 0.87.0 (January 31st, 2024)
+
+ENHANCEMENTS:
+
+* access_seats: Add `UpdateAccessUsersSeats` with an array as input for multiple operations ([#1480](https://github.com/cloudflare/cloudflare-go/issues/1480))
+* dlp: add support for EDM and CWL datasets ([#1485](https://github.com/cloudflare/cloudflare-go/issues/1485))
+* logpush: Add support for Output Options ([#1468](https://github.com/cloudflare/cloudflare-go/issues/1468))
+* pages_project: Add `build_caching` attribute ([#1489](https://github.com/cloudflare/cloudflare-go/issues/1489))
+* streams: adds support for stream create parameters for tus upload initiate ([#1386](https://github.com/cloudflare/cloudflare-go/issues/1386))
+* teams_accounts: add support for extended email matching ([#1486](https://github.com/cloudflare/cloudflare-go/issues/1486))
+
+BUG FIXES:
+
+* access_seats: UpdateAccessUserSeat: fix parameters not being an array when sending to the api. This caused an error when updating a user's seat ([#1480](https://github.com/cloudflare/cloudflare-go/issues/1480))
+* access_users: ListAccessUsers was returning wrong values in pointer fields due to variable missused in loop ([#1482](https://github.com/cloudflare/cloudflare-go/issues/1482))
+* flarectl: alias zone certs to "ct" instead of duplicating the "c" alias ([#1484](https://github.com/cloudflare/cloudflare-go/issues/1484))
+
+DEPENDENCIES:
+
+* deps: bumps actions/cache from 3 to 4 ([#1483](https://github.com/cloudflare/cloudflare-go/issues/1483))
 
 ## 0.86.0 (January 17, 2024)
 
