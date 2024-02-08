@@ -20,11 +20,13 @@ import (
 	"encoding"
 	"errors"
 	"flag"
+	"fmt"
 	"math/big"
 	"os"
 	"os/user"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"github.com/urfave/cli/v2"
