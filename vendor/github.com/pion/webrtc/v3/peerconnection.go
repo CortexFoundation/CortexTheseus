@@ -1576,12 +1576,11 @@ func (pc *PeerConnection) handleIncomingSSRC(rtpStream io.Reader, ssrc SSRC) err
 		return err
 	}
 
-	var mid, rid, rsid string
-	payloadType, err := handleUnknownRTPPacket(b[:i], uint8(midExtensionID), uint8(streamIDExtensionID), uint8(repairStreamIDExtensionID), &mid, &rid, &rsid)
-	if err != nil {
-		return err
+	if i < 4 {
+		return errRTPTooShort
 	}
 
+	payloadType := PayloadType(b[1] & 0x7f)
 	params, err := pc.api.mediaEngine.getRTPParametersByPayloadType(payloadType)
 	if err != nil {
 		return err
@@ -1593,14 +1592,21 @@ func (pc *PeerConnection) handleIncomingSSRC(rtpStream io.Reader, ssrc SSRC) err
 		return err
 	}
 
+	var mid, rid, rsid string
+	var paddingOnly bool
 	for readCount := 0; readCount <= simulcastProbeCount; readCount++ {
 		if mid == "" || (rid == "" && rsid == "") {
+			// skip padding only packets for probing
+			if paddingOnly {
+				readCount--
+			}
+
 			i, _, err := interceptor.Read(b, nil)
 			if err != nil {
 				return err
 			}
 
-			if _, err = handleUnknownRTPPacket(b[:i], uint8(midExtensionID), uint8(streamIDExtensionID), uint8(repairStreamIDExtensionID), &mid, &rid, &rsid); err != nil {
+			if _, paddingOnly, err = handleUnknownRTPPacket(b[:i], uint8(midExtensionID), uint8(streamIDExtensionID), uint8(repairStreamIDExtensionID), &mid, &rid, &rsid); err != nil {
 				return err
 			}
 
