@@ -2,9 +2,7 @@ package requestStrategy
 
 import (
 	"bytes"
-	"expvar"
 
-	g "github.com/anacrolix/generics"
 	"github.com/anacrolix/multiless"
 
 	"github.com/anacrolix/torrent/metainfo"
@@ -41,8 +39,6 @@ func pieceOrderLess(i, j *pieceRequestOrderItem) multiless.Computation {
 	})
 }
 
-var packageExpvarMap = expvar.NewMap("request-strategy")
-
 // Calls f with requestable pieces in order.
 func GetRequestablePieces(
 	input Input, pro *PieceRequestOrder,
@@ -55,18 +51,10 @@ func GetRequestablePieces(
 		storageLeft = &cap
 	}
 	var allTorrentsUnverifiedBytes int64
-	var lastItem g.Option[pieceRequestOrderItem]
 	pro.tree.Scan(func(_i pieceRequestOrderItem) bool {
-		// Check that scan emits pieces in priority order.
-		if lastItem.Ok {
-			if _i.Less(&lastItem.Value) {
-				panic("scan not in order")
-			}
-		}
-		lastItem.Set(_i)
-
 		ih := _i.key.InfoHash
-		t := input.Torrent(ih)
+		var t Torrent = input.Torrent(ih)
+		var piece Piece = t.Piece(_i.key.Index)
 		pieceLength := t.PieceLength()
 		if storageLeft != nil {
 			if *storageLeft < pieceLength {
@@ -74,13 +62,13 @@ func GetRequestablePieces(
 			}
 			*storageLeft -= pieceLength
 		}
-		if t.IgnorePiece(_i.key.Index) {
+		if !piece.Request() || piece.NumPendingChunks() == 0 {
 			// TODO: Clarify exactly what is verified. Stuff that's being hashed should be
 			// considered unverified and hold up further requests.
 			return true
 		}
 		if input.MaxUnverifiedBytes() != 0 && allTorrentsUnverifiedBytes+pieceLength > input.MaxUnverifiedBytes() {
-			return true
+			return false
 		}
 		allTorrentsUnverifiedBytes += pieceLength
 		f(ih, _i.key.Index, _i.state)
