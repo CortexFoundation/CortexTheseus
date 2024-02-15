@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.3.0
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.59
+	github.com/CortexFoundation/torrentfs v1.0.60-0.20240214155812-f576af68c289
 	github.com/VictoriaMetrics/fastcache v1.12.2
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.25.0
@@ -239,5 +239,5 @@ require (
 	modernc.org/memory v1.7.2 // indirect
 	modernc.org/sqlite v1.29.1 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
-	zombiezen.com/go/sqlite v1.1.1 // indirect
+	zombiezen.com/go/sqlite v1.1.2 // indirect
 )

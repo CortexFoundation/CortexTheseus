@@ -27,7 +27,7 @@ import (
 
 func UnzipData(data []byte) (resData []byte, err error) {
 	start := time.Now()
-	defer log.Info("Unzip data", "cost", time.Since(start))
+	defer func() { log.Info("Unzip data", "cost", time.Since(start)) }()
 	b := bytes.NewBuffer(data)
 	var r io.Reader
 	r, err = gzip.NewReader(b)
@@ -48,7 +48,7 @@ func UnzipData(data []byte) (resData []byte, err error) {
 
 func ZipData(data []byte) (compressedData []byte, err error) {
 	start := time.Now()
-	defer log.Info("Zip data", "cost", time.Since(start))
+	defer func() { log.Info("Zip data", "cost", time.Since(start)) }()
 	var b bytes.Buffer
 	gz := gzip.NewWriter(&b)
 
@@ -72,14 +72,14 @@ func ZipData(data []byte) (compressedData []byte, err error) {
 
 func SnappyEncode(data []byte) ([]byte, error) {
 	start := time.Now()
-	defer log.Info("Snappy encode", "cost", time.Since(start))
+	defer func() { log.Info("Snappy encode", "cost", time.Since(start)) }()
 
 	return snappy.Encode(nil, data), nil
 }
 
 func SnappyDecode(data []byte) ([]byte, error) {
 	start := time.Now()
-	defer log.Info("Snappy decode", "cost", time.Since(start))
+	defer func() { log.Info("Snappy decode", "cost", time.Since(start)) }()
 	res, err := snappy.Decode(nil, data)
 	if err != nil {
 		return nil, err
