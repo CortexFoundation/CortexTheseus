@@ -1211,6 +1211,7 @@ func (tm *TorrentManager) activeLoop() {
 			if ev == nil {
 				continue
 			}
+
 			if m, ok := ev.Data.(runningEvent); ok {
 				t := m.T
 				n := tm.blockCaculate(t.Torrent.Length())
@@ -1347,7 +1348,7 @@ func (tm *TorrentManager) seedingLoop() {
 	}
 }
 
-func (tm *TorrentManager) droppingLoop() {
+/*func (tm *TorrentManager) droppingLoop() {
 	defer tm.wg.Done()
 	sub := tm.taskEvent.Subscribe(droppingEvent{})
 	defer sub.Unsubscribe()
@@ -1372,7 +1373,6 @@ func (tm *TorrentManager) droppingLoop() {
 	}
 }
 
-/*
 func (tm *TorrentManager) Exists(ih string, rawSize uint64) (bool, uint64, mclock.AbsTime, error) {
 	availableMeter.Mark(1)
 
