@@ -16,8 +16,6 @@
 
 package torrentfs
 
-import ()
-
 const (
 	STATUS_PENDING = 1
 	STATUS_RUNNING = 2

@@ -55,6 +55,10 @@ func (me *Option[V]) SetNone() {
 	me.Value = ZeroValue[V]()
 }
 
+func (me *Option[V]) SetFromTuple(v V, ok bool) {
+	*me = OptionFromTuple(v, ok)
+}
+
 func (me *Option[V]) SetSomeZeroValue() {
 	me.Ok = true
 	me.Value = ZeroValue[V]()
@@ -66,4 +70,12 @@ func Some[V any](value V) Option[V] {
 
 func None[V any]() Option[V] {
 	return Option[V]{}
+}
+
+func OptionFromTuple[T any](t T, ok bool) Option[T] {
+	if ok {
+		return Some(t)
+	} else {
+		return None[T]()
+	}
 }
