@@ -41,6 +41,9 @@ github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/internal/shared
 github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/pageblob
 github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/sas
 github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/service
+# github.com/CortexFoundation/compress v0.0.0-20240218153512-9074bdc2397c
+## explicit; go 1.21
+github.com/CortexFoundation/compress
 # github.com/CortexFoundation/cvm-runtime v0.0.0-20221117094012-b5a251885572
 ## explicit; go 1.14
 github.com/CortexFoundation/cvm-runtime/kernel
@@ -58,13 +61,12 @@ github.com/CortexFoundation/robot/backend
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit; go 1.16
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.61-0.20240217172511-425726c804ae
+# github.com/CortexFoundation/torrentfs v1.0.61-0.20240218153713-f94ec6e020af
 ## explicit; go 1.21
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/backend
 github.com/CortexFoundation/torrentfs/backend/caffe
 github.com/CortexFoundation/torrentfs/backend/job
-github.com/CortexFoundation/torrentfs/compress
 github.com/CortexFoundation/torrentfs/params
 github.com/CortexFoundation/torrentfs/tool
 github.com/CortexFoundation/torrentfs/types

@@ -55,6 +55,8 @@ github.com/CortexFoundation/CortexTheseus v1.9.56/go.mod h1:MkF8L4FF1jb8K8V6gDDQ
 github.com/CortexFoundation/CortexTheseus v1.10.3-0.20200624034846-46f8f368cbee/go.mod h1:S/ekN5n18+CtbVTy4l8G5kmDn3xTFKVrcMUBymY7JwQ=
 github.com/CortexFoundation/CortexTheseus v1.10.3-0.20200704025058-f0885ec2bd83/go.mod h1:++9X1TLZ+XbAFxrQO5Cl9T/5/OW6JaLlvVnDsEH0qkA=
 github.com/CortexFoundation/CortexTheseus v1.10.8/go.mod h1:BxMcNBe5UuA9WWMLBdHP5JqpFKyCBZza+6FLSMx7Nhk=
+github.com/CortexFoundation/compress v0.0.0-20240218153512-9074bdc2397c h1:NPMTQiCmHtWC/68LASsYRtzcvxIwJ8ZI3LANYZ/rXpc=
+github.com/CortexFoundation/compress v0.0.0-20240218153512-9074bdc2397c/go.mod h1:ytKxJqa16SAYZcc4PMcdZpfrcYVmhrEKNaaqz7zta0I=
 github.com/CortexFoundation/cvm-runtime v0.0.0-20221117094012-b5a251885572 h1:flP0APyj5dlVhNsPIz7+SiB4/N2564+GBy7avBV71gY=
 github.com/CortexFoundation/cvm-runtime v0.0.0-20221117094012-b5a251885572/go.mod h1:oLEQaJbHT0SAIVjY90BYPYVikGylXHrPyf1yTPS7HZg=
 github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8 h1:W/iuMZd13mB6OSIEd9ahMHFAeQ8zLv+peIFYcMirvag=
@@ -68,8 +70,8 @@ github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66/go.mod h1:
 github.com/CortexFoundation/torrentfs v1.0.13-0.20200623060705-ce027f43f2f8/go.mod h1:Ma+tGhPPvz4CEZHaqEJQMOEGOfHeQBiAoNd1zyc/w3Q=
 github.com/CortexFoundation/torrentfs v1.0.14-0.20200703071639-3fcabcabf274/go.mod h1:qnb3YlIJmuetVBtC6Lsejr0Xru+1DNmDCdTqnwy7lhk=
 github.com/CortexFoundation/torrentfs v1.0.20-0.20200810031954-d36d26f82fcc/go.mod h1:N5BsicP5ynjXIi/Npl/SRzlJ630n1PJV2sRj0Z0t2HA=
-github.com/CortexFoundation/torrentfs v1.0.61-0.20240217172511-425726c804ae h1:Vma5qyhPoxxoZbHLfPyegjx+0uaV26D/C4W6p3dZibE=
-github.com/CortexFoundation/torrentfs v1.0.61-0.20240217172511-425726c804ae/go.mod h1:wP+9i7N+I5uh6vc/HJsfM1EuGTBZyM0GLpwAXXt/t0U=
+github.com/CortexFoundation/torrentfs v1.0.61-0.20240218153713-f94ec6e020af h1:ew/+Cf+gDVOspYAOY6YCObueve4L6qkbeaAsMNdlsFo=
+github.com/CortexFoundation/torrentfs v1.0.61-0.20240218153713-f94ec6e020af/go.mod h1:/l6mtw/YwSfWqSmRgE9Pdb/pOxpKNktBdnFt+qWrwx4=
 github.com/CortexFoundation/wormhole v0.0.2-0.20231221155549-5c938553b5fc h1:LkbBJvvbfraAg/joFxPZtDvmdrjuTqPfbGhdnrEq7GM=
 github.com/CortexFoundation/wormhole v0.0.2-0.20231221155549-5c938553b5fc/go.mod h1:ipzmPabDgzYKUbXkGVe2gTkBEp+MsDx6pXGiuYzmP6s=
 github.com/DATA-DOG/go-sqlmock v1.3.3/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
