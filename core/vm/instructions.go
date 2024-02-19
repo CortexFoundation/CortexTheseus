@@ -18,6 +18,7 @@ package vm
 
 import (
 	"errors"
+	"math"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
@@ -377,7 +378,7 @@ func opCodeCopy(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeConte
 	)
 	uint64CodeOffset, overflow := codeOffset.Uint64WithOverflow()
 	if overflow {
-		uint64CodeOffset = 0xffffffffffffffff
+		uint64CodeOffset = math.MaxUint64
 	}
 	codeCopy := getData(callContext.Contract.Code, uint64CodeOffset, length.Uint64())
 	callContext.Memory.Set(memOffset.Uint64(), length.Uint64(), codeCopy)
@@ -394,7 +395,7 @@ func opExtCodeCopy(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeCo
 	)
 	uint64CodeOffset, overflow := codeOffset.Uint64WithOverflow()
 	if overflow {
-		uint64CodeOffset = 0xffffffffffffffff
+		uint64CodeOffset = math.MaxUint64
 	}
 	addr := common.Address(a.Bytes20())
 	codeCopy := getData(interpreter.cvm.StateDB.GetCode(addr), uint64CodeOffset, length.Uint64())

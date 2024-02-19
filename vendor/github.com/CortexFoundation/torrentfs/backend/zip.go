@@ -17,7 +17,7 @@
 package backend
 
 import (
-	"github.com/CortexFoundation/torrentfs/compress"
+	"github.com/CortexFoundation/compress"
 )
 
 func (tm *TorrentManager) unzip(data []byte) ([]byte, error) {
