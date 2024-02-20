@@ -23,7 +23,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/torrentfs/params"
+	//"github.com/CortexFoundation/torrentfs/params"
 	"github.com/ucwong/go-ttlmap"
 )
 
@@ -59,7 +59,7 @@ func (fs *TorrentFS) download(ctx context.Context, ih string, request uint64) er
 			defer fs.wg.Done()
 			s := fs.broadcast(ih, p)
 			if s {
-				log.Debug("Nas "+params.ProtocolVersionStr+" tunnel", "ih", ih, "request", common.StorageSize(float64(p)), "tunnel", fs.tunnel.Len(), "peers", fs.Neighbors())
+				//log.Debug("Nas "+params.ProtocolVersionStr+" tunnel", "ih", ih, "request", common.StorageSize(float64(p)), "tunnel", fs.tunnel.Len(), "peers", fs.Neighbors())
 			}
 		}(ih, p)
 	}

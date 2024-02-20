@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"math/rand"
 	"net"
 	"os"
 	"path/filepath"
@@ -40,7 +41,6 @@ import (
 	"github.com/CortexFoundation/torrentfs/backend/caffe"
 	"github.com/CortexFoundation/torrentfs/backend/job"
 	"github.com/CortexFoundation/torrentfs/params"
-	"github.com/CortexFoundation/torrentfs/tool"
 	"github.com/CortexFoundation/torrentfs/types"
 	"github.com/CortexFoundation/wormhole"
 	"github.com/ucwong/shard"
@@ -1219,7 +1219,7 @@ func (tm *TorrentManager) activeLoop() {
 					n += 300
 				}
 
-				n += tool.Rand(300)
+				n += rand.Int63n(300)
 				if tm.mode == params.FULL {
 					n *= 2
 				}

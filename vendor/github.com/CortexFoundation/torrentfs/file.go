@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/common/mclock"
+	//"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/torrentfs/backend"
 	"github.com/CortexFoundation/torrentfs/backend/caffe"
@@ -45,21 +45,21 @@ func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSi
 		}(ctx, infohash)
 
 		if params.IsGood(infohash) {
-			start := mclock.Now()
-			log.Info("Downloading ... ...", "ih", infohash, "size", common.StorageSize(rawSize), "neighbors", fs.Neighbors(), "current", fs.monitor.CurrentNumber())
+			//start := mclock.Now()
+			//log.Info("Downloading ... ...", "ih", infohash, "size", common.StorageSize(rawSize), "neighbors", fs.Neighbors(), "current", fs.monitor.CurrentNumber())
 
 			if mux != nil {
 				sub := mux.Subscribe(caffe.TorrentEvent{})
 				defer sub.Unsubscribe()
 
 				select {
-				case ev := <-sub.Chan():
-					log.Info("Seeding notify !!! !!!", "ih", infohash, "size", common.StorageSize(rawSize), "neighbors", fs.Neighbors(), "current", fs.monitor.CurrentNumber(), "ev", ev.Data)
+				case <-sub.Chan():
+					//log.Info("Seeding notify !!! !!!", "ih", infohash, "size", common.StorageSize(rawSize), "neighbors", fs.Neighbors(), "current", fs.monitor.CurrentNumber(), "ev", ev.Data)
 					if ret, _, err := fs.storage().GetFile(ctx, infohash, subpath); err != nil {
 						log.Debug("File downloading ... ...", "ih", infohash, "size", common.StorageSize(rawSize), "path", subpath, "err", err)
 					} else {
-						elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-						log.Info("Downloaded", "ih", infohash, "size", common.StorageSize(rawSize), "neighbors", fs.Neighbors(), "elapsed", common.PrettyDuration(elapsed), "current", fs.monitor.CurrentNumber())
+						//elapsed := time.Duration(mclock.Now()) - time.Duration(start)
+						//log.Info("Downloaded", "ih", infohash, "size", common.StorageSize(rawSize), "neighbors", fs.Neighbors(), "elapsed", common.PrettyDuration(elapsed), "current", fs.monitor.CurrentNumber())
 						if uint64(len(ret)) > rawSize {
 							return nil, backend.ErrInvalidRawSize
 						}
@@ -71,6 +71,7 @@ func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSi
 					log.Warn("Timeout", "ih", infohash, "size", common.StorageSize(rawSize), "err", ctx.Err(), "retry", fs.retry.Load(), "complete", common.StorageSize(co), "timeout", to, "exist", ex)
 					return nil, ctx.Err()
 				case <-fs.closeAll:
+					log.Info("File out")
 					return nil, nil
 				}
 			} else {
@@ -83,8 +84,8 @@ func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSi
 							log.Debug("File downloading ... ...", "ih", infohash, "size", common.StorageSize(rawSize), "path", subpath, "err", err)
 							t.Reset(1000 * time.Millisecond)
 						} else {
-							elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-							log.Info("Downloaded", "ih", infohash, "size", common.StorageSize(rawSize), "neighbors", fs.Neighbors(), "elapsed", common.PrettyDuration(elapsed), "current", fs.monitor.CurrentNumber())
+							//elapsed := time.Duration(mclock.Now()) - time.Duration(start)
+							//log.Info("Downloaded", "ih", infohash, "size", common.StorageSize(rawSize), "neighbors", fs.Neighbors(), "elapsed", common.PrettyDuration(elapsed), "current", fs.monitor.CurrentNumber())
 							if uint64(len(ret)) > rawSize {
 								return nil, backend.ErrInvalidRawSize
 							}
@@ -96,6 +97,7 @@ func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSi
 						log.Warn("Timeout", "ih", infohash, "size", common.StorageSize(rawSize), "err", ctx.Err(), "retry", fs.retry.Load(), "complete", common.StorageSize(co), "timeout", to, "exist", ex)
 						return nil, ctx.Err()
 					case <-fs.closeAll:
+						log.Info("File out")
 						return nil, nil
 					}
 				}

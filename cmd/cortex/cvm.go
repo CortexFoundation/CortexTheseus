@@ -173,7 +173,7 @@ func cvmServer(ctx *cli.Context) error {
 
 	c = make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	log.SetDefault(log.NewLogger(log.NewTerminalHandlerWithLevel(os.Stderr, log.LevelTrace, true)))
+	log.SetDefault(log.NewLogger(log.NewTerminalHandlerWithLevel(os.Stderr, log.LevelInfo, true)))
 
 	fsCfg := params.DefaultConfig
 	utils.SetTorrentFsConfig(ctx, &fsCfg)
@@ -268,6 +268,7 @@ func cvmServer(ctx *cli.Context) error {
 		//		log.Info("CVM resource server closed")
 		//	}
 		//}
+		storagefs.Stop()
 		if err := server.Close(); err != nil {
 			log.Info("Close http server failed", "err", err)
 		} else {
