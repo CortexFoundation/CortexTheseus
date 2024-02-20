@@ -70,8 +70,8 @@ github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66/go.mod h1:
 github.com/CortexFoundation/torrentfs v1.0.13-0.20200623060705-ce027f43f2f8/go.mod h1:Ma+tGhPPvz4CEZHaqEJQMOEGOfHeQBiAoNd1zyc/w3Q=
 github.com/CortexFoundation/torrentfs v1.0.14-0.20200703071639-3fcabcabf274/go.mod h1:qnb3YlIJmuetVBtC6Lsejr0Xru+1DNmDCdTqnwy7lhk=
 github.com/CortexFoundation/torrentfs v1.0.20-0.20200810031954-d36d26f82fcc/go.mod h1:N5BsicP5ynjXIi/Npl/SRzlJ630n1PJV2sRj0Z0t2HA=
-github.com/CortexFoundation/torrentfs v1.0.61-0.20240220192623-32d4db5ef06a h1:gVCbRQbswocu0JILSU26W0OL+ne1CmrPM9gKc9Sb5DU=
-github.com/CortexFoundation/torrentfs v1.0.61-0.20240220192623-32d4db5ef06a/go.mod h1:R5IO4f/mzIkiGWyKY77kLr0gZlTgsRjRTY7gSurRL1s=
+github.com/CortexFoundation/torrentfs v1.0.61 h1:YWhT9DISIIM4lWD4JcLyFe3M4MQeLuJMdVggj1JeD4I=
+github.com/CortexFoundation/torrentfs v1.0.61/go.mod h1:R5IO4f/mzIkiGWyKY77kLr0gZlTgsRjRTY7gSurRL1s=
 github.com/CortexFoundation/wormhole v0.0.2-0.20231221155549-5c938553b5fc h1:LkbBJvvbfraAg/joFxPZtDvmdrjuTqPfbGhdnrEq7GM=
 github.com/CortexFoundation/wormhole v0.0.2-0.20231221155549-5c938553b5fc/go.mod h1:ipzmPabDgzYKUbXkGVe2gTkBEp+MsDx6pXGiuYzmP6s=
 github.com/DATA-DOG/go-sqlmock v1.3.3/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
