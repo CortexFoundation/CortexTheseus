@@ -197,10 +197,10 @@ func create(config *params.Config, cache, compress, listen bool) (*TorrentFS, er
 					"number":         inst.monitor.CurrentNumber(),
 					"maxMessageSize": inst.MaxMessageSize(),
 					//					"listen":         monitor.listen,
-					"metrics":    inst.NasCounter(),
-					"neighbours": inst.Neighbors(),
-					"received":   inst.received.Load(),
-					"sent":       inst.sent.Load(),
+					"metrics": inst.NasCounter(),
+					//"neighbours": inst.Neighbors(),
+					"received": inst.received.Load(),
+					"sent":     inst.sent.Load(),
 				},
 				//"score": inst.scoreTable,
 				"worm": inst.worm,
@@ -345,7 +345,7 @@ func (fs *TorrentFS) Start(srvr *p2p.Server) (err error) {
 		fs.net = srvr
 	}
 
-	log.Info("Started nas", "config", fs, "mode", fs.config.Mode, "version", params.ProtocolVersion, "queue", fs.tunnel.Len(), "peers", fs.Neighbors())
+	//log.Info("Started nas", "config", fs, "mode", fs.config.Mode, "version", params.ProtocolVersion, "queue", fs.tunnel.Len(), "peers", fs.Neighbors())
 
 	/*err = fs.db.Init()
 	if err != nil {
@@ -396,6 +396,7 @@ func (fs *TorrentFS) bitsflow(ctx context.Context, ih string, size uint64) error
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-fs.closeAll:
+		log.Info("bitsflow out")
 		return nil
 	}
 
@@ -429,8 +430,14 @@ func (fs *TorrentFS) Stop() error {
 		close(fs.closeAll)
 		fs.wg.Wait()
 
-		for _, p := range fs.peers {
-			p.stop()
+		if len(fs.peers) > 0 {
+			for _, p := range fs.peers {
+				p.stop()
+			}
+		}
+
+		if fs.net != nil {
+			fs.net.Stop()
 		}
 
 		if fs.tunnel != nil {
