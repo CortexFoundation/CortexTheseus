@@ -52,27 +52,6 @@ type VerkleProof struct {
 	IPAProof              *IPAProof  `json:"ipa_proof"`
 }
 
-func (vp *VerkleProof) Copy() *VerkleProof {
-	ret := &VerkleProof{
-		OtherStems:            make([][31]byte, len(vp.OtherStems)),
-		DepthExtensionPresent: make([]byte, len(vp.DepthExtensionPresent)),
-		CommitmentsByPath:     make([][32]byte, len(vp.CommitmentsByPath)),
-		IPAProof:              &IPAProof{},
-	}
-
-	copy(ret.OtherStems, vp.OtherStems)
-	copy(ret.DepthExtensionPresent, vp.DepthExtensionPresent)
-	copy(ret.CommitmentsByPath, vp.CommitmentsByPath)
-
-	ret.D = vp.D
-
-	if vp.IPAProof != nil {
-		ret.IPAProof = vp.IPAProof
-	}
-
-	return ret
-}
-
 type Proof struct {
 	Multipoint *ipa.MultiProof // multipoint argument
 	ExtStatus  []byte          // the extension status of each stem
@@ -98,26 +77,6 @@ type StemStateDiff struct {
 
 type StateDiff []StemStateDiff
 
-func (sd StateDiff) Copy() StateDiff {
-	ret := make(StateDiff, len(sd))
-	for i := range sd {
-		copy(ret[i].Stem[:], sd[i].Stem[:])
-		ret[i].SuffixDiffs = make([]SuffixStateDiff, len(sd[i].SuffixDiffs))
-		for j := range sd[i].SuffixDiffs {
-			ret[i].SuffixDiffs[j].Suffix = sd[i].SuffixDiffs[j].Suffix
-			if sd[i].SuffixDiffs[j].CurrentValue != nil {
-				ret[i].SuffixDiffs[j].CurrentValue = &[32]byte{}
-				copy((*ret[i].SuffixDiffs[j].CurrentValue)[:], (*sd[i].SuffixDiffs[j].CurrentValue)[:])
-			}
-			if sd[i].SuffixDiffs[j].NewValue != nil {
-				ret[i].SuffixDiffs[j].NewValue = &[32]byte{}
-				copy((*ret[i].SuffixDiffs[j].NewValue)[:], (*sd[i].SuffixDiffs[j].NewValue)[:])
-			}
-		}
-	}
-	return ret
-}
-
 func GetCommitmentsForMultiproof(root VerkleNode, keys [][]byte, resolver NodeResolverFn) (*ProofElements, []byte, [][]byte, error) {
 	sort.Sort(keylist(keys))
 	return root.GetProofItems(keylist(keys), resolver)
@@ -126,49 +85,73 @@ func GetCommitmentsForMultiproof(root VerkleNode, keys [][]byte, resolver NodeRe
 // getProofElementsFromTree factors the logic that is used both in the proving and verification methods. It takes a pre-state
 // tree and an optional post-state tree, extracts the proof data from them and returns all the items required to build/verify
 // a proof.
-func getProofElementsFromTree(preroot, postroot VerkleNode, keys [][]byte, resolver NodeResolverFn) (*ProofElements, []byte, [][]byte, [][]byte, error) {
+func getProofElementsFromTree(preroot, postroot VerkleNode, keys [][]byte, resolver NodeResolverFn) (*ProofElements, []byte, [][]byte, [][]byte, []*Point, [][]Fr, []*Fr, []byte, error) {
 	// go-ipa won't accept no key as an input, catch this corner case
 	// and return an empty result.
 	if len(keys) == 0 {
-		return nil, nil, nil, nil, errors.New("no key provided for proof")
+		return nil, nil, nil, nil, nil, nil, nil, nil, errors.New("no key provided for proof")
 	}
 
 	pe, es, poas, err := GetCommitmentsForMultiproof(preroot, keys, resolver)
 	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("error getting pre-state proof data: %w", err)
+		return nil, nil, nil, nil, nil, nil, nil, nil, fmt.Errorf("error getting pre-state proof data: %w", err)
+	}
+
+	// List of points and vectors and indices used to generate the IPA proof
+	// If only a pre-state root is available, it's a simple copy, but if both
+	// pre- and post-state root are present, it's merging the two lists.
+	var (
+		proof_cis []*Point
+		proof_fs  [][]Fr
+		proof_zs  []uint8
+		proof_ys  []*Fr
+		postvals  = make([][]byte, len(keys))
+	)
+	for i := range pe.Cis {
+		proof_cis = append(proof_cis, pe.Cis[i])
+		proof_fs = append(proof_fs, pe.Fis[i])
+		proof_ys = append(proof_ys, pe.Yis[i])
+		proof_zs = append(proof_zs, pe.Zis[i])
 	}
 
 	// if a post-state tree is present, merge its proof elements with
 	// those of the pre-state tree, so that they can be proved together.
-	postvals := make([][]byte, len(keys))
 	if postroot != nil {
-		// keys were sorted already in the above GetcommitmentsForMultiproof.
+		pe_post, _, _, err := GetCommitmentsForMultiproof(postroot, keys, resolver)
+		if err != nil {
+			return nil, nil, nil, nil, nil, nil, nil, nil, fmt.Errorf("error getting post-state proof data: %w", err)
+		}
+
+		for i := range pe_post.Cis {
+			proof_cis = append(proof_cis, pe_post.Cis[i])
+			proof_fs = append(proof_fs, pe_post.Fis[i])
+			proof_ys = append(proof_ys, pe_post.Yis[i])
+			proof_zs = append(proof_zs, pe_post.Zis[i])
+		}
+
 		// Set the post values, if they are untouched, leave them `nil`
-		for i := range keys {
-			val, err := postroot.Get(keys[i], resolver)
-			if err != nil {
-				return nil, nil, nil, nil, fmt.Errorf("error getting post-state value for key %x: %w", keys[i], err)
-			}
-			if !bytes.Equal(pe.Vals[i], val) {
-				postvals[i] = val
+		for i, v := range pe.Vals {
+			if !bytes.Equal(v, pe_post.Vals[i]) {
+				postvals[i] = pe_post.Vals[i]
 			}
 		}
 	}
 
 	// [0:3]: proof elements of the pre-state trie for serialization,
 	// 3: values to be inserted in the post-state trie for serialization
-	return pe, es, poas, postvals, nil
+	// [4:8]: aggregated pre+post elements for proving
+	return pe, es, poas, postvals, proof_cis, proof_fs, proof_ys, proof_zs, nil
 }
 
 func MakeVerkleMultiProof(preroot, postroot VerkleNode, keys [][]byte, resolver NodeResolverFn) (*Proof, []*Point, []byte, []*Fr, error) {
-	pe, es, poas, postvals, err := getProofElementsFromTree(preroot, postroot, keys, resolver)
+	pe, es, poas, postvals, proof_cis, proof_fs, _, proof_zs, err := getProofElementsFromTree(preroot, postroot, keys, resolver)
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("get commitments for multiproof: %s", err)
 	}
 
 	cfg := GetConfig()
 	tr := common.NewTranscript("vt")
-	mpArg, err := ipa.CreateMultiProof(tr, cfg.conf, pe.Cis, pe.Fis, pe.Zis)
+	mpArg, err := ipa.CreateMultiProof(tr, cfg.conf, proof_cis, proof_fs, proof_zs)
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("creating multiproof: %w", err)
 	}
@@ -202,14 +185,15 @@ func MakeVerkleMultiProof(preroot, postroot VerkleNode, keys [][]byte, resolver 
 	return proof, pe.Cis, pe.Zis, pe.Yis, nil
 }
 
-// VerifyVerkleProofWithPreState takes a proof and a trusted tree root and verifies that the proof is valid.
-func VerifyVerkleProofWithPreState(proof *Proof, preroot VerkleNode) error {
-	pe, _, _, _, err := getProofElementsFromTree(preroot, nil, proof.Keys, nil)
+// VerifyVerkleProofWithPreAndPostTrie takes a pre-state trie, a post-state trie and a list of keys, and verifies that
+// the provided proof verifies. If the post-state trie is `nil`, the behavior is the same as `VerifyVerkleProof`.
+func VerifyVerkleProofWithPreAndPostTrie(proof *Proof, preroot, postroot VerkleNode) error {
+	_, _, _, _, proof_cis, _, proof_ys, proof_zs, err := getProofElementsFromTree(preroot, postroot, proof.Keys, nil)
 	if err != nil {
 		return fmt.Errorf("error getting proof elements: %w", err)
 	}
 
-	if ok, err := VerifyVerkleProof(proof, pe.Cis, pe.Zis, pe.Yis, GetConfig()); !ok || err != nil {
+	if ok, err := VerifyVerkleProof(proof, proof_cis, proof_zs, proof_ys, GetConfig()); !ok || err != nil {
 		return fmt.Errorf("error verifying proof: verifies=%v, error=%w", ok, err)
 	}
 
@@ -311,8 +295,7 @@ func DeserializeProof(vp *VerkleProof, statediff StateDiff) (*Proof, error) {
 
 	poaStems = make([][]byte, len(vp.OtherStems))
 	for i, poaStem := range vp.OtherStems {
-		poaStems[i] = make([]byte, len(poaStem))
-		copy(poaStems[i], poaStem[:])
+		poaStems[i] = poaStem[:]
 	}
 
 	extStatus = vp.DepthExtensionPresent
@@ -326,21 +309,15 @@ func DeserializeProof(vp *VerkleProof, statediff StateDiff) (*Proof, error) {
 		commitments[i] = &commitment
 	}
 
-	if err := multipoint.D.SetBytes(vp.D[:]); err != nil {
-		return nil, fmt.Errorf("setting D: %w", err)
-	}
+	multipoint.D.SetBytes(vp.D[:])
 	multipoint.IPA.A_scalar.SetBytes(vp.IPAProof.FinalEvaluation[:])
 	multipoint.IPA.L = make([]Point, IPA_PROOF_DEPTH)
 	for i, b := range vp.IPAProof.CL {
-		if err := multipoint.IPA.L[i].SetBytes(b[:]); err != nil {
-			return nil, fmt.Errorf("setting L[%d]: %w", i, err)
-		}
+		multipoint.IPA.L[i].SetBytes(b[:])
 	}
 	multipoint.IPA.R = make([]Point, IPA_PROOF_DEPTH)
 	for i, b := range vp.IPAProof.CR {
-		if err := multipoint.IPA.R[i].SetBytes(b[:]); err != nil {
-			return nil, fmt.Errorf("setting R[%d]: %w", i, err)
-		}
+		multipoint.IPA.R[i].SetBytes(b[:])
 	}
 
 	// turn statediff into keys and values
@@ -386,21 +363,14 @@ type stemInfo struct {
 
 // PreStateTreeFromProof builds a stateless prestate tree from the proof.
 func PreStateTreeFromProof(proof *Proof, rootC *Point) (VerkleNode, error) { // skipcq: GO-R1005
-	if len(proof.Keys) != len(proof.PreValues) {
-		return nil, fmt.Errorf("incompatible number of keys and pre-values: %d != %d", len(proof.Keys), len(proof.PreValues))
-	}
-	if len(proof.Keys) != len(proof.PostValues) {
-		return nil, fmt.Errorf("incompatible number of keys and post-values: %d != %d", len(proof.Keys), len(proof.PostValues))
-	}
 	stems := make([][]byte, 0, len(proof.Keys))
 	for _, k := range proof.Keys {
 		if len(stems) == 0 || !bytes.Equal(stems[len(stems)-1], k[:31]) {
 			stems = append(stems, k[:31])
 		}
 	}
-	if len(stems) != len(proof.ExtStatus) {
-		return nil, fmt.Errorf("invalid number of stems and extension statuses: %d != %d", len(stems), len(proof.ExtStatus))
-	}
+	stemIndex := 0
+
 	var (
 		info  = map[string]stemInfo{}
 		paths [][]byte
@@ -408,82 +378,49 @@ func PreStateTreeFromProof(proof *Proof, rootC *Point) (VerkleNode, error) { // 
 		poas  = proof.PoaStems
 	)
 
-	// The proof of absence stems must be sorted. If that isn't the case, the proof is invalid.
-	if !sort.IsSorted(bytesSlice(proof.PoaStems)) {
-		return nil, fmt.Errorf("proof of absence stems are not sorted")
-	}
-
-	// We build a cache of paths that have a presence extension status.
-	pathsWithExtPresent := map[string]struct{}{}
-	i := 0
-	for _, es := range proof.ExtStatus {
-		if es&3 == extStatusPresent {
-			pathsWithExtPresent[string(stems[i][:es>>3])] = struct{}{}
-		}
-		i++
-	}
-
 	// assign one or more stem to each stem info
-	for i, es := range proof.ExtStatus {
+	for _, es := range proof.ExtStatus {
+		depth := es >> 3
+		path := stems[stemIndex][:depth]
 		si := stemInfo{
-			depth:    es >> 3,
+			depth:    depth,
 			stemType: es & 3,
 		}
-		path := stems[i][:si.depth]
 		switch si.stemType {
 		case extStatusAbsentEmpty:
-			// All keys that are part of a proof of absence, must contain empty
-			// prestate values. If that isn't the case, the proof is invalid.
-			for j := range proof.Keys { // TODO: DoS risk, use map or binary search.
-				if bytes.HasPrefix(proof.Keys[j], stems[i]) && proof.PreValues[j] != nil {
-					return nil, fmt.Errorf("proof of absence (empty) stem %x has a value", si.stem)
-				}
-			}
 		case extStatusAbsentOther:
-			// All keys that are part of a proof of absence, must contain empty
-			// prestate values. If that isn't the case, the proof is invalid.
-			for j := range proof.Keys { // TODO: DoS risk, use map or binary search.
-				if bytes.HasPrefix(proof.Keys[j], stems[i]) && proof.PreValues[j] != nil {
-					return nil, fmt.Errorf("proof of absence (other) stem %x has a value", si.stem)
-				}
-			}
-
-			// For this absent path, we must first check if this path contains a proof of presence.
-			// If that is the case, we don't have to do anything since the corresponding leaf will be
-			// constructed by that extension status (already processed or to be processed).
-			// In other case, we should get the stem from the list of proof of absence stems.
-			if _, ok := pathsWithExtPresent[string(path)]; ok {
-				continue
-			}
-
-			// Note that this path doesn't have proof of presence (previous if check above), but
-			// it can have multiple proof of absence. If a previous proof of absence had already
-			// created the stemInfo for this path, we don't have to do anything.
-			if _, ok := info[string(path)]; ok {
-				continue
-			}
-
 			si.stem = poas[0]
 			poas = poas[1:]
-		case extStatusPresent:
+		default:
+			// the first stem could be missing (e.g. the second stem in the
+			// group is the one that is present. Compare each key to the first
+			// stem, along the length of the path only.
+			stemPath := stems[stemIndex][:len(path)]
 			si.values = map[byte][]byte{}
-			si.stem = stems[i]
-			for j, k := range proof.Keys { // TODO: DoS risk, use map or binary search.
-				if bytes.Equal(k[:31], si.stem) {
-					si.values[k[31]] = proof.PreValues[j]
+			for i, k := range proof.Keys {
+				if bytes.Equal(k[:len(path)], stemPath) && proof.PreValues[i] != nil {
+					si.values[k[31]] = proof.PreValues[i]
 					si.has_c1 = si.has_c1 || (k[31] < 128)
 					si.has_c2 = si.has_c2 || (k[31] >= 128)
+					// This key has values, its stem is the one that
+					// is present.
+					si.stem = k[:31]
 				}
 			}
-		default:
-			return nil, fmt.Errorf("invalid extension status: %d", si.stemType)
 		}
 		info[string(path)] = si
 		paths = append(paths, path)
-	}
 
-	if len(poas) != 0 {
-		return nil, fmt.Errorf("not all proof of absence stems were used: %d", len(poas))
+		// Skip over all the stems that share the same path
+		// to the extension tree. This happens e.g. if two
+		// stems have the same path, but one is a proof of
+		// absence and the other one is present.
+		stemIndex++
+		for ; stemIndex < len(stems); stemIndex++ {
+			if !bytes.Equal(stems[stemIndex][:depth], path) {
+				break
+			}
+		}
 	}
 
 	root := NewStatelessInternal(0, rootC).(*InternalNode)
@@ -527,7 +464,7 @@ func PostStateTreeFromStateDiff(preroot VerkleNode, statediff StateDiff) (Verkle
 
 		for _, suffixdiff := range stemstatediff.SuffixDiffs {
 			if /* len(suffixdiff.NewValue) > 0 - this only works for a slice */ suffixdiff.NewValue != nil {
-				// if this value is non-nil, it means InsertValuesAtStem should be
+				// if this value is non-nil, it means InsertStem should be
 				// called, otherwise, skip updating the tree.
 				overwrites = true
 				values[suffixdiff.Suffix] = suffixdiff.NewValue[:]
@@ -537,7 +474,7 @@ func PostStateTreeFromStateDiff(preroot VerkleNode, statediff StateDiff) (Verkle
 		if overwrites {
 			var stem [31]byte
 			copy(stem[:31], stemstatediff.Stem[:])
-			if err := postroot.(*InternalNode).InsertValuesAtStem(stem[:], values, nil); err != nil {
+			if err := postroot.(*InternalNode).InsertStem(stem[:], values, nil); err != nil {
 				return nil, fmt.Errorf("error overwriting value in post state: %w", err)
 			}
 		}
@@ -546,9 +483,3 @@ func PostStateTreeFromStateDiff(preroot VerkleNode, statediff StateDiff) (Verkle
 
 	return postroot, nil
 }
-
-type bytesSlice [][]byte
-
-func (x bytesSlice) Len() int           { return len(x) }
-func (x bytesSlice) Less(i, j int) bool { return bytes.Compare(x[i], x[j]) < 0 }
-func (x bytesSlice) Swap(i, j int)      { x[i], x[j] = x[j], x[i] }
