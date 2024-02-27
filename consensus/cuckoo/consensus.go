@@ -19,7 +19,7 @@ package cuckoo
 import (
 	"encoding/binary"
 	// "encoding/hex"
-	// "bytes"
+	"bytes"
 	"errors"
 	"fmt"
 	"math/big"
@@ -278,7 +278,8 @@ func (cuckoo *Cuckoo) verifyHeader(chain consensus.ChainHeaderReader, header, pa
 		return fmt.Errorf("invalid gasUsed: have %d, gasLimit %d", header.GasUsed, header.GasLimit)
 	}
 
-	validate := checkGasLimit(parent.GasUsed, parent.GasLimit, header.GasLimit)
+	//validate := checkGasLimit(parent.GasUsed, parent.GasLimit, header.GasLimit, chain.Config(), header.Number)
+	validate := gasCheck(chain, parent, header)
 	if !validate {
 		return fmt.Errorf("invalid gas limit trend: have %d, want %d used %d", header.GasLimit, parent.GasLimit, parent.GasUsed)
 	}
@@ -369,7 +370,10 @@ func CalcDifficulty(config *params.ChainConfig, time uint64, parent *types.Heade
 }
 
 // important add gas limit to consensus
-func checkGasLimit(gasUsed, gasLimit, currentGasLimit uint64) bool {
+func gasCheck(chain consensus.ChainHeaderReader, parent, header *types.Header) bool {
+	return checkGasLimit(parent.GasUsed, parent.GasLimit, header.GasLimit, chain.Config(), header.Number)
+}
+func checkGasLimit(gasUsed, gasLimit, currentGasLimit uint64, config *params.ChainConfig, num *big.Int) bool {
 	contrib := (gasUsed + gasUsed/2) / params.GasLimitBoundDivisor
 
 	decay := gasLimit/params.GasLimitBoundDivisor - 1
@@ -391,7 +395,10 @@ func checkGasLimit(gasUsed, gasLimit, currentGasLimit uint64) bool {
 		}
 	}
 
-	// TODO
+	if config != nil && config.IsMercury(num) {
+		return limit <= currentGasLimit
+	}
+
 	return limit == currentGasLimit
 }
 
@@ -675,6 +682,15 @@ func (cuckoo *Cuckoo) VerifySeal(chain consensus.ChainHeaderReader, header *type
 	}
 	if header.Difficulty.Sign() <= 0 {
 		return errInvalidDifficulty
+	}
+
+	// Verify the calculated values against the ones provided in the header
+	if chain.Config().IsMercury(header.Number) {
+		log.Trace("Mix digest verify", "number", header.Number, "mix", header.Solution.Hash(), "header", header.MixDigest)
+		digest := header.Solution.Hash().Bytes()
+		if !bytes.Equal(header.MixDigest[:], digest) {
+			return errInvalidMixDigest
+		}
 	}
 
 	var (

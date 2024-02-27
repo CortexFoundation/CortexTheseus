@@ -63,6 +63,14 @@ func (n *BlockNonce) UnmarshalText(input []byte) error {
 	return hexutil.UnmarshalFixedText("BlockNonce", input, n[:])
 }
 
+func (s *BlockSolution) Hash() common.Hash {
+	b, e := s.MarshalText()
+	if e != nil {
+		return common.EmptyHash
+	}
+	return common.BytesToHash(b)
+}
+
 func (s *BlockSolution) Uint32() []uint32 { return s[:] }
 
 func (s *BlockSolution) MarshalText() ([]byte, error) {

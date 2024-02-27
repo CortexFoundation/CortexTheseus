@@ -17,6 +17,7 @@
 package cuckoo
 
 import (
+	"bytes"
 	"encoding/binary"
 	"math/big"
 	"math/rand"
@@ -87,23 +88,33 @@ func randSlice(min, max uint32) []byte {
 }
 
 func TestGasLimitCheck(t *testing.T) {
-	if validate := checkGasLimit(0, 7992189, 8000000); !validate {
+	if validate := checkGasLimit(0, 7992189, 8000000, nil, nil); !validate {
 		t.Fatalf("failed")
 	}
 
-	if validate := checkGasLimit(7992189, 7992189, 8000000); !validate {
+	if validate := checkGasLimit(7992189, 7992189, 8000000, nil, nil); !validate {
 		t.Fatalf("failed")
 	}
 
-	if validate := checkGasLimit(0, 8000000, 7992189); validate {
+	if validate := checkGasLimit(0, 8000000, 7992189, nil, nil); validate {
 		t.Fatalf("failed")
 	}
 
-	if validate := checkGasLimit(7980000, 8000000, 8003878); !validate {
+	if validate := checkGasLimit(7980000, 8000000, 8003878, nil, nil); !validate {
 		t.Fatalf("failed")
 	}
 
-	if validate := checkGasLimit(7980000, 8000000, 8003879); validate {
+	if validate := checkGasLimit(7980000, 8000000, 8003879, nil, nil); validate {
+		t.Fatalf("failed")
+	}
+}
+
+func TestMixDigest(t *testing.T) {
+	sol := &types.BlockSolution{36552774, 57703112, 69439022, 71282429, 117293109, 186862362, 271815245, 283711993, 301666096, 321610391, 345111432, 376920806, 469608283, 480776867, 488279241, 490162501, 496690146, 516943318, 548320772, 575755973, 584516346, 590932588, 594672482, 596315856, 611820183, 626014278, 668956240, 724642732, 737723908, 761956873, 772529653, 781328833, 782613854, 804339063, 838293864, 852149620, 875286932, 888462575, 905024013, 993378264, 1039286741, 1068794681}
+	mix := sol.Hash()
+
+	t.Log("sol:", sol, "mix:", mix)
+	if !bytes.Equal(mix[:], sol.Hash().Bytes()) {
 		t.Fatalf("failed")
 	}
 }

@@ -190,6 +190,8 @@ var (
 
 	CTXC_F1 = big.NewInt(0).Mul(big.NewInt(20_486_540), big.NewInt(1000000000000000000))
 	CTXC_F2 = big.NewInt(0).Mul(big.NewInt(21_285_544), big.NewInt(1000000000000000000))
+
+	MERCURY_MAINNET *big.Int = nil //big.NewInt(0)
 )
 
 const (
