@@ -22,5 +22,6 @@ type Device interface {
 	ID() string
 	GetLocalIPAddress() net.IP
 	AddPortMapping(protocol Protocol, internalPort, externalPort int, description string, duration time.Duration) (int, error)
+	DeletePortMapping(protocol Protocol, externalPort int) error
 	GetExternalIPAddress() (net.IP, error)
 }
