@@ -22,10 +22,12 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"gopkg.in/urfave/cli.v1"
-	// "github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
+
+	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/ctxc"
+
+	// "github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
 	"github.com/CortexFoundation/CortexTheseus/params"
 )
 

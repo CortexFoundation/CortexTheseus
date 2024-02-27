@@ -21,8 +21,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/CortexFoundation/CortexTheseus/common"
 	"golang.org/x/exp/slices"
+
+	"github.com/CortexFoundation/CortexTheseus/common"
 )
 
 // weightedIterator is a iterator with an assigned weight. It is used to prioritise

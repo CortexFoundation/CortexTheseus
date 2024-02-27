@@ -21,14 +21,15 @@ import (
 	"encoding/json"
 	"time"
 
+	lru "github.com/hashicorp/golang-lru"
+	"golang.org/x/exp/slices"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	lru "github.com/hashicorp/golang-lru"
-	"golang.org/x/exp/slices"
 )
 
 // Vote represents a single vote that an authorized signer made to modify the

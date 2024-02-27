@@ -26,11 +26,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/gofrs/flock"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
-	"github.com/gofrs/flock"
 )
 
 var (

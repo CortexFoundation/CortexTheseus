@@ -17,12 +17,13 @@
 package job
 
 import (
-	"github.com/CortexFoundation/CortexTheseus/common/mclock"
-	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/torrentfs/backend/caffe"
-
 	"sync/atomic"
 	"time"
+
+	"github.com/CortexFoundation/CortexTheseus/common/mclock"
+	"github.com/CortexFoundation/CortexTheseus/log"
+
+	"github.com/CortexFoundation/torrentfs/backend/caffe"
 	//"sync"
 )
 

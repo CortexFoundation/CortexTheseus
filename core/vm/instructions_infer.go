@@ -20,11 +20,12 @@ import (
 	"errors"
 	"fmt"
 
+	torrentfs "github.com/CortexFoundation/torrentfs/types"
+	"github.com/holiman/uint256"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	torrentfs "github.com/CortexFoundation/torrentfs/types"
-	"github.com/holiman/uint256"
 )
 
 func opInfer(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {

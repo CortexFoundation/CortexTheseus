@@ -19,8 +19,9 @@ package vm
 import (
 	"math/big"
 
-	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/holiman/uint256"
+
+	"github.com/CortexFoundation/CortexTheseus/common"
 )
 
 // ContractRef is a reference to the contract's backing object

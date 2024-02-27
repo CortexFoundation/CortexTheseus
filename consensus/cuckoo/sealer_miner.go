@@ -6,8 +6,9 @@ package cuckoo
 import (
 	"math/big"
 
-	// "github.com/CortexFoundation/CortexTheseus/consensus/cuckoo/plugins"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
+
+	// "github.com/CortexFoundation/CortexTheseus/consensus/cuckoo/plugins"
 	"github.com/CortexFoundation/CortexTheseus/log"
 )
 

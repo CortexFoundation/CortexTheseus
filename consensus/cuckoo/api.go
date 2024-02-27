@@ -21,11 +21,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/CortexFoundation/CortexTheseus/log"
-
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
 var errCuckooStopped = errors.New("cuckoo stopped")

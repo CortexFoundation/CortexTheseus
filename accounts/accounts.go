@@ -21,11 +21,12 @@ import (
 	"fmt"
 	"math/big"
 
+	"golang.org/x/crypto/sha3"
+
 	cortex "github.com/CortexFoundation/CortexTheseus"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/event"
-	"golang.org/x/crypto/sha3"
 )
 
 // Account represents an Cortex account located at a specific location defined

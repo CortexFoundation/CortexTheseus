@@ -24,13 +24,14 @@ import (
 	"io"
 	"time"
 
+	"github.com/VictoriaMetrics/fastcache"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/trie"
-	"github.com/VictoriaMetrics/fastcache"
 )
 
 const journalVersion uint64 = 0

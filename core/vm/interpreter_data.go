@@ -19,11 +19,12 @@ package vm
 import (
 	"math/big"
 
+	"github.com/CortexFoundation/inference/synapse"
+	torrentfs "github.com/CortexFoundation/torrentfs/types"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"github.com/CortexFoundation/inference/synapse"
-	torrentfs "github.com/CortexFoundation/torrentfs/types"
 )
 
 func (in *CVMInterpreter) prepareData(contract *Contract, input []byte) ([]byte, error) {

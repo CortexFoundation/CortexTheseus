@@ -37,13 +37,14 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/google/uuid"
+	"golang.org/x/crypto/pbkdf2"
+	"golang.org/x/crypto/scrypt"
+
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
-	"github.com/google/uuid"
-	"golang.org/x/crypto/pbkdf2"
-	"golang.org/x/crypto/scrypt"
 )
 
 const (

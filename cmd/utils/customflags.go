@@ -27,8 +27,9 @@ import (
 	"path"
 	"strings"
 
-	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"gopkg.in/urfave/cli.v1"
+
+	"github.com/CortexFoundation/CortexTheseus/common/math"
 )
 
 // Custom type which is registered in the flags library which cli uses for

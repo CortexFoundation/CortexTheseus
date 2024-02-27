@@ -17,15 +17,16 @@
 package core
 
 import (
+	"math/big"
+
+	"github.com/CortexFoundation/inference/synapse"
+	torrentfs "github.com/CortexFoundation/torrentfs/types"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	math2 "github.com/CortexFoundation/CortexTheseus/common/math"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"github.com/CortexFoundation/inference/synapse"
-	torrentfs "github.com/CortexFoundation/torrentfs/types"
-
-	"math/big"
 )
 
 var (

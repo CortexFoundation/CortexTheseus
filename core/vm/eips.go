@@ -19,8 +19,9 @@ package vm
 import (
 	"fmt"
 
-	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/holiman/uint256"
+
+	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
 var activators = map[int]func(*JumpTable){

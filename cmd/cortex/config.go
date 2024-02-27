@@ -18,17 +18,25 @@ package main
 
 import (
 	"bufio"
-	// "bytes"
 	"errors"
+
+	// "bytes"
 	"fmt"
 	"io"
 	"os"
-	// "os/exec"
 	"reflect"
-	// "strconv"
 	"strings"
-	// "time"
 	"unicode"
+
+	// "os/exec"
+
+	params1 "github.com/CortexFoundation/torrentfs/params"
+
+	// "strconv"
+
+	// "time"
+	"github.com/naoina/toml"
+	"gopkg.in/urfave/cli.v1"
 
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/ctxc"
@@ -36,9 +44,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/node"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	whisper "github.com/CortexFoundation/CortexTheseus/whisper/whisperv6"
-	params1 "github.com/CortexFoundation/torrentfs/params"
-	"github.com/naoina/toml"
-	"gopkg.in/urfave/cli.v1"
 )
 
 var (

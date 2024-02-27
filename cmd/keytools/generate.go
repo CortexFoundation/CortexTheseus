@@ -22,11 +22,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/google/uuid"
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/CortexFoundation/CortexTheseus/accounts/keystore"
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
-	"github.com/google/uuid"
-	"gopkg.in/urfave/cli.v1"
 )
 
 type outputGenerate struct {

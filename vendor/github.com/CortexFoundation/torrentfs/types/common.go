@@ -16,13 +16,14 @@
 package types
 
 import (
+	"math/big"
 	//"bytes"
 	//"errors"
-	"math/big"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
+
 	"github.com/CortexFoundation/torrentfs/params"
 )
 

@@ -27,14 +27,15 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/dop251/goja"
+	"github.com/mattn/go-colorable"
+	"github.com/peterh/liner"
+
 	"github.com/CortexFoundation/CortexTheseus/internal/jsre"
 	"github.com/CortexFoundation/CortexTheseus/internal/jsre/deps"
 	"github.com/CortexFoundation/CortexTheseus/internal/web3ext"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
-	"github.com/dop251/goja"
-	"github.com/mattn/go-colorable"
-	"github.com/peterh/liner"
 )
 
 var (

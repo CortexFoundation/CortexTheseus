@@ -6,11 +6,12 @@ import (
 	"math"
 	"math/big"
 	"math/rand"
-	//"runtime"
 	"sync"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
+
+	//"runtime"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
 	"github.com/CortexFoundation/CortexTheseus/core/types"

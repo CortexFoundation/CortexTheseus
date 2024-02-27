@@ -27,9 +27,10 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/anacrolix/torrent"
+
+	"github.com/CortexFoundation/torrentfs/params"
 	//"github.com/anacrolix/torrent/metainfo"
 	//"github.com/anacrolix/torrent/storage"
-	"github.com/CortexFoundation/torrentfs/params"
 )
 
 func (t *Torrent) QuotaFull() bool {

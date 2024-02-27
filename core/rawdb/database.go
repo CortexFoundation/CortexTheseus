@@ -26,13 +26,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/olekukonko/tablewriter"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb/leveldb"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb/memorydb"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb/pebble"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/olekukonko/tablewriter"
 )
 
 // freezerdb is a database wrapper that enabled freezer data retrievals.

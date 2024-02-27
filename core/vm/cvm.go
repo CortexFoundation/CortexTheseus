@@ -21,11 +21,12 @@ import (
 	"math/big"
 	"sync/atomic"
 
+	"github.com/holiman/uint256"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"github.com/holiman/uint256"
 )
 
 type (

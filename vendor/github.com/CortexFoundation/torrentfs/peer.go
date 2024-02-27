@@ -18,14 +18,16 @@ package torrentfs
 
 import (
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
-	"github.com/CortexFoundation/torrentfs/params"
 	mapset "github.com/deckarep/golang-set/v2"
-	"sync"
-	"time"
+
+	"github.com/CortexFoundation/torrentfs/params"
 )
 
 type Peer struct {

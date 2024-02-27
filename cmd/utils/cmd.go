@@ -28,6 +28,8 @@ import (
 	"syscall"
 	"time"
 
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
@@ -39,7 +41,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/node"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
-	"gopkg.in/urfave/cli.v1"
 )
 
 const (

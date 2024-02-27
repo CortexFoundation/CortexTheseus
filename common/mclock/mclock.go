@@ -19,7 +19,8 @@ package mclock
 
 import (
 	"time"
-	_ "unsafe" // for go:linkname
+	_ "unsafe"
+	// for go:linkname
 )
 
 //go:noescape

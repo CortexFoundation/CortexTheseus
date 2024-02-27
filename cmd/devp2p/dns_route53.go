@@ -24,8 +24,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/CortexTheseus/p2p/dnsdisc"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -33,6 +31,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/route53/types"
 	"golang.org/x/exp/slices"
 	"gopkg.in/urfave/cli.v1"
+
+	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/p2p/dnsdisc"
 )
 
 const (

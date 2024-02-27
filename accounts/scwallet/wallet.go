@@ -33,14 +33,15 @@ import (
 	"sync"
 	"time"
 
+	pcsc "github.com/gballet/go-libpcsclite"
+	"github.com/status-im/keycard-go/derivationpath"
+
 	cortex "github.com/CortexFoundation/CortexTheseus"
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	pcsc "github.com/gballet/go-libpcsclite"
-	"github.com/status-im/keycard-go/derivationpath"
 )
 
 // ErrPairingPasswordNeeded is returned if opening the smart card requires pairing with a pairing

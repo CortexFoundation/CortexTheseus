@@ -20,8 +20,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"gopkg.in/urfave/cli.v1"
+
+	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 )
 
 const (

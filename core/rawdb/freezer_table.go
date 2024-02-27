@@ -27,10 +27,11 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/golang/snappy"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
-	"github.com/golang/snappy"
 )
 
 var (

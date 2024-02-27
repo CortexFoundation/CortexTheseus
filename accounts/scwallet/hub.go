@@ -41,11 +41,12 @@ import (
 	"sync"
 	"time"
 
+	pcsc "github.com/gballet/go-libpcsclite"
+
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	pcsc "github.com/gballet/go-libpcsclite"
 )
 
 // Scheme is the URI prefix for smartcard wallets.

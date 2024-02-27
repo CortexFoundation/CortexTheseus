@@ -35,6 +35,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/crypto/pbkdf2"
+
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
@@ -47,7 +49,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/whisper/mailserver"
 	whisper "github.com/CortexFoundation/CortexTheseus/whisper/whisperv6"
-	"golang.org/x/crypto/pbkdf2"
 )
 
 const quitCommand = "~Q"

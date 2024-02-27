@@ -17,11 +17,11 @@
 package core
 
 import (
+	"sync/atomic"
+
 	"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
-
-	"sync/atomic"
 )
 
 // Validator is an interface which defines the standard for block validation. It

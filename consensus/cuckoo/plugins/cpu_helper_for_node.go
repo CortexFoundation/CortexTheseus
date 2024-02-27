@@ -8,13 +8,14 @@ package plugins
 */
 import "C"
 import (
+	"math/big"
 	//	"fmt"
 	//	"time"
+	"unsafe"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	//"github.com/CortexFoundation/CortexTheseus/log"
-	"math/big"
-	"unsafe"
 )
 
 //func CuckooInit(threads uint32) {

@@ -22,10 +22,11 @@ import (
 	"os"
 	"strings"
 
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/console"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
-	"gopkg.in/urfave/cli.v1"
 )
 
 // promptPassphrase prompts the user for a passphrase.  Set confirmation to true

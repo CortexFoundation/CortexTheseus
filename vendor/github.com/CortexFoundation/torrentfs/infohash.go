@@ -23,8 +23,8 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	//"github.com/CortexFoundation/torrentfs/params"
 	"github.com/ucwong/go-ttlmap"
+	//"github.com/CortexFoundation/torrentfs/params"
 )
 
 // Available is used to check the file status

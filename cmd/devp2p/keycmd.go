@@ -20,9 +20,10 @@ import (
 	"fmt"
 	"net"
 
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
-	"gopkg.in/urfave/cli.v1"
 )
 
 var (

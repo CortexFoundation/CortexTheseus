@@ -25,14 +25,16 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	//"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/anacrolix/torrent/bencode"
+
+	//"github.com/CortexFoundation/CortexTheseus/common/mclock"
+	"github.com/anacrolix/torrent/metainfo"
+	cp "github.com/otiai10/copy"
+
 	"github.com/CortexFoundation/torrentfs/backend"
 	"github.com/CortexFoundation/torrentfs/backend/caffe"
 	"github.com/CortexFoundation/torrentfs/params"
-	"github.com/anacrolix/torrent/bencode"
-	"github.com/anacrolix/torrent/metainfo"
-	cp "github.com/otiai10/copy"
 )
 
 func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSize uint64, subpath string) ([]byte, error) {

@@ -22,10 +22,11 @@ import (
 	"path/filepath"
 	"sort"
 
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/CortexFoundation/CortexTheseus/internal/debug"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"gopkg.in/urfave/cli.v1"
 )
 
 var (

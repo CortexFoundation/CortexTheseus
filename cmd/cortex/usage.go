@@ -23,9 +23,10 @@ import (
 	"sort"
 	"strings"
 
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	// "github.com/CortexFoundation/CortexTheseus/internal/debug"
-	"gopkg.in/urfave/cli.v1"
 )
 
 // AppHelpTemplate is the test template for the default, global app help topic.
