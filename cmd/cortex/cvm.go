@@ -33,14 +33,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
-	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/inference/synapse"
 	"github.com/CortexFoundation/torrentfs"
 	"github.com/CortexFoundation/torrentfs/params"
 	gopsutil "github.com/shirou/gopsutil/mem"
 	"gopkg.in/urfave/cli.v1"
+
+	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
+	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/p2p"
 )
 
 func homeDir() string {

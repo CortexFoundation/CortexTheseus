@@ -20,8 +20,9 @@ import (
 	"container/heap"
 	"time"
 
-	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"golang.org/x/exp/constraints"
+
+	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 )
 
 // LazyQueue is a priority queue data structure where priorities can change over

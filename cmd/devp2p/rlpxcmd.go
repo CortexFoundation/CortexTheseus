@@ -20,12 +20,13 @@ import (
 	"fmt"
 	"net"
 
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/p2p/rlpx"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
-	"gopkg.in/urfave/cli.v1"
 )
 
 var (

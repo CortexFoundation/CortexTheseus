@@ -5,9 +5,10 @@ import (
 	"os"
 	"strings"
 
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/CortexFoundation/CortexTheseus/accounts/keystore"
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
-	"gopkg.in/urfave/cli.v1"
 )
 
 var newPassphraseFlag = cli.StringFlag{

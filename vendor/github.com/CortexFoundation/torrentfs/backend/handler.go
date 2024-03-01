@@ -38,13 +38,10 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/torrentfs/backend/caffe"
-	"github.com/CortexFoundation/torrentfs/backend/job"
-	"github.com/CortexFoundation/torrentfs/params"
-	"github.com/CortexFoundation/torrentfs/types"
 	"github.com/CortexFoundation/wormhole"
-	"github.com/ucwong/shard"
-
+	"github.com/anacrolix/dht/v2"
+	"github.com/anacrolix/dht/v2/int160"
+	peer_store "github.com/anacrolix/dht/v2/peer-store"
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/analysis"
 	"github.com/anacrolix/torrent/bencode"
@@ -55,13 +52,14 @@ import (
 	"github.com/anacrolix/torrent/storage"
 	"github.com/bradfitz/iter"
 	"github.com/edsrzf/mmap-go"
-	"github.com/ucwong/golang-kv"
-
-	"github.com/anacrolix/dht/v2"
-	"github.com/anacrolix/dht/v2/int160"
-	peer_store "github.com/anacrolix/dht/v2/peer-store"
-
 	"github.com/ucwong/filecache"
+	"github.com/ucwong/golang-kv"
+	"github.com/ucwong/shard"
+
+	"github.com/CortexFoundation/torrentfs/backend/caffe"
+	"github.com/CortexFoundation/torrentfs/backend/job"
+	"github.com/CortexFoundation/torrentfs/params"
+	"github.com/CortexFoundation/torrentfs/types"
 )
 
 type TorrentManager struct {

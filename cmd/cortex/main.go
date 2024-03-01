@@ -26,6 +26,11 @@ import (
 	"strings"
 	"time"
 
+	_ "github.com/CortexFoundation/statik"
+	"github.com/arsham/figurine/figurine"
+	_ "go.uber.org/automaxprocs"
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/accounts/keystore"
 	"github.com/CortexFoundation/CortexTheseus/client"
@@ -36,17 +41,11 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/node"
-	_ "github.com/CortexFoundation/statik"
-	"github.com/arsham/figurine/figurine"
 
 	// Automatically set GOMAXPROCS to match Linux container CPU quota.
-	_ "go.uber.org/automaxprocs"
-
-	"gopkg.in/urfave/cli.v1"
-
-	// Force-load the tracer engines to trigger registration
 	_ "github.com/CortexFoundation/CortexTheseus/ctxc/tracers/js"
 	_ "github.com/CortexFoundation/CortexTheseus/ctxc/tracers/native"
+	// Force-load the tracer engines to trigger registration
 )
 
 const (

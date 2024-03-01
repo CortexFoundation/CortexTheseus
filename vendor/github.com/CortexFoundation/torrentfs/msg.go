@@ -23,8 +23,9 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
-	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/ucwong/go-ttlmap"
+
+	"github.com/CortexFoundation/torrentfs/params"
 )
 
 func (fs *TorrentFS) MaxMessageSize() uint32 {

@@ -21,12 +21,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/CortexFoundation/inference/synapse"
+	torrentfs "github.com/CortexFoundation/torrentfs/types"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/inference/synapse"
-	torrentfs "github.com/CortexFoundation/torrentfs/types"
 )
 
 type Category struct {

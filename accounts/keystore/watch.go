@@ -23,8 +23,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/fsnotify/fsnotify"
+
+	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
 type watcher struct {

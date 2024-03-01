@@ -19,14 +19,15 @@ package backend
 import (
 	"context"
 	"errors"
-	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/common/mclock"
-	"github.com/CortexFoundation/CortexTheseus/event"
-	"github.com/CortexFoundation/CortexTheseus/log"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/common/mclock"
+	"github.com/CortexFoundation/CortexTheseus/event"
+	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
 func (tm *TorrentManager) ExistsOrActive(ctx context.Context, ih string, rawSize uint64) (bool, uint64, mclock.AbsTime, error) {

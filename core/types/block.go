@@ -26,13 +26,15 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"golang.org/x/crypto/sha3"
+
 	//"unsafe"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
-	"golang.org/x/crypto/sha3"
 )
 
 // A BlockNonce is a 64-bit hash which proves (combined with the

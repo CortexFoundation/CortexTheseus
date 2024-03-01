@@ -28,8 +28,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"golang.org/x/crypto/sha3"
+
+	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 )
 
 // Lengths of hashes and addresses in bytes.

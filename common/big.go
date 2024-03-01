@@ -17,8 +17,9 @@
 package common
 
 import (
-	"github.com/holiman/uint256"
 	"math/big"
+
+	"github.com/holiman/uint256"
 )
 
 // Common big integers often used

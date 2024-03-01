@@ -20,13 +20,14 @@ import (
 	"bytes"
 	"sync"
 
+	"github.com/VictoriaMetrics/fastcache"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/trie"
-	"github.com/VictoriaMetrics/fastcache"
 )
 
 // diskLayer is a low level persistent snapshot built on top of a key-value store.

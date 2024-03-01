@@ -23,6 +23,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/VictoriaMetrics/fastcache"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
@@ -31,7 +33,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/trie"
-	"github.com/VictoriaMetrics/fastcache"
 )
 
 // generatorStats is a collection of statistics gathered by the snapshot generator

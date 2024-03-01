@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	//"io"
 	"net/http"
+
+	//"io"
+
+	"github.com/CortexFoundation/inference"
 
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/inference"
 )
 
 const (

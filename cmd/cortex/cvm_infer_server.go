@@ -3,9 +3,9 @@ package main
 import (
 	"io"
 	"net/http"
-	// "sync"
 
 	"github.com/CortexFoundation/inference"
+	// "sync"
 	// "github.com/CortexFoundation/CortexTheseus/rpc"
 )
 

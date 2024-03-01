@@ -32,9 +32,10 @@ import (
 	"os"
 	"strconv"
 
+	"golang.org/x/exp/slices"
+
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
-	"golang.org/x/exp/slices"
 )
 
 type allocItem struct{ Addr, Balance *big.Int }

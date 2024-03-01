@@ -23,13 +23,14 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/gballet/go-verkle"
+	cli "gopkg.in/urfave/cli.v1"
+
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/gballet/go-verkle"
 	//cli "github.com/urfave/cli/v2"
-	cli "gopkg.in/urfave/cli.v1"
 )
 
 var (

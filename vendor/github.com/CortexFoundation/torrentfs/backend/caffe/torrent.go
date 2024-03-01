@@ -26,8 +26,9 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/anacrolix/torrent"
+
+	"github.com/CortexFoundation/torrentfs/params"
 )
 
 type Torrent struct {

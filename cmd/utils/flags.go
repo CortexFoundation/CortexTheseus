@@ -33,6 +33,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/CortexFoundation/inference/synapse"
+	"github.com/CortexFoundation/torrentfs"
+	params1 "github.com/CortexFoundation/torrentfs/params"
+	gopsutil "github.com/shirou/gopsutil/mem"
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/accounts/keystore"
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -41,11 +47,12 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/consensus/clique"
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
 	"github.com/CortexFoundation/CortexTheseus/core"
+
+	//"github.com/CortexFoundation/CortexTheseus/ctxc/tracers"
 	"github.com/CortexFoundation/CortexTheseus/core/txpool"
 	"github.com/CortexFoundation/CortexTheseus/crypto/kzg4844"
-	//"github.com/CortexFoundation/CortexTheseus/ctxc/tracers"
 	whisper "github.com/CortexFoundation/CortexTheseus/whisper/whisperv6"
-	gopsutil "github.com/shirou/gopsutil/mem"
+
 	// "github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
@@ -54,8 +61,9 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/gasprice"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
-	// "github.com/CortexFoundation/CortexTheseus/stats"
 	"github.com/CortexFoundation/CortexTheseus/log"
+
+	// "github.com/CortexFoundation/CortexTheseus/stats"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/metrics/exp"
 	"github.com/CortexFoundation/CortexTheseus/metrics/influxdb"
@@ -65,10 +73,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p/nat"
 	"github.com/CortexFoundation/CortexTheseus/p2p/netutil"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"github.com/CortexFoundation/inference/synapse"
-	"github.com/CortexFoundation/torrentfs"
-	params1 "github.com/CortexFoundation/torrentfs/params"
-	"gopkg.in/urfave/cli.v1"
 )
 
 var (

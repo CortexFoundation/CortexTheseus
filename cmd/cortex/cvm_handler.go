@@ -2,13 +2,15 @@ package main
 
 import (
 	"encoding/binary"
-	//"fmt"
 	"net/http"
+
+	//"fmt"
+
+	"github.com/CortexFoundation/inference"
+	"github.com/CortexFoundation/inference/synapse"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/inference"
-	"github.com/CortexFoundation/inference/synapse"
 )
 
 var IsNotCache bool = false

@@ -9,15 +9,17 @@ import (
 	"sync"
 	"time"
 
+	gopsutil "github.com/shirou/gopsutil/mem"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
+
 	// "github.com/CortexFoundation/CortexTheseus/consensus/cuckoo/plugins"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
-	gopsutil "github.com/shirou/gopsutil/mem"
 )
 
 var sharedCuckoo = New(Config{PowMode: ModeNormal})

@@ -19,6 +19,9 @@ package main
 import (
 	"crypto/ecdsa"
 	"fmt"
+
+	"gopkg.in/urfave/cli.v1"
+
 	//"io/ioutil"
 	//"os"
 	//"path/filepath"
@@ -26,7 +29,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
-	"gopkg.in/urfave/cli.v1"
 )
 
 var commandBatchGenerate = cli.Command{

@@ -22,6 +22,8 @@ import (
 	"errors"
 	"math/big"
 
+	"golang.org/x/crypto/ripemd160"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
@@ -29,7 +31,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/crypto/bls12381"
 	"github.com/CortexFoundation/CortexTheseus/crypto/bn256"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"golang.org/x/crypto/ripemd160"
 )
 
 // PrecompiledContract is the basic interface for native Go contracts. The implementation

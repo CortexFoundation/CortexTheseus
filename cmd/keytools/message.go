@@ -21,11 +21,12 @@ import (
 	"fmt"
 	"os"
 
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/CortexFoundation/CortexTheseus/accounts/keystore"
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
-	"gopkg.in/urfave/cli.v1"
 )
 
 type outputSign struct {

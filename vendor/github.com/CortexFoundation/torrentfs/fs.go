@@ -29,12 +29,12 @@ import (
 	params1 "github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/CortexFoundation/robot"
+	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/ucwong/go-ttlmap"
+
 	"github.com/CortexFoundation/torrentfs/backend"
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
-	mapset "github.com/deckarep/golang-set/v2"
-
-	"github.com/ucwong/go-ttlmap"
 )
 
 // TorrentFS contains the torrent file system internals.

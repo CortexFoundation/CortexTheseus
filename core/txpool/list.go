@@ -25,10 +25,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"golang.org/x/exp/slices"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
-
-	"golang.org/x/exp/slices"
 )
 
 // nonceHeap is a heap.Interface implementation over 64bit unsigned integers for

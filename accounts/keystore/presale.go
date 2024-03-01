@@ -25,10 +25,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/CortexFoundation/CortexTheseus/accounts"
-	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/pbkdf2"
+
+	"github.com/CortexFoundation/CortexTheseus/accounts"
+	"github.com/CortexFoundation/CortexTheseus/crypto"
 )
 
 // creates a Key and stores that in the given KeyStore by decrypting a presale key JSON

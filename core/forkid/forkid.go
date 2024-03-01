@@ -26,11 +26,11 @@ import (
 	"reflect"
 	"strings"
 
+	"golang.org/x/exp/slices"
+
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
-
-	"golang.org/x/exp/slices"
 )
 
 var (

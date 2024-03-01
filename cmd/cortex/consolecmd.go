@@ -24,11 +24,12 @@ import (
 	"strings"
 	"syscall"
 
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/console"
 	"github.com/CortexFoundation/CortexTheseus/node"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
-	"gopkg.in/urfave/cli.v1"
 )
 
 var (
