@@ -17,8 +17,6 @@ package types
 
 import (
 	"math/big"
-	//"bytes"
-	//"errors"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"

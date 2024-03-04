@@ -171,7 +171,9 @@ func (tm *TorrentManager) register(t *torrent.Torrent, requested int64, ih strin
 	tt := caffe.NewTorrent(t, requested, ih, filepath.Join(tm.TmpDataDir, ih), tm.slot, spec)
 	tm.setTorrent(tt)
 
-	tm.Pending(tt)
+	if err := tm.Pending(tt); err != nil {
+		return nil
+	}
 	return tt
 }
 
@@ -921,17 +923,17 @@ func (tm *TorrentManager) commit(ctx context.Context, hex string, request uint64
 	return nil
 }*/
 
-func (tm *TorrentManager) Pending(t *caffe.Torrent) {
+func (tm *TorrentManager) Pending(t *caffe.Torrent) error {
 	/*select {
 	case tm.pendingChan <- t:
 		log.Trace("Stable pending", "ih", t.InfoHash())
 	case <-tm.closeAll:
 	default:
 	}*/
-	tm.taskEvent.Post(pendingEvent{t})
+	return tm.taskEvent.Post(pendingEvent{t})
 }
 
-func (tm *TorrentManager) Running(t *caffe.Torrent) {
+func (tm *TorrentManager) Running(t *caffe.Torrent) error {
 	/*select {
 	case tm.activeChan <- t:
 		log.Trace("Stable running", "ih", t.InfoHash())
@@ -939,7 +941,7 @@ func (tm *TorrentManager) Running(t *caffe.Torrent) {
 	default:
 		log.Trace("Unstable running", "ih", t.InfoHash())
 	}*/
-	tm.taskEvent.Post(runningEvent{t})
+	return tm.taskEvent.Post(runningEvent{t})
 }
 
 type pendingEvent struct {
@@ -958,8 +960,8 @@ type droppingEvent struct {
 	S string
 }
 
-func (tm *TorrentManager) Seeding(t *caffe.Torrent) {
-	tm.taskEvent.Post(seedingEvent{t})
+func (tm *TorrentManager) Seeding(t *caffe.Torrent) error {
+	return tm.taskEvent.Post(seedingEvent{t})
 	/*select {
 	case tm.seedingChan <- t:
 		log.Debug("Stable seeding", "ih", t.InfoHash())
@@ -1017,9 +1019,10 @@ func (tm *TorrentManager) mainLoop() {
 							t.SetStart(mclock.Now())
 							t.Unlock()
 
-							tm.Pending(t)
-							tm.recovery.Add(1)
-							tm.stops.Add(-1)
+							if err := tm.Pending(t); err == nil {
+								tm.recovery.Add(1)
+								tm.stops.Add(-1)
+							}
 						} else {
 							log.Warn("Nas recovery failed", "ih", t.InfoHash(), "status", t.Status(), "complete", common.StorageSize(t.Torrent.BytesCompleted()), "err", err)
 						}

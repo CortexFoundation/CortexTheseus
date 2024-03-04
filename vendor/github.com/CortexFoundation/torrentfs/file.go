@@ -27,8 +27,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/anacrolix/torrent/bencode"
-
-	//"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/anacrolix/torrent/metainfo"
 	cp "github.com/otiai10/copy"
 
