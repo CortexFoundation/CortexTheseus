@@ -516,7 +516,7 @@ github.com/edsrzf/mmap-go
 # github.com/elliotchance/orderedmap v1.5.1
 ## explicit; go 1.12
 github.com/elliotchance/orderedmap
-# github.com/ethereum/c-kzg-4844 v0.4.2
+# github.com/ethereum/c-kzg-4844 v0.4.3
 ## explicit; go 1.19
 github.com/ethereum/c-kzg-4844/bindings/go
 # github.com/fatih/color v1.15.0
@@ -1112,7 +1112,7 @@ golang.org/x/mobile/internal/binres
 golang.org/x/mobile/internal/importers
 golang.org/x/mobile/internal/importers/java
 golang.org/x/mobile/internal/importers/objc
-# golang.org/x/mod v0.15.0
+# golang.org/x/mod v0.16.0
 ## explicit; go 1.18
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/modfile
@@ -1141,14 +1141,14 @@ golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
 golang.org/x/sync/singleflight
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.17.0
+# golang.org/x/sys v0.18.0
 ## explicit; go 1.18
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/term v0.17.0
+# golang.org/x/term v0.18.0
 ## explicit; go 1.18
 golang.org/x/term
 # golang.org/x/text v0.14.0
