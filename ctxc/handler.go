@@ -27,7 +27,6 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/consensus"
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/forkid"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
@@ -105,7 +104,6 @@ type handlerConfig struct {
 	EventMux   *event.TypeMux            // Legacy event mux, deprecate for `feed`
 	Checkpoint *params.TrustedCheckpoint // Hard coded checkpoint for sync challenges
 	Whitelist  map[uint64]common.Hash    // Hard coded whitelist for sync challenged
-	Engine     consensus.Engine
 }
 
 type ProtocolManager struct {
@@ -217,7 +215,7 @@ func NewProtocolManager(config *handlerConfig) (*ProtocolManager, error) {
 
 	// Construct the fetcher (short sync)
 	validator := func(header *types.Header) error {
-		return config.Engine.VerifyHeader(config.Chain, header, true)
+		return config.Chain.Engine().VerifyHeader(config.Chain, header, true)
 	}
 	heighter := func() uint64 {
 		return config.Chain.CurrentBlock().NumberU64()
