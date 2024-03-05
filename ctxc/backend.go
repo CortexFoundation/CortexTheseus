@@ -93,6 +93,8 @@ type Cortex struct {
 	networkID     uint64
 	netRPCService *ctxcapi.PublicNetAPI
 
+	p2pServer *p2p.Server
+
 	lock sync.RWMutex // Protects the variadic fields (e.g. gas price and coinbase)
 
 	shutdownTracker *shutdowncheck.ShutdownTracker // Tracks if and when the node has shutdown ungracefully
@@ -149,6 +151,7 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 		coinbase:          config.Coinbase,
 		bloomRequests:     make(chan chan *bloombits.Retrieval),
 		bloomIndexer:      NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
+		p2pServer:         stack.Server(),
 		shutdownTracker:   shutdowncheck.NewShutdownTracker(chainDb),
 	}
 
@@ -221,7 +224,19 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 
 	cacheLimit := cacheConfig.TrieCleanLimit + cacheConfig.TrieDirtyLimit + cacheConfig.SnapshotLimit
 
-	if ctxc.protocolManager, err = NewProtocolManager(ctxc.chainConfig, config.SyncMode, networkID, ctxc.eventMux, ctxc.txPool, ctxc.engine, ctxc.blockchain, chainDb, cacheLimit, config.Whitelist); err != nil {
+	c := &handlerConfig{
+		NodeID:     ctxc.p2pServer.Self().ID(),
+		Database:   chainDb,
+		Chain:      ctxc.blockchain,
+		TxPool:     ctxc.txPool,
+		Network:    networkID,
+		Sync:       config.SyncMode,
+		BloomCache: uint64(cacheLimit),
+		EventMux:   ctxc.eventMux,
+		Whitelist:  config.Whitelist,
+		Engine:     ctxc.engine,
+	}
+	if ctxc.protocolManager, err = NewProtocolManager(c); err != nil {
 		return nil, err
 	}
 
@@ -241,6 +256,8 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	//stack.RegisterProtocols(ctxc.Protocols())
 
 	// Check for unclean shutdown
 	ctxc.shutdownTracker.MarkStartup()

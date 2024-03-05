@@ -31,6 +31,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/forkid"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/fetcher"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/protocols/ctxc"
@@ -42,6 +43,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/trie"
+
+	"golang.org/x/crypto/sha3"
 )
 
 const (
@@ -92,6 +95,7 @@ type txPool interface {
 // handlerConfig is the collection of initialization parameters to create a full
 // node network handler.
 type handlerConfig struct {
+	NodeID     enode.ID                  // P2P node ID used for tx propagation topology
 	Database   ctxcdb.Database           // Database for direct sync insertions
 	Chain      *core.BlockChain          // Blockchain to serve data from
 	TxPool     txPool                    // Transaction pool to propagate from
@@ -101,9 +105,11 @@ type handlerConfig struct {
 	EventMux   *event.TypeMux            // Legacy event mux, deprecate for `feed`
 	Checkpoint *params.TrustedCheckpoint // Hard coded checkpoint for sync challenges
 	Whitelist  map[uint64]common.Hash    // Hard coded whitelist for sync challenged
+	Engine     consensus.Engine
 }
 
 type ProtocolManager struct {
+	nodeID     enode.ID
 	networkID  uint64
 	forkFilter forkid.Filter // Fork ID filter, constant across the lifetime of the node
 
@@ -145,17 +151,18 @@ type ProtocolManager struct {
 
 // NewProtocolManager returns a new Cortex sub protocol manager. The Cortex sub protocol manages peers capable
 // with the Cortex network.
-func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, networkID uint64, mux *event.TypeMux, txpool txPool, engine consensus.Engine, blockchain *core.BlockChain, chaindb ctxcdb.Database, cacheLimit int, whitelist map[uint64]common.Hash) (*ProtocolManager, error) {
+func NewProtocolManager(config *handlerConfig) (*ProtocolManager, error) {
 	// Create the protocol manager with the base fields
 	manager := &ProtocolManager{
-		networkID:      networkID,
-		forkFilter:     forkid.NewFilter(blockchain),
-		eventMux:       mux,
-		txpool:         txpool,
-		blockchain:     blockchain,
-		chaindb:        chaindb,
+		nodeID:         config.NodeID,
+		networkID:      config.Network,
+		forkFilter:     forkid.NewFilter(config.Chain),
+		eventMux:       config.EventMux,
+		txpool:         config.TxPool,
+		blockchain:     config.Chain,
+		chaindb:        config.Database,
 		peers:          newPeerSet(),
-		whitelist:      whitelist,
+		whitelist:      config.Whitelist,
 		txsyncCh:       make(chan *txsync),
 		quitSync:       make(chan struct{}),
 		handlerDoneCh:  make(chan struct{}),
@@ -168,7 +175,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 	//	mode = downloader.FullSync
 	//}
 
-	if mode == downloader.FullSync {
+	if config.Sync == downloader.FullSync {
 		// The database seems empty as the current block is the genesis. Yet the fast
 		// block is ahead, so fast sync was enabled for this node at a certain point.
 		// The scenarios where this can happen is
@@ -177,13 +184,13 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		// * the last fast sync is not finished while user specifies a full sync this
 		//   time. But we don't have any recent state for full sync.
 		// In these cases however it's safe to reenable fast sync.
-		fullBlock, fastBlock := blockchain.CurrentBlock(), blockchain.CurrentFastBlock()
+		fullBlock, fastBlock := config.Chain.CurrentBlock(), config.Chain.CurrentFastBlock()
 		if fullBlock.NumberU64() == 0 && fastBlock.NumberU64() > 0 {
 			manager.fastSync.Store(true)
 			log.Warn("Switch sync mode from full sync to fast sync")
 		}
 	} else {
-		if blockchain.CurrentBlock().NumberU64() > 0 {
+		if config.Chain.CurrentBlock().NumberU64() > 0 {
 			// Print warning log if database is not empty to run fast sync.
 			log.Warn("Switch sync mode from fast sync to full sync")
 		} else {
@@ -193,27 +200,27 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 	}
 
 	// If we have trusted checkpoints, enforce them on the chain
-	if checkpoint, ok := params.TrustedCheckpoints[blockchain.Genesis().Hash()]; ok {
+	if checkpoint, ok := params.TrustedCheckpoints[config.Chain.Genesis().Hash()]; ok {
 		manager.checkpointNumber = (checkpoint.SectionIndex+1)*params.CHTFrequency - 1
 		manager.checkpointHash = checkpoint.SectionHead
 		manager.checkpointName = checkpoint.Name
-		log.Info("Check point", "section", checkpoint.SectionIndex, "number", manager.checkpointNumber, "hash", manager.checkpointHash, "genesis", blockchain.Genesis().Hash(), "ok", ok)
+		log.Info("Check point", "section", checkpoint.SectionIndex, "number", manager.checkpointNumber, "hash", manager.checkpointHash, "genesis", config.Chain.Genesis().Hash(), "ok", ok)
 	} else {
-		log.Warn("No check point found", "genesis", blockchain.Genesis().Hash())
+		log.Warn("No check point found", "genesis", config.Chain.Genesis().Hash())
 	}
 	// Initiate a sub-protocol for every implemented version we can handle
 	var stateBloom *trie.SyncBloom
 	if manager.fastSync.Load() {
-		stateBloom = trie.NewSyncBloom(uint64(cacheLimit), chaindb)
+		stateBloom = trie.NewSyncBloom(config.BloomCache, config.Database)
 	}
-	manager.downloader = downloader.New(manager.checkpointNumber, chaindb, stateBloom, manager.eventMux, blockchain, manager.removePeer)
+	manager.downloader = downloader.New(manager.checkpointNumber, config.Database, stateBloom, manager.eventMux, config.Chain, manager.removePeer)
 
 	// Construct the fetcher (short sync)
 	validator := func(header *types.Header) error {
-		return engine.VerifyHeader(blockchain, header, true)
+		return config.Engine.VerifyHeader(config.Chain, header, true)
 	}
 	heighter := func() uint64 {
-		return blockchain.CurrentBlock().NumberU64()
+		return config.Chain.CurrentBlock().NumberU64()
 	}
 	inserter := func(blocks types.Blocks) (int, error) {
 		// If sync hasn't reached the checkpoint yet, deny importing weird blocks.
@@ -241,7 +248,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		}
 		return n, err
 	}
-	manager.fetcher = fetcher.New(blockchain.GetBlockByHash, validator, manager.BroadcastBlock, heighter, inserter, manager.removePeer)
+	manager.fetcher = fetcher.New(config.Chain.GetBlockByHash, validator, manager.BroadcastBlock, heighter, inserter, manager.removePeer)
 
 	fetchTx := func(peer string, hashes []common.Hash) error {
 		p := manager.peers.Peer(peer)
@@ -250,7 +257,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		}
 		return p.RequestTxs(hashes)
 	}
-	manager.txFetcher = fetcher.NewTxFetcher(txpool.Has, txpool.AddRemotes, fetchTx)
+	manager.txFetcher = fetcher.NewTxFetcher(config.TxPool.Has, config.TxPool.AddRemotes, fetchTx)
 	manager.chainSync = newChainSyncer(manager)
 
 	return manager, nil
@@ -977,24 +984,54 @@ func (pm *ProtocolManager) BroadcastTransactions(txs types.Transactions) {
 		annos = make(map[*peer][]common.Hash) // Set peer->hash to announce
 	)
 	// Broadcast transactions to a batch of peers not knowing about it
+	direct := big.NewInt(int64(math.Sqrt(float64(pm.peers.Len())))) // Approximate number of peers to broadcast to
+	if direct.BitLen() == 0 {
+		direct = big.NewInt(1)
+	}
+	total := new(big.Int).Exp(direct, big.NewInt(2), nil) // Stabilise total peer count a bit based on sqrt peers
+
+	var (
+		signer = types.LatestSignerForChainID(pm.blockchain.Config().ChainID) // Don't care about chain status, we just need *a* sender
+		hasher = sha3.NewLegacyKeccak256().(crypto.KeccakState)
+		hash   = make([]byte, 32)
+	)
 	for _, tx := range txs {
-		peers := pm.peers.PeersWithoutTx(tx.Hash())
+		var maybeDirect bool
 		// Send the tx unconditionally to a subset of our peers
-		var numDirect int
 
 		switch {
 		case tx.Size() > txMaxBroadcastSize:
 			largeTxs++
 		default:
-			numDirect = int(math.Sqrt(float64(len(peers))))
+			maybeDirect = true
 		}
-		// Send the tx unconditionally to a subset of our peers
-		for _, peer := range peers[:numDirect] {
-			txset[peer] = append(txset[peer], tx.Hash())
-		}
-		// For the remaining peers, send announcement only
-		for _, peer := range peers[numDirect:] {
-			annos[peer] = append(annos[peer], tx.Hash())
+		// Send the transaction (if it's small enough) directly to a subset of
+		// the peers that have not received it yet, ensuring that the flow of
+		// transactions is groupped by account to (try and) avoid nonce gaps.
+		//
+		// To do this, we hash the local enode IW with together with a peer's
+		// enode ID together with the transaction sender and broadcast if
+		// `sha(self, peer, sender) mod peers < sqrt(peers)`.
+		for _, peer := range pm.peers.PeersWithoutTx(tx.Hash()) {
+			var broadcast bool
+			if maybeDirect {
+				hasher.Reset()
+				hasher.Write(pm.nodeID.Bytes())
+				hasher.Write(peer.Node().ID().Bytes())
+
+				from, _ := types.Sender(signer, tx) // Ignore error, we only use the addr as a propagation target splitter
+				hasher.Write(from.Bytes())
+
+				hasher.Read(hash)
+				if new(big.Int).Mod(new(big.Int).SetBytes(hash), total).Cmp(direct) < 0 {
+					broadcast = true
+				}
+			}
+			if broadcast {
+				txset[peer] = append(txset[peer], tx.Hash())
+			} else {
+				annos[peer] = append(annos[peer], tx.Hash())
+			}
 		}
 	}
 	for peer, hashes := range txset {

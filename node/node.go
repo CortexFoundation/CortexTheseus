@@ -123,7 +123,7 @@ func New(conf *Config) (*Node, error) {
 	}
 	// Note: any interaction with Config that would create/touch files
 	// in the data directory or instance directory is delayed until Start.
-	return &Node{
+	node := &Node{
 		accman:            am,
 		ephemeralKeystore: ephemeralKeystore,
 		config:            conf,
@@ -133,8 +133,26 @@ func New(conf *Config) (*Node, error) {
 		wsEndpoint:        conf.WSEndpoint(),
 		eventmux:          new(event.TypeMux),
 		log:               conf.Logger,
+		stop:              make(chan struct{}),
+		server:            &p2p.Server{Config: conf.P2P},
 		databases:         make(map[*closeTrackingDB]struct{}),
-	}, nil
+	}
+
+	// Initialize the p2p server. This creates the node key and discovery databases.
+	node.server.Config.PrivateKey = node.config.NodeKey()
+	node.server.Config.Name = node.config.NodeName()
+	node.server.Config.Logger = node.log
+	if node.server.Config.NodeDatabase == "" {
+		node.server.Config.NodeDatabase = node.config.NodeDB()
+	}
+	if node.server.Config.StaticNodes == nil {
+		node.server.Config.StaticNodes = node.config.StaticNodes()
+	}
+	if node.serverConfig.TrustedNodes == nil {
+		node.server.Config.TrustedNodes = node.config.TrustedNodes()
+	}
+
+	return node, nil
 }
 
 // Close stops the Node and releases resources acquired in
@@ -142,13 +160,21 @@ func New(conf *Config) (*Node, error) {
 func (n *Node) Close() error {
 	var errs []error
 
+	if n.state == closedState {
+		return ErrNodeStopped
+	}
+
 	// Terminate all subsystems and collect any errors
 	if err := n.Stop(); err != nil && err != ErrNodeStopped {
 		errs = append(errs, err)
 	}
+
 	if err := n.accman.Close(); err != nil {
 		errs = append(errs, err)
 	}
+
+	close(n.stop)
+
 	// Report any errors that might have occurred
 	switch len(errs) {
 	case 0:
@@ -166,7 +192,8 @@ func (n *Node) Register(constructor ServiceConstructor) error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
-	if n.server != nil {
+	//if n.server != nil {
+	if n.state == runningState {
 		return ErrNodeRunning
 	}
 	n.serviceFuncs = append(n.serviceFuncs, constructor)
@@ -182,16 +209,18 @@ func (n *Node) Start() error {
 	defer n.lock.Unlock()
 
 	// Short circuit if the node's already running
-	if n.server != nil {
+	//if n.server != nil {
+	if n.state == runningState {
 		return ErrNodeRunning
 	}
+	n.state = runningState
 	if err := n.openDataDir(); err != nil {
 		return err
 	}
 
 	// Initialize the p2p server. This creates the node key and
 	// discovery databases.
-	n.serverConfig = n.config.P2P
+	/*n.serverConfig = n.config.P2P
 	n.serverConfig.PrivateKey = n.config.NodeKey()
 	n.serverConfig.Name = n.config.NodeName()
 	n.serverConfig.Logger = n.log
@@ -203,8 +232,8 @@ func (n *Node) Start() error {
 	}
 	if n.serverConfig.NodeDatabase == "" {
 		n.serverConfig.NodeDatabase = n.config.NodeDB()
-	}
-	running := &p2p.Server{Config: n.serverConfig}
+	}*/
+	running := n.server //&p2p.Server{Config: n.serverConfig}
 	n.log.Info("Starting peer-to-peer node", "instance", n.serverConfig.Name)
 
 	// Otherwise copy and specialize the P2P configuration
@@ -223,6 +252,7 @@ func (n *Node) Start() error {
 		// Construct and save the service
 		service, err := constructor(ctx)
 		if err != nil {
+			log.Error("n.serviceFuncs", "err", err)
 			return err
 		}
 		kind := reflect.TypeOf(service)
@@ -263,8 +293,8 @@ func (n *Node) Start() error {
 	}
 	// Finish initializing the startup
 	n.services = services
-	n.server = running
-	n.stop = make(chan struct{})
+	//n.server = running
+	//n.stop = make(chan struct{})
 	return nil
 }
 
@@ -501,7 +531,7 @@ func (n *Node) Stop() error {
 	//defer n.lock.Unlock()
 
 	// Short circuit if the node's not running
-	if n.server == nil {
+	if n.state != runningState {
 		return ErrNodeStopped
 	}
 
@@ -520,10 +550,14 @@ func (n *Node) Stop() error {
 	}
 	n.server.Stop()
 	n.services = nil
-	n.server = nil
+	//n.server = nil
+
+	n.lock.Lock()
+	n.state = closedState
+	n.lock.Unlock()
 
 	// unblock n.Wait
-	close(n.stop)
+	//close(n.stop)
 
 	// Remove the keystore if it was created ephemerally.
 	var keystoreErr error
@@ -543,15 +577,7 @@ func (n *Node) Stop() error {
 // Wait blocks the thread until the node is stopped. If the node is not running
 // at the time of invocation, the method immediately returns.
 func (n *Node) Wait() {
-	n.lock.RLock()
-	if n.server == nil {
-		n.lock.RUnlock()
-		return
-	}
-	stop := n.stop
-	n.lock.RUnlock()
-
-	<-stop
+	<-n.stop
 }
 
 // Restart terminates a running node and boots up a new one in its place. If the
@@ -592,8 +618,8 @@ func (n *Node) RPCHandler() (*rpc.Server, error) {
 // only to inspect fields of the currently running server, life cycle management
 // should be left to this Node entity.
 func (n *Node) Server() *p2p.Server {
-	n.lock.RLock()
-	defer n.lock.RUnlock()
+	//n.lock.RLock()
+	//defer n.lock.RUnlock()
 
 	return n.server
 }
@@ -604,7 +630,7 @@ func (n *Node) Service(service any) error {
 	defer n.lock.RUnlock()
 
 	// Short circuit if the node's not running
-	if n.server == nil {
+	if n.state != runningState {
 		return ErrNodeStopped
 	}
 	// Otherwise try to find the service to return

@@ -86,7 +86,7 @@ func StartNode(ctx *cli.Context, stack *node.Node) {
 		}
 		<-sigc
 		log.Info("Got interrupt, shutting down...")
-		go stack.Stop()
+		go stack.Close()
 		for i := 10; i > 0; i-- {
 			<-sigc
 			if i > 1 {
