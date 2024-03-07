@@ -62,7 +62,9 @@ func extend(b []byte, n int) (overall, trailer []byte) {
 	if want <= cap(b) {
 		overall = b[:want]
 		trailer = overall[len(b):]
-		clear(trailer)
+		for i := range trailer {
+			trailer[i] = 0
+		}
 	} else {
 		// Grow the capacity exponentially, with a 1KiB minimum.
 		c := 1024

@@ -45,7 +45,7 @@ func parseRuleString(s string) (_ Rule, ok bool, _ error) {
 	level := NotSet
 	var names []string
 	if ss[0] != "*" {
-		names = []string{ss[0]}
+		names = strings.Split(ss[0], "+")
 	}
 	if len(ss) > 1 {
 		var ok bool

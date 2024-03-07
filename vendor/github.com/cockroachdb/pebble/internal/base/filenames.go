@@ -14,8 +14,7 @@ import (
 	"github.com/cockroachdb/redact"
 )
 
-// FileNum is an internal DB identifier for a table. Tables can be physical (in
-// which case the FileNum also identifies the backing object) or virtual.
+// FileNum is an internal DB identifier for a file.
 type FileNum uint64
 
 // String returns a string representation of the file number.
@@ -26,26 +25,34 @@ func (fn FileNum) SafeFormat(w redact.SafePrinter, _ rune) {
 	w.Printf("%06d", redact.SafeUint(fn))
 }
 
-// PhysicalTableDiskFileNum converts the FileNum of a physical table to the
-// backing DiskFileNum. The underlying numbers always match for physical tables.
-func PhysicalTableDiskFileNum(n FileNum) DiskFileNum {
-	return DiskFileNum(n)
+// DiskFileNum converts a FileNum to a DiskFileNum. DiskFileNum should only be
+// called if the caller can ensure that the FileNum belongs to a physical file
+// on disk. These could be manifests, log files, physical sstables on disk, the
+// options file, but not virtual sstables.
+func (fn FileNum) DiskFileNum() DiskFileNum {
+	return DiskFileNum{fn}
 }
 
-// PhysicalTableFileNum converts the DiskFileNum backing a physical table into
-// the table's FileNum. The underlying numbers always match for physical tables.
-func PhysicalTableFileNum(f DiskFileNum) FileNum {
-	return FileNum(f)
+// A DiskFileNum is just a FileNum belonging to a file which exists on disk.
+// Note that a FileNum is an internal DB identifier and it could belong to files
+// which don't exist on disk. An example would be virtual sstable FileNums.
+// Converting a DiskFileNum to a FileNum is always valid, whereas converting a
+// FileNum to DiskFileNum may not be valid and care should be taken to prove
+// that the FileNum actually exists on disk.
+type DiskFileNum struct {
+	fn FileNum
 }
 
-// A DiskFileNum identifies a file or object with exists on disk.
-type DiskFileNum uint64
-
-func (dfn DiskFileNum) String() string { return fmt.Sprintf("%06d", dfn) }
+func (dfn DiskFileNum) String() string { return dfn.fn.String() }
 
 // SafeFormat implements redact.SafeFormatter.
 func (dfn DiskFileNum) SafeFormat(w redact.SafePrinter, verb rune) {
-	w.Printf("%06d", redact.SafeUint(dfn))
+	dfn.fn.SafeFormat(w, verb)
+}
+
+// FileNum converts a DiskFileNum to a FileNum. This conversion is always valid.
+func (dfn DiskFileNum) FileNum() FileNum {
+	return dfn.fn
 }
 
 // FileType enumerates the types of files found in a DB.
@@ -57,6 +64,7 @@ const (
 	FileTypeLock
 	FileTypeTable
 	FileTypeManifest
+	FileTypeCurrent
 	FileTypeOptions
 	FileTypeOldTemp
 	FileTypeTemp
@@ -73,6 +81,8 @@ func MakeFilename(fileType FileType, dfn DiskFileNum) string {
 		return fmt.Sprintf("%s.sst", dfn)
 	case FileTypeManifest:
 		return fmt.Sprintf("MANIFEST-%s", dfn)
+	case FileTypeCurrent:
+		return "CURRENT"
 	case FileTypeOptions:
 		return fmt.Sprintf("OPTIONS-%s", dfn)
 	case FileTypeOldTemp:
@@ -92,8 +102,10 @@ func MakeFilepath(fs vfs.FS, dirname string, fileType FileType, dfn DiskFileNum)
 func ParseFilename(fs vfs.FS, filename string) (fileType FileType, dfn DiskFileNum, ok bool) {
 	filename = fs.PathBase(filename)
 	switch {
+	case filename == "CURRENT":
+		return FileTypeCurrent, DiskFileNum{0}, true
 	case filename == "LOCK":
-		return FileTypeLock, 0, true
+		return FileTypeLock, DiskFileNum{0}, true
 	case strings.HasPrefix(filename, "MANIFEST-"):
 		dfn, ok = parseDiskFileNum(filename[len("MANIFEST-"):])
 		if !ok {
@@ -144,7 +156,7 @@ func parseDiskFileNum(s string) (dfn DiskFileNum, ok bool) {
 	if err != nil {
 		return dfn, false
 	}
-	return DiskFileNum(u), true
+	return DiskFileNum{FileNum(u)}, true
 }
 
 // A Fataler fatals a process with a message when called.
@@ -189,10 +201,4 @@ func MustExist(fs vfs.FS, filename string, fataler Fataler, err error) {
 
 	fataler.Fatalf("%s:\n%s\ndirectory contains %d files, %d unknown, %d tables, %d logs, %d manifests",
 		fs.PathBase(filename), err, total, unknown, tables, logs, manifests)
-}
-
-// FileInfo provides some rudimentary information about a file.
-type FileInfo struct {
-	FileNum  DiskFileNum
-	FileSize uint64
 }

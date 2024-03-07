@@ -17,13 +17,15 @@ package badger
 
 import (
 	"bytes"
-	//"fmt"
 	"path/filepath"
 	"time"
 
 	badger "github.com/dgraph-io/badger/v4"
-	//"github.com/dgraph-io/badger/v3/options"
+
+	//"fmt"
+
 	"github.com/ucwong/golang-kv/common"
+	//"github.com/dgraph-io/badger/v3/options"
 )
 
 type Badger struct {

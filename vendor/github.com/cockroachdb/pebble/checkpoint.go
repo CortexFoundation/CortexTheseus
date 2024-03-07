@@ -298,7 +298,7 @@ func (d *DB) Checkpoint(
 	}
 
 	ckErr = d.writeCheckpointManifest(
-		fs, formatVers, destDir, dir, manifestFileNum, manifestSize,
+		fs, formatVers, destDir, dir, manifestFileNum.DiskFileNum(), manifestSize,
 		excludedFiles, removeBackingTables,
 	)
 	if ckErr != nil {
@@ -313,7 +313,7 @@ func (d *DB) Checkpoint(
 		if logNum == 0 {
 			continue
 		}
-		srcPath := base.MakeFilepath(fs, d.walDirname, fileTypeLog, logNum)
+		srcPath := base.MakeFilepath(fs, d.walDirname, fileTypeLog, logNum.DiskFileNum())
 		destPath := fs.PathJoin(destDir, fs.PathBase(srcPath))
 		ckErr = vfs.Copy(fs, srcPath, destPath)
 		if ckErr != nil {
@@ -368,7 +368,7 @@ func (d *DB) writeCheckpointManifest(
 		// need to append another record with the excluded files (we cannot simply
 		// append a record after a raw data copy; see
 		// https://github.com/cockroachdb/cockroach/issues/100935).
-		r := record.NewReader(&io.LimitedReader{R: src, N: manifestSize}, manifestFileNum)
+		r := record.NewReader(&io.LimitedReader{R: src, N: manifestSize}, manifestFileNum.FileNum())
 		w := record.NewWriter(dst)
 		for {
 			rr, err := r.Next()
@@ -411,12 +411,17 @@ func (d *DB) writeCheckpointManifest(
 		return err
 	}
 
+	// Recent format versions use an atomic marker for setting the
+	// active manifest. Older versions use the CURRENT file. The
+	// setCurrentFunc function will return a closure that will
+	// take the appropriate action for the database's format
+	// version.
 	var manifestMarker *atomicfs.Marker
 	manifestMarker, _, err := atomicfs.LocateMarker(fs, destDirPath, manifestMarkerName)
 	if err != nil {
 		return err
 	}
-	if err := manifestMarker.Move(base.MakeFilename(fileTypeManifest, manifestFileNum)); err != nil {
+	if err := setCurrentFunc(formatVers, manifestMarker, fs, destDirPath, destDir)(manifestFileNum.FileNum()); err != nil {
 		return err
 	}
 	return manifestMarker.Close()

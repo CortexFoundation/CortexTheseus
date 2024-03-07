@@ -76,7 +76,7 @@ func (t *Tracer) Close() {
 // WrapWritable wraps an objstorage.Writable with one that generates tracing
 // events.
 func (t *Tracer) WrapWritable(
-	ctx context.Context, w objstorage.Writable, fileNum base.DiskFileNum,
+	ctx context.Context, w objstorage.Writable, fileNum base.FileNum,
 ) objstorage.Writable {
 	return &writable{
 		w:       w,
@@ -87,7 +87,7 @@ func (t *Tracer) WrapWritable(
 
 type writable struct {
 	w         objstorage.Writable
-	fileNum   base.DiskFileNum
+	fileNum   base.FileNum
 	curOffset int64
 	g         eventGenerator
 }
@@ -125,7 +125,7 @@ func (w *writable) Abort() {
 // WrapReadable wraps an objstorage.Readable with one that generates tracing
 // events.
 func (t *Tracer) WrapReadable(
-	ctx context.Context, r objstorage.Readable, fileNum base.DiskFileNum,
+	ctx context.Context, r objstorage.Readable, fileNum base.FileNum,
 ) objstorage.Readable {
 	res := &readable{
 		r:       r,
@@ -137,7 +137,7 @@ func (t *Tracer) WrapReadable(
 
 type readable struct {
 	r       objstorage.Readable
-	fileNum base.DiskFileNum
+	fileNum base.FileNum
 	mu      struct {
 		sync.Mutex
 		g eventGenerator
@@ -147,7 +147,7 @@ type readable struct {
 var _ objstorage.Readable = (*readable)(nil)
 
 // ReadAt is part of the objstorage.Readable interface.
-func (r *readable) ReadAt(ctx context.Context, v []byte, off int64) error {
+func (r *readable) ReadAt(ctx context.Context, v []byte, off int64) (n int, err error) {
 	r.mu.Lock()
 	r.mu.g.add(ctx, Event{
 		Op:      ReadOp,
@@ -184,7 +184,7 @@ func (r *readable) NewReadHandle(ctx context.Context) objstorage.ReadHandle {
 
 type readHandle struct {
 	rh       objstorage.ReadHandle
-	fileNum  base.DiskFileNum
+	fileNum  base.FileNum
 	handleID uint64
 	g        eventGenerator
 }
@@ -192,7 +192,7 @@ type readHandle struct {
 var _ objstorage.ReadHandle = (*readHandle)(nil)
 
 // ReadAt is part of the objstorage.ReadHandle interface.
-func (rh *readHandle) ReadAt(ctx context.Context, p []byte, off int64) error {
+func (rh *readHandle) ReadAt(ctx context.Context, p []byte, off int64) (n int, err error) {
 	rh.g.add(ctx, Event{
 		Op:       ReadOp,
 		FileNum:  rh.fileNum,

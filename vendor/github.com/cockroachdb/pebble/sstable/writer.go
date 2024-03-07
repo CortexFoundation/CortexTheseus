@@ -166,6 +166,7 @@ type Writer struct {
 	rangeKeyBlock       blockWriter
 	topLevelIndexBlock  blockWriter
 	props               Properties
+	propCollectors      []TablePropertyCollector
 	blockPropCollectors []BlockPropertyCollector
 	obsoleteCollector   obsoleteKeyBlockPropertyCollector
 	blockPropsEncoder   blockPropertiesEncoder
@@ -207,9 +208,7 @@ type Writer struct {
 	// For value blocks.
 	shortAttributeExtractor   base.ShortAttributeExtractor
 	requiredInPlaceValueBound UserKeyPrefixBound
-	// When w.tableFormat >= TableFormatPebblev3, valueBlockWriter is nil iff
-	// WriterOptions.DisableValueBlocks was true.
-	valueBlockWriter *valueBlockWriter
+	valueBlockWriter          *valueBlockWriter
 }
 
 type pointKeyInfo struct {
@@ -805,7 +804,6 @@ func (w *Writer) getLastPointUserKey() []byte {
 	return w.dataBlockBuf.dataBlock.getCurUserKey()
 }
 
-// REQUIRES: w.tableFormat >= TableFormatPebblev3
 func (w *Writer) makeAddPointDecisionV3(
 	key InternalKey, valueLen int,
 ) (setHasSamePrefix bool, writeToValueBlock bool, isObsolete bool, err error) {
@@ -915,13 +913,14 @@ func (w *Writer) makeAddPointDecisionV3(
 	// NB: it is possible that cmpUser == 0, i.e., these two SETs have identical
 	// user keys (because of an open snapshot). This should be the rare case.
 	setHasSamePrefix = cmpPrefix == 0
+	considerWriteToValueBlock = setHasSamePrefix
 	// Use of 0 here is somewhat arbitrary. Given the minimum 3 byte encoding of
 	// valueHandle, this should be > 3. But tiny values are common in test and
 	// unlikely in production, so we use 0 here for better test coverage.
 	const tinyValueThreshold = 0
-	// NB: setting WriterOptions.DisableValueBlocks does not disable the
-	// setHasSamePrefix optimization.
-	considerWriteToValueBlock = setHasSamePrefix && valueLen > tinyValueThreshold && w.valueBlockWriter != nil
+	if considerWriteToValueBlock && valueLen <= tinyValueThreshold {
+		considerWriteToValueBlock = false
+	}
 	return setHasSamePrefix, considerWriteToValueBlock, isObsolete, nil
 }
 
@@ -933,7 +932,7 @@ func (w *Writer) addPoint(key InternalKey, value []byte, forceObsolete bool) err
 	var setHasSameKeyPrefix, writeToValueBlock, addPrefixToValueStoredWithKey bool
 	var isObsolete bool
 	maxSharedKeyLen := len(key.UserKey)
-	if w.tableFormat >= TableFormatPebblev3 {
+	if w.valueBlockWriter != nil {
 		// maxSharedKeyLen is limited to the prefix of the preceding key. If the
 		// preceding key was in a different block, then the blockWriter will
 		// ignore this maxSharedKeyLen.
@@ -985,6 +984,12 @@ func (w *Writer) addPoint(key InternalKey, value []byte, forceObsolete bool) err
 		return err
 	}
 
+	for i := range w.propCollectors {
+		if err := w.propCollectors[i].Add(key, value); err != nil {
+			w.err = err
+			return err
+		}
+	}
 	for i := range w.blockPropCollectors {
 		v := value
 		if addPrefixToValueStoredWithKey {
@@ -1095,6 +1100,13 @@ func (w *Writer) addTombstone(key InternalKey, value []byte) error {
 	if key.Trailer == InternalKeyRangeDeleteSentinel {
 		w.err = errors.Errorf("pebble: cannot add range delete sentinel: %s", key.Pretty(w.formatKey))
 		return w.err
+	}
+
+	for i := range w.propCollectors {
+		if err := w.propCollectors[i].Add(key, value); err != nil {
+			w.err = err
+			return err
+		}
 	}
 
 	w.meta.updateSeqNum(key.SeqNum())
@@ -1763,7 +1775,7 @@ func compressAndChecksum(b []byte, compression Compression, blockBuf *blockBuf) 
 func (w *Writer) writeCompressedBlock(block []byte, blockTrailerBuf []byte) (BlockHandle, error) {
 	bh := BlockHandle{Offset: w.meta.Size, Length: uint64(len(block))}
 
-	if w.cacheID != 0 && w.fileNum != 0 {
+	if w.cacheID != 0 && w.fileNum.FileNum() != 0 {
 		// Remove the block being written from the cache. This provides defense in
 		// depth against bugs which cause cache collisions.
 		//
@@ -1790,7 +1802,7 @@ func (w *Writer) writeCompressedBlock(block []byte, blockTrailerBuf []byte) (Blo
 // return a BlockHandle.
 func (w *Writer) Write(blockWithTrailer []byte) (n int, err error) {
 	offset := w.meta.Size
-	if w.cacheID != 0 && w.fileNum != 0 {
+	if w.cacheID != 0 && w.fileNum.FileNum() != 0 {
 		// Remove the block being written from the cache. This provides defense in
 		// depth against bugs which cause cache collisions.
 		//
@@ -2026,6 +2038,11 @@ func (w *Writer) Close() (err error) {
 
 	{
 		userProps := make(map[string]string)
+		for i := range w.propCollectors {
+			if err := w.propCollectors[i].Finish(userProps); err != nil {
+				return err
+			}
+		}
 		for i := range w.blockPropCollectors {
 			scratch := w.blockPropsEncoder.getScratchForProp()
 			// Place the shortID in the first byte.
@@ -2220,12 +2237,10 @@ func NewWriter(writable objstorage.Writable, o WriterOptions, extraOpts ...Write
 	if w.tableFormat >= TableFormatPebblev3 {
 		w.shortAttributeExtractor = o.ShortAttributeExtractor
 		w.requiredInPlaceValueBound = o.RequiredInPlaceValueBound
-		if !o.DisableValueBlocks {
-			w.valueBlockWriter = newValueBlockWriter(
-				w.blockSize, w.blockSizeThreshold, w.compression, w.checksumType, func(compressedSize int) {
-					w.coordination.sizeEstimate.dataBlockCompressed(compressedSize, 0)
-				})
-		}
+		w.valueBlockWriter = newValueBlockWriter(
+			w.blockSize, w.blockSizeThreshold, w.compression, w.checksumType, func(compressedSize int) {
+				w.coordination.sizeEstimate.dataBlockCompressed(compressedSize, 0)
+			})
 	}
 
 	w.dataBlockBuf = newDataBlockBuf(w.restartInterval, w.checksumType)
@@ -2273,9 +2288,20 @@ func NewWriter(writable objstorage.Writable, o WriterOptions, extraOpts ...Write
 	w.props.PropertyCollectorNames = "[]"
 	w.props.ExternalFormatVersion = rocksDBExternalFormatVersion
 
-	if len(o.BlockPropertyCollectors) > 0 || w.tableFormat >= TableFormatPebblev4 {
+	if len(o.TablePropertyCollectors) > 0 || len(o.BlockPropertyCollectors) > 0 ||
+		w.tableFormat >= TableFormatPebblev4 {
 		var buf bytes.Buffer
 		buf.WriteString("[")
+		if len(o.TablePropertyCollectors) > 0 {
+			w.propCollectors = make([]TablePropertyCollector, len(o.TablePropertyCollectors))
+			for i := range o.TablePropertyCollectors {
+				w.propCollectors[i] = o.TablePropertyCollectors[i]()
+				if i > 0 {
+					buf.WriteString(",")
+				}
+				buf.WriteString(w.propCollectors[i].Name())
+			}
+		}
 		numBlockPropertyCollectors := len(o.BlockPropertyCollectors)
 		if w.tableFormat >= TableFormatPebblev4 {
 			numBlockPropertyCollectors++
@@ -2294,14 +2320,14 @@ func NewWriter(writable objstorage.Writable, o WriterOptions, extraOpts ...Write
 			// this slice.
 			for i := range o.BlockPropertyCollectors {
 				w.blockPropCollectors[i] = o.BlockPropertyCollectors[i]()
-				if i > 0 {
+				if i > 0 || len(o.TablePropertyCollectors) > 0 {
 					buf.WriteString(",")
 				}
 				buf.WriteString(w.blockPropCollectors[i].Name())
 			}
 		}
 		if w.tableFormat >= TableFormatPebblev4 {
-			if numBlockPropertyCollectors > 1 {
+			if numBlockPropertyCollectors > 1 || len(o.TablePropertyCollectors) > 0 {
 				buf.WriteString(",")
 			}
 			w.blockPropCollectors[numBlockPropertyCollectors-1] = &w.obsoleteCollector

@@ -17,16 +17,18 @@ package leveldb
 
 import (
 	"bytes"
-	//"fmt"
 	"path/filepath"
 	"sync"
 	"time"
+
+	//"fmt"
 
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"github.com/ucwong/go-ttlmap"
+
 	"github.com/ucwong/golang-kv/common"
 )
 

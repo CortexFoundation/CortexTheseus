@@ -5,8 +5,6 @@
 package pebble
 
 import (
-	"context"
-
 	"github.com/cockroachdb/pebble/internal/base"
 	"github.com/cockroachdb/pebble/internal/keyspan"
 )
@@ -17,6 +15,10 @@ type errorIter struct {
 
 // errorIter implements the base.InternalIterator interface.
 var _ internalIterator = (*errorIter)(nil)
+
+func newErrorIter(err error) *errorIter {
+	return &errorIter{err: err}
+}
 
 func (c *errorIter) SeekGE(key []byte, flags base.SeekGEFlags) (*InternalKey, base.LazyValue) {
 	return nil, base.LazyValue{}
@@ -66,8 +68,6 @@ func (c *errorIter) String() string {
 
 func (c *errorIter) SetBounds(lower, upper []byte) {}
 
-func (c *errorIter) SetContext(_ context.Context) {}
-
 type errorKeyspanIter struct {
 	err error
 }
@@ -75,12 +75,16 @@ type errorKeyspanIter struct {
 // errorKeyspanIter implements the keyspan.FragmentIterator interface.
 var _ keyspan.FragmentIterator = (*errorKeyspanIter)(nil)
 
-func (i *errorKeyspanIter) SeekGE(key []byte) (*keyspan.Span, error) { return nil, i.err }
-func (i *errorKeyspanIter) SeekLT(key []byte) (*keyspan.Span, error) { return nil, i.err }
-func (i *errorKeyspanIter) First() (*keyspan.Span, error)            { return nil, i.err }
-func (i *errorKeyspanIter) Last() (*keyspan.Span, error)             { return nil, i.err }
-func (i *errorKeyspanIter) Next() (*keyspan.Span, error)             { return nil, i.err }
-func (i *errorKeyspanIter) Prev() (*keyspan.Span, error)             { return nil, i.err }
-func (i *errorKeyspanIter) Close() error                             { return i.err }
-func (*errorKeyspanIter) String() string                             { return "error" }
-func (*errorKeyspanIter) WrapChildren(wrap keyspan.WrapFn)           {}
+func newErrorKeyspanIter(err error) *errorKeyspanIter {
+	return &errorKeyspanIter{err: err}
+}
+
+func (*errorKeyspanIter) SeekGE(key []byte) *keyspan.Span { return nil }
+func (*errorKeyspanIter) SeekLT(key []byte) *keyspan.Span { return nil }
+func (*errorKeyspanIter) First() *keyspan.Span            { return nil }
+func (*errorKeyspanIter) Last() *keyspan.Span             { return nil }
+func (*errorKeyspanIter) Next() *keyspan.Span             { return nil }
+func (*errorKeyspanIter) Prev() *keyspan.Span             { return nil }
+func (i *errorKeyspanIter) Error() error                  { return i.err }
+func (i *errorKeyspanIter) Close() error                  { return i.err }
+func (*errorKeyspanIter) String() string                  { return "error" }

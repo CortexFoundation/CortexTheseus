@@ -151,7 +151,9 @@ func (ui *UserIteratorConfig) Transform(cmp base.Compare, s keyspan.Span, dst *k
 		Cmp:  cmp,
 		Keys: ui.bufs.sortBuf.Keys[:0],
 	}
-	coalesce(ui.comparer.Equal, &ui.bufs.sortBuf, ui.snapshot, s.Keys)
+	if err := coalesce(ui.comparer.Equal, &ui.bufs.sortBuf, ui.snapshot, s.Keys); err != nil {
+		return err
+	}
 	if ui.internalKeys {
 		if s.KeysOrder != keyspan.ByTrailerDesc {
 			panic("unexpected key ordering in UserIteratorTransform with internalKeys = true")
@@ -274,23 +276,26 @@ func (ui *UserIteratorConfig) ShouldDefragment(equal base.Equal, a, b *keyspan.S
 // set or unset but not both.
 //
 // The resulting dst Keys slice is sorted by Trailer.
-func Coalesce(cmp base.Compare, eq base.Equal, keys []keyspan.Key, dst *[]keyspan.Key) {
+func Coalesce(cmp base.Compare, eq base.Equal, keys []keyspan.Key, dst *[]keyspan.Key) error {
 	// TODO(jackson): Currently, Coalesce doesn't actually perform the sequence
 	// number promotion described in the comment above.
 	keysBySuffix := keyspan.KeysBySuffix{
 		Cmp:  cmp,
 		Keys: (*dst)[:0],
 	}
-	coalesce(eq, &keysBySuffix, math.MaxUint64, keys)
+	if err := coalesce(eq, &keysBySuffix, math.MaxUint64, keys); err != nil {
+		return err
+	}
 	// Update the span with the (potentially reduced) keys slice. coalesce left
 	// the keys in *dst sorted by suffix. Re-sort them by trailer.
 	*dst = keysBySuffix.Keys
 	keyspan.SortKeysByTrailer(dst)
+	return nil
 }
 
 func coalesce(
 	equal base.Equal, keysBySuffix *keyspan.KeysBySuffix, snapshot uint64, keys []keyspan.Key,
-) {
+) error {
 	// First, enforce visibility and RangeKeyDelete mechanics. We only need to
 	// consider the prefix of keys before and including the first
 	// RangeKeyDelete. We also must skip any keys that aren't visible at the
@@ -371,60 +376,5 @@ func coalesce(
 	if deleteIdx >= 0 {
 		keysBySuffix.Keys = append(keysBySuffix.Keys, keys[deleteIdx])
 	}
-}
-
-// ForeignSSTTransformer implements a keyspan.Transformer for range keys in
-// shared ingested sstables. It is largely similar to the Transform function
-// implemented in UserIteratorConfig in that it calls coalesce to remove range
-// keys shadowed by other range keys, but also retains the range key that does
-// the shadowing. In addition, it elides RangeKey unsets/dels in L6 as they are
-// inapplicable when reading from a different Pebble instance. Finally, it
-// returns keys sorted in trailer order, not suffix order, as that's what the
-// rest of the iterator stack expects.
-type ForeignSSTTransformer struct {
-	Equal   base.Equal
-	SeqNum  uint64
-	sortBuf keyspan.KeysBySuffix
-}
-
-// Transform implements the Transformer interface.
-func (f *ForeignSSTTransformer) Transform(
-	cmp base.Compare, s keyspan.Span, dst *keyspan.Span,
-) error {
-	// Apply shadowing of keys.
-	dst.Start = s.Start
-	dst.End = s.End
-	f.sortBuf = keyspan.KeysBySuffix{
-		Cmp:  cmp,
-		Keys: f.sortBuf.Keys[:0],
-	}
-	coalesce(f.Equal, &f.sortBuf, math.MaxUint64, s.Keys)
-	keys := f.sortBuf.Keys
-	dst.Keys = dst.Keys[:0]
-	for i := range keys {
-		switch keys[i].Kind() {
-		case base.InternalKeyKindRangeKeySet:
-			if invariants.Enabled && len(dst.Keys) > 0 && cmp(dst.Keys[len(dst.Keys)-1].Suffix, keys[i].Suffix) > 0 {
-				panic("pebble: keys unexpectedly not in ascending suffix order")
-			}
-		case base.InternalKeyKindRangeKeyUnset:
-			if invariants.Enabled && len(dst.Keys) > 0 && cmp(dst.Keys[len(dst.Keys)-1].Suffix, keys[i].Suffix) > 0 {
-				panic("pebble: keys unexpectedly not in ascending suffix order")
-			}
-		case base.InternalKeyKindRangeKeyDelete:
-			// Nothing to do.
-		default:
-			return base.CorruptionErrorf("pebble: unrecognized range key kind %s", keys[i].Kind())
-		}
-		dst.Keys = append(dst.Keys, keyspan.Key{
-			Trailer: base.MakeTrailer(f.SeqNum, keys[i].Kind()),
-			Suffix:  keys[i].Suffix,
-			Value:   keys[i].Value,
-		})
-	}
-	// coalesce results in dst.Keys being sorted by Suffix. Change it back to
-	// ByTrailerDesc, as that's what the iterator stack will expect.
-	keyspan.SortKeysByTrailer(&dst.Keys)
-	dst.KeysOrder = keyspan.ByTrailerDesc
 	return nil
 }

@@ -18,19 +18,17 @@ package wormhole
 
 import (
 	"errors"
+	"net"
+	"net/url"
+	"strings"
+	"time"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"net"
-	"net/url"
-	"time"
-	//"sync"
-
-	resty "github.com/go-resty/resty/v2"
-
 	mapset "github.com/deckarep/golang-set/v2"
-
-	"strings"
+	resty "github.com/go-resty/resty/v2"
+	//"sync"
 )
 
 type Wormhole struct {

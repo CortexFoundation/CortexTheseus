@@ -18,6 +18,10 @@ package backend
 
 import (
 	"errors"
+	"sort"
+	"strconv"
+	"time"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/log"
@@ -25,9 +29,6 @@ import (
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
 	bolt "go.etcd.io/bbolt"
-	"sort"
-	"strconv"
-	"time"
 )
 
 func (fs *ChainDB) Leaves() []merkletree.Content {

@@ -7,11 +7,9 @@ package pebble
 import (
 	"context"
 	"fmt"
-	"io"
 	"sync/atomic"
 	"time"
 
-	"github.com/cockroachdb/pebble/internal/base"
 	"github.com/cockroachdb/pebble/internal/keyspan"
 	"github.com/cockroachdb/pebble/internal/manifest"
 )
@@ -31,35 +29,6 @@ type flushable interface {
 	// memTable.readyForFlush for one implementation which needs to check whether
 	// there are any outstanding write references.
 	readyForFlush() bool
-	// computePossibleOverlaps determines whether the flushable's keys overlap
-	// with the bounds of any of the provided bounded items. If an item overlaps
-	// or might overlap but it's not possible to determine overlap cheaply,
-	// computePossibleOverlaps invokes the provided function with the object
-	// that might overlap. computePossibleOverlaps must not perform any I/O and
-	// implementations should invoke the provided function for items that would
-	// require I/O to determine overlap.
-	computePossibleOverlaps(overlaps func(bounded) shouldContinue, bounded ...bounded)
-}
-
-type shouldContinue bool
-
-const (
-	continueIteration shouldContinue = true
-	stopIteration                    = false
-)
-
-type bounded interface {
-	// InternalKeyBounds returns a start key and an end key. Both bounds are
-	// inclusive.
-	InternalKeyBounds() (InternalKey, InternalKey)
-}
-
-func sliceAsBounded[B bounded](s []B) []bounded {
-	ret := make([]bounded, len(s))
-	for i := 0; i < len(s); i++ {
-		ret[i] = s[i]
-	}
-	return ret
 }
 
 // flushableEntry wraps a flushable and adds additional metadata and
@@ -77,7 +46,7 @@ type flushableEntry struct {
 	delayedFlushForcedAt time.Time
 	// logNum corresponds to the WAL that contains the records present in the
 	// receiver.
-	logNum base.DiskFileNum
+	logNum FileNum
 	// logSize is the size in bytes of the associated WAL. Protected by DB.mu.
 	logSize uint64
 	// The current logSeqNum at the time the memtable was created. This is
@@ -201,8 +170,7 @@ func (s *ingestedFlushable) newIter(o *IterOptions) internalIterator {
 	// aren't truly levels in the lsm. Right now, the encoding only supports
 	// L0 sublevels, and the rest of the levels in the lsm.
 	return newLevelIter(
-		context.Background(), opts, s.comparer, s.newIters, s.slice.Iter(), manifest.Level(0),
-		internalIterOpts{},
+		opts, s.comparer, s.newIters, s.slice.Iter(), manifest.Level(0), internalIterOpts{},
 	)
 }
 
@@ -219,7 +187,7 @@ func (s *ingestedFlushable) constructRangeDelIter(
 ) (keyspan.FragmentIterator, error) {
 	// Note that the keyspan level iter expects a non-nil iterator to be
 	// returned even if there is an error. So, we return the emptyKeyspanIter.
-	iter, rangeDelIter, err := s.newIters.TODO(context.Background(), file, nil, internalIterOpts{})
+	iter, rangeDelIter, err := s.newIters(context.Background(), file, nil, internalIterOpts{})
 	if err != nil {
 		return emptyKeyspanIter, err
 	}
@@ -233,9 +201,6 @@ func (s *ingestedFlushable) constructRangeDelIter(
 // newRangeDelIter is part of the flushable interface.
 // TODO(bananabrick): Using a level iter instead of a keyspan level iter to
 // surface range deletes is more efficient.
-//
-// TODO(sumeer): *IterOptions are being ignored, so the index block load for
-// the point iterator in constructRangeDeIter is not tracked.
 func (s *ingestedFlushable) newRangeDelIter(_ *IterOptions) keyspan.FragmentIterator {
 	return keyspan.NewLevelIter(
 		keyspan.SpanIterOptions{}, s.comparer.Compare,
@@ -281,67 +246,4 @@ func (s *ingestedFlushable) readyForFlush() bool {
 	// ingested sstables need an updated view of the Version to
 	// determine where to place the files in the lsm.
 	return true
-}
-
-// computePossibleOverlaps is part of the flushable interface.
-func (s *ingestedFlushable) computePossibleOverlaps(
-	fn func(bounded) shouldContinue, bounded ...bounded,
-) {
-	for i := range bounded {
-		smallest, largest := bounded[i].InternalKeyBounds()
-		for j := 0; j < len(s.files); j++ {
-			if sstableKeyCompare(s.comparer.Compare, s.files[j].Largest, smallest) >= 0 {
-				// This file's largest key is larger than smallest. Either the
-				// file overlaps the bounds, or it lies strictly after the
-				// bounds. Either way we can stop iterating since the files are
-				// sorted. But first, determine if there's overlap and call fn
-				// if necessary.
-				if sstableKeyCompare(s.comparer.Compare, s.files[j].Smallest, largest) <= 0 {
-					// The file overlaps in key boundaries. The file doesn't necessarily
-					// contain any keys within the key range, but we would need to
-					// perform I/O to know for sure. The flushable interface dictates
-					// that we're not permitted to perform I/O here, so err towards
-					// assuming overlap.
-					if !fn(bounded[i]) {
-						return
-					}
-				}
-				break
-			}
-		}
-	}
-}
-
-// computePossibleOverlapsGenericImpl is an implemention of the flushable
-// interface's computePossibleOverlaps function for flushable implementations
-// with only in-memory state that do not have special requirements and should
-// read through the ordinary flushable iterators.
-//
-// This function must only be used with implementations that are infallible (eg,
-// memtable iterators) and will panic if an error is encountered.
-func computePossibleOverlapsGenericImpl[F flushable](
-	f F, cmp Compare, fn func(bounded) shouldContinue, bounded []bounded,
-) {
-	iter := f.newIter(nil)
-	rangeDelIter := f.newRangeDelIter(nil)
-	rkeyIter := f.newRangeKeyIter(nil)
-	for _, b := range bounded {
-		s, l := b.InternalKeyBounds()
-		kr := internalKeyRange{s, l}
-		if overlapWithIterator(iter, &rangeDelIter, rkeyIter, kr, cmp) {
-			if !fn(b) {
-				break
-			}
-		}
-	}
-
-	for _, c := range [3]io.Closer{iter, rangeDelIter, rkeyIter} {
-		if c != nil {
-			if err := c.Close(); err != nil {
-				// This implementation must be used in circumstances where
-				// reading through the iterator is infallible.
-				panic(err)
-			}
-		}
-	}
 }

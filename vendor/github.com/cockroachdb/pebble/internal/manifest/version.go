@@ -6,7 +6,6 @@ package manifest
 
 import (
 	"bytes"
-	stdcmp "cmp"
 	"fmt"
 	"sort"
 	"strconv"
@@ -269,40 +268,6 @@ type FileMetadata struct {
 	boundTypeSmallest, boundTypeLargest boundType
 	// Virtual is true if the FileMetadata belongs to a virtual sstable.
 	Virtual bool
-
-	// PrefixReplacement is used for virtual files where the backing file has a
-	// different prefix on its keys than the span in which it is being exposed.
-	PrefixReplacement *PrefixReplacement
-}
-
-// InternalKeyBounds returns the set of overall table bounds.
-func (m *FileMetadata) InternalKeyBounds() (InternalKey, InternalKey) {
-	return m.Smallest, m.Largest
-}
-
-// PrefixReplacement represents a read-time replacement of a key prefix.
-type PrefixReplacement struct {
-	ContentPrefix, SyntheticPrefix []byte
-}
-
-// ReplaceArg replaces the new prefix in the argument with the original prefix.
-func (p *PrefixReplacement) ReplaceArg(src []byte) []byte {
-	return p.replace(src, p.SyntheticPrefix, p.ContentPrefix)
-}
-
-// ReplaceResult replaces the original prefix in the result with the new prefix.
-func (p *PrefixReplacement) ReplaceResult(key []byte) []byte {
-	return p.replace(key, p.ContentPrefix, p.SyntheticPrefix)
-}
-
-func (p *PrefixReplacement) replace(key, from, to []byte) []byte {
-	if !bytes.HasPrefix(key, from) {
-		panic(fmt.Sprintf("unexpected prefix in replace: %s", key))
-	}
-	result := make([]byte, 0, len(to)+(len(key)-len(from)))
-	result = append(result, to...)
-	result = append(result, key[len(from):]...)
-	return result
 }
 
 // PhysicalFileMeta is used by functions which want a guarantee that their input
@@ -422,10 +387,7 @@ func (m *FileMetadata) InitPhysicalBacking() {
 		panic("pebble: virtual sstables should use a pre-existing FileBacking")
 	}
 	if m.FileBacking == nil {
-		m.FileBacking = &FileBacking{
-			DiskFileNum: base.PhysicalTableDiskFileNum(m.FileNum),
-			Size:        m.Size,
-		}
+		m.FileBacking = &FileBacking{Size: m.Size, DiskFileNum: m.FileNum.DiskFileNum()}
 	}
 }
 
@@ -888,18 +850,6 @@ func (m *FileMetadata) Validate(cmp Compare, formatKey base.FormatKey) error {
 		return base.CorruptionErrorf("file metadata FileBacking not set")
 	}
 
-	if m.PrefixReplacement != nil {
-		if !m.Virtual {
-			return base.CorruptionErrorf("prefix replacement rule set with non-virtual file")
-		}
-		if !bytes.HasPrefix(m.Smallest.UserKey, m.PrefixReplacement.SyntheticPrefix) {
-			return base.CorruptionErrorf("virtual file with prefix replacement rules has smallest key with a different prefix: %s", m.Smallest.Pretty(formatKey))
-		}
-		if !bytes.HasPrefix(m.Largest.UserKey, m.PrefixReplacement.SyntheticPrefix) {
-			return base.CorruptionErrorf("virtual file with prefix replacement rules has largest key with a different prefix: %s", m.Largest.Pretty(formatKey))
-		}
-	}
-
 	return nil
 }
 
@@ -916,19 +866,30 @@ func (m *FileMetadata) TableInfo() TableInfo {
 	}
 }
 
+func cmpUint64(a, b uint64) int {
+	switch {
+	case a < b:
+		return -1
+	case a > b:
+		return +1
+	default:
+		return 0
+	}
+}
+
 func (m *FileMetadata) cmpSeqNum(b *FileMetadata) int {
 	// NB: This is the same ordering that RocksDB uses for L0 files.
 
 	// Sort first by largest sequence number.
-	if v := stdcmp.Compare(m.LargestSeqNum, b.LargestSeqNum); v != 0 {
-		return v
+	if m.LargestSeqNum != b.LargestSeqNum {
+		return cmpUint64(m.LargestSeqNum, b.LargestSeqNum)
 	}
 	// Then by smallest sequence number.
-	if v := stdcmp.Compare(m.SmallestSeqNum, b.SmallestSeqNum); v != 0 {
-		return v
+	if m.SmallestSeqNum != b.SmallestSeqNum {
+		return cmpUint64(m.SmallestSeqNum, b.SmallestSeqNum)
 	}
 	// Break ties by file number.
-	return stdcmp.Compare(m.FileNum, b.FileNum)
+	return cmpUint64(uint64(m.FileNum), uint64(b.FileNum))
 }
 
 func (m *FileMetadata) lessSeqNum(b *FileMetadata) bool {
@@ -1287,119 +1248,6 @@ func (v *Version) InitL0Sublevels(
 	return err
 }
 
-// CalculateInuseKeyRanges examines file metadata in levels [level, maxLevel]
-// within bounds [smallest,largest], returning an ordered slice of key ranges
-// that include all keys that exist within levels [level, maxLevel] and within
-// [smallest,largest].
-func (v *Version) CalculateInuseKeyRanges(
-	cmp base.Compare, level, maxLevel int, smallest, largest []byte,
-) []UserKeyRange {
-	// Use two slices, alternating which one is input and which one is output
-	// as we descend the LSM.
-	var input, output []UserKeyRange
-
-	// L0 requires special treatment, since sstables within L0 may overlap.
-	// We use the L0 Sublevels structure to efficiently calculate the merged
-	// in-use key ranges.
-	if level == 0 {
-		output = v.L0Sublevels.InUseKeyRanges(smallest, largest)
-		level++
-	}
-
-	for ; level <= maxLevel; level++ {
-		// NB: We always treat `largest` as inclusive for simplicity, because
-		// there's little consequence to calculating slightly broader in-use key
-		// ranges.
-		overlaps := v.Overlaps(level, cmp, smallest, largest, false /* exclusiveEnd */)
-		iter := overlaps.Iter()
-
-		// We may already have in-use key ranges from higher levels. Iterate
-		// through both our accumulated in-use key ranges and this level's
-		// files, merging the two.
-		//
-		// Tables higher within the LSM have broader key spaces. We use this
-		// when possible to seek past a level's files that are contained by
-		// our current accumulated in-use key ranges. This helps avoid
-		// per-sstable work during flushes or compactions in high levels which
-		// overlap the majority of the LSM's sstables.
-		input, output = output, input
-		output = output[:0]
-
-		var currFile *FileMetadata
-		var currAccum *UserKeyRange
-		if len(input) > 0 {
-			currAccum, input = &input[0], input[1:]
-		}
-
-		// If we have an accumulated key range and its start is ≤ smallest,
-		// we can seek to the accumulated range's end. Otherwise, we need to
-		// start at the first overlapping file within the level.
-		if currAccum != nil && cmp(currAccum.Start, smallest) <= 0 {
-			currFile = seekGT(&iter, cmp, currAccum.End)
-		} else {
-			currFile = iter.First()
-		}
-
-		for currFile != nil || currAccum != nil {
-			// If we've exhausted either the files in the level or the
-			// accumulated key ranges, we just need to append the one we have.
-			// If we have both a currFile and a currAccum, they either overlap
-			// or they're disjoint. If they're disjoint, we append whichever
-			// one sorts first and move on to the next file or range. If they
-			// overlap, we merge them into currAccum and proceed to the next
-			// file.
-			switch {
-			case currAccum == nil || (currFile != nil && cmp(currFile.Largest.UserKey, currAccum.Start) < 0):
-				// This file is strictly before the current accumulated range,
-				// or there are no more accumulated ranges.
-				output = append(output, UserKeyRange{
-					Start: currFile.Smallest.UserKey,
-					End:   currFile.Largest.UserKey,
-				})
-				currFile = iter.Next()
-			case currFile == nil || (currAccum != nil && cmp(currAccum.End, currFile.Smallest.UserKey) < 0):
-				// The current accumulated key range is strictly before the
-				// current file, or there are no more files.
-				output = append(output, *currAccum)
-				currAccum = nil
-				if len(input) > 0 {
-					currAccum, input = &input[0], input[1:]
-				}
-			default:
-				// The current accumulated range and the current file overlap.
-				// Adjust the accumulated range to be the union.
-				if cmp(currFile.Smallest.UserKey, currAccum.Start) < 0 {
-					currAccum.Start = currFile.Smallest.UserKey
-				}
-				if cmp(currFile.Largest.UserKey, currAccum.End) > 0 {
-					currAccum.End = currFile.Largest.UserKey
-				}
-
-				// Extending `currAccum`'s end boundary may have caused it to
-				// overlap with `input` key ranges that we haven't processed
-				// yet. Merge any such key ranges.
-				for len(input) > 0 && cmp(input[0].Start, currAccum.End) <= 0 {
-					if cmp(input[0].End, currAccum.End) > 0 {
-						currAccum.End = input[0].End
-					}
-					input = input[1:]
-				}
-				// Seek the level iterator past our current accumulated end.
-				currFile = seekGT(&iter, cmp, currAccum.End)
-			}
-		}
-	}
-	return output
-}
-
-func seekGT(iter *LevelIterator, cmp base.Compare, key []byte) *FileMetadata {
-	f := iter.SeekGE(cmp, key)
-	for f != nil && cmp(f.Largest.UserKey, key) == 0 {
-		f = iter.Next()
-	}
-	return f
-}
-
 // Contains returns a boolean indicating whether the provided file exists in
 // the version at the given level. If level is non-zero then Contains binary
 // searches among the files. If level is zero, Contains scans the entire
@@ -1505,16 +1353,20 @@ func (v *Version) Overlaps(
 // CheckOrdering checks that the files are consistent with respect to
 // increasing file numbers (for level 0 files) and increasing and non-
 // overlapping internal key ranges (for level non-0 files).
-func (v *Version) CheckOrdering(cmp Compare, format base.FormatKey) error {
+func (v *Version) CheckOrdering(
+	cmp Compare, format base.FormatKey, order OrderingInvariants,
+) error {
 	for sublevel := len(v.L0SublevelFiles) - 1; sublevel >= 0; sublevel-- {
 		sublevelIter := v.L0SublevelFiles[sublevel].Iter()
-		if err := CheckOrdering(cmp, format, L0Sublevel(sublevel), sublevelIter); err != nil {
+		// Sublevels have NEVER allowed split user keys, so we can pass
+		// ProhibitSplitUserKeys.
+		if err := CheckOrdering(cmp, format, L0Sublevel(sublevel), sublevelIter, ProhibitSplitUserKeys); err != nil {
 			return base.CorruptionErrorf("%s\n%s", err, v.DebugString(format))
 		}
 	}
 
 	for level, lm := range v.Levels {
-		if err := CheckOrdering(cmp, format, Level(level), lm.Iter()); err != nil {
+		if err := CheckOrdering(cmp, format, Level(level), lm.Iter(), order); err != nil {
 			return base.CorruptionErrorf("%s\n%s", err, v.DebugString(format))
 		}
 	}
@@ -1583,10 +1435,34 @@ func (l *VersionList) Remove(v *Version) {
 	v.list = nil // avoid memory leaks
 }
 
+// OrderingInvariants dictates the file ordering invariants active.
+type OrderingInvariants int8
+
+const (
+	// ProhibitSplitUserKeys indicates that adjacent files within a level cannot
+	// contain the same user key.
+	ProhibitSplitUserKeys OrderingInvariants = iota
+	// AllowSplitUserKeys indicates that adjacent files within a level may
+	// contain the same user key. This is only allowed by historical format
+	// major versions.
+	//
+	// TODO(jackson): Remove.
+	AllowSplitUserKeys
+)
+
 // CheckOrdering checks that the files are consistent with respect to
 // seqnums (for level 0 files -- see detailed comment below) and increasing and non-
 // overlapping internal key ranges (for non-level 0 files).
-func CheckOrdering(cmp Compare, format base.FormatKey, level Level, files LevelIterator) error {
+//
+// The ordering field may be passed AllowSplitUserKeys to allow adjacent files that are both
+// inclusive of the same user key. Pebble no longer creates version edits
+// installing such files, and Pebble databases with sufficiently high format
+// major version should no longer have any such files within their LSM.
+// TODO(jackson): Remove AllowSplitUserKeys when we remove support for the
+// earlier format major versions.
+func CheckOrdering(
+	cmp Compare, format base.FormatKey, level Level, files LevelIterator, ordering OrderingInvariants,
+) error {
 	// The invariants to check for L0 sublevels are the same as the ones to
 	// check for all other levels. However, if L0 is not organized into
 	// sublevels, or if all L0 files are being passed in, we do the legacy L0
@@ -1665,15 +1541,28 @@ func CheckOrdering(cmp Compare, format base.FormatKey, level Level, files LevelI
 						f.Smallest.Pretty(format), f.Largest.Pretty(format))
 				}
 
-				// In all supported format major version, split user keys are
-				// prohibited, so both files cannot contain keys with the same user
-				// keys. If the bounds have the same user key, the previous file's
-				// boundary must have a Trailer indicating that it's exclusive.
-				if v := cmp(prev.Largest.UserKey, f.Smallest.UserKey); v > 0 || (v == 0 && !prev.Largest.IsExclusiveSentinel()) {
-					return base.CorruptionErrorf("%s files %s and %s have overlapping ranges: [%s-%s] vs [%s-%s]",
-						errors.Safe(level), errors.Safe(prev.FileNum), errors.Safe(f.FileNum),
-						prev.Smallest.Pretty(format), prev.Largest.Pretty(format),
-						f.Smallest.Pretty(format), f.Largest.Pretty(format))
+				// What's considered "overlapping" is dependent on the format
+				// major version. If ordering=ProhibitSplitUserKeys, then both
+				// files cannot contain keys with the same user keys. If the
+				// bounds have the same user key, the previous file's boundary
+				// must have a Trailer indicating that it's exclusive.
+				switch ordering {
+				case AllowSplitUserKeys:
+					if base.InternalCompare(cmp, prev.Largest, f.Smallest) >= 0 {
+						return base.CorruptionErrorf("%s files %s and %s have overlapping ranges: [%s-%s] vs [%s-%s]",
+							errors.Safe(level), errors.Safe(prev.FileNum), errors.Safe(f.FileNum),
+							prev.Smallest.Pretty(format), prev.Largest.Pretty(format),
+							f.Smallest.Pretty(format), f.Largest.Pretty(format))
+					}
+				case ProhibitSplitUserKeys:
+					if v := cmp(prev.Largest.UserKey, f.Smallest.UserKey); v > 0 || (v == 0 && !prev.Largest.IsExclusiveSentinel()) {
+						return base.CorruptionErrorf("%s files %s and %s have overlapping ranges: [%s-%s] vs [%s-%s]",
+							errors.Safe(level), errors.Safe(prev.FileNum), errors.Safe(f.FileNum),
+							prev.Smallest.Pretty(format), prev.Largest.Pretty(format),
+							f.Smallest.Pretty(format), f.Largest.Pretty(format))
+					}
+				default:
+					panic("unreachable")
 				}
 			}
 		}

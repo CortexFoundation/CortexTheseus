@@ -18,20 +18,22 @@ package backend
 
 import (
 	"encoding/binary"
+	"os"
+	"path/filepath"
+	"strconv"
+	"sync"
+	"sync/atomic"
+	"time"
+
 	"github.com/CortexFoundation/merkletree"
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
-	"sync"
-	"sync/atomic"
+
 	//lru "github.com/hashicorp/golang-lru"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/google/uuid"
 	bolt "go.etcd.io/bbolt"
-	"os"
-	"path/filepath"
-	"strconv"
-	"time"
 )
 
 type ChainDB struct {

@@ -5,11 +5,10 @@
 package objstorageprovider
 
 import (
-	"cmp"
 	"context"
 	"io"
 	"os"
-	"slices"
+	"sort"
 	"sync"
 
 	"github.com/cockroachdb/errors"
@@ -256,7 +255,7 @@ func (p *provider) Create(
 		w, meta, err = p.vfsCreate(ctx, fileType, fileNum)
 	}
 	if err != nil {
-		err = errors.Wrapf(err, "creating object %s", fileNum)
+		err = errors.Wrapf(err, "creating object %s", errors.Safe(fileNum))
 		return nil, objstorage.ObjectMetadata{}, err
 	}
 	p.addMetadata(meta)
@@ -293,7 +292,7 @@ func (p *provider) Remove(fileType base.FileType, fileNum base.DiskFileNum) erro
 		// We want to be able to retry a Remove, so we keep the object in our list.
 		// TODO(radu): we should mark the object as "zombie" and not allow any other
 		// operations.
-		return errors.Wrapf(err, "removing object %s", fileNum)
+		return errors.Wrapf(err, "removing object %s", errors.Safe(fileNum))
 	}
 
 	p.removeMetadata(fileNum)
@@ -405,13 +404,13 @@ func (p *provider) Lookup(
 		return objstorage.ObjectMetadata{}, errors.Wrapf(
 			os.ErrNotExist,
 			"file %s (type %d) unknown to the objstorage provider",
-			fileNum, errors.Safe(fileType),
+			errors.Safe(fileNum), errors.Safe(fileType),
 		)
 	}
 	if meta.FileType != fileType {
 		return objstorage.ObjectMetadata{}, errors.AssertionFailedf(
 			"file %s type mismatch (known type %d, expected type %d)",
-			fileNum, errors.Safe(meta.FileType), errors.Safe(fileType),
+			errors.Safe(fileNum), errors.Safe(meta.FileType), errors.Safe(fileType),
 		)
 	}
 	return meta, nil
@@ -441,8 +440,8 @@ func (p *provider) List() []objstorage.ObjectMetadata {
 	for _, meta := range p.mu.knownObjects {
 		res = append(res, meta)
 	}
-	slices.SortFunc(res, func(a, b objstorage.ObjectMetadata) int {
-		return cmp.Compare(a.DiskFileNum, b.DiskFileNum)
+	sort.Slice(res, func(i, j int) bool {
+		return res[i].DiskFileNum.FileNum() < res[j].DiskFileNum.FileNum()
 	})
 	return res
 }
@@ -456,25 +455,20 @@ func (p *provider) Metrics() sharedcache.Metrics {
 }
 
 func (p *provider) addMetadata(meta objstorage.ObjectMetadata) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	p.addMetadataLocked(meta)
-}
-
-func (p *provider) addMetadataLocked(meta objstorage.ObjectMetadata) {
 	if invariants.Enabled {
 		meta.AssertValid()
 	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	p.mu.knownObjects[meta.DiskFileNum] = meta
 	if meta.IsRemote() {
 		p.mu.remote.catalogBatch.AddObject(remoteobjcat.RemoteObjectMetadata{
-			FileNum:          meta.DiskFileNum,
-			FileType:         meta.FileType,
-			CreatorID:        meta.Remote.CreatorID,
-			CreatorFileNum:   meta.Remote.CreatorFileNum,
-			Locator:          meta.Remote.Locator,
-			CleanupMethod:    meta.Remote.CleanupMethod,
-			CustomObjectName: meta.Remote.CustomObjectName,
+			FileNum:        meta.DiskFileNum,
+			FileType:       meta.FileType,
+			CreatorID:      meta.Remote.CreatorID,
+			CreatorFileNum: meta.Remote.CreatorFileNum,
+			Locator:        meta.Remote.Locator,
+			CleanupMethod:  meta.Remote.CleanupMethod,
 		})
 	} else {
 		p.mu.localObjectsChanged = true

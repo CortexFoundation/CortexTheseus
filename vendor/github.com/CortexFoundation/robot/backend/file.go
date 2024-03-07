@@ -18,11 +18,12 @@ package backend
 
 import (
 	"encoding/json"
+	"time"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/torrentfs/types"
 	bolt "go.etcd.io/bbolt"
-	"time"
 )
 
 func (fs *ChainDB) Files() []*types.FileInfo {

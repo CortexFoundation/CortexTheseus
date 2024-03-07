@@ -3,11 +3,11 @@ package shard
 import (
 	"runtime"
 	"sync"
-	//"sync/atomic"
 
-	//"github.com/cespare/xxhash"
 	"github.com/tidwall/hashmap"
 	"github.com/zeebo/xxh3"
+	//"sync/atomic"
+	//"github.com/cespare/xxhash"
 )
 
 // Map is a hashmap. Like map[string]any, but sharded and thread-safe.

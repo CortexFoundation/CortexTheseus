@@ -19,12 +19,13 @@ package backend
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/torrentfs/types"
-	bolt "go.etcd.io/bbolt"
 	"sort"
 	"strconv"
 	"time"
+
+	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/torrentfs/types"
+	bolt "go.etcd.io/bbolt"
 )
 
 func (fs *ChainDB) Blocks() []*types.Block {

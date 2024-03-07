@@ -46,8 +46,8 @@ func RewriteKeySuffixes(
 // TODO(sumeer): document limitations, if any, due to this limited
 // re-computation of properties (is there any loss of fidelity?).
 //
-// Any block property collectors configured in the WriterOptions must implement
-// SuffixReplaceableBlockCollector.
+// Any block and table property collectors configured in the WriterOptions must
+// implement SuffixReplaceableTableCollector/SuffixReplaceableBlockCollector.
 //
 // The WriterOptions.TableFormat is ignored, and the output sstable has the
 // same TableFormat as the input, which is returned in case the caller wants
@@ -115,6 +115,12 @@ func rewriteKeySuffixesInBlocks(
 		}
 	}()
 
+	for _, c := range w.propCollectors {
+		if _, ok := c.(SuffixReplaceableTableCollector); !ok {
+			return nil, TableFormatUnspecified,
+				errors.Errorf("property collector %s does not support suffix replacement", c.Name())
+		}
+	}
 	for _, c := range w.blockPropCollectors {
 		if _, ok := c.(SuffixReplaceableBlockCollector); !ok {
 			return nil, TableFormatUnspecified,
@@ -325,6 +331,12 @@ func rewriteDataBlocksToWriter(
 		return err
 	}
 
+	for _, p := range w.propCollectors {
+		if err := p.(SuffixReplaceableTableCollector).UpdateKeySuffixes(r.Properties.UserProperties, from, to); err != nil {
+			return err
+		}
+	}
+
 	var decoder blockPropertiesDecoder
 	var oldShortIDs []shortID
 	var oldProps [][]byte
@@ -402,8 +414,7 @@ func rewriteRangeKeyBlockToWriter(r *Reader, w *Writer, from, to []byte) error {
 	}
 	defer iter.Close()
 
-	s, err := iter.First()
-	for ; s != nil; s, err = iter.Next() {
+	for s := iter.First(); s != nil; s = iter.Next() {
 		if !s.Valid() {
 			break
 		}
@@ -417,7 +428,7 @@ func rewriteRangeKeyBlockToWriter(r *Reader, w *Writer, from, to []byte) error {
 			s.Keys[i].Suffix = to
 		}
 
-		err = rangekey.Encode(s, func(k base.InternalKey, v []byte) error {
+		err := rangekey.Encode(s, func(k base.InternalKey, v []byte) error {
 			// Calling AddRangeKey instead of addRangeKeySpan bypasses the fragmenter.
 			// This is okay because the raw fragments off of `iter` are already
 			// fragmented, and suffix replacement should not affect fragmentation.
@@ -427,7 +438,8 @@ func rewriteRangeKeyBlockToWriter(r *Reader, w *Writer, from, to []byte) error {
 			return err
 		}
 	}
-	return err
+
+	return nil
 }
 
 type copyFilterWriter struct {

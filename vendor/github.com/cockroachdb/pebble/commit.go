@@ -10,7 +10,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/cockroachdb/pebble/batchrepr"
 	"github.com/cockroachdb/pebble/record"
 )
 
@@ -371,7 +370,7 @@ func (p *commitPipeline) AllocateSeqNum(
 
 	// Give the batch a count of 1 so that the log and visible sequence number
 	// are incremented correctly.
-	b.data = make([]byte, batchrepr.HeaderLen)
+	b.data = make([]byte, batchHeaderLen)
 	b.setCount(uint32(count))
 	b.commit.Add(1)
 

@@ -5,12 +5,10 @@
 package sstable
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 
 	"github.com/cockroachdb/pebble/internal/base"
-	"github.com/cockroachdb/pebble/internal/invariants"
 	"github.com/cockroachdb/pebble/objstorage/objstorageprovider/objiotracing"
 )
 
@@ -62,8 +60,7 @@ func (i *twoLevelIterator) loadIndex(dir int8) loadBlockResult {
 		// blockIntersects
 	}
 	ctx := objiotracing.WithBlockType(i.ctx, objiotracing.MetadataBlock)
-	indexBlock, err := i.reader.readBlock(
-		ctx, bhp.BlockHandle, nil /* transform */, nil /* readHandle */, i.stats, &i.iterStats, i.bufferPool)
+	indexBlock, err := i.reader.readBlock(ctx, bhp.BlockHandle, nil /* transform */, nil /* readHandle */, i.stats, i.bufferPool)
 	if err != nil {
 		i.err = err
 		return loadBlockFailed
@@ -78,7 +75,8 @@ func (i *twoLevelIterator) loadIndex(dir int8) loadBlockResult {
 // that an index block is excluded according to its properties but only if its
 // bounds fall within the filter's current bounds. This function consults the
 // apprioriate bound, depending on the iteration direction, and returns either
-// `blockIntersects` or `blockExcluded`.
+// `blockIntersects` or
+// `blockMaybeExcluded`.
 func (i *twoLevelIterator) resolveMaybeExcluded(dir int8) intersectsResult {
 	// This iterator is configured with a bound-limited block property filter.
 	// The bpf determined this entire index block could be excluded from
@@ -147,16 +145,13 @@ func (i *twoLevelIterator) init(
 	filterer *BlockPropertiesFilterer,
 	useFilter, hideObsoletePoints bool,
 	stats *base.InternalIteratorStats,
-	categoryAndQoS CategoryAndQoS,
-	statsCollector *CategoryStatsCollector,
 	rp ReaderProvider,
 	bufferPool *BufferPool,
 ) error {
 	if r.err != nil {
 		return r.err
 	}
-	i.iterStats.init(categoryAndQoS, statsCollector)
-	topLevelIndexH, err := r.readIndex(ctx, stats, &i.iterStats)
+	topLevelIndexH, err := r.readIndex(ctx, stats)
 	if err != nil {
 		return err
 	}
@@ -166,7 +161,6 @@ func (i *twoLevelIterator) init(
 		i.endKeyInclusive, lower, upper = v.constrainBounds(lower, upper, false /* endInclusive */)
 	}
 
-	i.inPool = false
 	i.ctx = ctx
 	i.lower = lower
 	i.upper = upper
@@ -187,6 +181,7 @@ func (i *twoLevelIterator) init(
 	if r.tableFormat >= TableFormatPebblev3 {
 		if r.Properties.NumValueBlocks > 0 {
 			i.vbReader = &valueBlockReader{
+				ctx:    ctx,
 				bpOpen: i,
 				rp:     rp,
 				vbih:   r.valueBIH,
@@ -426,7 +421,7 @@ func (i *twoLevelIterator) SeekPrefixGE(
 		}
 		i.lastBloomFilterMatched = false
 		var dataH bufferHandle
-		dataH, i.err = i.reader.readFilter(i.ctx, i.stats, &i.iterStats)
+		dataH, i.err = i.reader.readFilter(i.ctx, i.stats)
 		if i.err != nil {
 			i.data.invalidate()
 			return nil, base.LazyValue{}
@@ -569,66 +564,32 @@ func (i *twoLevelIterator) SeekPrefixGE(
 	return i.skipForward()
 }
 
-// virtualLast should only be called if i.vReader != nil.
+// virtualLast should only be called if i.vReader != nil and i.endKeyInclusive
+// is true.
 func (i *twoLevelIterator) virtualLast() (*InternalKey, base.LazyValue) {
 	if i.vState == nil {
 		panic("pebble: invalid call to virtualLast")
 	}
-	if !i.endKeyInclusive {
-		// Trivial case.
-		return i.SeekLT(i.upper, base.SeekLTFlagsNone)
-	}
-	return i.virtualLastSeekLE(i.upper)
-}
 
-// virtualLastSeekLE implements a SeekLE() that can be used as part
-// of reverse-iteration calls such as a Last() on a virtual sstable.
-func (i *twoLevelIterator) virtualLastSeekLE(key []byte) (*InternalKey, base.LazyValue) {
-	// Callers of SeekLE don't know about virtual sstable bounds, so we may
-	// have to internally restrict the bounds.
-	//
-	// TODO(bananabrick): We can optimize this check away for the level iter
-	// if necessary.
-	if i.cmp(key, i.upper) >= 0 {
-		if !i.endKeyInclusive {
-			panic("unexpected virtualLastSeekLE with exclusive upper bounds")
+	// Seek to the first internal key.
+	ikey, _ := i.SeekGE(i.upper, base.SeekGEFlagsNone)
+	if i.endKeyInclusive {
+		// Let's say the virtual sstable upper bound is c#1, with the keys c#3, c#2,
+		// c#1, d, e, ... in the sstable. So, the last key in the virtual sstable is
+		// c#1. We can perform SeekGE(i.upper) and then keep nexting until we find
+		// the last key with userkey == i.upper.
+		//
+		// TODO(bananabrick): Think about how to improve this. If many internal keys
+		// with the same user key at the upper bound then this could be slow, but
+		// maybe the odds of having many internal keys with the same user key at the
+		// upper bound are low.
+		for ikey != nil && i.cmp(ikey.UserKey, i.upper) == 0 {
+			ikey, _ = i.Next()
 		}
-		key = i.upper
+		return i.Prev()
 	}
-	// Need to position the topLevelIndex.
-	//
-	// The previous exhausted state of singleLevelIterator is no longer
-	// relevant, since we may be moving to a different index block.
-	i.exhaustedBounds = 0
-	// Seek optimization only applies until iterator is first positioned with a
-	// SeekGE or SeekLT after SetBounds.
-	i.boundsCmp = 0
-	i.maybeFilteredKeysTwoLevel = false
-	ikey, _ := i.topLevelIndex.SeekGE(key, base.SeekGEFlagsNone)
-	// We can have multiple internal keys with the same user key as the seek
-	// key. In that case, we want the last (greatest) internal key.
-	for ikey != nil && bytes.Equal(ikey.UserKey, key) {
-		ikey, _ = i.topLevelIndex.Next()
-	}
-	if ikey == nil {
-		return i.skipBackward()
-	}
-	result := i.loadIndex(-1)
-	if result == loadBlockFailed {
-		i.boundsCmp = 0
-		return nil, base.LazyValue{}
-	}
-	if result == loadBlockIrrelevant {
-		if i.lower != nil && i.cmp(ikey.UserKey, i.lower) < 0 {
-			i.exhaustedBounds = -1
-		}
-		// Load the previous block.
-		return i.skipBackward()
-	}
-	if ikey, val := i.singleLevelIterator.virtualLastSeekLE(key); ikey != nil {
-		return ikey, val
-	}
-	return i.skipBackward()
+	// We seeked to the first key >= i.upper.
+	return i.Prev()
 }
 
 // SeekLT implements internalIterator.SeekLT, as documented in the pebble
@@ -827,8 +788,6 @@ func (i *twoLevelIterator) Next() (*InternalKey, base.LazyValue) {
 	i.boundsCmp = 0
 	i.maybeFilteredKeysTwoLevel = false
 	if i.err != nil {
-		// TODO(jackson): Can this case be turned into a panic? Once an error is
-		// encountered, the iterator must be re-seeked.
 		return nil, base.LazyValue{}
 	}
 	if key, val := i.singleLevelIterator.Next(); key != nil {
@@ -846,8 +805,6 @@ func (i *twoLevelIterator) NextPrefix(succKey []byte) (*InternalKey, base.LazyVa
 	i.boundsCmp = 0
 	i.maybeFilteredKeysTwoLevel = false
 	if i.err != nil {
-		// TODO(jackson): Can this case be turned into a panic? Once an error is
-		// encountered, the iterator must be re-seeked.
 		return nil, base.LazyValue{}
 	}
 	if key, val := i.singleLevelIterator.NextPrefix(succKey); key != nil {
@@ -984,10 +941,6 @@ func (i *twoLevelIterator) skipBackward() (*InternalKey, base.LazyValue) {
 // Close implements internalIterator.Close, as documented in the pebble
 // package.
 func (i *twoLevelIterator) Close() error {
-	if invariants.Enabled && i.inPool {
-		panic("Close called on interator in pool")
-	}
-	i.iterStats.close()
 	var err error
 	if i.closeHook != nil {
 		err = firstError(err, i.closeHook(i))

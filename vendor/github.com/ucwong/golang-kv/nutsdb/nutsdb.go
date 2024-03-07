@@ -21,9 +21,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/ucwong/golang-kv/common"
-
 	nutsdb "github.com/nutsdb/nutsdb"
+
+	"github.com/ucwong/golang-kv/common"
 )
 
 type NutsDB struct {

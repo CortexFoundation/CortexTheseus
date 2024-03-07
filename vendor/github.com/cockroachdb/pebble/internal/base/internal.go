@@ -5,7 +5,6 @@
 package base // import "github.com/cockroachdb/pebble/internal/base"
 
 import (
-	"cmp"
 	"encoding/binary"
 	"fmt"
 	"strconv"
@@ -79,9 +78,6 @@ const (
 	// space. See the internal/rangekey package for more details.
 	InternalKeyKindRangeKeyUnset InternalKeyKind = 20
 	InternalKeyKindRangeKeySet   InternalKeyKind = 21
-
-	InternalKeyKindRangeKeyMin InternalKeyKind = InternalKeyKindRangeKeyDelete
-	InternalKeyKindRangeKeyMax InternalKeyKind = InternalKeyKindRangeKeySet
 
 	// InternalKeyKindIngestSST is used to distinguish a batch that corresponds to
 	// the WAL entry for ingested sstables that are added to the flushable
@@ -310,8 +306,13 @@ func InternalCompare(userCmp Compare, a, b InternalKey) int {
 	if x := userCmp(a.UserKey, b.UserKey); x != 0 {
 		return x
 	}
-	// Reverse order for trailer comparison.
-	return cmp.Compare(b.Trailer, a.Trailer)
+	if a.Trailer > b.Trailer {
+		return -1
+	}
+	if a.Trailer < b.Trailer {
+		return 1
+	}
+	return 0
 }
 
 // Encode encodes the receiver into the buffer. The buffer must be large enough

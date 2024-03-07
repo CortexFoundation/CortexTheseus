@@ -18,13 +18,14 @@ package robot
 
 import (
 	"errors"
+	"strconv"
+	"time"
+
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
-	"strconv"
-	"time"
 )
 
 // SetConnection method builds connection to remote or local communicator.
