@@ -136,6 +136,9 @@ type Logger interface {
 
 	// Enabled reports whether l emits log records at the given context and level.
 	Enabled(ctx context.Context, level slog.Level) bool
+
+	// Handler returns the underlying handler of the inner logger.
+	Handler() slog.Handler
 }
 
 type logger struct {
@@ -147,6 +150,10 @@ func NewLogger(h slog.Handler) Logger {
 	return &logger{
 		slog.New(h),
 	}
+}
+
+func (l *logger) Handler() slog.Handler {
+	return l.inner.Handler()
 }
 
 // write logs a message at the specified level:
