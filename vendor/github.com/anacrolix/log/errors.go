@@ -7,6 +7,10 @@ type errorWithLevel struct {
 	error
 }
 
+func (me errorWithLevel) Unwrap() error {
+	return me.error
+}
+
 // Extracts the most recent error level added to err with [WithLevel], or NotSet.
 func ErrorLevel(err error) Level {
 	var withLevel errorWithLevel

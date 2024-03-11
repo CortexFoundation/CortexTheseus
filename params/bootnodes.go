@@ -21,7 +21,7 @@ import "github.com/CortexFoundation/CortexTheseus/common"
 // MainnetBootnodes are the enode URLs of the P2P bootstrap nodes running on
 // the main Cortex network.
 var MainnetBootnodes = []string{
-	"enode://953226ae83e451fd78fe37bbedc55892f3e3407ae2f0c6a043ff35699fa8d45829a2490b05ce8c5de5f0b9af1b67fd5c1701eea7573a587abe0a7f8e93e5c694@35.178.69.64:40404",   // UK ipfs4
+	//"enode://953226ae83e451fd78fe37bbedc55892f3e3407ae2f0c6a043ff35699fa8d45829a2490b05ce8c5de5f0b9af1b67fd5c1701eea7573a587abe0a7f8e93e5c694@35.178.69.64:40404",   // UK ipfs4
 	"enode://78f3feb1781f61a6a52abeaeeefeddec5b52383d0b1d0cf2a14c92ba90dc60ff010f4489b9ca3bd103ae6867cc679fea1b8558bbd515a96e828a0c7b52869bb5@47.95.215.37:40404",   // HZ testnet
 	"enode://881f6548ee68e087ec157e479b96046660b96385c6fc4fe5d00d65404b725e49c4b16f85a6c1e606412f5caf82a581266b7dc1568d0cec3ea738a5589fdd3d01@47.242.33.115:37566",  // HK centos
 	"enode://7b6bc170ccc16f63e032b9531f4fe86dd5547a8a67ca57452966e5851450681867f53c064058f61af4ce808fbdafc027b6995c14b25c04de1b082e94ceb9a400@52.76.52.58:40404",    // SG node1
