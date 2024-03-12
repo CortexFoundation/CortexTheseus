@@ -205,7 +205,7 @@ func (hc *httpConn) doRequest(ctx context.Context, msg any) (io.ReadCloser, erro
 		if _, err := buf.ReadFrom(resp.Body); err == nil {
 			body = buf.Bytes()
 		}
-
+		resp.Body.Close()
 		return nil, HTTPError{
 			Status:     resp.Status,
 			StatusCode: resp.StatusCode,
