@@ -234,7 +234,6 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 		BloomCache: uint64(cacheLimit),
 		EventMux:   ctxc.eventMux,
 		Whitelist:  config.Whitelist,
-		Engine:     ctxc.engine,
 	}
 	if ctxc.protocolManager, err = NewProtocolManager(c); err != nil {
 		return nil, err
