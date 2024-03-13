@@ -10,7 +10,6 @@ import (
 	"io"
 	"os"
 	"path"
-	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -110,17 +109,18 @@ func (y *MemFS) String() string {
 	defer y.mu.Unlock()
 
 	s := new(bytes.Buffer)
-	y.root.dump(s, 0, sep)
+	y.root.dump(s, 0)
 	return s.String()
 }
 
 // SetIgnoreSyncs sets the MemFS.ignoreSyncs field. See the usage comment with NewStrictMem() for
 // details.
 func (y *MemFS) SetIgnoreSyncs(ignoreSyncs bool) {
-	if !y.strict {
-		panic("SetIgnoreSyncs can only be used on a strict MemFS")
-	}
 	y.mu.Lock()
+	if !y.strict {
+		// noop
+		return
+	}
 	y.ignoreSyncs = ignoreSyncs
 	y.mu.Unlock()
 }
@@ -129,7 +129,8 @@ func (y *MemFS) SetIgnoreSyncs(ignoreSyncs bool) {
 // NewStrictMem() for details.
 func (y *MemFS) ResetToSyncedState() {
 	if !y.strict {
-		panic("ResetToSyncedState can only be used on a strict MemFS")
+		// noop
+		return
 	}
 	y.mu.Lock()
 	y.root.resetToSyncedState()
@@ -209,10 +210,9 @@ func (y *MemFS) Create(fullname string) (File, error) {
 			if frag == "" {
 				return errors.New("pebble/vfs: empty file name")
 			}
-			n := &memNode{}
+			n := &memNode{name: frag}
 			dir.children[frag] = n
 			ret = &memFile{
-				name:  frag,
 				n:     n,
 				fs:    y,
 				read:  true,
@@ -276,15 +276,13 @@ func (y *MemFS) open(fullname string, openForWrite bool) (File, error) {
 		if final {
 			if frag == "" {
 				ret = &memFile{
-					name: sep, // this is the root directory
-					n:    dir,
-					fs:   y,
+					n:  dir,
+					fs: y,
 				}
 				return nil
 			}
 			if n := dir.children[frag]; n != nil {
 				ret = &memFile{
-					name:  frag,
 					n:     n,
 					fs:    y,
 					read:  true,
@@ -409,6 +407,7 @@ func (y *MemFS) Rename(oldname, newname string) error {
 				return errors.New("pebble/vfs: empty file name")
 			}
 			dir.children[frag] = n
+			n.name = frag
 		}
 		return nil
 	})
@@ -444,6 +443,7 @@ func (y *MemFS) MkdirAll(dirname string, perm os.FileMode) error {
 		child := dir.children[frag]
 		if child == nil {
 			dir.children[frag] = &memNode{
+				name:     frag,
 				children: make(map[string]*memNode),
 				isDir:    true,
 			}
@@ -550,8 +550,9 @@ func (*MemFS) GetDiskUsage(string) (DiskUsage, error) {
 	return DiskUsage{}, ErrUnsupported
 }
 
-// memNode holds a file's data or a directory's children.
+// memNode holds a file's data or a directory's children, and implements os.FileInfo.
 type memNode struct {
+	name  string
 	isDir bool
 	refs  atomic.Int32
 
@@ -574,12 +575,44 @@ type memNode struct {
 
 func newRootMemNode() *memNode {
 	return &memNode{
+		name:     "/", // set the name to match what file systems do
 		children: make(map[string]*memNode),
 		isDir:    true,
 	}
 }
 
-func (f *memNode) dump(w *bytes.Buffer, level int, name string) {
+func (f *memNode) IsDir() bool {
+	return f.isDir
+}
+
+func (f *memNode) ModTime() time.Time {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.mu.modTime
+}
+
+func (f *memNode) Mode() os.FileMode {
+	if f.isDir {
+		return os.ModeDir | 0755
+	}
+	return 0755
+}
+
+func (f *memNode) Name() string {
+	return f.name
+}
+
+func (f *memNode) Size() int64 {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return int64(len(f.mu.data))
+}
+
+func (f *memNode) Sys() interface{} {
+	return nil
+}
+
+func (f *memNode) dump(w *bytes.Buffer, level int) {
 	if f.isDir {
 		w.WriteString("          ")
 	} else {
@@ -590,7 +623,7 @@ func (f *memNode) dump(w *bytes.Buffer, level int, name string) {
 	for i := 0; i < level; i++ {
 		w.WriteString("  ")
 	}
-	w.WriteString(name)
+	w.WriteString(f.name)
 	if !f.isDir {
 		w.WriteByte('\n')
 		return
@@ -605,7 +638,7 @@ func (f *memNode) dump(w *bytes.Buffer, level int, name string) {
 	}
 	sort.Strings(names)
 	for _, name := range names {
-		f.children[name].dump(w, level+1, name)
+		f.children[name].dump(w, level+1)
 	}
 }
 
@@ -620,14 +653,13 @@ func (f *memNode) resetToSyncedState() {
 		}
 	} else {
 		f.mu.Lock()
-		f.mu.data = slices.Clone(f.mu.syncedData)
+		f.mu.data = append([]byte(nil), f.mu.syncedData...)
 		f.mu.Unlock()
 	}
 }
 
-// memFile is a reader or writer of a node's data. Implements File.
+// memFile is a reader or writer of a node's data, and implements File.
 type memFile struct {
-	name        string
 	n           *memNode
 	fs          *MemFS // nil for a standalone memFile
 	rpos        int
@@ -641,8 +673,6 @@ func (f *memFile) Close() error {
 	if n := f.n.refs.Add(-1); n < 0 {
 		panic(fmt.Sprintf("pebble: close of unopened file: %d", n))
 	}
-	// Set node pointer to nil, to cause panic on any subsequent method call. This
-	// is a defence-in-depth to catch use-after-close or double-close bugs.
 	f.n = nil
 	return nil
 }
@@ -740,34 +770,26 @@ func (f *memFile) Prefetch(offset int64, length int64) error { return nil }
 func (f *memFile) Preallocate(offset, length int64) error    { return nil }
 
 func (f *memFile) Stat() (os.FileInfo, error) {
-	f.n.mu.Lock()
-	defer f.n.mu.Unlock()
-	return &memFileInfo{
-		name:    f.name,
-		size:    int64(len(f.n.mu.data)),
-		modTime: f.n.mu.modTime,
-		isDir:   f.n.isDir,
-	}, nil
+	return f.n, nil
 }
 
 func (f *memFile) Sync() error {
-	if f.fs == nil || !f.fs.strict {
-		return nil
-	}
-	f.fs.mu.Lock()
-	defer f.fs.mu.Unlock()
-	if f.fs.ignoreSyncs {
-		return nil
-	}
-	if f.n.isDir {
-		f.n.syncedChildren = make(map[string]*memNode)
-		for k, v := range f.n.children {
-			f.n.syncedChildren[k] = v
+	if f.fs != nil && f.fs.strict {
+		f.fs.mu.Lock()
+		defer f.fs.mu.Unlock()
+		if f.fs.ignoreSyncs {
+			return nil
 		}
-	} else {
-		f.n.mu.Lock()
-		f.n.mu.syncedData = slices.Clone(f.n.mu.data)
-		f.n.mu.Unlock()
+		if f.n.isDir {
+			f.n.syncedChildren = make(map[string]*memNode)
+			for k, v := range f.n.children {
+				f.n.syncedChildren[k] = v
+			}
+		} else {
+			f.n.mu.Lock()
+			f.n.mu.syncedData = append([]byte(nil), f.n.mu.data...)
+			f.n.mu.Unlock()
+		}
 	}
 	return nil
 }
@@ -791,43 +813,6 @@ func (f *memFile) Fd() uintptr {
 // Flush is a no-op and present only to prevent buffering at higher levels
 // (e.g. it prevents sstable.Writer from using a bufio.Writer).
 func (f *memFile) Flush() error {
-	return nil
-}
-
-// memFileInfo implements os.FileInfo for a memFile.
-type memFileInfo struct {
-	name    string
-	size    int64
-	modTime time.Time
-	isDir   bool
-}
-
-var _ os.FileInfo = (*memFileInfo)(nil)
-
-func (f *memFileInfo) Name() string {
-	return f.name
-}
-
-func (f *memFileInfo) Size() int64 {
-	return f.size
-}
-
-func (f *memFileInfo) Mode() os.FileMode {
-	if f.isDir {
-		return os.ModeDir | 0755
-	}
-	return 0755
-}
-
-func (f *memFileInfo) ModTime() time.Time {
-	return f.modTime
-}
-
-func (f *memFileInfo) IsDir() bool {
-	return f.isDir
-}
-
-func (f *memFileInfo) Sys() interface{} {
 	return nil
 }
 

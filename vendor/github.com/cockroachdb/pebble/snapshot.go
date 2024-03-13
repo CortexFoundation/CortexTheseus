@@ -9,12 +9,18 @@ import (
 	"io"
 	"math"
 	"sync"
+	"sync/atomic"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/cockroachdb/pebble/internal/invariants"
 	"github.com/cockroachdb/pebble/rangekey"
-	"github.com/cockroachdb/pebble/sstable"
 )
+
+// ErrSnapshotExcised is returned from WaitForFileOnlySnapshot if an excise
+// overlapping with one of the EventuallyFileOnlySnapshot's KeyRanges gets
+// applied before the transition of that EFOS to a file-only snapshot.
+var ErrSnapshotExcised = errors.New("pebble: snapshot excised before conversion to file-only snapshot")
 
 // Snapshot provides a read-only point-in-time view of the DB state.
 type Snapshot struct {
@@ -61,9 +67,7 @@ func (s *Snapshot) NewIterWithContext(ctx context.Context, o *IterOptions) (*Ite
 	if s.db == nil {
 		panic(ErrClosed)
 	}
-	return s.db.newIter(ctx, nil /* batch */, newIterOpts{
-		snapshot: snapshotIterOpts{seqNum: s.seqNum},
-	}, o), nil
+	return s.db.newIter(ctx, nil /* batch */, snapshotIterOpts{seqNum: s.seqNum}, o), nil
 }
 
 // ScanInternal scans all internal keys within the specified bounds, truncating
@@ -74,7 +78,6 @@ func (s *Snapshot) NewIterWithContext(ctx context.Context, o *IterOptions) (*Ite
 // point keys deleted by range dels and keys masked by range keys.
 func (s *Snapshot) ScanInternal(
 	ctx context.Context,
-	categoryAndQoS sstable.CategoryAndQoS,
 	lower, upper []byte,
 	visitPointKey func(key *InternalKey, value LazyValue, iterInfo IteratorLevel) error,
 	visitRangeDel func(start, end []byte, seqNum uint64) error,
@@ -85,7 +88,6 @@ func (s *Snapshot) ScanInternal(
 		panic(ErrClosed)
 	}
 	scanInternalOpts := &scanInternalOptions{
-		CategoryAndQoS:   categoryAndQoS,
 		visitPointKey:    visitPointKey,
 		visitRangeDel:    visitRangeDel,
 		visitRangeKey:    visitRangeKey,
@@ -98,10 +100,7 @@ func (s *Snapshot) ScanInternal(
 		},
 	}
 
-	iter, err := s.db.newInternalIter(ctx, snapshotIterOpts{seqNum: s.seqNum}, scanInternalOpts)
-	if err != nil {
-		return err
-	}
+	iter := s.db.newInternalIter(snapshotIterOpts{seqNum: s.seqNum}, scanInternalOpts)
 	defer iter.close()
 
 	return scanInternalImpl(ctx, lower, upper, iter, scanInternalOpts)
@@ -221,12 +220,13 @@ func (l *snapshotList) remove(s *Snapshot) {
 // the snapshot is closed may prefer EventuallyFileOnlySnapshots for their
 // reduced write amplification. Callers that desire the benefits of the file-only
 // state that requires no pinning of memtables should call
-// `WaitForFileOnlySnapshot()` before relying on the EFOS to keep producing iterators
+// `WaitForFileOnlySnapshot()` (and possibly re-mint an EFOS if it returns
+// ErrSnapshotExcised) before relying on the EFOS to keep producing iterators
 // with zero write-amp and zero pinning of memtables in memory.
 //
 // EventuallyFileOnlySnapshots interact with the IngestAndExcise operation in
-// subtle ways. The IngestAndExcise can force the transition of an EFOS to a
-// file-only snapshot if an excise overlaps with the EFOS bounds.
+// subtle ways. No new iterators can be created once
+// EventuallyFileOnlySnapshot.excised is set to true.
 type EventuallyFileOnlySnapshot struct {
 	mu struct {
 		// NB: If both this mutex and db.mu are being grabbed, db.mu should be
@@ -246,14 +246,20 @@ type EventuallyFileOnlySnapshot struct {
 
 	// Key ranges to watch for an excise on.
 	protectedRanges []KeyRange
+	// excised, if true, signals that the above ranges were excised during the
+	// lifetime of this snapshot.
+	excised atomic.Bool
 
 	// The db the snapshot was created from.
 	db     *DB
 	seqNum uint64
+
 	closed chan struct{}
 }
 
-func (d *DB) makeEventuallyFileOnlySnapshot(keyRanges []KeyRange) *EventuallyFileOnlySnapshot {
+func (d *DB) makeEventuallyFileOnlySnapshot(
+	keyRanges []KeyRange, internalKeyRanges []internalKeyRange,
+) *EventuallyFileOnlySnapshot {
 	isFileOnly := true
 
 	d.mu.Lock()
@@ -261,10 +267,11 @@ func (d *DB) makeEventuallyFileOnlySnapshot(keyRanges []KeyRange) *EventuallyFil
 	seqNum := d.mu.versions.visibleSeqNum.Load()
 	// Check if any of the keyRanges overlap with a memtable.
 	for i := range d.mu.mem.queue {
-		d.mu.mem.queue[i].computePossibleOverlaps(func(bounded) shouldContinue {
+		mem := d.mu.mem.queue[i]
+		if ingestMemtableOverlaps(d.cmp, mem, internalKeyRanges) {
 			isFileOnly = false
-			return stopIteration
-		}, sliceAsBounded(keyRanges)...)
+			break
+		}
 	}
 	es := &EventuallyFileOnlySnapshot{
 		db:              d,
@@ -364,6 +371,9 @@ func (es *EventuallyFileOnlySnapshot) waitForFlush(ctx context.Context, dur time
 
 		earliestUnflushedSeqNum = es.db.getEarliestUnflushedSeqNumLocked()
 	}
+	if es.excised.Load() {
+		return ErrSnapshotExcised
+	}
 	return nil
 }
 
@@ -461,11 +471,21 @@ func (es *EventuallyFileOnlySnapshot) NewIterWithContext(
 	defer es.mu.Unlock()
 	if es.mu.vers != nil {
 		sOpts := snapshotIterOpts{seqNum: es.seqNum, vers: es.mu.vers}
-		return es.db.newIter(ctx, nil /* batch */, newIterOpts{snapshot: sOpts}, o), nil
+		return es.db.newIter(ctx, nil /* batch */, sOpts, o), nil
 	}
 
+	if es.excised.Load() {
+		return nil, ErrSnapshotExcised
+	}
 	sOpts := snapshotIterOpts{seqNum: es.seqNum}
-	iter := es.db.newIter(ctx, nil /* batch */, newIterOpts{snapshot: sOpts}, o)
+	iter := es.db.newIter(ctx, nil /* batch */, sOpts, o)
+
+	// If excised is true, then keys relevant to the snapshot might not be
+	// present in the readState being used by the iterator. Error out.
+	if es.excised.Load() {
+		iter.Close()
+		return nil, ErrSnapshotExcised
+	}
 	return iter, nil
 }
 
@@ -477,7 +497,6 @@ func (es *EventuallyFileOnlySnapshot) NewIterWithContext(
 // point keys deleted by range dels and keys masked by range keys.
 func (es *EventuallyFileOnlySnapshot) ScanInternal(
 	ctx context.Context,
-	categoryAndQoS sstable.CategoryAndQoS,
 	lower, upper []byte,
 	visitPointKey func(key *InternalKey, value LazyValue, iterInfo IteratorLevel) error,
 	visitRangeDel func(start, end []byte, seqNum uint64) error,
@@ -487,20 +506,10 @@ func (es *EventuallyFileOnlySnapshot) ScanInternal(
 	if es.db == nil {
 		panic(ErrClosed)
 	}
-	var sOpts snapshotIterOpts
-	opts := &scanInternalOptions{
-		CategoryAndQoS: categoryAndQoS,
-		IterOptions: IterOptions{
-			KeyTypes:   IterKeyTypePointsAndRanges,
-			LowerBound: lower,
-			UpperBound: upper,
-		},
-		visitPointKey:    visitPointKey,
-		visitRangeDel:    visitRangeDel,
-		visitRangeKey:    visitRangeKey,
-		visitSharedFile:  visitSharedFile,
-		skipSharedLevels: visitSharedFile != nil,
+	if es.excised.Load() {
+		return ErrSnapshotExcised
 	}
+	var sOpts snapshotIterOpts
 	es.mu.Lock()
 	if es.mu.vers != nil {
 		sOpts = snapshotIterOpts{
@@ -513,11 +522,26 @@ func (es *EventuallyFileOnlySnapshot) ScanInternal(
 		}
 	}
 	es.mu.Unlock()
-	iter, err := es.db.newInternalIter(ctx, sOpts, opts)
-	if err != nil {
-		return err
+	opts := &scanInternalOptions{
+		IterOptions: IterOptions{
+			KeyTypes:   IterKeyTypePointsAndRanges,
+			LowerBound: lower,
+			UpperBound: upper,
+		},
+		visitPointKey:    visitPointKey,
+		visitRangeDel:    visitRangeDel,
+		visitRangeKey:    visitRangeKey,
+		visitSharedFile:  visitSharedFile,
+		skipSharedLevels: visitSharedFile != nil,
 	}
+	iter := es.db.newInternalIter(sOpts, opts)
 	defer iter.close()
+
+	// If excised is true, then keys relevant to the snapshot might not be
+	// present in the readState being used by the iterator. Error out.
+	if es.excised.Load() {
+		return ErrSnapshotExcised
+	}
 
 	return scanInternalImpl(ctx, lower, upper, iter, opts)
 }

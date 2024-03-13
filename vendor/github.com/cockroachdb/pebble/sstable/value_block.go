@@ -726,7 +726,7 @@ func (ukb *UserKeyPrefixBound) IsEmpty() bool {
 
 type blockProviderWhenOpen interface {
 	readBlockForVBR(
-		h BlockHandle, stats *base.InternalIteratorStats,
+		ctx context.Context, h BlockHandle, stats *base.InternalIteratorStats,
 	) (bufferHandle, error)
 }
 
@@ -747,21 +747,13 @@ func (bpwc *blockProviderWhenClosed) close() {
 }
 
 func (bpwc blockProviderWhenClosed) readBlockForVBR(
-	h BlockHandle, stats *base.InternalIteratorStats,
+	ctx context.Context, h BlockHandle, stats *base.InternalIteratorStats,
 ) (bufferHandle, error) {
-	// This is rare, since most block reads happen when the corresponding
-	// sstable iterator is open. So we are willing to sacrifice a proper context
-	// for tracing.
-	//
-	// TODO(sumeer): consider fixing this. See
-	// https://github.com/cockroachdb/pebble/pull/3065#issue-1991175365 for an
-	// alternative.
-	ctx := objiotracing.WithBlockType(context.Background(), objiotracing.ValueBlock)
+	ctx = objiotracing.WithBlockType(ctx, objiotracing.ValueBlock)
 	// TODO(jackson,sumeer): Consider whether to use a buffer pool in this case.
 	// The bpwc is not allowed to outlive the iterator tree, so it cannot
 	// outlive the buffer pool.
-	return bpwc.r.readBlock(
-		ctx, h, nil, nil, stats, nil /* iterStats */, nil /* buffer pool */)
+	return bpwc.r.readBlock(ctx, h, nil, nil, stats, nil /* buffer pool */)
 }
 
 // ReaderProvider supports the implementation of blockProviderWhenClosed.
@@ -791,6 +783,7 @@ func (trp TrivialReaderProvider) Close() {}
 // blocks. It is used when the sstable was written with
 // Properties.ValueBlocksAreEnabled.
 type valueBlockReader struct {
+	ctx    context.Context
 	bpOpen blockProviderWhenOpen
 	rp     ReaderProvider
 	vbih   valueBlocksIndexHandle
@@ -890,7 +883,9 @@ func (r *valueBlockReader) doValueMangling(v []byte) []byte {
 	// property P1 only requires the valueBlockReader to maintain the memory of
 	// one fetched value.
 	if rand.Intn(2) == 0 {
-		clear(r.bufToMangle)
+		for i := range r.bufToMangle {
+			r.bufToMangle[i] = 0
+		}
 	}
 	// Store the current value in a new buffer for future mangling.
 	r.bufToMangle = append([]byte(nil), v...)
@@ -901,7 +896,7 @@ func (r *valueBlockReader) getValueInternal(handle []byte, valLen int32) (val []
 	vh := decodeRemainingValueHandle(handle)
 	vh.valueLen = uint32(valLen)
 	if r.vbiBlock == nil {
-		ch, err := r.bpOpen.readBlockForVBR(r.vbih.h, r.stats)
+		ch, err := r.bpOpen.readBlockForVBR(r.ctx, r.vbih.h, r.stats)
 		if err != nil {
 			return nil, err
 		}
@@ -913,7 +908,7 @@ func (r *valueBlockReader) getValueInternal(handle []byte, valLen int32) (val []
 		if err != nil {
 			return nil, err
 		}
-		vbCacheHandle, err := r.bpOpen.readBlockForVBR(vbh, r.stats)
+		vbCacheHandle, err := r.bpOpen.readBlockForVBR(r.ctx, vbh, r.stats)
 		if err != nil {
 			return nil, err
 		}

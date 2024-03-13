@@ -5,7 +5,6 @@
 package sstable
 
 import (
-	"context"
 	"encoding/binary"
 	"unsafe"
 
@@ -1541,8 +1540,6 @@ func (i *blockIter) SetBounds(lower, upper []byte) {
 	panic("pebble: SetBounds unimplemented")
 }
 
-func (i *blockIter) SetContext(_ context.Context) {}
-
 func (i *blockIter) valid() bool {
 	return i.offset >= 0 && i.offset < i.restarts
 }
@@ -1570,6 +1567,7 @@ type fragmentBlockIter struct {
 	blockIter blockIter
 	keyBuf    [2]keyspan.Key
 	span      keyspan.Span
+	err       error
 	dir       int8
 	closeHook func(i keyspan.FragmentIterator) error
 
@@ -1582,7 +1580,7 @@ func (i *fragmentBlockIter) resetForReuse() fragmentBlockIter {
 	return fragmentBlockIter{blockIter: i.blockIter.resetForReuse()}
 }
 
-func (i *fragmentBlockIter) decodeSpanKeys(k *InternalKey, internalValue []byte) error {
+func (i *fragmentBlockIter) decodeSpanKeys(k *InternalKey, internalValue []byte) {
 	// TODO(jackson): The use of i.span.Keys to accumulate keys across multiple
 	// calls to Decode is too confusing and subtle. Refactor to make it
 	// explicit.
@@ -1592,17 +1590,16 @@ func (i *fragmentBlockIter) decodeSpanKeys(k *InternalKey, internalValue []byte)
 	// whereas the various range key kinds store are more complicated.  The
 	// details of the range key internal value format are documented within the
 	// internal/rangekey package.
-	var err error
 	switch k.Kind() {
 	case base.InternalKeyKindRangeDelete:
 		i.span = rangedel.Decode(*k, internalValue, i.span.Keys)
+		i.err = nil
 	case base.InternalKeyKindRangeKeySet, base.InternalKeyKindRangeKeyUnset, base.InternalKeyKindRangeKeyDelete:
-		i.span, err = rangekey.Decode(*k, internalValue, i.span.Keys)
+		i.span, i.err = rangekey.Decode(*k, internalValue, i.span.Keys)
 	default:
 		i.span = keyspan.Span{}
-		err = base.CorruptionErrorf("pebble: corrupt keyspan fragment of kind %d", k.Kind())
+		i.err = base.CorruptionErrorf("pebble: corrupt keyspan fragment of kind %d", k.Kind())
 	}
-	return err
 }
 
 func (i *fragmentBlockIter) elideKeysOfSameSeqNum() {
@@ -1631,21 +1628,21 @@ func (i *fragmentBlockIter) elideKeysOfSameSeqNum() {
 //
 // gatherForward iterates forward, re-combining the fragmented internal keys to
 // reconstruct a keyspan.Span that holds all the keys defined over the span.
-func (i *fragmentBlockIter) gatherForward(
-	k *InternalKey, lazyValue base.LazyValue,
-) (*keyspan.Span, error) {
+func (i *fragmentBlockIter) gatherForward(k *InternalKey, lazyValue base.LazyValue) *keyspan.Span {
 	i.span = keyspan.Span{}
 	if k == nil || !i.blockIter.valid() {
-		return nil, nil
+		return nil
 	}
+	i.err = nil
 	// Use the i.keyBuf array to back the Keys slice to prevent an allocation
 	// when a span contains few keys.
 	i.span.Keys = i.keyBuf[:0]
 
 	// Decode the span's end key and individual keys from the value.
 	internalValue := lazyValue.InPlaceValue()
-	if err := i.decodeSpanKeys(k, internalValue); err != nil {
-		return nil, err
+	i.decodeSpanKeys(k, internalValue)
+	if i.err != nil {
+		return nil
 	}
 	prevEnd := i.span.End
 
@@ -1655,8 +1652,9 @@ func (i *fragmentBlockIter) gatherForward(
 	k, lazyValue = i.blockIter.Next()
 	internalValue = lazyValue.InPlaceValue()
 	for k != nil && i.blockIter.cmp(k.UserKey, i.span.Start) == 0 {
-		if err := i.decodeSpanKeys(k, internalValue); err != nil {
-			return nil, err
+		i.decodeSpanKeys(k, internalValue)
+		if i.err != nil {
+			return nil
 		}
 
 		// Since k indicates an equal start key, the encoded end key must
@@ -1664,8 +1662,9 @@ func (i *fragmentBlockIter) gatherForward(
 		// Overlapping fragments are required to have exactly equal start and
 		// end bounds.
 		if i.blockIter.cmp(prevEnd, i.span.End) != 0 {
+			i.err = base.CorruptionErrorf("pebble: corrupt keyspan fragmentation")
 			i.span = keyspan.Span{}
-			return nil, base.CorruptionErrorf("pebble: corrupt keyspan fragmentation")
+			return nil
 		}
 		k, lazyValue = i.blockIter.Next()
 		internalValue = lazyValue.InPlaceValue()
@@ -1674,7 +1673,7 @@ func (i *fragmentBlockIter) gatherForward(
 		i.elideKeysOfSameSeqNum()
 	}
 	// i.blockIter is positioned over the first internal key for the next span.
-	return &i.span, nil
+	return &i.span
 }
 
 // gatherBackward gathers internal keys with identical bounds. Keys defined over
@@ -1685,21 +1684,21 @@ func (i *fragmentBlockIter) gatherForward(
 //
 // gatherBackward iterates backwards, re-combining the fragmented internal keys
 // to reconstruct a keyspan.Span that holds all the keys defined over the span.
-func (i *fragmentBlockIter) gatherBackward(
-	k *InternalKey, lazyValue base.LazyValue,
-) (*keyspan.Span, error) {
+func (i *fragmentBlockIter) gatherBackward(k *InternalKey, lazyValue base.LazyValue) *keyspan.Span {
 	i.span = keyspan.Span{}
 	if k == nil || !i.blockIter.valid() {
-		return nil, nil
+		return nil
 	}
+	i.err = nil
 	// Use the i.keyBuf array to back the Keys slice to prevent an allocation
 	// when a span contains few keys.
 	i.span.Keys = i.keyBuf[:0]
 
 	// Decode the span's end key and individual keys from the value.
 	internalValue := lazyValue.InPlaceValue()
-	if err := i.decodeSpanKeys(k, internalValue); err != nil {
-		return nil, err
+	i.decodeSpanKeys(k, internalValue)
+	if i.err != nil {
+		return nil
 	}
 	prevEnd := i.span.End
 
@@ -1709,8 +1708,9 @@ func (i *fragmentBlockIter) gatherBackward(
 	k, lazyValue = i.blockIter.Prev()
 	internalValue = lazyValue.InPlaceValue()
 	for k != nil && i.blockIter.cmp(k.UserKey, i.span.Start) == 0 {
-		if err := i.decodeSpanKeys(k, internalValue); err != nil {
-			return nil, err
+		i.decodeSpanKeys(k, internalValue)
+		if i.err != nil {
+			return nil
 		}
 
 		// Since k indicates an equal start key, the encoded end key must
@@ -1718,8 +1718,9 @@ func (i *fragmentBlockIter) gatherBackward(
 		// Overlapping fragments are required to have exactly equal start and
 		// end bounds.
 		if i.blockIter.cmp(prevEnd, i.span.End) != 0 {
+			i.err = base.CorruptionErrorf("pebble: corrupt keyspan fragmentation")
 			i.span = keyspan.Span{}
-			return nil, base.CorruptionErrorf("pebble: corrupt keyspan fragmentation")
+			return nil
 		}
 		k, lazyValue = i.blockIter.Prev()
 		internalValue = lazyValue.InPlaceValue()
@@ -1733,7 +1734,12 @@ func (i *fragmentBlockIter) gatherBackward(
 	if i.elideSameSeqnum && len(i.span.Keys) > 0 {
 		i.elideKeysOfSameSeqNum()
 	}
-	return &i.span, nil
+	return &i.span
+}
+
+// Error implements (keyspan.FragmentIterator).Error.
+func (i *fragmentBlockIter) Error() error {
+	return i.err
 }
 
 // Close implements (keyspan.FragmentIterator).Close.
@@ -1747,19 +1753,19 @@ func (i *fragmentBlockIter) Close() error {
 }
 
 // First implements (keyspan.FragmentIterator).First
-func (i *fragmentBlockIter) First() (*keyspan.Span, error) {
+func (i *fragmentBlockIter) First() *keyspan.Span {
 	i.dir = +1
 	return i.gatherForward(i.blockIter.First())
 }
 
 // Last implements (keyspan.FragmentIterator).Last.
-func (i *fragmentBlockIter) Last() (*keyspan.Span, error) {
+func (i *fragmentBlockIter) Last() *keyspan.Span {
 	i.dir = -1
 	return i.gatherBackward(i.blockIter.Last())
 }
 
 // Next implements (keyspan.FragmentIterator).Next.
-func (i *fragmentBlockIter) Next() (*keyspan.Span, error) {
+func (i *fragmentBlockIter) Next() *keyspan.Span {
 	switch {
 	case i.dir == -1 && !i.span.Valid():
 		// Switching directions.
@@ -1783,9 +1789,7 @@ func (i *fragmentBlockIter) Next() (*keyspan.Span, error) {
 		//    ... [a,b) [b,c) [b,c) [b,c) [d,e) ...
 		//          ^                       ^
 		//     i.blockIter                 want
-		if x, err := i.gatherForward(i.blockIter.Next()); err != nil {
-			return nil, err
-		} else if invariants.Enabled && !x.Valid() {
+		if x := i.gatherForward(i.blockIter.Next()); invariants.Enabled && !x.Valid() {
 			panic("pebble: invariant violation: next entry unexpectedly invalid")
 		}
 		i.dir = +1
@@ -1795,7 +1799,7 @@ func (i *fragmentBlockIter) Next() (*keyspan.Span, error) {
 }
 
 // Prev implements (keyspan.FragmentIterator).Prev.
-func (i *fragmentBlockIter) Prev() (*keyspan.Span, error) {
+func (i *fragmentBlockIter) Prev() *keyspan.Span {
 	switch {
 	case i.dir == +1 && !i.span.Valid():
 		// Switching directions.
@@ -1819,9 +1823,7 @@ func (i *fragmentBlockIter) Prev() (*keyspan.Span, error) {
 		//    ... [a,b) [b,c) [b,c) [b,c) [d,e) ...
 		//          ^                       ^
 		//        want                  i.blockIter
-		if x, err := i.gatherBackward(i.blockIter.Prev()); err != nil {
-			return nil, err
-		} else if invariants.Enabled && !x.Valid() {
+		if x := i.gatherBackward(i.blockIter.Prev()); invariants.Enabled && !x.Valid() {
 			panic("pebble: invariant violation: previous entry unexpectedly invalid")
 		}
 		i.dir = -1
@@ -1831,11 +1833,9 @@ func (i *fragmentBlockIter) Prev() (*keyspan.Span, error) {
 }
 
 // SeekGE implements (keyspan.FragmentIterator).SeekGE.
-func (i *fragmentBlockIter) SeekGE(k []byte) (*keyspan.Span, error) {
-	if s, err := i.SeekLT(k); err != nil {
-		return nil, err
-	} else if s != nil && i.blockIter.cmp(k, s.End) < 0 {
-		return s, nil
+func (i *fragmentBlockIter) SeekGE(k []byte) *keyspan.Span {
+	if s := i.SeekLT(k); s != nil && i.blockIter.cmp(k, s.End) < 0 {
+		return s
 	}
 	// TODO(jackson): If the above i.SeekLT(k) discovers a span but the span
 	// doesn't meet the k < s.End comparison, then there's no need for the
@@ -1844,7 +1844,7 @@ func (i *fragmentBlockIter) SeekGE(k []byte) (*keyspan.Span, error) {
 }
 
 // SeekLT implements (keyspan.FragmentIterator).SeekLT.
-func (i *fragmentBlockIter) SeekLT(k []byte) (*keyspan.Span, error) {
+func (i *fragmentBlockIter) SeekLT(k []byte) *keyspan.Span {
 	i.dir = -1
 	return i.gatherBackward(i.blockIter.SeekLT(k, base.SeekLTFlagsNone))
 }
@@ -1858,6 +1858,3 @@ func (i *fragmentBlockIter) String() string {
 func (i *fragmentBlockIter) SetCloseHook(fn func(i keyspan.FragmentIterator) error) {
 	i.closeHook = fn
 }
-
-// WrapChildren implements FragmentIterator.
-func (i *fragmentBlockIter) WrapChildren(wrap keyspan.WrapFn) {}

@@ -30,7 +30,6 @@ import (
 	"github.com/cockroachdb/pebble/sstable"
 	"github.com/cockroachdb/pebble/vfs"
 	"github.com/cockroachdb/pebble/vfs/atomicfs"
-	"github.com/cockroachdb/pebble/wal"
 	"github.com/cockroachdb/tokenbucket"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -77,10 +76,6 @@ type Reader interface {
 	// return false). The iterator can be positioned via a call to SeekGE,
 	// SeekLT, First or Last.
 	NewIter(o *IterOptions) (*Iterator, error)
-
-	// NewIterWithContext is like NewIter, and additionally accepts a context
-	// for tracing.
-	NewIterWithContext(ctx context.Context, o *IterOptions) (*Iterator, error)
 
 	// Close closes the Reader. It may or may not close any underlying io.Reader
 	// or io.Writer, depending on how the DB was created.
@@ -315,7 +310,7 @@ type DB struct {
 	// reuse. Writing to a recycled log file is faster than to a new log file on
 	// some common filesystems (xfs, and ext3/4) due to avoiding metadata
 	// updates.
-	logRecycler wal.LogRecycler
+	logRecycler logRecycler
 
 	closed   *atomic.Value
 	closedCh chan struct{}
@@ -428,9 +423,6 @@ type DB struct {
 			// The list of manual compactions. The next manual compaction to perform
 			// is at the start of the list. New entries are added to the end.
 			manual []*manualCompaction
-			// downloads is the list of suggested download tasks. The next download to
-			// perform is at the start of the list. New entries are added to the end.
-			downloads []*downloadSpan
 			// inProgress is the set of in-progress flushes and compactions.
 			// It's used in the calculation of some metrics and to initialize L0
 			// sublevels' state. Some of the compactions contained within this
@@ -830,17 +822,20 @@ func (d *DB) applyInternal(batch *Batch, opts *WriteOptions, noSyncWait bool) er
 		return errors.New("pebble: WAL disabled")
 	}
 
-	if fmv := d.FormatMajorVersion(); fmv < batch.minimumFormatMajorVersion {
-		panic(fmt.Sprintf(
-			"pebble: batch requires at least format major version %d (current: %d)",
-			batch.minimumFormatMajorVersion, fmv,
-		))
+	if batch.minimumFormatMajorVersion != FormatMostCompatible {
+		if fmv := d.FormatMajorVersion(); fmv < batch.minimumFormatMajorVersion {
+			panic(fmt.Sprintf(
+				"pebble: batch requires at least format major version %d (current: %d)",
+				batch.minimumFormatMajorVersion, fmv,
+			))
+		}
 	}
 
 	if batch.countRangeKeys > 0 {
 		if d.split == nil {
 			return errNoSplit
 		}
+		// TODO(jackson): Assert that all range key operands are suffixless.
 	}
 	batch.committing = true
 
@@ -1002,39 +997,28 @@ var iterAllocPool = sync.Pool{
 //     and the specified seqNum will be used as the snapshot seqNum.
 //   - EFOS in file-only state: Only `seqNum` and `vers` are set. All the
 //     relevant SSTs are referenced by the *version.
-//   - EFOS that has been excised but is in alwaysCreateIters mode (tests only).
-//     Only `seqNum` and `readState` are set.
 type snapshotIterOpts struct {
-	seqNum    uint64
-	vers      *version
-	readState *readState
-}
-
-type batchIterOpts struct {
-	batchOnly bool
-}
-type newIterOpts struct {
-	snapshot snapshotIterOpts
-	batch    batchIterOpts
+	seqNum uint64
+	vers   *version
 }
 
 // newIter constructs a new iterator, merging in batch iterators as an extra
 // level.
 func (d *DB) newIter(
-	ctx context.Context, batch *Batch, internalOpts newIterOpts, o *IterOptions,
+	ctx context.Context, batch *Batch, sOpts snapshotIterOpts, o *IterOptions,
 ) *Iterator {
-	if internalOpts.batch.batchOnly {
-		if batch == nil {
-			panic("batchOnly is true, but batch is nil")
-		}
-		if internalOpts.snapshot.vers != nil {
-			panic("batchOnly is true, but snapshotIterOpts is initialized")
-		}
-	}
 	if err := d.closed.Load(); err != nil {
 		panic(err)
 	}
-	seqNum := internalOpts.snapshot.seqNum
+	seqNum := sOpts.seqNum
+	if o.rangeKeys() {
+		if d.FormatMajorVersion() < FormatRangeKeys {
+			panic(fmt.Sprintf(
+				"pebble: range keys require at least format major version %d (current: %d)",
+				FormatRangeKeys, d.FormatMajorVersion(),
+			))
+		}
+	}
 	if o != nil && o.RangeKeyMasking.Suffix != nil && o.KeyTypes != IterKeyTypePointsAndRanges {
 		panic("pebble: range key masking requires IterKeyTypePointsAndRanges")
 	}
@@ -1045,33 +1029,22 @@ func (d *DB) newIter(
 		// DB.mem.queue[0].logSeqNum.
 		panic("OnlyReadGuaranteedDurable is not supported for batches or snapshots")
 	}
+	// Grab and reference the current readState. This prevents the underlying
+	// files in the associated version from being deleted if there is a current
+	// compaction. The readState is unref'd by Iterator.Close().
 	var readState *readState
-	var newIters tableNewIters
-	var newIterRangeKey keyspan.TableNewSpanIter
-	if !internalOpts.batch.batchOnly {
-		// Grab and reference the current readState. This prevents the underlying
-		// files in the associated version from being deleted if there is a current
-		// compaction. The readState is unref'd by Iterator.Close().
-		if internalOpts.snapshot.vers == nil {
-			if internalOpts.snapshot.readState != nil {
-				readState = internalOpts.snapshot.readState
-				readState.ref()
-			} else {
-				// NB: loadReadState() calls readState.ref().
-				readState = d.loadReadState()
-			}
-		} else {
-			// vers != nil
-			internalOpts.snapshot.vers.Ref()
-		}
+	if sOpts.vers == nil {
+		// NB: loadReadState() calls readState.ref().
+		readState = d.loadReadState()
+	} else {
+		// s.vers != nil
+		sOpts.vers.Ref()
+	}
 
-		// Determine the seqnum to read at after grabbing the read state (current and
-		// memtables) above.
-		if seqNum == 0 {
-			seqNum = d.mu.versions.visibleSeqNum.Load()
-		}
-		newIters = d.newIters
-		newIterRangeKey = d.tableNewRangeKeyIter
+	// Determine the seqnum to read at after grabbing the read state (current and
+	// memtables) above.
+	if seqNum == 0 {
+		seqNum = d.mu.versions.visibleSeqNum.Load()
 	}
 
 	// Bundle various structures under a single umbrella in order to allocate
@@ -1084,15 +1057,14 @@ func (d *DB) newIter(
 		merge:               d.merge,
 		comparer:            *d.opts.Comparer,
 		readState:           readState,
-		version:             internalOpts.snapshot.vers,
+		version:             sOpts.vers,
 		keyBuf:              buf.keyBuf,
 		prefixOrFullSeekKey: buf.prefixOrFullSeekKey,
 		boundsBuf:           buf.boundsBuf,
 		batch:               batch,
-		newIters:            newIters,
-		newIterRangeKey:     newIterRangeKey,
+		newIters:            d.newIters,
+		newIterRangeKey:     d.tableNewRangeKeyIter,
 		seqNum:              seqNum,
-		batchOnlyIter:       internalOpts.batch.batchOnly,
 	}
 	if o != nil {
 		dbi.opts = *o
@@ -1244,7 +1216,6 @@ func finishInitializingIter(ctx context.Context, buf *iterAlloc) *Iterator {
 // iteration is invalid in those cases.
 func (d *DB) ScanInternal(
 	ctx context.Context,
-	categoryAndQoS sstable.CategoryAndQoS,
 	lower, upper []byte,
 	visitPointKey func(key *InternalKey, value LazyValue, iterInfo IteratorLevel) error,
 	visitRangeDel func(start, end []byte, seqNum uint64) error,
@@ -1252,7 +1223,6 @@ func (d *DB) ScanInternal(
 	visitSharedFile func(sst *SharedSSTMeta) error,
 ) error {
 	scanInternalOpts := &scanInternalOptions{
-		CategoryAndQoS:   categoryAndQoS,
 		visitPointKey:    visitPointKey,
 		visitRangeDel:    visitRangeDel,
 		visitRangeKey:    visitRangeKey,
@@ -1264,10 +1234,7 @@ func (d *DB) ScanInternal(
 			UpperBound: upper,
 		},
 	}
-	iter, err := d.newInternalIter(ctx, snapshotIterOpts{} /* snapshot */, scanInternalOpts)
-	if err != nil {
-		return err
-	}
+	iter := d.newInternalIter(snapshotIterOpts{} /* snapshot */, scanInternalOpts)
 	defer iter.close()
 	return scanInternalImpl(ctx, lower, upper, iter, scanInternalOpts)
 }
@@ -1279,9 +1246,7 @@ func (d *DB) ScanInternal(
 // TODO(bilal): This method has a lot of similarities with db.newIter as well as
 // finishInitializingIter. Both pairs of methods should be refactored to reduce
 // this duplication.
-func (d *DB) newInternalIter(
-	ctx context.Context, sOpts snapshotIterOpts, o *scanInternalOptions,
-) (*scanInternalIterator, error) {
+func (d *DB) newInternalIter(sOpts snapshotIterOpts, o *scanInternalOptions) *scanInternalIterator {
 	if err := d.closed.Load(); err != nil {
 		panic(err)
 	}
@@ -1290,12 +1255,7 @@ func (d *DB) newInternalIter(
 	// compaction. The readState is unref'd by Iterator.Close().
 	var readState *readState
 	if sOpts.vers == nil {
-		if sOpts.readState != nil {
-			readState = sOpts.readState
-			readState.ref()
-		} else {
-			readState = d.loadReadState()
-		}
+		readState = d.loadReadState()
 	}
 	if sOpts.vers != nil {
 		sOpts.vers.Ref()
@@ -1312,7 +1272,6 @@ func (d *DB) newInternalIter(
 	// them together.
 	buf := iterAllocPool.Get().(*iterAlloc)
 	dbi := &scanInternalIterator{
-		ctx:             ctx,
 		db:              d,
 		comparer:        d.opts.Comparer,
 		merge:           d.opts.Merger.Merge,
@@ -1324,7 +1283,9 @@ func (d *DB) newInternalIter(
 		seqNum:          seqNum,
 		mergingIter:     &buf.merging,
 	}
-	dbi.opts = *o
+	if o != nil {
+		dbi.opts = *o
+	}
 	dbi.opts.logger = d.opts.Logger
 	if d.opts.private.disableLazyCombinedIteration {
 		dbi.opts.disableLazyCombinedIteration = true
@@ -1332,9 +1293,7 @@ func (d *DB) newInternalIter(
 	return finishInitializingInternalIter(buf, dbi)
 }
 
-func finishInitializingInternalIter(
-	buf *iterAlloc, i *scanInternalIterator,
-) (*scanInternalIterator, error) {
+func finishInitializingInternalIter(buf *iterAlloc, i *scanInternalIterator) *scanInternalIterator {
 	// Short-hand.
 	var memtables flushableList
 	if i.readState != nil {
@@ -1350,15 +1309,13 @@ func finishInitializingInternalIter(
 	}
 	i.initializeBoundBufs(i.opts.LowerBound, i.opts.UpperBound)
 
-	i.constructPointIter(i.opts.CategoryAndQoS, memtables, buf)
+	i.constructPointIter(memtables, buf)
 
 	// For internal iterators, we skip the lazy combined iteration optimization
 	// entirely, and create the range key iterator stack directly.
 	i.rangeKey = iterRangeKeyStateAllocPool.Get().(*iteratorRangeKeyState)
 	i.rangeKey.init(i.comparer.Compare, i.comparer.Split, &i.opts.IterOptions)
-	if err := i.constructRangeKeyIter(); err != nil {
-		return nil, err
-	}
+	i.constructRangeKeyIter()
 
 	// Wrap the point iterator (currently i.iter) with an interleaving
 	// iterator that interleaves range keys pulled from
@@ -1370,7 +1327,7 @@ func finishInitializingInternalIter(
 		})
 	i.iter = &i.rangeKey.iiter
 
-	return i, nil
+	return i
 }
 
 func (i *Iterator) constructPointIter(
@@ -1397,24 +1354,20 @@ func (i *Iterator) constructPointIter(
 	if i.batch != nil {
 		numMergingLevels++
 	}
+	numMergingLevels += len(memtables)
 
-	var current *version
-	if !i.batchOnlyIter {
-		numMergingLevels += len(memtables)
-
-		current = i.version
-		if current == nil {
-			current = i.readState.current
+	current := i.version
+	if current == nil {
+		current = i.readState.current
+	}
+	numMergingLevels += len(current.L0SublevelFiles)
+	numLevelIters += len(current.L0SublevelFiles)
+	for level := 1; level < len(current.Levels); level++ {
+		if current.Levels[level].Empty() {
+			continue
 		}
-		numMergingLevels += len(current.L0SublevelFiles)
-		numLevelIters += len(current.L0SublevelFiles)
-		for level := 1; level < len(current.Levels); level++ {
-			if current.Levels[level].Empty() {
-				continue
-			}
-			numMergingLevels++
-			numLevelIters++
-		}
+		numMergingLevels++
+		numLevelIters++
 	}
 
 	if numMergingLevels > cap(mlevels) {
@@ -1427,8 +1380,12 @@ func (i *Iterator) constructPointIter(
 	// Top-level is the batch, if any.
 	if i.batch != nil {
 		if i.batch.index == nil {
-			// This isn't an indexed batch. We shouldn't have gotten this far.
-			panic(errors.AssertionFailedf("creating an iterator over an unindexed batch"))
+			// This isn't an indexed batch. Include an error iterator so that
+			// the resulting iterator correctly surfaces ErrIndexed.
+			mlevels = append(mlevels, mergingIterLevel{
+				iter:         newErrorIter(ErrNotIndexed),
+				rangeDelIter: newErrorKeyspanIter(ErrNotIndexed),
+			})
 		} else {
 			i.batch.initInternalIter(&i.opts, &i.batchPointIter)
 			i.batch.initRangeDelIter(&i.opts, &i.batchRangeDelIter, i.batchSeqNum)
@@ -1448,49 +1405,47 @@ func (i *Iterator) constructPointIter(
 		}
 	}
 
-	if !i.batchOnlyIter {
-		// Next are the memtables.
-		for j := len(memtables) - 1; j >= 0; j-- {
-			mem := memtables[j]
-			mlevels = append(mlevels, mergingIterLevel{
-				iter:         mem.newIter(&i.opts),
-				rangeDelIter: mem.newRangeDelIter(&i.opts),
-			})
+	// Next are the memtables.
+	for j := len(memtables) - 1; j >= 0; j-- {
+		mem := memtables[j]
+		mlevels = append(mlevels, mergingIterLevel{
+			iter:         mem.newIter(&i.opts),
+			rangeDelIter: mem.newRangeDelIter(&i.opts),
+		})
+	}
+
+	// Next are the file levels: L0 sub-levels followed by lower levels.
+	mlevelsIndex := len(mlevels)
+	levelsIndex := len(levels)
+	mlevels = mlevels[:numMergingLevels]
+	levels = levels[:numLevelIters]
+	i.opts.snapshotForHideObsoletePoints = buf.dbi.seqNum
+	addLevelIterForFiles := func(files manifest.LevelIterator, level manifest.Level) {
+		li := &levels[levelsIndex]
+
+		li.init(ctx, i.opts, &i.comparer, i.newIters, files, level, internalOpts)
+		li.initRangeDel(&mlevels[mlevelsIndex].rangeDelIter)
+		li.initBoundaryContext(&mlevels[mlevelsIndex].levelIterBoundaryContext)
+		li.initCombinedIterState(&i.lazyCombinedIter.combinedIterState)
+		mlevels[mlevelsIndex].levelIter = li
+		mlevels[mlevelsIndex].iter = invalidating.MaybeWrapIfInvariants(li)
+
+		levelsIndex++
+		mlevelsIndex++
+	}
+
+	// Add level iterators for the L0 sublevels, iterating from newest to
+	// oldest.
+	for i := len(current.L0SublevelFiles) - 1; i >= 0; i-- {
+		addLevelIterForFiles(current.L0SublevelFiles[i].Iter(), manifest.L0Sublevel(i))
+	}
+
+	// Add level iterators for the non-empty non-L0 levels.
+	for level := 1; level < len(current.Levels); level++ {
+		if current.Levels[level].Empty() {
+			continue
 		}
-
-		// Next are the file levels: L0 sub-levels followed by lower levels.
-		mlevelsIndex := len(mlevels)
-		levelsIndex := len(levels)
-		mlevels = mlevels[:numMergingLevels]
-		levels = levels[:numLevelIters]
-		i.opts.snapshotForHideObsoletePoints = buf.dbi.seqNum
-		addLevelIterForFiles := func(files manifest.LevelIterator, level manifest.Level) {
-			li := &levels[levelsIndex]
-
-			li.init(ctx, i.opts, &i.comparer, i.newIters, files, level, internalOpts)
-			li.initRangeDel(&mlevels[mlevelsIndex].rangeDelIter)
-			li.initBoundaryContext(&mlevels[mlevelsIndex].levelIterBoundaryContext)
-			li.initCombinedIterState(&i.lazyCombinedIter.combinedIterState)
-			mlevels[mlevelsIndex].levelIter = li
-			mlevels[mlevelsIndex].iter = invalidating.MaybeWrapIfInvariants(li)
-
-			levelsIndex++
-			mlevelsIndex++
-		}
-
-		// Add level iterators for the L0 sublevels, iterating from newest to
-		// oldest.
-		for i := len(current.L0SublevelFiles) - 1; i >= 0; i-- {
-			addLevelIterForFiles(current.L0SublevelFiles[i].Iter(), manifest.L0Sublevel(i))
-		}
-
-		// Add level iterators for the non-empty non-L0 levels.
-		for level := 1; level < len(current.Levels); level++ {
-			if current.Levels[level].Empty() {
-				continue
-			}
-			addLevelIterForFiles(current.Levels[level].Iter(), manifest.Level(level))
-		}
+		addLevelIterForFiles(current.Levels[level].Iter(), manifest.Level(level))
 	}
 	buf.merging.init(&i.opts, &i.stats.InternalStats, i.comparer.Compare, i.comparer.Split, mlevels...)
 	if len(mlevels) <= cap(buf.levelsPositioned) {
@@ -1545,7 +1500,7 @@ func (d *DB) NewIter(o *IterOptions) (*Iterator, error) {
 // NewIterWithContext is like NewIter, and additionally accepts a context for
 // tracing.
 func (d *DB) NewIterWithContext(ctx context.Context, o *IterOptions) (*Iterator, error) {
-	return d.newIter(ctx, nil /* batch */, newIterOpts{}, o), nil
+	return d.newIter(ctx, nil /* batch */, snapshotIterOpts{}, o), nil
 }
 
 // NewSnapshot returns a point-in-time view of the current DB state. Iterators
@@ -1579,12 +1534,19 @@ func (d *DB) NewEventuallyFileOnlySnapshot(keyRanges []KeyRange) *EventuallyFile
 	if err := d.closed.Load(); err != nil {
 		panic(err)
 	}
+
+	internalKeyRanges := make([]internalKeyRange, len(keyRanges))
 	for i := range keyRanges {
 		if i > 0 && d.cmp(keyRanges[i-1].End, keyRanges[i].Start) > 0 {
 			panic("pebble: key ranges for eventually-file-only-snapshot not in order")
 		}
+		internalKeyRanges[i] = internalKeyRange{
+			smallest: base.MakeInternalKey(keyRanges[i].Start, InternalKeySeqNumMax, InternalKeyKindMax),
+			largest:  base.MakeExclusiveSentinelKey(InternalKeyKindRangeDelete, keyRanges[i].End),
+		}
 	}
-	return d.makeEventuallyFileOnlySnapshot(keyRanges)
+
+	return d.makeEventuallyFileOnlySnapshot(keyRanges, internalKeyRanges)
 }
 
 // Close closes the DB.
@@ -1742,17 +1704,25 @@ func (d *DB) Compact(start, end []byte, parallelize bool) error {
 		return errors.Errorf("Compact start %s is not less than end %s",
 			d.opts.Comparer.FormatKey(start), d.opts.Comparer.FormatKey(end))
 	}
+	iStart := base.MakeInternalKey(start, InternalKeySeqNumMax, InternalKeyKindMax)
+	iEnd := base.MakeInternalKey(end, 0, 0)
+	m := (&fileMetadata{}).ExtendPointKeyBounds(d.cmp, iStart, iEnd)
+	meta := []*fileMetadata{m}
 
 	d.mu.Lock()
 	maxLevelWithFiles := 1
 	cur := d.mu.versions.currentVersion()
 	for level := 0; level < numLevels; level++ {
-		overlaps := cur.Overlaps(level, d.cmp, start, end, false)
+		overlaps := cur.Overlaps(level, d.cmp, start, end, iEnd.IsExclusiveSentinel())
 		if !overlaps.Empty() {
 			maxLevelWithFiles = level + 1
 		}
 	}
 
+	keyRanges := make([]internalKeyRange, len(meta))
+	for i := range meta {
+		keyRanges[i] = internalKeyRange{smallest: m.Smallest, largest: m.Largest}
+	}
 	// Determine if any memtable overlaps with the compaction range. We wait for
 	// any such overlap to flush (initiating a flush if necessary).
 	mem, err := func() (*flushableEntry, error) {
@@ -1762,31 +1732,25 @@ func (d *DB) Compact(start, end []byte, parallelize bool) error {
 		// overlaps.
 		for i := len(d.mu.mem.queue) - 1; i >= 0; i-- {
 			mem := d.mu.mem.queue[i]
-			var anyOverlaps bool
-			mem.computePossibleOverlaps(func(b bounded) shouldContinue {
-				anyOverlaps = true
-				return stopIteration
-			}, KeyRange{Start: start, End: end})
-			if !anyOverlaps {
-				continue
-			}
-			var err error
-			if mem.flushable == d.mu.mem.mutable {
-				// We have to hold both commitPipeline.mu and DB.mu when calling
-				// makeRoomForWrite(). Lock order requirements elsewhere force us to
-				// unlock DB.mu in order to grab commitPipeline.mu first.
-				d.mu.Unlock()
-				d.commit.mu.Lock()
-				d.mu.Lock()
-				defer d.commit.mu.Unlock()
+			if ingestMemtableOverlaps(d.cmp, mem, keyRanges) {
+				var err error
 				if mem.flushable == d.mu.mem.mutable {
-					// Only flush if the active memtable is unchanged.
-					err = d.makeRoomForWrite(nil)
+					// We have to hold both commitPipeline.mu and DB.mu when calling
+					// makeRoomForWrite(). Lock order requirements elsewhere force us to
+					// unlock DB.mu in order to grab commitPipeline.mu first.
+					d.mu.Unlock()
+					d.commit.mu.Lock()
+					d.mu.Lock()
+					defer d.commit.mu.Unlock()
+					if mem.flushable == d.mu.mem.mutable {
+						// Only flush if the active memtable is unchanged.
+						err = d.makeRoomForWrite(nil)
+					}
 				}
+				mem.flushForced = true
+				d.maybeScheduleFlush()
+				return mem, err
 			}
-			mem.flushForced = true
-			d.maybeScheduleFlush()
-			return mem, err
 		}
 		return nil, nil
 	}()
@@ -1801,15 +1765,9 @@ func (d *DB) Compact(start, end []byte, parallelize bool) error {
 	}
 
 	for level := 0; level < maxLevelWithFiles; {
-		for {
-			if err := d.manualCompact(
-				start, end, level, parallelize); err != nil {
-				if errors.Is(err, ErrCancelledCompaction) {
-					continue
-				}
-				return err
-			}
-			break
+		if err := d.manualCompact(
+			iStart.UserKey, iEnd.UserKey, level, parallelize); err != nil {
+			return err
 		}
 		level++
 		if level == numLevels-1 {
@@ -1871,7 +1829,7 @@ func (d *DB) splitManualCompaction(
 	if level == 0 {
 		endLevel = baseLevel
 	}
-	keyRanges := curr.CalculateInuseKeyRanges(d.cmp, level, endLevel, start, end)
+	keyRanges := calculateInuseKeyRanges(curr, d.cmp, level, endLevel, start, end)
 	for _, keyRange := range keyRanges {
 		splitCompactions = append(splitCompactions, &manualCompaction{
 			level: level,
@@ -1891,108 +1849,6 @@ type DownloadSpan struct {
 	EndKey []byte
 }
 
-func (d *DB) downloadSpan(ctx context.Context, span DownloadSpan) error {
-	dSpan := &downloadSpan{
-		start: span.StartKey,
-		end:   span.EndKey,
-		// Protected by d.mu.
-		doneChans: make([]chan error, 1),
-	}
-	dSpan.doneChans[0] = make(chan error, 1)
-	doneChan := dSpan.doneChans[0]
-	compactionIdx := 0
-
-	func() {
-		d.mu.Lock()
-		defer d.mu.Unlock()
-
-		d.mu.compact.downloads = append(d.mu.compact.downloads, dSpan)
-		d.maybeScheduleCompaction()
-	}()
-
-	// Requires d.mu to be held.
-	noExternalFilesInSpan := func() (noExternalFiles bool) {
-		vers := d.mu.versions.currentVersion()
-
-		for i := 0; i < len(vers.Levels); i++ {
-			if vers.Levels[i].Empty() {
-				continue
-			}
-			overlap := vers.Overlaps(i, d.cmp, span.StartKey, span.EndKey, true /* exclusiveEnd */)
-			foundExternalFile := false
-			overlap.Each(func(metadata *manifest.FileMetadata) {
-				objMeta, err := d.objProvider.Lookup(fileTypeTable, metadata.FileBacking.DiskFileNum)
-				if err != nil {
-					return
-				}
-				if objMeta.IsExternal() {
-					foundExternalFile = true
-				}
-			})
-			if foundExternalFile {
-				return false
-			}
-		}
-		return true
-	}
-
-	// Requires d.mu to be held.
-	removeUsFromList := func() {
-		// Check where we are in d.mu.compact.downloads. Remove us from the
-		// list.
-		for i := range d.mu.compact.downloads {
-			if d.mu.compact.downloads[i] != dSpan {
-				continue
-			}
-			copy(d.mu.compact.downloads[i:], d.mu.compact.downloads[i+1:])
-			d.mu.compact.downloads = d.mu.compact.downloads[:len(d.mu.compact.downloads)-1]
-			break
-		}
-	}
-
-	for {
-		select {
-		case <-ctx.Done():
-			d.mu.Lock()
-			defer d.mu.Unlock()
-			removeUsFromList()
-			return ctx.Err()
-		case err := <-doneChan:
-			if err != nil {
-				d.mu.Lock()
-				defer d.mu.Unlock()
-				removeUsFromList()
-				return err
-			}
-			compactionIdx++
-			// Grab the next doneCh to wait on.
-			func() {
-				d.mu.Lock()
-				defer d.mu.Unlock()
-				doneChan = dSpan.doneChans[compactionIdx]
-			}()
-		default:
-			doneSpan := func() bool {
-				d.mu.Lock()
-				defer d.mu.Unlock()
-				// It's possible to have downloaded all files without writing to any
-				// doneChans. This is expected if there are a significant amount
-				// of overlapping writes that schedule regular, non-download compactions.
-				if noExternalFilesInSpan() {
-					removeUsFromList()
-					return true
-				}
-				d.maybeScheduleCompaction()
-				d.mu.compact.cond.Wait()
-				return false
-			}()
-			if doneSpan {
-				return nil
-			}
-		}
-	}
-}
-
 // Download ensures that the LSM does not use any external sstables for the
 // given key ranges. It does so by performing appropriate compactions so that
 // all external data becomes available locally.
@@ -2007,23 +1863,7 @@ func (d *DB) downloadSpan(ctx context.Context, span DownloadSpan) error {
 // TODO(radu): consider passing a priority/impact knob to express how important
 // the download is (versus live traffic performance, LSM health).
 func (d *DB) Download(ctx context.Context, spans []DownloadSpan) error {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	if err := d.closed.Load(); err != nil {
-		panic(err)
-	}
-	if d.opts.ReadOnly {
-		return ErrReadOnly
-	}
-	for i := range spans {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-		if err := d.downloadSpan(ctx, spans[i]); err != nil {
-			return err
-		}
-	}
-	return nil
+	return errors.Errorf("not implemented")
 }
 
 // Flush the memtable to stable storage.
@@ -2063,7 +1903,7 @@ func (d *DB) AsyncFlush() (<-chan struct{}, error) {
 // Metrics returns metrics about the database.
 func (d *DB) Metrics() *Metrics {
 	metrics := &Metrics{}
-	recycledLogsCount, recycledLogSize := d.logRecycler.Stats()
+	recycledLogsCount, recycledLogSize := d.logRecycler.stats()
 
 	d.mu.Lock()
 	vers := d.mu.versions.currentVersion()
@@ -2100,11 +1940,11 @@ func (d *DB) Metrics() *Metrics {
 	// during WAL rotation. Use the larger of the two for the current WAL. All
 	// the previous WALs's fileSizes in d.mu.log.queue are already updated.
 	metrics.WAL.PhysicalSize = metrics.WAL.Size
-	if len(d.mu.log.queue) > 0 && metrics.WAL.PhysicalSize < d.mu.log.queue[len(d.mu.log.queue)-1].FileSize {
-		metrics.WAL.PhysicalSize = d.mu.log.queue[len(d.mu.log.queue)-1].FileSize
+	if len(d.mu.log.queue) > 0 && metrics.WAL.PhysicalSize < d.mu.log.queue[len(d.mu.log.queue)-1].fileSize {
+		metrics.WAL.PhysicalSize = d.mu.log.queue[len(d.mu.log.queue)-1].fileSize
 	}
 	for i, n := 0, len(d.mu.log.queue)-1; i < n; i++ {
-		metrics.WAL.PhysicalSize += d.mu.log.queue[i].FileSize
+		metrics.WAL.PhysicalSize += d.mu.log.queue[i].fileSize
 	}
 
 	metrics.WAL.BytesIn = d.mu.log.bytesIn // protected by d.mu
@@ -2145,7 +1985,7 @@ func (d *DB) Metrics() *Metrics {
 
 	metrics.LogWriter.FsyncLatency = d.mu.log.metrics.fsyncLatency
 	if err := metrics.LogWriter.Merge(&d.mu.log.metrics.LogWriterMetrics); err != nil {
-		d.opts.Logger.Errorf("metrics error: %s", err)
+		d.opts.Logger.Infof("metrics error: %s", err)
 	}
 	metrics.Flush.WriteThroughput = d.mu.compact.flushWriteThroughput
 	if d.mu.compact.flushing {
@@ -2160,7 +2000,6 @@ func (d *DB) Metrics() *Metrics {
 	metrics.BlockCache = d.opts.Cache.Metrics()
 	metrics.TableCache, metrics.Filter = d.tableCache.metrics()
 	metrics.TableIters = int64(d.tableCache.iterCount())
-	metrics.CategoryStats = d.tableCache.dbOpts.sstStatsCollector.GetStats()
 
 	metrics.SecondaryCacheMetrics = d.objProvider.Metrics()
 
@@ -2241,9 +2080,10 @@ type SSTableInfo struct {
 	manifest.TableInfo
 	// Virtual indicates whether the sstable is virtual.
 	Virtual bool
-	// BackingSSTNum is the disk file number associated with the backing sstable.
-	// If Virtual is false, BackingSSTNum == PhysicalTableDiskFileNum(FileNum).
-	BackingSSTNum base.DiskFileNum
+	// BackingSSTNum is the file number associated with backing sstable which
+	// backs the sstable associated with this SSTableInfo. If Virtual is false,
+	// then BackingSSTNum == FileNum.
+	BackingSSTNum base.FileNum
 	// BackingType is the type of storage backing this sstable.
 	BackingType BackingType
 	// Locator is the remote.Locator backing this sstable, if the backing type is
@@ -2306,7 +2146,7 @@ func (d *DB) SSTables(opts ...SSTablesOption) ([][]SSTableInfo, error) {
 				destTables[j].Properties = p
 			}
 			destTables[j].Virtual = m.Virtual
-			destTables[j].BackingSSTNum = m.FileBacking.DiskFileNum
+			destTables[j].BackingSSTNum = m.FileBacking.DiskFileNum.FileNum()
 			objMeta, err := d.objProvider.Lookup(fileTypeTable, m.FileBacking.DiskFileNum)
 			if err != nil {
 				return nil, err
@@ -2472,7 +2312,7 @@ func (d *DB) walPreallocateSize() int {
 	return int(size)
 }
 
-func (d *DB) newMemTable(logNum base.DiskFileNum, logSeqNum uint64) (*memTable, *flushableEntry) {
+func (d *DB) newMemTable(logNum FileNum, logSeqNum uint64) (*memTable, *flushableEntry) {
 	size := d.mu.mem.nextSize
 	if d.mu.mem.nextSize < d.opts.MemTableSize {
 		d.mu.mem.nextSize *= 2
@@ -2543,9 +2383,7 @@ func (d *DB) freeMemTable(m *memTable) {
 	m.free()
 }
 
-func (d *DB) newFlushableEntry(
-	f flushable, logNum base.DiskFileNum, logSeqNum uint64,
-) *flushableEntry {
+func (d *DB) newFlushableEntry(f flushable, logNum FileNum, logSeqNum uint64) *flushableEntry {
 	fe := &flushableEntry{
 		flushable:      f,
 		flushed:        make(chan struct{}),
@@ -2629,7 +2467,7 @@ func (d *DB) makeRoomForWrite(b *Batch) error {
 			continue
 		}
 
-		var newLogNum base.DiskFileNum
+		var newLogNum base.FileNum
 		var prevLogSize uint64
 		if !d.opts.DisableWAL {
 			now := time.Now()
@@ -2686,7 +2524,7 @@ func (d *DB) makeRoomForWrite(b *Batch) error {
 }
 
 // Both DB.mu and commitPipeline.mu must be held by the caller.
-func (d *DB) rotateMemtable(newLogNum base.DiskFileNum, logSeqNum uint64, prev *memTable) {
+func (d *DB) rotateMemtable(newLogNum FileNum, logSeqNum uint64, prev *memTable) {
 	// Create a new memtable, scheduling the previous one for flushing. We do
 	// this even if the previous memtable was empty because the DB.Flush
 	// mechanism is dependent on being able to wait for the empty memtable to
@@ -2713,22 +2551,22 @@ func (d *DB) rotateMemtable(newLogNum base.DiskFileNum, logSeqNum uint64, prev *
 
 // Both DB.mu and commitPipeline.mu must be held by the caller. Note that DB.mu
 // may be released and reacquired.
-func (d *DB) recycleWAL() (newLogNum base.DiskFileNum, prevLogSize uint64) {
+func (d *DB) recycleWAL() (newLogNum FileNum, prevLogSize uint64) {
 	if d.opts.DisableWAL {
 		panic("pebble: invalid function call")
 	}
 
 	jobID := d.mu.nextJobID
 	d.mu.nextJobID++
-	newLogNum = d.mu.versions.getNextDiskFileNum()
+	newLogNum = d.mu.versions.getNextFileNum()
 
 	prevLogSize = uint64(d.mu.log.Size())
 
 	// The previous log may have grown past its original physical
 	// size. Update its file size in the queue so we have a proper
 	// accounting of its file size.
-	if d.mu.log.queue[len(d.mu.log.queue)-1].FileSize < prevLogSize {
-		d.mu.log.queue[len(d.mu.log.queue)-1].FileSize = prevLogSize
+	if d.mu.log.queue[len(d.mu.log.queue)-1].fileSize < prevLogSize {
+		d.mu.log.queue[len(d.mu.log.queue)-1].fileSize = prevLogSize
 	}
 	d.mu.Unlock()
 
@@ -2742,11 +2580,11 @@ func (d *DB) recycleWAL() (newLogNum base.DiskFileNum, prevLogSize uint64) {
 	metrics := d.mu.log.LogWriter.Metrics()
 	d.mu.Lock()
 	if err := d.mu.log.metrics.Merge(metrics); err != nil {
-		d.opts.Logger.Errorf("metrics error: %s", err)
+		d.opts.Logger.Infof("metrics error: %s", err)
 	}
 	d.mu.Unlock()
 
-	newLogName := base.MakeFilepath(d.opts.FS, d.walDirname, fileTypeLog, newLogNum)
+	newLogName := base.MakeFilepath(d.opts.FS, d.walDirname, fileTypeLog, newLogNum.DiskFileNum())
 
 	// Try to use a recycled log file. Recycling log files is an important
 	// performance optimization as it is faster to sync a file that has
@@ -2758,9 +2596,9 @@ func (d *DB) recycleWAL() (newLogNum base.DiskFileNum, prevLogSize uint64) {
 	var recycleOK bool
 	var newLogFile vfs.File
 	if err == nil {
-		recycleLog, recycleOK = d.logRecycler.Peek()
+		recycleLog, recycleOK = d.logRecycler.peek()
 		if recycleOK {
-			recycleLogName := base.MakeFilepath(d.opts.FS, d.walDirname, fileTypeLog, recycleLog.FileNum)
+			recycleLogName := base.MakeFilepath(d.opts.FS, d.walDirname, fileTypeLog, recycleLog.fileNum)
 			newLogFile, err = d.opts.FS.ReuseForWrite(recycleLogName, newLogName)
 			base.MustExist(d.opts.FS, newLogName, d.opts.Logger, err)
 		} else {
@@ -2778,7 +2616,7 @@ func (d *DB) recycleWAL() (newLogNum base.DiskFileNum, prevLogSize uint64) {
 		// TODO(jackson): Adding a boolean to the ReuseForWrite return
 		// value indicating whether or not the file was actually
 		// reused would allow us to skip the stat and use
-		// recycleLog.FileSize.
+		// recycleLog.fileSize.
 		var finfo os.FileInfo
 		finfo, err = newLogFile.Stat()
 		if err == nil {
@@ -2803,14 +2641,14 @@ func (d *DB) recycleWAL() (newLogNum base.DiskFileNum, prevLogSize uint64) {
 	}
 
 	if recycleOK {
-		err = firstError(err, d.logRecycler.Pop(recycleLog.FileNum))
+		err = firstError(err, d.logRecycler.pop(recycleLog.fileNum.FileNum()))
 	}
 
 	d.opts.EventListener.WALCreated(WALCreateInfo{
 		JobID:           jobID,
 		Path:            newLogName,
 		FileNum:         newLogNum,
-		RecycledFileNum: recycleLog.FileNum,
+		RecycledFileNum: recycleLog.fileNum.FileNum(),
 		Err:             err,
 	})
 
@@ -2827,7 +2665,7 @@ func (d *DB) recycleWAL() (newLogNum base.DiskFileNum, prevLogSize uint64) {
 		panic(err)
 	}
 
-	d.mu.log.queue = append(d.mu.log.queue, fileInfo{FileNum: newLogNum, FileSize: newLogSize})
+	d.mu.log.queue = append(d.mu.log.queue, fileInfo{fileNum: newLogNum.DiskFileNum(), fileSize: newLogSize})
 	d.mu.log.LogWriter = record.NewLogWriter(newLogFile, newLogNum, record.LogWriterConfig{
 		WALFsyncLatency:    d.mu.log.metrics.fsyncLatency,
 		WALMinSyncInterval: d.opts.WALMinSyncInterval,
@@ -3042,13 +2880,10 @@ func (d *DB) ScanStatistics(
 		},
 		rateLimitFunc: rateLimitFunc,
 	}
-	iter, err := d.newInternalIter(ctx, snapshotIterOpts{}, scanInternalOpts)
-	if err != nil {
-		return LSMKeyStatistics{}, err
-	}
+	iter := d.newInternalIter(snapshotIterOpts{}, scanInternalOpts)
 	defer iter.close()
 
-	err = scanInternalImpl(ctx, lower, upper, iter, scanInternalOpts)
+	err := scanInternalImpl(ctx, lower, upper, iter, scanInternalOpts)
 
 	if err != nil {
 		return LSMKeyStatistics{}, err
@@ -3068,42 +2903,36 @@ func (d *DB) checkVirtualBounds(m *fileMetadata) {
 		return
 	}
 
-	objMeta, err := d.objProvider.Lookup(fileTypeTable, m.FileBacking.DiskFileNum)
-	if err != nil {
-		panic(err)
-	}
-	if objMeta.IsExternal() {
-		// Nothing to do; bounds are expected to be loose.
-		return
-	}
-
-	iters, err := d.newIters(context.TODO(), m, nil, internalIterOpts{}, iterPointKeys|iterRangeDeletions|iterRangeKeys)
-	if err != nil {
-		panic(errors.Wrap(err, "pebble: error creating iterators"))
-	}
-	defer iters.CloseAll()
-
 	if m.HasPointKeys {
-		pointIter := iters.Point()
-		rangeDelIter := iters.RangeDeletion()
+		pointIter, rangeDelIter, err := d.newIters(context.TODO(), m, nil, internalIterOpts{})
+		if err != nil {
+			panic(errors.Wrap(err, "pebble: error creating point iterator"))
+		}
+
+		defer pointIter.Close()
+		if rangeDelIter != nil {
+			defer rangeDelIter.Close()
+		}
+
+		pointKey, _ := pointIter.First()
+		var rangeDel *keyspan.Span
+		if rangeDelIter != nil {
+			rangeDel = rangeDelIter.First()
+		}
 
 		// Check that the lower bound is tight.
-		pointKey, _ := pointIter.First()
-		rangeDel, err := rangeDelIter.First()
-		if err != nil {
-			panic(err)
-		}
 		if (rangeDel == nil || d.cmp(rangeDel.SmallestKey().UserKey, m.SmallestPointKey.UserKey) != 0) &&
 			(pointKey == nil || d.cmp(pointKey.UserKey, m.SmallestPointKey.UserKey) != 0) {
 			panic(errors.Newf("pebble: virtual sstable %s lower point key bound is not tight", m.FileNum))
 		}
 
-		// Check that the upper bound is tight.
 		pointKey, _ = pointIter.Last()
-		rangeDel, err = rangeDelIter.Last()
-		if err != nil {
-			panic(err)
+		rangeDel = nil
+		if rangeDelIter != nil {
+			rangeDel = rangeDelIter.Last()
 		}
+
+		// Check that the upper bound is tight.
 		if (rangeDel == nil || d.cmp(rangeDel.LargestKey().UserKey, m.LargestPointKey.UserKey) != 0) &&
 			(pointKey == nil || d.cmp(pointKey.UserKey, m.LargestPointKey.UserKey) != 0) {
 			panic(errors.Newf("pebble: virtual sstable %s upper point key bound is not tight", m.FileNum))
@@ -3115,49 +2944,47 @@ func (d *DB) checkVirtualBounds(m *fileMetadata) {
 				panic(errors.Newf("pebble: virtual sstable %s point key %s is not within bounds", m.FileNum, key.UserKey))
 			}
 		}
-		s, err := rangeDelIter.First()
-		for ; s != nil; s, err = rangeDelIter.Next() {
-			if d.cmp(s.SmallestKey().UserKey, m.SmallestPointKey.UserKey) < 0 {
-				panic(errors.Newf("pebble: virtual sstable %s point key %s is not within bounds", m.FileNum, s.SmallestKey().UserKey))
+
+		if rangeDelIter != nil {
+			for key := rangeDelIter.First(); key != nil; key = rangeDelIter.Next() {
+				if d.cmp(key.SmallestKey().UserKey, m.SmallestPointKey.UserKey) < 0 {
+					panic(errors.Newf("pebble: virtual sstable %s point key %s is not within bounds", m.FileNum, key.SmallestKey().UserKey))
+				}
+
+				if d.cmp(key.LargestKey().UserKey, m.LargestPointKey.UserKey) > 0 {
+					panic(errors.Newf("pebble: virtual sstable %s point key %s is not within bounds", m.FileNum, key.LargestKey().UserKey))
+				}
 			}
-			if d.cmp(s.LargestKey().UserKey, m.LargestPointKey.UserKey) > 0 {
-				panic(errors.Newf("pebble: virtual sstable %s point key %s is not within bounds", m.FileNum, s.LargestKey().UserKey))
-			}
-		}
-		if err != nil {
-			panic(err)
 		}
 	}
 
 	if !m.HasRangeKeys {
 		return
 	}
-	rangeKeyIter := iters.RangeKey()
+
+	rangeKeyIter, err := d.tableNewRangeKeyIter(m, keyspan.SpanIterOptions{})
+	defer rangeKeyIter.Close()
+
+	if err != nil {
+		panic(errors.Wrap(err, "pebble: error creating range key iterator"))
+	}
 
 	// Check that the lower bound is tight.
-	if s, err := rangeKeyIter.First(); err != nil {
-		panic(err)
-	} else if d.cmp(s.SmallestKey().UserKey, m.SmallestRangeKey.UserKey) != 0 {
+	if d.cmp(rangeKeyIter.First().SmallestKey().UserKey, m.SmallestRangeKey.UserKey) != 0 {
 		panic(errors.Newf("pebble: virtual sstable %s lower range key bound is not tight", m.FileNum))
 	}
 
 	// Check that upper bound is tight.
-	if s, err := rangeKeyIter.Last(); err != nil {
-		panic(err)
-	} else if d.cmp(s.LargestKey().UserKey, m.LargestRangeKey.UserKey) != 0 {
+	if d.cmp(rangeKeyIter.Last().LargestKey().UserKey, m.LargestRangeKey.UserKey) != 0 {
 		panic(errors.Newf("pebble: virtual sstable %s upper range key bound is not tight", m.FileNum))
 	}
 
-	s, err := rangeKeyIter.First()
-	for ; s != nil; s, err = rangeKeyIter.Next() {
-		if d.cmp(s.SmallestKey().UserKey, m.SmallestRangeKey.UserKey) < 0 {
-			panic(errors.Newf("pebble: virtual sstable %s point key %s is not within bounds", m.FileNum, s.SmallestKey().UserKey))
+	for key := rangeKeyIter.First(); key != nil; key = rangeKeyIter.Next() {
+		if d.cmp(key.SmallestKey().UserKey, m.SmallestRangeKey.UserKey) < 0 {
+			panic(errors.Newf("pebble: virtual sstable %s point key %s is not within bounds", m.FileNum, key.SmallestKey().UserKey))
 		}
-		if d.cmp(s.LargestKey().UserKey, m.LargestRangeKey.UserKey) > 0 {
-			panic(errors.Newf("pebble: virtual sstable %s point key %s is not within bounds", m.FileNum, s.LargestKey().UserKey))
+		if d.cmp(key.LargestKey().UserKey, m.LargestRangeKey.UserKey) > 0 {
+			panic(errors.Newf("pebble: virtual sstable %s point key %s is not within bounds", m.FileNum, key.LargestKey().UserKey))
 		}
-	}
-	if err != nil {
-		panic(err)
 	}
 }

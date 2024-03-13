@@ -16,6 +16,38 @@ import (
 	"github.com/cockroachdb/pebble/sstable"
 )
 
+// tableNewIters creates a new point and range-del iterator for the given file
+// number.
+//
+// On success, the internalIterator is not-nil and must be closed; the
+// FragmentIterator can be nil.
+// TODO(radu): always return a non-nil FragmentIterator.
+//
+// On error, the iterators are nil.
+//
+// The only (non-test) implementation of tableNewIters is tableCacheContainer.newIters().
+type tableNewIters func(
+	ctx context.Context,
+	file *manifest.FileMetadata,
+	opts *IterOptions,
+	internalOpts internalIterOpts,
+) (internalIterator, keyspan.FragmentIterator, error)
+
+// tableNewRangeDelIter takes a tableNewIters and returns a TableNewSpanIter
+// for the rangedel iterator returned by tableNewIters.
+func tableNewRangeDelIter(ctx context.Context, newIters tableNewIters) keyspan.TableNewSpanIter {
+	return func(file *manifest.FileMetadata, iterOptions keyspan.SpanIterOptions) (keyspan.FragmentIterator, error) {
+		iter, rangeDelIter, err := newIters(ctx, file, nil, internalIterOpts{})
+		if iter != nil {
+			_ = iter.Close()
+		}
+		if rangeDelIter == nil {
+			rangeDelIter = emptyKeyspanIter
+		}
+		return rangeDelIter, err
+	}
+}
+
 type internalIterOpts struct {
 	bytesIterated      *uint64
 	bufferPool         *sstable.BufferPool
@@ -209,7 +241,6 @@ var _ base.InternalIterator = (*levelIter)(nil)
 // newLevelIter returns a levelIter. It is permissible to pass a nil split
 // parameter if the caller is never going to call SeekPrefixGE.
 func newLevelIter(
-	ctx context.Context,
 	opts IterOptions,
 	comparer *Comparer,
 	newIters tableNewIters,
@@ -218,7 +249,8 @@ func newLevelIter(
 	internalOpts internalIterOpts,
 ) *levelIter {
 	l := &levelIter{}
-	l.init(ctx, opts, comparer, newIters, files, level, internalOpts)
+	l.init(context.Background(), opts, comparer, newIters, files, level,
+		internalOpts)
 	return l
 }
 
@@ -243,7 +275,6 @@ func (l *levelIter) init(
 		l.tableOpts.PointKeyFilters = l.filtersBuf[:0:1]
 	}
 	l.tableOpts.UseL6Filters = opts.UseL6Filters
-	l.tableOpts.CategoryAndQoS = opts.CategoryAndQoS
 	l.tableOpts.level = l.level
 	l.tableOpts.snapshotForHideObsoletePoints = opts.snapshotForHideObsoletePoints
 	l.comparer = comparer
@@ -644,7 +675,7 @@ func (l *levelIter) loadFile(file *fileMetadata, dir int) loadFileReturnIndicato
 
 		var rangeDelIter keyspan.FragmentIterator
 		var iter internalIterator
-		iter, rangeDelIter, l.err = l.newIters.TODO(l.ctx, l.iterFile, &l.tableOpts, l.internalOpts)
+		iter, rangeDelIter, l.err = l.newIters(l.ctx, l.iterFile, &l.tableOpts, l.internalOpts)
 		l.iter = iter
 		if l.err != nil {
 			return noFileLoaded
@@ -663,6 +694,11 @@ func (l *levelIter) loadFile(file *fileMetadata, dir int) loadFileReturnIndicato
 			l.rangeDelIterCopy = rangeDelIter
 		} else if rangeDelIter != nil {
 			rangeDelIter.Close()
+		}
+		if l.boundaryContext != nil {
+			l.boundaryContext.smallestUserKey = file.Smallest.UserKey
+			l.boundaryContext.largestUserKey = file.Largest.UserKey
+			l.boundaryContext.isLargestUserKeyExclusive = file.Largest.IsExclusiveSentinel()
 		}
 		return newFileLoaded
 	}
@@ -733,9 +769,6 @@ func (l *levelIter) SeekPrefixGE(
 	}
 	if key, val := l.iter.SeekPrefixGE(prefix, key, flags); key != nil {
 		return l.verify(key, val)
-	}
-	if err := l.iter.Error(); err != nil {
-		return nil, base.LazyValue{}
 	}
 	// When SeekPrefixGE returns nil, we have not necessarily reached the end of
 	// the sstable. All we know is that a key with prefix does not exist in the
@@ -914,9 +947,6 @@ func (l *levelIter) NextPrefix(succKey []byte) (*InternalKey, base.LazyValue) {
 		if key, val := l.iter.NextPrefix(succKey); key != nil {
 			return l.verify(key, val)
 		}
-		if l.iter.Error() != nil {
-			return nil, base.LazyValue{}
-		}
 		// Fall through to seeking.
 	}
 
@@ -995,9 +1025,6 @@ func (l *levelIter) skipEmptyFileForward() (*InternalKey, base.LazyValue) {
 	// that key, else the behavior described above if there is a corresponding
 	// rangeDelIterPtr.
 	for ; key == nil; key, val = l.iter.First() {
-		if l.iter.Error() != nil {
-			return nil, base.LazyValue{}
-		}
 		if l.rangeDelIterPtr != nil {
 			// We're being used as part of a mergingIter and we've exhausted the
 			// current sstable. If an upper bound is present and the upper bound lies
@@ -1090,9 +1117,6 @@ func (l *levelIter) skipEmptyFileBackward() (*InternalKey, base.LazyValue) {
 	// that key, else the behavior described above if there is a corresponding
 	// rangeDelIterPtr.
 	for ; key == nil; key, val = l.iter.Last() {
-		if l.iter.Error() != nil {
-			return nil, base.LazyValue{}
-		}
 		if l.rangeDelIterPtr != nil {
 			// We're being used as part of a mergingIter and we've exhausted the
 			// current sstable. If a lower bound is present and the lower bound lies
@@ -1206,15 +1230,6 @@ func (l *levelIter) SetBounds(lower, upper []byte) {
 	}
 
 	l.iter.SetBounds(l.tableOpts.LowerBound, l.tableOpts.UpperBound)
-}
-
-func (l *levelIter) SetContext(ctx context.Context) {
-	l.ctx = ctx
-	if l.iter != nil {
-		// TODO(sumeer): this is losing the ctx = objiotracing.WithLevel(ctx,
-		// manifest.LevelToInt(opts.level)) that happens in table_cache.go.
-		l.iter.SetContext(ctx)
-	}
 }
 
 func (l *levelIter) String() string {

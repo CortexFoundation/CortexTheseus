@@ -5,7 +5,6 @@
 package sstable
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"unsafe"
@@ -53,18 +52,8 @@ type singleLevelIterator struct {
 	vbRHPrealloc objstorageprovider.PreallocatedReadHandle
 	err          error
 	closeHook    func(i Iterator) error
-	// stats and iterStats are slightly different. stats is a shared struct
-	// supplied from the outside, and represents stats for the whole iterator
-	// tree and can be reset from the outside (e.g. when the pebble.Iterator is
-	// being reused). It is currently only provided when the iterator tree is
-	// rooted at pebble.Iterator. iterStats is this sstable iterator's private
-	// stats that are reported to a CategoryStatsCollector when this iterator is
-	// closed. More paths are instrumented with this as the
-	// CategoryStatsCollector needed for this is provided by the
-	// tableCacheContainer (which is more universally used).
-	stats      *base.InternalIteratorStats
-	iterStats  iterStatsAccumulator
-	bufferPool *BufferPool
+	stats        *base.InternalIteratorStats
+	bufferPool   *BufferPool
 
 	// boundsCmp and positionedUsingLatestBounds are for optimizing iteration
 	// that uses multiple adjacent bounds. The seek after setting a new bound
@@ -165,10 +154,6 @@ type singleLevelIterator struct {
 	lastBloomFilterMatched bool
 
 	hideObsoletePoints bool
-
-	// inPool is set to true before putting the iterator in the reusable pool;
-	// used to detect double-close.
-	inPool bool
 }
 
 // singleLevelIterator implements the base.InternalIterator interface.
@@ -189,16 +174,13 @@ func (i *singleLevelIterator) init(
 	filterer *BlockPropertiesFilterer,
 	useFilter, hideObsoletePoints bool,
 	stats *base.InternalIteratorStats,
-	categoryAndQoS CategoryAndQoS,
-	statsCollector *CategoryStatsCollector,
 	rp ReaderProvider,
 	bufferPool *BufferPool,
 ) error {
 	if r.err != nil {
 		return r.err
 	}
-	i.iterStats.init(categoryAndQoS, statsCollector)
-	indexH, err := r.readIndex(ctx, stats, &i.iterStats)
+	indexH, err := r.readIndex(ctx, stats)
 	if err != nil {
 		return err
 	}
@@ -207,7 +189,6 @@ func (i *singleLevelIterator) init(
 		i.endKeyInclusive, lower, upper = v.constrainBounds(lower, upper, false /* endInclusive */)
 	}
 
-	i.inPool = false
 	i.ctx = ctx
 	i.lower = lower
 	i.upper = upper
@@ -237,6 +218,7 @@ func (i *singleLevelIterator) init(
 			// separated to their callers, they can put this valueBlockReader into a
 			// sync.Pool.
 			i.vbReader = &valueBlockReader{
+				ctx:    ctx,
 				bpOpen: i,
 				rp:     rp,
 				vbih:   r.valueBIH,
@@ -279,9 +261,8 @@ func (i *singleLevelIterator) setupForCompaction() {
 
 func (i *singleLevelIterator) resetForReuse() singleLevelIterator {
 	return singleLevelIterator{
-		index:  i.index.resetForReuse(),
-		data:   i.data.resetForReuse(),
-		inPool: true,
+		index: i.index.resetForReuse(),
+		data:  i.data.resetForReuse(),
 	}
 }
 
@@ -327,23 +308,6 @@ func disableBoundsOpt(bound []byte, ptr uintptr) bool {
 // state and require this behavior to be deterministic.
 var ensureBoundsOptDeterminism bool
 
-// SetBoundsWithSyntheticPrefix indicates whether this iterator requires keys
-// passed to its SetBounds() method by a prefix rewriting wrapper to be *not*
-// rewritten to be in terms of this iterator's content, but instead be passed
-// as-is, i.e. with the synthetic prefix still on them.
-//
-// This allows an optimization when this iterator is passing these bounds on to
-// a vState to additionally constrain them. In said vState, passed bounds are
-// combined with the vState bounds which are in terms of the rewritten prefix.
-// If the caller rewrote bounds to be in terms of content prefix and SetBounds
-// passed those to vState, the vState would need to *un*rewrite them back to the
-// synthetic prefix in order to combine them with the vState bounds. Thus, if
-// this iterator knows bounds will be passed to vState, it can signal that it
-// they should be passed without being rewritten to skip converting to and fro.
-func (i singleLevelIterator) SetBoundsWithSyntheticPrefix() bool {
-	return i.vState != nil
-}
-
 // SetBounds implements internalIterator.SetBounds, as documented in the pebble
 // package. Note that the upper field is exclusive.
 func (i *singleLevelIterator) SetBounds(lower, upper []byte) {
@@ -381,10 +345,6 @@ func (i *singleLevelIterator) SetBounds(lower, upper []byte) {
 	i.upper = upper
 	i.blockLower = nil
 	i.blockUpper = nil
-}
-
-func (i *singleLevelIterator) SetContext(ctx context.Context) {
-	i.ctx = ctx
 }
 
 // loadBlock loads the block at the current index position and leaves i.data
@@ -435,8 +395,7 @@ func (i *singleLevelIterator) loadBlock(dir int8) loadBlockResult {
 		// blockIntersects
 	}
 	ctx := objiotracing.WithBlockType(i.ctx, objiotracing.DataBlock)
-	block, err := i.reader.readBlock(
-		ctx, i.dataBH, nil /* transform */, i.dataRH, i.stats, &i.iterStats, i.bufferPool)
+	block, err := i.reader.readBlock(ctx, i.dataBH, nil /* transform */, i.dataRH, i.stats, i.bufferPool)
 	if err != nil {
 		i.err = err
 		return loadBlockFailed
@@ -454,17 +413,17 @@ func (i *singleLevelIterator) loadBlock(dir int8) loadBlockResult {
 // readBlockForVBR implements the blockProviderWhenOpen interface for use by
 // the valueBlockReader.
 func (i *singleLevelIterator) readBlockForVBR(
-	h BlockHandle, stats *base.InternalIteratorStats,
+	ctx context.Context, h BlockHandle, stats *base.InternalIteratorStats,
 ) (bufferHandle, error) {
-	ctx := objiotracing.WithBlockType(i.ctx, objiotracing.ValueBlock)
-	return i.reader.readBlock(ctx, h, nil, i.vbRH, stats, &i.iterStats, i.bufferPool)
+	ctx = objiotracing.WithBlockType(ctx, objiotracing.ValueBlock)
+	return i.reader.readBlock(ctx, h, nil, i.vbRH, stats, i.bufferPool)
 }
 
 // resolveMaybeExcluded is invoked when the block-property filterer has found
 // that a block is excluded according to its properties but only if its bounds
 // fall within the filter's current bounds.  This function consults the
 // apprioriate bound, depending on the iteration direction, and returns either
-// `blockIntersects` or `blockExcluded`.
+// `blockIntersects` or `blockMaybeExcluded`.
 func (i *singleLevelIterator) resolveMaybeExcluded(dir int8) intersectsResult {
 	// TODO(jackson): We could first try comparing to top-level index block's
 	// key, and if within bounds avoid per-data block key comparisons.
@@ -823,7 +782,7 @@ func (i *singleLevelIterator) seekPrefixGE(
 		i.lastBloomFilterMatched = false
 		// Check prefix bloom filter.
 		var dataH bufferHandle
-		dataH, i.err = i.reader.readFilter(i.ctx, i.stats, &i.iterStats)
+		dataH, i.err = i.reader.readFilter(i.ctx, i.stats)
 		if i.err != nil {
 			i.data.invalidate()
 			return nil, base.LazyValue{}
@@ -876,80 +835,26 @@ func (i *singleLevelIterator) virtualLast() (*InternalKey, base.LazyValue) {
 		panic("pebble: invalid call to virtualLast")
 	}
 
-	if !i.endKeyInclusive {
-		// Trivial case.
-		return i.SeekLT(i.upper, base.SeekLTFlagsNone)
-	}
-	return i.virtualLastSeekLE(i.upper)
-}
-
-// virtualLastSeekLE is called by virtualLast to do a SeekLE as part of a
-// virtualLast. Consider generalizing this into a SeekLE() if there are other
-// uses of this method in the future.
-func (i *singleLevelIterator) virtualLastSeekLE(key []byte) (*InternalKey, base.LazyValue) {
-	// Callers of SeekLE don't know about virtual sstable bounds, so we may
-	// have to internally restrict the bounds.
-	//
-	// TODO(bananabrick): We can optimize this check away for the level iter
-	// if necessary.
-	if i.cmp(key, i.upper) >= 0 {
-		if !i.endKeyInclusive {
-			panic("unexpected virtualLastSeekLE with exclusive upper bounds")
+	// Seek to the first internal key.
+	ikey, _ := i.SeekGE(i.upper, base.SeekGEFlagsNone)
+	if i.endKeyInclusive {
+		// Let's say the virtual sstable upper bound is c#1, with the keys c#3, c#2,
+		// c#1, d, e, ... in the sstable. So, the last key in the virtual sstable is
+		// c#1. We can perform SeekGE(i.upper) and then keep nexting until we find
+		// the last key with userkey == i.upper.
+		//
+		// TODO(bananabrick): Think about how to improve this. If many internal keys
+		// with the same user key at the upper bound then this could be slow, but
+		// maybe the odds of having many internal keys with the same user key at the
+		// upper bound are low.
+		for ikey != nil && i.cmp(ikey.UserKey, i.upper) == 0 {
+			ikey, _ = i.Next()
 		}
-		key = i.upper
+		return i.Prev()
 	}
 
-	i.exhaustedBounds = 0
-	i.err = nil // clear cached iteration error
-	// Seek optimization only applies until iterator is first positioned with a
-	// SeekGE or SeekLT after SetBounds.
-	i.boundsCmp = 0
-	i.positionedUsingLatestBounds = true
-	i.maybeFilteredKeysSingleLevel = false
-
-	ikey, _ := i.index.SeekGE(key, base.SeekGEFlagsNone)
-	// We can have multiple internal keys with the same user key as the seek
-	// key. In that case, we want the last (greatest) internal key.
-	//
-	// NB: We can avoid this Next()ing if we just implement a blockIter.SeekLE().
-	// This might be challenging to do correctly, so impose regular operations
-	// for now.
-	for ikey != nil && bytes.Equal(ikey.UserKey, key) {
-		ikey, _ = i.index.Next()
-	}
-	if ikey == nil {
-		return i.skipBackward()
-	}
-	result := i.loadBlock(-1)
-	if result == loadBlockFailed {
-		return nil, base.LazyValue{}
-	}
-	if result == loadBlockIrrelevant {
-		// Enforce the lower bound here, as we could have gone past it.
-		if i.lower != nil && i.cmp(ikey.UserKey, i.lower) < 0 {
-			i.exhaustedBounds = -1
-			return nil, base.LazyValue{}
-		}
-		// Want to skip to the previous block.
-		return i.skipBackward()
-	}
-	ikey, _ = i.data.SeekGE(key, base.SeekGEFlagsNone)
-	var val base.LazyValue
-	// Go to the last user key that matches key, and then Prev() on the data
-	// block.
-	for ikey != nil && bytes.Equal(ikey.UserKey, key) {
-		ikey, _ = i.data.Next()
-	}
-	ikey, val = i.data.Prev()
-	if ikey != nil {
-		// Enforce the lower bound here, as we could have gone past it.
-		if i.blockLower != nil && i.cmp(ikey.UserKey, i.blockLower) < 0 {
-			i.exhaustedBounds = -1
-			return nil, base.LazyValue{}
-		}
-		return ikey, val
-	}
-	return i.skipBackward()
+	// We seeked to the first key >= i.upper.
+	return i.Prev()
 }
 
 // SeekLT implements internalIterator.SeekLT, as documented in the pebble
@@ -969,7 +874,7 @@ func (i *singleLevelIterator) SeekLT(
 		// first internal key with user key < key.
 		if cmp > 0 {
 			// Return the last key in the virtual sstable.
-			return i.maybeVerifyKey(i.virtualLast())
+			return i.virtualLast()
 		}
 	}
 
@@ -1149,7 +1054,7 @@ func (i *singleLevelIterator) firstInternal() (*InternalKey, base.LazyValue) {
 // SeekLT(upper))
 func (i *singleLevelIterator) Last() (*InternalKey, base.LazyValue) {
 	if i.vState != nil {
-		return i.maybeVerifyKey(i.virtualLast())
+		return i.virtualLast()
 	}
 
 	if i.upper != nil {
@@ -1217,8 +1122,6 @@ func (i *singleLevelIterator) Next() (*InternalKey, base.LazyValue) {
 	i.boundsCmp = 0
 
 	if i.err != nil {
-		// TODO(jackson): Can this case be turned into a panic? Once an error is
-		// encountered, the iterator must be re-seeked.
 		return nil, base.LazyValue{}
 	}
 	if key, val := i.data.Next(); key != nil {
@@ -1244,8 +1147,6 @@ func (i *singleLevelIterator) NextPrefix(succKey []byte) (*InternalKey, base.Laz
 	// Seek optimization only applies until iterator is first positioned after SetBounds.
 	i.boundsCmp = 0
 	if i.err != nil {
-		// TODO(jackson): Can this case be turned into a panic? Once an error is
-		// encountered, the iterator must be re-seeked.
 		return nil, base.LazyValue{}
 	}
 	if key, val := i.data.NextPrefix(succKey); key != nil {
@@ -1456,10 +1357,6 @@ func firstError(err0, err1 error) error {
 // Close implements internalIterator.Close, as documented in the pebble
 // package.
 func (i *singleLevelIterator) Close() error {
-	if invariants.Enabled && i.inPool {
-		panic("Close called on interator in pool")
-	}
-	i.iterStats.close()
 	var err error
 	if i.closeHook != nil {
 		err = firstError(err, i.closeHook(i))

@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode"
 
 	"github.com/cockroachdb/errors"
 	"github.com/cockroachdb/pebble/internal/base"
@@ -55,6 +54,9 @@ type FilterWriter = base.FilterWriter
 
 // FilterPolicy exports the base.FilterPolicy type.
 type FilterPolicy = base.FilterPolicy
+
+// TablePropertyCollector exports the sstable.TablePropertyCollector type.
+type TablePropertyCollector = sstable.TablePropertyCollector
 
 // BlockPropertyCollector exports the sstable.BlockPropertyCollector type.
 type BlockPropertyCollector = sstable.BlockPropertyCollector
@@ -184,11 +186,6 @@ type IterOptions struct {
 	// existing is not low or if we just expect a one-time Seek (where loading the
 	// data block directly is better).
 	UseL6Filters bool
-	// CategoryAndQoS is used for categorized iterator stats. This should not be
-	// changed by calling SetOptions.
-	sstable.CategoryAndQoS
-
-	DebugRangeKeyStack bool
 
 	// Internal options.
 
@@ -257,7 +254,6 @@ func (o *IterOptions) SpanIterOptions() keyspan.SpanIterOptions {
 // scanInternalOptions is similar to IterOptions, meant for use with
 // scanInternalIterator.
 type scanInternalOptions struct {
-	sstable.CategoryAndQoS
 	IterOptions
 
 	visitPointKey   func(key *InternalKey, value LazyValue, iterInfo IteratorLevel) error
@@ -704,64 +700,6 @@ type Options struct {
 		// on shared storage in bytes. If it is 0, no cache is used.
 		SecondaryCacheSizeBytes int64
 
-		// NB: DO NOT crash on SingleDeleteInvariantViolationCallback or
-		// IneffectualSingleDeleteCallback, since these can be false positives
-		// even if SingleDel has been used correctly.
-		//
-		// Pebble's delete-only compactions can cause a recent RANGEDEL to peek
-		// below an older SINGLEDEL and delete an arbitrary subset of data below
-		// that SINGLEDEL. When that SINGLEDEL gets compacted (without the
-		// RANGEDEL), any of these callbacks can happen, without it being a real
-		// correctness problem.
-		//
-		// Example 1:
-		// RANGEDEL [a, c)#10 in L0
-		// SINGLEDEL b#5 in L1
-		// SET b#3 in L6
-		//
-		// If the L6 file containing the SET is narrow and the L1 file containing
-		// the SINGLEDEL is wide, a delete-only compaction can remove the file in
-		// L2 before the SINGLEDEL is compacted down. Then when the SINGLEDEL is
-		// compacted down, it will not find any SET to delete, resulting in the
-		// ineffectual callback.
-		//
-		// Example 2:
-		// RANGEDEL [a, z)#60 in L0
-		// SINGLEDEL g#50 in L1
-		// SET g#40 in L2
-		// RANGEDEL [g,h)#30 in L3
-		// SET g#20 in L6
-		//
-		// In this example, the two SETs represent the same user write, and the
-		// RANGEDELs are caused by the CockroachDB range being dropped. That is,
-		// the user wrote to g once, range was dropped, then added back, which
-		// caused the SET again, then at some point g was validly deleted using a
-		// SINGLEDEL, and then the range was dropped again. The older RANGEDEL can
-		// get fragmented due to compactions it has been part of. Say this L3 file
-		// containing the RANGEDEL is very narrow, while the L1, L2, L6 files are
-		// wider than the RANGEDEL in L0. Then the RANGEDEL in L3 can be dropped
-		// using a delete-only compaction, resulting in an LSM with state:
-		//
-		// RANGEDEL [a, z)#60 in L0
-		// SINGLEDEL g#50 in L1
-		// SET g#40 in L2
-		// SET g#20 in L6
-		//
-		// A multi-level compaction involving L1, L2, L6 will cause the invariant
-		// violation callback. This example doesn't need multi-level compactions:
-		// say there was a Pebble snapshot at g#21 preventing g#20 from being
-		// dropped when it meets g#40 in a compaction. That snapshot will not save
-		// RANGEDEL [g,h)#30, so we can have:
-		//
-		// SINGLEDEL g#50 in L1
-		// SET g#40, SET g#20 in L6
-		//
-		// And say the snapshot is removed and then the L1 and L6 compaction
-		// happens, resulting in the invariant violation callback.
-		//
-		// TODO(sumeer): rename SingleDeleteInvariantViolationCallback to remove
-		// the word "invariant".
-
 		// IneffectualPointDeleteCallback is called in compactions/flushes if any
 		// single delete is being elided without deleting a point set/merge.
 		IneffectualSingleDeleteCallback func(userKey []byte)
@@ -932,15 +870,6 @@ type Options struct {
 	// externally when running a manual compaction, and internally for tests.
 	DisableAutomaticCompactions bool
 
-	// DisableTableStats dictates whether tables should be loaded asynchronously
-	// to compute statistics that inform compaction heuristics. The collection
-	// of table stats improves compaction of tombstones, reclaiming disk space
-	// more quickly and in some cases reducing write amplification in the
-	// presence of tombstones. Disabling table stats may be useful in tests
-	// that require determinism as the asynchronicity of table stats collection
-	// introduces significant nondeterminism.
-	DisableTableStats bool
-
 	// NoSyncOnClose decides whether the Pebble instance will enforce a
 	// close-time synchronization (e.g., fdatasync() or sync_file_range())
 	// on files it writes to. Setting this to true removes the guarantee for a
@@ -965,6 +894,11 @@ type Options struct {
 	// The TableCache set here must use the same underlying cache as Options.Cache
 	// and pebble will panic otherwise.
 	TableCache *TableCache
+
+	// TablePropertyCollectors is a list of TablePropertyCollector creation
+	// functions. A new TablePropertyCollector is created for each sstable built
+	// and lives for the lifetime of the table.
+	TablePropertyCollectors []func() TablePropertyCollector
 
 	// BlockPropertyCollectors is a list of BlockPropertyCollector creation
 	// functions. A new BlockPropertyCollector is created for each sstable
@@ -1042,6 +976,9 @@ type Options struct {
 		// option to avoid littering the public interface with options that we
 		// do not want to allow users to actually configure.
 		disableLazyCombinedIteration bool
+
+		// A private option to disable stats collection.
+		disableTableStats bool
 
 		// testingAlwaysWaitForCleanup is set by some tests to force waiting for
 		// obsolete file deletion (to make events deterministic).
@@ -1175,10 +1112,7 @@ func (o *Options) EnsureDefaults() *Options {
 	}
 
 	if o.FormatMajorVersion == FormatDefault {
-		o.FormatMajorVersion = FormatMinSupported
-		if o.Experimental.CreateOnShared != remote.CreateOnSharedNone {
-			o.FormatMajorVersion = FormatMinForSharedObjects
-		}
+		o.FormatMajorVersion = FormatMostCompatible
 	}
 
 	if o.FS == nil {
@@ -1324,13 +1258,20 @@ func (o *Options) String() string {
 	fmt.Fprintf(&buf, "  mem_table_stop_writes_threshold=%d\n", o.MemTableStopWritesThreshold)
 	fmt.Fprintf(&buf, "  min_deletion_rate=%d\n", o.TargetByteDeletionRate)
 	fmt.Fprintf(&buf, "  merger=%s\n", o.Merger.Name)
-	if o.Experimental.MultiLevelCompactionHeuristic != nil {
-		fmt.Fprintf(&buf, "  multilevel_compaction_heuristic=%s\n", o.Experimental.MultiLevelCompactionHeuristic.String())
-	}
 	fmt.Fprintf(&buf, "  read_compaction_rate=%d\n", o.Experimental.ReadCompactionRate)
 	fmt.Fprintf(&buf, "  read_sampling_multiplier=%d\n", o.Experimental.ReadSamplingMultiplier)
 	fmt.Fprintf(&buf, "  strict_wal_tail=%t\n", o.private.strictWALTail)
 	fmt.Fprintf(&buf, "  table_cache_shards=%d\n", o.Experimental.TableCacheShards)
+	fmt.Fprintf(&buf, "  table_property_collectors=[")
+	for i := range o.TablePropertyCollectors {
+		if i > 0 {
+			fmt.Fprintf(&buf, ",")
+		}
+		// NB: This creates a new TablePropertyCollector, but Options.String() is
+		// called rarely so the overhead of doing so is not consequential.
+		fmt.Fprintf(&buf, "%s", o.TablePropertyCollectors[i]().Name())
+	}
+	fmt.Fprintf(&buf, "]\n")
 	fmt.Fprintf(&buf, "  validate_on_ingest=%t\n", o.Experimental.ValidateOnIngest)
 	fmt.Fprintf(&buf, "  wal_dir=%s\n", o.WALDir)
 	fmt.Fprintf(&buf, "  wal_bytes_per_sync=%d\n", o.WALBytesPerSync)
@@ -1528,7 +1469,7 @@ func (o *Options) Parse(s string, hooks *ParseHooks) error {
 				var v uint64
 				v, err = strconv.ParseUint(value, 10, 64)
 				if vers := FormatMajorVersion(v); vers > internalFormatNewest || vers == FormatDefault {
-					err = errors.Newf("unsupported format major version %d", o.FormatMajorVersion)
+					err = errors.Newf("unknown format major version %d", o.FormatMajorVersion)
 				}
 				if err == nil {
 					o.FormatMajorVersion = FormatMajorVersion(v)
@@ -1571,32 +1512,6 @@ func (o *Options) Parse(s string, hooks *ParseHooks) error {
 			case "min_flush_rate":
 				// Do nothing; option existed in older versions of pebble, and
 				// may be meaningful again eventually.
-			case "multilevel_compaction_heuristic":
-				switch {
-				case value == "none":
-					o.Experimental.MultiLevelCompactionHeuristic = NoMultiLevel{}
-				case strings.HasPrefix(value, "wamp"):
-					fields := strings.FieldsFunc(strings.TrimPrefix(value, "wamp"), func(r rune) bool {
-						return unicode.IsSpace(r) || r == ',' || r == '(' || r == ')'
-					})
-					if len(fields) != 2 {
-						err = errors.Newf("require 2 arguments")
-					}
-					var h WriteAmpHeuristic
-					if err == nil {
-						h.AddPropensity, err = strconv.ParseFloat(fields[0], 64)
-					}
-					if err == nil {
-						h.AllowL0, err = strconv.ParseBool(fields[1])
-					}
-					if err == nil {
-						o.Experimental.MultiLevelCompactionHeuristic = h
-					} else {
-						err = errors.Wrapf(err, "unexpected wamp heuristic arguments: %s", value)
-					}
-				default:
-					err = errors.Newf("unrecognized multilevel compaction heuristic: %s", value)
-				}
 			case "point_tombstone_weight":
 				// Do nothing; deprecated.
 			case "strict_wal_tail":
@@ -1626,7 +1541,7 @@ func (o *Options) Parse(s string, hooks *ParseHooks) error {
 					return errors.Errorf("pebble: unknown table format: %q", errors.Safe(value))
 				}
 			case "table_property_collectors":
-				// No longer implemented; ignore.
+				// TODO(peter): set o.TablePropertyCollectors
 			case "validate_on_ingest":
 				o.Experimental.ValidateOnIngest, err = strconv.ParseBool(value)
 			case "wal_dir":
@@ -1779,14 +1694,9 @@ func (o *Options) Validate() error {
 		fmt.Fprintf(&buf, "MemTableStopWritesThreshold (%d) must be >= 2\n",
 			o.MemTableStopWritesThreshold)
 	}
-	if o.FormatMajorVersion < FormatMinSupported || o.FormatMajorVersion > internalFormatNewest {
-		fmt.Fprintf(&buf, "FormatMajorVersion (%d) must be between %d and %d\n",
-			o.FormatMajorVersion, FormatMinSupported, internalFormatNewest)
-	}
-	if o.Experimental.CreateOnShared != remote.CreateOnSharedNone && o.FormatMajorVersion < FormatMinForSharedObjects {
-		fmt.Fprintf(&buf, "FormatMajorVersion (%d) when CreateOnShared is set must be at least %d\n",
-			o.FormatMajorVersion, FormatMinForSharedObjects)
-
+	if o.FormatMajorVersion > internalFormatNewest {
+		fmt.Fprintf(&buf, "FormatMajorVersion (%d) must be <= %d\n",
+			o.FormatMajorVersion, internalFormatNewest)
 	}
 	if o.TableCache != nil && o.Cache != o.TableCache.cache {
 		fmt.Fprintf(&buf, "underlying cache in the TableCache and the Cache dont match\n")
@@ -1825,6 +1735,7 @@ func (o *Options) MakeWriterOptions(level int, format sstable.TableFormat) sstab
 		if o.Merger != nil {
 			writerOpts.MergerName = o.Merger.Name
 		}
+		writerOpts.TablePropertyCollectors = o.TablePropertyCollectors
 		writerOpts.BlockPropertyCollectors = o.BlockPropertyCollectors
 	}
 	if format >= sstable.TableFormatPebblev3 {

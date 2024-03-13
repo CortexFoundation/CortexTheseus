@@ -184,6 +184,7 @@ type MergingIter struct {
 	// destination for transforms. Every tranformed span overwrites the
 	// previous.
 	span Span
+	err  error
 	dir  int8
 
 	// alloc preallocates mergingIterLevel and mergingIterItems for use by the
@@ -212,7 +213,6 @@ type MergingBuffers struct {
 	// prefer use of its `manifest.NumLevels+3` array, so this slice will be
 	// longer if set.
 	levels []mergingIterLevel
-	wrapFn WrapFn
 	// heap holds a slice for the merging iterator heap allocated by
 	// MergingIter.init. The MergingIter will prefer use of its
 	// `manifest.NumLevels+3` items array, so this slice will be longer if set.
@@ -238,55 +238,43 @@ type mergingIterLevel struct {
 	heapKey boundKey
 }
 
-func (l *mergingIterLevel) next() error {
+func (l *mergingIterLevel) next() {
 	if l.heapKey.kind == boundKindFragmentStart {
 		l.heapKey = boundKey{
 			kind: boundKindFragmentEnd,
 			key:  l.heapKey.span.End,
 			span: l.heapKey.span,
 		}
-		return nil
+		return
 	}
-	s, err := l.iter.Next()
-	switch {
-	case err != nil:
-		return err
-	case s == nil:
+	if s := l.iter.Next(); s == nil {
 		l.heapKey = boundKey{kind: boundKindInvalid}
-		return nil
-	default:
+	} else {
 		l.heapKey = boundKey{
 			kind: boundKindFragmentStart,
 			key:  s.Start,
 			span: s,
 		}
-		return nil
 	}
 }
 
-func (l *mergingIterLevel) prev() error {
+func (l *mergingIterLevel) prev() {
 	if l.heapKey.kind == boundKindFragmentEnd {
 		l.heapKey = boundKey{
 			kind: boundKindFragmentStart,
 			key:  l.heapKey.span.Start,
 			span: l.heapKey.span,
 		}
-		return nil
+		return
 	}
-	s, err := l.iter.Prev()
-	switch {
-	case err != nil:
-		return err
-	case s == nil:
+	if s := l.iter.Prev(); s == nil {
 		l.heapKey = boundKey{kind: boundKindInvalid}
-		return nil
-	default:
+	} else {
 		l.heapKey = boundKey{
 			kind: boundKindFragmentEnd,
 			key:  s.End,
 			span: s,
 		}
-		return nil
 	}
 }
 
@@ -318,25 +306,21 @@ func (m *MergingIter) Init(
 	}
 	for i := range m.levels {
 		m.levels[i] = mergingIterLevel{iter: iters[i]}
-		if m.wrapFn != nil {
-			m.levels[i].iter = m.wrapFn(m.levels[i].iter)
-		}
 	}
 }
 
 // AddLevel adds a new level to the bottom of the merging iterator. AddLevel
 // must be called after Init and before any other method.
 func (m *MergingIter) AddLevel(iter FragmentIterator) {
-	if m.wrapFn != nil {
-		iter = m.wrapFn(iter)
-	}
 	m.levels = append(m.levels, mergingIterLevel{iter: iter})
 }
 
 // SeekGE moves the iterator to the first span covering a key greater than
 // or equal to the given key. This is equivalent to seeking to the first
 // span with an end key greater than the given key.
-func (m *MergingIter) SeekGE(key []byte) (*Span, error) {
+func (m *MergingIter) SeekGE(key []byte) *Span {
+	m.invalidate() // clear state about current position
+
 	// SeekGE(k) seeks to the first span with an end key greater than the given
 	// key. The merged span M that we're searching for might straddle the seek
 	// `key`. In this case, the M.Start may be a key ≤ the seek key.
@@ -382,19 +366,16 @@ func (m *MergingIter) SeekGE(key []byte) (*Span, error) {
 	// root of the max heap is a preliminary value for `M.Start`.
 	for i := range m.levels {
 		l := &m.levels[i]
-		s, err := l.iter.SeekLT(key)
-		switch {
-		case err != nil:
-			return nil, err
-		case s == nil:
+		s := l.iter.SeekLT(key)
+		if s == nil {
 			l.heapKey = boundKey{kind: boundKindInvalid}
-		case m.cmp(s.End, key) <= 0:
+		} else if m.cmp(s.End, key) <= 0 {
 			l.heapKey = boundKey{
 				kind: boundKindFragmentEnd,
 				key:  s.End,
 				span: s,
 			}
-		default:
+		} else {
 			// s.End > key && s.Start < key
 			// We need to use this span's start bound, since that's the largest
 			// bound ≤ key.
@@ -406,13 +387,13 @@ func (m *MergingIter) SeekGE(key []byte) (*Span, error) {
 		}
 	}
 	m.initMaxHeap()
-	if len(m.heap.items) == 0 {
+	if m.err != nil {
+		return nil
+	} else if len(m.heap.items) == 0 {
 		// There are no spans covering any key < `key`. There is no span that
 		// straddles the seek key. Reorient the heap into a min heap and return
 		// the first span we find in the forward direction.
-		if err := m.switchToMinHeap(); err != nil {
-			return nil, err
-		}
+		m.switchToMinHeap()
 		return m.findNextFragmentSet()
 	}
 
@@ -443,10 +424,11 @@ func (m *MergingIter) SeekGE(key []byte) (*Span, error) {
 	// every level, and then establish a min heap. This allows us to obtain the
 	// smallest boundary key > `key`, which will serve as our candidate end
 	// bound.
-	if err := m.switchToMinHeap(); err != nil {
-		return nil, err
+	m.switchToMinHeap()
+	if m.err != nil {
+		return nil
 	} else if len(m.heap.items) == 0 {
-		return nil, nil
+		return nil
 	}
 
 	// Check for the case 3 described above. It's possible that when we switch
@@ -461,18 +443,19 @@ func (m *MergingIter) SeekGE(key []byte) (*Span, error) {
 	}
 
 	m.end = m.heap.items[0].boundKey.key
-	if found, s, err := m.synthesizeKeys(+1); err != nil {
-		return nil, err
-	} else if found && s != nil {
-		return s, nil
+	if found, s := m.synthesizeKeys(+1); found && s != nil {
+		return s
 	}
 	return m.findNextFragmentSet()
+
 }
 
 // SeekLT moves the iterator to the last span covering a key less than the
 // given key. This is equivalent to seeking to the last span with a start
 // key less than the given key.
-func (m *MergingIter) SeekLT(key []byte) (*Span, error) {
+func (m *MergingIter) SeekLT(key []byte) *Span {
+	m.invalidate() // clear state about current position
+
 	// SeekLT(k) seeks to the last span with a start key less than the given
 	// key. The merged span M that we're searching for might straddle the seek
 	// `key`. In this case, the M.End may be a key ≥ the seek key.
@@ -518,19 +501,16 @@ func (m *MergingIter) SeekLT(key []byte) (*Span, error) {
 	// root of the min heap is a preliminary value for `M.End`.
 	for i := range m.levels {
 		l := &m.levels[i]
-		s, err := l.iter.SeekGE(key)
-		switch {
-		case err != nil:
-			return nil, err
-		case s == nil:
+		s := l.iter.SeekGE(key)
+		if s == nil {
 			l.heapKey = boundKey{kind: boundKindInvalid}
-		case m.cmp(s.Start, key) >= 0:
+		} else if m.cmp(s.Start, key) >= 0 {
 			l.heapKey = boundKey{
 				kind: boundKindFragmentStart,
 				key:  s.Start,
 				span: s,
 			}
-		default:
+		} else {
 			// s.Start < key
 			// We need to use this span's end bound, since that's the smallest
 			// bound > key.
@@ -542,13 +522,13 @@ func (m *MergingIter) SeekLT(key []byte) (*Span, error) {
 		}
 	}
 	m.initMinHeap()
-	if len(m.heap.items) == 0 {
+	if m.err != nil {
+		return nil
+	} else if len(m.heap.items) == 0 {
 		// There are no spans covering any key ≥ `key`. There is no span that
 		// straddles the seek key. Reorient the heap into a max heap and return
 		// the first span we find in the reverse direction.
-		if err := m.switchToMaxHeap(); err != nil {
-			return nil, err
-		}
+		m.switchToMaxHeap()
 		return m.findPrevFragmentSet()
 	}
 
@@ -579,10 +559,11 @@ func (m *MergingIter) SeekLT(key []byte) (*Span, error) {
 	// every level, and then establish a max heap. This allows us to obtain the
 	// largest boundary key < `key`, which will serve as our candidate start
 	// bound.
-	if err := m.switchToMaxHeap(); err != nil {
-		return nil, err
+	m.switchToMaxHeap()
+	if m.err != nil {
+		return nil
 	} else if len(m.heap.items) == 0 {
-		return nil, nil
+		return nil
 	}
 	// Check for the case 3 described above. It's possible that when we switch
 	// heap directions, we discover an end boundary of some child span that is
@@ -596,24 +577,19 @@ func (m *MergingIter) SeekLT(key []byte) (*Span, error) {
 	}
 
 	m.start = m.heap.items[0].boundKey.key
-	if found, s, err := m.synthesizeKeys(-1); err != nil {
-		return nil, err
-	} else if found && s != nil {
-		return s, nil
+	if found, s := m.synthesizeKeys(-1); found && s != nil {
+		return s
 	}
 	return m.findPrevFragmentSet()
 }
 
 // First seeks the iterator to the first span.
-func (m *MergingIter) First() (*Span, error) {
+func (m *MergingIter) First() *Span {
+	m.invalidate() // clear state about current position
 	for i := range m.levels {
-		s, err := m.levels[i].iter.First()
-		switch {
-		case err != nil:
-			return nil, err
-		case s == nil:
+		if s := m.levels[i].iter.First(); s == nil {
 			m.levels[i].heapKey = boundKey{kind: boundKindInvalid}
-		default:
+		} else {
 			m.levels[i].heapKey = boundKey{
 				kind: boundKindFragmentStart,
 				key:  s.Start,
@@ -626,15 +602,12 @@ func (m *MergingIter) First() (*Span, error) {
 }
 
 // Last seeks the iterator to the last span.
-func (m *MergingIter) Last() (*Span, error) {
+func (m *MergingIter) Last() *Span {
+	m.invalidate() // clear state about current position
 	for i := range m.levels {
-		s, err := m.levels[i].iter.Last()
-		switch {
-		case err != nil:
-			return nil, err
-		case s == nil:
+		if s := m.levels[i].iter.Last(); s == nil {
 			m.levels[i].heapKey = boundKey{kind: boundKindInvalid}
-		default:
+		} else {
 			m.levels[i].heapKey = boundKey{
 				kind: boundKindFragmentEnd,
 				key:  s.End,
@@ -647,40 +620,51 @@ func (m *MergingIter) Last() (*Span, error) {
 }
 
 // Next advances the iterator to the next span.
-func (m *MergingIter) Next() (*Span, error) {
+func (m *MergingIter) Next() *Span {
+	if m.err != nil {
+		return nil
+	}
 	if m.dir == +1 && (m.end == nil || m.start == nil) {
-		return nil, nil
+		return nil
 	}
 	if m.dir != +1 {
-		if err := m.switchToMinHeap(); err != nil {
-			return nil, err
-		}
+		m.switchToMinHeap()
 	}
 	return m.findNextFragmentSet()
 }
 
 // Prev advances the iterator to the previous span.
-func (m *MergingIter) Prev() (*Span, error) {
+func (m *MergingIter) Prev() *Span {
+	if m.err != nil {
+		return nil
+	}
 	if m.dir == -1 && (m.end == nil || m.start == nil) {
-		return nil, nil
+		return nil
 	}
 	if m.dir != -1 {
-		if err := m.switchToMaxHeap(); err != nil {
-			return nil, err
-		}
+		m.switchToMaxHeap()
 	}
 	return m.findPrevFragmentSet()
 }
 
+// Error returns any accumulated error.
+func (m *MergingIter) Error() error {
+	if m.heap.len() == 0 || m.err != nil {
+		return m.err
+	}
+	return m.levels[m.heap.items[0].index].iter.Error()
+}
+
 // Close closes the iterator, releasing all acquired resources.
 func (m *MergingIter) Close() error {
-	var err error
 	for i := range m.levels {
-		err = firstError(err, m.levels[i].iter.Close())
+		if err := m.levels[i].iter.Close(); err != nil && m.err == nil {
+			m.err = err
+		}
 	}
 	m.levels = nil
 	m.heap.items = m.heap.items[:0]
-	return err
+	return m.err
 }
 
 // String implements fmt.Stringer.
@@ -708,12 +692,17 @@ func (m *MergingIter) initHeap() {
 				index:    i,
 				boundKey: &l.heapKey,
 			})
+		} else {
+			m.err = firstError(m.err, l.iter.Error())
+			if m.err != nil {
+				return
+			}
 		}
 	}
 	m.heap.init()
 }
 
-func (m *MergingIter) switchToMinHeap() error {
+func (m *MergingIter) switchToMinHeap() {
 	// switchToMinHeap reorients the heap for forward iteration, without moving
 	// the current MergingIter position.
 
@@ -759,15 +748,12 @@ func (m *MergingIter) switchToMinHeap() error {
 	}
 
 	for i := range m.levels {
-		if err := m.levels[i].next(); err != nil {
-			return err
-		}
+		m.levels[i].next()
 	}
 	m.initMinHeap()
-	return nil
 }
 
-func (m *MergingIter) switchToMaxHeap() error {
+func (m *MergingIter) switchToMaxHeap() {
 	// switchToMaxHeap reorients the heap for reverse iteration, without moving
 	// the current MergingIter position.
 
@@ -814,26 +800,23 @@ func (m *MergingIter) switchToMaxHeap() error {
 	}
 
 	for i := range m.levels {
-		if err := m.levels[i].prev(); err != nil {
-			return err
-		}
+		m.levels[i].prev()
 	}
 	m.initMaxHeap()
-	return nil
 }
 
 func (m *MergingIter) cmp(a, b []byte) int {
 	return m.heap.cmp(a, b)
 }
 
-func (m *MergingIter) findNextFragmentSet() (*Span, error) {
+func (m *MergingIter) findNextFragmentSet() *Span {
 	// Each iteration of this loop considers a new merged span between unique
 	// user keys. An iteration may find that there exists no overlap for a given
 	// span, (eg, if the spans [a,b), [d, e) exist within level iterators, the
 	// below loop will still consider [b,d) before continuing to [d, e)). It
 	// returns when it finds a span that is covered by at least one key.
 
-	for m.heap.len() > 0 {
+	for m.heap.len() > 0 && m.err == nil {
 		// Initialize the next span's start bound. SeekGE and First prepare the
 		// heap without advancing. Next leaves the heap in a state such that the
 		// root is the smallest bound key equal to the returned span's end key,
@@ -872,15 +855,11 @@ func (m *MergingIter) findNextFragmentSet() (*Span, error) {
 		// L2:          [c, e)
 		// If we're positioned at L1's end(c) end boundary, we want to advance
 		// to the first bound > c.
-		if err := m.nextEntry(); err != nil {
-			return nil, err
+		m.nextEntry()
+		for len(m.heap.items) > 0 && m.err == nil && m.cmp(m.heapRoot(), m.start) == 0 {
+			m.nextEntry()
 		}
-		for len(m.heap.items) > 0 && m.cmp(m.heapRoot(), m.start) == 0 {
-			if err := m.nextEntry(); err != nil {
-				return nil, err
-			}
-		}
-		if len(m.heap.items) == 0 {
+		if len(m.heap.items) == 0 || m.err != nil {
 			break
 		}
 
@@ -898,25 +877,23 @@ func (m *MergingIter) findNextFragmentSet() (*Span, error) {
 		// we elide empty spans created by the mergingIter itself that don't overlap
 		// with any child iterator returned spans (i.e. empty spans that bridge two
 		// distinct child-iterator-defined spans).
-		if found, s, err := m.synthesizeKeys(+1); err != nil {
-			return nil, err
-		} else if found && s != nil {
-			return s, nil
+		if found, s := m.synthesizeKeys(+1); found && s != nil {
+			return s
 		}
 	}
 	// Exhausted.
 	m.clear()
-	return nil, nil
+	return nil
 }
 
-func (m *MergingIter) findPrevFragmentSet() (*Span, error) {
+func (m *MergingIter) findPrevFragmentSet() *Span {
 	// Each iteration of this loop considers a new merged span between unique
 	// user keys. An iteration may find that there exists no overlap for a given
 	// span, (eg, if the spans [a,b), [d, e) exist within level iterators, the
 	// below loop will still consider [b,d) before continuing to [a, b)). It
 	// returns when it finds a span that is covered by at least one key.
 
-	for m.heap.len() > 0 {
+	for m.heap.len() > 0 && m.err == nil {
 		// Initialize the next span's end bound. SeekLT and Last prepare the
 		// heap without advancing. Prev leaves the heap in a state such that the
 		// root is the largest bound key equal to the returned span's start key,
@@ -954,15 +931,11 @@ func (m *MergingIter) findPrevFragmentSet() (*Span, error) {
 		// L2:          [c, e)
 		// If we're positioned at L1's start(c) start boundary, we want to prev
 		// to move to the first bound < c.
-		if err := m.prevEntry(); err != nil {
-			return nil, err
+		m.prevEntry()
+		for len(m.heap.items) > 0 && m.err == nil && m.cmp(m.heapRoot(), m.end) == 0 {
+			m.prevEntry()
 		}
-		for len(m.heap.items) > 0 && m.cmp(m.heapRoot(), m.end) == 0 {
-			if err := m.prevEntry(); err != nil {
-				return nil, err
-			}
-		}
-		if len(m.heap.items) == 0 {
+		if len(m.heap.items) == 0 || m.err != nil {
 			break
 		}
 
@@ -980,15 +953,13 @@ func (m *MergingIter) findPrevFragmentSet() (*Span, error) {
 		// we elide empty spans created by the mergingIter itself that don't overlap
 		// with any child iterator returned spans (i.e. empty spans that bridge two
 		// distinct child-iterator-defined spans).
-		if found, s, err := m.synthesizeKeys(-1); err != nil {
-			return nil, err
-		} else if found && s != nil {
-			return s, nil
+		if found, s := m.synthesizeKeys(-1); found && s != nil {
+			return s
 		}
 	}
 	// Exhausted.
 	m.clear()
-	return nil, nil
+	return nil
 }
 
 func (m *MergingIter) heapRoot() []byte {
@@ -1008,7 +979,7 @@ func (m *MergingIter) heapRoot() []byte {
 //
 // The boolean return value, `found`, is true if the returned span overlaps
 // with a span returned by a child iterator.
-func (m *MergingIter) synthesizeKeys(dir int8) (bool, *Span, error) {
+func (m *MergingIter) synthesizeKeys(dir int8) (bool, *Span) {
 	if invariants.Enabled {
 		if m.cmp(m.start, m.end) >= 0 {
 			panic(fmt.Sprintf("pebble: invariant violation: span start ≥ end: %s >= %s", m.start, m.end))
@@ -1040,9 +1011,14 @@ func (m *MergingIter) synthesizeKeys(dir int8) (bool, *Span, error) {
 	// NB: m.heap.cmp is a base.Compare, whereas m.cmp is a method on
 	// MergingIter.
 	if err := m.transformer.Transform(m.heap.cmp, m.span, &m.span); err != nil {
-		return false, nil, err
+		m.err = err
+		return false, nil
 	}
-	return found, &m.span, nil
+	return found, &m.span
+}
+
+func (m *MergingIter) invalidate() {
+	m.err = nil
 }
 
 func (m *MergingIter) clear() {
@@ -1053,39 +1029,39 @@ func (m *MergingIter) clear() {
 }
 
 // nextEntry steps to the next entry.
-func (m *MergingIter) nextEntry() error {
+func (m *MergingIter) nextEntry() {
 	l := &m.levels[m.heap.items[0].index]
-	if err := l.next(); err != nil {
-		return err
-	}
+	l.next()
 	if !l.heapKey.valid() {
 		// l.iter is exhausted.
-		m.heap.pop()
-		return nil
+		m.err = l.iter.Error()
+		if m.err == nil {
+			m.heap.pop()
+		}
+		return
 	}
 
 	if m.heap.len() > 1 {
 		m.heap.fix(0)
 	}
-	return nil
 }
 
 // prevEntry steps to the previous entry.
-func (m *MergingIter) prevEntry() error {
+func (m *MergingIter) prevEntry() {
 	l := &m.levels[m.heap.items[0].index]
-	if err := l.prev(); err != nil {
-		return err
-	}
+	l.prev()
 	if !l.heapKey.valid() {
 		// l.iter is exhausted.
-		m.heap.pop()
-		return nil
+		m.err = l.iter.Error()
+		if m.err == nil {
+			m.heap.pop()
+		}
+		return
 	}
 
 	if m.heap.len() > 1 {
 		m.heap.fix(0)
 	}
-	return nil
 }
 
 // DebugString returns a string representing the current internal state of the
@@ -1097,14 +1073,6 @@ func (m *MergingIter) DebugString() string {
 		fmt.Fprintf(&buf, "%d: heap key %s\n", i, m.levels[i].heapKey)
 	}
 	return buf.String()
-}
-
-// WrapChildren implements FragmentIterator.
-func (m *MergingIter) WrapChildren(wrap WrapFn) {
-	for i := range m.levels {
-		m.levels[i].iter = wrap(m.levels[i].iter)
-	}
-	m.wrapFn = wrap
 }
 
 type mergingIterItem struct {

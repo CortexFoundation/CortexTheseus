@@ -17,30 +17,22 @@ import (
 // positioning method. Some implementations (eg, keyspan.Iter) may provide
 // longer lifetimes but implementations need only guarantee stability until the
 // next positioning method.
-//
-// If any positioning method fails to find a span, the iterator is left
-// positioned at an exhausted position in the direction of iteration. For
-// example, a caller than finds SeekGE(k)=nil may call Prev to move the iterator
-// to the last span.
-//
-// If an error occurs during any positioning method, the method returns a nil
-// span and a non-nil error.
 type FragmentIterator interface {
 	// SeekGE moves the iterator to the first span covering a key greater than
 	// or equal to the given key. This is equivalent to seeking to the first
 	// span with an end key greater than the given key.
-	SeekGE(key []byte) (*Span, error)
+	SeekGE(key []byte) *Span
 
 	// SeekLT moves the iterator to the last span covering a key less than the
 	// given key. This is equivalent to seeking to the last span with a start
 	// key less than the given key.
-	SeekLT(key []byte) (*Span, error)
+	SeekLT(key []byte) *Span
 
 	// First moves the iterator to the first span.
-	First() (*Span, error)
+	First() *Span
 
 	// Last moves the iterator to the last span.
-	Last() (*Span, error)
+	Last() *Span
 
 	// Next moves the iterator to the next span.
 	//
@@ -48,7 +40,7 @@ type FragmentIterator interface {
 	// key/value pair due to either a prior call to SeekLT or Prev which
 	// returned an invalid span. It is not allowed to call Next when the
 	// previous call to SeekGE, SeekPrefixGE or Next returned an invalid span.
-	Next() (*Span, error)
+	Next() *Span
 
 	// Prev moves the iterator to the previous span.
 	//
@@ -56,18 +48,18 @@ type FragmentIterator interface {
 	// key/value pair due to either a prior call to SeekGE or Next which
 	// returned an invalid span. It is not allowed to call Prev when the
 	// previous call to SeekLT or Prev returned an invalid span.
-	Prev() (*Span, error)
+	Prev() *Span
+
+	// Error returns any accumulated error.
+	//
+	// TODO(jackson): Lift errors into return values on the positioning methods.
+	Error() error
 
 	// Close closes the iterator and returns any accumulated error. Exhausting
 	// the iterator is not considered to be an error. It is valid to call Close
 	// multiple times. Other methods should not be called after the iterator has
 	// been closed.
 	Close() error
-
-	// WrapChildren wraps any child iterators using the given function. The
-	// function can call WrapChildren to recursively wrap an entire iterator
-	// stack. Used only for debug logging.
-	WrapChildren(wrap WrapFn)
 }
 
 // TableNewSpanIter creates a new iterator for range key spans for the given
@@ -114,7 +106,7 @@ func (i *Iter) Init(cmp base.Compare, spans []Span) {
 }
 
 // SeekGE implements FragmentIterator.SeekGE.
-func (i *Iter) SeekGE(key []byte) (*Span, error) {
+func (i *Iter) SeekGE(key []byte) *Span {
 	// NB: manually inlined sort.Search is ~5% faster.
 	//
 	// Define f(j) = false iff the span i.spans[j] is strictly before `key`
@@ -137,13 +129,13 @@ func (i *Iter) SeekGE(key []byte) (*Span, error) {
 	// i.index == upper, f(i.index-1) == false, and f(upper) (= f(i.index)) ==
 	// true => answer is i.index.
 	if i.index >= len(i.spans) {
-		return nil, nil
+		return nil
 	}
-	return &i.spans[i.index], nil
+	return &i.spans[i.index]
 }
 
 // SeekLT implements FragmentIterator.SeekLT.
-func (i *Iter) SeekLT(key []byte) (*Span, error) {
+func (i *Iter) SeekLT(key []byte) *Span {
 	// NB: manually inlined sort.Search is ~5% faster.
 	//
 	// Define f(-1) == false and f(n) == true.
@@ -166,51 +158,56 @@ func (i *Iter) SeekLT(key []byte) (*Span, error) {
 	// the largest whose key is < the key sought.
 	i.index--
 	if i.index < 0 {
-		return nil, nil
+		return nil
 	}
-	return &i.spans[i.index], nil
+	return &i.spans[i.index]
 }
 
 // First implements FragmentIterator.First.
-func (i *Iter) First() (*Span, error) {
+func (i *Iter) First() *Span {
 	if len(i.spans) == 0 {
-		return nil, nil
+		return nil
 	}
 	i.index = 0
-	return &i.spans[i.index], nil
+	return &i.spans[i.index]
 }
 
 // Last implements FragmentIterator.Last.
-func (i *Iter) Last() (*Span, error) {
+func (i *Iter) Last() *Span {
 	if len(i.spans) == 0 {
-		return nil, nil
+		return nil
 	}
 	i.index = len(i.spans) - 1
-	return &i.spans[i.index], nil
+	return &i.spans[i.index]
 }
 
 // Next implements FragmentIterator.Next.
-func (i *Iter) Next() (*Span, error) {
+func (i *Iter) Next() *Span {
 	if i.index >= len(i.spans) {
-		return nil, nil
+		return nil
 	}
 	i.index++
 	if i.index >= len(i.spans) {
-		return nil, nil
+		return nil
 	}
-	return &i.spans[i.index], nil
+	return &i.spans[i.index]
 }
 
 // Prev implements FragmentIterator.Prev.
-func (i *Iter) Prev() (*Span, error) {
+func (i *Iter) Prev() *Span {
 	if i.index < 0 {
-		return nil, nil
+		return nil
 	}
 	i.index--
 	if i.index < 0 {
-		return nil, nil
+		return nil
 	}
-	return &i.spans[i.index], nil
+	return &i.spans[i.index]
+}
+
+// Error implements FragmentIterator.Error.
+func (i *Iter) Error() error {
+	return nil
 }
 
 // Close implements FragmentIterator.Close.
@@ -221,6 +218,3 @@ func (i *Iter) Close() error {
 func (i *Iter) String() string {
 	return "fragmented-spans"
 }
-
-// WrapChildren implements FragmentIterator.
-func (i *Iter) WrapChildren(wrap WrapFn) {}

@@ -45,9 +45,11 @@ func (me Option[V]) UnwrapOr(or V) V {
 	}
 }
 
-func (me *Option[V]) Set(v V) {
+func (me *Option[V]) Set(v V) (prev Option[V]) {
+	prev = *me
 	me.Ok = true
 	me.Value = v
+	return
 }
 
 func (me *Option[V]) SetNone() {

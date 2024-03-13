@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/cockroachdb/errors"
-	"github.com/cockroachdb/pebble/internal/base"
 	"github.com/cockroachdb/pebble/internal/humanize"
 	"github.com/cockroachdb/pebble/internal/invariants"
 	"github.com/cockroachdb/pebble/internal/manifest"
@@ -248,7 +247,7 @@ type ManifestCreateInfo struct {
 	JobID int
 	Path  string
 	// The file number of the new Manifest.
-	FileNum base.DiskFileNum
+	FileNum FileNum
 	Err     error
 }
 
@@ -270,7 +269,7 @@ type ManifestDeleteInfo struct {
 	// JobID is the ID of the job the caused the Manifest to be deleted.
 	JobID   int
 	Path    string
-	FileNum base.DiskFileNum
+	FileNum FileNum
 	Err     error
 }
 
@@ -294,7 +293,7 @@ type TableCreateInfo struct {
 	// "ingesting".
 	Reason  string
 	Path    string
-	FileNum base.DiskFileNum
+	FileNum FileNum
 }
 
 func (i TableCreateInfo) String() string {
@@ -311,7 +310,7 @@ func (i TableCreateInfo) SafeFormat(w redact.SafePrinter, _ rune) {
 type TableDeleteInfo struct {
 	JobID   int
 	Path    string
-	FileNum base.DiskFileNum
+	FileNum FileNum
 	Err     error
 }
 
@@ -415,10 +414,10 @@ type WALCreateInfo struct {
 	JobID int
 	Path  string
 	// The file number of the new WAL.
-	FileNum base.DiskFileNum
+	FileNum FileNum
 	// The file number of a previous WAL which was recycled to create this
 	// one. Zero if recycling did not take place.
-	RecycledFileNum base.DiskFileNum
+	RecycledFileNum FileNum
 	Err             error
 }
 
@@ -447,7 +446,7 @@ type WALDeleteInfo struct {
 	// JobID is the ID of the job the caused the WAL to be deleted.
 	JobID   int
 	Path    string
-	FileNum base.DiskFileNum
+	FileNum FileNum
 	Err     error
 }
 
@@ -562,7 +561,7 @@ func (l *EventListener) EnsureDefaults(logger Logger) {
 	if l.BackgroundError == nil {
 		if logger != nil {
 			l.BackgroundError = func(err error) {
-				logger.Errorf("background error: %s", err)
+				logger.Infof("background error: %s", err)
 			}
 		} else {
 			l.BackgroundError = func(error) {}
@@ -630,7 +629,7 @@ func MakeLoggingEventListener(logger Logger) EventListener {
 
 	return EventListener{
 		BackgroundError: func(err error) {
-			logger.Errorf("background error: %s", err)
+			logger.Infof("background error: %s", err)
 		},
 		CompactionBegin: func(info CompactionInfo) {
 			logger.Infof("%s", info)

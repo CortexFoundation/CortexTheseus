@@ -15,7 +15,6 @@ import (
 	"github.com/cockroachdb/pebble/internal/manifest"
 	"github.com/cockroachdb/pebble/objstorage"
 	"github.com/cockroachdb/pebble/objstorage/remote"
-	"github.com/cockroachdb/pebble/sstable"
 )
 
 const (
@@ -355,10 +354,6 @@ func (p *pointCollapsingIterator) SetBounds(lower, upper []byte) {
 	p.iter.SetBounds(lower, upper)
 }
 
-func (p *pointCollapsingIterator) SetContext(ctx context.Context) {
-	p.iter.SetContext(ctx)
-}
-
 // String implements the InternalIterator interface.
 func (p *pointCollapsingIterator) String() string {
 	return p.iter.String()
@@ -405,7 +400,6 @@ type IteratorLevel struct {
 // *must* return the range delete as well as the range key unset/delete that did
 // the shadowing.
 type scanInternalIterator struct {
-	ctx             context.Context
 	db              *DB
 	opts            scanInternalOptions
 	comparer        *base.Comparer
@@ -464,7 +458,7 @@ func (d *DB) truncateSharedFile(
 
 	// We will need to truncate file bounds in at least one direction. Open all
 	// relevant iterators.
-	iter, rangeDelIter, err := d.newIters.TODO(ctx, file, &IterOptions{
+	iter, rangeDelIter, err := d.newIters(ctx, file, &IterOptions{
 		LowerBound: lower,
 		UpperBound: upper,
 		level:      manifest.Level(level),
@@ -502,9 +496,8 @@ func (d *DB) truncateSharedFile(
 			sst.SmallestPointKey.CopyFrom(*key)
 		}
 		if rangeDelIter != nil {
-			if span, err := rangeDelIter.SeekGE(lower); err != nil {
-				return nil, false, err
-			} else if span != nil && (len(sst.SmallestPointKey.UserKey) == 0 || base.InternalCompare(cmp, span.SmallestKey(), sst.SmallestPointKey) < 0) {
+			span := rangeDelIter.SeekGE(lower)
+			if span != nil && (len(sst.SmallestPointKey.UserKey) == 0 || base.InternalCompare(cmp, span.SmallestKey(), sst.SmallestPointKey) < 0) {
 				sst.SmallestPointKey.CopyFrom(span.SmallestKey())
 				foundPointKey = true
 			}
@@ -517,13 +510,10 @@ func (d *DB) truncateSharedFile(
 		sst.SmallestRangeKey.UserKey = sst.SmallestRangeKey.UserKey[:0]
 		sst.SmallestRangeKey.Trailer = 0
 		if rangeKeyIter != nil {
-			span, err := rangeKeyIter.SeekGE(lower)
-			switch {
-			case err != nil:
-				return nil, false, err
-			case span != nil:
+			span := rangeKeyIter.SeekGE(lower)
+			if span != nil {
 				sst.SmallestRangeKey.CopyFrom(span.SmallestKey())
-			default:
+			} else {
 				// There are no range keys in the span we're interested in.
 				sst.SmallestRangeKey = InternalKey{}
 				sst.LargestRangeKey = InternalKey{}
@@ -541,9 +531,8 @@ func (d *DB) truncateSharedFile(
 			sst.LargestPointKey.CopyFrom(*key)
 		}
 		if rangeDelIter != nil {
-			if span, err := rangeDelIter.SeekLT(upper); err != nil {
-				return nil, false, err
-			} else if span != nil && (len(sst.LargestPointKey.UserKey) == 0 || base.InternalCompare(cmp, span.LargestKey(), sst.LargestPointKey) > 0) {
+			span := rangeDelIter.SeekLT(upper)
+			if span != nil && (len(sst.LargestPointKey.UserKey) == 0 || base.InternalCompare(cmp, span.LargestKey(), sst.LargestPointKey) > 0) {
 				sst.LargestPointKey.CopyFrom(span.LargestKey())
 				foundPointKey = true
 			}
@@ -556,13 +545,10 @@ func (d *DB) truncateSharedFile(
 		sst.LargestRangeKey.UserKey = sst.LargestRangeKey.UserKey[:0]
 		sst.LargestRangeKey.Trailer = 0
 		if rangeKeyIter != nil {
-			span, err := rangeKeyIter.SeekLT(upper)
-			switch {
-			case err != nil:
-				return nil, false, err
-			case span != nil:
+			span := rangeKeyIter.SeekLT(upper)
+			if span != nil {
 				sst.LargestRangeKey.CopyFrom(span.LargestKey())
-			default:
+			} else {
 				// There are no range keys in the span we're interested in.
 				sst.SmallestRangeKey = InternalKey{}
 				sst.LargestRangeKey = InternalKey{}
@@ -718,9 +704,7 @@ func scanInternalImpl(
 }
 
 // constructPointIter constructs a merging iterator and sets i.iter to it.
-func (i *scanInternalIterator) constructPointIter(
-	categoryAndQoS sstable.CategoryAndQoS, memtables flushableList, buf *iterAlloc,
-) {
+func (i *scanInternalIterator) constructPointIter(memtables flushableList, buf *iterAlloc) {
 	// Merging levels and levels from iterAlloc.
 	mlevels := buf.mlevels[:0]
 	levels := buf.levels[:0]
@@ -785,18 +769,17 @@ func (i *scanInternalIterator) constructPointIter(
 	levels = levels[:numLevelIters]
 	rangeDelLevels = rangeDelLevels[:numLevelIters]
 	i.opts.IterOptions.snapshotForHideObsoletePoints = i.seqNum
-	i.opts.IterOptions.CategoryAndQoS = categoryAndQoS
 	addLevelIterForFiles := func(files manifest.LevelIterator, level manifest.Level) {
 		li := &levels[levelsIndex]
 		rli := &rangeDelLevels[levelsIndex]
 
 		li.init(
-			i.ctx, i.opts.IterOptions, i.comparer, i.newIters, files, level,
+			context.Background(), i.opts.IterOptions, i.comparer, i.newIters, files, level,
 			internalIterOpts{})
 		li.initBoundaryContext(&mlevels[mlevelsIndex].levelIterBoundaryContext)
 		mlevels[mlevelsIndex].iter = li
 		rli.Init(keyspan.SpanIterOptions{RangeKeyFilters: i.opts.RangeKeyFilters},
-			i.comparer.Compare, tableNewRangeDelIter(i.ctx, i.newIters), files, level,
+			i.comparer.Compare, tableNewRangeDelIter(context.Background(), i.newIters), files, level,
 			manifest.KeyTypePoint)
 		rangeDelIters = append(rangeDelIters, rli)
 
@@ -855,7 +838,7 @@ func (i *scanInternalIterator) constructPointIter(
 // i.rangeKey.rangeKeyIter with the resulting iterator. This is similar to
 // Iterator.constructRangeKeyIter, except it doesn't handle batches and ensures
 // iterConfig does *not* elide unsets/deletes.
-func (i *scanInternalIterator) constructRangeKeyIter() error {
+func (i *scanInternalIterator) constructRangeKeyIter() {
 	// We want the bounded iter from iterConfig, but not the collapsing of
 	// RangeKeyUnsets and RangeKeyDels.
 	i.rangeKey.rangeKeyIter = i.rangeKey.iterConfig.Init(
@@ -898,7 +881,8 @@ func (i *scanInternalIterator) constructRangeKeyIter() error {
 	for f := iter.Last(); f != nil; f = iter.Prev() {
 		spanIter, err := i.newIterRangeKey(f, i.opts.SpanIterOptions())
 		if err != nil {
-			return err
+			i.rangeKey.iterConfig.AddLevel(&errorKeyspanIter{err: err})
+			continue
 		}
 		i.rangeKey.iterConfig.AddLevel(spanIter)
 	}
@@ -917,7 +901,6 @@ func (i *scanInternalIterator) constructRangeKeyIter() error {
 			manifest.Level(level), manifest.KeyTypeRange)
 		i.rangeKey.iterConfig.AddLevel(li)
 	}
-	return nil
 }
 
 // seekGE seeks this iterator to the first key that's greater than or equal

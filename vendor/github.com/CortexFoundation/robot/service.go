@@ -19,14 +19,15 @@ package robot
 import (
 	"encoding/json"
 	"errors"
+	"math/big"
+	"strconv"
+	"time"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	params1 "github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/torrentfs/types"
-	"math/big"
-	"strconv"
-	"time"
 )
 
 // solve block from node

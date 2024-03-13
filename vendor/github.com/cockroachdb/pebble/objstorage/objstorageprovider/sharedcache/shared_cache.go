@@ -365,7 +365,7 @@ func (c *Cache) set(fileNum base.DiskFileNum, p []byte, ofs int64) error {
 
 func (c *Cache) getShard(fileNum base.DiskFileNum, ofs int64) *shard {
 	const prime64 = 1099511628211
-	hash := uint64(fileNum)*prime64 + uint64(ofs/c.shardingBlockSize)
+	hash := uint64(fileNum.FileNum())*prime64 + uint64(ofs/c.shardingBlockSize)
 	// TODO(josh): Instance change ops are often run in production. Such an operation
 	// updates len(c.shards); see openSharedCache. As a result, the behavior of this
 	// function changes, and the cache empties out at restart time. We may want a better
@@ -872,7 +872,7 @@ func (w *writeWorkers) Start(c *Cache, numWorkers int) {
 					if err != nil {
 						c.metrics.writeBackFailures.Add(1)
 						// TODO(radu): throttle logs.
-						c.logger.Errorf("writing back to cache after miss failed: %v", err)
+						c.logger.Infof("writing back to cache after miss failed: %v", err)
 					}
 				}
 			}

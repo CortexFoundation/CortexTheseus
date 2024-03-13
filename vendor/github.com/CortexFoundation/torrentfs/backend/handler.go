@@ -347,7 +347,7 @@ func (tm *TorrentManager) verifyTorrent(info *metainfo.Info, root string) error 
 		if err != nil {
 			return err
 		}
-		good := bytes.Equal(hash.Sum(nil), p.Hash().Bytes())
+		good := bytes.Equal(hash.Sum(nil), p.V1Hash().Unwrap().Bytes())
 		if !good {
 			return fmt.Errorf("hash mismatch at piece %d", i)
 		}

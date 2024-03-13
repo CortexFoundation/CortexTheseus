@@ -18,11 +18,13 @@ package backend
 
 import (
 	"errors"
+	"strconv"
 	"strings"
+
 	//lru "github.com/hashicorp/golang-lru"
+
 	"github.com/CortexFoundation/CortexTheseus/log"
 	bolt "go.etcd.io/bbolt"
-	"strconv"
 )
 
 func (fs *ChainDB) Torrents() map[string]uint64 {

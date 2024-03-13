@@ -17,11 +17,9 @@ import (
 	"unsafe"
 
 	"github.com/cockroachdb/errors"
-	"github.com/cockroachdb/pebble/batchrepr"
 	"github.com/cockroachdb/pebble/internal/base"
 	"github.com/cockroachdb/pebble/internal/batchskl"
 	"github.com/cockroachdb/pebble/internal/humanize"
-	"github.com/cockroachdb/pebble/internal/invariants"
 	"github.com/cockroachdb/pebble/internal/keyspan"
 	"github.com/cockroachdb/pebble/internal/private"
 	"github.com/cockroachdb/pebble/internal/rangedel"
@@ -30,6 +28,8 @@ import (
 )
 
 const (
+	batchCountOffset     = 8
+	batchHeaderLen       = 12
 	batchInitialSize     = 1 << 10 // 1 KB
 	batchMaxRetainedSize = 1 << 20 // 1 MB
 	invalidBatchCount    = 1<<32 - 1
@@ -41,7 +41,7 @@ const (
 var ErrNotIndexed = errors.New("pebble: batch not indexed")
 
 // ErrInvalidBatch indicates that a batch is invalid or otherwise corrupted.
-var ErrInvalidBatch = batchrepr.ErrInvalidBatch
+var ErrInvalidBatch = base.MarkCorruptionError(errors.New("pebble: invalid batch"))
 
 // ErrBatchTooLarge indicates that a batch is invalid or otherwise corrupted.
 var ErrBatchTooLarge = base.MarkCorruptionError(errors.Newf("pebble: batch too large: >= %s", humanize.Bytes.Uint64(maxBatchSize)))
@@ -451,7 +451,7 @@ func (b *Batch) release() {
 
 func (b *Batch) refreshMemTableSize() error {
 	b.memTableSize = 0
-	if len(b.data) < batchrepr.HeaderLen {
+	if len(b.data) < batchHeaderLen {
 		return nil
 	}
 
@@ -484,6 +484,9 @@ func (b *Batch) refreshMemTableSize() error {
 		}
 		b.memTableSize += memTableEntrySize(len(key), len(value))
 	}
+	if b.countRangeKeys > 0 && b.minimumFormatMajorVersion < FormatRangeKeys {
+		b.minimumFormatMajorVersion = FormatRangeKeys
+	}
 	return nil
 }
 
@@ -497,23 +500,23 @@ func (b *Batch) Apply(batch *Batch, _ *WriteOptions) error {
 	if len(batch.data) == 0 {
 		return nil
 	}
-	if len(batch.data) < batchrepr.HeaderLen {
+	if len(batch.data) < batchHeaderLen {
 		return ErrInvalidBatch
 	}
 
 	offset := len(b.data)
 	if offset == 0 {
 		b.init(offset)
-		offset = batchrepr.HeaderLen
+		offset = batchHeaderLen
 	}
-	b.data = append(b.data, batch.data[batchrepr.HeaderLen:]...)
+	b.data = append(b.data, batch.data[batchHeaderLen:]...)
 
 	b.setCount(b.Count() + batch.Count())
 
 	if b.db != nil || b.index != nil {
 		// Only iterate over the new entries if we need to track memTableSize or in
 		// order to update the index.
-		for iter := batchrepr.Reader(b.data[offset:]); len(iter) > 0; {
+		for iter := BatchReader(b.data[offset:]); len(iter) > 0; {
 			offset := uintptr(unsafe.Pointer(&iter[0])) - uintptr(unsafe.Pointer(&b.data[0]))
 			kind, key, value, ok, err := iter.Next()
 			if !ok {
@@ -579,7 +582,7 @@ func (b *Batch) prepareDeferredKeyValueRecord(keyLen, valueLen int, kind Interna
 		panic("pebble: batch already committing")
 	}
 	if len(b.data) == 0 {
-		b.init(keyLen + valueLen + 2*binary.MaxVarintLen64 + batchrepr.HeaderLen)
+		b.init(keyLen + valueLen + 2*binary.MaxVarintLen64 + batchHeaderLen)
 	}
 	b.count++
 	b.memTableSize += memTableEntrySize(keyLen, valueLen)
@@ -631,7 +634,7 @@ func (b *Batch) prepareDeferredKeyRecord(keyLen int, kind InternalKeyKind) {
 		panic("pebble: batch already committing")
 	}
 	if len(b.data) == 0 {
-		b.init(keyLen + binary.MaxVarintLen64 + batchrepr.HeaderLen)
+		b.init(keyLen + binary.MaxVarintLen64 + batchHeaderLen)
 	}
 	b.count++
 	b.memTableSize += memTableEntrySize(keyLen, 0)
@@ -663,38 +666,31 @@ func (b *Batch) prepareDeferredKeyRecord(keyLen int, kind InternalKeyKind) {
 	b.data = b.data[:pos+keyLen]
 }
 
-// AddInternalKey allows the caller to add an internal key of point key or range
-// key kinds (but not RangeDelete) to a batch. Passing in an internal key of
-// kind RangeDelete will result in a panic. Note that the seqnum in the internal
-// key is effectively ignored, even though the Kind is preserved. This is
-// because the batch format does not allow for a per-key seqnum to be specified,
-// only a batch-wide one.
+// AddInternalKey allows the caller to add an internal key of point key kinds to
+// a batch. Passing in an internal key of kind RangeKey* or RangeDelete will
+// result in a panic. Note that the seqnum in the internal key is effectively
+// ignored, even though the Kind is preserved. This is because the batch format
+// does not allow for a per-key seqnum to be specified, only a batch-wide one.
 //
 // Note that non-indexed keys (IngestKeyKind{LogData,IngestSST}) are not
 // supported with this method as they require specialized logic.
 func (b *Batch) AddInternalKey(key *base.InternalKey, value []byte, _ *WriteOptions) error {
 	keyLen := len(key.UserKey)
 	hasValue := false
-	switch kind := key.Kind(); kind {
-	case InternalKeyKindRangeDelete:
-		panic("unexpected range delete in AddInternalKey")
+	switch key.Kind() {
+	case InternalKeyKindRangeDelete, InternalKeyKindRangeKeySet, InternalKeyKindRangeKeyUnset, InternalKeyKindRangeKeyDelete:
+		panic("unexpected range delete or range key kind in AddInternalKey")
 	case InternalKeyKindSingleDelete, InternalKeyKindDelete:
-		b.prepareDeferredKeyRecord(keyLen, kind)
-		b.deferredOp.index = b.index
-	case InternalKeyKindRangeKeySet, InternalKeyKindRangeKeyUnset, InternalKeyKindRangeKeyDelete:
-		b.prepareDeferredKeyValueRecord(keyLen, len(value), kind)
-		hasValue = true
-		b.incrementRangeKeysCount()
+		b.prepareDeferredKeyRecord(len(key.UserKey), key.Kind())
 	default:
-		b.prepareDeferredKeyValueRecord(keyLen, len(value), kind)
+		b.prepareDeferredKeyValueRecord(keyLen, len(value), key.Kind())
 		hasValue = true
-		b.deferredOp.index = b.index
 	}
+	b.deferredOp.index = b.index
 	copy(b.deferredOp.Key, key.UserKey)
 	if hasValue {
 		copy(b.deferredOp.Value, value)
 	}
-
 	// TODO(peter): Manually inline DeferredBatchOp.Finish(). Mid-stack inlining
 	// in go1.13 will remove the need for this.
 	if b.index != nil {
@@ -928,15 +924,6 @@ func (b *Batch) DeleteRangeDeferred(startLen, endLen int) *DeferredBatchOp {
 //
 // It is safe to modify the contents of the arguments after RangeKeySet returns.
 func (b *Batch) RangeKeySet(start, end, suffix, value []byte, _ *WriteOptions) error {
-	if invariants.Enabled && b.db != nil && b.db.opts.Comparer.Split != nil {
-		// RangeKeySet is only supported on prefix keys.
-		if b.db.opts.Comparer.Split(start) != len(start) {
-			panic("RangeKeySet called with suffixed start key")
-		}
-		if b.db.opts.Comparer.Split(end) != len(end) {
-			panic("RangeKeySet called with suffixed end key")
-		}
-	}
 	suffixValues := [1]rangekey.SuffixValue{{Suffix: suffix, Value: value}}
 	internalValueLen := rangekey.EncodedSetValueLen(end, suffixValues[:])
 
@@ -964,6 +951,9 @@ func (b *Batch) rangeKeySetDeferred(startLen, internalValueLen int) *DeferredBat
 
 func (b *Batch) incrementRangeKeysCount() {
 	b.countRangeKeys++
+	if b.minimumFormatMajorVersion < FormatRangeKeys {
+		b.minimumFormatMajorVersion = FormatRangeKeys
+	}
 	if b.index != nil {
 		b.rangeKeys = nil
 		b.rangeKeysSeqNum = 0
@@ -984,15 +974,6 @@ func (b *Batch) incrementRangeKeysCount() {
 // It is safe to modify the contents of the arguments after RangeKeyUnset
 // returns.
 func (b *Batch) RangeKeyUnset(start, end, suffix []byte, _ *WriteOptions) error {
-	if invariants.Enabled && b.db != nil && b.db.opts.Comparer.Split != nil {
-		// RangeKeyUnset is only supported on prefix keys.
-		if b.db.opts.Comparer.Split(start) != len(start) {
-			panic("RangeKeyUnset called with suffixed start key")
-		}
-		if b.db.opts.Comparer.Split(end) != len(end) {
-			panic("RangeKeyUnset called with suffixed end key")
-		}
-	}
 	suffixes := [1][]byte{suffix}
 	internalValueLen := rangekey.EncodedUnsetValueLen(end, suffixes[:])
 
@@ -1026,15 +1007,6 @@ func (b *Batch) rangeKeyUnsetDeferred(startLen, internalValueLen int) *DeferredB
 // It is safe to modify the contents of the arguments after RangeKeyDelete
 // returns.
 func (b *Batch) RangeKeyDelete(start, end []byte, _ *WriteOptions) error {
-	if invariants.Enabled && b.db != nil && b.db.opts.Comparer.Split != nil {
-		// RangeKeyDelete is only supported on prefix keys.
-		if b.db.opts.Comparer.Split(start) != len(start) {
-			panic("RangeKeyDelete called with suffixed start key")
-		}
-		if b.db.opts.Comparer.Split(end) != len(end) {
-			panic("RangeKeyDelete called with suffixed end key")
-		}
-	}
 	deferredOp := b.RangeKeyDeleteDeferred(len(start), len(end))
 	copy(deferredOp.Key, start)
 	copy(deferredOp.Value, end)
@@ -1100,12 +1072,15 @@ func (b *Batch) ingestSST(fileNum base.FileNum) {
 
 // Empty returns true if the batch is empty, and false otherwise.
 func (b *Batch) Empty() bool {
-	return batchrepr.IsEmpty(b.data)
+	return len(b.data) <= batchHeaderLen
 }
 
 // Len returns the current size of the batch in bytes.
 func (b *Batch) Len() int {
-	return max(batchrepr.HeaderLen, len(b.data))
+	if len(b.data) <= batchHeaderLen {
+		return batchHeaderLen
+	}
+	return len(b.data)
 }
 
 // Repr returns the underlying batch representation. It is not safe to modify
@@ -1113,9 +1088,9 @@ func (b *Batch) Len() int {
 // though any other mutation operation may do so.
 func (b *Batch) Repr() []byte {
 	if len(b.data) == 0 {
-		b.init(batchrepr.HeaderLen)
+		b.init(batchHeaderLen)
 	}
-	batchrepr.SetCount(b.data, b.Count())
+	binary.LittleEndian.PutUint32(b.countData(), b.Count())
 	return b.data
 }
 
@@ -1123,12 +1098,11 @@ func (b *Batch) Repr() []byte {
 // of the supplied slice. It is not safe to modify it afterwards until the
 // Batch is no longer in use.
 func (b *Batch) SetRepr(data []byte) error {
-	h, ok := batchrepr.ReadHeader(data)
-	if !ok {
+	if len(data) < batchHeaderLen {
 		return base.CorruptionErrorf("invalid batch")
 	}
 	b.data = data
-	b.count = uint64(h.Count)
+	b.count = uint64(binary.LittleEndian.Uint32(b.countData()))
 	var err error
 	if b.db != nil {
 		// Only track memTableSize for batches that will be committed to the DB.
@@ -1145,29 +1119,16 @@ func (b *Batch) SetRepr(data []byte) error {
 // later mutations. Its view can be refreshed via RefreshBatchSnapshot or
 // SetOptions().
 func (b *Batch) NewIter(o *IterOptions) (*Iterator, error) {
-	return b.NewIterWithContext(context.Background(), o)
+	return b.NewIterWithContext(context.Background(), o), nil
 }
 
 // NewIterWithContext is like NewIter, and additionally accepts a context for
 // tracing.
-func (b *Batch) NewIterWithContext(ctx context.Context, o *IterOptions) (*Iterator, error) {
+func (b *Batch) NewIterWithContext(ctx context.Context, o *IterOptions) *Iterator {
 	if b.index == nil {
-		return nil, ErrNotIndexed
+		return &Iterator{err: ErrNotIndexed}
 	}
-	return b.db.newIter(ctx, b, newIterOpts{}, o), nil
-}
-
-// NewBatchOnlyIter constructs an iterator that only reads the contents of the
-// batch, and does not overlay the batch mutations on top of the DB state.
-//
-// The returned Iterator observes all of the Batch's existing mutations, but
-// no later mutations. Its view can be refreshed via RefreshBatchSnapshot or
-// SetOptions().
-func (b *Batch) NewBatchOnlyIter(ctx context.Context, o *IterOptions) (*Iterator, error) {
-	if b.index == nil {
-		return nil, ErrNotIndexed
-	}
-	return b.db.newIter(ctx, b, newIterOpts{batch: batchIterOpts{batchOnly: true}}, o), nil
+	return b.db.newIter(ctx, b, snapshotIterOpts{}, o)
 }
 
 // newInternalIter creates a new internalIterator that iterates over the
@@ -1388,10 +1349,13 @@ func (b *Batch) init(size int) {
 		n *= 2
 	}
 	if cap(b.data) < n {
-		b.data = rawalloc.New(batchrepr.HeaderLen, n)
+		b.data = rawalloc.New(batchHeaderLen, n)
 	}
-	b.data = b.data[:batchrepr.HeaderLen]
-	clear(b.data) // Zero the sequence number in the header
+	b.data = b.data[:batchHeaderLen]
+	// Zero the sequence number in the header.
+	for i := 0; i < len(b.data); i++ {
+		b.data[i] = 0
+	}
 }
 
 // Reset resets the batch for reuse. The underlying byte slice (that is
@@ -1420,13 +1384,28 @@ func (b *Batch) Reset() {
 			b.data = nil
 		} else {
 			// Otherwise, reset the buffer for re-use.
-			b.data = b.data[:batchrepr.HeaderLen]
-			clear(b.data)
+			b.data = b.data[:batchHeaderLen]
+			// Zero the sequence number in the header.
+			for i := 0; i < len(b.data); i++ {
+				b.data[i] = 0
+			}
 		}
 	}
 	if b.index != nil {
 		b.index.Init(&b.data, b.cmp, b.abbreviatedKey)
 	}
+}
+
+// seqNumData returns the 8 byte little-endian sequence number. Zero means that
+// the batch has not yet been applied.
+func (b *Batch) seqNumData() []byte {
+	return b.data[:8]
+}
+
+// countData returns the 4 byte little-endian count data. "\xff\xff\xff\xff"
+// means that the batch is invalid.
+func (b *Batch) countData() []byte {
+	return b.data[8:12]
 }
 
 func (b *Batch) grow(n int) {
@@ -1447,7 +1426,7 @@ func (b *Batch) grow(n int) {
 }
 
 func (b *Batch) setSeqNum(seqNum uint64) {
-	batchrepr.SetSeqNum(b.data, seqNum)
+	binary.LittleEndian.PutUint64(b.seqNumData(), seqNum)
 }
 
 // SeqNum returns the batch sequence number which is applied to the first
@@ -1455,9 +1434,9 @@ func (b *Batch) setSeqNum(seqNum uint64) {
 // record. It returns zero if the batch is empty.
 func (b *Batch) SeqNum() uint64 {
 	if len(b.data) == 0 {
-		b.init(batchrepr.HeaderLen)
+		b.init(batchHeaderLen)
 	}
-	return batchrepr.ReadSeqNum(b.data)
+	return binary.LittleEndian.Uint64(b.seqNumData())
 }
 
 func (b *Batch) setCount(v uint32) {
@@ -1470,18 +1449,52 @@ func (b *Batch) setCount(v uint32) {
 // batch isn't applied to the memtable.
 func (b *Batch) Count() uint32 {
 	if b.count > math.MaxUint32 {
-		panic(batchrepr.ErrInvalidBatch)
+		panic(ErrInvalidBatch)
 	}
 	return uint32(b.count)
 }
 
-// Reader returns a batchrepr.Reader for the current batch contents. If the
-// batch is mutated, the new entries will not be visible to the reader.
-func (b *Batch) Reader() batchrepr.Reader {
+// Reader returns a BatchReader for the current batch contents. If the batch is
+// mutated, the new entries will not be visible to the reader.
+func (b *Batch) Reader() BatchReader {
 	if len(b.data) == 0 {
-		b.init(batchrepr.HeaderLen)
+		b.init(batchHeaderLen)
 	}
-	return batchrepr.Read(b.data)
+	return b.data[batchHeaderLen:]
+}
+
+func batchDecodeStr(data []byte) (odata []byte, s []byte, ok bool) {
+	// TODO(jackson): This will index out of bounds if there's no varint or an
+	// invalid varint (eg, a single 0xff byte). Correcting will add a bit of
+	// overhead. We could avoid that overhead whenever len(data) >=
+	// binary.MaxVarint32?
+
+	var v uint32
+	var n int
+	ptr := unsafe.Pointer(&data[0])
+	if a := *((*uint8)(ptr)); a < 128 {
+		v = uint32(a)
+		n = 1
+	} else if a, b := a&0x7f, *((*uint8)(unsafe.Pointer(uintptr(ptr) + 1))); b < 128 {
+		v = uint32(b)<<7 | uint32(a)
+		n = 2
+	} else if b, c := b&0x7f, *((*uint8)(unsafe.Pointer(uintptr(ptr) + 2))); c < 128 {
+		v = uint32(c)<<14 | uint32(b)<<7 | uint32(a)
+		n = 3
+	} else if c, d := c&0x7f, *((*uint8)(unsafe.Pointer(uintptr(ptr) + 3))); d < 128 {
+		v = uint32(d)<<21 | uint32(c)<<14 | uint32(b)<<7 | uint32(a)
+		n = 4
+	} else {
+		d, e := d&0x7f, *((*uint8)(unsafe.Pointer(uintptr(ptr) + 4)))
+		v = uint32(e)<<28 | uint32(d)<<21 | uint32(c)<<14 | uint32(b)<<7 | uint32(a)
+		n = 5
+	}
+
+	data = data[n:]
+	if v > uint32(len(data)) {
+		return nil, nil, false
+	}
+	return data[v:], data[:v], true
 }
 
 // SyncWait is to be used in conjunction with DB.ApplyNoSyncWait.
@@ -1502,6 +1515,48 @@ func (b *Batch) SyncWait() error {
 // called after Batch.SyncWait.
 func (b *Batch) CommitStats() BatchCommitStats {
 	return b.commitStats
+}
+
+// BatchReader iterates over the entries contained in a batch.
+type BatchReader []byte
+
+// ReadBatch constructs a BatchReader from a batch representation.  The
+// header is not validated. ReadBatch returns a new batch reader and the
+// count of entries contained within the batch.
+func ReadBatch(repr []byte) (r BatchReader, count uint32) {
+	if len(repr) <= batchHeaderLen {
+		return nil, count
+	}
+	count = binary.LittleEndian.Uint32(repr[batchCountOffset:batchHeaderLen])
+	return repr[batchHeaderLen:], count
+}
+
+// Next returns the next entry in this batch, if there is one. If the reader has
+// reached the end of the batch, Next returns ok=false and a nil error. If the
+// batch is corrupt and the next entry is illegible, Next returns ok=false and a
+// non-nil error.
+func (r *BatchReader) Next() (kind InternalKeyKind, ukey []byte, value []byte, ok bool, err error) {
+	if len(*r) == 0 {
+		return 0, nil, nil, false, nil
+	}
+	kind = InternalKeyKind((*r)[0])
+	if kind > InternalKeyKindMax {
+		return 0, nil, nil, false, errors.Wrapf(ErrInvalidBatch, "invalid key kind 0x%x", (*r)[0])
+	}
+	*r, ukey, ok = batchDecodeStr((*r)[1:])
+	if !ok {
+		return 0, nil, nil, false, errors.Wrapf(ErrInvalidBatch, "decoding user key")
+	}
+	switch kind {
+	case InternalKeyKindSet, InternalKeyKindMerge, InternalKeyKindRangeDelete,
+		InternalKeyKindRangeKeySet, InternalKeyKindRangeKeyUnset, InternalKeyKindRangeKeyDelete,
+		InternalKeyKindDeleteSized:
+		*r, value, ok = batchDecodeStr(*r)
+		if !ok {
+			return 0, nil, nil, false, errors.Wrapf(ErrInvalidBatch, "decoding %s value", kind)
+		}
+	}
+	return kind, ukey, value, true, nil
 }
 
 // Note: batchIter mirrors the implementation of flushableBatchIter. Keep the
@@ -1632,7 +1687,7 @@ func (i *batchIter) value() []byte {
 	case InternalKeyKindSet, InternalKeyKindMerge, InternalKeyKindRangeDelete,
 		InternalKeyKindRangeKeySet, InternalKeyKindRangeKeyUnset, InternalKeyKindRangeKeyDelete,
 		InternalKeyKindDeleteSized:
-		_, value, ok := batchrepr.DecodeStr(data[keyEnd:])
+		_, value, ok := batchDecodeStr(data[keyEnd:])
 		if !ok {
 			return nil
 		}
@@ -1654,8 +1709,6 @@ func (i *batchIter) Close() error {
 func (i *batchIter) SetBounds(lower, upper []byte) {
 	i.iter.SetBounds(lower, upper)
 }
-
-func (i *batchIter) SetContext(_ context.Context) {}
 
 type flushableBatchEntry struct {
 	// offset is the byte offset of the record within the batch repr.
@@ -1721,10 +1774,10 @@ func newFlushableBatch(batch *Batch, comparer *Comparer) (*flushableBatch, error
 	}
 	var rangeDelOffsets []flushableBatchEntry
 	var rangeKeyOffsets []flushableBatchEntry
-	if len(b.data) > batchrepr.HeaderLen {
+	if len(b.data) > batchHeaderLen {
 		// Non-empty batch.
 		var index uint32
-		for iter := batchrepr.Read(b.data); len(iter) > 0; index++ {
+		for iter := BatchReader(b.data[batchHeaderLen:]); len(iter) > 0; index++ {
 			offset := uintptr(unsafe.Pointer(&iter[0])) - uintptr(unsafe.Pointer(&b.data[0]))
 			kind, key, _, ok, err := iter.Next()
 			if !ok {
@@ -1899,7 +1952,7 @@ func (b *flushableBatch) containsRangeKeys() bool { return len(b.rangeKeys) > 0 
 
 // inuseBytes is part of the flushable interface.
 func (b *flushableBatch) inuseBytes() uint64 {
-	return uint64(len(b.data) - batchrepr.HeaderLen)
+	return uint64(len(b.data) - batchHeaderLen)
 }
 
 // totalBytes is part of the flushable interface.
@@ -1912,13 +1965,6 @@ func (b *flushableBatch) readyForFlush() bool {
 	// A flushable batch is always ready for flush; it must be flushed together
 	// with the previous memtable.
 	return true
-}
-
-// computePossibleOverlaps is part of the flushable interface.
-func (b *flushableBatch) computePossibleOverlaps(
-	fn func(bounded) shouldContinue, bounded ...bounded,
-) {
-	computePossibleOverlapsGenericImpl[*flushableBatch](b, b.cmp, fn, bounded)
 }
 
 // Note: flushableBatchIter mirrors the implementation of batchIter. Keep the
@@ -2100,7 +2146,7 @@ func (i *flushableBatchIter) value() base.LazyValue {
 		InternalKeyKindRangeKeySet, InternalKeyKindRangeKeyUnset, InternalKeyKindRangeKeyDelete,
 		InternalKeyKindDeleteSized:
 		keyEnd := i.offsets[i.index].keyEnd
-		_, value, ok = batchrepr.DecodeStr(i.data[keyEnd:])
+		_, value, ok = batchDecodeStr(i.data[keyEnd:])
 		if !ok {
 			i.err = base.CorruptionErrorf("corrupted batch")
 			return base.LazyValue{}
@@ -2125,8 +2171,6 @@ func (i *flushableBatchIter) SetBounds(lower, upper []byte) {
 	i.lower = lower
 	i.upper = upper
 }
-
-func (i *flushableBatchIter) SetContext(_ context.Context) {}
 
 // flushFlushableBatchIter is similar to flushableBatchIter but it keeps track
 // of number of bytes iterated.

@@ -17,17 +17,18 @@ package bolt
 
 import (
 	"bytes"
-	//"fmt"
 	"fmt"
 	"os"
 	"path/filepath"
+
+	//"fmt"
 	"sync"
 	"time"
 
 	"github.com/ucwong/go-ttlmap"
-	"github.com/ucwong/golang-kv/common"
-
 	bolt "go.etcd.io/bbolt"
+
+	"github.com/ucwong/golang-kv/common"
 )
 
 type Bolt struct {

@@ -6,20 +6,18 @@ package pebble
 
 import (
 	"bytes"
-	"cmp"
 	"context"
 	"encoding/binary"
 	"fmt"
 	"io"
 	"math"
 	"os"
-	"slices"
+	"sort"
 	"sync/atomic"
 	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/cockroachdb/errors/oserror"
-	"github.com/cockroachdb/pebble/batchrepr"
 	"github.com/cockroachdb/pebble/internal/arenaskl"
 	"github.com/cockroachdb/pebble/internal/base"
 	"github.com/cockroachdb/pebble/internal/cache"
@@ -29,11 +27,9 @@ import (
 	"github.com/cockroachdb/pebble/internal/manual"
 	"github.com/cockroachdb/pebble/objstorage"
 	"github.com/cockroachdb/pebble/objstorage/objstorageprovider"
-	"github.com/cockroachdb/pebble/objstorage/remote"
 	"github.com/cockroachdb/pebble/record"
 	"github.com/cockroachdb/pebble/sstable"
 	"github.com/cockroachdb/pebble/vfs"
-	"github.com/cockroachdb/pebble/wal"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -74,7 +70,7 @@ func TableCacheSize(maxOpenFiles int) int {
 }
 
 // Open opens a DB whose files live in the given directory.
-func Open(dirname string, opts *Options) (db *DB, err error) {
+func Open(dirname string, opts *Options) (db *DB, _ error) {
 	// Make a copy of the options so that we don't mutate the passed in options.
 	opts = opts.Clone()
 	opts = opts.EnsureDefaults()
@@ -139,41 +135,8 @@ func Open(dirname string, opts *Options) (db *DB, err error) {
 		}
 	}()
 
-	noFormatVersionMarker := formatVersion == FormatDefault
-	if noFormatVersionMarker {
-		// We will initialize the store at the minimum possible format, then upgrade
-		// the format to the desired one. This helps test the format upgrade code.
-		formatVersion = FormatMinSupported
-		if opts.Experimental.CreateOnShared != remote.CreateOnSharedNone {
-			formatVersion = FormatMinForSharedObjects
-		}
-		// There is no format version marker file. There are three cases:
-		//  - we are trying to open an existing store that was created at
-		//    FormatMostCompatible (the only one without a version marker file)
-		//  - we are creating a new store;
-		//  - we are retrying a failed creation.
-		//
-		// To error in the first case, we set ErrorIfNotPristine.
-		opts.ErrorIfNotPristine = true
-		defer func() {
-			if err != nil && errors.Is(err, ErrDBNotPristine) {
-				// We must be trying to open an existing store at FormatMostCompatible.
-				// Correct the error in this case -we
-				err = errors.Newf(
-					"pebble: database %q written in format major version 1 which is no longer supported",
-					dirname)
-			}
-		}()
-	} else {
-		if opts.Experimental.CreateOnShared != remote.CreateOnSharedNone && formatVersion < FormatMinForSharedObjects {
-			return nil, errors.Newf(
-				"pebble: database %q configured with shared objects but written in too old format major version %d",
-				formatVersion)
-		}
-	}
-
 	// Find the currently active manifest, if there is one.
-	manifestMarker, manifestFileNum, manifestExists, err := findCurrentManifest(opts.FS, dirname)
+	manifestMarker, manifestFileNum, manifestExists, err := findCurrentManifest(formatVersion, opts.FS, dirname)
 	if err != nil {
 		return nil, errors.Wrapf(err, "pebble: database %q", dirname)
 	}
@@ -214,11 +177,10 @@ func Open(dirname string, opts *Options) (db *DB, err error) {
 		fileLock:            fileLock,
 		dataDir:             dataDir,
 		walDir:              walDir,
-		logRecycler:         wal.LogRecycler{},
+		logRecycler:         logRecycler{limit: opts.MemTableStopWritesThreshold + 1},
 		closed:              new(atomic.Value),
 		closedCh:            make(chan struct{}),
 	}
-	d.logRecycler.Init(opts.MemTableStopWritesThreshold + 1)
 	d.mu.versions = &versionSet{}
 	d.diskAvailBytes.Store(math.MaxUint64)
 
@@ -289,6 +251,8 @@ func Open(dirname string, opts *Options) (db *DB, err error) {
 	jobID := d.mu.nextJobID
 	d.mu.nextJobID++
 
+	setCurrent := setCurrentFunc(d.FormatMajorVersion(), manifestMarker, opts.FS, dirname, d.dataDir)
+
 	if !manifestExists {
 		// DB does not exist.
 		if d.opts.ErrorIfNotExists || d.opts.ReadOnly {
@@ -296,7 +260,7 @@ func Open(dirname string, opts *Options) (db *DB, err error) {
 		}
 
 		// Create the DB.
-		if err := d.mu.versions.create(jobID, dirname, opts, manifestMarker, d.FormatMajorVersion, &d.mu.Mutex); err != nil {
+		if err := d.mu.versions.create(jobID, dirname, opts, manifestMarker, setCurrent, d.FormatMajorVersion, &d.mu.Mutex); err != nil {
 			return nil, err
 		}
 	} else {
@@ -304,7 +268,7 @@ func Open(dirname string, opts *Options) (db *DB, err error) {
 			return nil, errors.Wrapf(ErrDBAlreadyExists, "dirname=%q", dirname)
 		}
 		// Load the version set.
-		if err := d.mu.versions.load(dirname, opts, manifestFileNum, manifestMarker, d.FormatMajorVersion, &d.mu.Mutex); err != nil {
+		if err := d.mu.versions.load(dirname, opts, manifestFileNum.FileNum(), manifestMarker, setCurrent, d.FormatMajorVersion, &d.mu.Mutex); err != nil {
 			return nil, err
 		}
 		if opts.ErrorIfNotPristine {
@@ -366,19 +330,17 @@ func Open(dirname string, opts *Options) (db *DB, err error) {
 	}
 
 	tableCacheSize := TableCacheSize(opts.MaxOpenFiles)
-	d.tableCache = newTableCacheContainer(
-		opts.TableCache, d.cacheID, d.objProvider, d.opts, tableCacheSize,
-		&sstable.CategoryStatsCollector{})
+	d.tableCache = newTableCacheContainer(opts.TableCache, d.cacheID, d.objProvider, d.opts, tableCacheSize)
 	d.newIters = d.tableCache.newIters
-	d.tableNewRangeKeyIter = tableNewRangeKeyIter(context.TODO(), d.newIters)
+	d.tableNewRangeKeyIter = d.tableCache.newRangeKeyIter
 
 	// Replay any newer log files than the ones named in the manifest.
 	type fileNumAndName struct {
-		num  base.DiskFileNum
+		num  FileNum
 		name string
 	}
 	var logFiles []fileNumAndName
-	var previousOptionsFileNum base.DiskFileNum
+	var previousOptionsFileNum FileNum
 	var previousOptionsFilename string
 	for _, filename := range ls {
 		ft, fn, ok := base.ParseFilename(opts.FS, filename)
@@ -388,21 +350,21 @@ func Open(dirname string, opts *Options) (db *DB, err error) {
 
 		// Don't reuse any obsolete file numbers to avoid modifying an
 		// ingested sstable's original external file.
-		if d.mu.versions.nextFileNum <= uint64(fn) {
-			d.mu.versions.nextFileNum = uint64(fn) + 1
+		if d.mu.versions.nextFileNum <= fn.FileNum() {
+			d.mu.versions.nextFileNum = fn.FileNum() + 1
 		}
 
 		switch ft {
 		case fileTypeLog:
-			if fn >= d.mu.versions.minUnflushedLogNum {
-				logFiles = append(logFiles, fileNumAndName{fn, filename})
+			if fn.FileNum() >= d.mu.versions.minUnflushedLogNum {
+				logFiles = append(logFiles, fileNumAndName{fn.FileNum(), filename})
 			}
-			if d.logRecycler.MinRecycleLogNum() <= fn {
-				d.logRecycler.SetMinRecycleLogNum(fn + 1)
+			if d.logRecycler.minRecycleLogNum <= fn.FileNum() {
+				d.logRecycler.minRecycleLogNum = fn.FileNum() + 1
 			}
 		case fileTypeOptions:
-			if previousOptionsFileNum < fn {
-				previousOptionsFileNum = fn
+			if previousOptionsFileNum < fn.FileNum() {
+				previousOptionsFileNum = fn.FileNum()
 				previousOptionsFilename = filename
 			}
 		case fileTypeTemp, fileTypeOldTemp:
@@ -423,8 +385,8 @@ func Open(dirname string, opts *Options) (db *DB, err error) {
 	// objProvider. This avoids FileNum collisions with obsolete sstables.
 	objects := d.objProvider.List()
 	for _, obj := range objects {
-		if d.mu.versions.nextFileNum <= uint64(obj.DiskFileNum) {
-			d.mu.versions.nextFileNum = uint64(obj.DiskFileNum) + 1
+		if d.mu.versions.nextFileNum <= obj.DiskFileNum.FileNum() {
+			d.mu.versions.nextFileNum = obj.DiskFileNum.FileNum() + 1
 		}
 	}
 
@@ -438,8 +400,8 @@ func Open(dirname string, opts *Options) (db *DB, err error) {
 		}
 	}
 
-	slices.SortFunc(logFiles, func(a, b fileNumAndName) int {
-		return cmp.Compare(a.num, b.num)
+	sort.Slice(logFiles, func(i, j int) bool {
+		return logFiles[i].num < logFiles[j].num
 	})
 
 	var ve versionEdit
@@ -461,7 +423,7 @@ func Open(dirname string, opts *Options) (db *DB, err error) {
 
 	if !d.opts.ReadOnly {
 		// Create an empty .log file.
-		newLogNum := d.mu.versions.getNextDiskFileNum()
+		newLogNum := d.mu.versions.getNextFileNum()
 
 		// This logic is slightly different than RocksDB's. Specifically, RocksDB
 		// sets MinUnflushedLogNum to max-recovered-log-num + 1. We set it to the
@@ -483,8 +445,8 @@ func Open(dirname string, opts *Options) (db *DB, err error) {
 			entry.readerUnrefLocked(true)
 		}
 
-		newLogName := base.MakeFilepath(opts.FS, d.walDirname, fileTypeLog, newLogNum)
-		d.mu.log.queue = append(d.mu.log.queue, fileInfo{FileNum: newLogNum, FileSize: 0})
+		newLogName := base.MakeFilepath(opts.FS, d.walDirname, fileTypeLog, newLogNum.DiskFileNum())
+		d.mu.log.queue = append(d.mu.log.queue, fileInfo{fileNum: newLogNum.DiskFileNum(), fileSize: 0})
 		logFile, err := opts.FS.Create(newLogName)
 		if err != nil {
 			return nil, err
@@ -520,28 +482,22 @@ func Open(dirname string, opts *Options) (db *DB, err error) {
 	}
 	d.updateReadStateLocked(d.opts.DebugCheck)
 
-	if !d.opts.ReadOnly {
-		// If the Options specify a format major version higher than the
-		// loaded database's, upgrade it. If this is a new database, this
-		// code path also performs an initial upgrade from the starting
-		// implicit MinSupported version.
-		//
-		// We ratchet the version this far into Open so that migrations have a read
-		// state available. Note that this also results in creating/updating the
-		// format version marker file.
-		if opts.FormatMajorVersion > d.FormatMajorVersion() {
-			if err := d.ratchetFormatMajorVersionLocked(opts.FormatMajorVersion); err != nil {
-				return nil, err
-			}
-		} else if noFormatVersionMarker {
-			// We are creating a new store. Create the format version marker file.
-			if err := d.writeFormatVersionMarker(d.FormatMajorVersion()); err != nil {
-				return nil, err
-			}
+	// If the Options specify a format major version higher than the
+	// loaded database's, upgrade it. If this is a new database, this
+	// code path also performs an initial upgrade from the starting
+	// implicit MostCompatible version.
+	//
+	// We ratchet the version this far into Open so that migrations have a read
+	// state available.
+	if !d.opts.ReadOnly && opts.FormatMajorVersion > d.FormatMajorVersion() {
+		if err := d.ratchetFormatMajorVersionLocked(opts.FormatMajorVersion); err != nil {
+			return nil, err
 		}
+	}
 
+	if !d.opts.ReadOnly {
 		// Write the current options to disk.
-		d.optionsFileNum = d.mu.versions.getNextDiskFileNum()
+		d.optionsFileNum = d.mu.versions.getNextFileNum().DiskFileNum()
 		tmpPath := base.MakeFilepath(opts.FS, dirname, fileTypeTemp, d.optionsFileNum)
 		optionsPath := base.MakeFilepath(opts.FS, dirname, fileTypeOptions, d.optionsFileNum)
 
@@ -673,7 +629,7 @@ func GetVersion(dir string, fs vfs.FS) (string, error) {
 		return "", err
 	}
 	var version string
-	lastOptionsSeen := base.DiskFileNum(0)
+	lastOptionsSeen := FileNum(0)
 	for _, filename := range ls {
 		ft, fn, ok := base.ParseFilename(fs, filename)
 		if !ok {
@@ -685,9 +641,9 @@ func GetVersion(dir string, fs vfs.FS) (string, error) {
 			// processed, reset version. This is because rocksdb often
 			// writes multiple options files without deleting previous ones.
 			// Otherwise, skip parsing this options file.
-			if fn > lastOptionsSeen {
+			if fn.FileNum() > lastOptionsSeen {
 				version = ""
-				lastOptionsSeen = fn
+				lastOptionsSeen = fn.FileNum()
 			} else {
 				continue
 			}
@@ -721,17 +677,10 @@ func GetVersion(dir string, fs vfs.FS) (string, error) {
 	return version, nil
 }
 
-// replayWAL replays the edits in the specified log file. If the DB is in read
-// only mode, then the WALs are replayed into memtables and not flushed. If
-// the DB is not in read only mode, then the contents of the WAL are
-// guaranteed to be flushed. Note that this flushing is very important for
-// guaranteeing durability: the application may have had a number of pending
-// fsyncs to the WAL before the process crashed, and those fsyncs may not have
-// happened but the corresponding data may now be readable from the WAL (while
-// sitting in write-back caches in the kernel or the storage device). By
-// reading the WAL (including the non-fsynced data) and then flushing all
-// these changes (flush does fsyncs), we are able to guarantee that the
-// initial state of the DB is durable.
+// replayWAL replays the edits in the specified log file. If the DB is in
+// read only mode, then the WALs are replayed into memtables and not flushed. If
+// the DB is not in read only mode, then the contents of the WAL are guaranteed
+// to be flushed.
 //
 // The toFlush return value is a list of flushables associated with the WAL
 // being replayed which will be flushed. Once the version edit has been applied
@@ -741,12 +690,7 @@ func GetVersion(dir string, fs vfs.FS) (string, error) {
 // d.mu must be held when calling this, but the mutex may be dropped and
 // re-acquired during the course of this method.
 func (d *DB) replayWAL(
-	jobID int,
-	ve *versionEdit,
-	fs vfs.FS,
-	filename string,
-	logNum base.DiskFileNum,
-	strictWALTail bool,
+	jobID int, ve *versionEdit, fs vfs.FS, filename string, logNum FileNum, strictWALTail bool,
 ) (toFlush flushableList, maxSeqNum uint64, err error) {
 	file, err := fs.Open(filename)
 	if err != nil {
@@ -815,11 +759,8 @@ func (d *DB) replayWAL(
 	updateVE := func() error {
 		// TODO(bananabrick): See if we can use the actual base level here,
 		// instead of using 1.
-		c, err := newFlush(d.opts, d.mu.versions.currentVersion(),
+		c := newFlush(d.opts, d.mu.versions.currentVersion(),
 			1 /* base level */, toFlush, d.timeNow())
-		if err != nil {
-			return err
-		}
 		newVE, _, _, err := d.runCompaction(jobID, c)
 		if err != nil {
 			return errors.Wrapf(err, "running compaction during WAL replay")
@@ -853,7 +794,7 @@ func (d *DB) replayWAL(
 			return nil, 0, errors.Wrap(err, "pebble: error when replaying WAL")
 		}
 
-		if buf.Len() < batchrepr.HeaderLen {
+		if buf.Len() < batchHeaderLen {
 			return nil, 0, base.CorruptionErrorf("pebble: corrupt log file %q (num %s)",
 				filename, errors.Safe(logNum))
 		}
@@ -882,7 +823,7 @@ func (d *DB) replayWAL(
 					if n <= 0 {
 						panic("pebble: ingest sstable file num is invalid.")
 					}
-					fileNums = append(fileNums, base.DiskFileNum(fileNum))
+					fileNums = append(fileNums, base.FileNum(fileNum).DiskFileNum())
 				}
 				addFileNum(encodedFileNum)
 
@@ -931,7 +872,7 @@ func (d *DB) replayWAL(
 						}
 					}
 					// NB: ingestLoad1 will close readable.
-					meta[i], err = ingestLoad1(d.opts, d.FormatMajorVersion(), readable, d.cacheID, base.PhysicalTableFileNum(n))
+					meta[i], err = ingestLoad1(d.opts, d.FormatMajorVersion(), readable, d.cacheID, n)
 					if err != nil {
 						return nil, 0, errors.Wrap(err, "pebble: error when loading flushable ingest files")
 					}
@@ -976,15 +917,12 @@ func (d *DB) replayWAL(
 					// the application of ve to the manifest into chunks and is
 					// not pretty w/o a refactor to this function and how it's
 					// used.
-					c, err := newFlush(
+					c := newFlush(
 						d.opts, d.mu.versions.currentVersion(),
 						1, /* base level */
 						[]*flushableEntry{entry},
 						d.timeNow(),
 					)
-					if err != nil {
-						return nil, 0, err
-					}
 					for _, file := range c.flushing[0].flushable.(*ingestedFlushable).files {
 						ve.NewFiles = append(ve.NewFiles, newFileEntry{Level: 0, Meta: file.FileMetadata})
 					}
@@ -997,7 +935,7 @@ func (d *DB) replayWAL(
 			flushMem()
 			// Make a copy of the data slice since it is currently owned by buf and will
 			// be reused in the next iteration.
-			b.data = slices.Clone(b.data)
+			b.data = append([]byte(nil), b.data...)
 			b.flushable, err = newFlushableBatch(&b, d.opts.Comparer)
 			if err != nil {
 				return nil, 0, err
@@ -1048,7 +986,7 @@ func (d *DB) replayWAL(
 	flushMem()
 
 	// mem is nil here.
-	if !d.opts.ReadOnly && batchesReplayed > 0 {
+	if !d.opts.ReadOnly {
 		err = updateVE()
 		if err != nil {
 			return nil, 0, err
@@ -1098,7 +1036,7 @@ func Peek(dirname string, fs vfs.FS) (*DBDesc, error) {
 	}
 
 	// Find the currently active manifest, if there is one.
-	manifestMarker, manifestFileNum, exists, err := findCurrentManifest(fs, dirname)
+	manifestMarker, manifestFileNum, exists, err := findCurrentManifest(vers, fs, dirname)
 	if err != nil {
 		return nil, err
 	}
@@ -1126,7 +1064,7 @@ func Peek(dirname string, fs vfs.FS) (*DBDesc, error) {
 // LockDirectory may be used to expand the critical section protected by the
 // database lock to include setup before the call to Open.
 func LockDirectory(dirname string, fs vfs.FS) (*Lock, error) {
-	fileLock, err := fs.Lock(base.MakeFilepath(fs, dirname, fileTypeLock, base.DiskFileNum(0)))
+	fileLock, err := fs.Lock(base.MakeFilepath(fs, dirname, fileTypeLock, base.FileNum(0).DiskFileNum()))
 	if err != nil {
 		return nil, err
 	}
@@ -1205,7 +1143,9 @@ func IsCorruptionError(err error) bool {
 }
 
 func checkConsistency(v *manifest.Version, dirname string, objProvider objstorage.Provider) error {
-	var errs []error
+	var buf bytes.Buffer
+	var args []interface{}
+
 	dedup := make(map[base.DiskFileNum]struct{})
 	for level, files := range v.Levels {
 		iter := files.Iter()
@@ -1217,29 +1157,34 @@ func checkConsistency(v *manifest.Version, dirname string, objProvider objstorag
 			dedup[backingState.DiskFileNum] = struct{}{}
 			fileNum := backingState.DiskFileNum
 			fileSize := backingState.Size
-			// We skip over remote objects; those are instead checked asynchronously
-			// by the table stats loading job.
+			// We allow foreign objects to have a mismatch between sizes. This is
+			// because we might skew the backing size stored by our objprovider
+			// to prevent us from over-prioritizing this file for compaction.
 			meta, err := objProvider.Lookup(base.FileTypeTable, fileNum)
 			var size int64
 			if err == nil {
-				if meta.IsRemote() {
+				if objProvider.IsSharedForeign(meta) {
 					continue
 				}
 				size, err = objProvider.Size(meta)
 			}
 			if err != nil {
-				errs = append(errs, errors.Wrapf(err, "L%d: %s", errors.Safe(level), fileNum))
+				buf.WriteString("L%d: %s: %v\n")
+				args = append(args, errors.Safe(level), errors.Safe(fileNum), err)
 				continue
 			}
 
 			if size != int64(fileSize) {
-				errs = append(errs, errors.Errorf(
-					"L%d: %s: object size mismatch (%s): %d (disk) != %d (MANIFEST)",
-					errors.Safe(level), fileNum, objProvider.Path(meta),
-					errors.Safe(size), errors.Safe(fileSize)))
+				buf.WriteString("L%d: %s: object size mismatch (%s): %d (disk) != %d (MANIFEST)\n")
+				args = append(args, errors.Safe(level), errors.Safe(fileNum), objProvider.Path(meta),
+					errors.Safe(size), errors.Safe(fileSize))
 				continue
 			}
 		}
 	}
-	return errors.Join(errs...)
+
+	if buf.Len() == 0 {
+		return nil
+	}
+	return errors.Errorf(buf.String(), args...)
 }

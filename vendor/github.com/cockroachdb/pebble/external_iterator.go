@@ -101,6 +101,16 @@ func NewExternalIterWithContext(
 
 	var readers [][]*sstable.Reader
 
+	// Ensure we close all the opened readers if we error out.
+	defer func() {
+		if err != nil {
+			for i := range readers {
+				for j := range readers[i] {
+					_ = readers[i][j].Close()
+				}
+			}
+		}
+	}()
 	seqNumOffset := 0
 	var extraReaderOpts []sstable.ReaderOption
 	for i := range extraOpts {
@@ -110,18 +120,13 @@ func NewExternalIterWithContext(
 		seqNumOffset += len(levelFiles)
 	}
 	for _, levelFiles := range files {
+		var subReaders []*sstable.Reader
 		seqNumOffset -= len(levelFiles)
-		subReaders, err := openExternalTables(o, levelFiles, seqNumOffset, o.MakeReaderOptions(), extraReaderOpts...)
+		subReaders, err = openExternalTables(o, levelFiles, seqNumOffset, o.MakeReaderOptions(), extraReaderOpts...)
 		readers = append(readers, subReaders)
-		if err != nil {
-			// Close all the opened readers.
-			for i := range readers {
-				for j := range readers[i] {
-					_ = readers[i][j].Close()
-				}
-			}
-			return nil, err
-		}
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	buf := iterAllocPool.Get().(*iterAlloc)
@@ -139,8 +144,9 @@ func NewExternalIterWithContext(
 		// Add the readers to the Iterator so that Close closes them, and
 		// SetOptions can re-construct iterators from them.
 		externalReaders: readers,
-		newIters: func(context.Context, *manifest.FileMetadata, *IterOptions,
-			internalIterOpts, iterKinds) (iterSet, error) {
+		newIters: func(
+			ctx context.Context, f *manifest.FileMetadata, opts *IterOptions,
+			internalOpts internalIterOpts) (internalIterator, keyspan.FragmentIterator, error) {
 			// NB: External iterators are currently constructed without any
 			// `levelIters`. newIters should never be called. When we support
 			// organizing multiple non-overlapping files into a single level
@@ -158,10 +164,7 @@ func NewExternalIterWithContext(
 	for i := range extraOpts {
 		extraOpts[i].iterApply(dbi)
 	}
-	if err := finishInitializingExternal(ctx, dbi); err != nil {
-		dbi.Close()
-		return nil, err
-	}
+	finishInitializingExternal(ctx, dbi)
 	return dbi, nil
 }
 
@@ -214,8 +217,7 @@ func createExternalPointIter(ctx context.Context, it *Iterator) (internalIterato
 			pointIter, err = r.NewIterWithBlockPropertyFiltersAndContextEtc(
 				ctx, it.opts.LowerBound, it.opts.UpperBound, nil, /* BlockPropertiesFilterer */
 				false /* hideObsoletePoints */, false, /* useFilterBlock */
-				&it.stats.InternalStats, it.opts.CategoryAndQoS, nil,
-				sstable.TrivialReaderProvider{Reader: r})
+				&it.stats.InternalStats, sstable.TrivialReaderProvider{Reader: r})
 			if err != nil {
 				return nil, err
 			}
@@ -270,12 +272,13 @@ func createExternalPointIter(ctx context.Context, it *Iterator) (internalIterato
 	return &it.alloc.merging, nil
 }
 
-func finishInitializingExternal(ctx context.Context, it *Iterator) error {
+func finishInitializingExternal(ctx context.Context, it *Iterator) {
 	pointIter, err := createExternalPointIter(ctx, it)
 	if err != nil {
-		return err
+		it.pointIter = &errorIter{err: err}
+	} else {
+		it.pointIter = pointIter
 	}
-	it.pointIter = pointIter
 	it.iter = it.pointIter
 
 	if it.opts.rangeKeys() {
@@ -294,7 +297,7 @@ func finishInitializingExternal(ctx context.Context, it *Iterator) error {
 			for _, readers := range it.externalReaders {
 				for _, r := range readers {
 					if rki, err := r.NewRawRangeKeyIter(); err != nil {
-						return err
+						rangeKeyIters = append(rangeKeyIters, &errorKeyspanIter{err: err})
 					} else if rki != nil {
 						rangeKeyIters = append(rangeKeyIters, rki)
 					}
@@ -325,7 +328,6 @@ func finishInitializingExternal(ctx context.Context, it *Iterator) error {
 			it.iter = &it.rangeKey.iiter
 		}
 	}
-	return nil
 }
 
 func openExternalTables(
@@ -542,8 +544,6 @@ func (s *simpleLevelIter) SetBounds(lower, upper []byte) {
 	}
 	s.resetFilteredIters()
 }
-
-func (s *simpleLevelIter) SetContext(_ context.Context) {}
 
 func (s *simpleLevelIter) String() string {
 	if s.currentIdx < 0 || s.currentIdx >= len(s.filtered) {

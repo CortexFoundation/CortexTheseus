@@ -19,22 +19,24 @@ package robot
 import (
 	"context"
 	"errors"
-	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/common/mclock"
-	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/CortexTheseus/rpc"
-	"github.com/CortexFoundation/robot/backend"
-	"github.com/CortexFoundation/torrentfs/params"
-	"github.com/CortexFoundation/torrentfs/types"
-	lru "github.com/hashicorp/golang-lru/v2"
-	ttl "github.com/hashicorp/golang-lru/v2/expirable"
-	"github.com/ucwong/golang-kv"
 	"math"
 	"path/filepath"
 	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/common/mclock"
+	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/rpc"
+	"github.com/CortexFoundation/torrentfs/params"
+	"github.com/CortexFoundation/torrentfs/types"
+	lru "github.com/hashicorp/golang-lru/v2"
+	ttl "github.com/hashicorp/golang-lru/v2/expirable"
+	"github.com/ucwong/golang-kv"
+
+	"github.com/CortexFoundation/robot/backend"
 )
 
 // Monitor observes the data changes on the blockchain and synchronizes.

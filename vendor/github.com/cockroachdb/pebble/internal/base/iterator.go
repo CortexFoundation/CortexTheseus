@@ -5,7 +5,6 @@
 package base
 
 import (
-	"context"
 	"fmt"
 	"time"
 )
@@ -191,10 +190,8 @@ type InternalIterator interface {
 
 	// Close closes the iterator and returns any accumulated error. Exhausting
 	// all the key/value pairs in a table is not considered to be an error.
-	//
-	// Once Close is called, the iterator should not be used again. Specific
-	// implementations may support multiple calls to Close (but no other calls
-	// after the first Close).
+	// It is valid to call Close multiple times. Other methods should not be
+	// called after the iterator has been closed.
 	Close() error
 
 	// SetBounds sets the lower and upper bounds for the iterator. Note that the
@@ -206,10 +203,6 @@ type InternalIterator interface {
 	// implementations may compare old and new bounds to apply low-level
 	// optimizations.
 	SetBounds(lower, upper []byte)
-
-	// SetContext replaces the context provided at iterator creation, or the
-	// last one provided by SetContext.
-	SetContext(ctx context.Context)
 
 	fmt.Stringer
 }

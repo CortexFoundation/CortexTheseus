@@ -13,7 +13,6 @@ import (
 	"github.com/cockroachdb/pebble/objstorage/objstorageprovider/sharedcache"
 	"github.com/cockroachdb/pebble/objstorage/remote"
 	"github.com/cockroachdb/pebble/vfs"
-	"github.com/cockroachdb/redact"
 )
 
 // Readable is the handle for an object that is open for reading.
@@ -141,11 +140,11 @@ func (meta *ObjectMetadata) AssertValid() {
 			panic(errors.AssertionFailedf("meta.Remote not empty: %#v", meta.Remote))
 		}
 	} else {
-		if meta.Remote.CustomObjectName == "" {
+		if meta.Remote.CustomObjectName != "" {
 			if meta.Remote.CreatorID == 0 {
 				panic(errors.AssertionFailedf("CreatorID not set"))
 			}
-			if meta.Remote.CreatorFileNum == 0 {
+			if meta.Remote.CreatorFileNum == base.FileNum(0).DiskFileNum() {
 				panic(errors.AssertionFailedf("CreatorFileNum not set"))
 			}
 		}
@@ -167,11 +166,6 @@ type CreatorID uint64
 func (c CreatorID) IsSet() bool { return c != 0 }
 
 func (c CreatorID) String() string { return fmt.Sprintf("%d", c) }
-
-// SafeFormat implements redact.SafeFormatter.
-func (c CreatorID) SafeFormat(w redact.SafePrinter, _ rune) {
-	w.Printf("%d", redact.SafeUint(c))
-}
 
 // SharedCleanupMethod indicates the method for cleaning up unused shared objects.
 type SharedCleanupMethod uint8
@@ -287,9 +281,6 @@ type Provider interface {
 	CreateExternalObjectBacking(locator remote.Locator, objName string) (RemoteObjectBacking, error)
 
 	// AttachRemoteObjects registers existing remote objects with this provider.
-	//
-	// The objects are not guaranteed to be durable (accessible in case of
-	// crashes) until Sync is called.
 	AttachRemoteObjects(objs []RemoteObjectToAttach) ([]ObjectMetadata, error)
 
 	Close() error
