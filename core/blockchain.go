@@ -573,12 +573,13 @@ func (bc *BlockChain) setHeadBeyondRoot(head uint64, time uint64, root common.Ha
 	defer bc.chainmu.Unlock()
 
 	// Track the block number of the requested root hash
-	var rootNumber uint64 // (no root == always 0)
+	var (
+		rootNumber uint64 // (no root == always 0)
 
-	// Retrieve the last pivot block to short circuit rollbacks beyond it and the
-	// current freezer limit to start nuking id underflown
-	pivot := rawdb.ReadLastPivotNumber(bc.db)
-	frozen, _ := bc.db.Ancients()
+		// Retrieve the last pivot block to short circuit rollbacks beyond it and the
+		// current freezer limit to start nuking id underflown
+		pivot = rawdb.ReadLastPivotNumber(bc.db)
+	)
 
 	updateFn := func(db ctxcdb.KeyValueWriter, header *types.Header) (*types.Header, bool) {
 		// Rewind the block chain, ensuring we don't end up with a stateless head
@@ -670,6 +671,7 @@ func (bc *BlockChain) setHeadBeyondRoot(head uint64, time uint64, root common.Ha
 		// intent afterwards is full block importing, delete the chain segment
 		// between the stateful-block and the sethead target.
 		var wipe bool
+		frozen, _ := bc.db.Ancients()
 		if headNumber+1 < frozen {
 			wipe = pivot == nil || headNumber >= *pivot
 		}
