@@ -36,7 +36,7 @@ import (
 
 // RPC packet types
 const (
-	PingPacket = iota + 1 // zero is 'reserved'
+	PingPacket = iota + 100 // zero is 'reserved'
 	PongPacket
 	FindnodePacket
 	NeighborsPacket
