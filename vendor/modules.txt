@@ -461,7 +461,7 @@ github.com/crate-crypto/go-ipa/banderwagon
 github.com/crate-crypto/go-ipa/common
 github.com/crate-crypto/go-ipa/common/parallel
 github.com/crate-crypto/go-ipa/ipa
-# github.com/crate-crypto/go-kzg-4844 v0.7.0
+# github.com/crate-crypto/go-kzg-4844 v1.0.0
 ## explicit; go 1.20
 github.com/crate-crypto/go-kzg-4844
 github.com/crate-crypto/go-kzg-4844/internal/kzg
