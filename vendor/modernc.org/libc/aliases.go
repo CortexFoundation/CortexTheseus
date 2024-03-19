@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build linux && amd64
+//go:build linux && (amd64 || loong64)
 
 package libc // import "modernc.org/libc"
 
@@ -28,36 +28,8 @@ func X__aio_close(tls *TLS, fd int32) int32 {
 	return fd
 }
 
-func Xfread(tls *TLS, destv uintptr, size Tsize_t, nmemb Tsize_t, f uintptr) (r Tsize_t) {
-	return Xfread_unlocked(tls, destv, size, nmemb, f)
-}
-
-func Xferror(tls *TLS, f uintptr) (r int32) {
-	return Xferror_unlocked(tls, f)
-}
-
-func Xfwrite(tls *TLS, src uintptr, size Tsize_t, nmemb Tsize_t, f uintptr) (r Tsize_t) {
-	return Xfwrite_unlocked(tls, src, size, nmemb, f)
-}
-
-func Xfileno(tls *TLS, f uintptr) (r int32) {
-	return Xfileno_unlocked(tls, f)
-}
-
 func Xtzset(tls *TLS) {
 	___tzset(tls)
-}
-
-func Xfflush(tls *TLS, f uintptr) (r1 int32) {
-	return Xfflush_unlocked(tls, f)
-}
-
-func Xputc(tls *TLS, c int32, f uintptr) (r int32) {
-	return X_IO_putc(tls, c, f)
-}
-
-func Xfgets(tls *TLS, s uintptr, n int32, f uintptr) (r uintptr) {
-	return Xfgets_unlocked(tls, s, n, f)
 }
 
 type DIR = TDIR
@@ -72,64 +44,12 @@ type FILE = TFILE
 
 type HEADER = THEADER
 
-func X__inet_aton(tls *TLS, s0 uintptr, dest uintptr) (r int32) {
-	return Xinet_aton(tls, s0, dest)
-}
-
-func X__isalnum_l(tls *TLS, c int32, l Tlocale_t) (r int32) {
-	return Xisalnum_l(tls, c, l)
-}
-
-func X__isalpha_l(tls *TLS, c int32, l Tlocale_t) (r int32) {
-	return Xisalpha_l(tls, c, l)
-}
-
-func X__isdigit_l(tls *TLS, c int32, l Tlocale_t) (r int32) {
-	return Xisdigit_l(tls, c, l)
-}
-
-func X__islower_l(tls *TLS, c int32, l Tlocale_t) (r int32) {
-	return Xislower_l(tls, c, l)
-}
-
-func X__isprint_l(tls *TLS, c int32, l Tlocale_t) (r int32) {
-	return Xisprint_l(tls, c, l)
-}
-
-func X__isupper_l(tls *TLS, c int32, l Tlocale_t) (r int32) {
-	return Xisupper_l(tls, c, l)
-}
-
-func X__isxdigit_l(tls *TLS, c int32, l Tlocale_t) (r int32) {
-	return Xisxdigit_l(tls, c, l)
-}
-
-func X__strncasecmp_l(tls *TLS, l uintptr, r uintptr, n Tsize_t, loc Tlocale_t) (r1 int32) {
-	return Xstrncasecmp_l(tls, l, r, n, loc)
-}
-
-func Xcfsetospeed(tls *TLS, tio uintptr, speed Tspeed_t) (r int32) {
-	return Xcfsetspeed(tls, tio, speed)
-}
-
 func Xfcntl64(tls *TLS, fd int32, cmd int32, va uintptr) (r int32) {
 	return Xfcntl(tls, fd, cmd, va)
 }
 
-func Xfeof(tls *TLS, f uintptr) (r int32) {
-	return Xfeof_unlocked(tls, f)
-}
-
 func Xfopen64(tls *TLS, filename uintptr, mode uintptr) (r uintptr) {
 	return Xfopen(tls, filename, mode)
-}
-
-func Xfputs(tls *TLS, s uintptr, f uintptr) (r int32) {
-	return Xfputs_unlocked(tls, s, f)
-}
-
-func Xfscanf(tls *TLS, f uintptr, fmt uintptr, va uintptr) (r int32) {
-	return X__isoc99_fscanf(tls, f, fmt, va)
 }
 
 func Xfstat64(tls *TLS, fd int32, st uintptr) (r int32) {
@@ -176,18 +96,14 @@ func Xsetrlimit64(tls *TLS, resource int32, rlim uintptr) (r int32) {
 	return Xsetrlimit(tls, resource, rlim)
 }
 
-func Xsscanf(tls *TLS, s uintptr, fmt uintptr, va uintptr) (r int32) {
-	return X__isoc99_sscanf(tls, s, fmt, va)
-}
-
 func Xstat64(tls *TLS, path uintptr, buf uintptr) (r int32) {
 	return Xstat(tls, path, buf)
 }
 
-func Xvfscanf(tls *TLS, f uintptr, fmt uintptr, ap Tva_list) (r int32) {
-	return X__isoc99_vfscanf(tls, f, fmt, ap)
+func Xpthread_setcancelstate(tls *TLS, new int32, old uintptr) int32 {
+	return _pthread_setcancelstate(tls, new, old)
 }
 
-func Xvsscanf(tls *TLS, s uintptr, fmt uintptr, ap Tva_list) (r int32) {
-	return X__isoc99_sscanf(tls, s, fmt, ap)
+func Xpthread_sigmask(tls *TLS, now int32, set, old uintptr) int32 {
+	return _pthread_sigmask(tls, now, set, old)
 }
