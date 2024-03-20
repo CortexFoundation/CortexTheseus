@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build linux && amd64
+//go:build linux && (amd64 || loong64)
 
 package libc // import "modernc.org/libc"
 
@@ -51,7 +51,7 @@ var (
 	conds = pthreadConds{conds: map[uintptr][]chan struct{}{}}
 )
 
-func Xpthread_setcancelstate(tls *TLS, new int32, old uintptr) int32 {
+func _pthread_setcancelstate(tls *TLS, new int32, old uintptr) int32 {
 	//TODO actually respect cancel state
 	if uint32(new) > 2 {
 		return EINVAL
@@ -186,11 +186,19 @@ func Xpthread_cleanup_push(tls *TLS, f, x uintptr) {
 	X_pthread_cleanup_push(tls, 0, f, x)
 }
 
+func __pthread_cleanup_push(tls *TLS, _, f, x uintptr) {
+	tls.pthreadCleanupItems = append(tls.pthreadCleanupItems, pthreadCleanupItem{f, x})
+}
+
 func X_pthread_cleanup_push(tls *TLS, _, f, x uintptr) {
 	tls.pthreadCleanupItems = append(tls.pthreadCleanupItems, pthreadCleanupItem{f, x})
 }
 
 func Xpthread_cleanup_pop(tls *TLS, run int32) {
+	X_pthread_cleanup_pop(tls, 0, run)
+}
+
+func __pthread_cleanup_pop(tls *TLS, _ uintptr, run int32) {
 	X_pthread_cleanup_pop(tls, 0, run)
 }
 
@@ -487,6 +495,12 @@ func Xpthread_detach(tls *TLS, t uintptr) int32 {
 // int pthread_equal(pthread_t, pthread_t);
 func Xpthread_equal(tls *TLS, t, u uintptr) int32 {
 	return Bool32(t == u)
+}
+
+// int pthread_sigmask(int how, const sigset_t *restrict set, sigset_t *restrict old)
+func _pthread_sigmask(tls *TLS, now int32, set, old uintptr) int32 {
+	// ignored
+	return 0
 }
 
 // 202402251838      all_test.go:589: files=36 buildFails=30 execFails=2 pass=4

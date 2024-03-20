@@ -571,14 +571,17 @@ func (tm *TorrentManager) updateGlobalTrackers() error {
 		//return nil
 	}
 
+	var total uint64
+
 	if global := tm.worm.BestTrackers(); len(global) > 0 {
 		tm.globalTrackers = [][]string{global}
-		log.Info("Global trackers update", "size", len(global), "cap", wormhole.CAP, "health", float32(len(global))/float32(wormhole.CAP))
 
 		for _, url := range global {
 			score, _ := tm.wormScore(url)
 			log.Info("Tracker status", "url", url, "score", score)
+			total += score
 		}
+		log.Info("Global trackers update", "size", len(global), "cap", wormhole.CAP, "health", float32(len(global))/float32(wormhole.CAP), "total", total)
 	} else {
 		// TODO
 		return errors.New("best trackers failed")
@@ -1194,6 +1197,7 @@ func (tm *TorrentManager) activeLoop() {
 		timer_1 = time.NewTicker(time.Second * params.QueryTimeInterval * 60)
 		//timer_2 = time.NewTicker(time.Second * params.QueryTimeInterval * 3600 * 18)
 		//clean = []*Torrent{}
+		counter = 0
 	)
 
 	defer func() {
@@ -1233,8 +1237,16 @@ func (tm *TorrentManager) activeLoop() {
 					for {
 						select {
 						case <-timer.C:
-							if t := tm.getTorrent(i); t != nil { //&& t.Ready() {
-								if t.Cited() <= 0 {
+							if t := tm.getTorrent(i); t != nil {
+								if t.Cited() == 0 {
+									if t.Paused() || t.IsSeeding() || tm.mode == params.LAZY {
+										tm.Dropping(i)
+										return
+									} else {
+										t.CitedDec()
+										log.Info("File can't be dropped for leeching", "ih", i, "request", t.BytesRequested(), "complete", t.Torrent.BytesCompleted(), "total", t.Length(), "status", t.Status())
+									}
+								} else if t.Cited() < 0 {
 									tm.Dropping(i)
 									return
 								} else {
@@ -1242,6 +1254,7 @@ func (tm *TorrentManager) activeLoop() {
 									log.Debug("Seed cited has been decreased", "ih", i, "cited", t.Cited(), "n", n, "status", t.Status(), "elapsed", common.PrettyDuration(time.Duration(mclock.Now())-time.Duration(t.Birth())))
 								}
 							} else {
+								log.Error("Nil tor found", "ih", i)
 								return
 							}
 						case <-tm.closeAll:
@@ -1279,16 +1292,21 @@ func (tm *TorrentManager) activeLoop() {
 				}
 			}*/
 
+			counter++
 			tm.torrents.Range(func(ih string, t *caffe.Torrent) bool {
 				if t.Running() {
 					if t.Torrent.BytesMissing() == 0 {
-						//clean = append(clean, t)
 						tm.finish(t)
 					} else {
 						if t.Torrent.BytesCompleted() < t.BytesRequested() {
 							t.Leech()
 						}
 					}
+				}
+
+				if counter%60 == 0 {
+					log.Debug("All torrents print", "ih", ih, "request", t.BytesRequested(), "complete", t.Torrent.BytesCompleted(), "total", t.Length(), "status", t.Status())
+					counter = 0
 				}
 
 				return true

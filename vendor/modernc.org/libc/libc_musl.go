@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build linux && amd64
+//go:build linux && (amd64 || loong64)
 
 //go:generate go run generator.go
 
@@ -117,6 +117,16 @@ var (
 	coverPCs [1]uintptr //TODO not concurrent safe
 )
 
+func init() {
+	nm, err := os.Executable()
+	if err != nil {
+		return
+	}
+
+	Xprogram_invocation_name = mustCString(nm)
+	Xprogram_invocation_short_name = mustCString(filepath.Base(nm))
+}
+
 // RawMem64 represents the biggest uint64 array the runtime can handle.
 type RawMem64 [unsafe.Sizeof(RawMem{}) / unsafe.Sizeof(uint64(0))]uint64
 
@@ -162,6 +172,14 @@ func mustAllocStrings(a []string) (r uintptr) {
 		pBytes += uintptr(len(v)) + 1
 	}
 	return pPtrs
+}
+
+func mustCString(s string) (r uintptr) {
+	n := len(s)
+	r = mustMalloc(Tsize_t(n + 1))
+	copy(unsafe.Slice((*byte)(unsafe.Pointer(r)), n), s)
+	*(*byte)(unsafe.Pointer(r + uintptr(n))) = 0
+	return r
 }
 
 // CString returns a pointer to a zero-terminated version of s. The caller is
@@ -227,6 +245,7 @@ type tlsStackSlot struct {
 type TLS struct {
 	allocaStack         [][]uintptr
 	allocas             []uintptr
+	jumpBuffers         []uintptr
 	pthread             uintptr // *t__pthread
 	pthreadCleanupItems []pthreadCleanupItem
 	pthreadKeyValues    map[Tpthread_key_t]uintptr
@@ -388,11 +407,34 @@ func (tls *TLS) Close() {
 	}
 }
 
+func (tls *TLS) PushJumpBuffer(jb uintptr) {
+	tls.jumpBuffers = append(tls.jumpBuffers, jb)
+}
+
+type LongjmpRetval int32
+
+func (tls *TLS) PopJumpBuffer(jb uintptr) {
+	n := len(tls.jumpBuffers)
+	if n == 0 || tls.jumpBuffers[n-1] != jb {
+		panic(todo("unsupported setjmp/longjmp usage"))
+	}
+
+	tls.jumpBuffers = tls.jumpBuffers[:n-1]
+}
+
+func (tls *TLS) Longjmp(jb uintptr, val int32) {
+	tls.PopJumpBuffer(jb)
+	if val == 0 {
+		val = 1
+	}
+	panic(LongjmpRetval(val))
+}
+
 // ============================================================================
 
 func Xexit(tls *TLS, code int32) {
 	//TODO atexit finalizers
-	X__stdio_exit_needed(tls)
+	X__stdio_exit(tls)
 	for _, v := range atExit {
 		v()
 	}
@@ -402,7 +444,7 @@ func Xexit(tls *TLS, code int32) {
 var abort Tsigaction
 
 func Xabort(tls *TLS) {
-	Xsigaction(tls, SIGABRT, uintptr(unsafe.Pointer(&abort)), 0)
+	X__libc_sigaction(tls, SIGABRT, uintptr(unsafe.Pointer(&abort)), 0)
 	unix.Kill(unix.Getpid(), syscall.Signal(SIGABRT))
 	panic(todo("unrechable"))
 }
@@ -509,7 +551,7 @@ func ___randname(tls *TLS, template uintptr) (r1 uintptr) {
 	var i int32
 	var r uint64
 	var _ /* ts at bp+0 */ Ttimespec
-	Xclock_gettime(tls, CLOCK_REALTIME, bp)
+	X__clock_gettime(tls, CLOCK_REALTIME, bp)
 	goto _2
 _2:
 	r = uint64((*(*Ttimespec)(unsafe.Pointer(bp))).Ftv_sec+(*(*Ttimespec)(unsafe.Pointer(bp))).Ftv_nsec) + uint64(tls.ID)*uint64(65537)
@@ -889,11 +931,6 @@ func Xpopen(t *TLS, command, type1 uintptr) uintptr {
 	panic(todo(""))
 }
 
-// int strerror_r(int errnum, char *buf, size_t buflen);
-func Xstrerror_r(t *TLS, errnum int32, buf uintptr, buflen Tsize_t) int32 {
-	panic(todo(""))
-}
-
 // int sysctlbyname(const char *name, void *oldp, size_t *oldlenp, void *newp, size_t newlen);
 func Xsysctlbyname(t *TLS, name, oldp, oldlenp, newp uintptr, newlen Tsize_t) int32 {
 	oldlen := *(*Tsize_t)(unsafe.Pointer(oldlenp))
@@ -933,3 +970,8 @@ func Xuuid_unparse(t *TLS, uu, out uintptr) {
 }
 
 var Xzero_struct_address Taddress
+
+// int getpagesize(void);
+func Xgetpagesize(t *TLS) int32 {
+	return int32(unix.Getpagesize())
+}

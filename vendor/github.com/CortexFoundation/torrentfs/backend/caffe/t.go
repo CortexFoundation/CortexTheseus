@@ -192,8 +192,8 @@ func (t *Torrent) Pause() {
 	if t.status.Load() != TorrentPaused {
 		t.status.Store(TorrentPaused)
 		//t.maxPieces = 0 //t.minEstablishedConns
-		t.maxPieces.Store(0)
-		t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
+		//t.maxPieces.Store(0)
+		//t.Torrent.CancelPieces(0, t.Torrent.NumPieces())
 	}
 }
 
@@ -201,7 +201,8 @@ func (t *Torrent) Paused() bool {
 	//t.RLock()
 	//defer t.RUnlock()
 
-	return t.status.Load() == TorrentPaused
+	// already finish downloading the request but not completed
+	return t.status.Load() == TorrentPaused || (t.status.Load() == TorrentRunning && t.BytesRequested() <= t.Torrent.BytesCompleted() && t.Torrent.BytesMissing() > 0)
 }
 
 func (t *Torrent) Leech() error {

@@ -1,7 +1,7 @@
-// Code generated for linux/amd64 by 'gcc --package-name=libc --prefix-enumerator=_ --prefix-external=x_ --prefix-field=F --prefix-static-internal=_ --prefix-static-none=_ --prefix-tagged-enum=_ --prefix-tagged-struct=T --prefix-tagged-union=T --prefix-typename=T --prefix-undefined=_ -emit-func-aliases -eval-all-macros -extended-errors -ignore-asm-errors -isystem  -mlong-double-64 -std=c99 -nostdinc -ffreestanding -D_XOPEN_SOURCE=700 -I./arch/x86_64 -I./arch/generic -Iobj/src/internal -I./src/include -I./src/internal -Iobj/include -I./include -DNDEBUG -nostdlib -shared -o lib/libc.so.go obj/src/complex/__cexp.lo.go obj/src/complex/__cexpf.lo.go obj/src/complex/cabs.lo.go obj/src/complex/cabsf.lo.go obj/src/complex/cabsl.lo.go obj/src/complex/cacos.lo.go obj/src/complex/cacosf.lo.go obj/src/complex/cacosh.lo.go obj/src/complex/cacoshf.lo.go obj/src/complex/cacoshl.lo.go obj/src/complex/cacosl.lo.go obj/src/complex/carg.lo.go obj/src/complex/cargf.lo.go obj/src/complex/cargl.lo.go obj/src/complex/casin.lo.go obj/src/complex/casinf.lo.go obj/src/complex/casinh.lo.go obj/src/complex/casinhf.lo.go obj/src/complex/casinhl.lo.go obj/src/complex/casinl.lo.go obj/src/complex/catan.lo.go obj/src/complex/catanf.lo.go obj/src/complex/catanh.lo.go obj/src/complex/catanhf.lo.go obj/src/complex/catanhl.lo.go obj/src/complex/catanl.lo.go obj/src/complex/ccos.lo.go obj/src/complex/ccosf.lo.go obj/src/complex/ccosh.lo.go obj/src/complex/ccoshf.lo.go obj/src/complex/ccoshl.lo.go obj/src/complex/ccosl.lo.go obj/src/complex/cexp.lo.go obj/src/complex/cexpf.lo.go obj/src/complex/cexpl.lo.go obj/src/complex/cimag.lo.go obj/src/complex/cimagf.lo.go obj/src/complex/cimagl.lo.go obj/src/complex/clog.lo.go obj/src/complex/clogf.lo.go obj/src/complex/clogl.lo.go obj/src/complex/conj.lo.go obj/src/complex/conjf.lo.go obj/src/complex/conjl.lo.go obj/src/complex/cpow.lo.go obj/src/complex/cpowf.lo.go obj/src/complex/cpowl.lo.go obj/src/complex/cproj.lo.go obj/src/complex/cprojf.lo.go obj/src/complex/cprojl.lo.go obj/src/complex/creal.lo.go obj/src/complex/crealf.lo.go obj/src/complex/creall.lo.go obj/src/complex/csin.lo.go obj/src/complex/csinf.lo.go obj/src/complex/csinh.lo.go obj/src/complex/csinhf.lo.go obj/src/complex/csinhl.lo.go obj/src/complex/csinl.lo.go obj/src/complex/csqrt.lo.go obj/src/complex/csqrtf.lo.go obj/src/complex/csqrtl.lo.go obj/src/complex/ctan.lo.go obj/src/complex/ctanf.lo.go obj/src/complex/ctanh.lo.go obj/src/complex/ctanhf.lo.go obj/src/complex/ctanhl.lo.go obj/src/complex/ctanl.lo.go obj/src/conf/confstr.lo.go obj/src/conf/fpathconf.lo.go obj/src/conf/legacy.lo.go obj/src/conf/pathconf.lo.go obj/src/conf/sysconf.lo.go obj/src/crypt/crypt.lo.go obj/src/crypt/crypt_blowfish.lo.go obj/src/crypt/crypt_des.lo.go obj/src/crypt/crypt_md5.lo.go obj/src/crypt/crypt_r.lo.go obj/src/crypt/crypt_sha256.lo.go obj/src/crypt/crypt_sha512.lo.go obj/src/crypt/encrypt.lo.go obj/src/ctype/__ctype_b_loc.lo.go obj/src/ctype/__ctype_get_mb_cur_max.lo.go obj/src/ctype/__ctype_tolower_loc.lo.go obj/src/ctype/__ctype_toupper_loc.lo.go obj/src/ctype/isalnum.lo.go obj/src/ctype/isalpha.lo.go obj/src/ctype/isascii.lo.go obj/src/ctype/isblank.lo.go obj/src/ctype/iscntrl.lo.go obj/src/ctype/isdigit.lo.go obj/src/ctype/isgraph.lo.go obj/src/ctype/islower.lo.go obj/src/ctype/isprint.lo.go obj/src/ctype/ispunct.lo.go obj/src/ctype/isspace.lo.go obj/src/ctype/isupper.lo.go obj/src/ctype/iswalnum.lo.go obj/src/ctype/iswalpha.lo.go obj/src/ctype/iswblank.lo.go obj/src/ctype/iswcntrl.lo.go obj/src/ctype/iswctype.lo.go obj/src/ctype/iswdigit.lo.go obj/src/ctype/iswgraph.lo.go obj/src/ctype/iswlower.lo.go obj/src/ctype/iswprint.lo.go obj/src/ctype/iswpunct.lo.go obj/src/ctype/iswspace.lo.go obj/src/ctype/iswupper.lo.go obj/src/ctype/iswxdigit.lo.go obj/src/ctype/isxdigit.lo.go obj/src/ctype/toascii.lo.go obj/src/ctype/tolower.lo.go obj/src/ctype/toupper.lo.go obj/src/ctype/towctrans.lo.go obj/src/ctype/wcswidth.lo.go obj/src/ctype/wctrans.lo.go obj/src/ctype/wcwidth.lo.go obj/src/dirent/alphasort.lo.go obj/src/dirent/closedir.lo.go obj/src/dirent/dirfd.lo.go obj/src/dirent/fdopendir.lo.go obj/src/dirent/opendir.lo.go obj/src/dirent/readdir.lo.go obj/src/dirent/readdir_r.lo.go obj/src/dirent/rewinddir.lo.go obj/src/dirent/scandir.lo.go obj/src/dirent/seekdir.lo.go obj/src/dirent/telldir.lo.go obj/src/dirent/versionsort.lo.go obj/src/env/__environ.lo.go obj/src/env/__reset_tls.lo.go obj/src/env/__stack_chk_fail.lo.go obj/src/env/clearenv.lo.go obj/src/env/getenv.lo.go obj/src/env/putenv.lo.go obj/src/env/secure_getenv.lo.go obj/src/env/setenv.lo.go obj/src/env/unsetenv.lo.go obj/src/errno/strerror.lo.go obj/src/exit/_Exit.lo.go obj/src/exit/abort_lock.lo.go obj/src/exit/assert.lo.go obj/src/exit/at_quick_exit.lo.go obj/src/exit/quick_exit.lo.go obj/src/fcntl/creat.lo.go obj/src/fcntl/fcntl.lo.go obj/src/fcntl/open.lo.go obj/src/fcntl/openat.lo.go obj/src/fcntl/posix_fadvise.lo.go obj/src/fcntl/posix_fallocate.lo.go obj/src/fenv/fenv.lo.go obj/src/internal/defsysinfo.lo.go obj/src/internal/emulate_wait4.lo.go obj/src/internal/floatscan.lo.go obj/src/internal/intscan.lo.go obj/src/internal/libc.lo.go obj/src/internal/procfdname.lo.go obj/src/internal/shgetc.lo.go obj/src/internal/syscall_ret.lo.go obj/src/internal/vdso.lo.go obj/src/internal/version.lo.go obj/src/ipc/ftok.lo.go obj/src/ipc/msgctl.lo.go obj/src/ipc/msgget.lo.go obj/src/ipc/msgrcv.lo.go obj/src/ipc/msgsnd.lo.go obj/src/ipc/semctl.lo.go obj/src/ipc/semget.lo.go obj/src/ipc/semop.lo.go obj/src/ipc/semtimedop.lo.go obj/src/ipc/shmat.lo.go obj/src/ipc/shmctl.lo.go obj/src/ipc/shmdt.lo.go obj/src/ipc/shmget.lo.go obj/src/linux/adjtime.lo.go obj/src/linux/adjtimex.lo.go obj/src/linux/arch_prctl.lo.go obj/src/linux/brk.lo.go obj/src/linux/cache.lo.go obj/src/linux/cap.lo.go obj/src/linux/chroot.lo.go obj/src/linux/clock_adjtime.lo.go obj/src/linux/copy_file_range.lo.go obj/src/linux/epoll.lo.go obj/src/linux/eventfd.lo.go obj/src/linux/fallocate.lo.go obj/src/linux/fanotify.lo.go obj/src/linux/flock.lo.go obj/src/linux/getdents.lo.go obj/src/linux/getrandom.lo.go obj/src/linux/inotify.lo.go obj/src/linux/ioperm.lo.go obj/src/linux/iopl.lo.go obj/src/linux/klogctl.lo.go obj/src/linux/memfd_create.lo.go obj/src/linux/mlock2.lo.go obj/src/linux/module.lo.go obj/src/linux/mount.lo.go obj/src/linux/name_to_handle_at.lo.go obj/src/linux/open_by_handle_at.lo.go obj/src/linux/personality.lo.go obj/src/linux/pivot_root.lo.go obj/src/linux/prctl.lo.go obj/src/linux/preadv2.lo.go obj/src/linux/prlimit.lo.go obj/src/linux/process_vm.lo.go obj/src/linux/ptrace.lo.go obj/src/linux/pwritev2.lo.go obj/src/linux/quotactl.lo.go obj/src/linux/readahead.lo.go obj/src/linux/reboot.lo.go obj/src/linux/remap_file_pages.lo.go obj/src/linux/sbrk.lo.go obj/src/linux/sendfile.lo.go obj/src/linux/setfsgid.lo.go obj/src/linux/setfsuid.lo.go obj/src/linux/sethostname.lo.go obj/src/linux/setns.lo.go obj/src/linux/settimeofday.lo.go obj/src/linux/signalfd.lo.go obj/src/linux/splice.lo.go obj/src/linux/statx.lo.go obj/src/linux/stime.lo.go obj/src/linux/swap.lo.go obj/src/linux/sync_file_range.lo.go obj/src/linux/syncfs.lo.go obj/src/linux/sysinfo.lo.go obj/src/linux/tee.lo.go obj/src/linux/timerfd.lo.go obj/src/linux/unshare.lo.go obj/src/linux/utimes.lo.go obj/src/linux/vhangup.lo.go obj/src/linux/vmsplice.lo.go obj/src/linux/wait3.lo.go obj/src/linux/wait4.lo.go obj/src/linux/xattr.lo.go obj/src/locale/__lctrans.lo.go obj/src/locale/__mo_lookup.lo.go obj/src/locale/bind_textdomain_codeset.lo.go obj/src/locale/c_locale.lo.go obj/src/locale/catclose.lo.go obj/src/locale/catgets.lo.go obj/src/locale/catopen.lo.go obj/src/locale/dcngettext.lo.go obj/src/locale/duplocale.lo.go obj/src/locale/freelocale.lo.go obj/src/locale/iconv.lo.go obj/src/locale/iconv_close.lo.go obj/src/locale/langinfo.lo.go obj/src/locale/locale_map.lo.go obj/src/locale/localeconv.lo.go obj/src/locale/newlocale.lo.go obj/src/locale/pleval.lo.go obj/src/locale/setlocale.lo.go obj/src/locale/strcoll.lo.go obj/src/locale/strfmon.lo.go obj/src/locale/strtod_l.lo.go obj/src/locale/strxfrm.lo.go obj/src/locale/textdomain.lo.go obj/src/locale/uselocale.lo.go obj/src/locale/wcscoll.lo.go obj/src/locale/wcsxfrm.lo.go obj/src/malloc/reallocarray.lo.go obj/src/math/__cos.lo.go obj/src/math/__cosdf.lo.go obj/src/math/__cosl.lo.go obj/src/math/__expo2.lo.go obj/src/math/__expo2f.lo.go obj/src/math/__fpclassify.lo.go obj/src/math/__fpclassifyf.lo.go obj/src/math/__fpclassifyl.lo.go obj/src/math/__invtrigl.lo.go obj/src/math/__math_divzero.lo.go obj/src/math/__math_divzerof.lo.go obj/src/math/__math_invalid.lo.go obj/src/math/__math_invalidf.lo.go obj/src/math/__math_invalidl.lo.go obj/src/math/__math_oflow.lo.go obj/src/math/__math_oflowf.lo.go obj/src/math/__math_uflow.lo.go obj/src/math/__math_uflowf.lo.go obj/src/math/__math_xflow.lo.go obj/src/math/__math_xflowf.lo.go obj/src/math/__polevll.lo.go obj/src/math/__rem_pio2.lo.go obj/src/math/__rem_pio2_large.lo.go obj/src/math/__rem_pio2f.lo.go obj/src/math/__rem_pio2l.lo.go obj/src/math/__signbit.lo.go obj/src/math/__signbitf.lo.go obj/src/math/__signbitl.lo.go obj/src/math/__sin.lo.go obj/src/math/__sindf.lo.go obj/src/math/__sinl.lo.go obj/src/math/__tan.lo.go obj/src/math/__tandf.lo.go obj/src/math/__tanl.lo.go obj/src/math/acos.lo.go obj/src/math/acosf.lo.go obj/src/math/acosh.lo.go obj/src/math/acoshf.lo.go obj/src/math/acoshl.lo.go obj/src/math/acosl.lo.go obj/src/math/asin.lo.go obj/src/math/asinf.lo.go obj/src/math/asinh.lo.go obj/src/math/asinhf.lo.go obj/src/math/asinhl.lo.go obj/src/math/asinl.lo.go obj/src/math/atan.lo.go obj/src/math/atan2.lo.go obj/src/math/atan2f.lo.go obj/src/math/atan2l.lo.go obj/src/math/atanf.lo.go obj/src/math/atanh.lo.go obj/src/math/atanhf.lo.go obj/src/math/atanhl.lo.go obj/src/math/atanl.lo.go obj/src/math/cbrt.lo.go obj/src/math/cbrtf.lo.go obj/src/math/cbrtl.lo.go obj/src/math/ceil.lo.go obj/src/math/ceilf.lo.go obj/src/math/ceill.lo.go obj/src/math/copysign.lo.go obj/src/math/copysignf.lo.go obj/src/math/copysignl.lo.go obj/src/math/cos.lo.go obj/src/math/cosf.lo.go obj/src/math/cosh.lo.go obj/src/math/coshf.lo.go obj/src/math/coshl.lo.go obj/src/math/cosl.lo.go obj/src/math/erf.lo.go obj/src/math/erff.lo.go obj/src/math/erfl.lo.go obj/src/math/exp.lo.go obj/src/math/exp10.lo.go obj/src/math/exp10f.lo.go obj/src/math/exp10l.lo.go obj/src/math/exp2.lo.go obj/src/math/exp2f.lo.go obj/src/math/exp2f_data.lo.go obj/src/math/exp2l.lo.go obj/src/math/exp_data.lo.go obj/src/math/expf.lo.go obj/src/math/expl.lo.go obj/src/math/expm1.lo.go obj/src/math/expm1f.lo.go obj/src/math/expm1l.lo.go obj/src/math/fabs.lo.go obj/src/math/fabsf.lo.go obj/src/math/fabsl.lo.go obj/src/math/fdim.lo.go obj/src/math/fdimf.lo.go obj/src/math/fdiml.lo.go obj/src/math/finite.lo.go obj/src/math/finitef.lo.go obj/src/math/floor.lo.go obj/src/math/floorf.lo.go obj/src/math/floorl.lo.go obj/src/math/fma.lo.go obj/src/math/fmal.lo.go obj/src/math/fmax.lo.go obj/src/math/fmaxf.lo.go obj/src/math/fmaxl.lo.go obj/src/math/fmin.lo.go obj/src/math/fminf.lo.go obj/src/math/fminl.lo.go obj/src/math/fmod.lo.go obj/src/math/fmodf.lo.go obj/src/math/fmodl.lo.go obj/src/math/frexp.lo.go obj/src/math/frexpf.lo.go obj/src/math/frexpl.lo.go obj/src/math/hypot.lo.go obj/src/math/hypotf.lo.go obj/src/math/hypotl.lo.go obj/src/math/ilogb.lo.go obj/src/math/ilogbf.lo.go obj/src/math/ilogbl.lo.go obj/src/math/j0.lo.go obj/src/math/j0f.lo.go obj/src/math/j1.lo.go obj/src/math/j1f.lo.go obj/src/math/jn.lo.go obj/src/math/jnf.lo.go obj/src/math/ldexp.lo.go obj/src/math/ldexpf.lo.go obj/src/math/ldexpl.lo.go obj/src/math/lgamma.lo.go obj/src/math/lgamma_r.lo.go obj/src/math/lgammaf.lo.go obj/src/math/lgammaf_r.lo.go obj/src/math/lgammal.lo.go obj/src/math/llrint.lo.go obj/src/math/llrintf.lo.go obj/src/math/llrintl.lo.go obj/src/math/llround.lo.go obj/src/math/llroundf.lo.go obj/src/math/llroundl.lo.go obj/src/math/log.lo.go obj/src/math/log10.lo.go obj/src/math/log10f.lo.go obj/src/math/log10l.lo.go obj/src/math/log1p.lo.go obj/src/math/log1pf.lo.go obj/src/math/log1pl.lo.go obj/src/math/log2.lo.go obj/src/math/log2_data.lo.go obj/src/math/log2f.lo.go obj/src/math/log2f_data.lo.go obj/src/math/log2l.lo.go obj/src/math/log_data.lo.go obj/src/math/logb.lo.go obj/src/math/logbf.lo.go obj/src/math/logbl.lo.go obj/src/math/logf.lo.go obj/src/math/logf_data.lo.go obj/src/math/logl.lo.go obj/src/math/lrint.lo.go obj/src/math/lrintf.lo.go obj/src/math/lrintl.lo.go obj/src/math/lround.lo.go obj/src/math/lroundf.lo.go obj/src/math/lroundl.lo.go obj/src/math/modf.lo.go obj/src/math/modff.lo.go obj/src/math/modfl.lo.go obj/src/math/nan.lo.go obj/src/math/nanf.lo.go obj/src/math/nanl.lo.go obj/src/math/nextafter.lo.go obj/src/math/nextafterf.lo.go obj/src/math/nextafterl.lo.go obj/src/math/nexttoward.lo.go obj/src/math/nexttowardf.lo.go obj/src/math/nexttowardl.lo.go obj/src/math/pow.lo.go obj/src/math/pow_data.lo.go obj/src/math/powf.lo.go obj/src/math/powf_data.lo.go obj/src/math/powl.lo.go obj/src/math/remainder.lo.go obj/src/math/remainderf.lo.go obj/src/math/remainderl.lo.go obj/src/math/remquo.lo.go obj/src/math/remquof.lo.go obj/src/math/remquol.lo.go obj/src/math/rint.lo.go obj/src/math/rintf.lo.go obj/src/math/rintl.lo.go obj/src/math/round.lo.go obj/src/math/roundf.lo.go obj/src/math/roundl.lo.go obj/src/math/scalb.lo.go obj/src/math/scalbf.lo.go obj/src/math/scalbln.lo.go obj/src/math/scalblnf.lo.go obj/src/math/scalblnl.lo.go obj/src/math/scalbn.lo.go obj/src/math/scalbnf.lo.go obj/src/math/scalbnl.lo.go obj/src/math/signgam.lo.go obj/src/math/significand.lo.go obj/src/math/significandf.lo.go obj/src/math/sin.lo.go obj/src/math/sincos.lo.go obj/src/math/sincosf.lo.go obj/src/math/sincosl.lo.go obj/src/math/sinf.lo.go obj/src/math/sinh.lo.go obj/src/math/sinhf.lo.go obj/src/math/sinhl.lo.go obj/src/math/sinl.lo.go obj/src/math/sqrt.lo.go obj/src/math/sqrt_data.lo.go obj/src/math/sqrtf.lo.go obj/src/math/sqrtl.lo.go obj/src/math/tan.lo.go obj/src/math/tanf.lo.go obj/src/math/tanh.lo.go obj/src/math/tanhf.lo.go obj/src/math/tanhl.lo.go obj/src/math/tanl.lo.go obj/src/math/tgamma.lo.go obj/src/math/tgammaf.lo.go obj/src/math/tgammal.lo.go obj/src/math/trunc.lo.go obj/src/math/truncf.lo.go obj/src/math/truncl.lo.go obj/src/misc/a64l.lo.go obj/src/misc/basename.lo.go obj/src/misc/dirname.lo.go obj/src/misc/ffs.lo.go obj/src/misc/ffsl.lo.go obj/src/misc/ffsll.lo.go obj/src/misc/fmtmsg.lo.go obj/src/misc/get_current_dir_name.lo.go obj/src/misc/getauxval.lo.go obj/src/misc/getdomainname.lo.go obj/src/misc/getentropy.lo.go obj/src/misc/gethostid.lo.go obj/src/misc/getopt.lo.go obj/src/misc/getopt_long.lo.go obj/src/misc/getpriority.lo.go obj/src/misc/getresgid.lo.go obj/src/misc/getresuid.lo.go obj/src/misc/getrlimit.lo.go obj/src/misc/getrusage.lo.go obj/src/misc/getsubopt.lo.go obj/src/misc/ioctl.lo.go obj/src/misc/issetugid.lo.go obj/src/misc/lockf.lo.go obj/src/misc/login_tty.lo.go obj/src/misc/mntent.lo.go obj/src/misc/nftw.lo.go obj/src/misc/openpty.lo.go obj/src/misc/ptsname.lo.go obj/src/misc/pty.lo.go obj/src/misc/realpath.lo.go obj/src/misc/setdomainname.lo.go obj/src/misc/setpriority.lo.go obj/src/misc/setrlimit.lo.go obj/src/misc/syscall.lo.go obj/src/misc/syslog.lo.go obj/src/misc/uname.lo.go obj/src/mman/madvise.lo.go obj/src/mman/mincore.lo.go obj/src/mman/mlock.lo.go obj/src/mman/mlockall.lo.go obj/src/mman/mmap.lo.go obj/src/mman/mprotect.lo.go obj/src/mman/mremap.lo.go obj/src/mman/msync.lo.go obj/src/mman/munlock.lo.go obj/src/mman/munlockall.lo.go obj/src/mman/munmap.lo.go obj/src/mman/posix_madvise.lo.go obj/src/mman/shm_open.lo.go obj/src/multibyte/btowc.lo.go obj/src/multibyte/c16rtomb.lo.go obj/src/multibyte/c32rtomb.lo.go obj/src/multibyte/internal.lo.go obj/src/multibyte/mblen.lo.go obj/src/multibyte/mbrlen.lo.go obj/src/multibyte/mbrtoc16.lo.go obj/src/multibyte/mbrtoc32.lo.go obj/src/multibyte/mbrtowc.lo.go obj/src/multibyte/mbsinit.lo.go obj/src/multibyte/mbsnrtowcs.lo.go obj/src/multibyte/mbsrtowcs.lo.go obj/src/multibyte/mbstowcs.lo.go obj/src/multibyte/mbtowc.lo.go obj/src/multibyte/wcrtomb.lo.go obj/src/multibyte/wcsnrtombs.lo.go obj/src/multibyte/wcsrtombs.lo.go obj/src/multibyte/wcstombs.lo.go obj/src/multibyte/wctob.lo.go obj/src/multibyte/wctomb.lo.go obj/src/network/accept.lo.go obj/src/network/accept4.lo.go obj/src/network/bind.lo.go obj/src/network/connect.lo.go obj/src/network/dn_comp.lo.go obj/src/network/dn_expand.lo.go obj/src/network/dn_skipname.lo.go obj/src/network/dns_parse.lo.go obj/src/network/ent.lo.go obj/src/network/ether.lo.go obj/src/network/freeaddrinfo.lo.go obj/src/network/gai_strerror.lo.go obj/src/network/getaddrinfo.lo.go obj/src/network/gethostbyaddr.lo.go obj/src/network/gethostbyaddr_r.lo.go obj/src/network/gethostbyname.lo.go obj/src/network/gethostbyname2.lo.go obj/src/network/gethostbyname2_r.lo.go obj/src/network/gethostbyname_r.lo.go obj/src/network/getifaddrs.lo.go obj/src/network/getnameinfo.lo.go obj/src/network/getpeername.lo.go obj/src/network/getservbyname.lo.go obj/src/network/getservbyname_r.lo.go obj/src/network/getsockname.lo.go obj/src/network/getsockopt.lo.go obj/src/network/h_errno.lo.go obj/src/network/herror.lo.go obj/src/network/hstrerror.lo.go obj/src/network/htonl.lo.go obj/src/network/htons.lo.go obj/src/network/if_freenameindex.lo.go obj/src/network/if_indextoname.lo.go obj/src/network/if_nameindex.lo.go obj/src/network/if_nametoindex.lo.go obj/src/network/in6addr_any.lo.go obj/src/network/in6addr_loopback.lo.go obj/src/network/inet_addr.lo.go obj/src/network/inet_aton.lo.go obj/src/network/inet_legacy.lo.go obj/src/network/inet_ntoa.lo.go obj/src/network/inet_ntop.lo.go obj/src/network/inet_pton.lo.go obj/src/network/listen.lo.go obj/src/network/lookup_ipliteral.lo.go obj/src/network/lookup_name.lo.go obj/src/network/lookup_serv.lo.go obj/src/network/netlink.lo.go obj/src/network/netname.lo.go obj/src/network/ns_parse.lo.go obj/src/network/ntohl.lo.go obj/src/network/ntohs.lo.go obj/src/network/proto.lo.go obj/src/network/recv.lo.go obj/src/network/recvfrom.lo.go obj/src/network/recvmmsg.lo.go obj/src/network/recvmsg.lo.go obj/src/network/res_init.lo.go obj/src/network/res_mkquery.lo.go obj/src/network/res_msend.lo.go obj/src/network/res_send.lo.go obj/src/network/res_state.lo.go obj/src/network/resolvconf.lo.go obj/src/network/send.lo.go obj/src/network/sendmmsg.lo.go obj/src/network/sendmsg.lo.go obj/src/network/sendto.lo.go obj/src/network/serv.lo.go obj/src/network/setsockopt.lo.go obj/src/network/shutdown.lo.go obj/src/network/sockatmark.lo.go obj/src/network/socket.lo.go obj/src/network/socketpair.lo.go obj/src/passwd/fgetgrent.lo.go obj/src/passwd/fgetpwent.lo.go obj/src/passwd/getgr_a.lo.go obj/src/passwd/getgr_r.lo.go obj/src/passwd/getgrent.lo.go obj/src/passwd/getgrent_a.lo.go obj/src/passwd/getgrouplist.lo.go obj/src/passwd/getpw_a.lo.go obj/src/passwd/getpw_r.lo.go obj/src/passwd/getpwent.lo.go obj/src/passwd/getpwent_a.lo.go obj/src/passwd/getspent.lo.go obj/src/passwd/lckpwdf.lo.go obj/src/passwd/nscd_query.lo.go obj/src/passwd/putgrent.lo.go obj/src/passwd/putpwent.lo.go obj/src/passwd/putspent.lo.go obj/src/prng/__rand48_step.lo.go obj/src/prng/__seed48.lo.go obj/src/prng/drand48.lo.go obj/src/prng/lcong48.lo.go obj/src/prng/lrand48.lo.go obj/src/prng/mrand48.lo.go obj/src/prng/rand.lo.go obj/src/prng/rand_r.lo.go obj/src/prng/random.lo.go obj/src/prng/seed48.lo.go obj/src/prng/srand48.lo.go obj/src/process/execl.lo.go obj/src/process/execle.lo.go obj/src/process/execlp.lo.go obj/src/process/execv.lo.go obj/src/process/execve.lo.go obj/src/process/execvp.lo.go obj/src/process/fexecve.lo.go obj/src/process/fork.lo.go obj/src/process/posix_spawn_file_actions_addchdir.lo.go obj/src/process/posix_spawn_file_actions_addclose.lo.go obj/src/process/posix_spawn_file_actions_adddup2.lo.go obj/src/process/posix_spawn_file_actions_addfchdir.lo.go obj/src/process/posix_spawn_file_actions_addopen.lo.go obj/src/process/posix_spawn_file_actions_destroy.lo.go obj/src/process/posix_spawn_file_actions_init.lo.go obj/src/process/posix_spawnattr_destroy.lo.go obj/src/process/posix_spawnattr_getflags.lo.go obj/src/process/posix_spawnattr_getpgroup.lo.go obj/src/process/posix_spawnattr_getsigdefault.lo.go obj/src/process/posix_spawnattr_getsigmask.lo.go obj/src/process/posix_spawnattr_init.lo.go obj/src/process/posix_spawnattr_sched.lo.go obj/src/process/posix_spawnattr_setflags.lo.go obj/src/process/posix_spawnattr_setpgroup.lo.go obj/src/process/posix_spawnattr_setsigdefault.lo.go obj/src/process/posix_spawnattr_setsigmask.lo.go obj/src/process/vfork.lo.go obj/src/process/wait.lo.go obj/src/process/waitid.lo.go obj/src/process/waitpid.lo.go obj/src/regex/fnmatch.lo.go obj/src/regex/glob.lo.go obj/src/regex/regcomp.lo.go obj/src/regex/regerror.lo.go obj/src/regex/regexec.lo.go obj/src/regex/tre-mem.lo.go obj/src/search/hsearch.lo.go obj/src/search/insque.lo.go obj/src/search/lsearch.lo.go obj/src/search/tdelete.lo.go obj/src/search/tdestroy.lo.go obj/src/search/tfind.lo.go obj/src/search/tsearch.lo.go obj/src/search/twalk.lo.go obj/src/select/poll.lo.go obj/src/select/ppoll.lo.go obj/src/select/pselect.lo.go obj/src/select/select.lo.go obj/src/setjmp/longjmp.lo.go obj/src/setjmp/setjmp.lo.go obj/src/signal/block.lo.go obj/src/signal/getitimer.lo.go obj/src/signal/kill.lo.go obj/src/signal/killpg.lo.go obj/src/signal/psiginfo.lo.go obj/src/signal/psignal.lo.go obj/src/signal/raise.lo.go obj/src/signal/restore.lo.go obj/src/signal/setitimer.lo.go obj/src/signal/sigaction.lo.go obj/src/signal/sigaddset.lo.go obj/src/signal/sigaltstack.lo.go obj/src/signal/sigandset.lo.go obj/src/signal/sigdelset.lo.go obj/src/signal/sigemptyset.lo.go obj/src/signal/sigfillset.lo.go obj/src/signal/sigisemptyset.lo.go obj/src/signal/sigismember.lo.go obj/src/signal/sigorset.lo.go obj/src/signal/sigpending.lo.go obj/src/signal/sigprocmask.lo.go obj/src/signal/sigqueue.lo.go obj/src/signal/sigrtmax.lo.go obj/src/signal/sigrtmin.lo.go obj/src/signal/sigsetjmp.lo.go obj/src/signal/sigsetjmp_tail.lo.go obj/src/signal/sigsuspend.lo.go obj/src/signal/sigtimedwait.lo.go obj/src/signal/sigwait.lo.go obj/src/signal/sigwaitinfo.lo.go obj/src/stat/__xstat.lo.go obj/src/stat/chmod.lo.go obj/src/stat/fchmod.lo.go obj/src/stat/fchmodat.lo.go obj/src/stat/fstat.lo.go obj/src/stat/fstatat.lo.go obj/src/stat/futimens.lo.go obj/src/stat/futimesat.lo.go obj/src/stat/lchmod.lo.go obj/src/stat/lstat.lo.go obj/src/stat/mkdir.lo.go obj/src/stat/mkdirat.lo.go obj/src/stat/mkfifo.lo.go obj/src/stat/mkfifoat.lo.go obj/src/stat/mknod.lo.go obj/src/stat/mknodat.lo.go obj/src/stat/stat.lo.go obj/src/stat/statvfs.lo.go obj/src/stat/umask.lo.go obj/src/stat/utimensat.lo.go obj/src/stdio/__fclose_ca.lo.go obj/src/stdio/__fdopen.lo.go obj/src/stdio/__fmodeflags.lo.go obj/src/stdio/__fopen_rb_ca.lo.go obj/src/stdio/__overflow.lo.go obj/src/stdio/__stdio_close.lo.go obj/src/stdio/__stdio_exit.lo.go obj/src/stdio/__stdio_read.lo.go obj/src/stdio/__stdio_seek.lo.go obj/src/stdio/__stdio_write.lo.go obj/src/stdio/__stdout_write.lo.go obj/src/stdio/__toread.lo.go obj/src/stdio/__towrite.lo.go obj/src/stdio/__uflow.lo.go obj/src/stdio/asprintf.lo.go obj/src/stdio/clearerr.lo.go obj/src/stdio/dprintf.lo.go obj/src/stdio/ext.lo.go obj/src/stdio/ext2.lo.go obj/src/stdio/fclose.lo.go obj/src/stdio/feof.lo.go obj/src/stdio/ferror.lo.go obj/src/stdio/fflush.lo.go obj/src/stdio/fgetc.lo.go obj/src/stdio/fgetln.lo.go obj/src/stdio/fgetpos.lo.go obj/src/stdio/fgets.lo.go obj/src/stdio/fgetwc.lo.go obj/src/stdio/fgetws.lo.go obj/src/stdio/fileno.lo.go obj/src/stdio/flockfile.lo.go obj/src/stdio/fmemopen.lo.go obj/src/stdio/fopen.lo.go obj/src/stdio/fopencookie.lo.go obj/src/stdio/fprintf.lo.go obj/src/stdio/fputc.lo.go obj/src/stdio/fputs.lo.go obj/src/stdio/fputwc.lo.go obj/src/stdio/fputws.lo.go obj/src/stdio/fread.lo.go obj/src/stdio/freopen.lo.go obj/src/stdio/fscanf.lo.go obj/src/stdio/fseek.lo.go obj/src/stdio/fsetpos.lo.go obj/src/stdio/ftell.lo.go obj/src/stdio/ftrylockfile.lo.go obj/src/stdio/funlockfile.lo.go obj/src/stdio/fwide.lo.go obj/src/stdio/fwprintf.lo.go obj/src/stdio/fwrite.lo.go obj/src/stdio/fwscanf.lo.go obj/src/stdio/getc.lo.go obj/src/stdio/getc_unlocked.lo.go obj/src/stdio/getchar.lo.go obj/src/stdio/getchar_unlocked.lo.go obj/src/stdio/getdelim.lo.go obj/src/stdio/getline.lo.go obj/src/stdio/gets.lo.go obj/src/stdio/getw.lo.go obj/src/stdio/getwc.lo.go obj/src/stdio/getwchar.lo.go obj/src/stdio/ofl.lo.go obj/src/stdio/ofl_add.lo.go obj/src/stdio/open_memstream.lo.go obj/src/stdio/open_wmemstream.lo.go obj/src/stdio/pclose.lo.go obj/src/stdio/perror.lo.go obj/src/stdio/printf.lo.go obj/src/stdio/putc.lo.go obj/src/stdio/putc_unlocked.lo.go obj/src/stdio/putchar.lo.go obj/src/stdio/putchar_unlocked.lo.go obj/src/stdio/puts.lo.go obj/src/stdio/putw.lo.go obj/src/stdio/putwc.lo.go obj/src/stdio/putwchar.lo.go obj/src/stdio/remove.lo.go obj/src/stdio/rename.lo.go obj/src/stdio/rewind.lo.go obj/src/stdio/scanf.lo.go obj/src/stdio/setbuf.lo.go obj/src/stdio/setbuffer.lo.go obj/src/stdio/setlinebuf.lo.go obj/src/stdio/setvbuf.lo.go obj/src/stdio/snprintf.lo.go obj/src/stdio/sprintf.lo.go obj/src/stdio/sscanf.lo.go obj/src/stdio/stderr.lo.go obj/src/stdio/stdin.lo.go obj/src/stdio/stdout.lo.go obj/src/stdio/swprintf.lo.go obj/src/stdio/swscanf.lo.go obj/src/stdio/tempnam.lo.go obj/src/stdio/tmpfile.lo.go obj/src/stdio/tmpnam.lo.go obj/src/stdio/ungetc.lo.go obj/src/stdio/ungetwc.lo.go obj/src/stdio/vasprintf.lo.go obj/src/stdio/vdprintf.lo.go obj/src/stdio/vfprintf.lo.go obj/src/stdio/vfscanf.lo.go obj/src/stdio/vfwprintf.lo.go obj/src/stdio/vfwscanf.lo.go obj/src/stdio/vprintf.lo.go obj/src/stdio/vscanf.lo.go obj/src/stdio/vsnprintf.lo.go obj/src/stdio/vsprintf.lo.go obj/src/stdio/vsscanf.lo.go obj/src/stdio/vswprintf.lo.go obj/src/stdio/vswscanf.lo.go obj/src/stdio/vwprintf.lo.go obj/src/stdio/vwscanf.lo.go obj/src/stdio/wprintf.lo.go obj/src/stdio/wscanf.lo.go obj/src/stdlib/abs.lo.go obj/src/stdlib/atof.lo.go obj/src/stdlib/atoi.lo.go obj/src/stdlib/atol.lo.go obj/src/stdlib/atoll.lo.go obj/src/stdlib/bsearch.lo.go obj/src/stdlib/div.lo.go obj/src/stdlib/ecvt.lo.go obj/src/stdlib/fcvt.lo.go obj/src/stdlib/gcvt.lo.go obj/src/stdlib/imaxabs.lo.go obj/src/stdlib/imaxdiv.lo.go obj/src/stdlib/labs.lo.go obj/src/stdlib/ldiv.lo.go obj/src/stdlib/llabs.lo.go obj/src/stdlib/lldiv.lo.go obj/src/stdlib/qsort.lo.go obj/src/stdlib/qsort_nr.lo.go obj/src/stdlib/strtod.lo.go obj/src/stdlib/strtol.lo.go obj/src/stdlib/wcstod.lo.go obj/src/stdlib/wcstol.lo.go obj/src/string/bcmp.lo.go obj/src/string/bcopy.lo.go obj/src/string/bzero.lo.go obj/src/string/explicit_bzero.lo.go obj/src/string/index.lo.go obj/src/string/memccpy.lo.go obj/src/string/memchr.lo.go obj/src/string/memcmp.lo.go obj/src/string/memcpy.lo.go obj/src/string/memmem.lo.go obj/src/string/memmove.lo.go obj/src/string/mempcpy.lo.go obj/src/string/memrchr.lo.go obj/src/string/memset.lo.go obj/src/string/rindex.lo.go obj/src/string/stpcpy.lo.go obj/src/string/stpncpy.lo.go obj/src/string/strcasecmp.lo.go obj/src/string/strcasestr.lo.go obj/src/string/strcat.lo.go obj/src/string/strchr.lo.go obj/src/string/strchrnul.lo.go obj/src/string/strcmp.lo.go obj/src/string/strcpy.lo.go obj/src/string/strcspn.lo.go obj/src/string/strdup.lo.go obj/src/string/strerror_r.lo.go obj/src/string/strlcat.lo.go obj/src/string/strlcpy.lo.go obj/src/string/strlen.lo.go obj/src/string/strncasecmp.lo.go obj/src/string/strncat.lo.go obj/src/string/strncmp.lo.go obj/src/string/strncpy.lo.go obj/src/string/strndup.lo.go obj/src/string/strnlen.lo.go obj/src/string/strpbrk.lo.go obj/src/string/strrchr.lo.go obj/src/string/strsep.lo.go obj/src/string/strsignal.lo.go obj/src/string/strspn.lo.go obj/src/string/strstr.lo.go obj/src/string/strtok.lo.go obj/src/string/strtok_r.lo.go obj/src/string/strverscmp.lo.go obj/src/string/swab.lo.go obj/src/string/wcpcpy.lo.go obj/src/string/wcpncpy.lo.go obj/src/string/wcscasecmp.lo.go obj/src/string/wcscasecmp_l.lo.go obj/src/string/wcscat.lo.go obj/src/string/wcschr.lo.go obj/src/string/wcscmp.lo.go obj/src/string/wcscpy.lo.go obj/src/string/wcscspn.lo.go obj/src/string/wcsdup.lo.go obj/src/string/wcslen.lo.go obj/src/string/wcsncasecmp.lo.go obj/src/string/wcsncasecmp_l.lo.go obj/src/string/wcsncat.lo.go obj/src/string/wcsncmp.lo.go obj/src/string/wcsncpy.lo.go obj/src/string/wcsnlen.lo.go obj/src/string/wcspbrk.lo.go obj/src/string/wcsrchr.lo.go obj/src/string/wcsspn.lo.go obj/src/string/wcsstr.lo.go obj/src/string/wcstok.lo.go obj/src/string/wcswcs.lo.go obj/src/string/wmemchr.lo.go obj/src/string/wmemcmp.lo.go obj/src/string/wmemcpy.lo.go obj/src/string/wmemmove.lo.go obj/src/string/wmemset.lo.go obj/src/temp/mkdtemp.lo.go obj/src/temp/mkostemp.lo.go obj/src/temp/mkostemps.lo.go obj/src/temp/mkstemp.lo.go obj/src/temp/mkstemps.lo.go obj/src/temp/mktemp.lo.go obj/src/termios/cfgetospeed.lo.go obj/src/termios/cfmakeraw.lo.go obj/src/termios/cfsetospeed.lo.go obj/src/termios/tcdrain.lo.go obj/src/termios/tcflow.lo.go obj/src/termios/tcflush.lo.go obj/src/termios/tcgetattr.lo.go obj/src/termios/tcgetsid.lo.go obj/src/termios/tcgetwinsize.lo.go obj/src/termios/tcsendbreak.lo.go obj/src/termios/tcsetattr.lo.go obj/src/termios/tcsetwinsize.lo.go obj/src/time/__map_file.lo.go obj/src/time/__month_to_secs.lo.go obj/src/time/__secs_to_tm.lo.go obj/src/time/__tm_to_secs.lo.go obj/src/time/__tz.lo.go obj/src/time/__year_to_secs.lo.go obj/src/time/asctime.lo.go obj/src/time/asctime_r.lo.go obj/src/time/clock.lo.go obj/src/time/clock_getcpuclockid.lo.go obj/src/time/clock_getres.lo.go obj/src/time/clock_gettime.lo.go obj/src/time/clock_nanosleep.lo.go obj/src/time/clock_settime.lo.go obj/src/time/ctime.lo.go obj/src/time/ctime_r.lo.go obj/src/time/difftime.lo.go obj/src/time/ftime.lo.go obj/src/time/getdate.lo.go obj/src/time/gettimeofday.lo.go obj/src/time/gmtime.lo.go obj/src/time/gmtime_r.lo.go obj/src/time/localtime.lo.go obj/src/time/localtime_r.lo.go obj/src/time/mktime.lo.go obj/src/time/nanosleep.lo.go obj/src/time/strftime.lo.go obj/src/time/strptime.lo.go obj/src/time/time.lo.go obj/src/time/timegm.lo.go obj/src/time/timer_delete.lo.go obj/src/time/timer_getoverrun.lo.go obj/src/time/timer_gettime.lo.go obj/src/time/timer_settime.lo.go obj/src/time/times.lo.go obj/src/time/timespec_get.lo.go obj/src/time/utime.lo.go obj/src/time/wcsftime.lo.go obj/src/unistd/_exit.lo.go obj/src/unistd/access.lo.go obj/src/unistd/acct.lo.go obj/src/unistd/alarm.lo.go obj/src/unistd/chdir.lo.go obj/src/unistd/chown.lo.go obj/src/unistd/close.lo.go obj/src/unistd/ctermid.lo.go obj/src/unistd/dup.lo.go obj/src/unistd/dup2.lo.go obj/src/unistd/dup3.lo.go obj/src/unistd/faccessat.lo.go obj/src/unistd/fchdir.lo.go obj/src/unistd/fchown.lo.go obj/src/unistd/fchownat.lo.go obj/src/unistd/fdatasync.lo.go obj/src/unistd/fsync.lo.go obj/src/unistd/ftruncate.lo.go obj/src/unistd/getcwd.lo.go obj/src/unistd/getegid.lo.go obj/src/unistd/geteuid.lo.go obj/src/unistd/getgid.lo.go obj/src/unistd/getgroups.lo.go obj/src/unistd/gethostname.lo.go obj/src/unistd/getlogin.lo.go obj/src/unistd/getlogin_r.lo.go obj/src/unistd/getpgid.lo.go obj/src/unistd/getpgrp.lo.go obj/src/unistd/getpid.lo.go obj/src/unistd/getppid.lo.go obj/src/unistd/getsid.lo.go obj/src/unistd/getuid.lo.go obj/src/unistd/isatty.lo.go obj/src/unistd/lchown.lo.go obj/src/unistd/link.lo.go obj/src/unistd/linkat.lo.go obj/src/unistd/lseek.lo.go obj/src/unistd/nice.lo.go obj/src/unistd/pause.lo.go obj/src/unistd/pipe.lo.go obj/src/unistd/pipe2.lo.go obj/src/unistd/posix_close.lo.go obj/src/unistd/pread.lo.go obj/src/unistd/preadv.lo.go obj/src/unistd/pwrite.lo.go obj/src/unistd/pwritev.lo.go obj/src/unistd/read.lo.go obj/src/unistd/readlink.lo.go obj/src/unistd/readlinkat.lo.go obj/src/unistd/readv.lo.go obj/src/unistd/renameat.lo.go obj/src/unistd/rmdir.lo.go obj/src/unistd/setpgid.lo.go obj/src/unistd/setpgrp.lo.go obj/src/unistd/setsid.lo.go obj/src/unistd/sleep.lo.go obj/src/unistd/symlink.lo.go obj/src/unistd/symlinkat.lo.go obj/src/unistd/sync.lo.go obj/src/unistd/tcgetpgrp.lo.go obj/src/unistd/tcsetpgrp.lo.go obj/src/unistd/truncate.lo.go obj/src/unistd/ttyname.lo.go obj/src/unistd/ttyname_r.lo.go obj/src/unistd/ualarm.lo.go obj/src/unistd/unlink.lo.go obj/src/unistd/unlinkat.lo.go obj/src/unistd/usleep.lo.go obj/src/unistd/write.lo.go obj/src/unistd/writev.lo.go -lgcc -lgcc_eh', DO NOT EDIT.
+// Code generated for linux/loong64 by 'gcc --package-name=libc --prefix-enumerator=_ --prefix-external=x_ --prefix-field=F --prefix-static-internal=_ --prefix-static-none=_ --prefix-tagged-enum=_ --prefix-tagged-struct=T --prefix-tagged-union=T --prefix-typename=T --prefix-undefined=_ -emit-func-aliases -eval-all-macros -extended-errors -ignore-asm-errors -isystem  -std=c99 -nostdinc -ffreestanding -D_XOPEN_SOURCE=700 -I./arch/loongarch64 -I./arch/generic -Iobj/src/internal -I./src/include -I./src/internal -Iobj/include -I./include -DNDEBUG -nostdlib -shared -o lib/libc.so.go obj/src/complex/__cexp.lo.go obj/src/complex/__cexpf.lo.go obj/src/complex/cabs.lo.go obj/src/complex/cabsf.lo.go obj/src/complex/cabsl.lo.go obj/src/complex/cacos.lo.go obj/src/complex/cacosf.lo.go obj/src/complex/cacosh.lo.go obj/src/complex/cacoshf.lo.go obj/src/complex/cacoshl.lo.go obj/src/complex/cacosl.lo.go obj/src/complex/carg.lo.go obj/src/complex/cargf.lo.go obj/src/complex/cargl.lo.go obj/src/complex/casin.lo.go obj/src/complex/casinf.lo.go obj/src/complex/casinh.lo.go obj/src/complex/casinhf.lo.go obj/src/complex/casinhl.lo.go obj/src/complex/casinl.lo.go obj/src/complex/catan.lo.go obj/src/complex/catanf.lo.go obj/src/complex/catanh.lo.go obj/src/complex/catanhf.lo.go obj/src/complex/catanhl.lo.go obj/src/complex/catanl.lo.go obj/src/complex/ccos.lo.go obj/src/complex/ccosf.lo.go obj/src/complex/ccosh.lo.go obj/src/complex/ccoshf.lo.go obj/src/complex/ccoshl.lo.go obj/src/complex/ccosl.lo.go obj/src/complex/cexp.lo.go obj/src/complex/cexpf.lo.go obj/src/complex/cexpl.lo.go obj/src/complex/cimag.lo.go obj/src/complex/cimagf.lo.go obj/src/complex/cimagl.lo.go obj/src/complex/clog.lo.go obj/src/complex/clogf.lo.go obj/src/complex/clogl.lo.go obj/src/complex/conj.lo.go obj/src/complex/conjf.lo.go obj/src/complex/conjl.lo.go obj/src/complex/cpow.lo.go obj/src/complex/cpowf.lo.go obj/src/complex/cpowl.lo.go obj/src/complex/cproj.lo.go obj/src/complex/cprojf.lo.go obj/src/complex/cprojl.lo.go obj/src/complex/creal.lo.go obj/src/complex/crealf.lo.go obj/src/complex/creall.lo.go obj/src/complex/csin.lo.go obj/src/complex/csinf.lo.go obj/src/complex/csinh.lo.go obj/src/complex/csinhf.lo.go obj/src/complex/csinhl.lo.go obj/src/complex/csinl.lo.go obj/src/complex/csqrt.lo.go obj/src/complex/csqrtf.lo.go obj/src/complex/csqrtl.lo.go obj/src/complex/ctan.lo.go obj/src/complex/ctanf.lo.go obj/src/complex/ctanh.lo.go obj/src/complex/ctanhf.lo.go obj/src/complex/ctanhl.lo.go obj/src/complex/ctanl.lo.go obj/src/conf/confstr.lo.go obj/src/conf/fpathconf.lo.go obj/src/conf/legacy.lo.go obj/src/conf/pathconf.lo.go obj/src/conf/sysconf.lo.go obj/src/crypt/crypt.lo.go obj/src/crypt/crypt_blowfish.lo.go obj/src/crypt/crypt_des.lo.go obj/src/crypt/crypt_md5.lo.go obj/src/crypt/crypt_r.lo.go obj/src/crypt/crypt_sha256.lo.go obj/src/crypt/crypt_sha512.lo.go obj/src/crypt/encrypt.lo.go obj/src/ctype/__ctype_b_loc.lo.go obj/src/ctype/__ctype_get_mb_cur_max.lo.go obj/src/ctype/__ctype_tolower_loc.lo.go obj/src/ctype/__ctype_toupper_loc.lo.go obj/src/ctype/isalnum.lo.go obj/src/ctype/isalpha.lo.go obj/src/ctype/isascii.lo.go obj/src/ctype/isblank.lo.go obj/src/ctype/iscntrl.lo.go obj/src/ctype/isdigit.lo.go obj/src/ctype/isgraph.lo.go obj/src/ctype/islower.lo.go obj/src/ctype/isprint.lo.go obj/src/ctype/ispunct.lo.go obj/src/ctype/isspace.lo.go obj/src/ctype/isupper.lo.go obj/src/ctype/iswalnum.lo.go obj/src/ctype/iswalpha.lo.go obj/src/ctype/iswblank.lo.go obj/src/ctype/iswcntrl.lo.go obj/src/ctype/iswctype.lo.go obj/src/ctype/iswdigit.lo.go obj/src/ctype/iswgraph.lo.go obj/src/ctype/iswlower.lo.go obj/src/ctype/iswprint.lo.go obj/src/ctype/iswpunct.lo.go obj/src/ctype/iswspace.lo.go obj/src/ctype/iswupper.lo.go obj/src/ctype/iswxdigit.lo.go obj/src/ctype/isxdigit.lo.go obj/src/ctype/toascii.lo.go obj/src/ctype/tolower.lo.go obj/src/ctype/toupper.lo.go obj/src/ctype/towctrans.lo.go obj/src/ctype/wcswidth.lo.go obj/src/ctype/wctrans.lo.go obj/src/ctype/wcwidth.lo.go obj/src/dirent/alphasort.lo.go obj/src/dirent/closedir.lo.go obj/src/dirent/dirfd.lo.go obj/src/dirent/fdopendir.lo.go obj/src/dirent/opendir.lo.go obj/src/dirent/readdir.lo.go obj/src/dirent/readdir_r.lo.go obj/src/dirent/rewinddir.lo.go obj/src/dirent/scandir.lo.go obj/src/dirent/seekdir.lo.go obj/src/dirent/telldir.lo.go obj/src/dirent/versionsort.lo.go obj/src/env/__environ.lo.go obj/src/env/__reset_tls.lo.go obj/src/env/__stack_chk_fail.lo.go obj/src/env/clearenv.lo.go obj/src/env/getenv.lo.go obj/src/env/putenv.lo.go obj/src/env/secure_getenv.lo.go obj/src/env/setenv.lo.go obj/src/env/unsetenv.lo.go obj/src/errno/strerror.lo.go obj/src/exit/_Exit.lo.go obj/src/exit/abort_lock.lo.go obj/src/exit/assert.lo.go obj/src/exit/at_quick_exit.lo.go obj/src/exit/quick_exit.lo.go obj/src/fcntl/creat.lo.go obj/src/fcntl/fcntl.lo.go obj/src/fcntl/open.lo.go obj/src/fcntl/openat.lo.go obj/src/fcntl/posix_fadvise.lo.go obj/src/fcntl/posix_fallocate.lo.go obj/src/internal/defsysinfo.lo.go obj/src/internal/emulate_wait4.lo.go obj/src/internal/floatscan.lo.go obj/src/internal/intscan.lo.go obj/src/internal/libc.lo.go obj/src/internal/procfdname.lo.go obj/src/internal/shgetc.lo.go obj/src/internal/syscall_ret.lo.go obj/src/internal/vdso.lo.go obj/src/internal/version.lo.go obj/src/ipc/ftok.lo.go obj/src/ipc/msgctl.lo.go obj/src/ipc/msgget.lo.go obj/src/ipc/msgrcv.lo.go obj/src/ipc/msgsnd.lo.go obj/src/ipc/semctl.lo.go obj/src/ipc/semget.lo.go obj/src/ipc/semop.lo.go obj/src/ipc/semtimedop.lo.go obj/src/ipc/shmat.lo.go obj/src/ipc/shmctl.lo.go obj/src/ipc/shmdt.lo.go obj/src/ipc/shmget.lo.go obj/src/linux/adjtime.lo.go obj/src/linux/adjtimex.lo.go obj/src/linux/arch_prctl.lo.go obj/src/linux/brk.lo.go obj/src/linux/cache.lo.go obj/src/linux/cap.lo.go obj/src/linux/chroot.lo.go obj/src/linux/clock_adjtime.lo.go obj/src/linux/copy_file_range.lo.go obj/src/linux/epoll.lo.go obj/src/linux/eventfd.lo.go obj/src/linux/fallocate.lo.go obj/src/linux/fanotify.lo.go obj/src/linux/flock.lo.go obj/src/linux/getdents.lo.go obj/src/linux/getrandom.lo.go obj/src/linux/inotify.lo.go obj/src/linux/ioperm.lo.go obj/src/linux/iopl.lo.go obj/src/linux/klogctl.lo.go obj/src/linux/memfd_create.lo.go obj/src/linux/mlock2.lo.go obj/src/linux/module.lo.go obj/src/linux/mount.lo.go obj/src/linux/name_to_handle_at.lo.go obj/src/linux/open_by_handle_at.lo.go obj/src/linux/personality.lo.go obj/src/linux/pivot_root.lo.go obj/src/linux/prctl.lo.go obj/src/linux/preadv2.lo.go obj/src/linux/prlimit.lo.go obj/src/linux/process_vm.lo.go obj/src/linux/ptrace.lo.go obj/src/linux/pwritev2.lo.go obj/src/linux/quotactl.lo.go obj/src/linux/readahead.lo.go obj/src/linux/reboot.lo.go obj/src/linux/remap_file_pages.lo.go obj/src/linux/sbrk.lo.go obj/src/linux/sendfile.lo.go obj/src/linux/setfsgid.lo.go obj/src/linux/setfsuid.lo.go obj/src/linux/sethostname.lo.go obj/src/linux/setns.lo.go obj/src/linux/settimeofday.lo.go obj/src/linux/signalfd.lo.go obj/src/linux/splice.lo.go obj/src/linux/statx.lo.go obj/src/linux/stime.lo.go obj/src/linux/swap.lo.go obj/src/linux/sync_file_range.lo.go obj/src/linux/syncfs.lo.go obj/src/linux/sysinfo.lo.go obj/src/linux/tee.lo.go obj/src/linux/timerfd.lo.go obj/src/linux/unshare.lo.go obj/src/linux/utimes.lo.go obj/src/linux/vhangup.lo.go obj/src/linux/vmsplice.lo.go obj/src/linux/wait3.lo.go obj/src/linux/wait4.lo.go obj/src/linux/xattr.lo.go obj/src/locale/__lctrans.lo.go obj/src/locale/__mo_lookup.lo.go obj/src/locale/bind_textdomain_codeset.lo.go obj/src/locale/c_locale.lo.go obj/src/locale/catclose.lo.go obj/src/locale/catgets.lo.go obj/src/locale/catopen.lo.go obj/src/locale/dcngettext.lo.go obj/src/locale/duplocale.lo.go obj/src/locale/freelocale.lo.go obj/src/locale/iconv.lo.go obj/src/locale/iconv_close.lo.go obj/src/locale/langinfo.lo.go obj/src/locale/locale_map.lo.go obj/src/locale/localeconv.lo.go obj/src/locale/newlocale.lo.go obj/src/locale/pleval.lo.go obj/src/locale/setlocale.lo.go obj/src/locale/strcoll.lo.go obj/src/locale/strfmon.lo.go obj/src/locale/strtod_l.lo.go obj/src/locale/strxfrm.lo.go obj/src/locale/textdomain.lo.go obj/src/locale/uselocale.lo.go obj/src/locale/wcscoll.lo.go obj/src/locale/wcsxfrm.lo.go obj/src/malloc/reallocarray.lo.go obj/src/math/__cos.lo.go obj/src/math/__cosdf.lo.go obj/src/math/__cosl.lo.go obj/src/math/__expo2.lo.go obj/src/math/__expo2f.lo.go obj/src/math/__fpclassify.lo.go obj/src/math/__fpclassifyf.lo.go obj/src/math/__fpclassifyl.lo.go obj/src/math/__invtrigl.lo.go obj/src/math/__math_divzero.lo.go obj/src/math/__math_divzerof.lo.go obj/src/math/__math_invalid.lo.go obj/src/math/__math_invalidf.lo.go obj/src/math/__math_invalidl.lo.go obj/src/math/__math_oflow.lo.go obj/src/math/__math_oflowf.lo.go obj/src/math/__math_uflow.lo.go obj/src/math/__math_uflowf.lo.go obj/src/math/__math_xflow.lo.go obj/src/math/__math_xflowf.lo.go obj/src/math/__polevll.lo.go obj/src/math/__rem_pio2.lo.go obj/src/math/__rem_pio2_large.lo.go obj/src/math/__rem_pio2f.lo.go obj/src/math/__rem_pio2l.lo.go obj/src/math/__signbit.lo.go obj/src/math/__signbitf.lo.go obj/src/math/__signbitl.lo.go obj/src/math/__sin.lo.go obj/src/math/__sindf.lo.go obj/src/math/__sinl.lo.go obj/src/math/__tan.lo.go obj/src/math/__tandf.lo.go obj/src/math/__tanl.lo.go obj/src/math/acos.lo.go obj/src/math/acosf.lo.go obj/src/math/acosh.lo.go obj/src/math/acoshf.lo.go obj/src/math/acoshl.lo.go obj/src/math/acosl.lo.go obj/src/math/asin.lo.go obj/src/math/asinf.lo.go obj/src/math/asinh.lo.go obj/src/math/asinhf.lo.go obj/src/math/asinhl.lo.go obj/src/math/asinl.lo.go obj/src/math/atan.lo.go obj/src/math/atan2.lo.go obj/src/math/atan2f.lo.go obj/src/math/atan2l.lo.go obj/src/math/atanf.lo.go obj/src/math/atanh.lo.go obj/src/math/atanhf.lo.go obj/src/math/atanhl.lo.go obj/src/math/atanl.lo.go obj/src/math/cbrt.lo.go obj/src/math/cbrtf.lo.go obj/src/math/cbrtl.lo.go obj/src/math/ceil.lo.go obj/src/math/ceilf.lo.go obj/src/math/ceill.lo.go obj/src/math/copysign.lo.go obj/src/math/copysignf.lo.go obj/src/math/copysignl.lo.go obj/src/math/cos.lo.go obj/src/math/cosf.lo.go obj/src/math/cosh.lo.go obj/src/math/coshf.lo.go obj/src/math/coshl.lo.go obj/src/math/cosl.lo.go obj/src/math/erf.lo.go obj/src/math/erff.lo.go obj/src/math/erfl.lo.go obj/src/math/exp.lo.go obj/src/math/exp10.lo.go obj/src/math/exp10f.lo.go obj/src/math/exp10l.lo.go obj/src/math/exp2.lo.go obj/src/math/exp2f.lo.go obj/src/math/exp2f_data.lo.go obj/src/math/exp2l.lo.go obj/src/math/exp_data.lo.go obj/src/math/expf.lo.go obj/src/math/expl.lo.go obj/src/math/expm1.lo.go obj/src/math/expm1f.lo.go obj/src/math/expm1l.lo.go obj/src/math/fabs.lo.go obj/src/math/fabsf.lo.go obj/src/math/fabsl.lo.go obj/src/math/fdim.lo.go obj/src/math/fdimf.lo.go obj/src/math/fdiml.lo.go obj/src/math/finite.lo.go obj/src/math/finitef.lo.go obj/src/math/floor.lo.go obj/src/math/floorf.lo.go obj/src/math/floorl.lo.go obj/src/math/fma.lo.go obj/src/math/fmal.lo.go obj/src/math/fmax.lo.go obj/src/math/fmaxf.lo.go obj/src/math/fmaxl.lo.go obj/src/math/fmin.lo.go obj/src/math/fminf.lo.go obj/src/math/fminl.lo.go obj/src/math/fmod.lo.go obj/src/math/fmodf.lo.go obj/src/math/fmodl.lo.go obj/src/math/frexp.lo.go obj/src/math/frexpf.lo.go obj/src/math/frexpl.lo.go obj/src/math/hypot.lo.go obj/src/math/hypotf.lo.go obj/src/math/hypotl.lo.go obj/src/math/ilogb.lo.go obj/src/math/ilogbf.lo.go obj/src/math/ilogbl.lo.go obj/src/math/j0.lo.go obj/src/math/j0f.lo.go obj/src/math/j1.lo.go obj/src/math/j1f.lo.go obj/src/math/jn.lo.go obj/src/math/jnf.lo.go obj/src/math/ldexp.lo.go obj/src/math/ldexpf.lo.go obj/src/math/ldexpl.lo.go obj/src/math/lgamma.lo.go obj/src/math/lgamma_r.lo.go obj/src/math/lgammaf.lo.go obj/src/math/lgammaf_r.lo.go obj/src/math/lgammal.lo.go obj/src/math/llrint.lo.go obj/src/math/llrintf.lo.go obj/src/math/llrintl.lo.go obj/src/math/llround.lo.go obj/src/math/llroundf.lo.go obj/src/math/llroundl.lo.go obj/src/math/log.lo.go obj/src/math/log10.lo.go obj/src/math/log10f.lo.go obj/src/math/log10l.lo.go obj/src/math/log1p.lo.go obj/src/math/log1pf.lo.go obj/src/math/log1pl.lo.go obj/src/math/log2.lo.go obj/src/math/log2_data.lo.go obj/src/math/log2f.lo.go obj/src/math/log2f_data.lo.go obj/src/math/log2l.lo.go obj/src/math/log_data.lo.go obj/src/math/logb.lo.go obj/src/math/logbf.lo.go obj/src/math/logbl.lo.go obj/src/math/logf.lo.go obj/src/math/logf_data.lo.go obj/src/math/logl.lo.go obj/src/math/lrint.lo.go obj/src/math/lrintf.lo.go obj/src/math/lrintl.lo.go obj/src/math/lround.lo.go obj/src/math/lroundf.lo.go obj/src/math/lroundl.lo.go obj/src/math/modf.lo.go obj/src/math/modff.lo.go obj/src/math/modfl.lo.go obj/src/math/nan.lo.go obj/src/math/nanf.lo.go obj/src/math/nanl.lo.go obj/src/math/nextafter.lo.go obj/src/math/nextafterf.lo.go obj/src/math/nextafterl.lo.go obj/src/math/nexttoward.lo.go obj/src/math/nexttowardf.lo.go obj/src/math/nexttowardl.lo.go obj/src/math/pow.lo.go obj/src/math/pow_data.lo.go obj/src/math/powf.lo.go obj/src/math/powf_data.lo.go obj/src/math/powl.lo.go obj/src/math/remainder.lo.go obj/src/math/remainderf.lo.go obj/src/math/remainderl.lo.go obj/src/math/remquo.lo.go obj/src/math/remquof.lo.go obj/src/math/remquol.lo.go obj/src/math/rint.lo.go obj/src/math/rintf.lo.go obj/src/math/rintl.lo.go obj/src/math/round.lo.go obj/src/math/roundf.lo.go obj/src/math/roundl.lo.go obj/src/math/scalb.lo.go obj/src/math/scalbf.lo.go obj/src/math/scalbln.lo.go obj/src/math/scalblnf.lo.go obj/src/math/scalblnl.lo.go obj/src/math/scalbn.lo.go obj/src/math/scalbnf.lo.go obj/src/math/scalbnl.lo.go obj/src/math/signgam.lo.go obj/src/math/significand.lo.go obj/src/math/significandf.lo.go obj/src/math/sin.lo.go obj/src/math/sincos.lo.go obj/src/math/sincosf.lo.go obj/src/math/sincosl.lo.go obj/src/math/sinf.lo.go obj/src/math/sinh.lo.go obj/src/math/sinhf.lo.go obj/src/math/sinhl.lo.go obj/src/math/sinl.lo.go obj/src/math/sqrt.lo.go obj/src/math/sqrt_data.lo.go obj/src/math/sqrtf.lo.go obj/src/math/sqrtl.lo.go obj/src/math/tan.lo.go obj/src/math/tanf.lo.go obj/src/math/tanh.lo.go obj/src/math/tanhf.lo.go obj/src/math/tanhl.lo.go obj/src/math/tanl.lo.go obj/src/math/tgamma.lo.go obj/src/math/tgammaf.lo.go obj/src/math/tgammal.lo.go obj/src/math/trunc.lo.go obj/src/math/truncf.lo.go obj/src/math/truncl.lo.go obj/src/misc/a64l.lo.go obj/src/misc/basename.lo.go obj/src/misc/dirname.lo.go obj/src/misc/ffs.lo.go obj/src/misc/ffsl.lo.go obj/src/misc/ffsll.lo.go obj/src/misc/fmtmsg.lo.go obj/src/misc/get_current_dir_name.lo.go obj/src/misc/getauxval.lo.go obj/src/misc/getdomainname.lo.go obj/src/misc/getentropy.lo.go obj/src/misc/gethostid.lo.go obj/src/misc/getopt.lo.go obj/src/misc/getopt_long.lo.go obj/src/misc/getpriority.lo.go obj/src/misc/getresgid.lo.go obj/src/misc/getresuid.lo.go obj/src/misc/getrlimit.lo.go obj/src/misc/getrusage.lo.go obj/src/misc/getsubopt.lo.go obj/src/misc/ioctl.lo.go obj/src/misc/issetugid.lo.go obj/src/misc/lockf.lo.go obj/src/misc/login_tty.lo.go obj/src/misc/mntent.lo.go obj/src/misc/nftw.lo.go obj/src/misc/openpty.lo.go obj/src/misc/ptsname.lo.go obj/src/misc/pty.lo.go obj/src/misc/realpath.lo.go obj/src/misc/setdomainname.lo.go obj/src/misc/setpriority.lo.go obj/src/misc/setrlimit.lo.go obj/src/misc/syscall.lo.go obj/src/misc/syslog.lo.go obj/src/misc/uname.lo.go obj/src/mman/madvise.lo.go obj/src/mman/mincore.lo.go obj/src/mman/mlock.lo.go obj/src/mman/mlockall.lo.go obj/src/mman/mmap.lo.go obj/src/mman/mprotect.lo.go obj/src/mman/mremap.lo.go obj/src/mman/msync.lo.go obj/src/mman/munlock.lo.go obj/src/mman/munlockall.lo.go obj/src/mman/munmap.lo.go obj/src/mman/posix_madvise.lo.go obj/src/mman/shm_open.lo.go obj/src/multibyte/btowc.lo.go obj/src/multibyte/c16rtomb.lo.go obj/src/multibyte/c32rtomb.lo.go obj/src/multibyte/internal.lo.go obj/src/multibyte/mblen.lo.go obj/src/multibyte/mbrlen.lo.go obj/src/multibyte/mbrtoc16.lo.go obj/src/multibyte/mbrtoc32.lo.go obj/src/multibyte/mbrtowc.lo.go obj/src/multibyte/mbsinit.lo.go obj/src/multibyte/mbsnrtowcs.lo.go obj/src/multibyte/mbsrtowcs.lo.go obj/src/multibyte/mbstowcs.lo.go obj/src/multibyte/mbtowc.lo.go obj/src/multibyte/wcrtomb.lo.go obj/src/multibyte/wcsnrtombs.lo.go obj/src/multibyte/wcsrtombs.lo.go obj/src/multibyte/wcstombs.lo.go obj/src/multibyte/wctob.lo.go obj/src/multibyte/wctomb.lo.go obj/src/network/accept.lo.go obj/src/network/accept4.lo.go obj/src/network/bind.lo.go obj/src/network/connect.lo.go obj/src/network/dn_comp.lo.go obj/src/network/dn_expand.lo.go obj/src/network/dn_skipname.lo.go obj/src/network/dns_parse.lo.go obj/src/network/ent.lo.go obj/src/network/ether.lo.go obj/src/network/freeaddrinfo.lo.go obj/src/network/gai_strerror.lo.go obj/src/network/getaddrinfo.lo.go obj/src/network/gethostbyaddr.lo.go obj/src/network/gethostbyaddr_r.lo.go obj/src/network/gethostbyname.lo.go obj/src/network/gethostbyname2.lo.go obj/src/network/gethostbyname2_r.lo.go obj/src/network/gethostbyname_r.lo.go obj/src/network/getifaddrs.lo.go obj/src/network/getnameinfo.lo.go obj/src/network/getpeername.lo.go obj/src/network/getservbyname.lo.go obj/src/network/getservbyname_r.lo.go obj/src/network/getsockname.lo.go obj/src/network/getsockopt.lo.go obj/src/network/h_errno.lo.go obj/src/network/herror.lo.go obj/src/network/hstrerror.lo.go obj/src/network/htonl.lo.go obj/src/network/htons.lo.go obj/src/network/if_freenameindex.lo.go obj/src/network/if_indextoname.lo.go obj/src/network/if_nameindex.lo.go obj/src/network/if_nametoindex.lo.go obj/src/network/in6addr_any.lo.go obj/src/network/in6addr_loopback.lo.go obj/src/network/inet_addr.lo.go obj/src/network/inet_aton.lo.go obj/src/network/inet_legacy.lo.go obj/src/network/inet_ntoa.lo.go obj/src/network/inet_ntop.lo.go obj/src/network/inet_pton.lo.go obj/src/network/listen.lo.go obj/src/network/lookup_ipliteral.lo.go obj/src/network/lookup_name.lo.go obj/src/network/lookup_serv.lo.go obj/src/network/netlink.lo.go obj/src/network/netname.lo.go obj/src/network/ns_parse.lo.go obj/src/network/ntohl.lo.go obj/src/network/ntohs.lo.go obj/src/network/proto.lo.go obj/src/network/recv.lo.go obj/src/network/recvfrom.lo.go obj/src/network/recvmmsg.lo.go obj/src/network/recvmsg.lo.go obj/src/network/res_init.lo.go obj/src/network/res_mkquery.lo.go obj/src/network/res_msend.lo.go obj/src/network/res_send.lo.go obj/src/network/res_state.lo.go obj/src/network/resolvconf.lo.go obj/src/network/send.lo.go obj/src/network/sendmmsg.lo.go obj/src/network/sendmsg.lo.go obj/src/network/sendto.lo.go obj/src/network/serv.lo.go obj/src/network/setsockopt.lo.go obj/src/network/shutdown.lo.go obj/src/network/sockatmark.lo.go obj/src/network/socket.lo.go obj/src/network/socketpair.lo.go obj/src/passwd/fgetgrent.lo.go obj/src/passwd/fgetpwent.lo.go obj/src/passwd/getgr_a.lo.go obj/src/passwd/getgr_r.lo.go obj/src/passwd/getgrent.lo.go obj/src/passwd/getgrent_a.lo.go obj/src/passwd/getgrouplist.lo.go obj/src/passwd/getpw_a.lo.go obj/src/passwd/getpw_r.lo.go obj/src/passwd/getpwent.lo.go obj/src/passwd/getpwent_a.lo.go obj/src/passwd/getspent.lo.go obj/src/passwd/lckpwdf.lo.go obj/src/passwd/nscd_query.lo.go obj/src/passwd/putgrent.lo.go obj/src/passwd/putpwent.lo.go obj/src/passwd/putspent.lo.go obj/src/prng/__rand48_step.lo.go obj/src/prng/__seed48.lo.go obj/src/prng/drand48.lo.go obj/src/prng/lcong48.lo.go obj/src/prng/lrand48.lo.go obj/src/prng/mrand48.lo.go obj/src/prng/rand.lo.go obj/src/prng/rand_r.lo.go obj/src/prng/random.lo.go obj/src/prng/seed48.lo.go obj/src/prng/srand48.lo.go obj/src/process/execl.lo.go obj/src/process/execle.lo.go obj/src/process/execlp.lo.go obj/src/process/execv.lo.go obj/src/process/execve.lo.go obj/src/process/execvp.lo.go obj/src/process/fexecve.lo.go obj/src/process/fork.lo.go obj/src/process/posix_spawn_file_actions_addchdir.lo.go obj/src/process/posix_spawn_file_actions_addclose.lo.go obj/src/process/posix_spawn_file_actions_adddup2.lo.go obj/src/process/posix_spawn_file_actions_addfchdir.lo.go obj/src/process/posix_spawn_file_actions_addopen.lo.go obj/src/process/posix_spawn_file_actions_destroy.lo.go obj/src/process/posix_spawn_file_actions_init.lo.go obj/src/process/posix_spawnattr_destroy.lo.go obj/src/process/posix_spawnattr_getflags.lo.go obj/src/process/posix_spawnattr_getpgroup.lo.go obj/src/process/posix_spawnattr_getsigdefault.lo.go obj/src/process/posix_spawnattr_getsigmask.lo.go obj/src/process/posix_spawnattr_init.lo.go obj/src/process/posix_spawnattr_sched.lo.go obj/src/process/posix_spawnattr_setflags.lo.go obj/src/process/posix_spawnattr_setpgroup.lo.go obj/src/process/posix_spawnattr_setsigdefault.lo.go obj/src/process/posix_spawnattr_setsigmask.lo.go obj/src/process/vfork.lo.go obj/src/process/wait.lo.go obj/src/process/waitid.lo.go obj/src/process/waitpid.lo.go obj/src/regex/fnmatch.lo.go obj/src/regex/glob.lo.go obj/src/regex/regcomp.lo.go obj/src/regex/regerror.lo.go obj/src/regex/regexec.lo.go obj/src/regex/tre-mem.lo.go obj/src/search/hsearch.lo.go obj/src/search/insque.lo.go obj/src/search/lsearch.lo.go obj/src/search/tdelete.lo.go obj/src/search/tdestroy.lo.go obj/src/search/tfind.lo.go obj/src/search/tsearch.lo.go obj/src/search/twalk.lo.go obj/src/select/poll.lo.go obj/src/select/ppoll.lo.go obj/src/select/pselect.lo.go obj/src/select/select.lo.go obj/src/signal/block.lo.go obj/src/signal/getitimer.lo.go obj/src/signal/kill.lo.go obj/src/signal/killpg.lo.go obj/src/signal/psiginfo.lo.go obj/src/signal/psignal.lo.go obj/src/signal/raise.lo.go obj/src/signal/restore.lo.go obj/src/signal/setitimer.lo.go obj/src/signal/sigaction.lo.go obj/src/signal/sigaddset.lo.go obj/src/signal/sigaltstack.lo.go obj/src/signal/sigandset.lo.go obj/src/signal/sigdelset.lo.go obj/src/signal/sigemptyset.lo.go obj/src/signal/sigfillset.lo.go obj/src/signal/sigisemptyset.lo.go obj/src/signal/sigismember.lo.go obj/src/signal/sigorset.lo.go obj/src/signal/sigpending.lo.go obj/src/signal/sigprocmask.lo.go obj/src/signal/sigqueue.lo.go obj/src/signal/sigrtmax.lo.go obj/src/signal/sigrtmin.lo.go obj/src/signal/sigsetjmp.lo.go obj/src/signal/sigsetjmp_tail.lo.go obj/src/signal/sigsuspend.lo.go obj/src/signal/sigtimedwait.lo.go obj/src/signal/sigwait.lo.go obj/src/signal/sigwaitinfo.lo.go obj/src/stat/__xstat.lo.go obj/src/stat/chmod.lo.go obj/src/stat/fchmod.lo.go obj/src/stat/fchmodat.lo.go obj/src/stat/fstat.lo.go obj/src/stat/fstatat.lo.go obj/src/stat/futimens.lo.go obj/src/stat/futimesat.lo.go obj/src/stat/lchmod.lo.go obj/src/stat/lstat.lo.go obj/src/stat/mkdir.lo.go obj/src/stat/mkdirat.lo.go obj/src/stat/mkfifo.lo.go obj/src/stat/mkfifoat.lo.go obj/src/stat/mknod.lo.go obj/src/stat/mknodat.lo.go obj/src/stat/stat.lo.go obj/src/stat/statvfs.lo.go obj/src/stat/umask.lo.go obj/src/stat/utimensat.lo.go obj/src/stdio/__fclose_ca.lo.go obj/src/stdio/__fdopen.lo.go obj/src/stdio/__fmodeflags.lo.go obj/src/stdio/__fopen_rb_ca.lo.go obj/src/stdio/__overflow.lo.go obj/src/stdio/__stdio_close.lo.go obj/src/stdio/__stdio_exit.lo.go obj/src/stdio/__stdio_read.lo.go obj/src/stdio/__stdio_seek.lo.go obj/src/stdio/__stdio_write.lo.go obj/src/stdio/__stdout_write.lo.go obj/src/stdio/__toread.lo.go obj/src/stdio/__towrite.lo.go obj/src/stdio/__uflow.lo.go obj/src/stdio/asprintf.lo.go obj/src/stdio/clearerr.lo.go obj/src/stdio/dprintf.lo.go obj/src/stdio/ext.lo.go obj/src/stdio/ext2.lo.go obj/src/stdio/fclose.lo.go obj/src/stdio/feof.lo.go obj/src/stdio/ferror.lo.go obj/src/stdio/fflush.lo.go obj/src/stdio/fgetc.lo.go obj/src/stdio/fgetln.lo.go obj/src/stdio/fgetpos.lo.go obj/src/stdio/fgets.lo.go obj/src/stdio/fgetwc.lo.go obj/src/stdio/fgetws.lo.go obj/src/stdio/fileno.lo.go obj/src/stdio/flockfile.lo.go obj/src/stdio/fmemopen.lo.go obj/src/stdio/fopen.lo.go obj/src/stdio/fopencookie.lo.go obj/src/stdio/fprintf.lo.go obj/src/stdio/fputc.lo.go obj/src/stdio/fputs.lo.go obj/src/stdio/fputwc.lo.go obj/src/stdio/fputws.lo.go obj/src/stdio/fread.lo.go obj/src/stdio/freopen.lo.go obj/src/stdio/fscanf.lo.go obj/src/stdio/fseek.lo.go obj/src/stdio/fsetpos.lo.go obj/src/stdio/ftell.lo.go obj/src/stdio/ftrylockfile.lo.go obj/src/stdio/funlockfile.lo.go obj/src/stdio/fwide.lo.go obj/src/stdio/fwprintf.lo.go obj/src/stdio/fwrite.lo.go obj/src/stdio/fwscanf.lo.go obj/src/stdio/getc.lo.go obj/src/stdio/getc_unlocked.lo.go obj/src/stdio/getchar.lo.go obj/src/stdio/getchar_unlocked.lo.go obj/src/stdio/getdelim.lo.go obj/src/stdio/getline.lo.go obj/src/stdio/gets.lo.go obj/src/stdio/getw.lo.go obj/src/stdio/getwc.lo.go obj/src/stdio/getwchar.lo.go obj/src/stdio/ofl.lo.go obj/src/stdio/ofl_add.lo.go obj/src/stdio/open_memstream.lo.go obj/src/stdio/open_wmemstream.lo.go obj/src/stdio/pclose.lo.go obj/src/stdio/perror.lo.go obj/src/stdio/printf.lo.go obj/src/stdio/putc.lo.go obj/src/stdio/putc_unlocked.lo.go obj/src/stdio/putchar.lo.go obj/src/stdio/putchar_unlocked.lo.go obj/src/stdio/puts.lo.go obj/src/stdio/putw.lo.go obj/src/stdio/putwc.lo.go obj/src/stdio/putwchar.lo.go obj/src/stdio/remove.lo.go obj/src/stdio/rename.lo.go obj/src/stdio/rewind.lo.go obj/src/stdio/scanf.lo.go obj/src/stdio/setbuf.lo.go obj/src/stdio/setbuffer.lo.go obj/src/stdio/setlinebuf.lo.go obj/src/stdio/setvbuf.lo.go obj/src/stdio/snprintf.lo.go obj/src/stdio/sprintf.lo.go obj/src/stdio/sscanf.lo.go obj/src/stdio/stderr.lo.go obj/src/stdio/stdin.lo.go obj/src/stdio/stdout.lo.go obj/src/stdio/swprintf.lo.go obj/src/stdio/swscanf.lo.go obj/src/stdio/tempnam.lo.go obj/src/stdio/tmpfile.lo.go obj/src/stdio/tmpnam.lo.go obj/src/stdio/ungetc.lo.go obj/src/stdio/ungetwc.lo.go obj/src/stdio/vasprintf.lo.go obj/src/stdio/vdprintf.lo.go obj/src/stdio/vfprintf.lo.go obj/src/stdio/vfscanf.lo.go obj/src/stdio/vfwprintf.lo.go obj/src/stdio/vfwscanf.lo.go obj/src/stdio/vprintf.lo.go obj/src/stdio/vscanf.lo.go obj/src/stdio/vsnprintf.lo.go obj/src/stdio/vsprintf.lo.go obj/src/stdio/vsscanf.lo.go obj/src/stdio/vswprintf.lo.go obj/src/stdio/vswscanf.lo.go obj/src/stdio/vwprintf.lo.go obj/src/stdio/vwscanf.lo.go obj/src/stdio/wprintf.lo.go obj/src/stdio/wscanf.lo.go obj/src/stdlib/abs.lo.go obj/src/stdlib/atof.lo.go obj/src/stdlib/atoi.lo.go obj/src/stdlib/atol.lo.go obj/src/stdlib/atoll.lo.go obj/src/stdlib/bsearch.lo.go obj/src/stdlib/div.lo.go obj/src/stdlib/ecvt.lo.go obj/src/stdlib/fcvt.lo.go obj/src/stdlib/gcvt.lo.go obj/src/stdlib/imaxabs.lo.go obj/src/stdlib/imaxdiv.lo.go obj/src/stdlib/labs.lo.go obj/src/stdlib/ldiv.lo.go obj/src/stdlib/llabs.lo.go obj/src/stdlib/lldiv.lo.go obj/src/stdlib/qsort.lo.go obj/src/stdlib/qsort_nr.lo.go obj/src/stdlib/strtod.lo.go obj/src/stdlib/strtol.lo.go obj/src/stdlib/wcstod.lo.go obj/src/stdlib/wcstol.lo.go obj/src/string/bcmp.lo.go obj/src/string/bcopy.lo.go obj/src/string/bzero.lo.go obj/src/string/explicit_bzero.lo.go obj/src/string/index.lo.go obj/src/string/memccpy.lo.go obj/src/string/memchr.lo.go obj/src/string/memcmp.lo.go obj/src/string/memcpy.lo.go obj/src/string/memmem.lo.go obj/src/string/memmove.lo.go obj/src/string/mempcpy.lo.go obj/src/string/memrchr.lo.go obj/src/string/memset.lo.go obj/src/string/rindex.lo.go obj/src/string/stpcpy.lo.go obj/src/string/stpncpy.lo.go obj/src/string/strcasecmp.lo.go obj/src/string/strcasestr.lo.go obj/src/string/strcat.lo.go obj/src/string/strchr.lo.go obj/src/string/strchrnul.lo.go obj/src/string/strcmp.lo.go obj/src/string/strcpy.lo.go obj/src/string/strcspn.lo.go obj/src/string/strdup.lo.go obj/src/string/strerror_r.lo.go obj/src/string/strlcat.lo.go obj/src/string/strlcpy.lo.go obj/src/string/strlen.lo.go obj/src/string/strncasecmp.lo.go obj/src/string/strncat.lo.go obj/src/string/strncmp.lo.go obj/src/string/strncpy.lo.go obj/src/string/strndup.lo.go obj/src/string/strnlen.lo.go obj/src/string/strpbrk.lo.go obj/src/string/strrchr.lo.go obj/src/string/strsep.lo.go obj/src/string/strsignal.lo.go obj/src/string/strspn.lo.go obj/src/string/strstr.lo.go obj/src/string/strtok.lo.go obj/src/string/strtok_r.lo.go obj/src/string/strverscmp.lo.go obj/src/string/swab.lo.go obj/src/string/wcpcpy.lo.go obj/src/string/wcpncpy.lo.go obj/src/string/wcscasecmp.lo.go obj/src/string/wcscasecmp_l.lo.go obj/src/string/wcscat.lo.go obj/src/string/wcschr.lo.go obj/src/string/wcscmp.lo.go obj/src/string/wcscpy.lo.go obj/src/string/wcscspn.lo.go obj/src/string/wcsdup.lo.go obj/src/string/wcslen.lo.go obj/src/string/wcsncasecmp.lo.go obj/src/string/wcsncasecmp_l.lo.go obj/src/string/wcsncat.lo.go obj/src/string/wcsncmp.lo.go obj/src/string/wcsncpy.lo.go obj/src/string/wcsnlen.lo.go obj/src/string/wcspbrk.lo.go obj/src/string/wcsrchr.lo.go obj/src/string/wcsspn.lo.go obj/src/string/wcsstr.lo.go obj/src/string/wcstok.lo.go obj/src/string/wcswcs.lo.go obj/src/string/wmemchr.lo.go obj/src/string/wmemcmp.lo.go obj/src/string/wmemcpy.lo.go obj/src/string/wmemmove.lo.go obj/src/string/wmemset.lo.go obj/src/temp/mkdtemp.lo.go obj/src/temp/mkostemp.lo.go obj/src/temp/mkostemps.lo.go obj/src/temp/mkstemp.lo.go obj/src/temp/mkstemps.lo.go obj/src/temp/mktemp.lo.go obj/src/termios/cfgetospeed.lo.go obj/src/termios/cfmakeraw.lo.go obj/src/termios/cfsetospeed.lo.go obj/src/termios/tcdrain.lo.go obj/src/termios/tcflow.lo.go obj/src/termios/tcflush.lo.go obj/src/termios/tcgetattr.lo.go obj/src/termios/tcgetsid.lo.go obj/src/termios/tcgetwinsize.lo.go obj/src/termios/tcsendbreak.lo.go obj/src/termios/tcsetattr.lo.go obj/src/termios/tcsetwinsize.lo.go obj/src/time/__map_file.lo.go obj/src/time/__month_to_secs.lo.go obj/src/time/__secs_to_tm.lo.go obj/src/time/__tm_to_secs.lo.go obj/src/time/__tz.lo.go obj/src/time/__year_to_secs.lo.go obj/src/time/asctime.lo.go obj/src/time/asctime_r.lo.go obj/src/time/clock.lo.go obj/src/time/clock_getcpuclockid.lo.go obj/src/time/clock_getres.lo.go obj/src/time/clock_gettime.lo.go obj/src/time/clock_nanosleep.lo.go obj/src/time/clock_settime.lo.go obj/src/time/ctime.lo.go obj/src/time/ctime_r.lo.go obj/src/time/difftime.lo.go obj/src/time/ftime.lo.go obj/src/time/getdate.lo.go obj/src/time/gettimeofday.lo.go obj/src/time/gmtime.lo.go obj/src/time/gmtime_r.lo.go obj/src/time/localtime.lo.go obj/src/time/localtime_r.lo.go obj/src/time/mktime.lo.go obj/src/time/nanosleep.lo.go obj/src/time/strftime.lo.go obj/src/time/strptime.lo.go obj/src/time/time.lo.go obj/src/time/timegm.lo.go obj/src/time/timer_delete.lo.go obj/src/time/timer_getoverrun.lo.go obj/src/time/timer_gettime.lo.go obj/src/time/timer_settime.lo.go obj/src/time/times.lo.go obj/src/time/timespec_get.lo.go obj/src/time/utime.lo.go obj/src/time/wcsftime.lo.go obj/src/unistd/_exit.lo.go obj/src/unistd/access.lo.go obj/src/unistd/acct.lo.go obj/src/unistd/alarm.lo.go obj/src/unistd/chdir.lo.go obj/src/unistd/chown.lo.go obj/src/unistd/close.lo.go obj/src/unistd/ctermid.lo.go obj/src/unistd/dup.lo.go obj/src/unistd/dup2.lo.go obj/src/unistd/dup3.lo.go obj/src/unistd/faccessat.lo.go obj/src/unistd/fchdir.lo.go obj/src/unistd/fchown.lo.go obj/src/unistd/fchownat.lo.go obj/src/unistd/fdatasync.lo.go obj/src/unistd/fsync.lo.go obj/src/unistd/ftruncate.lo.go obj/src/unistd/getcwd.lo.go obj/src/unistd/getegid.lo.go obj/src/unistd/geteuid.lo.go obj/src/unistd/getgid.lo.go obj/src/unistd/getgroups.lo.go obj/src/unistd/gethostname.lo.go obj/src/unistd/getlogin.lo.go obj/src/unistd/getlogin_r.lo.go obj/src/unistd/getpgid.lo.go obj/src/unistd/getpgrp.lo.go obj/src/unistd/getpid.lo.go obj/src/unistd/getppid.lo.go obj/src/unistd/getsid.lo.go obj/src/unistd/getuid.lo.go obj/src/unistd/isatty.lo.go obj/src/unistd/lchown.lo.go obj/src/unistd/link.lo.go obj/src/unistd/linkat.lo.go obj/src/unistd/lseek.lo.go obj/src/unistd/nice.lo.go obj/src/unistd/pause.lo.go obj/src/unistd/pipe.lo.go obj/src/unistd/pipe2.lo.go obj/src/unistd/posix_close.lo.go obj/src/unistd/pread.lo.go obj/src/unistd/preadv.lo.go obj/src/unistd/pwrite.lo.go obj/src/unistd/pwritev.lo.go obj/src/unistd/read.lo.go obj/src/unistd/readlink.lo.go obj/src/unistd/readlinkat.lo.go obj/src/unistd/readv.lo.go obj/src/unistd/renameat.lo.go obj/src/unistd/rmdir.lo.go obj/src/unistd/setpgid.lo.go obj/src/unistd/setpgrp.lo.go obj/src/unistd/setsid.lo.go obj/src/unistd/sleep.lo.go obj/src/unistd/symlink.lo.go obj/src/unistd/symlinkat.lo.go obj/src/unistd/sync.lo.go obj/src/unistd/tcgetpgrp.lo.go obj/src/unistd/tcsetpgrp.lo.go obj/src/unistd/truncate.lo.go obj/src/unistd/ttyname.lo.go obj/src/unistd/ttyname_r.lo.go obj/src/unistd/ualarm.lo.go obj/src/unistd/unlink.lo.go obj/src/unistd/unlinkat.lo.go obj/src/unistd/usleep.lo.go obj/src/unistd/write.lo.go obj/src/unistd/writev.lo.go -lgcc -lgcc_eh', DO NOT EDIT.
 
-//go:build linux && amd64
-// +build linux,amd64
+//go:build linux && loong64
+// +build linux,loong64
 
 package libc
 
@@ -45,6 +45,8 @@ const FLT_MIN_EXP = -125
 const FLT_RADIX = 2
 const FLT_ROUNDS = 0
 const FLT_TRUE_MIN = 0
+const FP_FAST_FMA = 1
+const FP_FAST_FMAF = 1
 const FP_ILOGB0 = -2147483648
 const FP_ILOGBNAN = -2147483648
 const FP_INFINITE = 1
@@ -141,14 +143,28 @@ const WCHAR_MAX = 2147483647
 const WCHAR_MIN = -2147483648
 const WINT_MAX = 4294967295
 const WINT_MIN = 0
+const _ABILP64 = 3
 const _Complex_I = 0
+const _LOONGARCH_ARCH = "loongarch64"
+const _LOONGARCH_ARCH_LOONGARCH64 = 1
+const _LOONGARCH_FPSET = 32
+const _LOONGARCH_SIM = 3
+const _LOONGARCH_SPFPSET = 32
+const _LOONGARCH_SZINT = 32
+const _LOONGARCH_SZLONG = 64
+const _LOONGARCH_SZPTR = 64
+const _LOONGARCH_TUNE = "la464"
+const _LOONGARCH_TUNE_LA464 = 1
 const _LP64 = 1
 const _XOPEN_SOURCE = 700
+const __ACCUM_EPSILON__ = 0
+const __ACCUM_FBIT__ = 15
+const __ACCUM_IBIT__ = 16
+const __ACCUM_MAX__ = 0
+const __ACCUM_MIN__ = 0
 const __ATOMIC_ACQUIRE = 2
 const __ATOMIC_ACQ_REL = 4
 const __ATOMIC_CONSUME = 1
-const __ATOMIC_HLE_ACQUIRE = 65536
-const __ATOMIC_HLE_RELEASE = 131072
 const __ATOMIC_RELAXED = 0
 const __ATOMIC_RELEASE = 3
 const __ATOMIC_SEQ_CST = 5
@@ -158,41 +174,23 @@ const __BYTE_ORDER = 1234
 const __BYTE_ORDER__ = 1234
 const __CCGO__ = 1
 const __CHAR_BIT__ = 8
+const __DA_FBIT__ = 31
+const __DA_IBIT__ = 32
 const __DBL_DECIMAL_DIG__ = 17
 const __DBL_DIG__ = 15
 const __DBL_HAS_DENORM__ = 1
 const __DBL_HAS_INFINITY__ = 1
 const __DBL_HAS_QUIET_NAN__ = 1
-const __DBL_IS_IEC_60559__ = 2
+const __DBL_IS_IEC_60559__ = 1
 const __DBL_MANT_DIG__ = 53
 const __DBL_MAX_10_EXP__ = 308
 const __DBL_MAX_EXP__ = 1024
 const __DBL_MIN_10_EXP__ = -307
 const __DBL_MIN_EXP__ = -1021
-const __DEC128_EPSILON__ = 0
-const __DEC128_MANT_DIG__ = 34
-const __DEC128_MAX_EXP__ = 6145
-const __DEC128_MAX__ = 0
-const __DEC128_MIN_EXP__ = -6142
-const __DEC128_MIN__ = 0
-const __DEC128_SUBNORMAL_MIN__ = 0
-const __DEC32_EPSILON__ = 0
-const __DEC32_MANT_DIG__ = 7
-const __DEC32_MAX_EXP__ = 97
-const __DEC32_MAX__ = 0
-const __DEC32_MIN_EXP__ = -94
-const __DEC32_MIN__ = 0
-const __DEC32_SUBNORMAL_MIN__ = 0
-const __DEC64_EPSILON__ = 0
-const __DEC64_MANT_DIG__ = 16
-const __DEC64_MAX_EXP__ = 385
-const __DEC64_MAX__ = 0
-const __DEC64_MIN_EXP__ = -382
-const __DEC64_MIN__ = 0
-const __DEC64_SUBNORMAL_MIN__ = 0
-const __DECIMAL_BID_FORMAT__ = 1
-const __DECIMAL_DIG__ = 17
+const __DECIMAL_DIG__ = 36
 const __DEC_EVAL_METHOD__ = 2
+const __DQ_FBIT__ = 63
+const __DQ_IBIT__ = 0
 const __ELF__ = 1
 const __FINITE_MATH_ONLY__ = 0
 const __FLOAT_WORD_ORDER__ = 1234
@@ -203,7 +201,7 @@ const __FLT128_EPSILON__ = 0
 const __FLT128_HAS_DENORM__ = 1
 const __FLT128_HAS_INFINITY__ = 1
 const __FLT128_HAS_QUIET_NAN__ = 1
-const __FLT128_IS_IEC_60559__ = 2
+const __FLT128_IS_IEC_60559__ = 1
 const __FLT128_MANT_DIG__ = 113
 const __FLT128_MAX_10_EXP__ = 4932
 const __FLT128_MAX_EXP__ = 16384
@@ -212,22 +210,6 @@ const __FLT128_MIN_10_EXP__ = -4931
 const __FLT128_MIN_EXP__ = -16381
 const __FLT128_MIN__ = 0
 const __FLT128_NORM_MAX__ = 0
-const __FLT16_DECIMAL_DIG__ = 5
-const __FLT16_DENORM_MIN__ = 0
-const __FLT16_DIG__ = 3
-const __FLT16_EPSILON__ = 0
-const __FLT16_HAS_DENORM__ = 1
-const __FLT16_HAS_INFINITY__ = 1
-const __FLT16_HAS_QUIET_NAN__ = 1
-const __FLT16_IS_IEC_60559__ = 2
-const __FLT16_MANT_DIG__ = 11
-const __FLT16_MAX_10_EXP__ = 4
-const __FLT16_MAX_EXP__ = 16
-const __FLT16_MAX__ = 0
-const __FLT16_MIN_10_EXP__ = -4
-const __FLT16_MIN_EXP__ = -13
-const __FLT16_MIN__ = 0
-const __FLT16_NORM_MAX__ = 0
 const __FLT32X_DECIMAL_DIG__ = 17
 const __FLT32X_DENORM_MIN__ = 0
 const __FLT32X_DIG__ = 15
@@ -235,7 +217,7 @@ const __FLT32X_EPSILON__ = 0
 const __FLT32X_HAS_DENORM__ = 1
 const __FLT32X_HAS_INFINITY__ = 1
 const __FLT32X_HAS_QUIET_NAN__ = 1
-const __FLT32X_IS_IEC_60559__ = 2
+const __FLT32X_IS_IEC_60559__ = 1
 const __FLT32X_MANT_DIG__ = 53
 const __FLT32X_MAX_10_EXP__ = 308
 const __FLT32X_MAX_EXP__ = 1024
@@ -251,7 +233,7 @@ const __FLT32_EPSILON__ = 0
 const __FLT32_HAS_DENORM__ = 1
 const __FLT32_HAS_INFINITY__ = 1
 const __FLT32_HAS_QUIET_NAN__ = 1
-const __FLT32_IS_IEC_60559__ = 2
+const __FLT32_IS_IEC_60559__ = 1
 const __FLT32_MANT_DIG__ = 24
 const __FLT32_MAX_10_EXP__ = 38
 const __FLT32_MAX_EXP__ = 128
@@ -267,7 +249,7 @@ const __FLT64X_EPSILON__ = 0
 const __FLT64X_HAS_DENORM__ = 1
 const __FLT64X_HAS_INFINITY__ = 1
 const __FLT64X_HAS_QUIET_NAN__ = 1
-const __FLT64X_IS_IEC_60559__ = 2
+const __FLT64X_IS_IEC_60559__ = 1
 const __FLT64X_MANT_DIG__ = 113
 const __FLT64X_MAX_10_EXP__ = 4932
 const __FLT64X_MAX_EXP__ = 16384
@@ -283,7 +265,7 @@ const __FLT64_EPSILON__ = 0
 const __FLT64_HAS_DENORM__ = 1
 const __FLT64_HAS_INFINITY__ = 1
 const __FLT64_HAS_QUIET_NAN__ = 1
-const __FLT64_IS_IEC_60559__ = 2
+const __FLT64_IS_IEC_60559__ = 1
 const __FLT64_MANT_DIG__ = 53
 const __FLT64_MAX_10_EXP__ = 308
 const __FLT64_MAX_EXP__ = 1024
@@ -301,7 +283,7 @@ const __FLT_EVAL_METHOD__ = 0
 const __FLT_HAS_DENORM__ = 1
 const __FLT_HAS_INFINITY__ = 1
 const __FLT_HAS_QUIET_NAN__ = 1
-const __FLT_IS_IEC_60559__ = 2
+const __FLT_IS_IEC_60559__ = 1
 const __FLT_MANT_DIG__ = 24
 const __FLT_MAX_10_EXP__ = 38
 const __FLT_MAX_EXP__ = 128
@@ -311,9 +293,17 @@ const __FLT_MIN_EXP__ = -125
 const __FLT_MIN__ = 0
 const __FLT_NORM_MAX__ = 0
 const __FLT_RADIX__ = 2
+const __FP_FAST_FMA = 1
+const __FP_FAST_FMAF = 1
+const __FP_FAST_FMAF32 = 1
+const __FP_FAST_FMAF32x = 1
+const __FP_FAST_FMAF64 = 1
+const __FRACT_EPSILON__ = 0
+const __FRACT_FBIT__ = 15
+const __FRACT_IBIT__ = 0
+const __FRACT_MAX__ = 0
+const __FRACT_MIN__ = 0
 const __FUNCTION__ = 0
-const __FXSR__ = 1
-const __GCC_ASM_FLAG_OUTPUTS__ = 1
 const __GCC_ATOMIC_BOOL_LOCK_FREE = 2
 const __GCC_ATOMIC_CHAR16_T_LOCK_FREE = 2
 const __GCC_ATOMIC_CHAR32_T_LOCK_FREE = 2
@@ -325,8 +315,6 @@ const __GCC_ATOMIC_POINTER_LOCK_FREE = 2
 const __GCC_ATOMIC_SHORT_LOCK_FREE = 2
 const __GCC_ATOMIC_TEST_AND_SET_TRUEVAL = 1
 const __GCC_ATOMIC_WCHAR_T_LOCK_FREE = 2
-const __GCC_CONSTRUCTIVE_SIZE = 64
-const __GCC_DESTRUCTIVE_SIZE = 64
 const __GCC_HAVE_DWARF2_CFI_ASM = 1
 const __GCC_HAVE_SYNC_COMPARE_AND_SWAP_1 = 1
 const __GCC_HAVE_SYNC_COMPARE_AND_SWAP_2 = 1
@@ -336,12 +324,17 @@ const __GCC_IEC_559 = 2
 const __GCC_IEC_559_COMPLEX = 2
 const __GNUC_EXECUTION_CHARSET_NAME = "UTF-8"
 const __GNUC_MINOR__ = 2
-const __GNUC_PATCHLEVEL__ = 0
+const __GNUC_PATCHLEVEL__ = 1
+const __GNUC_RH_RELEASE__ = 2
 const __GNUC_STDC_INLINE__ = 1
 const __GNUC_WIDE_EXECUTION_CHARSET_NAME = "UTF-32LE"
-const __GNUC__ = 12
-const __GXX_ABI_VERSION = 1017
+const __GNUC__ = 13
+const __GXX_ABI_VERSION = 1018
 const __HAVE_SPECULATION_SAFE_VALUE = 1
+const __HA_FBIT__ = 7
+const __HA_IBIT__ = 8
+const __HQ_FBIT__ = 15
+const __HQ_IBIT__ = 0
 const __INT16_MAX__ = 32767
 const __INT32_MAX__ = 2147483647
 const __INT32_TYPE__ = 0
@@ -370,47 +363,75 @@ const __INT_LEAST8_MAX__ = 127
 const __INT_LEAST8_WIDTH__ = 8
 const __INT_MAX__ = 2147483647
 const __INT_WIDTH__ = 32
-const __LDBL_DECIMAL_DIG__ = 17
+const __LACCUM_EPSILON__ = 0
+const __LACCUM_FBIT__ = 31
+const __LACCUM_IBIT__ = 32
+const __LACCUM_MAX__ = 0
+const __LACCUM_MIN__ = 0
+const __LDBL_DECIMAL_DIG__ = 36
 const __LDBL_DENORM_MIN__ = 0
-const __LDBL_DIG__ = 15
+const __LDBL_DIG__ = 33
 const __LDBL_EPSILON__ = 0
 const __LDBL_HAS_DENORM__ = 1
 const __LDBL_HAS_INFINITY__ = 1
 const __LDBL_HAS_QUIET_NAN__ = 1
-const __LDBL_IS_IEC_60559__ = 2
-const __LDBL_MANT_DIG__ = 53
-const __LDBL_MAX_10_EXP__ = 308
-const __LDBL_MAX_EXP__ = 1024
+const __LDBL_IS_IEC_60559__ = 1
+const __LDBL_MANT_DIG__ = 113
+const __LDBL_MAX_10_EXP__ = 4932
+const __LDBL_MAX_EXP__ = 16384
 const __LDBL_MAX__ = 0
-const __LDBL_MIN_10_EXP__ = -307
-const __LDBL_MIN_EXP__ = -1021
+const __LDBL_MIN_10_EXP__ = -4931
+const __LDBL_MIN_EXP__ = -16381
 const __LDBL_MIN__ = 0
 const __LDBL_NORM_MAX__ = 0
+const __LFRACT_EPSILON__ = 0
+const __LFRACT_FBIT__ = 31
+const __LFRACT_IBIT__ = 0
+const __LFRACT_MAX__ = 0
+const __LFRACT_MIN__ = 0
 const __LITTLE_ENDIAN = 1234
-const __LONG_DOUBLE_64__ = 1
+const __LLACCUM_EPSILON__ = 0
+const __LLACCUM_FBIT__ = 63
+const __LLACCUM_IBIT__ = 64
+const __LLACCUM_MAX__ = 0
+const __LLACCUM_MIN__ = 0
+const __LLFRACT_EPSILON__ = 0
+const __LLFRACT_FBIT__ = 63
+const __LLFRACT_IBIT__ = 0
+const __LLFRACT_MAX__ = 0
+const __LLFRACT_MIN__ = 0
 const __LONG_LONG_MAX__ = 9223372036854775807
 const __LONG_LONG_WIDTH__ = 64
 const __LONG_MAX = 9223372036854775807
 const __LONG_MAX__ = 9223372036854775807
 const __LONG_WIDTH__ = 64
 const __LP64__ = 1
-const __MMX_WITH_SSE__ = 1
-const __MMX__ = 1
 const __NO_INLINE__ = 1
 const __ORDER_BIG_ENDIAN__ = 4321
 const __ORDER_LITTLE_ENDIAN__ = 1234
 const __ORDER_PDP_ENDIAN__ = 3412
 const __PDP_ENDIAN = 3412
-const __PIC__ = 2
-const __PIE__ = 2
 const __PRAGMA_REDEFINE_EXTNAME = 1
 const __PRETTY_FUNCTION__ = 0
 const __PTRDIFF_MAX__ = 9223372036854775807
 const __PTRDIFF_WIDTH__ = 64
+const __QQ_FBIT__ = 7
+const __QQ_IBIT__ = 0
+const __REGISTER_PREFIX__ = 0
+const __SACCUM_EPSILON__ = 0
+const __SACCUM_FBIT__ = 7
+const __SACCUM_IBIT__ = 8
+const __SACCUM_MAX__ = 0
+const __SACCUM_MIN__ = 0
+const __SA_FBIT__ = 15
+const __SA_IBIT__ = 16
 const __SCHAR_MAX__ = 127
 const __SCHAR_WIDTH__ = 8
-const __SEG_FS = 1
-const __SEG_GS = 1
+const __SFRACT_EPSILON__ = 0
+const __SFRACT_FBIT__ = 7
+const __SFRACT_IBIT__ = 0
+const __SFRACT_MAX__ = 0
+const __SFRACT_MIN__ = 0
 const __SHRT_MAX__ = 32767
 const __SHRT_WIDTH__ = 16
 const __SIG_ATOMIC_MAX__ = 2147483647
@@ -418,8 +439,6 @@ const __SIG_ATOMIC_MIN__ = -2147483648
 const __SIG_ATOMIC_TYPE__ = 0
 const __SIG_ATOMIC_WIDTH__ = 32
 const __SIZEOF_DOUBLE__ = 8
-const __SIZEOF_FLOAT128__ = 16
-const __SIZEOF_FLOAT80__ = 16
 const __SIZEOF_FLOAT__ = 4
 const __SIZEOF_INT128__ = 16
 const __SIZEOF_INT__ = 4
@@ -434,14 +453,34 @@ const __SIZEOF_WCHAR_T__ = 4
 const __SIZEOF_WINT_T__ = 4
 const __SIZE_MAX__ = 18446744073709551615
 const __SIZE_WIDTH__ = 64
-const __SSE2_MATH__ = 1
-const __SSE2__ = 1
-const __SSE_MATH__ = 1
-const __SSE__ = 1
+const __SQ_FBIT__ = 31
+const __SQ_IBIT__ = 0
 const __STDC_HOSTED__ = 0
 const __STDC_VERSION__ = 199901
 const __STDC__ = 1
 const __STRICT_ANSI__ = 1
+const __TA_FBIT__ = 63
+const __TA_IBIT__ = 64
+const __TQ_FBIT__ = 127
+const __TQ_IBIT__ = 0
+const __UACCUM_EPSILON__ = 0
+const __UACCUM_FBIT__ = 16
+const __UACCUM_IBIT__ = 16
+const __UACCUM_MAX__ = 0
+const __UACCUM_MIN__ = 0
+const __UDA_FBIT__ = 32
+const __UDA_IBIT__ = 32
+const __UDQ_FBIT__ = 64
+const __UDQ_IBIT__ = 0
+const __UFRACT_EPSILON__ = 0
+const __UFRACT_FBIT__ = 16
+const __UFRACT_IBIT__ = 0
+const __UFRACT_MAX__ = 0
+const __UFRACT_MIN__ = 0
+const __UHA_FBIT__ = 8
+const __UHA_IBIT__ = 8
+const __UHQ_FBIT__ = 16
+const __UHQ_IBIT__ = 0
 const __UINT16_MAX__ = 65535
 const __UINT32_MAX__ = 4294967295
 const __UINT64_MAX__ = 18446744073709551615
@@ -456,8 +495,48 @@ const __UINT_LEAST16_MAX__ = 65535
 const __UINT_LEAST32_MAX__ = 4294967295
 const __UINT_LEAST64_MAX__ = 18446744073709551615
 const __UINT_LEAST8_MAX__ = 255
+const __ULACCUM_EPSILON__ = 0
+const __ULACCUM_FBIT__ = 32
+const __ULACCUM_IBIT__ = 32
+const __ULACCUM_MAX__ = 0
+const __ULACCUM_MIN__ = 0
+const __ULFRACT_EPSILON__ = 0
+const __ULFRACT_FBIT__ = 32
+const __ULFRACT_IBIT__ = 0
+const __ULFRACT_MAX__ = 0
+const __ULFRACT_MIN__ = 0
+const __ULLACCUM_EPSILON__ = 0
+const __ULLACCUM_FBIT__ = 64
+const __ULLACCUM_IBIT__ = 64
+const __ULLACCUM_MAX__ = 0
+const __ULLACCUM_MIN__ = 0
+const __ULLFRACT_EPSILON__ = 0
+const __ULLFRACT_FBIT__ = 64
+const __ULLFRACT_IBIT__ = 0
+const __ULLFRACT_MAX__ = 0
+const __ULLFRACT_MIN__ = 0
+const __UQQ_FBIT__ = 8
+const __UQQ_IBIT__ = 0
+const __USACCUM_EPSILON__ = 0
+const __USACCUM_FBIT__ = 8
+const __USACCUM_IBIT__ = 8
+const __USACCUM_MAX__ = 0
+const __USACCUM_MIN__ = 0
+const __USA_FBIT__ = 16
+const __USA_IBIT__ = 16
 const __USE_TIME_BITS64 = 1
-const __VERSION__ = "12.2.0"
+const __USFRACT_EPSILON__ = 0
+const __USFRACT_FBIT__ = 8
+const __USFRACT_IBIT__ = 0
+const __USFRACT_MAX__ = 0
+const __USFRACT_MIN__ = 0
+const __USQ_FBIT__ = 32
+const __USQ_IBIT__ = 0
+const __UTA_FBIT__ = 64
+const __UTA_IBIT__ = 64
+const __UTQ_FBIT__ = 128
+const __UTQ_IBIT__ = 0
+const __VERSION__ = "13.2.1 20230728 (Red Hat 13.2.1-2)"
 const __WCHAR_MAX__ = 2147483647
 const __WCHAR_MIN__ = -2147483648
 const __WCHAR_TYPE__ = 0
@@ -465,23 +544,21 @@ const __WCHAR_WIDTH__ = 32
 const __WINT_MAX__ = 4294967295
 const __WINT_MIN__ = 0
 const __WINT_WIDTH__ = 32
-const __amd64 = 1
-const __amd64__ = 1
-const __code_model_small__ = 1
 const __gnu_linux__ = 1
 const __inline = 0
-const __k8 = 1
-const __k8__ = 1
 const __linux = 1
 const __linux__ = 1
-const __pic__ = 2
-const __pie__ = 2
+const __loongarch64 = 1
+const __loongarch__ = 1
+const __loongarch_double_float = 1
+const __loongarch_frlen = 64
+const __loongarch_grlen = 64
+const __loongarch_hard_float = 1
+const __loongarch_lp64 = 1
 const __restrict = 0
 const __restrict_arr = 0
 const __unix = 1
 const __unix__ = 1
-const __x86_64 = 1
-const __x86_64__ = 1
 const complex1 = 0
 const math_errhandling = 2
 
@@ -3233,8 +3310,6 @@ const NL_MSGMAX = 32767
 const NL_SETMAX = 255
 const NL_TEXTMAX = 2048
 const NZERO = 20
-const PAGESIZE = 4096
-const PAGE_SIZE = 4096
 const PATH_MAX = 4096
 const PIPE_BUF = 4096
 const PTHREAD_DESTRUCTOR_ITERATIONS = 4
@@ -4044,7 +4119,7 @@ const LL_IGNORE_INT_VER = 2
 const LL_NONE = 0
 const LL_REQUIRE_MINOR = 4
 const MB_CUR_MAX = 0
-const MINSIGSTKSZ = 2048
+const MINSIGSTKSZ = 4096
 const MIPS_AFL_ASE_DSP = 1
 const MIPS_AFL_ASE_DSPR2 = 2
 const MIPS_AFL_ASE_EVA = 4
@@ -5810,7 +5885,6 @@ const SA_NODEFER = 1073741824
 const SA_ONSTACK = 134217728
 const SA_RESETHAND = 2147483648
 const SA_RESTART = 268435456
-const SA_RESTORER = 67108864
 const SA_SIGINFO = 4
 const SA_UNSUPPORTED = 1024
 const SCM_TIMESTAMPING_OLD = 37
@@ -5984,7 +6058,7 @@ const SIGRTMAX = 0
 const SIGRTMIN = 0
 const SIGSEGV = 11
 const SIGSTKFLT = 16
-const SIGSTKSZ = 8192
+const SIGSTKSZ = 16384
 const SIGSTOP = 19
 const SIGSYS = 31
 const SIGTERM = 15
@@ -6079,373 +6153,317 @@ const SYMINFO_NONE = 0
 const SYMINFO_NUM = 2
 const SYSCALL_MMAP2_UNIT = 4096
 const SYSCALL_RLIM_INFINITY = 18446744073709551615
-const SYS__sysctl = 156
-const SYS_accept = 43
-const SYS_accept4 = 288
-const SYS_access = 21
-const SYS_acct = 163
-const SYS_add_key = 248
-const SYS_adjtimex = 159
-const SYS_afs_syscall = 183
-const SYS_alarm = 37
-const SYS_arch_prctl = 158
-const SYS_bind = 49
-const SYS_bpf = 321
-const SYS_brk = 12
+const SYS_accept = 202
+const SYS_accept4 = 242
+const SYS_acct = 89
+const SYS_add_key = 217
+const SYS_adjtimex = 171
+const SYS_arch_specific_syscall = 244
+const SYS_bind = 200
+const SYS_bpf = 280
+const SYS_brk = 214
 const SYS_cachestat = 451
-const SYS_capget = 125
-const SYS_capset = 126
-const SYS_chdir = 80
-const SYS_chmod = 90
-const SYS_chown = 92
-const SYS_chroot = 161
-const SYS_clock_adjtime = 305
-const SYS_clock_getres = 229
-const SYS_clock_gettime = 228
-const SYS_clock_nanosleep = 230
-const SYS_clock_settime = 227
-const SYS_clone = 56
+const SYS_capget = 90
+const SYS_capset = 91
+const SYS_chdir = 49
+const SYS_chroot = 51
+const SYS_clock_adjtime = 266
+const SYS_clock_getres = 114
+const SYS_clock_gettime = 113
+const SYS_clock_nanosleep = 115
+const SYS_clock_settime = 112
+const SYS_clone = 220
 const SYS_clone3 = 435
-const SYS_close = 3
+const SYS_close = 57
 const SYS_close_range = 436
-const SYS_connect = 42
-const SYS_copy_file_range = 326
-const SYS_creat = 85
-const SYS_create_module = 174
-const SYS_delete_module = 176
-const SYS_dup = 32
-const SYS_dup2 = 33
-const SYS_dup3 = 292
-const SYS_epoll_create = 213
-const SYS_epoll_create1 = 291
-const SYS_epoll_ctl = 233
-const SYS_epoll_ctl_old = 214
-const SYS_epoll_pwait = 281
+const SYS_connect = 203
+const SYS_copy_file_range = 285
+const SYS_delete_module = 106
+const SYS_dup = 23
+const SYS_dup3 = 24
+const SYS_epoll_create1 = 20
+const SYS_epoll_ctl = 21
+const SYS_epoll_pwait = 22
 const SYS_epoll_pwait2 = 441
-const SYS_epoll_wait = 232
-const SYS_epoll_wait_old = 215
-const SYS_eventfd = 284
-const SYS_eventfd2 = 290
-const SYS_execve = 59
-const SYS_execveat = 322
-const SYS_exit = 60
-const SYS_exit_group = 231
-const SYS_faccessat = 269
+const SYS_eventfd2 = 19
+const SYS_execve = 221
+const SYS_execveat = 281
+const SYS_exit = 93
+const SYS_exit_group = 94
+const SYS_faccessat = 48
 const SYS_faccessat2 = 439
-const SYS_fadvise = 221
-const SYS_fadvise64 = 221
-const SYS_fallocate = 285
-const SYS_fanotify_init = 300
-const SYS_fanotify_mark = 301
-const SYS_fchdir = 81
-const SYS_fchmod = 91
-const SYS_fchmodat = 268
+const SYS_fadvise = 223
+const SYS_fadvise64 = 223
+const SYS_fallocate = 47
+const SYS_fanotify_init = 262
+const SYS_fanotify_mark = 263
+const SYS_fchdir = 50
+const SYS_fchmod = 52
+const SYS_fchmodat = 53
 const SYS_fchmodat2 = 452
-const SYS_fchown = 93
-const SYS_fchownat = 260
-const SYS_fcntl = 72
-const SYS_fdatasync = 75
-const SYS_fgetxattr = 193
-const SYS_finit_module = 313
-const SYS_flistxattr = 196
-const SYS_flock = 73
-const SYS_fork = 57
-const SYS_fremovexattr = 199
+const SYS_fchown = 55
+const SYS_fchownat = 54
+const SYS_fcntl = 25
+const SYS_fdatasync = 83
+const SYS_fgetxattr = 10
+const SYS_finit_module = 273
+const SYS_flistxattr = 13
+const SYS_flock = 32
+const SYS_fremovexattr = 16
 const SYS_fsconfig = 431
-const SYS_fsetxattr = 190
+const SYS_fsetxattr = 7
 const SYS_fsmount = 432
 const SYS_fsopen = 430
 const SYS_fspick = 433
-const SYS_fstat = 5
-const SYS_fstatat = 262
-const SYS_fstatfs = 138
-const SYS_fsync = 74
-const SYS_ftruncate = 77
-const SYS_futex = 202
+const SYS_fstatfs = 44
+const SYS_fsync = 82
+const SYS_ftruncate = 46
+const SYS_futex = 98
+const SYS_futex_requeue = 456
+const SYS_futex_wait = 455
 const SYS_futex_waitv = 449
-const SYS_futimesat = 261
-const SYS_get_kernel_syms = 177
-const SYS_get_mempolicy = 239
-const SYS_get_robust_list = 274
-const SYS_get_thread_area = 211
-const SYS_getcpu = 309
-const SYS_getcwd = 79
-const SYS_getdents = 217
-const SYS_getdents64 = 217
-const SYS_getegid = 108
-const SYS_geteuid = 107
-const SYS_getgid = 104
-const SYS_getgroups = 115
-const SYS_getitimer = 36
-const SYS_getpeername = 52
-const SYS_getpgid = 121
-const SYS_getpgrp = 111
-const SYS_getpid = 39
-const SYS_getpmsg = 181
-const SYS_getppid = 110
-const SYS_getpriority = 140
-const SYS_getrandom = 318
-const SYS_getresgid = 120
-const SYS_getresuid = 118
-const SYS_getrlimit = 97
-const SYS_getrusage = 98
-const SYS_getsid = 124
-const SYS_getsockname = 51
-const SYS_getsockopt = 55
-const SYS_gettid = 186
-const SYS_gettimeofday = 96
-const SYS_getuid = 102
-const SYS_getxattr = 191
-const SYS_init_module = 175
-const SYS_inotify_add_watch = 254
-const SYS_inotify_init = 253
-const SYS_inotify_init1 = 294
-const SYS_inotify_rm_watch = 255
-const SYS_io_cancel = 210
-const SYS_io_destroy = 207
-const SYS_io_getevents = 208
-const SYS_io_pgetevents = 333
-const SYS_io_setup = 206
-const SYS_io_submit = 209
+const SYS_futex_wake = 454
+const SYS_get_mempolicy = 236
+const SYS_get_robust_list = 100
+const SYS_getcpu = 168
+const SYS_getcwd = 17
+const SYS_getdents = 61
+const SYS_getdents64 = 61
+const SYS_getegid = 177
+const SYS_geteuid = 175
+const SYS_getgid = 176
+const SYS_getgroups = 158
+const SYS_getitimer = 102
+const SYS_getpeername = 205
+const SYS_getpgid = 155
+const SYS_getpid = 172
+const SYS_getppid = 173
+const SYS_getpriority = 141
+const SYS_getrandom = 278
+const SYS_getresgid = 150
+const SYS_getresuid = 148
+const SYS_getrusage = 165
+const SYS_getsid = 156
+const SYS_getsockname = 204
+const SYS_getsockopt = 209
+const SYS_gettid = 178
+const SYS_gettimeofday = 169
+const SYS_getuid = 174
+const SYS_getxattr = 8
+const SYS_init_module = 105
+const SYS_inotify_add_watch = 27
+const SYS_inotify_init1 = 26
+const SYS_inotify_rm_watch = 28
+const SYS_io_cancel = 3
+const SYS_io_destroy = 1
+const SYS_io_getevents = 4
+const SYS_io_pgetevents = 292
+const SYS_io_setup = 0
+const SYS_io_submit = 2
 const SYS_io_uring_enter = 426
 const SYS_io_uring_register = 427
 const SYS_io_uring_setup = 425
-const SYS_ioctl = 16
-const SYS_ioperm = 173
-const SYS_iopl = 172
-const SYS_ioprio_get = 252
-const SYS_ioprio_set = 251
-const SYS_kcmp = 312
-const SYS_kexec_file_load = 320
-const SYS_kexec_load = 246
-const SYS_keyctl = 250
-const SYS_kill = 62
+const SYS_ioctl = 29
+const SYS_ioprio_get = 31
+const SYS_ioprio_set = 30
+const SYS_kcmp = 272
+const SYS_kexec_file_load = 294
+const SYS_kexec_load = 104
+const SYS_keyctl = 219
+const SYS_kill = 129
 const SYS_landlock_add_rule = 445
 const SYS_landlock_create_ruleset = 444
 const SYS_landlock_restrict_self = 446
-const SYS_lchown = 94
-const SYS_lgetxattr = 192
-const SYS_link = 86
-const SYS_linkat = 265
-const SYS_listen = 50
-const SYS_listxattr = 194
-const SYS_llistxattr = 195
-const SYS_lookup_dcookie = 212
-const SYS_lremovexattr = 198
-const SYS_lseek = 8
-const SYS_lsetxattr = 189
-const SYS_lstat = 6
-const SYS_madvise = 28
-const SYS_mbind = 237
-const SYS_membarrier = 324
-const SYS_memfd_create = 319
-const SYS_memfd_secret = 447
-const SYS_migrate_pages = 256
-const SYS_mincore = 27
-const SYS_mkdir = 83
-const SYS_mkdirat = 258
-const SYS_mknod = 133
-const SYS_mknodat = 259
-const SYS_mlock = 149
-const SYS_mlock2 = 325
-const SYS_mlockall = 151
-const SYS_mmap = 9
-const SYS_modify_ldt = 154
-const SYS_mount = 165
+const SYS_lgetxattr = 9
+const SYS_linkat = 37
+const SYS_listen = 201
+const SYS_listxattr = 11
+const SYS_llistxattr = 12
+const SYS_lookup_dcookie = 18
+const SYS_lremovexattr = 15
+const SYS_lseek = 62
+const SYS_lsetxattr = 6
+const SYS_madvise = 233
+const SYS_map_shadow_stack = 453
+const SYS_mbind = 235
+const SYS_membarrier = 283
+const SYS_memfd_create = 279
+const SYS_migrate_pages = 238
+const SYS_mincore = 232
+const SYS_mkdirat = 34
+const SYS_mknodat = 33
+const SYS_mlock = 228
+const SYS_mlock2 = 284
+const SYS_mlockall = 230
+const SYS_mmap = 222
+const SYS_mount = 40
 const SYS_mount_setattr = 442
 const SYS_move_mount = 429
-const SYS_move_pages = 279
-const SYS_mprotect = 10
-const SYS_mq_getsetattr = 245
-const SYS_mq_notify = 244
-const SYS_mq_open = 240
-const SYS_mq_timedreceive = 243
-const SYS_mq_timedsend = 242
-const SYS_mq_unlink = 241
-const SYS_mremap = 25
-const SYS_msgctl = 71
-const SYS_msgget = 68
-const SYS_msgrcv = 70
-const SYS_msgsnd = 69
-const SYS_msync = 26
-const SYS_munlock = 150
-const SYS_munlockall = 152
-const SYS_munmap = 11
-const SYS_name_to_handle_at = 303
-const SYS_nanosleep = 35
-const SYS_newfstatat = 262
-const SYS_nfsservctl = 180
-const SYS_open = 2
-const SYS_open_by_handle_at = 304
+const SYS_move_pages = 239
+const SYS_mprotect = 226
+const SYS_mq_getsetattr = 185
+const SYS_mq_notify = 184
+const SYS_mq_open = 180
+const SYS_mq_timedreceive = 183
+const SYS_mq_timedsend = 182
+const SYS_mq_unlink = 181
+const SYS_mremap = 216
+const SYS_msgctl = 187
+const SYS_msgget = 186
+const SYS_msgrcv = 188
+const SYS_msgsnd = 189
+const SYS_msync = 227
+const SYS_munlock = 229
+const SYS_munlockall = 231
+const SYS_munmap = 215
+const SYS_name_to_handle_at = 264
+const SYS_nanosleep = 101
+const SYS_nfsservctl = 42
+const SYS_open_by_handle_at = 265
 const SYS_open_tree = 428
-const SYS_openat = 257
+const SYS_openat = 56
 const SYS_openat2 = 437
-const SYS_pause = 34
-const SYS_perf_event_open = 298
-const SYS_personality = 135
+const SYS_perf_event_open = 241
+const SYS_personality = 92
 const SYS_pidfd_getfd = 438
 const SYS_pidfd_open = 434
 const SYS_pidfd_send_signal = 424
-const SYS_pipe = 22
-const SYS_pipe2 = 293
-const SYS_pivot_root = 155
-const SYS_pkey_alloc = 330
-const SYS_pkey_free = 331
-const SYS_pkey_mprotect = 329
-const SYS_poll = 7
-const SYS_ppoll = 271
-const SYS_prctl = 157
-const SYS_pread = 17
-const SYS_pread64 = 17
-const SYS_preadv = 295
-const SYS_preadv2 = 327
-const SYS_prlimit64 = 302
+const SYS_pipe2 = 59
+const SYS_pivot_root = 41
+const SYS_pkey_alloc = 289
+const SYS_pkey_free = 290
+const SYS_pkey_mprotect = 288
+const SYS_ppoll = 73
+const SYS_prctl = 167
+const SYS_pread = 67
+const SYS_pread64 = 67
+const SYS_preadv = 69
+const SYS_preadv2 = 286
+const SYS_prlimit64 = 261
 const SYS_process_madvise = 440
 const SYS_process_mrelease = 448
-const SYS_process_vm_readv = 310
-const SYS_process_vm_writev = 311
-const SYS_pselect6 = 270
-const SYS_ptrace = 101
-const SYS_putpmsg = 182
-const SYS_pwrite = 18
-const SYS_pwrite64 = 18
-const SYS_pwritev = 296
-const SYS_pwritev2 = 328
-const SYS_query_module = 178
-const SYS_quotactl = 179
-const SYS_read = 0
-const SYS_readahead = 187
-const SYS_readlink = 89
-const SYS_readlinkat = 267
-const SYS_readv = 19
-const SYS_reboot = 169
-const SYS_recvfrom = 45
-const SYS_recvmmsg = 299
-const SYS_recvmsg = 47
-const SYS_remap_file_pages = 216
-const SYS_removexattr = 197
-const SYS_rename = 82
-const SYS_renameat = 264
-const SYS_renameat2 = 316
-const SYS_request_key = 249
-const SYS_restart_syscall = 219
-const SYS_rmdir = 84
-const SYS_rseq = 334
-const SYS_rt_sigaction = 13
-const SYS_rt_sigpending = 127
-const SYS_rt_sigprocmask = 14
-const SYS_rt_sigqueueinfo = 129
-const SYS_rt_sigreturn = 15
-const SYS_rt_sigsuspend = 130
-const SYS_rt_sigtimedwait = 128
-const SYS_rt_tgsigqueueinfo = 297
-const SYS_sched_get_priority_max = 146
-const SYS_sched_get_priority_min = 147
-const SYS_sched_getaffinity = 204
-const SYS_sched_getattr = 315
-const SYS_sched_getparam = 143
-const SYS_sched_getscheduler = 145
-const SYS_sched_rr_get_interval = 148
-const SYS_sched_setaffinity = 203
-const SYS_sched_setattr = 314
-const SYS_sched_setparam = 142
-const SYS_sched_setscheduler = 144
-const SYS_sched_yield = 24
-const SYS_seccomp = 317
-const SYS_security = 185
-const SYS_select = 23
-const SYS_semctl = 66
-const SYS_semget = 64
-const SYS_semop = 65
-const SYS_semtimedop = 220
-const SYS_sendfile = 40
-const SYS_sendmmsg = 307
-const SYS_sendmsg = 46
-const SYS_sendto = 44
-const SYS_set_mempolicy = 238
+const SYS_process_vm_readv = 270
+const SYS_process_vm_writev = 271
+const SYS_pselect6 = 72
+const SYS_ptrace = 117
+const SYS_pwrite = 68
+const SYS_pwrite64 = 68
+const SYS_pwritev = 70
+const SYS_pwritev2 = 287
+const SYS_quotactl = 60
+const SYS_quotactl_fd = 443
+const SYS_read = 63
+const SYS_readahead = 213
+const SYS_readlinkat = 78
+const SYS_readv = 65
+const SYS_reboot = 142
+const SYS_recvfrom = 207
+const SYS_recvmmsg = 243
+const SYS_recvmsg = 212
+const SYS_remap_file_pages = 234
+const SYS_removexattr = 14
+const SYS_renameat2 = 276
+const SYS_request_key = 218
+const SYS_restart_syscall = 128
+const SYS_rseq = 293
+const SYS_rt_sigaction = 134
+const SYS_rt_sigpending = 136
+const SYS_rt_sigprocmask = 135
+const SYS_rt_sigqueueinfo = 138
+const SYS_rt_sigreturn = 139
+const SYS_rt_sigsuspend = 133
+const SYS_rt_sigtimedwait = 137
+const SYS_rt_tgsigqueueinfo = 240
+const SYS_sched_get_priority_max = 125
+const SYS_sched_get_priority_min = 126
+const SYS_sched_getaffinity = 123
+const SYS_sched_getattr = 275
+const SYS_sched_getparam = 121
+const SYS_sched_getscheduler = 120
+const SYS_sched_rr_get_interval = 127
+const SYS_sched_setaffinity = 122
+const SYS_sched_setattr = 274
+const SYS_sched_setparam = 118
+const SYS_sched_setscheduler = 119
+const SYS_sched_yield = 124
+const SYS_seccomp = 277
+const SYS_semctl = 191
+const SYS_semget = 190
+const SYS_semop = 193
+const SYS_semtimedop = 192
+const SYS_sendfile = 71
+const SYS_sendmmsg = 269
+const SYS_sendmsg = 211
+const SYS_sendto = 206
+const SYS_set_mempolicy = 237
 const SYS_set_mempolicy_home_node = 450
-const SYS_set_robust_list = 273
-const SYS_set_thread_area = 205
-const SYS_set_tid_address = 218
-const SYS_setdomainname = 171
-const SYS_setfsgid = 123
-const SYS_setfsuid = 122
-const SYS_setgid = 106
-const SYS_setgroups = 116
-const SYS_sethostname = 170
-const SYS_setitimer = 38
-const SYS_setns = 308
-const SYS_setpgid = 109
-const SYS_setpriority = 141
-const SYS_setregid = 114
-const SYS_setresgid = 119
-const SYS_setresuid = 117
-const SYS_setreuid = 113
-const SYS_setrlimit = 160
-const SYS_setsid = 112
-const SYS_setsockopt = 54
-const SYS_settimeofday = 164
-const SYS_setuid = 105
-const SYS_setxattr = 188
-const SYS_shmat = 30
-const SYS_shmctl = 31
-const SYS_shmdt = 67
-const SYS_shmget = 29
-const SYS_shutdown = 48
-const SYS_sigaltstack = 131
-const SYS_signalfd = 282
-const SYS_signalfd4 = 289
-const SYS_socket = 41
-const SYS_socketpair = 53
-const SYS_splice = 275
-const SYS_stat = 4
-const SYS_statfs = 137
-const SYS_statx = 332
-const SYS_swapoff = 168
-const SYS_swapon = 167
-const SYS_symlink = 88
-const SYS_symlinkat = 266
-const SYS_sync = 162
-const SYS_sync_file_range = 277
-const SYS_syncfs = 306
-const SYS_sysfs = 139
-const SYS_sysinfo = 99
-const SYS_syslog = 103
-const SYS_tee = 276
-const SYS_tgkill = 234
-const SYS_time = 201
-const SYS_timer_create = 222
-const SYS_timer_delete = 226
-const SYS_timer_getoverrun = 225
-const SYS_timer_gettime = 224
-const SYS_timer_settime = 223
-const SYS_timerfd_create = 283
-const SYS_timerfd_gettime = 287
-const SYS_timerfd_settime = 286
-const SYS_times = 100
-const SYS_tkill = 200
-const SYS_truncate = 76
-const SYS_tuxcall = 184
-const SYS_umask = 95
-const SYS_umount2 = 166
-const SYS_uname = 63
-const SYS_unlink = 87
-const SYS_unlinkat = 263
-const SYS_unshare = 272
-const SYS_uselib = 134
-const SYS_userfaultfd = 323
-const SYS_ustat = 136
-const SYS_utime = 132
-const SYS_utimensat = 280
-const SYS_utimes = 235
-const SYS_vfork = 58
-const SYS_vhangup = 153
-const SYS_vmsplice = 278
-const SYS_vserver = 236
-const SYS_wait4 = 61
-const SYS_waitid = 247
-const SYS_write = 1
-const SYS_writev = 20
+const SYS_set_robust_list = 99
+const SYS_set_tid_address = 96
+const SYS_setdomainname = 162
+const SYS_setfsgid = 152
+const SYS_setfsuid = 151
+const SYS_setgid = 144
+const SYS_setgroups = 159
+const SYS_sethostname = 161
+const SYS_setitimer = 103
+const SYS_setns = 268
+const SYS_setpgid = 154
+const SYS_setpriority = 140
+const SYS_setregid = 143
+const SYS_setresgid = 149
+const SYS_setresuid = 147
+const SYS_setreuid = 145
+const SYS_setsid = 157
+const SYS_setsockopt = 208
+const SYS_settimeofday = 170
+const SYS_setuid = 146
+const SYS_setxattr = 5
+const SYS_shmat = 196
+const SYS_shmctl = 195
+const SYS_shmdt = 197
+const SYS_shmget = 194
+const SYS_shutdown = 210
+const SYS_sigaltstack = 132
+const SYS_signalfd4 = 74
+const SYS_socket = 198
+const SYS_socketpair = 199
+const SYS_splice = 76
+const SYS_statfs = 43
+const SYS_statx = 291
+const SYS_swapoff = 225
+const SYS_swapon = 224
+const SYS_symlinkat = 36
+const SYS_sync = 81
+const SYS_sync_file_range = 84
+const SYS_syncfs = 267
+const SYS_sysinfo = 179
+const SYS_syslog = 116
+const SYS_tee = 77
+const SYS_tgkill = 131
+const SYS_timer_create = 107
+const SYS_timer_delete = 111
+const SYS_timer_getoverrun = 109
+const SYS_timer_gettime = 108
+const SYS_timer_settime = 110
+const SYS_timerfd_create = 85
+const SYS_timerfd_gettime = 87
+const SYS_timerfd_settime = 86
+const SYS_times = 153
+const SYS_tkill = 130
+const SYS_truncate = 45
+const SYS_umask = 166
+const SYS_umount2 = 39
+const SYS_uname = 160
+const SYS_unlinkat = 35
+const SYS_unshare = 97
+const SYS_userfaultfd = 282
+const SYS_utimensat = 88
+const SYS_vhangup = 58
+const SYS_vmsplice = 75
+const SYS_wait4 = 260
+const SYS_waitid = 95
+const SYS_write = 64
+const SYS_writev = 66
 const TRAP_BRANCH = 3
 const TRAP_BRKPT = 1
 const TRAP_HWBKPT = 4
@@ -6467,369 +6485,322 @@ const VER_NEED_NUM = 2
 const WNOHANG = 1
 const WUNTRACED = 2
 const _NSIG = 65
-const __NR__sysctl = 156
-const __NR_accept = 43
-const __NR_accept4 = 288
-const __NR_access = 21
-const __NR_acct = 163
-const __NR_add_key = 248
-const __NR_adjtimex = 159
-const __NR_afs_syscall = 183
-const __NR_alarm = 37
-const __NR_arch_prctl = 158
-const __NR_bind = 49
-const __NR_bpf = 321
-const __NR_brk = 12
+const __NR3264_fadvise64 = 223
+const __NR3264_fcntl = 25
+const __NR3264_fstatfs = 44
+const __NR3264_ftruncate = 46
+const __NR3264_lseek = 62
+const __NR3264_mmap = 222
+const __NR3264_sendfile = 71
+const __NR3264_statfs = 43
+const __NR3264_truncate = 45
+const __NR_accept = 202
+const __NR_accept4 = 242
+const __NR_acct = 89
+const __NR_add_key = 217
+const __NR_adjtimex = 171
+const __NR_arch_specific_syscall = 244
+const __NR_bind = 200
+const __NR_bpf = 280
+const __NR_brk = 214
 const __NR_cachestat = 451
-const __NR_capget = 125
-const __NR_capset = 126
-const __NR_chdir = 80
-const __NR_chmod = 90
-const __NR_chown = 92
-const __NR_chroot = 161
-const __NR_clock_adjtime = 305
-const __NR_clock_getres = 229
-const __NR_clock_gettime = 228
-const __NR_clock_nanosleep = 230
-const __NR_clock_settime = 227
-const __NR_clone = 56
+const __NR_capget = 90
+const __NR_capset = 91
+const __NR_chdir = 49
+const __NR_chroot = 51
+const __NR_clock_adjtime = 266
+const __NR_clock_getres = 114
+const __NR_clock_gettime = 113
+const __NR_clock_nanosleep = 115
+const __NR_clock_settime = 112
+const __NR_clone = 220
 const __NR_clone3 = 435
-const __NR_close = 3
+const __NR_close = 57
 const __NR_close_range = 436
-const __NR_connect = 42
-const __NR_copy_file_range = 326
-const __NR_creat = 85
-const __NR_create_module = 174
-const __NR_delete_module = 176
-const __NR_dup = 32
-const __NR_dup2 = 33
-const __NR_dup3 = 292
-const __NR_epoll_create = 213
-const __NR_epoll_create1 = 291
-const __NR_epoll_ctl = 233
-const __NR_epoll_ctl_old = 214
-const __NR_epoll_pwait = 281
+const __NR_connect = 203
+const __NR_copy_file_range = 285
+const __NR_delete_module = 106
+const __NR_dup = 23
+const __NR_dup3 = 24
+const __NR_epoll_create1 = 20
+const __NR_epoll_ctl = 21
+const __NR_epoll_pwait = 22
 const __NR_epoll_pwait2 = 441
-const __NR_epoll_wait = 232
-const __NR_epoll_wait_old = 215
-const __NR_eventfd = 284
-const __NR_eventfd2 = 290
-const __NR_execve = 59
-const __NR_execveat = 322
-const __NR_exit = 60
-const __NR_exit_group = 231
-const __NR_faccessat = 269
+const __NR_eventfd2 = 19
+const __NR_execve = 221
+const __NR_execveat = 281
+const __NR_exit = 93
+const __NR_exit_group = 94
+const __NR_faccessat = 48
 const __NR_faccessat2 = 439
-const __NR_fadvise64 = 221
-const __NR_fallocate = 285
-const __NR_fanotify_init = 300
-const __NR_fanotify_mark = 301
-const __NR_fchdir = 81
-const __NR_fchmod = 91
-const __NR_fchmodat = 268
+const __NR_fadvise64 = 223
+const __NR_fallocate = 47
+const __NR_fanotify_init = 262
+const __NR_fanotify_mark = 263
+const __NR_fchdir = 50
+const __NR_fchmod = 52
+const __NR_fchmodat = 53
 const __NR_fchmodat2 = 452
-const __NR_fchown = 93
-const __NR_fchownat = 260
-const __NR_fcntl = 72
-const __NR_fdatasync = 75
-const __NR_fgetxattr = 193
-const __NR_finit_module = 313
-const __NR_flistxattr = 196
-const __NR_flock = 73
-const __NR_fork = 57
-const __NR_fremovexattr = 199
+const __NR_fchown = 55
+const __NR_fchownat = 54
+const __NR_fcntl = 25
+const __NR_fdatasync = 83
+const __NR_fgetxattr = 10
+const __NR_finit_module = 273
+const __NR_flistxattr = 13
+const __NR_flock = 32
+const __NR_fremovexattr = 16
 const __NR_fsconfig = 431
-const __NR_fsetxattr = 190
+const __NR_fsetxattr = 7
 const __NR_fsmount = 432
 const __NR_fsopen = 430
 const __NR_fspick = 433
-const __NR_fstat = 5
-const __NR_fstatfs = 138
-const __NR_fsync = 74
-const __NR_ftruncate = 77
-const __NR_futex = 202
+const __NR_fstatfs = 44
+const __NR_fsync = 82
+const __NR_ftruncate = 46
+const __NR_futex = 98
+const __NR_futex_requeue = 456
+const __NR_futex_wait = 455
 const __NR_futex_waitv = 449
-const __NR_futimesat = 261
-const __NR_get_kernel_syms = 177
-const __NR_get_mempolicy = 239
-const __NR_get_robust_list = 274
-const __NR_get_thread_area = 211
-const __NR_getcpu = 309
-const __NR_getcwd = 79
-const __NR_getdents = 78
-const __NR_getdents64 = 217
-const __NR_getegid = 108
-const __NR_geteuid = 107
-const __NR_getgid = 104
-const __NR_getgroups = 115
-const __NR_getitimer = 36
-const __NR_getpeername = 52
-const __NR_getpgid = 121
-const __NR_getpgrp = 111
-const __NR_getpid = 39
-const __NR_getpmsg = 181
-const __NR_getppid = 110
-const __NR_getpriority = 140
-const __NR_getrandom = 318
-const __NR_getresgid = 120
-const __NR_getresuid = 118
-const __NR_getrlimit = 97
-const __NR_getrusage = 98
-const __NR_getsid = 124
-const __NR_getsockname = 51
-const __NR_getsockopt = 55
-const __NR_gettid = 186
-const __NR_gettimeofday = 96
-const __NR_getuid = 102
-const __NR_getxattr = 191
-const __NR_init_module = 175
-const __NR_inotify_add_watch = 254
-const __NR_inotify_init = 253
-const __NR_inotify_init1 = 294
-const __NR_inotify_rm_watch = 255
-const __NR_io_cancel = 210
-const __NR_io_destroy = 207
-const __NR_io_getevents = 208
-const __NR_io_pgetevents = 333
-const __NR_io_setup = 206
-const __NR_io_submit = 209
+const __NR_futex_wake = 454
+const __NR_get_mempolicy = 236
+const __NR_get_robust_list = 100
+const __NR_getcpu = 168
+const __NR_getcwd = 17
+const __NR_getdents64 = 61
+const __NR_getegid = 177
+const __NR_geteuid = 175
+const __NR_getgid = 176
+const __NR_getgroups = 158
+const __NR_getitimer = 102
+const __NR_getpeername = 205
+const __NR_getpgid = 155
+const __NR_getpid = 172
+const __NR_getppid = 173
+const __NR_getpriority = 141
+const __NR_getrandom = 278
+const __NR_getresgid = 150
+const __NR_getresuid = 148
+const __NR_getrusage = 165
+const __NR_getsid = 156
+const __NR_getsockname = 204
+const __NR_getsockopt = 209
+const __NR_gettid = 178
+const __NR_gettimeofday = 169
+const __NR_getuid = 174
+const __NR_getxattr = 8
+const __NR_init_module = 105
+const __NR_inotify_add_watch = 27
+const __NR_inotify_init1 = 26
+const __NR_inotify_rm_watch = 28
+const __NR_io_cancel = 3
+const __NR_io_destroy = 1
+const __NR_io_getevents = 4
+const __NR_io_pgetevents = 292
+const __NR_io_setup = 0
+const __NR_io_submit = 2
 const __NR_io_uring_enter = 426
 const __NR_io_uring_register = 427
 const __NR_io_uring_setup = 425
-const __NR_ioctl = 16
-const __NR_ioperm = 173
-const __NR_iopl = 172
-const __NR_ioprio_get = 252
-const __NR_ioprio_set = 251
-const __NR_kcmp = 312
-const __NR_kexec_file_load = 320
-const __NR_kexec_load = 246
-const __NR_keyctl = 250
-const __NR_kill = 62
+const __NR_ioctl = 29
+const __NR_ioprio_get = 31
+const __NR_ioprio_set = 30
+const __NR_kcmp = 272
+const __NR_kexec_file_load = 294
+const __NR_kexec_load = 104
+const __NR_keyctl = 219
+const __NR_kill = 129
 const __NR_landlock_add_rule = 445
 const __NR_landlock_create_ruleset = 444
 const __NR_landlock_restrict_self = 446
-const __NR_lchown = 94
-const __NR_lgetxattr = 192
-const __NR_link = 86
-const __NR_linkat = 265
-const __NR_listen = 50
-const __NR_listxattr = 194
-const __NR_llistxattr = 195
-const __NR_lookup_dcookie = 212
-const __NR_lremovexattr = 198
-const __NR_lseek = 8
-const __NR_lsetxattr = 189
-const __NR_lstat = 6
-const __NR_madvise = 28
-const __NR_mbind = 237
-const __NR_membarrier = 324
-const __NR_memfd_create = 319
-const __NR_memfd_secret = 447
-const __NR_migrate_pages = 256
-const __NR_mincore = 27
-const __NR_mkdir = 83
-const __NR_mkdirat = 258
-const __NR_mknod = 133
-const __NR_mknodat = 259
-const __NR_mlock = 149
-const __NR_mlock2 = 325
-const __NR_mlockall = 151
-const __NR_mmap = 9
-const __NR_modify_ldt = 154
-const __NR_mount = 165
+const __NR_lgetxattr = 9
+const __NR_linkat = 37
+const __NR_listen = 201
+const __NR_listxattr = 11
+const __NR_llistxattr = 12
+const __NR_lookup_dcookie = 18
+const __NR_lremovexattr = 15
+const __NR_lseek = 62
+const __NR_lsetxattr = 6
+const __NR_madvise = 233
+const __NR_map_shadow_stack = 453
+const __NR_mbind = 235
+const __NR_membarrier = 283
+const __NR_memfd_create = 279
+const __NR_migrate_pages = 238
+const __NR_mincore = 232
+const __NR_mkdirat = 34
+const __NR_mknodat = 33
+const __NR_mlock = 228
+const __NR_mlock2 = 284
+const __NR_mlockall = 230
+const __NR_mmap = 222
+const __NR_mount = 40
 const __NR_mount_setattr = 442
 const __NR_move_mount = 429
-const __NR_move_pages = 279
-const __NR_mprotect = 10
-const __NR_mq_getsetattr = 245
-const __NR_mq_notify = 244
-const __NR_mq_open = 240
-const __NR_mq_timedreceive = 243
-const __NR_mq_timedsend = 242
-const __NR_mq_unlink = 241
-const __NR_mremap = 25
-const __NR_msgctl = 71
-const __NR_msgget = 68
-const __NR_msgrcv = 70
-const __NR_msgsnd = 69
-const __NR_msync = 26
-const __NR_munlock = 150
-const __NR_munlockall = 152
-const __NR_munmap = 11
-const __NR_name_to_handle_at = 303
-const __NR_nanosleep = 35
-const __NR_newfstatat = 262
-const __NR_nfsservctl = 180
-const __NR_open = 2
-const __NR_open_by_handle_at = 304
+const __NR_move_pages = 239
+const __NR_mprotect = 226
+const __NR_mq_getsetattr = 185
+const __NR_mq_notify = 184
+const __NR_mq_open = 180
+const __NR_mq_timedreceive = 183
+const __NR_mq_timedsend = 182
+const __NR_mq_unlink = 181
+const __NR_mremap = 216
+const __NR_msgctl = 187
+const __NR_msgget = 186
+const __NR_msgrcv = 188
+const __NR_msgsnd = 189
+const __NR_msync = 227
+const __NR_munlock = 229
+const __NR_munlockall = 231
+const __NR_munmap = 215
+const __NR_name_to_handle_at = 264
+const __NR_nanosleep = 101
+const __NR_nfsservctl = 42
+const __NR_open_by_handle_at = 265
 const __NR_open_tree = 428
-const __NR_openat = 257
+const __NR_openat = 56
 const __NR_openat2 = 437
-const __NR_pause = 34
-const __NR_perf_event_open = 298
-const __NR_personality = 135
+const __NR_perf_event_open = 241
+const __NR_personality = 92
 const __NR_pidfd_getfd = 438
 const __NR_pidfd_open = 434
 const __NR_pidfd_send_signal = 424
-const __NR_pipe = 22
-const __NR_pipe2 = 293
-const __NR_pivot_root = 155
-const __NR_pkey_alloc = 330
-const __NR_pkey_free = 331
-const __NR_pkey_mprotect = 329
-const __NR_poll = 7
-const __NR_ppoll = 271
-const __NR_prctl = 157
-const __NR_pread64 = 17
-const __NR_preadv = 295
-const __NR_preadv2 = 327
-const __NR_prlimit64 = 302
+const __NR_pipe2 = 59
+const __NR_pivot_root = 41
+const __NR_pkey_alloc = 289
+const __NR_pkey_free = 290
+const __NR_pkey_mprotect = 288
+const __NR_ppoll = 73
+const __NR_prctl = 167
+const __NR_pread64 = 67
+const __NR_preadv = 69
+const __NR_preadv2 = 286
+const __NR_prlimit64 = 261
 const __NR_process_madvise = 440
 const __NR_process_mrelease = 448
-const __NR_process_vm_readv = 310
-const __NR_process_vm_writev = 311
-const __NR_pselect6 = 270
-const __NR_ptrace = 101
-const __NR_putpmsg = 182
-const __NR_pwrite64 = 18
-const __NR_pwritev = 296
-const __NR_pwritev2 = 328
-const __NR_query_module = 178
-const __NR_quotactl = 179
-const __NR_read = 0
-const __NR_readahead = 187
-const __NR_readlink = 89
-const __NR_readlinkat = 267
-const __NR_readv = 19
-const __NR_reboot = 169
-const __NR_recvfrom = 45
-const __NR_recvmmsg = 299
-const __NR_recvmsg = 47
-const __NR_remap_file_pages = 216
-const __NR_removexattr = 197
-const __NR_rename = 82
-const __NR_renameat = 264
-const __NR_renameat2 = 316
-const __NR_request_key = 249
-const __NR_restart_syscall = 219
-const __NR_rmdir = 84
-const __NR_rseq = 334
-const __NR_rt_sigaction = 13
-const __NR_rt_sigpending = 127
-const __NR_rt_sigprocmask = 14
-const __NR_rt_sigqueueinfo = 129
-const __NR_rt_sigreturn = 15
-const __NR_rt_sigsuspend = 130
-const __NR_rt_sigtimedwait = 128
-const __NR_rt_tgsigqueueinfo = 297
-const __NR_sched_get_priority_max = 146
-const __NR_sched_get_priority_min = 147
-const __NR_sched_getaffinity = 204
-const __NR_sched_getattr = 315
-const __NR_sched_getparam = 143
-const __NR_sched_getscheduler = 145
-const __NR_sched_rr_get_interval = 148
-const __NR_sched_setaffinity = 203
-const __NR_sched_setattr = 314
-const __NR_sched_setparam = 142
-const __NR_sched_setscheduler = 144
-const __NR_sched_yield = 24
-const __NR_seccomp = 317
-const __NR_security = 185
-const __NR_select = 23
-const __NR_semctl = 66
-const __NR_semget = 64
-const __NR_semop = 65
-const __NR_semtimedop = 220
-const __NR_sendfile = 40
-const __NR_sendmmsg = 307
-const __NR_sendmsg = 46
-const __NR_sendto = 44
-const __NR_set_mempolicy = 238
+const __NR_process_vm_readv = 270
+const __NR_process_vm_writev = 271
+const __NR_pselect6 = 72
+const __NR_ptrace = 117
+const __NR_pwrite64 = 68
+const __NR_pwritev = 70
+const __NR_pwritev2 = 287
+const __NR_quotactl = 60
+const __NR_quotactl_fd = 443
+const __NR_read = 63
+const __NR_readahead = 213
+const __NR_readlinkat = 78
+const __NR_readv = 65
+const __NR_reboot = 142
+const __NR_recvfrom = 207
+const __NR_recvmmsg = 243
+const __NR_recvmsg = 212
+const __NR_remap_file_pages = 234
+const __NR_removexattr = 14
+const __NR_renameat2 = 276
+const __NR_request_key = 218
+const __NR_restart_syscall = 128
+const __NR_rseq = 293
+const __NR_rt_sigaction = 134
+const __NR_rt_sigpending = 136
+const __NR_rt_sigprocmask = 135
+const __NR_rt_sigqueueinfo = 138
+const __NR_rt_sigreturn = 139
+const __NR_rt_sigsuspend = 133
+const __NR_rt_sigtimedwait = 137
+const __NR_rt_tgsigqueueinfo = 240
+const __NR_sched_get_priority_max = 125
+const __NR_sched_get_priority_min = 126
+const __NR_sched_getaffinity = 123
+const __NR_sched_getattr = 275
+const __NR_sched_getparam = 121
+const __NR_sched_getscheduler = 120
+const __NR_sched_rr_get_interval = 127
+const __NR_sched_setaffinity = 122
+const __NR_sched_setattr = 274
+const __NR_sched_setparam = 118
+const __NR_sched_setscheduler = 119
+const __NR_sched_yield = 124
+const __NR_seccomp = 277
+const __NR_semctl = 191
+const __NR_semget = 190
+const __NR_semop = 193
+const __NR_semtimedop = 192
+const __NR_sendfile = 71
+const __NR_sendmmsg = 269
+const __NR_sendmsg = 211
+const __NR_sendto = 206
+const __NR_set_mempolicy = 237
 const __NR_set_mempolicy_home_node = 450
-const __NR_set_robust_list = 273
-const __NR_set_thread_area = 205
-const __NR_set_tid_address = 218
-const __NR_setdomainname = 171
-const __NR_setfsgid = 123
-const __NR_setfsuid = 122
-const __NR_setgid = 106
-const __NR_setgroups = 116
-const __NR_sethostname = 170
-const __NR_setitimer = 38
-const __NR_setns = 308
-const __NR_setpgid = 109
-const __NR_setpriority = 141
-const __NR_setregid = 114
-const __NR_setresgid = 119
-const __NR_setresuid = 117
-const __NR_setreuid = 113
-const __NR_setrlimit = 160
-const __NR_setsid = 112
-const __NR_setsockopt = 54
-const __NR_settimeofday = 164
-const __NR_setuid = 105
-const __NR_setxattr = 188
-const __NR_shmat = 30
-const __NR_shmctl = 31
-const __NR_shmdt = 67
-const __NR_shmget = 29
-const __NR_shutdown = 48
-const __NR_sigaltstack = 131
-const __NR_signalfd = 282
-const __NR_signalfd4 = 289
-const __NR_socket = 41
-const __NR_socketpair = 53
-const __NR_splice = 275
-const __NR_stat = 4
-const __NR_statfs = 137
-const __NR_statx = 332
-const __NR_swapoff = 168
-const __NR_swapon = 167
-const __NR_symlink = 88
-const __NR_symlinkat = 266
-const __NR_sync = 162
-const __NR_sync_file_range = 277
-const __NR_syncfs = 306
-const __NR_sysfs = 139
-const __NR_sysinfo = 99
-const __NR_syslog = 103
-const __NR_tee = 276
-const __NR_tgkill = 234
-const __NR_time = 201
-const __NR_timer_create = 222
-const __NR_timer_delete = 226
-const __NR_timer_getoverrun = 225
-const __NR_timer_gettime = 224
-const __NR_timer_settime = 223
-const __NR_timerfd_create = 283
-const __NR_timerfd_gettime = 287
-const __NR_timerfd_settime = 286
-const __NR_times = 100
-const __NR_tkill = 200
-const __NR_truncate = 76
-const __NR_tuxcall = 184
-const __NR_umask = 95
-const __NR_umount2 = 166
-const __NR_uname = 63
-const __NR_unlink = 87
-const __NR_unlinkat = 263
-const __NR_unshare = 272
-const __NR_uselib = 134
-const __NR_userfaultfd = 323
-const __NR_ustat = 136
-const __NR_utime = 132
-const __NR_utimensat = 280
-const __NR_utimes = 235
-const __NR_vfork = 58
-const __NR_vhangup = 153
-const __NR_vmsplice = 278
-const __NR_vserver = 236
-const __NR_wait4 = 61
-const __NR_waitid = 247
-const __NR_write = 1
-const __NR_writev = 20
+const __NR_set_robust_list = 99
+const __NR_set_tid_address = 96
+const __NR_setdomainname = 162
+const __NR_setfsgid = 152
+const __NR_setfsuid = 151
+const __NR_setgid = 144
+const __NR_setgroups = 159
+const __NR_sethostname = 161
+const __NR_setitimer = 103
+const __NR_setns = 268
+const __NR_setpgid = 154
+const __NR_setpriority = 140
+const __NR_setregid = 143
+const __NR_setresgid = 149
+const __NR_setresuid = 147
+const __NR_setreuid = 145
+const __NR_setsid = 157
+const __NR_setsockopt = 208
+const __NR_settimeofday = 170
+const __NR_setuid = 146
+const __NR_setxattr = 5
+const __NR_shmat = 196
+const __NR_shmctl = 195
+const __NR_shmdt = 197
+const __NR_shmget = 194
+const __NR_shutdown = 210
+const __NR_sigaltstack = 132
+const __NR_signalfd4 = 74
+const __NR_socket = 198
+const __NR_socketpair = 199
+const __NR_splice = 76
+const __NR_statfs = 43
+const __NR_statx = 291
+const __NR_swapoff = 225
+const __NR_swapon = 224
+const __NR_symlinkat = 36
+const __NR_sync = 81
+const __NR_sync_file_range = 84
+const __NR_syncfs = 267
+const __NR_sysinfo = 179
+const __NR_syslog = 116
+const __NR_tee = 77
+const __NR_tgkill = 131
+const __NR_timer_create = 107
+const __NR_timer_delete = 111
+const __NR_timer_getoverrun = 109
+const __NR_timer_gettime = 108
+const __NR_timer_settime = 110
+const __NR_timerfd_create = 85
+const __NR_timerfd_gettime = 87
+const __NR_timerfd_settime = 86
+const __NR_times = 153
+const __NR_tkill = 130
+const __NR_truncate = 45
+const __NR_umask = 166
+const __NR_umount2 = 39
+const __NR_uname = 160
+const __NR_unlinkat = 35
+const __NR_unshare = 97
+const __NR_userfaultfd = 282
+const __NR_utimensat = 88
+const __NR_vhangup = 58
+const __NR_vmsplice = 75
+const __NR_wait4 = 260
+const __NR_waitid = 95
+const __NR_write = 64
+const __NR_writev = 66
 const __SC_accept = 5
 const __SC_accept4 = 18
 const __SC_bind = 2
@@ -6850,6 +6821,7 @@ const __SC_setsockopt = 14
 const __SC_shutdown = 13
 const __SC_socket = 1
 const __SC_socketpair = 8
+const __uc_flags = 0
 const libc = 0
 
 type Ttime_t = int64
@@ -6933,16 +6905,18 @@ type Tstack_t = struct {
 type Tsigaltstack = Tstack_t
 
 type Tmcontext_t = struct {
-	F__space [32]uint64
+	F__pc    uint64
+	F__gregs [32]uint64
+	F__flags uint32
 }
 
 type Tucontext_t = struct {
-	Fuc_flags     uint64
-	Fuc_link      uintptr
-	Fuc_stack     Tstack_t
-	Fuc_mcontext  Tmcontext_t
-	Fuc_sigmask   Tsigset_t
-	F__fpregs_mem [64]uint64
+	Fuc_flags    uint64
+	Fuc_link     uintptr
+	Fuc_stack    Tstack_t
+	Fuc_sigmask  Tsigset_t
+	F__uc_pad    int64
+	Fuc_mcontext Tmcontext_t
 }
 
 type t__ucontext = Tucontext_t
@@ -7496,7 +7470,7 @@ func Xsysconf(tls *TLS, name int32) (r int64) {
 	case (-Int32FromInt32(256) | Int32FromInt32(3)) & Int32FromInt32(255):
 		return int64(MQ_PRIO_MAX)
 	case (-Int32FromInt32(256) | Int32FromInt32(4)) & Int32FromInt32(255):
-		return int64(PAGESIZE)
+		return int64(X__libc.Fpage_size)
 	case (-Int32FromInt32(256) | Int32FromInt32(5)) & Int32FromInt32(255):
 		return int64(SEM_VALUE_MAX)
 	case (-Int32FromInt32(256) | Int32FromInt32(11)) & Int32FromInt32(255):
@@ -7543,7 +7517,7 @@ func Xsysconf(tls *TLS, name int32) (r int64) {
 			mem = (*(*Tsysinfo)(unsafe.Pointer(bp + 144))).Ffreeram + (*(*Tsysinfo)(unsafe.Pointer(bp + 144))).Fbufferram
 		}
 		mem *= uint64((*(*Tsysinfo)(unsafe.Pointer(bp + 144))).Fmem_unit)
-		mem /= uint64(PAGESIZE)
+		mem /= X__libc.Fpage_size
 		if mem > uint64(0x7fffffffffffffff) {
 			v6 = uint64(0x7fffffffffffffff)
 		} else {
@@ -13603,6 +13577,7 @@ const FUTEX_WAIT = 0
 const FUTEX_WAIT_BITSET = 9
 const FUTEX_WAKE = 1
 const FUTEX_WAKE_OP = 5
+const GAP_ABOVE_TP = 0
 const LC_ALL = 6
 const LC_ALL_MASK = 2147483647
 const LC_COLLATE = 3
@@ -13619,7 +13594,6 @@ const LC_NUMERIC_MASK = 2
 const LC_TIME = 2
 const LC_TIME_MASK = 4
 const LOCALE_NAME_MAX = 23
-const MAP_32BIT = 64
 const MAP_ANON = 32
 const MAP_ANONYMOUS = 32
 const MAP_DENYWRITE = 2048
@@ -13658,6 +13632,7 @@ const MAP_TYPE = 15
 const MCL_CURRENT = 1
 const MCL_FUTURE = 2
 const MCL_ONFAULT = 4
+const MC_PC = 0
 const MS_ASYNC = 1
 const MS_INVALIDATE = 2
 const MS_SYNC = 4
@@ -13713,6 +13688,9 @@ const TP_OFFSET = 0
 const UTF8_LOCALE = 0
 const __CCGO_SIZEOF_GO_MUTEX = 8
 const __SU = 0
+const a_post_llsc = 0
+const a_pre_llsc = 0
+const a_spin = 0
 const pthread = 0
 const tls_mod_off_t = 0
 
@@ -13754,18 +13732,16 @@ type Tclockid_t = int32
 
 type t__pthread = struct {
 	Fself          uintptr
-	Fdtv           uintptr
 	Fprev          uintptr
 	Fnext          uintptr
 	Fsysinfo       Tuintptr_t
-	Fcanary        Tuintptr_t
 	Ftid           int32
 	Ferrno_val     int32
 	Fdetach_state  int32
 	Fcancel        int32
 	Fcanceldisable uint8
 	Fcancelasync   uint8
-	F__ccgo66      uint8
+	F__ccgo50      uint8
 	Fmap_base      uintptr
 	Fmap_size      Tsize_t
 	Fstack         uintptr
@@ -13786,6 +13762,8 @@ type t__pthread = struct {
 	Fdlerror_buf       uintptr
 	Fstdio_locks       uintptr
 	F__ccgo_join_mutex [1]int64
+	Fcanary            Tuintptr_t
+	Fdtv               uintptr
 }
 
 type Tpthread_once_t = int32
@@ -24630,30 +24608,31 @@ type Tflock = struct {
 	Fl_pid    Tpid_t
 }
 
-type Tnlink_t = uint64
+type Tnlink_t = uint32
+
+type Tblksize_t = int32
 
 type Tdev_t = uint64
-
-type Tblksize_t = int64
 
 type Tblkcnt_t = int64
 
 type Tstat = struct {
 	Fst_dev     Tdev_t
 	Fst_ino     Tino_t
-	Fst_nlink   Tnlink_t
 	Fst_mode    Tmode_t
+	Fst_nlink   Tnlink_t
 	Fst_uid     Tuid_t
 	Fst_gid     Tgid_t
-	F__pad0     uint32
 	Fst_rdev    Tdev_t
+	F__pad      uint64
 	Fst_size    Toff_t
 	Fst_blksize Tblksize_t
+	F__pad2     int32
 	Fst_blocks  Tblkcnt_t
 	Fst_atim    Ttimespec
 	Fst_mtim    Ttimespec
 	Fst_ctim    Ttimespec
-	F__unused   [3]int64
+	F__unused   [2]uint32
 }
 
 func Xfdopendir(tls *TLS, fd int32) (r uintptr) {
@@ -24661,8 +24640,8 @@ func Xfdopendir(tls *TLS, fd int32) (r uintptr) {
 		trc("tls=%v fd=%v, (%v:)", tls, fd, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	bp := tls.Alloc(160)
-	defer tls.Free(160)
+	bp := tls.Alloc(144)
+	defer tls.Free(144)
 	var dir, v1 uintptr
 	var _ /* st at bp+0 */ Tstat
 	_, _ = dir, v1
@@ -24682,7 +24661,7 @@ func Xfdopendir(tls *TLS, fd int32) (r uintptr) {
 	if !(v1 != 0) {
 		return uintptr(0)
 	}
-	Xfcntl(tls, fd, int32(F_SETFD), VaList(bp+152, int32(FD_CLOEXEC)))
+	Xfcntl(tls, fd, int32(F_SETFD), VaList(bp+136, int32(FD_CLOEXEC)))
 	(*TDIR)(unsafe.Pointer(dir)).Ffd = fd
 	return dir
 }
@@ -25015,8 +24994,7 @@ func X__stack_chk_fail(tls *TLS) {
 	if __ccgo_strace {
 		trc("tls=%v, (%v:)", tls, origin(2))
 	}
-	// __asm__ __volatile__( "hlt" : : : "memory" );
-	X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 108, __ccgo_ts+261)
+	*(*int8)(unsafe.Pointer(UintptrFromInt32(0))) = 0
 }
 
 func X__stack_chk_fail_local(tls *TLS) {
@@ -25641,7 +25619,7 @@ func X__assert_fail(tls *TLS, expr uintptr, file uintptr, line int32, func1 uint
 	}
 	bp := tls.Alloc(48)
 	defer tls.Free(48)
-	Xfprintf(tls, uintptr(unsafe.Pointer(&X__stderr_FILE)), __ccgo_ts+278, VaList(bp+8, expr, file, func1, line))
+	Xfprintf(tls, uintptr(unsafe.Pointer(&X__stderr_FILE)), __ccgo_ts+212, VaList(bp+8, expr, file, func1, line))
 	Xabort(tls)
 }
 
@@ -25729,12 +25707,12 @@ func Xfcntl(tls *TLS, fd int32, cmd int32, va uintptr) (r int32) {
 		arg |= uint64(O_LARGEFILE)
 	}
 	if cmd == int32(F_SETLKW) {
-		return int32(X__syscall_ret(tls, uint64(___syscall_cp(tls, int64(SYS_fcntl), int64(fd), int64(cmd), int64(uintptr(arg)), 0, 0, 0))))
+		return int32(X__syscall_ret(tls, uint64(___syscall_cp(tls, int64(__NR3264_fcntl), int64(fd), int64(cmd), int64(uintptr(arg)), 0, 0, 0))))
 	}
 	if cmd == int32(F_GETOWN) {
-		ret = int32(X__syscall3(tls, int64(SYS_fcntl), int64(fd), int64(Int32FromInt32(F_GETOWN_EX)), int64(bp)))
+		ret = int32(X__syscall3(tls, int64(__NR3264_fcntl), int64(fd), int64(Int32FromInt32(F_GETOWN_EX)), int64(bp)))
 		if ret == -int32(EINVAL) {
-			return int32(X__syscall3(tls, int64(SYS_fcntl), int64(fd), int64(cmd), int64(uintptr(arg))))
+			return int32(X__syscall3(tls, int64(__NR3264_fcntl), int64(fd), int64(cmd), int64(uintptr(arg))))
 		}
 		if ret != 0 {
 			return int32(X__syscall_ret(tls, uint64(ret)))
@@ -25747,23 +25725,23 @@ func Xfcntl(tls *TLS, fd int32, cmd int32, va uintptr) (r int32) {
 		return v1
 	}
 	if cmd == int32(F_DUPFD_CLOEXEC) {
-		ret1 = int32(X__syscall3(tls, int64(SYS_fcntl), int64(fd), int64(Int32FromInt32(F_DUPFD_CLOEXEC)), int64(arg)))
+		ret1 = int32(X__syscall3(tls, int64(__NR3264_fcntl), int64(fd), int64(Int32FromInt32(F_DUPFD_CLOEXEC)), int64(arg)))
 		if ret1 != -int32(EINVAL) {
 			if ret1 >= 0 {
-				X__syscall3(tls, int64(SYS_fcntl), int64(ret1), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
+				X__syscall3(tls, int64(__NR3264_fcntl), int64(ret1), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
 			}
 			return int32(X__syscall_ret(tls, uint64(ret1)))
 		}
-		ret1 = int32(X__syscall3(tls, int64(SYS_fcntl), int64(fd), int64(Int32FromInt32(F_DUPFD_CLOEXEC)), int64(Int32FromInt32(0))))
+		ret1 = int32(X__syscall3(tls, int64(__NR3264_fcntl), int64(fd), int64(Int32FromInt32(F_DUPFD_CLOEXEC)), int64(Int32FromInt32(0))))
 		if ret1 != -int32(EINVAL) {
 			if ret1 >= 0 {
 				X__syscall1(tls, int64(SYS_close), int64(ret1))
 			}
 			return int32(X__syscall_ret(tls, uint64(-Int32FromInt32(EINVAL))))
 		}
-		ret1 = int32(X__syscall3(tls, int64(SYS_fcntl), int64(fd), int64(Int32FromInt32(F_DUPFD)), int64(arg)))
+		ret1 = int32(X__syscall3(tls, int64(__NR3264_fcntl), int64(fd), int64(Int32FromInt32(F_DUPFD)), int64(arg)))
 		if ret1 >= 0 {
-			X__syscall3(tls, int64(SYS_fcntl), int64(ret1), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
+			X__syscall3(tls, int64(__NR3264_fcntl), int64(ret1), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
 		}
 		return int32(X__syscall_ret(tls, uint64(ret1)))
 	}
@@ -25775,9 +25753,9 @@ func Xfcntl(tls *TLS, fd int32, cmd int32, va uintptr) (r int32) {
 	case int32(F_GETOWN_EX):
 		fallthrough
 	case int32(F_SETOWN_EX):
-		return int32(X__syscall_ret(tls, uint64(X__syscall3(tls, int64(SYS_fcntl), int64(fd), int64(cmd), int64(uintptr(arg))))))
+		return int32(X__syscall_ret(tls, uint64(X__syscall3(tls, int64(__NR3264_fcntl), int64(fd), int64(cmd), int64(uintptr(arg))))))
 	default:
-		return int32(X__syscall_ret(tls, uint64(X__syscall3(tls, int64(SYS_fcntl), int64(fd), int64(cmd), int64(arg)))))
+		return int32(X__syscall_ret(tls, uint64(X__syscall3(tls, int64(__NR3264_fcntl), int64(fd), int64(cmd), int64(arg)))))
 	}
 	return r
 }
@@ -25797,9 +25775,9 @@ func Xopen(tls *TLS, filename uintptr, flags int32, va uintptr) (r int32) {
 		mode = VaUint32(&ap)
 		_ = ap
 	}
-	fd = int32(___syscall_cp(tls, int64(SYS_open), int64(filename), int64(flags|Int32FromInt32(O_LARGEFILE)), int64(mode), 0, 0, 0))
+	fd = int32(___syscall_cp(tls, int64(SYS_openat), int64(-Int32FromInt32(100)), int64(filename), int64(flags|Int32FromInt32(O_LARGEFILE)), int64(mode), 0, 0))
 	if fd >= 0 && flags&int32(O_CLOEXEC) != 0 {
-		X__syscall3(tls, int64(SYS_fcntl), int64(fd), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
+		X__syscall3(tls, int64(__NR3264_fcntl), int64(fd), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
 	}
 	return int32(X__syscall_ret(tls, uint64(fd)))
 }
@@ -25826,7 +25804,7 @@ func Xposix_fadvise(tls *TLS, fd int32, base Toff_t, len1 Toff_t, advice int32) 
 		trc("tls=%v fd=%v base=%v len1=%v advice=%v, (%v:)", tls, fd, base, len1, advice, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return int32(-X__syscall4(tls, int64(SYS_fadvise64), int64(fd), base, len1, int64(advice)))
+	return int32(-X__syscall4(tls, int64(__NR3264_fadvise64), int64(fd), base, len1, int64(advice)))
 }
 
 func Xposix_fallocate(tls *TLS, fd int32, base Toff_t, len1 Toff_t) (r int32) {
@@ -25835,95 +25813,6 @@ func Xposix_fallocate(tls *TLS, fd int32, base Toff_t, len1 Toff_t) (r int32) {
 		defer func() { trc("-> %v", r) }()
 	}
 	return int32(-X__syscall4(tls, int64(SYS_fallocate), int64(fd), int64(Int32FromInt32(0)), base, len1))
-}
-
-const FE_ALL_EXCEPT = 63
-const FE_DIVBYZERO = 4
-const FE_DOWNWARD = 1024
-const FE_INEXACT = 32
-const FE_INVALID = 1
-const FE_OVERFLOW = 8
-const FE_TONEAREST = 0
-const FE_TOWARDZERO = 3072
-const FE_UNDERFLOW = 16
-const FE_UPWARD = 2048
-const __FE_DENORM = 2
-
-type Tfexcept_t = uint16
-
-type Tfenv_t = struct {
-	F__control_word  uint16
-	F__unused1       uint16
-	F__status_word   uint16
-	F__unused2       uint16
-	F__tags          uint16
-	F__unused3       uint16
-	F__eip           uint32
-	F__cs_selector   uint16
-	F__ccgo_align8   [2]byte
-	F__ccgo20        uint16
-	F__data_offset   uint32
-	F__data_selector uint16
-	F__unused5       uint16
-	F__mxcsr         uint32
-}
-
-/* Dummy functions for archs lacking fenv implementation */
-
-func Xfeclearexcept(tls *TLS, mask int32) (r int32) {
-	if __ccgo_strace {
-		trc("tls=%v mask=%v, (%v:)", tls, mask, origin(2))
-		defer func() { trc("-> %v", r) }()
-	}
-	return 0
-}
-
-func Xferaiseexcept(tls *TLS, mask int32) (r int32) {
-	if __ccgo_strace {
-		trc("tls=%v mask=%v, (%v:)", tls, mask, origin(2))
-		defer func() { trc("-> %v", r) }()
-	}
-	return 0
-}
-
-func Xfetestexcept(tls *TLS, mask int32) (r int32) {
-	if __ccgo_strace {
-		trc("tls=%v mask=%v, (%v:)", tls, mask, origin(2))
-		defer func() { trc("-> %v", r) }()
-	}
-	return 0
-}
-
-func Xfegetround(tls *TLS) (r int32) {
-	if __ccgo_strace {
-		trc("tls=%v, (%v:)", tls, origin(2))
-		defer func() { trc("-> %v", r) }()
-	}
-	return FE_TONEAREST
-}
-
-func X__fesetround(tls *TLS, r int32) (r1 int32) {
-	if __ccgo_strace {
-		trc("tls=%v r=%v, (%v:)", tls, r, origin(2))
-		defer func() { trc("-> %v", r1) }()
-	}
-	return 0
-}
-
-func Xfegetenv(tls *TLS, envp uintptr) (r int32) {
-	if __ccgo_strace {
-		trc("tls=%v envp=%v, (%v:)", tls, envp, origin(2))
-		defer func() { trc("-> %v", r) }()
-	}
-	return 0
-}
-
-func Xfesetenv(tls *TLS, envp uintptr) (r int32) {
-	if __ccgo_strace {
-		trc("tls=%v envp=%v, (%v:)", tls, envp, origin(2))
-		defer func() { trc("-> %v", r) }()
-	}
-	return 0
 }
 
 const WCONTINUED = 8
@@ -26774,7 +26663,7 @@ func X__floatscan(tls *TLS, f uintptr, prec int32, pok int32) (r float64) {
 	}
 	i = uint64(0)
 	for {
-		if !(i < uint64(8) && c|int32(32) == int32(*(*int8)(unsafe.Pointer(__ccgo_ts + 313 + uintptr(i))))) {
+		if !(i < uint64(8) && c|int32(32) == int32(*(*int8)(unsafe.Pointer(__ccgo_ts + 247 + uintptr(i))))) {
 			break
 		}
 		if i < uint64(7) {
@@ -26816,7 +26705,7 @@ func X__floatscan(tls *TLS, f uintptr, prec int32, pok int32) (r float64) {
 	if !(i != 0) {
 		i = uint64(0)
 		for {
-			if !(i < uint64(3) && c|int32(32) == int32(*(*int8)(unsafe.Pointer(__ccgo_ts + 322 + uintptr(i))))) {
+			if !(i < uint64(3) && c|int32(32) == int32(*(*int8)(unsafe.Pointer(__ccgo_ts + 256 + uintptr(i))))) {
 				break
 			}
 			if i < uint64(2) {
@@ -27324,7 +27213,7 @@ func X__intscan(tls *TLS, f uintptr, base uint32, pok int32, lim uint64) (r uint
 		}
 	} else {
 		if !(base&(base-Uint32FromInt32(1)) != 0) {
-			bs = int32(*(*int8)(unsafe.Pointer(__ccgo_ts + 326 + uintptr(uint32(0x17)*base>>int32(5)&uint32(7)))))
+			bs = int32(*(*int8)(unsafe.Pointer(__ccgo_ts + 260 + uintptr(uint32(0x17)*base>>int32(5)&uint32(7)))))
 			x = uint32(0)
 			for {
 				if !(uint32(*(*uint8)(unsafe.Pointer(val + uintptr(c)))) < base && x <= Uint32FromUint32(0xffffffff)/Uint32FromInt32(32)) {
@@ -27450,7 +27339,7 @@ func X__procfdname(tls *TLS, buf uintptr, fd uint32) {
 	_, _, _, _ = i, j, v2, v5
 	i = uint32(0)
 	for {
-		v2 = *(*int8)(unsafe.Pointer(__ccgo_ts + 335 + uintptr(i)))
+		v2 = *(*int8)(unsafe.Pointer(__ccgo_ts + 269 + uintptr(i)))
 		*(*int8)(unsafe.Pointer(buf + uintptr(i))) = v2
 		if !(v2 != 0) {
 			break
@@ -27615,8 +27504,8 @@ func Xftok(tls *TLS, path uintptr, id int32) (r Tkey_t) {
 		trc("tls=%v path=%v id=%v, (%v:)", tls, path, id, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	bp := tls.Alloc(144)
-	defer tls.Free(144)
+	bp := tls.Alloc(128)
+	defer tls.Free(128)
 	var _ /* st at bp+0 */ Tstat
 	if Xstat(tls, path, bp) < 0 {
 		return -int32(1)
@@ -27723,9 +27612,7 @@ const _SEM_SEMUN_UNDEFINED = 1
 type Tsemid_ds = struct {
 	Fsem_perm        Tipc_perm
 	Fsem_otime       Ttime_t
-	F__unused1       int64
 	Fsem_ctime       Ttime_t
-	F__unused2       int64
 	Fsem_nsems       uint16
 	F__sem_nsems_pad [6]int8
 	F__unused3       int64
@@ -27839,9 +27726,7 @@ type Tipc_perm1 = struct {
 type Tsemid_ds1 = struct {
 	Fsem_perm        Tipc_perm1
 	Fsem_otime       Ttime_t
-	F__unused1       int64
 	Fsem_ctime       Ttime_t
-	F__unused2       int64
 	Fsem_nsems       uint16
 	F__sem_nsems_pad [6]int8
 	F__unused3       int64
@@ -28085,14 +27970,6 @@ func Xadjtimex(tls *TLS, tx uintptr) (r int32) {
 	return Xclock_adjtime(tls, CLOCK_REALTIME, tx)
 }
 
-func Xarch_prctl(tls *TLS, code int32, addr uint64) (r int32) {
-	if __ccgo_strace {
-		trc("tls=%v code=%v addr=%v, (%v:)", tls, code, addr, origin(2))
-		defer func() { trc("-> %v", r) }()
-	}
-	return int32(X__syscall_ret(tls, uint64(X__syscall2(tls, int64(SYS_arch_prctl), int64(code), int64(addr)))))
-}
-
 func Xbrk(tls *TLS, end uintptr) (r int32) {
 	if __ccgo_strace {
 		trc("tls=%v end=%v, (%v:)", tls, end, origin(2))
@@ -28320,9 +28197,6 @@ func Xepoll_create1(tls *TLS, flags int32) (r1 int32) {
 	var r int32
 	_ = r
 	r = int32(X__syscall1(tls, int64(SYS_epoll_create1), int64(flags)))
-	if r == -int32(ENOSYS) && !(flags != 0) {
-		r = int32(X__syscall1(tls, int64(SYS_epoll_create), int64(Int32FromInt32(1))))
-	}
 	return int32(X__syscall_ret(tls, uint64(r)))
 }
 
@@ -28342,9 +28216,6 @@ func Xepoll_pwait(tls *TLS, fd int32, ev uintptr, cnt int32, to int32, sigs uint
 	var r int32
 	_ = r
 	r = int32(___syscall_cp(tls, int64(SYS_epoll_pwait), int64(fd), int64(ev), int64(cnt), int64(to), int64(sigs), int64(Int32FromInt32(_NSIG)/Int32FromInt32(8))))
-	if r == -int32(ENOSYS) && !(sigs != 0) {
-		r = int32(___syscall_cp(tls, int64(SYS_epoll_wait), int64(fd), int64(ev), int64(cnt), int64(to), 0, 0))
-	}
 	return int32(X__syscall_ret(tls, uint64(r)))
 }
 
@@ -28370,9 +28241,6 @@ func Xeventfd(tls *TLS, count uint32, flags int32) (r1 int32) {
 	var r int32
 	_ = r
 	r = int32(X__syscall2(tls, int64(SYS_eventfd2), int64(count), int64(flags)))
-	if r == -int32(ENOSYS) && !(flags != 0) {
-		r = int32(X__syscall1(tls, int64(SYS_eventfd), int64(count)))
-	}
 	return int32(X__syscall_ret(tls, uint64(r)))
 }
 
@@ -28657,9 +28525,6 @@ func Xinotify_init1(tls *TLS, flags int32) (r1 int32) {
 	var r int32
 	_ = r
 	r = int32(X__syscall1(tls, int64(SYS_inotify_init1), int64(flags)))
-	if r == -int32(ENOSYS) && !(flags != 0) {
-		r = int32(X__syscall0(tls, int64(SYS_inotify_init)))
-	}
 	return int32(X__syscall_ret(tls, uint64(r)))
 }
 
@@ -28677,22 +28542,6 @@ func Xinotify_rm_watch(tls *TLS, fd int32, wd int32) (r int32) {
 		defer func() { trc("-> %v", r) }()
 	}
 	return int32(X__syscall_ret(tls, uint64(X__syscall2(tls, int64(SYS_inotify_rm_watch), int64(fd), int64(wd)))))
-}
-
-func Xioperm(tls *TLS, from uint64, num uint64, turn_on int32) (r int32) {
-	if __ccgo_strace {
-		trc("tls=%v from=%v num=%v turn_on=%v, (%v:)", tls, from, num, turn_on, origin(2))
-		defer func() { trc("-> %v", r) }()
-	}
-	return int32(X__syscall_ret(tls, uint64(X__syscall3(tls, int64(SYS_ioperm), int64(from), int64(num), int64(turn_on)))))
-}
-
-func Xiopl(tls *TLS, level int32) (r int32) {
-	if __ccgo_strace {
-		trc("tls=%v level=%v, (%v:)", tls, level, origin(2))
-		defer func() { trc("-> %v", r) }()
-	}
-	return int32(X__syscall_ret(tls, uint64(X__syscall1(tls, int64(SYS_iopl), int64(level)))))
 }
 
 func Xklogctl(tls *TLS, type1 int32, buf uintptr, len1 int32) (r int32) {
@@ -29354,7 +29203,6 @@ func Xprocess_vm_readv(tls *TLS, pid Tpid_t, lvec uintptr, liovcnt uint64, rvec 
 	return X__syscall_ret(tls, uint64(X__syscall6(tls, int64(SYS_process_vm_readv), int64(pid), int64(lvec), int64(liovcnt), int64(rvec), int64(riovcnt), int64(flags))))
 }
 
-const PTRACE_ARCH_PRCTL = 30
 const PTRACE_ATTACH = 16
 const PTRACE_CONT = 7
 const PTRACE_DETACH = 17
@@ -29375,7 +29223,6 @@ const PTRACE_GETSIGINFO = 16898
 const PTRACE_GETSIGMASK = 16906
 const PTRACE_GET_RSEQ_CONFIGURATION = 16911
 const PTRACE_GET_SYSCALL_INFO = 16910
-const PTRACE_GET_THREAD_AREA = 25
 const PTRACE_INTERRUPT = 16903
 const PTRACE_KILL = 8
 const PTRACE_LISTEN = 16904
@@ -29408,18 +29255,13 @@ const PTRACE_SETREGS = 13
 const PTRACE_SETREGSET = 16901
 const PTRACE_SETSIGINFO = 16899
 const PTRACE_SETSIGMASK = 16907
-const PTRACE_SET_THREAD_AREA = 26
-const PTRACE_SINGLEBLOCK = 33
 const PTRACE_SINGLESTEP = 9
 const PTRACE_SYSCALL = 24
 const PTRACE_SYSCALL_INFO_ENTRY = 1
 const PTRACE_SYSCALL_INFO_EXIT = 2
 const PTRACE_SYSCALL_INFO_NONE = 0
 const PTRACE_SYSCALL_INFO_SECCOMP = 3
-const PTRACE_SYSEMU = 31
-const PTRACE_SYSEMU_SINGLESTEP = 32
 const PTRACE_TRACEME = 0
-const PT_ARCH_PRCTL = 30
 const PT_ATTACH = 16
 const PT_CONTINUE = 7
 const PT_DETACH = 17
@@ -29428,7 +29270,6 @@ const PT_GETFPREGS = 14
 const PT_GETFPXREGS = 18
 const PT_GETREGS = 12
 const PT_GETSIGINFO = 16898
-const PT_GET_THREAD_AREA = 25
 const PT_KILL = 8
 const PT_READ_D = 2
 const PT_READ_I = 1
@@ -29438,12 +29279,8 @@ const PT_SETFPXREGS = 19
 const PT_SETOPTIONS = 16896
 const PT_SETREGS = 13
 const PT_SETSIGINFO = 16899
-const PT_SET_THREAD_AREA = 26
 const PT_STEP = 9
-const PT_STEPBLOCK = 33
 const PT_SYSCALL = 24
-const PT_SYSEMU = 31
-const PT_SYSEMU_SINGLESTEP = 32
 const PT_TRACE_ME = 0
 const PT_WRITE_D = 5
 const PT_WRITE_I = 4
@@ -29650,7 +29487,7 @@ func Xsendfile(tls *TLS, out_fd int32, in_fd int32, ofs uintptr, count Tsize_t) 
 		trc("tls=%v out_fd=%v in_fd=%v ofs=%v count=%v, (%v:)", tls, out_fd, in_fd, ofs, count, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return X__syscall_ret(tls, uint64(X__syscall4(tls, int64(SYS_sendfile), int64(out_fd), int64(in_fd), int64(ofs), int64(count))))
+	return X__syscall_ret(tls, uint64(X__syscall4(tls, int64(__NR3264_sendfile), int64(out_fd), int64(in_fd), int64(ofs), int64(count))))
 }
 
 func Xsetfsgid(tls *TLS, gid Tgid_t) (r int32) {
@@ -29790,18 +29627,6 @@ func Xsignalfd(tls *TLS, fd int32, sigs uintptr, flags int32) (r int32) {
 	var ret int32
 	_ = ret
 	ret = int32(X__syscall4(tls, int64(SYS_signalfd4), int64(fd), int64(sigs), int64(Int32FromInt32(_NSIG)/Int32FromInt32(8)), int64(flags)))
-	if ret != -int32(ENOSYS) {
-		return int32(X__syscall_ret(tls, uint64(ret)))
-	}
-	ret = int32(X__syscall3(tls, int64(SYS_signalfd), int64(fd), int64(sigs), int64(Int32FromInt32(_NSIG)/Int32FromInt32(8))))
-	if ret >= 0 {
-		if flags&int32(O_CLOEXEC) != 0 {
-			X__syscall3(tls, int64(SYS_fcntl), int64(ret), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
-		}
-		if flags&int32(O_NONBLOCK) != 0 {
-			X__syscall3(tls, int64(SYS_fcntl), int64(ret), int64(Int32FromInt32(F_SETFL)), int64(Int32FromInt32(O_NONBLOCK)))
-		}
-	}
 	return int32(X__syscall_ret(tls, uint64(ret)))
 }
 
@@ -29866,12 +29691,13 @@ func Xstatx(tls *TLS, dirfd int32, path uintptr, flags int32, mask uint32, stx u
 		trc("tls=%v dirfd=%v path=%v flags=%v mask=%v stx=%v, (%v:)", tls, dirfd, path, flags, mask, stx, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	bp := tls.Alloc(144)
-	defer tls.Free(144)
+	bp := tls.Alloc(128)
+	defer tls.Free(128)
 	var ret int32
 	var _ /* st at bp+0 */ Tstat
 	_ = ret
 	ret = int32(X__syscall5(tls, int64(SYS_statx), int64(dirfd), int64(path), int64(flags), int64(mask), int64(stx)))
+	return int32(X__syscall_ret(tls, uint64(ret)))
 	if ret != -int32(ENOSYS) {
 		return int32(X__syscall_ret(tls, uint64(ret)))
 	}
@@ -29883,7 +29709,7 @@ func Xstatx(tls *TLS, dirfd int32, path uintptr, flags int32, mask uint32, stx u
 	(*Tstatx)(unsafe.Pointer(stx)).Fstx_dev_minor = uint32((*(*Tstat)(unsafe.Pointer(bp))).Fst_dev>>Int32FromInt32(12)&Uint64FromUint32(0xffffff00) | (*(*Tstat)(unsafe.Pointer(bp))).Fst_dev&Uint64FromInt32(0x000000ff))
 	(*Tstatx)(unsafe.Pointer(stx)).Fstx_ino = (*(*Tstat)(unsafe.Pointer(bp))).Fst_ino
 	(*Tstatx)(unsafe.Pointer(stx)).Fstx_mode = uint16((*(*Tstat)(unsafe.Pointer(bp))).Fst_mode)
-	(*Tstatx)(unsafe.Pointer(stx)).Fstx_nlink = uint32((*(*Tstat)(unsafe.Pointer(bp))).Fst_nlink)
+	(*Tstatx)(unsafe.Pointer(stx)).Fstx_nlink = (*(*Tstat)(unsafe.Pointer(bp))).Fst_nlink
 	(*Tstatx)(unsafe.Pointer(stx)).Fstx_uid = (*(*Tstat)(unsafe.Pointer(bp))).Fst_uid
 	(*Tstatx)(unsafe.Pointer(stx)).Fstx_gid = (*(*Tstat)(unsafe.Pointer(bp))).Fst_gid
 	(*Tstatx)(unsafe.Pointer(stx)).Fstx_size = uint64((*(*Tstat)(unsafe.Pointer(bp))).Fst_size)
@@ -30036,6 +29862,14 @@ func Xvmsplice(tls *TLS, fd int32, iov uintptr, cnt Tsize_t, flags uint32) (r Ts
 	return X__syscall_ret(tls, uint64(X__syscall4(tls, int64(SYS_vmsplice), int64(fd), int64(iov), int64(cnt), int64(flags))))
 }
 
+const LARCH_NGREG = 32
+const LARCH_REG_A0 = 4
+const LARCH_REG_NARGS = 8
+const LARCH_REG_RA = 1
+const LARCH_REG_S0 = 23
+const LARCH_REG_S1 = 24
+const LARCH_REG_S2 = 25
+const LARCH_REG_SP = 3
 const NSIG = 65
 const SA_NOMASK = 1073741824
 const SA_ONESHOT = 2147483648
@@ -30043,103 +29877,17 @@ const SYS_SECCOMP = 1
 const SYS_USER_DISPATCH = 2
 const __ucontext = 0
 
-const _REG_R8 = 0
-const _REG_R9 = 1
-const _REG_R10 = 2
-const _REG_R11 = 3
-const _REG_R12 = 4
-const _REG_R13 = 5
-const _REG_R14 = 6
-const _REG_R15 = 7
-const _REG_RDI = 8
-const _REG_RSI = 9
-const _REG_RBP = 10
-const _REG_RBX = 11
-const _REG_RDX = 12
-const _REG_RAX = 13
-const _REG_RCX = 14
-const _REG_RSP = 15
-const _REG_RIP = 16
-const _REG_EFL = 17
-const _REG_CSGSFS = 18
-const _REG_ERR = 19
-const _REG_TRAPNO = 20
-const _REG_OLDMASK = 21
-const _REG_CR2 = 22
+type Tgreg_t = uint64
 
-type Tgreg_t = int64
-
-type Tgregset_t = [23]int64
-
-type Tfpregset_t = uintptr
-
-type T_fpstate = struct {
-	Fcwd       uint16
-	Fswd       uint16
-	Fftw       uint16
-	Ffop       uint16
-	Frip       uint64
-	Frdp       uint64
-	Fmxcsr     uint32
-	Fmxcr_mask uint32
-	F_st       [8]struct {
-		Fsignificand [4]uint16
-		Fexponent    uint16
-		Fpadding     [3]uint16
-	}
-	F_xmm [16]struct {
-		Felement [4]uint32
-	}
-	Fpadding [24]uint32
-}
+type Tgregset_t = [32]uint64
 
 type Tsigcontext = struct {
-	Fr8          uint64
-	Fr9          uint64
-	Fr10         uint64
-	Fr11         uint64
-	Fr12         uint64
-	Fr13         uint64
-	Fr14         uint64
-	Fr15         uint64
-	Frdi         uint64
-	Frsi         uint64
-	Frbp         uint64
-	Frbx         uint64
-	Frdx         uint64
-	Frax         uint64
-	Frcx         uint64
-	Frsp         uint64
-	Frip         uint64
-	Feflags      uint64
-	Fcs          uint16
-	Fgs          uint16
-	Ffs          uint16
-	F__pad0      uint16
-	Ferr         uint64
-	Ftrapno      uint64
-	Foldmask     uint64
-	Fcr2         uint64
-	Ffpstate     uintptr
-	F__reserved1 [8]uint64
+	Fsc_pc    uint64
+	Fsc_regs  [32]uint64
+	Fsc_flags uint32
 }
 
-type Tmcontext_t1 = struct {
-	Fgregs       Tgregset_t
-	Ffpregs      Tfpregset_t
-	F__reserved1 [8]uint64
-}
-
-type Tucontext_t1 = struct {
-	Fuc_flags     uint64
-	Fuc_link      uintptr
-	Fuc_stack     Tstack_t
-	Fuc_mcontext  Tmcontext_t1
-	Fuc_sigmask   Tsigset_t
-	F__fpregs_mem [64]uint64
-}
-
-type Tucontext = Tucontext_t1
+type Tucontext = Tucontext_t
 
 type Tsig_t = uintptr
 
@@ -30285,15 +30033,6 @@ func Xfremovexattr(tls *TLS, fd int32, name uintptr) (r int32) {
 	return int32(X__syscall_ret(tls, uint64(X__syscall2(tls, int64(SYS_fremovexattr), int64(fd), int64(name)))))
 }
 
-type Tucontext_t2 = struct {
-	Fuc_flags     uint64
-	Fuc_link      uintptr
-	Fuc_stack     Tstack_t
-	Fuc_mcontext  Tmcontext_t
-	Fuc_sigmask   Tsigset_t
-	F__fpregs_mem [64]uint64
-}
-
 func _dummy4(tls *TLS, msg uintptr, lm uintptr) (r uintptr) {
 	return msg
 }
@@ -30384,7 +30123,7 @@ func Xbind_textdomain_codeset(tls *TLS, domainname uintptr, codeset uintptr) (r 
 		trc("tls=%v domainname=%v codeset=%v, (%v:)", tls, domainname, codeset, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	if codeset != 0 && Xstrcasecmp(tls, codeset, __ccgo_ts+350) != 0 {
+	if codeset != 0 && Xstrcasecmp(tls, codeset, __ccgo_ts+284) != 0 {
 		*(*int32)(unsafe.Pointer(X__errno_location(tls))) = int32(EINVAL)
 	}
 	return UintptrFromInt32(0)
@@ -30622,7 +30361,7 @@ func Xcatopen(tls *TLS, name uintptr, oflag int32) (r Tnl_catd) {
 		return _do_catopen(tls, name)
 	}
 	if v2 = X__libc.Fsecure != 0; !v2 {
-		v1 = Xgetenv(tls, __ccgo_ts+356)
+		v1 = Xgetenv(tls, __ccgo_ts+290)
 		path = v1
 	}
 	if v2 || !(v1 != 0) {
@@ -30632,7 +30371,7 @@ func Xcatopen(tls *TLS, name uintptr, oflag int32) (r Tnl_catd) {
 	if oflag != 0 {
 		v3 = Xnl_langinfo(tls, Int32FromInt32(LC_MESSAGES)<<Int32FromInt32(16)|Int32FromInt32(0xffff))
 	} else {
-		v3 = Xgetenv(tls, __ccgo_ts+364)
+		v3 = Xgetenv(tls, __ccgo_ts+298)
 	}
 	lang = v3
 	if !(lang != 0) {
@@ -30664,18 +30403,18 @@ func Xcatopen(tls *TLS, name uintptr, oflag int32) (r Tnl_catd) {
 					l = Xstrlen(tls, v)
 				case int32('l'):
 					v = lang
-					l = Xstrcspn(tls, v, __ccgo_ts+369)
+					l = Xstrcspn(tls, v, __ccgo_ts+303)
 				case int32('t'):
 					v = X__strchrnul(tls, lang, int32('_'))
 					if *(*int8)(unsafe.Pointer(v)) != 0 {
 						v++
 					}
-					l = Xstrcspn(tls, v, __ccgo_ts+373)
+					l = Xstrcspn(tls, v, __ccgo_ts+307)
 				case int32('c'):
-					v = __ccgo_ts + 350
+					v = __ccgo_ts + 284
 					l = uint64(5)
 				case int32('%'):
-					v = __ccgo_ts + 376
+					v = __ccgo_ts + 310
 					l = uint64(1)
 				default:
 					v = uintptr(0)
@@ -30754,16 +30493,19 @@ func _gettextdir(tls *TLS, domainname uintptr, dirlen uintptr) (r uintptr) {
 
 var _lock1 [1]int32
 
-func Xbindtextdomain(tls *TLS, domainname uintptr, dirname uintptr) (r uintptr) {
+func Xbindtextdomain(tls *TLS, domainname uintptr, dirname uintptr) (r1 uintptr) {
 	if __ccgo_strace {
 		trc("tls=%v domainname=%v dirname=%v, (%v:)", tls, domainname, dirname, origin(2))
-		defer func() { trc("-> %v", r) }()
+		defer func() { trc("-> %v", r1) }()
 	}
 	bp := tls.Alloc(16)
 	defer tls.Free(16)
 	var dirlen, domlen Tsize_t
-	var p, q, v2 uintptr
-	_, _, _, _, _ = dirlen, domlen, p, q, v2
+	var old, p, q, v, v2, v7 uintptr
+	var r int64
+	var v3 int32
+	var v5 bool
+	_, _, _, _, _, _, _, _, _, _, _ = dirlen, domlen, old, p, q, r, v, v2, v3, v5, v7
 	if !(domainname != 0) {
 		return uintptr(0)
 	}
@@ -30802,35 +30544,63 @@ func Xbindtextdomain(tls *TLS, domainname uintptr, dirname uintptr) (r uintptr) 
 		(*Tbinding)(unsafe.Pointer(p)).Fdirname = p + 32 + uintptr(domlen) + uintptr(1)
 		Xmemcpy(tls, (*Tbinding)(unsafe.Pointer(p)).Fdomainname, domainname, domlen+uint64(1))
 		Xmemcpy(tls, (*Tbinding)(unsafe.Pointer(p)).Fdirname, dirname, dirlen+uint64(1))
-		v2 = AtomicLoadPUintptr(uintptr(unsafe.Pointer(&_bindings)))
-		// __asm__( "lock ; cmpxchg %3, %1"
-		//
-		//	: "=a"(t), "=m"(*(void *volatile *)p)
-		//	: "a"(t), "r"(s) : "memory" );
-		X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 13, __ccgo_ts+378)
-		_ = v2
-		goto _3
-	_3:
+		v2 = uintptr(unsafe.Pointer(&_bindings))
+		// __asm__ __volatile__ ("dbar 0" : : : "memory");
+		X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+361)
+		for {
+			// __asm__ __volatile__ (
+			//
+			//	"ll.d %0, %1"
+			//	: "=r"(v)
+			//	: "ZC"(*(void *volatile *)p));
+			X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 27, __ccgo_ts+361)
+			v7 = v
+			goto _8
+		_8:
+			old = v7
+			goto _6
+		_6:
+			if v5 = old == AtomicLoadPUintptr(uintptr(unsafe.Pointer(&_bindings))); v5 {
+				// __asm__ __volatile__ (
+				//
+				//	"sc.d %0, %1"
+				//	: "=r"(r), "=ZC"(*(void *volatile *)p)
+				//	: "0"(v)
+				//	: "memory");
+				X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 38, __ccgo_ts+361)
+				v3 = int32(r)
+				goto _4
+			_4:
+			}
+			if !(v5 && !(v3 != 0)) {
+				break
+			}
+		}
+		// __asm__ __volatile__ ("dbar 0" : : : "memory");
+		X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+361)
+		_ = old
+		goto _9
+	_9:
 	}
-	// __asm__ __volatile__(
-	//
-	//	"mov %1, %0 ; lock ; orl $0,(%%rsp)"
-	//	: "=m"(*p) : "r"(x) : "memory" );
-	X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 88, __ccgo_ts+378)
+	// __asm__ __volatile__ ("dbar 0" : : : "memory");
+	X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+361)
+	AtomicStorePInt32(p+12, int32(1))
+	// __asm__ __volatile__ ("dbar 0" : : : "memory");
+	X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+361)
 	q = AtomicLoadPUintptr(uintptr(unsafe.Pointer(&_bindings)))
 	for {
 		if !(q != 0) {
 			break
 		}
 		if !(Xstrcmp(tls, (*Tbinding)(unsafe.Pointer(q)).Fdomainname, domainname) != 0) && q != p {
-			// __asm__ __volatile__(
-			//
-			//	"mov %1, %0 ; lock ; orl $0,(%%rsp)"
-			//	: "=m"(*p) : "r"(x) : "memory" );
-			X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 88, __ccgo_ts+378)
+			// __asm__ __volatile__ ("dbar 0" : : : "memory");
+			X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+361)
+			AtomicStorePInt32(q+12, 0)
+			// __asm__ __volatile__ ("dbar 0" : : : "memory");
+			X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+361)
 		}
-		goto _4
-	_4:
+		goto _10
+	_10:
 		q = (*Tbinding)(unsafe.Pointer(q)).Fnext
 	}
 	___unlock(tls, uintptr(unsafe.Pointer(&_lock1)))
@@ -30867,24 +30637,26 @@ type Tmsgcat = struct {
 }
 
 func _dummy_gettextdomain(tls *TLS) (r uintptr) {
-	return __ccgo_ts + 393
+	return __ccgo_ts + 376
 }
 
-func Xdcngettext(tls *TLS, domainname uintptr, msgid1 uintptr, msgid2 uintptr, n uint64, category int32) (r1 uintptr) {
+func Xdcngettext(tls *TLS, domainname uintptr, msgid1 uintptr, msgid2 uintptr, n uint64, category int32) (r2 uintptr) {
 	if __ccgo_strace {
 		trc("tls=%v domainname=%v msgid1=%v msgid2=%v n=%v category=%v, (%v:)", tls, domainname, msgid1, msgid2, n, category, origin(2))
-		defer func() { trc("-> %v", r1) }()
+		defer func() { trc("-> %v", r2) }()
 	}
 	bp := tls.Alloc(80)
 	defer tls.Free(80)
 	var alt_modlen, catlen, dirlen, domlen, l, loclen, modlen, rem, v5 Tsize_t
-	var catname, csp, dirname, lm, loc, locname, locp, map1, modname, name, old_cats, p, q, r, rule, trans, v10, v17, v18, v3, v8, v9 uintptr
-	var np, plural, v21 uint64
-	var old_errno, v11, v12, v14, v15 int32
+	var catname, csp, dirname, lm, loc, locname, locp, map1, modname, name, old, old_cats, p, q, r1, rule, trans, v, v10, v17, v22, v24, v3, v8, v9 uintptr
+	var np, plural, v27 uint64
+	var old_errno, v11, v12, v14, v15, v18 int32
+	var r int64
+	var v20 bool
 	var v6 t__predefined_size_t
 	var _ /* map_size at bp+0 */ Tsize_t
 	var _ /* z at bp+8 */ uintptr
-	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = alt_modlen, catlen, catname, csp, dirlen, dirname, domlen, l, lm, loc, loclen, locname, locp, map1, modlen, modname, name, np, old_cats, old_errno, p, plural, q, r, rem, rule, trans, v10, v11, v12, v14, v15, v17, v18, v21, v3, v5, v6, v8, v9
+	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = alt_modlen, catlen, catname, csp, dirlen, dirname, domlen, l, lm, loc, loclen, locname, locp, map1, modlen, modname, name, np, old, old_cats, old_errno, p, plural, q, r, r1, rem, rule, trans, v, v10, v11, v12, v14, v15, v17, v18, v20, v22, v24, v27, v3, v5, v6, v8, v9
 	defer func() { Xrealloc(tls, name, 0) }()
 	loc = (*t__pthread)(unsafe.Pointer(___get_tp(tls))).Flocale
 	old_errno = *(*int32)(unsafe.Pointer(X__errno_location(tls)))
@@ -30966,7 +30738,7 @@ _2:
 		v6 = dirlen + uint64(1) + loclen + modlen + uint64(1) + catlen + uint64(1) + domlen + uint64(3) + uint64(1)
 		name = Xrealloc(tls, name, v6)
 		for {
-			Xsnprintf(tls, name, v6, __ccgo_ts+402, VaList(bp+24, dirname, int32(loclen), locname, int32(alt_modlen), modname, catname, domainname))
+			Xsnprintf(tls, name, v6, __ccgo_ts+385, VaList(bp+24, dirname, int32(loclen), locname, int32(alt_modlen), modname, catname, domainname))
 			v8 = X__map_file(tls, name, bp)
 			map1 = v8
 			if v8 != 0 {
@@ -31001,51 +30773,51 @@ _2:
 		(*Tmsgcat)(unsafe.Pointer(p)).Flm = lm
 		(*Tmsgcat)(unsafe.Pointer(p)).Fmap1 = map1
 		(*Tmsgcat)(unsafe.Pointer(p)).Fmap_size = *(*Tsize_t)(unsafe.Pointer(bp))
-		rule = __ccgo_ts + 424
+		rule = __ccgo_ts + 407
 		np = uint64(2)
-		r = X__mo_lookup(tls, (*Tmsgcat)(unsafe.Pointer(p)).Fmap1, (*Tmsgcat)(unsafe.Pointer(p)).Fmap_size, __ccgo_ts)
-		for r != 0 && Xstrncmp(tls, r, __ccgo_ts+430, uint64(13)) != 0 {
-			*(*uintptr)(unsafe.Pointer(bp + 8)) = Xstrchr(tls, r, int32('\n'))
+		r1 = X__mo_lookup(tls, (*Tmsgcat)(unsafe.Pointer(p)).Fmap1, (*Tmsgcat)(unsafe.Pointer(p)).Fmap_size, __ccgo_ts)
+		for r1 != 0 && Xstrncmp(tls, r1, __ccgo_ts+413, uint64(13)) != 0 {
+			*(*uintptr)(unsafe.Pointer(bp + 8)) = Xstrchr(tls, r1, int32('\n'))
 			if *(*uintptr)(unsafe.Pointer(bp + 8)) != 0 {
 				v10 = *(*uintptr)(unsafe.Pointer(bp + 8)) + uintptr(1)
 			} else {
 				v10 = uintptr(0)
 			}
-			r = v10
+			r1 = v10
 		}
-		if r != 0 {
-			r += uintptr(13)
+		if r1 != 0 {
+			r1 += uintptr(13)
 			for {
-				v11 = int32(*(*int8)(unsafe.Pointer(r)))
+				v11 = int32(*(*int8)(unsafe.Pointer(r1)))
 				v12 = BoolInt32(v11 == int32(' ') || uint32(v11)-uint32('\t') < uint32(5))
 				goto _13
 			_13:
 				if !(v12 != 0) {
 					break
 				}
-				r++
+				r1++
 			}
-			if !(Xstrncmp(tls, r, __ccgo_ts+444, uint64(9)) != 0) {
-				np = Xstrtoul(tls, r+uintptr(9), bp+8, int32(10))
-				r = *(*uintptr)(unsafe.Pointer(bp + 8))
+			if !(Xstrncmp(tls, r1, __ccgo_ts+427, uint64(9)) != 0) {
+				np = Xstrtoul(tls, r1+uintptr(9), bp+8, int32(10))
+				r1 = *(*uintptr)(unsafe.Pointer(bp + 8))
 			}
-			for *(*int8)(unsafe.Pointer(r)) != 0 && int32(*(*int8)(unsafe.Pointer(r))) != int32(';') {
-				r++
+			for *(*int8)(unsafe.Pointer(r1)) != 0 && int32(*(*int8)(unsafe.Pointer(r1))) != int32(';') {
+				r1++
 			}
-			if *(*int8)(unsafe.Pointer(r)) != 0 {
-				r++
+			if *(*int8)(unsafe.Pointer(r1)) != 0 {
+				r1++
 				for {
-					v14 = int32(*(*int8)(unsafe.Pointer(r)))
+					v14 = int32(*(*int8)(unsafe.Pointer(r1)))
 					v15 = BoolInt32(v14 == int32(' ') || uint32(v14)-uint32('\t') < uint32(5))
 					goto _16
 				_16:
 					if !(v15 != 0) {
 						break
 					}
-					r++
+					r1++
 				}
-				if !(Xstrncmp(tls, r, __ccgo_ts+454, uint64(7)) != 0) {
-					rule = r + uintptr(7)
+				if !(Xstrncmp(tls, r1, __ccgo_ts+437, uint64(7)) != 0) {
+					rule = r1 + uintptr(7)
 				}
 			}
 		}
@@ -31054,18 +30826,46 @@ _2:
 		for {
 			old_cats = AtomicLoadPUintptr(uintptr(unsafe.Pointer(&_cats)))
 			(*Tmsgcat)(unsafe.Pointer(p)).Fnext = old_cats
-			goto _20
-		_20:
-			v17 = old_cats
-			// __asm__( "lock ; cmpxchg %3, %1"
-			//
-			//	: "=a"(t), "=m"(*(void *volatile *)p)
-			//	: "a"(t), "r"(s) : "memory" );
-			X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 13, __ccgo_ts+462)
-			v18 = v17
-			goto _19
-		_19:
-			if !(v18 != old_cats) {
+			goto _26
+		_26:
+			v17 = uintptr(unsafe.Pointer(&_cats))
+			// __asm__ __volatile__ ("dbar 0" : : : "memory");
+			X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+445)
+			for {
+				// __asm__ __volatile__ (
+				//
+				//	"ll.d %0, %1"
+				//	: "=r"(v)
+				//	: "ZC"(*(void *volatile *)p));
+				X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 27, __ccgo_ts+445)
+				v22 = v
+				goto _23
+			_23:
+				old = v22
+				goto _21
+			_21:
+				if v20 = old == old_cats; v20 {
+					// __asm__ __volatile__ (
+					//
+					//	"sc.d %0, %1"
+					//	: "=r"(r), "=ZC"(*(void *volatile *)p)
+					//	: "0"(v)
+					//	: "memory");
+					X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 38, __ccgo_ts+445)
+					v18 = int32(r)
+					goto _19
+				_19:
+				}
+				if !(v20 && !(v18 != 0)) {
+					break
+				}
+			}
+			// __asm__ __volatile__ ("dbar 0" : : : "memory");
+			X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+445)
+			v24 = old
+			goto _25
+		_25:
+			if !(v24 != old_cats) {
 				break
 			}
 		}
@@ -31082,9 +30882,9 @@ _2:
 			goto notrans
 		}
 		for {
-			v21 = plural
+			v27 = plural
 			plural--
-			if !(v21 != 0) {
+			if !(v27 != 0) {
 				break
 			}
 			rem = (*Tmsgcat)(unsafe.Pointer(p)).Fmap_size - uint64(int64(trans)-int64((*Tmsgcat)(unsafe.Pointer(p)).Fmap1))
@@ -97529,7 +97329,7 @@ func Xiconv(tls *TLS, cd Ticonv_t, in uintptr, inb uintptr, out uintptr, outb ui
 	*(*Tmbstate_t)(unsafe.Pointer(bp + 24)) = Tmbstate_t{}
 	type1 = *(*uint8)(unsafe.Pointer(map1 + uintptr(-Int32FromInt32(1))))
 	totype = *(*uint8)(unsafe.Pointer(tomap + uintptr(-Int32FromInt32(1))))
-	ploc = ___get_tp(tls) + 168
+	ploc = ___get_tp(tls) + 152
 	loc = *(*Tlocale_t)(unsafe.Pointer(ploc))
 	if !(in != 0) || !(*(*uintptr)(unsafe.Pointer(in)) != 0) || !(*(*Tsize_t)(unsafe.Pointer(inb)) != 0) {
 		return uint64(0)
@@ -97961,10 +97761,10 @@ func Xiconv(tls *TLS, cd Ticonv_t, in uintptr, inb uintptr, out uintptr, outb ui
 			 * here. Ugly, yes. */
 			if c/uint32(256) == uint32(0xdc) {
 				*(*uintptr)(unsafe.Pointer(bp + 48)) = bp + 40
-				*(*uintptr)(unsafe.Pointer(bp)) = __ccgo_ts + 473 + uintptr(c%uint32(256))
+				*(*uintptr)(unsafe.Pointer(bp)) = __ccgo_ts + 456 + uintptr(c%uint32(256))
 				*(*Tsize_t)(unsafe.Pointer(bp + 8)) = uint64(4)
 				*(*Tsize_t)(unsafe.Pointer(bp + 16)) = uint64(8)
-				tmpx = Xiconv(tls, _combine_to_from(tls, uint64(to), _find_charmap(tls, __ccgo_ts+490)), bp, bp+8, bp+48, bp+16)
+				tmpx = Xiconv(tls, _combine_to_from(tls, uint64(to), _find_charmap(tls, __ccgo_ts+473)), bp, bp+8, bp+48, bp+16)
 				tmplen = uint64(int64(*(*uintptr)(unsafe.Pointer(bp + 48))) - t__predefined_ptrdiff_t(bp+40))
 				if tmplen > *(*Tsize_t)(unsafe.Pointer(outb)) {
 					goto toobig
@@ -98434,9 +98234,9 @@ func X__nl_langinfo_l(tls *TLS, item Tnl_item, loc Tlocale_t) (r uintptr) {
 	idx = item & int32(65535)
 	if item == int32(CODESET) {
 		if *(*uintptr)(unsafe.Pointer(loc)) != 0 {
-			v1 = __ccgo_ts + 350
+			v1 = __ccgo_ts + 284
 		} else {
-			v1 = __ccgo_ts + 495
+			v1 = __ccgo_ts + 478
 		}
 		return v1
 	}
@@ -98445,7 +98245,7 @@ func X__nl_langinfo_l(tls *TLS, item Tnl_item, loc Tlocale_t) (r uintptr) {
 		if *(*uintptr)(unsafe.Pointer(loc + uintptr(cat)*8)) != 0 {
 			v2 = *(*uintptr)(unsafe.Pointer(loc + uintptr(cat)*8)) + 16
 		} else {
-			v2 = __ccgo_ts + 501
+			v2 = __ccgo_ts + 484
 		}
 		return v2
 	}
@@ -98565,18 +98365,18 @@ func X__get_locale(tls *TLS, cat int32, val uintptr) (r uintptr) {
 	new1 = uintptr(0)
 	path = uintptr(0)
 	if !(*(*int8)(unsafe.Pointer(val)) != 0) {
-		v1 = Xgetenv(tls, __ccgo_ts+503)
+		v1 = Xgetenv(tls, __ccgo_ts+486)
 		val = v1
 		if v3 = v1 != 0 && *(*int8)(unsafe.Pointer(val)) != 0; !v3 {
 			v2 = Xgetenv(tls, uintptr(unsafe.Pointer(&_envvars))+uintptr(cat)*12)
 			val = v2
 		}
 		if v5 = v3 || v2 != 0 && *(*int8)(unsafe.Pointer(val)) != 0; !v5 {
-			v4 = Xgetenv(tls, __ccgo_ts+364)
+			v4 = Xgetenv(tls, __ccgo_ts+298)
 			val = v4
 		}
 		if v7 = v5 || v4 != 0 && *(*int8)(unsafe.Pointer(val)) != 0; !v7 {
-			v6 = __ccgo_ts + 510
+			v6 = __ccgo_ts + 493
 			val = v6
 		}
 		_ = v7 || v6 != 0
@@ -98592,9 +98392,9 @@ func X__get_locale(tls *TLS, cat int32, val uintptr) (r uintptr) {
 		n++
 	}
 	if int32(*(*int8)(unsafe.Pointer(val))) == int32('.') || *(*int8)(unsafe.Pointer(val + uintptr(n))) != 0 {
-		val = __ccgo_ts + 510
+		val = __ccgo_ts + 493
 	}
-	builtin = BoolInt32(int32(*(*int8)(unsafe.Pointer(val))) == int32('C') && !(*(*int8)(unsafe.Pointer(val + 1)) != 0) || !(Xstrcmp(tls, val, __ccgo_ts+510) != 0) || !(Xstrcmp(tls, val, __ccgo_ts+518) != 0))
+	builtin = BoolInt32(int32(*(*int8)(unsafe.Pointer(val))) == int32('C') && !(*(*int8)(unsafe.Pointer(val + 1)) != 0) || !(Xstrcmp(tls, val, __ccgo_ts+493) != 0) || !(Xstrcmp(tls, val, __ccgo_ts+501) != 0))
 	if builtin != 0 {
 		if cat == LC_CTYPE && int32(*(*int8)(unsafe.Pointer(val + 1))) == int32('.') {
 			return uintptr(unsafe.Pointer(&X__c_dot_utf8))
@@ -98614,7 +98414,7 @@ func X__get_locale(tls *TLS, cat int32, val uintptr) (r uintptr) {
 		p = (*t__locale_map)(unsafe.Pointer(p)).Fnext
 	}
 	if !(X__libc.Fsecure != 0) {
-		path = Xgetenv(tls, __ccgo_ts+524)
+		path = Xgetenv(tls, __ccgo_ts+507)
 	}
 	/* FIXME: add a default path? */
 	if path != 0 {
@@ -98687,7 +98487,7 @@ var _loc_head uintptr
  * from SUS and have nothing to do with the host system. */
 
 var _posix_lconv = Tlconv{
-	Fdecimal_point:      __ccgo_ts + 537,
+	Fdecimal_point:      __ccgo_ts + 520,
 	Fthousands_sep:      __ccgo_ts,
 	Fgrouping:           __ccgo_ts,
 	Fint_curr_symbol:    __ccgo_ts,
@@ -99156,7 +98956,7 @@ func Xsetlocale(tls *TLS, cat int32, name uintptr) (r uintptr) {
 			if lm1 != 0 {
 				v3 = lm1 + 16
 			} else {
-				v3 = __ccgo_ts + 501
+				v3 = __ccgo_ts + 484
 			}
 			part1 = v3
 			l = Xstrlen(tls, part1)
@@ -99191,7 +98991,7 @@ func Xsetlocale(tls *TLS, cat int32, name uintptr) (r uintptr) {
 	if lm != 0 {
 		v6 = lm + 16
 	} else {
-		v6 = __ccgo_ts + 501
+		v6 = __ccgo_ts + 484
 	}
 	ret = v6
 	___unlock(tls, uintptr(unsafe.Pointer(&X__locale_lock)))
@@ -99329,7 +99129,7 @@ _4:
 		w = fw
 	}
 	x = VaFloat64(&ap)
-	l = uint64(Xsnprintf(tls, s, n, __ccgo_ts+539, VaList(bp+8, w, rp, x)))
+	l = uint64(Xsnprintf(tls, s, n, __ccgo_ts+522, VaList(bp+8, w, rp, x)))
 	if l >= n {
 		*(*int32)(unsafe.Pointer(X__errno_location(tls))) = int32(E2BIG)
 		return int64(-int32(1))
@@ -99477,7 +99277,7 @@ func X__gettextdomain(tls *TLS) (r uintptr) {
 	if _current_domain != 0 {
 		v1 = _current_domain
 	} else {
-		v1 = __ccgo_ts + 393
+		v1 = __ccgo_ts + 376
 	}
 	return v1
 }
@@ -104399,32 +104199,33 @@ func _mul(tls *TLS, hi uintptr, lo uintptr, x Tuint64_t, y Tuint64_t) {
 	*(*Tuint64_t)(unsafe.Pointer(hi)) = t3 + t2>>Int32FromInt32(32) + BoolUint64(t1 > *(*Tuint64_t)(unsafe.Pointer(lo)))
 }
 
-func Xfma(tls *TLS, x float64, y float64, z float64) (r1 float64) {
+func Xfma(tls *TLS, x float64, y1 float64, z float64) (r2 float64) {
 	if __ccgo_strace {
-		trc("tls=%v x=%v y=%v z=%v, (%v:)", tls, x, y, z, origin(2))
-		defer func() { trc("-> %v", r1) }()
+		trc("tls=%v x=%v y1=%v z=%v, (%v:)", tls, x, y1, z, origin(2))
+		defer func() { trc("-> %v", r2) }()
 	}
 	bp := tls.Alloc(16)
 	defer tls.Free(16)
-	var c, r float64
-	var d, e, nonzero, samesign, sign, v2, v5 int32
+	var c, r1 float64
+	var d, e, nonzero, r, samesign, sign, v2, v5 int32
 	var fltmin float32
 	var i Tint64_t
 	var nx, ny, nz Tnum
 	var t, zhi, zlo, v1, v4 Tuint64_t
 	var tiny Tdouble_t
+	var y Tuint32_t
 	var _ /* rhi at bp+0 */ Tuint64_t
 	var _ /* rlo at bp+8 */ Tuint64_t
-	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = c, d, e, fltmin, i, nonzero, nx, ny, nz, r, samesign, sign, t, tiny, zhi, zlo, v1, v2, v4, v5
+	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = c, d, e, fltmin, i, nonzero, nx, ny, nz, r, r1, samesign, sign, t, tiny, y, zhi, zlo, v1, v2, v4, v5
 	nx = _normalize(tls, x)
-	ny = _normalize(tls, y)
+	ny = _normalize(tls, y1)
 	nz = _normalize(tls, z)
 	if nx.Fe >= Int32FromInt32(0x7ff)-Int32FromInt32(0x3ff)-Int32FromInt32(52)-Int32FromInt32(1) || ny.Fe >= Int32FromInt32(0x7ff)-Int32FromInt32(0x3ff)-Int32FromInt32(52)-Int32FromInt32(1) {
-		return x*y + z
+		return x*y1 + z
 	}
 	if nz.Fe >= Int32FromInt32(0x7ff)-Int32FromInt32(0x3ff)-Int32FromInt32(52)-Int32FromInt32(1) {
 		if nz.Fe > Int32FromInt32(0x7ff)-Int32FromInt32(0x3ff)-Int32FromInt32(52)-Int32FromInt32(1) { /* z==0 */
-			return x*y + z
+			return x*y1 + z
 		}
 		return z
 	}
@@ -104491,9 +104292,34 @@ func Xfma(tls *TLS, x float64, y float64, z float64) (r1 float64) {
 	if nonzero != 0 {
 		e += int32(64)
 		v1 = *(*Tuint64_t)(unsafe.Pointer(bp))
-		// __asm__( "bsr %1,%0 ; xor $63,%0" : "=r"(x) : "r"(x) );
-		X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 121, __ccgo_ts+545)
-		v2 = int32(v1)
+		if v1>>Int32FromInt32(32) != 0 {
+			y = uint32(v1 >> int32(32))
+			r = Int32FromInt32(0)
+		} else {
+			y = uint32(v1)
+			r = Int32FromInt32(32)
+		}
+		if y>>Int32FromInt32(16) != 0 {
+			y >>= uint32(16)
+		} else {
+			r |= int32(16)
+		}
+		if y>>Int32FromInt32(8) != 0 {
+			y >>= uint32(8)
+		} else {
+			r |= int32(8)
+		}
+		if y>>Int32FromInt32(4) != 0 {
+			y >>= uint32(4)
+		} else {
+			r |= int32(4)
+		}
+		if y>>Int32FromInt32(2) != 0 {
+			y >>= uint32(2)
+		} else {
+			r |= int32(2)
+		}
+		v2 = r | BoolInt32(!(y>>Int32FromInt32(1) != 0))
 		goto _3
 	_3:
 		d = v2 - int32(1)
@@ -104502,9 +104328,34 @@ func Xfma(tls *TLS, x float64, y float64, z float64) (r1 float64) {
 	} else {
 		if *(*Tuint64_t)(unsafe.Pointer(bp + 8)) != 0 {
 			v4 = *(*Tuint64_t)(unsafe.Pointer(bp + 8))
-			// __asm__( "bsr %1,%0 ; xor $63,%0" : "=r"(x) : "r"(x) );
-			X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 121, __ccgo_ts+545)
-			v5 = int32(v4)
+			if v4>>Int32FromInt32(32) != 0 {
+				y = uint32(v4 >> int32(32))
+				r = Int32FromInt32(0)
+			} else {
+				y = uint32(v4)
+				r = Int32FromInt32(32)
+			}
+			if y>>Int32FromInt32(16) != 0 {
+				y >>= uint32(16)
+			} else {
+				r |= int32(16)
+			}
+			if y>>Int32FromInt32(8) != 0 {
+				y >>= uint32(8)
+			} else {
+				r |= int32(8)
+			}
+			if y>>Int32FromInt32(4) != 0 {
+				y >>= uint32(4)
+			} else {
+				r |= int32(4)
+			}
+			if y>>Int32FromInt32(2) != 0 {
+				y >>= uint32(2)
+			} else {
+				r |= int32(2)
+			}
+			v5 = r | BoolInt32(!(y>>Int32FromInt32(1) != 0))
 			goto _6
 		_6:
 			d = v5 - int32(1)
@@ -104515,7 +104366,7 @@ func Xfma(tls *TLS, x float64, y float64, z float64) (r1 float64) {
 			}
 		} else {
 			/* exact +-0 */
-			return x*y + z
+			return x*y1 + z
 		}
 	}
 	e -= d
@@ -104524,7 +104375,7 @@ func Xfma(tls *TLS, x float64, y float64, z float64) (r1 float64) {
 	if sign != 0 {
 		i = -i
 	}
-	r = float64(i) /* |r| is in [0x1p62,0x1p63] */
+	r1 = float64(i) /* |r| is in [0x1p62,0x1p63] */
 	if e < -Int32FromInt32(1022)-Int32FromInt32(62) {
 		/* result is subnormal before rounding */
 		if e == -Int32FromInt32(1022)-Int32FromInt32(63) {
@@ -104532,11 +104383,11 @@ func Xfma(tls *TLS, x float64, y float64, z float64) (r1 float64) {
 			if sign != 0 {
 				c = -c
 			}
-			if r == c {
+			if r1 == c {
 				/* min normal after rounding, underflow depends
 				   on arch behaviour which can be imitated by
 				   a double to float conversion */
-				fltmin = float32(Float64FromFloat64(1.0842021401737618e-19) * Float64FromFloat32(1.1754943508222875e-38) * r)
+				fltmin = float32(Float64FromFloat64(1.0842021401737618e-19) * Float64FromFloat32(1.1754943508222875e-38) * r1)
 				return Float64FromFloat64(2.2250738585072014e-308) / Float64FromFloat32(1.1754943508222875e-38) * float64(fltmin)
 			}
 			/* one bit is lost when scaled, add another top bit to
@@ -104546,12 +104397,12 @@ func Xfma(tls *TLS, x float64, y float64, z float64) (r1 float64) {
 				if sign != 0 {
 					i = -i
 				}
-				r = float64(i)
-				r = Float64FromInt32(2)*r - c /* remove top bit */
+				r1 = float64(i)
+				r1 = Float64FromInt32(2)*r1 - c /* remove top bit */
 				/* raise underflow portably, such that it
 				   cannot be optimized away */
-				tiny = Float64FromFloat64(2.2250738585072014e-308) / Float64FromFloat32(1.1754943508222875e-38) * r
-				r += tiny * tiny * (r - r)
+				tiny = Float64FromFloat64(2.2250738585072014e-308) / Float64FromFloat32(1.1754943508222875e-38) * r1
+				r1 += tiny * tiny * (r1 - r1)
 			}
 		} else {
 			/* only round once when scaled */
@@ -104560,10 +104411,10 @@ func Xfma(tls *TLS, x float64, y float64, z float64) (r1 float64) {
 			if sign != 0 {
 				i = -i
 			}
-			r = float64(i)
+			r1 = float64(i)
 		}
 	}
-	return Xscalbn(tls, r, e)
+	return Xscalbn(tls, r1, e)
 }
 
 const DBL_MIN2 = 0
@@ -108022,6 +107873,23 @@ func Xllrintf(tls *TLS, x float32) (r int64) {
 	return int64(Xrintf(tls, x))
 }
 
+const FE_ALL_EXCEPT = 2031616
+const FE_DIVBYZERO = 524288
+const FE_DOWNWARD = 768
+const FE_INEXACT = 65536
+const FE_INVALID = 1048576
+const FE_OVERFLOW = 262144
+const FE_TONEAREST = 0
+const FE_TOWARDZERO = 256
+const FE_UNDERFLOW = 131072
+const FE_UPWARD = 512
+
+type Tfexcept_t = uint32
+
+type Tfenv_t = struct {
+	F__cw uint32
+}
+
 func Xllrintl(tls *TLS, x float64) (r int64) {
 	if __ccgo_strace {
 		trc("tls=%v x=%v, (%v:)", tls, x, origin(2))
@@ -108148,14 +108016,8 @@ func Xlog(tls *TLS, x float64) (r1 float64) {
 	z = *(*float64)(unsafe.Pointer(&iz))
 	/* log(x) = log1p(z/c-1) + log(c) + k*Ln2.  */
 	/* r ~= z/c - 1, |r| < 1/(2*N).  */
-	/* rounding error: 0x1p-55/N + 0x1p-66.  */
-	r = (z - (*(*struct {
-		Fchi float64
-		Fclo float64
-	})(unsafe.Pointer(uintptr(unsafe.Pointer(&X__log_data)) + 2192 + uintptr(i)*16))).Fchi - (*(*struct {
-		Fchi float64
-		Fclo float64
-	})(unsafe.Pointer(uintptr(unsafe.Pointer(&X__log_data)) + 2192 + uintptr(i)*16))).Fclo) * invc
+	/* rounding error: 0x1p-55/N.  */
+	r = X__builtin_fma(tls, z, invc, -Float64FromFloat64(1))
 	kd = float64(k)
 	/* hi + lo = r + log(c) + k*Ln2.  */
 	w = kd*X__log_data.Fln2hi + logc
@@ -108585,13 +108447,13 @@ func Xlog2(tls *TLS, x float64) (r1 float64) {
 		trc("tls=%v x=%v, (%v:)", tls, x, origin(2))
 		defer func() { trc("-> %v", r1) }()
 	}
-	var hi, invc, kd, lo, logc, p, r, r2, r4, rhi, rhi1, rlo, rlo1, t1, t2, t3, y1, z Tdouble_t
+	var hi, invc, kd, lo, logc, p, r, r2, r4, t1, t2, t3, y1, z Tdouble_t
 	var i, k int32
-	var ix, iz, tmp, v12, v6 Tuint64_t
+	var ix, iz, tmp Tuint64_t
 	var top Tuint32_t
-	var y, v1, v10, v11, v13, v14, v2, v3, v4, v7, v8 float64
+	var y, v1, v10, v2, v3, v4, v6, v8, v9 float64
 	var v5 bool
-	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = hi, i, invc, ix, iz, k, kd, lo, logc, p, r, r2, r4, rhi, rhi1, rlo, rlo1, t1, t2, t3, tmp, top, y, y1, z, v1, v10, v11, v12, v13, v14, v2, v3, v4, v5, v6, v7, v8
+	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = hi, i, invc, ix, iz, k, kd, lo, logc, p, r, r2, r4, t1, t2, t3, tmp, top, y, y1, z, v1, v10, v2, v3, v4, v5, v6, v8, v9
 	ix = *(*Tuint64_t)(unsafe.Pointer(&x))
 	top = _top161(tls, x)
 	v1 = Float64FromFloat64(1) - Float64FromFloat64(0.04239702224731445)
@@ -108607,12 +108469,8 @@ func Xlog2(tls *TLS, x float64) (r1 float64) {
 			return Float64FromInt32(0)
 		}
 		r = x - float64(1)
-		v7 = r
-		v6 = *(*Tuint64_t)(unsafe.Pointer(&v7)) & (-Uint64FromUint64(1) << Int32FromInt32(32))
-		rhi = *(*float64)(unsafe.Pointer(&v6))
-		rlo = r - rhi
-		hi = rhi * X__log2_data.Finvln2hi
-		lo = rlo*X__log2_data.Finvln2hi + r*X__log2_data.Finvln2lo
+		hi = r * X__log2_data.Finvln2hi
+		lo = r*X__log2_data.Finvln2lo + X__builtin_fma(tls, r, X__log2_data.Finvln2hi, -hi)
 		r2 = r * r /* rounding error: 0x1p-62.  */
 		r4 = r2 * r2
 		/* Worst-case error is less than 0.54 ULP (0.55 ULP without fma).  */
@@ -108622,26 +108480,26 @@ func Xlog2(tls *TLS, x float64) (r1 float64) {
 		lo += r4 * (*(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(&X__log2_data)) + 64 + 2*8)) + r**(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(&X__log2_data)) + 64 + 3*8)) + r2*(*(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(&X__log2_data)) + 64 + 4*8))+r**(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(&X__log2_data)) + 64 + 5*8))) + r4*(*(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(&X__log2_data)) + 64 + 6*8))+r**(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(&X__log2_data)) + 64 + 7*8))+r2*(*(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(&X__log2_data)) + 64 + 8*8))+r**(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(&X__log2_data)) + 64 + 9*8)))))
 		y1 += lo
 		y = y1
-		v8 = y
-		goto _9
-	_9:
-		return v8
+		v6 = y
+		goto _7
+	_7:
+		return v6
 	}
 	if top-uint32(0x0010) >= uint32(Int32FromInt32(0x7ff0)-Int32FromInt32(0x0010)) {
 		/* x < 0x1p-1022 or inf or nan.  */
 		if ix*uint64(2) == uint64(0) {
 			return X__math_divzero(tls, uint32(1))
 		}
-		v10 = float64(X__builtin_inff(tls))
-		if ix == *(*Tuint64_t)(unsafe.Pointer(&v10)) { /* log(inf) == inf.  */
+		v8 = float64(X__builtin_inff(tls))
+		if ix == *(*Tuint64_t)(unsafe.Pointer(&v8)) { /* log(inf) == inf.  */
 			return x
 		}
 		if top&uint32(0x8000) != 0 || top&uint32(0x7ff0) == uint32(0x7ff0) {
 			return X__math_invalid(tls, x)
 		}
 		/* x is subnormal, normalize it.  */
-		v11 = x * float64(4.503599627370496e+15)
-		ix = *(*Tuint64_t)(unsafe.Pointer(&v11))
+		v9 = x * float64(4.503599627370496e+15)
+		ix = *(*Tuint64_t)(unsafe.Pointer(&v9))
 		ix = ix - Uint64FromUint64(52)<<Int32FromInt32(52)
 	}
 	/* x = 2^k z; where z is in range [OFF,2*OFF) and exact.
@@ -108661,20 +108519,12 @@ func Xlog2(tls *TLS, x float64) (r1 float64) {
 	})(unsafe.Pointer(uintptr(unsafe.Pointer(&X__log2_data)) + 144 + uintptr(i)*16))).Flogc
 	z = *(*float64)(unsafe.Pointer(&iz))
 	kd = float64(k)
-	/* rounding error: 0x1p-55/N + 0x1p-65.  */
-	r = (z - (*(*struct {
-		Fchi float64
-		Fclo float64
-	})(unsafe.Pointer(uintptr(unsafe.Pointer(&X__log2_data)) + 1168 + uintptr(i)*16))).Fchi - (*(*struct {
-		Fchi float64
-		Fclo float64
-	})(unsafe.Pointer(uintptr(unsafe.Pointer(&X__log2_data)) + 1168 + uintptr(i)*16))).Fclo) * invc
-	v13 = r
-	v12 = *(*Tuint64_t)(unsafe.Pointer(&v13)) & (-Uint64FromUint64(1) << Int32FromInt32(32))
-	rhi1 = *(*float64)(unsafe.Pointer(&v12))
-	rlo1 = r - rhi1
-	t1 = rhi1 * X__log2_data.Finvln2hi
-	t2 = rlo1*X__log2_data.Finvln2hi + r*X__log2_data.Finvln2lo
+	/* log2(x) = log2(z/c) + log2(c) + k.  */
+	/* r ~= z/c - 1, |r| < 1/(2*N).  */
+	/* rounding error: 0x1p-55/N.  */
+	r = X__builtin_fma(tls, z, invc, -Float64FromFloat64(1))
+	t1 = r * X__log2_data.Finvln2hi
+	t2 = r*X__log2_data.Finvln2lo + X__builtin_fma(tls, r, X__log2_data.Finvln2hi, -t1)
 	/* hi + lo = r/ln2 + log2(c) + k.  */
 	t3 = kd + logc
 	hi = t3 + t1
@@ -108688,10 +108538,10 @@ func Xlog2(tls *TLS, x float64) (r1 float64) {
 	p = *(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(&X__log2_data)) + 16)) + r**(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(&X__log2_data)) + 16 + 1*8)) + r2*(*(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(&X__log2_data)) + 16 + 2*8))+r**(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(&X__log2_data)) + 16 + 3*8))) + r4*(*(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(&X__log2_data)) + 16 + 4*8))+r**(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(&X__log2_data)) + 16 + 5*8)))
 	y1 = lo + r2*p + hi
 	y = y1
-	v14 = y
-	goto _15
-_15:
-	return v14
+	v10 = y
+	goto _11
+_11:
+	return v10
 }
 
 type Tlog2_data = struct {
@@ -108702,10 +108552,6 @@ type Tlog2_data = struct {
 	Ftab      [64]struct {
 		Finvc float64
 		Flogc float64
-	}
-	Ftab2 [64]struct {
-		Fchi float64
-		Fclo float64
 	}
 }
 
@@ -108812,10 +108658,6 @@ type Tlog_data = struct {
 	Ftab   [128]struct {
 		Finvc float64
 		Flogc float64
-	}
-	Ftab2 [128]struct {
-		Fchi float64
-		Fclo float64
 	}
 }
 
@@ -109567,10 +109409,10 @@ func _top124(tls *TLS, x float64) (r Tuint32_t) {
 //	   additional 15 bits precision.  IX is the bit representation of x, but
 //	   normalized in the subnormal range using the sign bit for the exponent.  */
 func _log_inline(tls *TLS, ix Tuint64_t, tail uintptr) (r1 Tdouble_t) {
-	var ar, ar2, ar3, arhi, arhi2, hi, invc, kd, lo, lo1, lo2, lo3, lo4, logc, logctail, p, r, rhi, rlo, t1, t2, y, z, zhi, zlo Tdouble_t
+	var ar, ar2, ar3, hi, invc, kd, lo, lo1, lo2, lo3, lo4, logc, logctail, p, r, t1, t2, y, z Tdouble_t
 	var i, k int32
-	var iz, tmp, v1 Tuint64_t
-	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = ar, ar2, ar3, arhi, arhi2, hi, i, invc, iz, k, kd, lo, lo1, lo2, lo3, lo4, logc, logctail, p, r, rhi, rlo, t1, t2, tmp, y, z, zhi, zlo, v1
+	var iz, tmp Tuint64_t
+	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = ar, ar2, ar3, hi, i, invc, iz, k, kd, lo, lo1, lo2, lo3, lo4, logc, logctail, p, r, t1, t2, tmp, y, z
 	/* x = 2^k z; where z is in range [OFF,2*OFF) and exact.
 	   The range is split into N subintervals.
 	   The ith subinterval contains z and c is near its center.  */
@@ -109599,15 +109441,9 @@ func _log_inline(tls *TLS, ix Tuint64_t, tail uintptr) (r1 Tdouble_t) {
 		Flogc     float64
 		Flogctail float64
 	})(unsafe.Pointer(uintptr(unsafe.Pointer(&X__pow_log_data)) + 72 + uintptr(i)*32))).Flogctail
-	v1 = (iz + Uint64FromUint64(1)<<Int32FromInt32(31)) & (-Uint64FromUint64(1) << Int32FromInt32(32))
 	/* Note: 1/c is j/N or j/N/2 where j is an integer in [N,2N) and
 	   |z/c - 1| < 1/N, so r = z/c - 1 is exactly representible.  */
-	/* Split z such that rhi, rlo and rhi*rhi are exact and |rlo| <= |r|.  */
-	zhi = *(*float64)(unsafe.Pointer(&v1))
-	zlo = z - zhi
-	rhi = zhi*invc - float64(1)
-	rlo = zlo * invc
-	r = rhi + rlo
+	r = X__builtin_fma(tls, z, invc, -Float64FromFloat64(1))
 	/* k*Ln2 + log(c) + r.  */
 	t1 = kd*X__pow_log_data.Fln2hi + logc
 	t2 = t1 + r
@@ -109617,11 +109453,9 @@ func _log_inline(tls *TLS, ix Tuint64_t, tail uintptr) (r1 Tdouble_t) {
 	ar2 = r * ar
 	ar3 = r * ar2
 	/* k*Ln2 + log(c) + r + A[0]*r*r.  */
-	arhi = *(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(&X__pow_log_data)) + 16)) * rhi
-	arhi2 = rhi * arhi
-	hi = t2 + arhi2
-	lo3 = rlo * (ar + arhi)
-	lo4 = t2 - hi + arhi2
+	hi = t2 + ar2
+	lo3 = X__builtin_fma(tls, ar, r, -ar2)
+	lo4 = t2 - hi + ar2
 	/* p = log1p(r) - r - A[0]*r*r.  */
 	p = ar3 * (*(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(&X__pow_log_data)) + 16 + 1*8)) + r**(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(&X__pow_log_data)) + 16 + 2*8)) + ar2*(*(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(&X__pow_log_data)) + 16 + 3*8))+r**(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(&X__pow_log_data)) + 16 + 4*8))+ar2*(*(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(&X__pow_log_data)) + 16 + 5*8))+r**(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(&X__pow_log_data)) + 16 + 6*8)))))
 	lo = lo1 + lo2 + lo3 + lo4 + p
@@ -109809,14 +109643,14 @@ func Xpow(tls *TLS, x float64, y1 float64) (r float64) {
 	}
 	bp := tls.Alloc(16)
 	defer tls.Free(16)
-	var ehi, elo, hi, lhi, llo, x2, yhi, ylo Tdouble_t
-	var ix, iy, v16, v17 Tuint64_t
+	var ehi, elo, hi, x2 Tdouble_t
+	var ix, iy Tuint64_t
 	var sign_bias, topx, topy Tuint32_t
-	var y, v1, v10, v11, v12, v13, v14, v15, v18, v2, v3, v5, v6, v7, v8 float64
+	var y, v1, v10, v11, v12, v13, v14, v15, v2, v3, v5, v6, v7, v8 float64
 	var yint int32
 	var v4 bool
 	var _ /* lo at bp+0 */ Tdouble_t
-	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = ehi, elo, hi, ix, iy, lhi, llo, sign_bias, topx, topy, x2, y, yhi, yint, ylo, v1, v10, v11, v12, v13, v14, v15, v16, v17, v18, v2, v3, v4, v5, v6, v7, v8
+	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = ehi, elo, hi, ix, iy, sign_bias, topx, topy, x2, y, yint, v1, v10, v11, v12, v13, v14, v15, v2, v3, v4, v5, v6, v7, v8
 	sign_bias = uint32(0)
 	ix = *(*Tuint64_t)(unsafe.Pointer(&x))
 	iy = *(*Tuint64_t)(unsafe.Pointer(&y1))
@@ -109920,15 +109754,8 @@ func Xpow(tls *TLS, x float64, y1 float64) (r float64) {
 		}
 	}
 	hi = _log_inline(tls, ix, bp)
-	v16 = iy & (-Uint64FromUint64(1) << Int32FromInt32(27))
-	yhi = *(*float64)(unsafe.Pointer(&v16))
-	ylo = y1 - yhi
-	v18 = hi
-	v17 = *(*Tuint64_t)(unsafe.Pointer(&v18)) & (-Uint64FromUint64(1) << Int32FromInt32(27))
-	lhi = *(*float64)(unsafe.Pointer(&v17))
-	llo = hi - lhi + *(*Tdouble_t)(unsafe.Pointer(bp))
-	ehi = yhi * lhi
-	elo = ylo*lhi + y1*llo /* |elo| < |ehi| * 2^-25.  */
+	ehi = y1 * hi
+	elo = y1**(*Tdouble_t)(unsafe.Pointer(bp)) + X__builtin_fma(tls, y1, hi, -ehi)
 	return _exp_inline(tls, ehi, elo, sign_bias)
 }
 
@@ -112599,7 +112426,7 @@ func Xbasename(tls *TLS, s uintptr) (r uintptr) {
 	var i Tsize_t
 	_ = i
 	if !(s != 0) || !(*(*int8)(unsafe.Pointer(s)) != 0) {
-		return __ccgo_ts + 537
+		return __ccgo_ts + 520
 	}
 	i = Xstrlen(tls, s) - uint64(1)
 	for {
@@ -112638,7 +112465,7 @@ func Xdirname(tls *TLS, s uintptr) (r uintptr) {
 	var i Tsize_t
 	_ = i
 	if !(s != 0) || !(*(*int8)(unsafe.Pointer(s)) != 0) {
-		return __ccgo_ts + 537
+		return __ccgo_ts + 520
 	}
 	i = Xstrlen(tls, s) - uint64(1)
 	for {
@@ -112646,7 +112473,7 @@ func Xdirname(tls *TLS, s uintptr) (r uintptr) {
 			break
 		}
 		if !(i != 0) {
-			return __ccgo_ts + 549
+			return __ccgo_ts + 528
 		}
 		goto _1
 	_1:
@@ -112657,7 +112484,7 @@ func Xdirname(tls *TLS, s uintptr) (r uintptr) {
 			break
 		}
 		if !(i != 0) {
-			return __ccgo_ts + 537
+			return __ccgo_ts + 520
 		}
 		goto _2
 	_2:
@@ -112668,7 +112495,7 @@ func Xdirname(tls *TLS, s uintptr) (r uintptr) {
 			break
 		}
 		if !(i != 0) {
-			return __ccgo_ts + 549
+			return __ccgo_ts + 528
 		}
 		goto _3
 	_3:
@@ -112683,10 +112510,15 @@ func Xffs(tls *TLS, i int32) (r int32) {
 		trc("tls=%v i=%v, (%v:)", tls, i, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	var v1 int32
-	_ = v1
+	var v1, v3 int32
+	var v2 uint64
+	_, _, _ = v1, v2, v3
 	if i != 0 {
-		v1 = _a_ctz_l(tls, uint64(i)) + int32(1)
+		v2 = uint64(i)
+		v3 = _a_ctz_64(tls, v2)
+		goto _4
+	_4:
+		v1 = v3 + int32(1)
 	} else {
 		v1 = 0
 	}
@@ -112698,10 +112530,15 @@ func Xffsl(tls *TLS, i int64) (r int32) {
 		trc("tls=%v i=%v, (%v:)", tls, i, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	var v1 int32
-	_ = v1
+	var v1, v3 int32
+	var v2 uint64
+	_, _, _ = v1, v2, v3
 	if i != 0 {
-		v1 = _a_ctz_l(tls, uint64(i)) + int32(1)
+		v2 = uint64(i)
+		v3 = _a_ctz_64(tls, v2)
+		goto _4
+	_4:
+		v1 = v3 + int32(1)
 	} else {
 		v1 = 0
 	}
@@ -112713,17 +112550,10 @@ func Xffsll(tls *TLS, i int64) (r int32) {
 		trc("tls=%v i=%v, (%v:)", tls, i, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	var v1, v3 int32
-	var v2 Tuint64_t
-	_, _, _ = v1, v2, v3
+	var v1 int32
+	_ = v1
 	if i != 0 {
-		v2 = uint64(i)
-		// __asm__( "bsf %1,%0" : "=r"(x) : "r"(x) );
-		X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 114, __ccgo_ts+551)
-		v3 = int32(v2)
-		goto _4
-	_4:
-		v1 = v3 + int32(1)
+		v1 = _a_ctz_64(tls, uint64(i)) + int32(1)
 	} else {
 		v1 = 0
 	}
@@ -112786,33 +112616,33 @@ func Xfmtmsg(tls *TLS, classification int64, label uintptr, severity int32, text
 	ret = 0
 	verb = 0
 	errstring = uintptr(MM_NULLSEV)
-	cmsg = Xgetenv(tls, __ccgo_ts+557)
+	cmsg = Xgetenv(tls, __ccgo_ts+530)
 	msgs = [6]uintptr{
-		0: __ccgo_ts + 565,
-		1: __ccgo_ts + 571,
-		2: __ccgo_ts + 580,
-		3: __ccgo_ts + 585,
-		4: __ccgo_ts + 592,
+		0: __ccgo_ts + 538,
+		1: __ccgo_ts + 544,
+		2: __ccgo_ts + 553,
+		3: __ccgo_ts + 558,
+		4: __ccgo_ts + 565,
 		5: UintptrFromInt32(0),
 	}
 	_pthread_setcancelstate(tls, int32(PTHREAD_CANCEL_DISABLE), bp)
 	if severity == int32(MM_HALT) {
-		errstring = __ccgo_ts + 596
+		errstring = __ccgo_ts + 569
 	} else {
 		if severity == int32(MM_ERROR) {
-			errstring = __ccgo_ts + 603
+			errstring = __ccgo_ts + 576
 		} else {
 			if severity == int32(MM_WARNING) {
-				errstring = __ccgo_ts + 611
+				errstring = __ccgo_ts + 584
 			} else {
 				if severity == int32(MM_INFO) {
-					errstring = __ccgo_ts + 621
+					errstring = __ccgo_ts + 594
 				}
 			}
 		}
 	}
 	if classification&int64(MM_CONSOLE) != 0 {
-		consolefd = Xopen(tls, __ccgo_ts+628, int32(O_WRONLY), 0)
+		consolefd = Xopen(tls, __ccgo_ts+601, int32(O_WRONLY), 0)
 		if consolefd < 0 {
 			ret = int32(MM_NOCON)
 		} else {
@@ -112822,7 +112652,7 @@ func Xfmtmsg(tls *TLS, classification int64, label uintptr, severity int32, text
 				v1 = __ccgo_ts
 			}
 			if label != 0 {
-				v2 = __ccgo_ts + 641
+				v2 = __ccgo_ts + 614
 			} else {
 				v2 = __ccgo_ts
 			}
@@ -112837,7 +112667,7 @@ func Xfmtmsg(tls *TLS, classification int64, label uintptr, severity int32, text
 				v4 = __ccgo_ts
 			}
 			if action != 0 {
-				v5 = __ccgo_ts + 644
+				v5 = __ccgo_ts + 617
 			} else {
 				v5 = __ccgo_ts
 			}
@@ -112847,7 +112677,7 @@ func Xfmtmsg(tls *TLS, classification int64, label uintptr, severity int32, text
 				v6 = __ccgo_ts
 			}
 			if action != 0 {
-				v7 = __ccgo_ts + 654
+				v7 = __ccgo_ts + 627
 			} else {
 				v7 = __ccgo_ts
 			}
@@ -112856,7 +112686,7 @@ func Xfmtmsg(tls *TLS, classification int64, label uintptr, severity int32, text
 			} else {
 				v8 = __ccgo_ts
 			}
-			if Xdprintf(tls, consolefd, __ccgo_ts+656, VaList(bp+16, v1, v2, v3, v4, v5, v6, v7, v8)) < int32(1) {
+			if Xdprintf(tls, consolefd, __ccgo_ts+629, VaList(bp+16, v1, v2, v3, v4, v5, v6, v7, v8)) < int32(1) {
 				ret = int32(MM_NOCON)
 			}
 			Xclose(tls, consolefd)
@@ -112897,7 +112727,7 @@ func Xfmtmsg(tls *TLS, classification int64, label uintptr, severity int32, text
 			v10 = __ccgo_ts
 		}
 		if verb&int32(1) != 0 && label != 0 {
-			v11 = __ccgo_ts + 641
+			v11 = __ccgo_ts + 614
 		} else {
 			v11 = __ccgo_ts
 		}
@@ -112912,7 +112742,7 @@ func Xfmtmsg(tls *TLS, classification int64, label uintptr, severity int32, text
 			v13 = __ccgo_ts
 		}
 		if verb&int32(8) != 0 && action != 0 {
-			v14 = __ccgo_ts + 644
+			v14 = __ccgo_ts + 617
 		} else {
 			v14 = __ccgo_ts
 		}
@@ -112922,7 +112752,7 @@ func Xfmtmsg(tls *TLS, classification int64, label uintptr, severity int32, text
 			v15 = __ccgo_ts
 		}
 		if verb&int32(8) != 0 && action != 0 {
-			v16 = __ccgo_ts + 654
+			v16 = __ccgo_ts + 627
 		} else {
 			v16 = __ccgo_ts
 		}
@@ -112931,7 +112761,7 @@ func Xfmtmsg(tls *TLS, classification int64, label uintptr, severity int32, text
 		} else {
 			v17 = __ccgo_ts
 		}
-		if Xdprintf(tls, int32(2), __ccgo_ts+656, VaList(bp+16, v10, v11, v12, v13, v14, v15, v16, v17)) < int32(1) {
+		if Xdprintf(tls, int32(2), __ccgo_ts+629, VaList(bp+16, v10, v11, v12, v13, v14, v15, v16, v17)) < int32(1) {
 			ret |= int32(MM_NOMSG)
 		}
 	}
@@ -112947,14 +112777,14 @@ func Xget_current_dir_name(tls *TLS) (r uintptr) {
 		trc("tls=%v, (%v:)", tls, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	bp := tls.Alloc(288)
-	defer tls.Free(288)
+	bp := tls.Alloc(256)
+	defer tls.Free(256)
 	var res uintptr
 	var _ /* a at bp+0 */ Tstat
-	var _ /* b at bp+144 */ Tstat
+	var _ /* b at bp+128 */ Tstat
 	_ = res
-	res = Xgetenv(tls, __ccgo_ts+674)
-	if res != 0 && *(*int8)(unsafe.Pointer(res)) != 0 && !(Xstat(tls, res, bp) != 0) && !(Xstat(tls, __ccgo_ts+537, bp+144) != 0) && (*(*Tstat)(unsafe.Pointer(bp))).Fst_dev == (*(*Tstat)(unsafe.Pointer(bp + 144))).Fst_dev && (*(*Tstat)(unsafe.Pointer(bp))).Fst_ino == (*(*Tstat)(unsafe.Pointer(bp + 144))).Fst_ino {
+	res = Xgetenv(tls, __ccgo_ts+647)
+	if res != 0 && *(*int8)(unsafe.Pointer(res)) != 0 && !(Xstat(tls, res, bp) != 0) && !(Xstat(tls, __ccgo_ts+520, bp+128) != 0) && (*(*Tstat)(unsafe.Pointer(bp))).Fst_dev == (*(*Tstat)(unsafe.Pointer(bp + 128))).Fst_dev && (*(*Tstat)(unsafe.Pointer(bp))).Fst_ino == (*(*Tstat)(unsafe.Pointer(bp + 128))).Fst_ino {
 		return Xstrdup(tls, res)
 	}
 	return Xgetcwd(tls, uintptr(0), uint64(0))
@@ -113065,17 +112895,6 @@ func Xgethostid(tls *TLS) (r int64) {
 
 const optpos = 0
 
-type Tucontext_t3 = struct {
-	Fuc_flags     uint64
-	Fuc_link      uintptr
-	Fuc_stack     Tstack_t
-	Fuc_mcontext  Tmcontext_t1
-	Fuc_sigmask   Tsigset_t
-	F__fpregs_mem [64]uint64
-}
-
-type t__ucontext1 = Tucontext_t3
-
 func X__getopt_msg(tls *TLS, a uintptr, b uintptr, c uintptr, l Tsize_t) {
 	if __ccgo_strace {
 		trc("tls=%v a=%v b=%v c=%v l=%v, (%v:)", tls, a, b, c, l, origin(2))
@@ -113164,7 +112983,7 @@ func Xgetopt(tls *TLS, argc int32, argv uintptr, optstring uintptr) (r int32) {
 	if *(*Twchar_t)(unsafe.Pointer(bp + 4)) != *(*Twchar_t)(unsafe.Pointer(bp)) || *(*Twchar_t)(unsafe.Pointer(bp)) == int32(':') {
 		Xoptopt = *(*Twchar_t)(unsafe.Pointer(bp))
 		if int32(*(*int8)(unsafe.Pointer(optstring))) != int32(':') && Xopterr != 0 {
-			X__getopt_msg(tls, *(*uintptr)(unsafe.Pointer(argv)), __ccgo_ts+678, optchar, uint64(k))
+			X__getopt_msg(tls, *(*uintptr)(unsafe.Pointer(argv)), __ccgo_ts+651, optchar, uint64(k))
 		}
 		return int32('?')
 	}
@@ -113185,7 +113004,7 @@ func Xgetopt(tls *TLS, argc int32, argv uintptr, optstring uintptr) (r int32) {
 				return int32(':')
 			}
 			if Xopterr != 0 {
-				X__getopt_msg(tls, *(*uintptr)(unsafe.Pointer(argv)), __ccgo_ts+702, optchar, uint64(k))
+				X__getopt_msg(tls, *(*uintptr)(unsafe.Pointer(argv)), __ccgo_ts+675, optchar, uint64(k))
 			}
 			return int32('?')
 		}
@@ -113350,7 +113169,7 @@ func ___getopt_long_core(tls *TLS, argc int32, argv uintptr, optstring uintptr, 
 					if colon != 0 || !(Xopterr != 0) {
 						return int32('?')
 					}
-					X__getopt_msg(tls, *(*uintptr)(unsafe.Pointer(argv)), __ccgo_ts+734, (*(*Toption)(unsafe.Pointer(longopts + uintptr(i)*32))).Fname, Xstrlen(tls, (*(*Toption)(unsafe.Pointer(longopts + uintptr(i)*32))).Fname))
+					X__getopt_msg(tls, *(*uintptr)(unsafe.Pointer(argv)), __ccgo_ts+707, (*(*Toption)(unsafe.Pointer(longopts + uintptr(i)*32))).Fname, Xstrlen(tls, (*(*Toption)(unsafe.Pointer(longopts + uintptr(i)*32))).Fname))
 					return int32('?')
 				}
 				Xoptarg = opt + uintptr(1)
@@ -113366,7 +113185,7 @@ func ___getopt_long_core(tls *TLS, argc int32, argv uintptr, optstring uintptr, 
 						if !(Xopterr != 0) {
 							return int32('?')
 						}
-						X__getopt_msg(tls, *(*uintptr)(unsafe.Pointer(argv)), __ccgo_ts+702, (*(*Toption)(unsafe.Pointer(longopts + uintptr(i)*32))).Fname, Xstrlen(tls, (*(*Toption)(unsafe.Pointer(longopts + uintptr(i)*32))).Fname))
+						X__getopt_msg(tls, *(*uintptr)(unsafe.Pointer(argv)), __ccgo_ts+675, (*(*Toption)(unsafe.Pointer(longopts + uintptr(i)*32))).Fname, Xstrlen(tls, (*(*Toption)(unsafe.Pointer(longopts + uintptr(i)*32))).Fname))
 						return int32('?')
 					}
 					Xoptind++
@@ -113385,9 +113204,9 @@ func ___getopt_long_core(tls *TLS, argc int32, argv uintptr, optstring uintptr, 
 			Xoptopt = 0
 			if !(colon != 0) && Xopterr != 0 {
 				if cnt != 0 {
-					v6 = __ccgo_ts + 771
+					v6 = __ccgo_ts + 744
 				} else {
-					v6 = __ccgo_ts + 678
+					v6 = __ccgo_ts + 651
 				}
 				X__getopt_msg(tls, *(*uintptr)(unsafe.Pointer(argv)), v6, *(*uintptr)(unsafe.Pointer(argv + uintptr(Xoptind)*8))+uintptr(2), Xstrlen(tls, *(*uintptr)(unsafe.Pointer(argv + uintptr(Xoptind)*8))+uintptr(2)))
 			}
@@ -113449,12 +113268,8 @@ func Xgetrlimit(tls *TLS, resource int32, rlim uintptr) (r int32) {
 		trc("tls=%v resource=%v rlim=%v, (%v:)", tls, resource, rlim, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	bp := tls.Alloc(16)
-	defer tls.Free(16)
 	var ret int32
-	var v1, v2 uint64
-	var _ /* k_rlim at bp+0 */ [2]uint64
-	_, _, _ = ret, v1, v2
+	_ = ret
 	ret = int32(X__syscall_ret(tls, uint64(X__syscall4(tls, int64(SYS_prlimit64), int64(Int32FromInt32(0)), int64(resource), int64(Int32FromInt32(0)), int64(rlim)))))
 	if !(ret != 0) {
 		if (*Trlimit)(unsafe.Pointer(rlim)).Frlim_cur >= ^Uint64FromUint64(0) {
@@ -113464,31 +113279,7 @@ func Xgetrlimit(tls *TLS, resource int32, rlim uintptr) (r int32) {
 			(*Trlimit)(unsafe.Pointer(rlim)).Frlim_max = ^Uint64FromUint64(0)
 		}
 	}
-	if !(ret != 0) || *(*int32)(unsafe.Pointer(X__errno_location(tls))) != int32(ENOSYS) {
-		return ret
-	}
-	if X__syscall_ret(tls, uint64(X__syscall2(tls, int64(SYS_getrlimit), int64(resource), int64(bp)))) < 0 {
-		return -int32(1)
-	}
-	if (*(*[2]uint64)(unsafe.Pointer(bp)))[0] == -Uint64FromUint64(1) {
-		v1 = ^Uint64FromUint64(0)
-	} else {
-		v1 = (*(*[2]uint64)(unsafe.Pointer(bp)))[0]
-	}
-	(*Trlimit)(unsafe.Pointer(rlim)).Frlim_cur = v1
-	if (*(*[2]uint64)(unsafe.Pointer(bp)))[int32(1)] == -Uint64FromUint64(1) {
-		v2 = ^Uint64FromUint64(0)
-	} else {
-		v2 = (*(*[2]uint64)(unsafe.Pointer(bp)))[int32(1)]
-	}
-	(*Trlimit)(unsafe.Pointer(rlim)).Frlim_max = v2
-	if (*Trlimit)(unsafe.Pointer(rlim)).Frlim_cur >= ^Uint64FromUint64(0) {
-		(*Trlimit)(unsafe.Pointer(rlim)).Frlim_cur = ^Uint64FromUint64(0)
-	}
-	if (*Trlimit)(unsafe.Pointer(rlim)).Frlim_max >= ^Uint64FromUint64(0) {
-		(*Trlimit)(unsafe.Pointer(rlim)).Frlim_max = ^Uint64FromUint64(0)
-	}
-	return 0
+	return ret
 }
 
 func Xgetrusage(tls *TLS, who int32, ru uintptr) (r1 int32) {
@@ -114171,7 +113962,7 @@ func Xgetmntent_r(tls *TLS, f uintptr, mnt uintptr, linebuf uintptr, buflen int3
 			return uintptr(0)
 		}
 		if !(Xstrchr(tls, linebuf, int32('\n')) != 0) {
-			Xfscanf(tls, f, __ccgo_ts+795, 0)
+			Xfscanf(tls, f, __ccgo_ts+768, 0)
 			*(*int32)(unsafe.Pointer(X__errno_location(tls))) = int32(ERANGE)
 			return uintptr(0)
 		}
@@ -114189,7 +113980,7 @@ func Xgetmntent_r(tls *TLS, f uintptr, mnt uintptr, linebuf uintptr, buflen int3
 		_1:
 			i++
 		}
-		Xsscanf(tls, linebuf, __ccgo_ts+807, VaList(bp+40, bp, bp+uintptr(1)*4, bp+uintptr(2)*4, bp+uintptr(3)*4, bp+uintptr(4)*4, bp+uintptr(5)*4, bp+uintptr(6)*4, bp+uintptr(7)*4, mnt+32, mnt+36))
+		Xsscanf(tls, linebuf, __ccgo_ts+780, VaList(bp+40, bp, bp+uintptr(1)*4, bp+uintptr(2)*4, bp+uintptr(3)*4, bp+uintptr(4)*4, bp+uintptr(5)*4, bp+uintptr(6)*4, bp+uintptr(7)*4, mnt+32, mnt+36))
 	}
 	*(*int8)(unsafe.Pointer(linebuf + uintptr((*(*[8]int32)(unsafe.Pointer(bp)))[int32(1)]))) = 0
 	*(*int8)(unsafe.Pointer(linebuf + uintptr((*(*[8]int32)(unsafe.Pointer(bp)))[int32(3)]))) = 0
@@ -114222,7 +114013,7 @@ func Xaddmntent(tls *TLS, f uintptr, mnt uintptr) (r int32) {
 	if Xfseek(tls, f, 0, int32(SEEK_END)) != 0 {
 		return int32(1)
 	}
-	return BoolInt32(Xfprintf(tls, f, __ccgo_ts+862, VaList(bp+8, (*Tmntent)(unsafe.Pointer(mnt)).Fmnt_fsname, (*Tmntent)(unsafe.Pointer(mnt)).Fmnt_dir, (*Tmntent)(unsafe.Pointer(mnt)).Fmnt_type, (*Tmntent)(unsafe.Pointer(mnt)).Fmnt_opts, (*Tmntent)(unsafe.Pointer(mnt)).Fmnt_freq, (*Tmntent)(unsafe.Pointer(mnt)).Fmnt_passno)) < 0)
+	return BoolInt32(Xfprintf(tls, f, __ccgo_ts+835, VaList(bp+8, (*Tmntent)(unsafe.Pointer(mnt)).Fmnt_fsname, (*Tmntent)(unsafe.Pointer(mnt)).Fmnt_dir, (*Tmntent)(unsafe.Pointer(mnt)).Fmnt_type, (*Tmntent)(unsafe.Pointer(mnt)).Fmnt_opts, (*Tmntent)(unsafe.Pointer(mnt)).Fmnt_freq, (*Tmntent)(unsafe.Pointer(mnt)).Fmnt_passno)) < 0)
 }
 
 func Xhasmntopt(tls *TLS, mnt uintptr, opt uintptr) (r uintptr) {
@@ -114259,16 +114050,16 @@ type Thistory = struct {
 }
 
 func _do_nftw(tls *TLS, path uintptr, fn uintptr, fd_limit int32, flags int32, h uintptr) (r1 int32) {
-	bp := tls.Alloc(192)
-	defer tls.Free(192)
+	bp := tls.Alloc(176)
+	defer tls.Free(176)
 	var d, de, v10 uintptr
 	var dfd, err, r, type1, v11, v12, v3, v4, v7 int32
 	var j, k, l Tsize_t
 	var v1 uint64
 	var v13, v8 bool
 	var v2 Tino_t
-	var _ /* lev at bp+176 */ TFTW
-	var _ /* new at bp+144 */ Thistory
+	var _ /* lev at bp+160 */ TFTW
+	var _ /* new at bp+128 */ Thistory
 	var _ /* st at bp+0 */ Tstat
 	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = d, de, dfd, err, j, k, l, r, type1, v1, v10, v11, v12, v13, v2, v3, v4, v7, v8
 	l = Xstrlen(tls, path)
@@ -114318,19 +114109,19 @@ func _do_nftw(tls *TLS, path uintptr, fn uintptr, fd_limit int32, flags int32, h
 	if flags&int32(FTW_MOUNT) != 0 && h != 0 && type1 != int32(FTW_NS) && (*(*Tstat)(unsafe.Pointer(bp))).Fst_dev != (*Thistory)(unsafe.Pointer(h)).Fdev {
 		return 0
 	}
-	(*(*Thistory)(unsafe.Pointer(bp + 144))).Fchain = h
-	(*(*Thistory)(unsafe.Pointer(bp + 144))).Fdev = (*(*Tstat)(unsafe.Pointer(bp))).Fst_dev
-	(*(*Thistory)(unsafe.Pointer(bp + 144))).Fino = (*(*Tstat)(unsafe.Pointer(bp))).Fst_ino
+	(*(*Thistory)(unsafe.Pointer(bp + 128))).Fchain = h
+	(*(*Thistory)(unsafe.Pointer(bp + 128))).Fdev = (*(*Tstat)(unsafe.Pointer(bp))).Fst_dev
+	(*(*Thistory)(unsafe.Pointer(bp + 128))).Fino = (*(*Tstat)(unsafe.Pointer(bp))).Fst_ino
 	if h != 0 {
 		v4 = (*Thistory)(unsafe.Pointer(h)).Flevel + int32(1)
 	} else {
 		v4 = 0
 	}
-	(*(*Thistory)(unsafe.Pointer(bp + 144))).Flevel = v4
-	(*(*Thistory)(unsafe.Pointer(bp + 144))).Fbase = int32(j + uint64(1))
-	(*(*TFTW)(unsafe.Pointer(bp + 176))).Flevel = (*(*Thistory)(unsafe.Pointer(bp + 144))).Flevel
+	(*(*Thistory)(unsafe.Pointer(bp + 128))).Flevel = v4
+	(*(*Thistory)(unsafe.Pointer(bp + 128))).Fbase = int32(j + uint64(1))
+	(*(*TFTW)(unsafe.Pointer(bp + 160))).Flevel = (*(*Thistory)(unsafe.Pointer(bp + 128))).Flevel
 	if h != 0 {
-		(*(*TFTW)(unsafe.Pointer(bp + 176))).Fbase = (*Thistory)(unsafe.Pointer(h)).Fbase
+		(*(*TFTW)(unsafe.Pointer(bp + 160))).Fbase = (*Thistory)(unsafe.Pointer(h)).Fbase
 	} else {
 		k = j
 		for {
@@ -114349,7 +114140,7 @@ func _do_nftw(tls *TLS, path uintptr, fn uintptr, fd_limit int32, flags int32, h
 		_6:
 			k--
 		}
-		(*(*TFTW)(unsafe.Pointer(bp + 176))).Fbase = int32(k)
+		(*(*TFTW)(unsafe.Pointer(bp + 160))).Fbase = int32(k)
 	}
 	if type1 == int32(FTW_D) || type1 == int32(FTW_DP) {
 		dfd = Xopen(tls, path, O_RDONLY, 0)
@@ -114362,7 +114153,7 @@ func _do_nftw(tls *TLS, path uintptr, fn uintptr, fd_limit int32, flags int32, h
 		}
 	}
 	if v8 = !(flags&Int32FromInt32(FTW_DEPTH) != 0); v8 {
-		v7 = (*(*func(*TLS, uintptr, uintptr, int32, uintptr) int32)(unsafe.Pointer(&struct{ uintptr }{fn})))(tls, path, bp, type1, bp+176)
+		v7 = (*(*func(*TLS, uintptr, uintptr, int32, uintptr) int32)(unsafe.Pointer(&struct{ uintptr }{fn})))(tls, path, bp, type1, bp+160)
 		r = v7
 	}
 	if v8 && v7 != 0 {
@@ -114402,7 +114193,7 @@ func _do_nftw(tls *TLS, path uintptr, fn uintptr, fd_limit int32, flags int32, h
 				}
 				*(*int8)(unsafe.Pointer(path + uintptr(j))) = int8('/')
 				Xstrcpy(tls, path+uintptr(j)+uintptr(1), de+19)
-				v11 = _do_nftw(tls, path, fn, fd_limit-int32(1), flags, bp+144)
+				v11 = _do_nftw(tls, path, fn, fd_limit-int32(1), flags, bp+128)
 				r = v11
 				if v11 != 0 {
 					Xclosedir(tls, d)
@@ -114417,7 +114208,7 @@ func _do_nftw(tls *TLS, path uintptr, fn uintptr, fd_limit int32, flags int32, h
 	}
 	*(*int8)(unsafe.Pointer(path + uintptr(l))) = 0
 	if v13 = flags&int32(FTW_DEPTH) != 0; v13 {
-		v12 = (*(*func(*TLS, uintptr, uintptr, int32, uintptr) int32)(unsafe.Pointer(&struct{ uintptr }{fn})))(tls, path, bp, type1, bp+176)
+		v12 = (*(*func(*TLS, uintptr, uintptr, int32, uintptr) int32)(unsafe.Pointer(&struct{ uintptr }{fn})))(tls, path, bp, type1, bp+160)
 		r = v12
 	}
 	if v13 && v12 != 0 {
@@ -114610,7 +114401,7 @@ func Xopenpty(tls *TLS, pm uintptr, ps uintptr, name uintptr, tio uintptr, ws ui
 	var _ /* n at bp+0 */ int32
 	_, _, _ = m, s, v1
 	*(*int32)(unsafe.Pointer(bp)) = 0
-	m = Xopen(tls, __ccgo_ts+881, Int32FromInt32(O_RDWR)|Int32FromInt32(O_NOCTTY), 0)
+	m = Xopen(tls, __ccgo_ts+854, Int32FromInt32(O_RDWR)|Int32FromInt32(O_NOCTTY), 0)
 	if m < 0 {
 		return -int32(1)
 	}
@@ -114621,7 +114412,7 @@ func Xopenpty(tls *TLS, pm uintptr, ps uintptr, name uintptr, tio uintptr, ws ui
 	if !(name != 0) {
 		name = bp + 8
 	}
-	Xsnprintf(tls, name, uint64(20), __ccgo_ts+891, VaList(bp+40, *(*int32)(unsafe.Pointer(bp))))
+	Xsnprintf(tls, name, uint64(20), __ccgo_ts+864, VaList(bp+40, *(*int32)(unsafe.Pointer(bp))))
 	v1 = Xopen(tls, name, Int32FromInt32(O_RDWR)|Int32FromInt32(O_NOCTTY), 0)
 	s = v1
 	if v1 < 0 {
@@ -114667,7 +114458,7 @@ func Xposix_openpt(tls *TLS, flags int32) (r1 int32) {
 	}
 	var r int32
 	_ = r
-	r = Xopen(tls, __ccgo_ts+881, flags, 0)
+	r = Xopen(tls, __ccgo_ts+854, flags, 0)
 	if r < 0 && *(*int32)(unsafe.Pointer(X__errno_location(tls))) == int32(ENOSPC) {
 		*(*int32)(unsafe.Pointer(X__errno_location(tls))) = int32(EAGAIN)
 	}
@@ -114712,7 +114503,7 @@ func X__ptsname_r(tls *TLS, fd int32, buf uintptr, len1 Tsize_t) (r int32) {
 	if v1 != 0 {
 		return -err
 	}
-	if uint64(Xsnprintf(tls, buf, len1, __ccgo_ts+891, VaList(bp+16, *(*int32)(unsafe.Pointer(bp))))) >= len1 {
+	if uint64(Xsnprintf(tls, buf, len1, __ccgo_ts+864, VaList(bp+16, *(*int32)(unsafe.Pointer(bp))))) >= len1 {
 		return int32(ERANGE)
 	}
 	return 0
@@ -114964,28 +114755,16 @@ type Tctx = struct {
 	Ferr int32
 }
 
-func _do_setrlimit(tls *TLS, p uintptr) {
-	var c uintptr
-	_ = c
-	c = p
-	if (*Tctx)(unsafe.Pointer(c)).Ferr > 0 {
-		return
-	}
-	(*Tctx)(unsafe.Pointer(c)).Ferr = int32(-X__syscall2(tls, int64(SYS_setrlimit), int64((*Tctx)(unsafe.Pointer(c)).Fres), int64(c)))
-}
-
 func Xsetrlimit(tls *TLS, resource int32, rlim uintptr) (r int32) {
 	if __ccgo_strace {
 		trc("tls=%v resource=%v rlim=%v, (%v:)", tls, resource, rlim, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	bp := tls.Alloc(48)
-	defer tls.Free(48)
+	bp := tls.Alloc(16)
+	defer tls.Free(16)
 	var ret int32
-	var v1, v2 uint64
-	var _ /* c at bp+16 */ Tctx
 	var _ /* tmp at bp+0 */ Trlimit
-	_, _, _ = ret, v1, v2
+	_ = ret
 	if ^Uint64FromUint64(0) != ^Uint64FromUint64(0) {
 		*(*Trlimit)(unsafe.Pointer(bp)) = *(*Trlimit)(unsafe.Pointer(rlim))
 		if (*(*Trlimit)(unsafe.Pointer(bp))).Frlim_cur >= ^Uint64FromUint64(0) {
@@ -114997,35 +114776,7 @@ func Xsetrlimit(tls *TLS, resource int32, rlim uintptr) (r int32) {
 		rlim = bp
 	}
 	ret = int32(X__syscall4(tls, int64(SYS_prlimit64), int64(Int32FromInt32(0)), int64(resource), int64(rlim), int64(Int32FromInt32(0))))
-	if ret != -int32(ENOSYS) {
-		return int32(X__syscall_ret(tls, uint64(ret)))
-	}
-	if (*Trlimit)(unsafe.Pointer(rlim)).Frlim_cur < ^Uint64FromUint64(0) {
-		v1 = (*Trlimit)(unsafe.Pointer(rlim)).Frlim_cur
-	} else {
-		v1 = ^Uint64FromUint64(0)
-	}
-	if (*Trlimit)(unsafe.Pointer(rlim)).Frlim_max < ^Uint64FromUint64(0) {
-		v2 = (*Trlimit)(unsafe.Pointer(rlim)).Frlim_max
-	} else {
-		v2 = ^Uint64FromUint64(0)
-	}
-	*(*Tctx)(unsafe.Pointer(bp + 16)) = Tctx{
-		Flim: [2]uint64{
-			0: v1,
-			1: v2,
-		},
-		Fres: resource,
-		Ferr: -int32(1),
-	}
-	___synccall(tls, __ccgo_fp(_do_setrlimit), bp+16)
-	if (*(*Tctx)(unsafe.Pointer(bp + 16))).Ferr != 0 {
-		if (*(*Tctx)(unsafe.Pointer(bp + 16))).Ferr > 0 {
-			*(*int32)(unsafe.Pointer(X__errno_location(tls))) = (*(*Tctx)(unsafe.Pointer(bp + 16))).Ferr
-		}
-		return -int32(1)
-	}
-	return 0
+	return int32(X__syscall_ret(tls, uint64(ret)))
 }
 
 func Xsyscall(tls *TLS, n int64, va uintptr) (r int64) {
@@ -115358,8 +115109,6 @@ type Tsockaddr_storage = struct {
 	F__ss_align   uint64
 }
 
-type t__ucontext2 = Tucontext_t2
-
 var _lock2 [1]int32
 var _log_ident [32]int8
 var _log_opt int32
@@ -115463,14 +115212,14 @@ func __vsyslog(tls *TLS, priority int32, message uintptr, ap Tva_list) {
 	}
 	*(*Ttime_t)(unsafe.Pointer(bp + 16)) = Xtime(tls, UintptrFromInt32(0))
 	Xgmtime_r(tls, bp+16, bp+24)
-	Xstrftime_l(tls, bp, uint64(16), __ccgo_ts+903, bp+24, uintptr(unsafe.Pointer(&X__c_locale)))
+	Xstrftime_l(tls, bp, uint64(16), __ccgo_ts+876, bp+24, uintptr(unsafe.Pointer(&X__c_locale)))
 	if _log_opt&int32(LOG_PID) != 0 {
 		v1 = Xgetpid(tls)
 	} else {
 		v1 = 0
 	}
 	pid = v1
-	l = Xsnprintf(tls, bp+80, uint64(1024), __ccgo_ts+912, VaList(bp+1120, priority, bp, bp+1104, uintptr(unsafe.Pointer(&_log_ident)), __ccgo_ts+934+BoolUintptr(!(pid != 0)), pid, __ccgo_ts+936+BoolUintptr(!(pid != 0))))
+	l = Xsnprintf(tls, bp+80, uint64(1024), __ccgo_ts+885, VaList(bp+1120, priority, bp, bp+1104, uintptr(unsafe.Pointer(&_log_ident)), __ccgo_ts+907+BoolUintptr(!(pid != 0)), pid, __ccgo_ts+909+BoolUintptr(!(pid != 0))))
 	*(*int32)(unsafe.Pointer(X__errno_location(tls))) = errno_save
 	l2 = Xvsnprintf(tls, bp+80+uintptr(l), uint64(1024)-uint64(l), message, ap)
 	if l2 >= 0 {
@@ -115485,14 +115234,14 @@ func __vsyslog(tls *TLS, priority int32, message uintptr, ap Tva_list) {
 			(*(*[1024]int8)(unsafe.Pointer(bp + 80)))[v2] = int8('\n')
 		}
 		if Xsend(tls, _log_fd, bp+80, uint64(l), 0) < 0 && (!(_is_lost_conn(tls, *(*int32)(unsafe.Pointer(X__errno_location(tls)))) != 0) || Xconnect(tls, _log_fd, uintptr(unsafe.Pointer(&_log_addr)), uint32(12)) < 0 || Xsend(tls, _log_fd, bp+80, uint64(l), 0) < 0) && _log_opt&int32(LOG_CONS) != 0 {
-			fd = Xopen(tls, __ccgo_ts+628, Int32FromInt32(O_WRONLY)|Int32FromInt32(O_NOCTTY)|Int32FromInt32(O_CLOEXEC), 0)
+			fd = Xopen(tls, __ccgo_ts+601, Int32FromInt32(O_WRONLY)|Int32FromInt32(O_NOCTTY)|Int32FromInt32(O_CLOEXEC), 0)
 			if fd >= 0 {
-				Xdprintf(tls, fd, __ccgo_ts+938, VaList(bp+1120, l-*(*int32)(unsafe.Pointer(bp + 1104)), bp+80+uintptr(*(*int32)(unsafe.Pointer(bp + 1104)))))
+				Xdprintf(tls, fd, __ccgo_ts+911, VaList(bp+1120, l-*(*int32)(unsafe.Pointer(bp + 1104)), bp+80+uintptr(*(*int32)(unsafe.Pointer(bp + 1104)))))
 				Xclose(tls, fd)
 			}
 		}
 		if _log_opt&int32(LOG_PERROR) != 0 {
-			Xdprintf(tls, int32(2), __ccgo_ts+938, VaList(bp+1120, l-*(*int32)(unsafe.Pointer(bp + 1104)), bp+80+uintptr(*(*int32)(unsafe.Pointer(bp + 1104)))))
+			Xdprintf(tls, int32(2), __ccgo_ts+911, VaList(bp+1120, l-*(*int32)(unsafe.Pointer(bp + 1104)), bp+80+uintptr(*(*int32)(unsafe.Pointer(bp + 1104)))))
 		}
 	}
 }
@@ -115603,7 +115352,7 @@ func X__mmap(tls *TLS, start uintptr, len1 Tsize_t, prot int32, flags int32, fd 
 	if flags&int32(MAP_FIXED) != 0 {
 		_dummy5(tls)
 	}
-	ret = X__syscall6(tls, int64(SYS_mmap), int64(start), int64(len1), int64(prot), int64(flags), int64(fd), off)
+	ret = X__syscall6(tls, int64(__NR3264_mmap), int64(start), int64(len1), int64(prot), int64(flags), int64(fd), off)
 	/* Fixup incorrect EPERM from kernel. */
 	if ret == int64(-int32(EPERM)) && !(start != 0) && flags&int32(MAP_ANON) != 0 && !(flags&Int32FromInt32(MAP_FIXED) != 0) {
 		ret = int64(-int32(ENOMEM))
@@ -115626,8 +115375,8 @@ func X__mprotect(tls *TLS, addr uintptr, len1 Tsize_t, prot int32) (r int32) {
 	}
 	var end, start Tsize_t
 	_, _ = end, start
-	start = uint64(addr) & uint64(-Int32FromInt32(PAGESIZE))
-	end = uint64(addr+uintptr(len1)+UintptrFromInt32(PAGESIZE)-UintptrFromInt32(1)) & uint64(-Int32FromInt32(PAGESIZE))
+	start = uint64(addr) & -X__libc.Fpage_size
+	end = uint64(addr+uintptr(len1)+uintptr(X__libc.Fpage_size)-UintptrFromInt32(1)) & -X__libc.Fpage_size
 	return int32(X__syscall_ret(tls, uint64(X__syscall3(tls, int64(SYS_mprotect), int64(start), int64(end-start), int64(prot)))))
 }
 
@@ -115747,7 +115496,7 @@ func X__shm_mapname(tls *TLS, name uintptr, buf uintptr) (r uintptr) {
 		*(*int32)(unsafe.Pointer(X__errno_location(tls))) = int32(ENAMETOOLONG)
 		return uintptr(0)
 	}
-	Xmemcpy(tls, buf, __ccgo_ts+943, uint64(9))
+	Xmemcpy(tls, buf, __ccgo_ts+916, uint64(9))
 	Xmemcpy(tls, buf+uintptr(9), name, uint64(int64(p)-int64(name)+int64(1)))
 	return buf
 }
@@ -115796,15 +115545,6 @@ func Xshm_unlink(tls *TLS, name uintptr) (r int32) {
 const SA = 194
 const SB = 244
 const bittab = 0
-
-type Tucontext_t4 = struct {
-	Fuc_flags     uint64
-	Fuc_link      uintptr
-	Fuc_stack     Tstack_t
-	Fuc_mcontext  Tmcontext_t
-	Fuc_sigmask   Tsigset_t
-	F__fpregs_mem [64]uint64
-}
 
 func Xbtowc(tls *TLS, c int32) (r Twint_t) {
 	if __ccgo_strace {
@@ -116784,10 +116524,10 @@ _9:
 		return ret
 	}
 	if flg&int32(SOCK_CLOEXEC) != 0 {
-		X__syscall3(tls, int64(SYS_fcntl), int64(ret), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
+		X__syscall3(tls, int64(__NR3264_fcntl), int64(ret), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
 	}
 	if flg&int32(SOCK_NONBLOCK) != 0 {
-		X__syscall3(tls, int64(SYS_fcntl), int64(ret), int64(Int32FromInt32(F_SETFL)), int64(Int32FromInt32(O_NONBLOCK)))
+		X__syscall3(tls, int64(__NR3264_fcntl), int64(ret), int64(Int32FromInt32(F_SETFL)), int64(Int32FromInt32(O_NONBLOCK)))
 	}
 	return ret
 }
@@ -118611,9 +118351,9 @@ func Xether_ntoa_r(tls *TLS, p_a uintptr, x uintptr) (r uintptr) {
 			break
 		}
 		if ii == 0 {
-			v2 = __ccgo_ts + 953
+			v2 = __ccgo_ts + 926
 		} else {
-			v2 = __ccgo_ts + 958
+			v2 = __ccgo_ts + 931
 		}
 		x += uintptr(Xsprintf(tls, x, v2, VaList(bp+8, int32(*(*Tuint8_t)(unsafe.Pointer(p_a + uintptr(ii)))))))
 		goto _1
@@ -119694,7 +119434,7 @@ func _itoa(tls *TLS, p uintptr, x uint32) (r uintptr) {
 func _mkptr4(tls *TLS, s uintptr, ip uintptr) {
 	bp := tls.Alloc(48)
 	defer tls.Free(48)
-	Xsprintf(tls, s, __ccgo_ts+964, VaList(bp+8, int32(*(*uint8)(unsafe.Pointer(ip + 3))), int32(*(*uint8)(unsafe.Pointer(ip + 2))), int32(*(*uint8)(unsafe.Pointer(ip + 1))), int32(*(*uint8)(unsafe.Pointer(ip)))))
+	Xsprintf(tls, s, __ccgo_ts+937, VaList(bp+8, int32(*(*uint8)(unsafe.Pointer(ip + 3))), int32(*(*uint8)(unsafe.Pointer(ip + 2))), int32(*(*uint8)(unsafe.Pointer(ip + 1))), int32(*(*uint8)(unsafe.Pointer(ip)))))
 }
 
 func _mkptr6(tls *TLS, s uintptr, ip uintptr) {
@@ -119722,7 +119462,7 @@ func _mkptr6(tls *TLS, s uintptr, ip uintptr) {
 	_1:
 		i--
 	}
-	Xstrcpy(tls, s, __ccgo_ts+989)
+	Xstrcpy(tls, s, __ccgo_ts+962)
 }
 
 var _xdigits = [17]int8{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'}
@@ -119739,13 +119479,13 @@ func _reverse_hosts(tls *TLS, buf uintptr, a uintptr, scopeid uint32, family int
 	var _ /* iplit at bp+1560 */ Taddress
 	var _ /* line at bp+0 */ [512]int8
 	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = f, p, z, v1, v10, v11, v13, v15, v16, v18, v2, v4, v5, v7, v8
-	f = X__fopen_rb_ca(tls, __ccgo_ts+998, bp+1592, bp+512, uint64(1032))
+	f = X__fopen_rb_ca(tls, __ccgo_ts+971, bp+1592, bp+512, uint64(1032))
 	if !(f != 0) {
 		return
 	}
 	if family == int32(PF_INET) {
 		Xmemcpy(tls, bp+1544+uintptr(12), a, uint64(4))
-		Xmemcpy(tls, bp+1544, __ccgo_ts+1009, uint64(12))
+		Xmemcpy(tls, bp+1544, __ccgo_ts+982, uint64(12))
 		a = bp + 1544
 	}
 	for Xfgets(tls, bp, int32(512), f) != 0 {
@@ -119783,7 +119523,7 @@ func _reverse_hosts(tls *TLS, buf uintptr, a uintptr, scopeid uint32, family int
 		}
 		if (*(*Taddress)(unsafe.Pointer(bp + 1560))).Ffamily == int32(PF_INET) {
 			Xmemcpy(tls, bp+1560+8+uintptr(12), bp+1560+8, uint64(4))
-			Xmemcpy(tls, bp+1560+8, __ccgo_ts+1009, uint64(12))
+			Xmemcpy(tls, bp+1560+8, __ccgo_ts+982, uint64(12))
 			(*(*Taddress)(unsafe.Pointer(bp + 1560))).Fscopeid = uint32(0)
 		}
 		if Xmemcmp(tls, a, bp+1560+8, uint64(16)) != 0 || (*(*Taddress)(unsafe.Pointer(bp + 1560))).Fscopeid != scopeid {
@@ -119839,7 +119579,7 @@ func _reverse_services(tls *TLS, buf uintptr, port int32, dgram int32) {
 	var _ /* line at bp+0 */ [128]int8
 	var _ /* z at bp+128 */ uintptr
 	_, _, _, _, _, _, _, _, _ = f, p, svport, v1, v2, v4, v5, v7, v8
-	f = X__fopen_rb_ca(tls, __ccgo_ts+1022, bp+1168, bp+136, uint64(1032))
+	f = X__fopen_rb_ca(tls, __ccgo_ts+995, bp+1168, bp+136, uint64(1032))
 	if !(f != 0) {
 		return
 	}
@@ -119877,10 +119617,10 @@ func _reverse_services(tls *TLS, buf uintptr, port int32, dgram int32) {
 		if svport != uint64(port) || *(*uintptr)(unsafe.Pointer(bp + 128)) == p {
 			continue
 		}
-		if dgram != 0 && Xstrncmp(tls, *(*uintptr)(unsafe.Pointer(bp + 128)), __ccgo_ts+1036, uint64(4)) != 0 {
+		if dgram != 0 && Xstrncmp(tls, *(*uintptr)(unsafe.Pointer(bp + 128)), __ccgo_ts+1009, uint64(4)) != 0 {
 			continue
 		}
-		if !(dgram != 0) && Xstrncmp(tls, *(*uintptr)(unsafe.Pointer(bp + 128)), __ccgo_ts+1041, uint64(4)) != 0 {
+		if !(dgram != 0) && Xstrncmp(tls, *(*uintptr)(unsafe.Pointer(bp + 128)), __ccgo_ts+1014, uint64(4)) != 0 {
 			continue
 		}
 		if int64(p)-t__predefined_ptrdiff_t(bp) > int64(32) {
@@ -119933,7 +119673,7 @@ func Xgetnameinfo(tls *TLS, sa uintptr, sl Tsocklen_t, node uintptr, nodelen Tso
 		if uint64(sl) < uint64(28) {
 			return -int32(6)
 		}
-		if Xmemcmp(tls, a, __ccgo_ts+1009, uint64(12)) != 0 {
+		if Xmemcmp(tls, a, __ccgo_ts+982, uint64(12)) != 0 {
 			_mkptr6(tls, bp, a)
 		} else {
 			_mkptr4(tls, bp, a+uintptr(12))
@@ -120081,10 +119821,10 @@ func Xgetservbyname_r(tls *TLS, name uintptr, prots uintptr, se uintptr, buf uin
 	if !(prots != 0) {
 		proto = 0
 	} else {
-		if !(Xstrcmp(tls, prots, __ccgo_ts+1046) != 0) {
+		if !(Xstrcmp(tls, prots, __ccgo_ts+1019) != 0) {
 			proto = int32(IPPROTO_TCP)
 		} else {
-			if !(Xstrcmp(tls, prots, __ccgo_ts+1050) != 0) {
+			if !(Xstrcmp(tls, prots, __ccgo_ts+1023) != 0) {
 				proto = int32(IPPROTO_UDP)
 			} else {
 				return int32(EINVAL)
@@ -120108,9 +119848,9 @@ func Xgetservbyname_r(tls *TLS, name uintptr, prots uintptr, se uintptr, buf uin
 	*(*uintptr)(unsafe.Pointer((*Tservent)(unsafe.Pointer(se)).Fs_aliases + 1*8)) = uintptr(0)
 	(*Tservent)(unsafe.Pointer(se)).Fs_port = int32(Xhtons(tls, (*(*[2]Tservice)(unsafe.Pointer(bp)))[0].Fport))
 	if int32((*(*[2]Tservice)(unsafe.Pointer(bp)))[0].Fproto) == int32(IPPROTO_TCP) {
-		v1 = __ccgo_ts + 1046
+		v1 = __ccgo_ts + 1019
 	} else {
-		v1 = __ccgo_ts + 1050
+		v1 = __ccgo_ts + 1023
 	}
 	(*Tservent)(unsafe.Pointer(se)).Fs_proto = v1
 	*(*uintptr)(unsafe.Pointer(res)) = se
@@ -120281,7 +120021,7 @@ func X__h_errno_location(tls *TLS) (r uintptr) {
 	if !((*t__pthread)(unsafe.Pointer(___get_tp(tls))).Fstack != 0) {
 		return uintptr(unsafe.Pointer(&Xh_errno))
 	}
-	return ___get_tp(tls) + 160
+	return ___get_tp(tls) + 144
 }
 
 func Xherror(tls *TLS, msg uintptr) {
@@ -120298,24 +120038,15 @@ func Xherror(tls *TLS, msg uintptr) {
 		v1 = __ccgo_ts
 	}
 	if msg != 0 {
-		v2 = __ccgo_ts + 641
+		v2 = __ccgo_ts + 614
 	} else {
 		v2 = __ccgo_ts
 	}
-	Xfprintf(tls, uintptr(unsafe.Pointer(&X__stderr_FILE)), __ccgo_ts+1054, VaList(bp+8, v1, v2, Xhstrerror(tls, *(*int32)(unsafe.Pointer(X__h_errno_location(tls))))))
+	Xfprintf(tls, uintptr(unsafe.Pointer(&X__stderr_FILE)), __ccgo_ts+1027, VaList(bp+8, v1, v2, Xhstrerror(tls, *(*int32)(unsafe.Pointer(X__h_errno_location(tls))))))
 }
 
 type Tcpu_set_t1 = struct {
 	F__bits [16]uint64
-}
-
-type Tucontext_t5 = struct {
-	Fuc_flags     uint64
-	Fuc_link      uintptr
-	Fuc_stack     Tstack_t
-	Fuc_mcontext  Tmcontext_t1
-	Fuc_sigmask   Tsigset_t
-	F__fpregs_mem [64]uint64
 }
 
 var _msgs1 = [84]int8{'H', 'o', 's', 't', ' ', 'n', 'o', 't', ' ', 'f', 'o', 'u', 'n', 'd', 0, 'T', 'r', 'y', ' ', 'a', 'g', 'a', 'i', 'n', 0, 'N', 'o', 'n', '-', 'r', 'e', 'c', 'o', 'v', 'e', 'r', 'a', 'b', 'l', 'e', ' ', 'e', 'r', 'r', 'o', 'r', 0, 'A', 'd', 'd', 'r', 'e', 's', 's', ' ', 'n', 'o', 't', ' ', 'a', 'v', 'a', 'i', 'l', 'a', 'b', 'l', 'e', 0, 0, 'U', 'n', 'k', 'n', 'o', 'w', 'n', ' ', 'e', 'r', 'r', 'o', 'r'}
@@ -120766,7 +120497,7 @@ func Xinet_ntoa(tls *TLS, _in Tin_addr) (r uintptr) {
 	var a uintptr
 	_ = a
 	a = bp
-	Xsnprintf(tls, uintptr(unsafe.Pointer(&_buf4)), uint64(16), __ccgo_ts+1062, VaList(bp+16, int32(*(*uint8)(unsafe.Pointer(a))), int32(*(*uint8)(unsafe.Pointer(a + 1))), int32(*(*uint8)(unsafe.Pointer(a + 2))), int32(*(*uint8)(unsafe.Pointer(a + 3)))))
+	Xsnprintf(tls, uintptr(unsafe.Pointer(&_buf4)), uint64(16), __ccgo_ts+1035, VaList(bp+16, int32(*(*uint8)(unsafe.Pointer(a))), int32(*(*uint8)(unsafe.Pointer(a + 1))), int32(*(*uint8)(unsafe.Pointer(a + 2))), int32(*(*uint8)(unsafe.Pointer(a + 3)))))
 	return uintptr(unsafe.Pointer(&_buf4))
 }
 
@@ -120787,14 +120518,14 @@ func Xinet_ntop(tls *TLS, af int32, a0 uintptr, s uintptr, l Tsocklen_t) (r uint
 	a = a0
 	switch af {
 	case int32(PF_INET):
-		if uint32(Xsnprintf(tls, s, uint64(l), __ccgo_ts+1062, VaList(bp+112, int32(*(*uint8)(unsafe.Pointer(a))), int32(*(*uint8)(unsafe.Pointer(a + 1))), int32(*(*uint8)(unsafe.Pointer(a + 2))), int32(*(*uint8)(unsafe.Pointer(a + 3)))))) < l {
+		if uint32(Xsnprintf(tls, s, uint64(l), __ccgo_ts+1035, VaList(bp+112, int32(*(*uint8)(unsafe.Pointer(a))), int32(*(*uint8)(unsafe.Pointer(a + 1))), int32(*(*uint8)(unsafe.Pointer(a + 2))), int32(*(*uint8)(unsafe.Pointer(a + 3)))))) < l {
 			return s
 		}
 	case int32(PF_INET6):
-		if Xmemcmp(tls, a, __ccgo_ts+1009, uint64(12)) != 0 {
-			Xsnprintf(tls, bp, uint64(100), __ccgo_ts+1074, VaList(bp+112, int32(256)*int32(*(*uint8)(unsafe.Pointer(a)))+int32(*(*uint8)(unsafe.Pointer(a + 1))), int32(256)*int32(*(*uint8)(unsafe.Pointer(a + 2)))+int32(*(*uint8)(unsafe.Pointer(a + 3))), int32(256)*int32(*(*uint8)(unsafe.Pointer(a + 4)))+int32(*(*uint8)(unsafe.Pointer(a + 5))), int32(256)*int32(*(*uint8)(unsafe.Pointer(a + 6)))+int32(*(*uint8)(unsafe.Pointer(a + 7))), int32(256)*int32(*(*uint8)(unsafe.Pointer(a + 8)))+int32(*(*uint8)(unsafe.Pointer(a + 9))), int32(256)*int32(*(*uint8)(unsafe.Pointer(a + 10)))+int32(*(*uint8)(unsafe.Pointer(a + 11))), int32(256)*int32(*(*uint8)(unsafe.Pointer(a + 12)))+int32(*(*uint8)(unsafe.Pointer(a + 13))), int32(256)*int32(*(*uint8)(unsafe.Pointer(a + 14)))+int32(*(*uint8)(unsafe.Pointer(a + 15)))))
+		if Xmemcmp(tls, a, __ccgo_ts+982, uint64(12)) != 0 {
+			Xsnprintf(tls, bp, uint64(100), __ccgo_ts+1047, VaList(bp+112, int32(256)*int32(*(*uint8)(unsafe.Pointer(a)))+int32(*(*uint8)(unsafe.Pointer(a + 1))), int32(256)*int32(*(*uint8)(unsafe.Pointer(a + 2)))+int32(*(*uint8)(unsafe.Pointer(a + 3))), int32(256)*int32(*(*uint8)(unsafe.Pointer(a + 4)))+int32(*(*uint8)(unsafe.Pointer(a + 5))), int32(256)*int32(*(*uint8)(unsafe.Pointer(a + 6)))+int32(*(*uint8)(unsafe.Pointer(a + 7))), int32(256)*int32(*(*uint8)(unsafe.Pointer(a + 8)))+int32(*(*uint8)(unsafe.Pointer(a + 9))), int32(256)*int32(*(*uint8)(unsafe.Pointer(a + 10)))+int32(*(*uint8)(unsafe.Pointer(a + 11))), int32(256)*int32(*(*uint8)(unsafe.Pointer(a + 12)))+int32(*(*uint8)(unsafe.Pointer(a + 13))), int32(256)*int32(*(*uint8)(unsafe.Pointer(a + 14)))+int32(*(*uint8)(unsafe.Pointer(a + 15)))))
 		} else {
-			Xsnprintf(tls, bp, uint64(100), __ccgo_ts+1098, VaList(bp+112, int32(256)*int32(*(*uint8)(unsafe.Pointer(a)))+int32(*(*uint8)(unsafe.Pointer(a + 1))), int32(256)*int32(*(*uint8)(unsafe.Pointer(a + 2)))+int32(*(*uint8)(unsafe.Pointer(a + 3))), int32(256)*int32(*(*uint8)(unsafe.Pointer(a + 4)))+int32(*(*uint8)(unsafe.Pointer(a + 5))), int32(256)*int32(*(*uint8)(unsafe.Pointer(a + 6)))+int32(*(*uint8)(unsafe.Pointer(a + 7))), int32(256)*int32(*(*uint8)(unsafe.Pointer(a + 8)))+int32(*(*uint8)(unsafe.Pointer(a + 9))), int32(256)*int32(*(*uint8)(unsafe.Pointer(a + 10)))+int32(*(*uint8)(unsafe.Pointer(a + 11))), int32(*(*uint8)(unsafe.Pointer(a + 12))), int32(*(*uint8)(unsafe.Pointer(a + 13))), int32(*(*uint8)(unsafe.Pointer(a + 14))), int32(*(*uint8)(unsafe.Pointer(a + 15)))))
+			Xsnprintf(tls, bp, uint64(100), __ccgo_ts+1071, VaList(bp+112, int32(256)*int32(*(*uint8)(unsafe.Pointer(a)))+int32(*(*uint8)(unsafe.Pointer(a + 1))), int32(256)*int32(*(*uint8)(unsafe.Pointer(a + 2)))+int32(*(*uint8)(unsafe.Pointer(a + 3))), int32(256)*int32(*(*uint8)(unsafe.Pointer(a + 4)))+int32(*(*uint8)(unsafe.Pointer(a + 5))), int32(256)*int32(*(*uint8)(unsafe.Pointer(a + 6)))+int32(*(*uint8)(unsafe.Pointer(a + 7))), int32(256)*int32(*(*uint8)(unsafe.Pointer(a + 8)))+int32(*(*uint8)(unsafe.Pointer(a + 9))), int32(256)*int32(*(*uint8)(unsafe.Pointer(a + 10)))+int32(*(*uint8)(unsafe.Pointer(a + 11))), int32(*(*uint8)(unsafe.Pointer(a + 12))), int32(*(*uint8)(unsafe.Pointer(a + 13))), int32(*(*uint8)(unsafe.Pointer(a + 14))), int32(*(*uint8)(unsafe.Pointer(a + 15)))))
 		}
 		/* Replace longest /(^0|:)[:0]{2,}/ with "::" */
 		v2 = Int32FromInt32(0)
@@ -120808,7 +120539,7 @@ func Xinet_ntop(tls *TLS, af int32, a0 uintptr, s uintptr, l Tsocklen_t) (r uint
 			if i != 0 && int32((*(*[100]int8)(unsafe.Pointer(bp)))[i]) != int32(':') {
 				goto _1
 			}
-			j = int32(Xstrspn(tls, bp+uintptr(i), __ccgo_ts+1128))
+			j = int32(Xstrspn(tls, bp+uintptr(i), __ccgo_ts+1101))
 			if j > max {
 				best = i
 				max = j
@@ -121189,7 +120920,7 @@ func _name_from_hosts(tls *TLS, buf uintptr, canon uintptr, name uintptr, family
 	cnt = 0
 	badfam = 0
 	have_canon = 0
-	f = X__fopen_rb_ca(tls, __ccgo_ts+998, bp+1544, bp+512, uint64(1032))
+	f = X__fopen_rb_ca(tls, __ccgo_ts+971, bp+1544, bp+512, uint64(1032))
 	if !(f != 0) {
 		switch *(*int32)(unsafe.Pointer(X__errno_location(tls))) {
 		case int32(ENOENT):
@@ -121776,7 +121507,7 @@ func X__lookup_name(tls *TLS, buf uintptr, canon uintptr, name uintptr, family i
 				goto _6
 			}
 			Xmemcpy(tls, buf+uintptr(i)*28+8+uintptr(12), buf+uintptr(i)*28+8, uint64(4))
-			Xmemcpy(tls, buf+uintptr(i)*28+8, __ccgo_ts+1009, uint64(12))
+			Xmemcpy(tls, buf+uintptr(i)*28+8, __ccgo_ts+982, uint64(12))
 			(*(*Taddress)(unsafe.Pointer(buf + uintptr(i)*28))).Ffamily = int32(PF_INET6)
 			goto _6
 		_6:
@@ -121834,9 +121565,9 @@ func X__lookup_name(tls *TLS, buf uintptr, canon uintptr, name uintptr, family i
 			sa = bp + 4
 			*(*Tsocklen_t)(unsafe.Pointer(bp + 92)) = uint32(28)
 		} else {
-			Xmemcpy(tls, bp+4+8, __ccgo_ts+1009, uint64(12))
+			Xmemcpy(tls, bp+4+8, __ccgo_ts+982, uint64(12))
 			Xmemcpy(tls, bp+32+8+uintptr(12), buf+uintptr(i)*28+8, uint64(4))
-			Xmemcpy(tls, bp+32+8, __ccgo_ts+1009, uint64(12))
+			Xmemcpy(tls, bp+32+8, __ccgo_ts+982, uint64(12))
 			Xmemcpy(tls, bp+32+8+uintptr(12), buf+uintptr(i)*28+8, uint64(4))
 			Xmemcpy(tls, bp+76+4, buf+uintptr(i)*28+8, uint64(4))
 			da = bp + 76
@@ -121962,7 +121693,7 @@ func X__lookup_serv(tls *TLS, buf uintptr, name uintptr, proto int32, socktype i
 		return -int32(2)
 	}
 	l = Xstrlen(tls, name)
-	f = X__fopen_rb_ca(tls, __ccgo_ts+1022, bp+1168, bp+136, uint64(1032))
+	f = X__fopen_rb_ca(tls, __ccgo_ts+995, bp+1168, bp+136, uint64(1032))
 	if !(f != 0) {
 		switch *(*int32)(unsafe.Pointer(X__errno_location(tls))) {
 		case int32(ENOENT):
@@ -122038,7 +121769,7 @@ func X__lookup_serv(tls *TLS, buf uintptr, name uintptr, proto int32, socktype i
 		if port > uint64(65535) || *(*uintptr)(unsafe.Pointer(bp + 128)) == p {
 			continue
 		}
-		if !(Xstrncmp(tls, *(*uintptr)(unsafe.Pointer(bp + 128)), __ccgo_ts+1036, uint64(4)) != 0) {
+		if !(Xstrncmp(tls, *(*uintptr)(unsafe.Pointer(bp + 128)), __ccgo_ts+1009, uint64(4)) != 0) {
 			if proto == int32(IPPROTO_TCP) {
 				continue
 			}
@@ -122048,7 +121779,7 @@ func X__lookup_serv(tls *TLS, buf uintptr, name uintptr, proto int32, socktype i
 			cnt++
 			(*(*Tservice)(unsafe.Pointer(buf + uintptr(v20)*4))).Fproto = uint8(IPPROTO_UDP)
 		}
-		if !(Xstrncmp(tls, *(*uintptr)(unsafe.Pointer(bp + 128)), __ccgo_ts+1041, uint64(4)) != 0) {
+		if !(Xstrncmp(tls, *(*uintptr)(unsafe.Pointer(bp + 128)), __ccgo_ts+1014, uint64(4)) != 0) {
 			if proto == int32(IPPROTO_UDP) {
 				continue
 			}
@@ -123192,7 +122923,7 @@ func X__res_msend_rc(tls *TLS, nqueries int32, queries uintptr, qlens uintptr, a
 				goto _8
 			}
 			Xmemcpy(tls, bp+116+uintptr(i)*28+8+uintptr(12), bp+116+uintptr(i)*28+4, uint64(4))
-			Xmemcpy(tls, bp+116+uintptr(i)*28+8, __ccgo_ts+1009, uint64(12))
+			Xmemcpy(tls, bp+116+uintptr(i)*28+8, __ccgo_ts+982, uint64(12))
 			(*(*Tsockaddr_in6)(unsafe.Pointer(bp + 116 + uintptr(i)*28))).Fsin6_family = uint16(PF_INET6)
 			(*(*Tsockaddr_in6)(unsafe.Pointer(bp + 116 + uintptr(i)*28))).Fsin6_flowinfo = uint32(0)
 			(*(*Tsockaddr_in6)(unsafe.Pointer(bp + 116 + uintptr(i)*28))).Fsin6_scope_id = uint32(0)
@@ -123591,7 +123322,7 @@ func X__get_resolv_conf(tls *TLS, conf uintptr, search uintptr, search_sz Tsize_
 	if search != 0 {
 		*(*int8)(unsafe.Pointer(search)) = 0
 	}
-	f = X__fopen_rb_ca(tls, __ccgo_ts+1131, bp+512, bp+256, uint64(256))
+	f = X__fopen_rb_ca(tls, __ccgo_ts+1104, bp+512, bp+256, uint64(256))
 	if !(f != 0) {
 		switch *(*int32)(unsafe.Pointer(X__errno_location(tls))) {
 		case int32(ENOENT):
@@ -123611,14 +123342,14 @@ func X__get_resolv_conf(tls *TLS, conf uintptr, search uintptr, search_sz Tsize_
 			}
 			continue
 		}
-		if v4 = !(Xstrncmp(tls, bp, __ccgo_ts+1148, uint64(7)) != 0); v4 {
+		if v4 = !(Xstrncmp(tls, bp, __ccgo_ts+1121, uint64(7)) != 0); v4 {
 			v1 = int32((*(*[256]int8)(unsafe.Pointer(bp)))[int32(7)])
 			v2 = BoolInt32(v1 == int32(' ') || uint32(v1)-uint32('\t') < uint32(5))
 			goto _3
 		_3:
 		}
 		if v4 && v2 != 0 {
-			p = Xstrstr(tls, bp, __ccgo_ts+1156)
+			p = Xstrstr(tls, bp, __ccgo_ts+1129)
 			if p != 0 && BoolInt32(uint32(*(*int8)(unsafe.Pointer(p + 6)))-uint32('0') < uint32(10)) != 0 {
 				p += uintptr(6)
 				x = Xstrtoul(tls, p, bp+744, int32(10))
@@ -123631,7 +123362,7 @@ func X__get_resolv_conf(tls *TLS, conf uintptr, search uintptr, search_sz Tsize_
 					(*Tresolvconf)(unsafe.Pointer(conf)).Fndots = uint32(v5)
 				}
 			}
-			p = Xstrstr(tls, bp, __ccgo_ts+1163)
+			p = Xstrstr(tls, bp, __ccgo_ts+1136)
 			if p != 0 && BoolInt32(uint32(*(*int8)(unsafe.Pointer(p + 9)))-uint32('0') < uint32(10)) != 0 {
 				p += uintptr(9)
 				x1 = Xstrtoul(tls, p, bp+744, int32(10))
@@ -123644,7 +123375,7 @@ func X__get_resolv_conf(tls *TLS, conf uintptr, search uintptr, search_sz Tsize_
 					(*Tresolvconf)(unsafe.Pointer(conf)).Fattempts = uint32(v6)
 				}
 			}
-			p = Xstrstr(tls, bp, __ccgo_ts+1173)
+			p = Xstrstr(tls, bp, __ccgo_ts+1146)
 			if p != 0 && (BoolInt32(uint32(*(*int8)(unsafe.Pointer(p + 8)))-uint32('0') < uint32(10)) != 0 || int32(*(*int8)(unsafe.Pointer(p + 8))) == int32('.')) {
 				p += uintptr(8)
 				x2 = Xstrtoul(tls, p, bp+744, int32(10))
@@ -123659,7 +123390,7 @@ func X__get_resolv_conf(tls *TLS, conf uintptr, search uintptr, search_sz Tsize_
 			}
 			continue
 		}
-		if v11 = !(Xstrncmp(tls, bp, __ccgo_ts+1182, uint64(10)) != 0); v11 {
+		if v11 = !(Xstrncmp(tls, bp, __ccgo_ts+1155, uint64(10)) != 0); v11 {
 			v8 = int32((*(*[256]int8)(unsafe.Pointer(bp)))[int32(10)])
 			v9 = BoolInt32(v8 == int32(' ') || uint32(v8)-uint32('\t') < uint32(5))
 			goto _10
@@ -123706,7 +123437,7 @@ func X__get_resolv_conf(tls *TLS, conf uintptr, search uintptr, search_sz Tsize_
 		if !(search != 0) {
 			continue
 		}
-		if v24 = Xstrncmp(tls, bp, __ccgo_ts+1193, uint64(6)) != 0 && Xstrncmp(tls, bp, __ccgo_ts+1200, uint64(6)) != 0; !v24 {
+		if v24 = Xstrncmp(tls, bp, __ccgo_ts+1166, uint64(6)) != 0 && Xstrncmp(tls, bp, __ccgo_ts+1173, uint64(6)) != 0; !v24 {
 			v21 = int32((*(*[256]int8)(unsafe.Pointer(bp)))[int32(6)])
 			v22 = BoolInt32(v21 == int32(' ') || uint32(v21)-uint32('\t') < uint32(5))
 			goto _23
@@ -123738,7 +123469,7 @@ func X__get_resolv_conf(tls *TLS, conf uintptr, search uintptr, search_sz Tsize_
 	X__fclose_ca(tls, f)
 no_resolv_conf:
 	if !(nns != 0) {
-		X__lookup_ipliteral(tls, conf, __ccgo_ts+1207, PF_UNSPEC)
+		X__lookup_ipliteral(tls, conf, __ccgo_ts+1180, PF_UNSPEC)
 		nns = int32(1)
 	}
 	(*Tresolvconf)(unsafe.Pointer(conf)).Fnns = uint32(nns)
@@ -124152,10 +123883,10 @@ _9:
 			return int32(X__syscall_ret(tls, uint64(s)))
 		}
 		if type1&int32(SOCK_CLOEXEC) != 0 {
-			X__syscall3(tls, int64(SYS_fcntl), int64(s), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
+			X__syscall3(tls, int64(__NR3264_fcntl), int64(s), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
 		}
 		if type1&int32(SOCK_NONBLOCK) != 0 {
-			X__syscall3(tls, int64(SYS_fcntl), int64(s), int64(Int32FromInt32(F_SETFL)), int64(Int32FromInt32(O_NONBLOCK)))
+			X__syscall3(tls, int64(__NR3264_fcntl), int64(s), int64(Int32FromInt32(F_SETFL)), int64(Int32FromInt32(O_NONBLOCK)))
 		}
 	}
 	return int32(X__syscall_ret(tls, uint64(s)))
@@ -124217,12 +123948,12 @@ _9:
 			return r1
 		}
 		if type1&int32(SOCK_CLOEXEC) != 0 {
-			X__syscall3(tls, int64(SYS_fcntl), int64(*(*int32)(unsafe.Pointer(fd))), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
-			X__syscall3(tls, int64(SYS_fcntl), int64(*(*int32)(unsafe.Pointer(fd + 1*4))), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
+			X__syscall3(tls, int64(__NR3264_fcntl), int64(*(*int32)(unsafe.Pointer(fd))), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
+			X__syscall3(tls, int64(__NR3264_fcntl), int64(*(*int32)(unsafe.Pointer(fd + 1*4))), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
 		}
 		if type1&int32(SOCK_NONBLOCK) != 0 {
-			X__syscall3(tls, int64(SYS_fcntl), int64(*(*int32)(unsafe.Pointer(fd))), int64(Int32FromInt32(F_SETFL)), int64(Int32FromInt32(O_NONBLOCK)))
-			X__syscall3(tls, int64(SYS_fcntl), int64(*(*int32)(unsafe.Pointer(fd + 1*4))), int64(Int32FromInt32(F_SETFL)), int64(Int32FromInt32(O_NONBLOCK)))
+			X__syscall3(tls, int64(__NR3264_fcntl), int64(*(*int32)(unsafe.Pointer(fd))), int64(Int32FromInt32(F_SETFL)), int64(Int32FromInt32(O_NONBLOCK)))
+			X__syscall3(tls, int64(__NR3264_fcntl), int64(*(*int32)(unsafe.Pointer(fd + 1*4))), int64(Int32FromInt32(F_SETFL)), int64(Int32FromInt32(O_NONBLOCK)))
 		}
 	}
 	return r1
@@ -124369,7 +124100,7 @@ func X__getgr_a(tls *TLS, name uintptr, gid Tgid_t, gr uintptr, buf uintptr, siz
 	rv = 0
 	*(*uintptr)(unsafe.Pointer(res)) = uintptr(0)
 	_pthread_setcancelstate(tls, int32(PTHREAD_CANCEL_DISABLE), bp)
-	f = Xfopen(tls, __ccgo_ts+1217, __ccgo_ts+1228)
+	f = Xfopen(tls, __ccgo_ts+1190, __ccgo_ts+1201)
 	if !(f != 0) {
 		rv = *(*int32)(unsafe.Pointer(X__errno_location(tls)))
 		goto done
@@ -124630,7 +124361,7 @@ func Xgetgrent(tls *TLS) (r uintptr) {
 	*(*Tsize_t)(unsafe.Pointer(bp + 8)) = uint64(0)
 	*(*Tsize_t)(unsafe.Pointer(bp + 16)) = uint64(0)
 	if !(_f != 0) {
-		_f = Xfopen(tls, __ccgo_ts+1217, __ccgo_ts+1228)
+		_f = Xfopen(tls, __ccgo_ts+1190, __ccgo_ts+1201)
 	}
 	if !(_f != 0) {
 		return uintptr(0)
@@ -124885,7 +124616,7 @@ func Xgetgrouplist(tls *TLS, user uintptr, gid Tgid_t, groups uintptr, ngroups u
 		}
 	}
 	Xfclose(tls, f)
-	f = Xfopen(tls, __ccgo_ts+1217, __ccgo_ts+1228)
+	f = Xfopen(tls, __ccgo_ts+1190, __ccgo_ts+1201)
 	if !(f != 0) && *(*int32)(unsafe.Pointer(X__errno_location(tls))) != int32(ENOENT) && *(*int32)(unsafe.Pointer(X__errno_location(tls))) != int32(ENOTDIR) {
 		goto cleanup
 	}
@@ -125007,7 +124738,7 @@ func X__getpw_a(tls *TLS, name uintptr, uid Tuid_t, pw uintptr, buf uintptr, siz
 	rv = 0
 	*(*uintptr)(unsafe.Pointer(res)) = uintptr(0)
 	_pthread_setcancelstate(tls, int32(PTHREAD_CANCEL_DISABLE), bp+4)
-	f = Xfopen(tls, __ccgo_ts+1232, __ccgo_ts+1228)
+	f = Xfopen(tls, __ccgo_ts+1205, __ccgo_ts+1201)
 	if !(f != 0) {
 		rv = *(*int32)(unsafe.Pointer(X__errno_location(tls)))
 		goto done
@@ -125193,7 +124924,7 @@ func Xgetpwent(tls *TLS) (r uintptr) {
 	defer tls.Free(16)
 	var _ /* res at bp+0 */ uintptr
 	if !(_f1 != 0) {
-		_f1 = Xfopen(tls, __ccgo_ts+1232, __ccgo_ts+1228)
+		_f1 = Xfopen(tls, __ccgo_ts+1205, __ccgo_ts+1201)
 	}
 	if !(_f1 != 0) {
 		return uintptr(0)
@@ -125432,7 +125163,7 @@ retry:
 	fd = Xsocket(tls, int32(PF_LOCAL), Int32FromInt32(SOCK_STREAM)|Int32FromInt32(SOCK_CLOEXEC), 0)
 	if fd < 0 {
 		if *(*int32)(unsafe.Pointer(X__errno_location(tls))) == int32(EAFNOSUPPORT) {
-			f = Xfopen(tls, __ccgo_ts+1244, __ccgo_ts+1254)
+			f = Xfopen(tls, __ccgo_ts+1217, __ccgo_ts+1227)
 			if f != 0 {
 				*(*int32)(unsafe.Pointer(X__errno_location(tls))) = errno_save
 			}
@@ -125440,7 +125171,7 @@ retry:
 		}
 		return uintptr(0)
 	}
-	v1 = Xfdopen(tls, fd, __ccgo_ts+1257)
+	v1 = Xfdopen(tls, fd, __ccgo_ts+1230)
 	f = v1
 	if !(v1 != 0) {
 		Xclose(tls, fd)
@@ -125537,7 +125268,7 @@ func Xputgrent(tls *TLS, gr uintptr, f uintptr) (r1 int32) {
 	var v4 uintptr
 	_, _, _, _, _, _ = i, r, v1, v3, v4, v5
 	Xflockfile(tls, f)
-	v1 = Xfprintf(tls, f, __ccgo_ts+1259, VaList(bp+8, (*Tgroup)(unsafe.Pointer(gr)).Fgr_name, (*Tgroup)(unsafe.Pointer(gr)).Fgr_passwd, (*Tgroup)(unsafe.Pointer(gr)).Fgr_gid))
+	v1 = Xfprintf(tls, f, __ccgo_ts+1232, VaList(bp+8, (*Tgroup)(unsafe.Pointer(gr)).Fgr_name, (*Tgroup)(unsafe.Pointer(gr)).Fgr_passwd, (*Tgroup)(unsafe.Pointer(gr)).Fgr_gid))
 	r = v1
 	if v1 < 0 {
 		goto done
@@ -125549,11 +125280,11 @@ func Xputgrent(tls *TLS, gr uintptr, f uintptr) (r1 int32) {
 				break
 			}
 			if i != 0 {
-				v4 = __ccgo_ts + 1269
+				v4 = __ccgo_ts + 1242
 			} else {
 				v4 = __ccgo_ts
 			}
-			v3 = Xfprintf(tls, f, __ccgo_ts+1271, VaList(bp+8, v4, *(*uintptr)(unsafe.Pointer((*Tgroup)(unsafe.Pointer(gr)).Fgr_mem + uintptr(i)*8))))
+			v3 = Xfprintf(tls, f, __ccgo_ts+1244, VaList(bp+8, v4, *(*uintptr)(unsafe.Pointer((*Tgroup)(unsafe.Pointer(gr)).Fgr_mem + uintptr(i)*8))))
 			r = v3
 			if v3 < 0 {
 				goto done
@@ -125583,7 +125314,7 @@ func Xputpwent(tls *TLS, pw uintptr, f uintptr) (r int32) {
 	defer tls.Free(64)
 	var v1 int32
 	_ = v1
-	if Xfprintf(tls, f, __ccgo_ts+1276, VaList(bp+8, (*Tpasswd)(unsafe.Pointer(pw)).Fpw_name, (*Tpasswd)(unsafe.Pointer(pw)).Fpw_passwd, (*Tpasswd)(unsafe.Pointer(pw)).Fpw_uid, (*Tpasswd)(unsafe.Pointer(pw)).Fpw_gid, (*Tpasswd)(unsafe.Pointer(pw)).Fpw_gecos, (*Tpasswd)(unsafe.Pointer(pw)).Fpw_dir, (*Tpasswd)(unsafe.Pointer(pw)).Fpw_shell)) < 0 {
+	if Xfprintf(tls, f, __ccgo_ts+1249, VaList(bp+8, (*Tpasswd)(unsafe.Pointer(pw)).Fpw_name, (*Tpasswd)(unsafe.Pointer(pw)).Fpw_passwd, (*Tpasswd)(unsafe.Pointer(pw)).Fpw_uid, (*Tpasswd)(unsafe.Pointer(pw)).Fpw_gid, (*Tpasswd)(unsafe.Pointer(pw)).Fpw_gecos, (*Tpasswd)(unsafe.Pointer(pw)).Fpw_dir, (*Tpasswd)(unsafe.Pointer(pw)).Fpw_shell)) < 0 {
 		v1 = -int32(1)
 	} else {
 		v1 = 0
@@ -125683,7 +125414,7 @@ func Xputspent(tls *TLS, sp uintptr, f uintptr) (r int32) {
 	} else {
 		v17 = (*Tspwd)(unsafe.Pointer(sp)).Fsp_flag
 	}
-	if Xfprintf(tls, f, __ccgo_ts+1298, VaList(bp+8, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17)) < 0 {
+	if Xfprintf(tls, f, __ccgo_ts+1271, VaList(bp+8, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17)) < 0 {
 		v1 = -int32(1)
 	} else {
 		v1 = 0
@@ -126183,7 +125914,7 @@ func X__execvpe(tls *TLS, file uintptr, argv uintptr, envp uintptr) (r int32) {
 	var v2 t__predefined_size_t
 	_, _, _, _, _, _, _, _, _, _ = b, k, l, p, path, seen_eacces, z, v2, v3, v4
 	defer func() { Xrealloc(tls, b, 0) }()
-	path = Xgetenv(tls, __ccgo_ts+1347)
+	path = Xgetenv(tls, __ccgo_ts+1320)
 	seen_eacces = 0
 	*(*int32)(unsafe.Pointer(X__errno_location(tls))) = int32(ENOENT)
 	if !(*(*int8)(unsafe.Pointer(file)) != 0) {
@@ -126193,7 +125924,7 @@ func X__execvpe(tls *TLS, file uintptr, argv uintptr, envp uintptr) (r int32) {
 		return Xexecve(tls, file, argv, envp)
 	}
 	if !(path != 0) {
-		path = __ccgo_ts + 1352
+		path = __ccgo_ts + 1325
 	}
 	k = Xstrnlen(tls, file, uint64(Int32FromInt32(NAME_MAX)+Int32FromInt32(1)))
 	if k > uint64(NAME_MAX) {
@@ -126633,7 +126364,7 @@ func Xvfork(tls *TLS) (r Tpid_t) {
 		defer func() { trc("-> %v", r) }()
 	}
 	/* vfork syscall cannot be made from C code */
-	return int32(X__syscall_ret(tls, uint64(X__syscall0(tls, int64(SYS_fork)))))
+	return int32(X__syscall_ret(tls, uint64(X__syscall2(tls, int64(SYS_clone), int64(Int32FromInt32(SIGCHLD)), int64(Int32FromInt32(0))))))
 }
 
 func Xwait(tls *TLS, status uintptr) (r Tpid_t) {
@@ -127205,8 +126936,8 @@ func _append(tls *TLS, tail uintptr, name uintptr, len1 Tsize_t, mark int32) (r 
 }
 
 func _do_glob(tls *TLS, buf uintptr, pos Tsize_t, type1 int32, pat uintptr, flags int32, errfunc uintptr, tail uintptr) (r1 int32) {
-	bp := tls.Alloc(144)
-	defer tls.Free(144)
+	bp := tls.Alloc(128)
+	defer tls.Free(128)
 	var de, dir, p, p2, v11, v2, v7, v8 uintptr
 	var fnm_flags, in_bracket, old_errno, overflow, r, readerr, v10, v9 int32
 	var i, j, v4, v5 Tptrdiff_t
@@ -127344,7 +127075,7 @@ func _do_glob(tls *TLS, buf uintptr, pos Tsize_t, type1 int32, pat uintptr, flag
 	if pos != 0 {
 		v7 = buf
 	} else {
-		v7 = __ccgo_ts + 537
+		v7 = __ccgo_ts + 520
 	}
 	dir = Xopendir(tls, v7)
 	if !(dir != 0) {
@@ -127466,7 +127197,7 @@ func _expand_tilde(tls *TLS, pat uintptr, buf uintptr, pos uintptr) (r int32) {
 	if *(*int8)(unsafe.Pointer(p)) != 0 {
 		v3 = UintptrFromInt32(0)
 	} else {
-		v3 = Xgetenv(tls, __ccgo_ts+1381)
+		v3 = Xgetenv(tls, __ccgo_ts+1354)
 	}
 	home = v3
 	if !(home != 0) {
@@ -128136,51 +127867,51 @@ var _tre_macros = [13]struct {
 }{
 	0: {
 		Fc:         int8('t'),
-		Fexpansion: __ccgo_ts + 1386,
+		Fexpansion: __ccgo_ts + 1359,
 	},
 	1: {
 		Fc:         int8('n'),
-		Fexpansion: __ccgo_ts + 1388,
+		Fexpansion: __ccgo_ts + 1361,
 	},
 	2: {
 		Fc:         int8('r'),
-		Fexpansion: __ccgo_ts + 1390,
+		Fexpansion: __ccgo_ts + 1363,
 	},
 	3: {
 		Fc:         int8('f'),
-		Fexpansion: __ccgo_ts + 1392,
+		Fexpansion: __ccgo_ts + 1365,
 	},
 	4: {
 		Fc:         int8('a'),
-		Fexpansion: __ccgo_ts + 1394,
+		Fexpansion: __ccgo_ts + 1367,
 	},
 	5: {
 		Fc:         int8('e'),
-		Fexpansion: __ccgo_ts + 1396,
+		Fexpansion: __ccgo_ts + 1369,
 	},
 	6: {
 		Fc:         int8('w'),
-		Fexpansion: __ccgo_ts + 1398,
+		Fexpansion: __ccgo_ts + 1371,
 	},
 	7: {
 		Fc:         int8('W'),
-		Fexpansion: __ccgo_ts + 1411,
+		Fexpansion: __ccgo_ts + 1384,
 	},
 	8: {
 		Fc:         int8('s'),
-		Fexpansion: __ccgo_ts + 1425,
+		Fexpansion: __ccgo_ts + 1398,
 	},
 	9: {
 		Fc:         int8('S'),
-		Fexpansion: __ccgo_ts + 1437,
+		Fexpansion: __ccgo_ts + 1410,
 	},
 	10: {
 		Fc:         int8('d'),
-		Fexpansion: __ccgo_ts + 1450,
+		Fexpansion: __ccgo_ts + 1423,
 	},
 	11: {
 		Fc:         int8('D'),
-		Fexpansion: __ccgo_ts + 1462,
+		Fexpansion: __ccgo_ts + 1435,
 	},
 	12: {},
 }
@@ -133013,10 +132744,21 @@ func Xpoll(tls *TLS, fds uintptr, n Tnfds_t, timeout int32) (r int32) {
 		trc("tls=%v fds=%v n=%v timeout=%v, (%v:)", tls, fds, n, timeout, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return int32(X__syscall_ret(tls, uint64(___syscall_cp(tls, int64(SYS_poll), int64(fds), int64(n), int64(timeout), 0, 0, 0))))
+	bp := tls.Alloc(16)
+	defer tls.Free(16)
+	var v1 uintptr
+	_ = v1
+	if timeout >= 0 {
+		*(*[2]int64)(unsafe.Pointer(bp)) = [2]int64{
+			0: int64(timeout / int32(1000)),
+			1: int64(timeout % int32(1000) * int32(1000000)),
+		}
+		v1 = bp
+	} else {
+		v1 = uintptr(0)
+	}
+	return int32(X__syscall_ret(tls, uint64(___syscall_cp(tls, int64(SYS_ppoll), int64(fds), int64(n), int64(v1), int64(Int32FromInt32(0)), int64(Int32FromInt32(_NSIG)/Int32FromInt32(8)), 0))))
 }
-
-type t__ucontext3 = Tucontext_t5
 
 func Xppoll(tls *TLS, fds uintptr, n Tnfds_t, to uintptr, mask uintptr) (r int32) {
 	if __ccgo_strace {
@@ -133052,8 +132794,6 @@ func Xppoll(tls *TLS, fds uintptr, n Tnfds_t, to uintptr, mask uintptr) (r int32
 	}
 	return int32(X__syscall_ret(tls, uint64(___syscall_cp(tls, int64(SYS_ppoll), int64(fds), int64(n), int64(v3), int64(mask), int64(Int32FromInt32(_NSIG)/Int32FromInt32(8)), 0))))
 }
-
-type t__ucontext4 = Tucontext_t4
 
 func Xpselect(tls *TLS, n int32, rfds uintptr, wfds uintptr, efds uintptr, ts uintptr, mask uintptr) (r int32) {
 	if __ccgo_strace {
@@ -133095,22 +132835,13 @@ func Xpselect(tls *TLS, n int32, rfds uintptr, wfds uintptr, efds uintptr, ts ui
 	return int32(X__syscall_ret(tls, uint64(___syscall_cp(tls, int64(SYS_pselect6), int64(n), int64(rfds), int64(wfds), int64(efds), int64(v3), int64(bp+16)))))
 }
 
-type Tucontext_t6 = struct {
-	Fuc_flags     uint64
-	Fuc_link      uintptr
-	Fuc_stack     Tstack_t
-	Fuc_mcontext  Tmcontext_t
-	Fuc_sigmask   Tsigset_t
-	F__fpregs_mem [64]uint64
-}
-
 func Xselect(tls *TLS, n int32, rfds uintptr, wfds uintptr, efds uintptr, tv uintptr) (r int32) {
 	if __ccgo_strace {
 		trc("tls=%v n=%v rfds=%v wfds=%v efds=%v tv=%v, (%v:)", tls, n, rfds, wfds, efds, tv, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	bp := tls.Alloc(16)
-	defer tls.Free(16)
+	bp := tls.Alloc(32)
+	defer tls.Free(32)
 	var max_time, s Ttime_t
 	var ns, v1, v2 int64
 	var us Tsuseconds_t
@@ -133144,13 +132875,16 @@ func Xselect(tls *TLS, n int32, rfds uintptr, wfds uintptr, efds uintptr, tv uin
 	if tv != 0 {
 		*(*[2]int64)(unsafe.Pointer(bp)) = [2]int64{
 			0: s,
-			1: us,
+			1: ns,
 		}
 		v3 = bp
 	} else {
 		v3 = uintptr(0)
 	}
-	return int32(X__syscall_ret(tls, uint64(___syscall_cp(tls, int64(SYS_select), int64(n), int64(rfds), int64(wfds), int64(efds), int64(v3), 0))))
+	*(*[2]Tsyscall_arg_t)(unsafe.Pointer(bp + 16)) = [2]Tsyscall_arg_t{
+		1: int64(Int32FromInt32(_NSIG) / Int32FromInt32(8)),
+	}
+	return int32(X__syscall_ret(tls, uint64(___syscall_cp(tls, int64(SYS_pselect6), int64(n), int64(rfds), int64(wfds), int64(efds), int64(v3), int64(bp+16)))))
 }
 
 var _all_mask = [1]uint64{
@@ -133262,11 +132996,11 @@ func Xpsignal(tls *TLS, sig int32, msg uintptr) {
 		v2 = __ccgo_ts
 	}
 	if msg != 0 {
-		v3 = __ccgo_ts + 641
+		v3 = __ccgo_ts + 614
 	} else {
 		v3 = __ccgo_ts
 	}
-	if Xfprintf(tls, f, __ccgo_ts+1054, VaList(bp+8, v2, v3, s)) >= 0 {
+	if Xfprintf(tls, f, __ccgo_ts+1027, VaList(bp+8, v2, v3, s)) >= 0 {
 		*(*int32)(unsafe.Pointer(X__errno_location(tls))) = old_errno
 	}
 	(*TFILE)(unsafe.Pointer(f)).Fmode = old_mode
@@ -133344,13 +133078,11 @@ func Xsetitimer(tls *TLS, which int32, new1 uintptr, old uintptr) (r1 int32) {
 	return int32(X__syscall_ret(tls, uint64(X__syscall3(tls, int64(SYS_setitimer), int64(which), int64(new1), int64(old)))))
 }
 
-const __restore = 0
-
 type Tk_sigaction = struct {
-	Fhandler  uintptr
-	Fflags    uint64
-	Frestorer uintptr
-	Fmask     [2]uint32
+	Fhandler uintptr
+	Fflags   uint64
+	Fmask    [2]uint32
+	Funused  uintptr
 }
 
 var _unmask_done int32
@@ -133363,35 +133095,144 @@ func X__get_handler_set(tls *TLS, set uintptr) {
 	Xmemcpy(tls, set, uintptr(unsafe.Pointer(&_handler_set)), uint64(8))
 }
 
-func X__libc_sigaction(tls *TLS, sig int32, sa uintptr, old uintptr) (r1 int32) {
+func X__libc_sigaction(tls *TLS, sig int32, sa uintptr, old1 uintptr) (r2 int32) {
 	if __ccgo_strace {
-		trc("tls=%v sig=%v sa=%v old=%v, (%v:)", tls, sig, sa, old, origin(2))
-		defer func() { trc("-> %v", r1) }()
+		trc("tls=%v sig=%v sa=%v old1=%v, (%v:)", tls, sig, sa, old1, origin(2))
+		defer func() { trc("-> %v", r2) }()
 	}
 	bp := tls.Alloc(80)
 	defer tls.Free(80)
-	var r int32
-	var v1, v3, v4, v5 uintptr
+	var old, r, r1, v, v12, v15, v19, v22, v4, v7 int32
+	var v1, v10, v11, v18, v25, v26, v3 uintptr
 	var v2 int64
-	var _ /* ksa at bp+8 */ Tk_sigaction
-	var _ /* ksa_old at bp+40 */ Tk_sigaction
-	_, _, _, _, _, _ = r, v1, v2, v3, v4, v5
+	var _ /* ksa at bp+16 */ Tk_sigaction
+	var _ /* ksa_old at bp+48 */ Tk_sigaction
+	var _ /* u at bp+8 */ struct {
+		Fr [0][2]Tuint32_t
+		Fv Tuint64_t
+	}
+	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = old, r, r1, v, v1, v10, v11, v12, v15, v18, v19, v2, v22, v25, v26, v3, v4, v7
 	if sa != 0 {
 		if uint64(*(*uintptr)(unsafe.Pointer(sa))) > uint64(1) {
 			v1 = uintptr(unsafe.Pointer(&_handler_set)) + uintptr(uint64(sig-Int32FromInt32(1))/(Uint64FromInt32(8)*Uint64FromInt64(8)))*8
 			v2 = int64(uint64(1) << (uint64(sig-Int32FromInt32(1)) % (Uint64FromInt32(8) * Uint64FromInt64(8))))
 			if Uint64FromInt64(8) == Uint64FromInt64(4) {
-				// __asm__ __volatile__(
-				//
-				//	"lock ; or %1, %0"
-				//	: "=m"(*p) : "r"(v) : "memory" );
-				X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 48, __ccgo_ts+1475)
+				v3 = v1
+				// __asm__ __volatile__ ("dbar 0" : : : "memory");
+				X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1448)
+				for {
+					// __asm__ __volatile__ (
+					//
+					//	"ll.w %0, %1"
+					//	: "=r"(v)
+					//	: "ZC"(*p));
+					X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 5, __ccgo_ts+1448)
+					v7 = v
+					goto _8
+				_8:
+					old = v7
+					goto _6
+				_6:
+					// __asm__ __volatile__ (
+					//
+					//	"sc.w %0, %1"
+					//	: "=r"(r), "=ZC"(*p)
+					//	: "0"(v) : "memory");
+					X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 16, __ccgo_ts+1448)
+					v4 = r
+					goto _5
+				_5:
+					if !!(v4 != 0) {
+						break
+					}
+				}
+				// __asm__ __volatile__ ("dbar 0" : : : "memory");
+				X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1448)
+				_ = old
+				goto _9
+			_9:
 			} else {
-				// __asm__ __volatile__(
-				//
-				//	"lock ; or %1, %0"
-				//	 : "=m"(*p) : "r"(v) : "memory" );
-				X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 64, __ccgo_ts+1475)
+				v10 = v1
+				*(*struct {
+					Fr [0][2]Tuint32_t
+					Fv Tuint64_t
+				})(unsafe.Pointer(bp + 8)) = struct {
+					Fr [0][2]Tuint32_t
+					Fv Tuint64_t
+				}{}
+				*(*uint64)(unsafe.Pointer(bp + 8)) = uint64(v2)
+				if *(*Tuint32_t)(unsafe.Pointer(bp + 8)) != 0 {
+					v11 = v10
+					// __asm__ __volatile__ ("dbar 0" : : : "memory");
+					X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1448)
+					for {
+						// __asm__ __volatile__ (
+						//
+						//	"ll.w %0, %1"
+						//	: "=r"(v)
+						//	: "ZC"(*p));
+						X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 5, __ccgo_ts+1448)
+						v15 = v
+						goto _16
+					_16:
+						old = v15
+						goto _14
+					_14:
+						// __asm__ __volatile__ (
+						//
+						//	"sc.w %0, %1"
+						//	: "=r"(r), "=ZC"(*p)
+						//	: "0"(v) : "memory");
+						X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 16, __ccgo_ts+1448)
+						v12 = r
+						goto _13
+					_13:
+						if !!(v12 != 0) {
+							break
+						}
+					}
+					// __asm__ __volatile__ ("dbar 0" : : : "memory");
+					X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1448)
+					_ = old
+					goto _17
+				_17:
+				}
+				if *(*Tuint32_t)(unsafe.Pointer(bp + 8 + 1*4)) != 0 {
+					v18 = v10 + uintptr(1)*4
+					// __asm__ __volatile__ ("dbar 0" : : : "memory");
+					X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1448)
+					for {
+						// __asm__ __volatile__ (
+						//
+						//	"ll.w %0, %1"
+						//	: "=r"(v)
+						//	: "ZC"(*p));
+						X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 5, __ccgo_ts+1448)
+						v22 = v
+						goto _23
+					_23:
+						old = v22
+						goto _21
+					_21:
+						// __asm__ __volatile__ (
+						//
+						//	"sc.w %0, %1"
+						//	: "=r"(r), "=ZC"(*p)
+						//	: "0"(v) : "memory");
+						X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 16, __ccgo_ts+1448)
+						v19 = r
+						goto _20
+					_20:
+						if !!(v19 != 0) {
+							break
+						}
+					}
+					// __asm__ __volatile__ ("dbar 0" : : : "memory");
+					X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1448)
+					_ = old
+					goto _24
+				_24:
+				}
 			}
 			/* If pthread_create has not yet been called,
 			 * implementation-internal signals might not
@@ -133409,41 +133250,34 @@ func X__libc_sigaction(tls *TLS, sig int32, sa uintptr, old uintptr) (r1 int32) 
 				_unmask_done = int32(1)
 			}
 			if !((*Tsigaction)(unsafe.Pointer(sa)).Fsa_flags&Int32FromInt32(SA_RESTART) != 0) {
-				// __asm__ __volatile__(
-				//
-				//	"mov %1, %0 ; lock ; orl $0,(%%rsp)"
-				//	: "=m"(*p) : "r"(x) : "memory" );
-				X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 88, __ccgo_ts+1475)
+				// __asm__ __volatile__ ("dbar 0" : : : "memory");
+				X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1448)
+				AtomicStorePInt32(uintptr(unsafe.Pointer(&X__eintr_valid_flag)), int32(1))
+				// __asm__ __volatile__ ("dbar 0" : : : "memory");
+				X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1448)
 			}
 		}
-		(*(*Tk_sigaction)(unsafe.Pointer(bp + 8))).Fhandler = *(*uintptr)(unsafe.Pointer(sa))
-		(*(*Tk_sigaction)(unsafe.Pointer(bp + 8))).Fflags = uint64((*Tsigaction)(unsafe.Pointer(sa)).Fsa_flags)
-		(*(*Tk_sigaction)(unsafe.Pointer(bp + 8))).Fflags |= uint64(SA_RESTORER)
-		if (*Tsigaction)(unsafe.Pointer(sa)).Fsa_flags&int32(SA_SIGINFO) != 0 {
-			v3 = __ccgo_fp(X__restore_rt)
-		} else {
-			v3 = __ccgo_fp(X__restore_rt)
-		}
-		(*(*Tk_sigaction)(unsafe.Pointer(bp + 8))).Frestorer = v3
-		Xmemcpy(tls, bp+8+24, sa+8, uint64(Int32FromInt32(_NSIG)/Int32FromInt32(8)))
+		(*(*Tk_sigaction)(unsafe.Pointer(bp + 16))).Fhandler = *(*uintptr)(unsafe.Pointer(sa))
+		(*(*Tk_sigaction)(unsafe.Pointer(bp + 16))).Fflags = uint64((*Tsigaction)(unsafe.Pointer(sa)).Fsa_flags)
+		Xmemcpy(tls, bp+16+16, sa+8, uint64(Int32FromInt32(_NSIG)/Int32FromInt32(8)))
 	}
 	if sa != 0 {
-		v4 = bp + 8
+		v25 = bp + 16
 	} else {
-		v4 = uintptr(0)
+		v25 = uintptr(0)
 	}
-	if old != 0 {
-		v5 = bp + 40
+	if old1 != 0 {
+		v26 = bp + 48
 	} else {
-		v5 = uintptr(0)
+		v26 = uintptr(0)
 	}
-	r = int32(X__syscall4(tls, int64(SYS_rt_sigaction), int64(sig), int64(v4), int64(v5), int64(Int32FromInt32(_NSIG)/Int32FromInt32(8))))
-	if old != 0 && !(r != 0) {
-		*(*uintptr)(unsafe.Pointer(old)) = (*(*Tk_sigaction)(unsafe.Pointer(bp + 40))).Fhandler
-		(*Tsigaction)(unsafe.Pointer(old)).Fsa_flags = int32((*(*Tk_sigaction)(unsafe.Pointer(bp + 40))).Fflags)
-		Xmemcpy(tls, old+8, bp+40+24, uint64(Int32FromInt32(_NSIG)/Int32FromInt32(8)))
+	r1 = int32(X__syscall4(tls, int64(SYS_rt_sigaction), int64(sig), int64(v25), int64(v26), int64(Int32FromInt32(_NSIG)/Int32FromInt32(8))))
+	if old1 != 0 && !(r1 != 0) {
+		*(*uintptr)(unsafe.Pointer(old1)) = (*(*Tk_sigaction)(unsafe.Pointer(bp + 48))).Fhandler
+		(*Tsigaction)(unsafe.Pointer(old1)).Fsa_flags = int32((*(*Tk_sigaction)(unsafe.Pointer(bp + 48))).Fflags)
+		Xmemcpy(tls, old1+8, bp+48+16, uint64(Int32FromInt32(_NSIG)/Int32FromInt32(8)))
 	}
-	return int32(X__syscall_ret(tls, uint64(r)))
+	return int32(X__syscall_ret(tls, uint64(r1)))
 }
 
 func X__sigaction(tls *TLS, sig int32, sa uintptr, old uintptr) (r1 int32) {
@@ -133518,15 +133352,6 @@ func Xsigaltstack(tls *TLS, ss uintptr, old uintptr) (r int32) {
 }
 
 const SST_SIZE = 8
-
-type Tucontext_t7 = struct {
-	Fuc_flags     uint64
-	Fuc_link      uintptr
-	Fuc_stack     Tstack_t
-	Fuc_mcontext  Tmcontext_t1
-	Fuc_sigmask   Tsigset_t
-	F__fpregs_mem [64]uint64
-}
 
 func Xsigandset(tls *TLS, dest uintptr, left uintptr, right uintptr) (r1 int32) {
 	if __ccgo_strace {
@@ -133727,7 +133552,7 @@ func X__libc_current_sigrtmin(tls *TLS) (r int32) {
 	return int32(35)
 }
 
-type t__jmp_buf = [8]uint64
+type t__jmp_buf = [23]uint64
 
 type Tjmp_buf = [1]t__jmp_buf_tag
 
@@ -133746,7 +133571,7 @@ func X__sigsetjmp_tail(tls *TLS, jb uintptr, ret int32) (r int32) {
 	}
 	var p, v1, v2 uintptr
 	_, _, _ = p, v1, v2
-	p = jb + 72
+	p = jb + 192
 	if ret != 0 {
 		v1 = p
 	} else {
@@ -133862,7 +133687,7 @@ func Xchmod(tls *TLS, path uintptr, mode Tmode_t) (r int32) {
 		trc("tls=%v path=%v mode=%v, (%v:)", tls, path, mode, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return int32(X__syscall_ret(tls, uint64(X__syscall2(tls, int64(SYS_chmod), int64(path), int64(mode)))))
+	return int32(X__syscall_ret(tls, uint64(X__syscall3(tls, int64(SYS_fchmodat), int64(-Int32FromInt32(100)), int64(path), int64(mode)))))
 }
 
 func Xfchmod(tls *TLS, fd int32, mode Tmode_t) (r int32) {
@@ -133876,11 +133701,11 @@ func Xfchmod(tls *TLS, fd int32, mode Tmode_t) (r int32) {
 	var _ /* buf at bp+0 */ [27]int8
 	_ = ret
 	ret = int32(X__syscall2(tls, int64(SYS_fchmod), int64(fd), int64(mode)))
-	if ret != -int32(EBADF) || X__syscall2(tls, int64(SYS_fcntl), int64(fd), int64(Int32FromInt32(F_GETFD))) < 0 {
+	if ret != -int32(EBADF) || X__syscall2(tls, int64(__NR3264_fcntl), int64(fd), int64(Int32FromInt32(F_GETFD))) < 0 {
 		return int32(X__syscall_ret(tls, uint64(ret)))
 	}
 	X__procfdname(tls, bp, uint32(fd))
-	return int32(X__syscall_ret(tls, uint64(X__syscall2(tls, int64(SYS_chmod), int64(bp), int64(mode)))))
+	return int32(X__syscall_ret(tls, uint64(X__syscall3(tls, int64(SYS_fchmodat), int64(-Int32FromInt32(100)), int64(bp), int64(mode)))))
 }
 
 func Xfchmodat(tls *TLS, fd int32, path uintptr, mode Tmode_t, flag int32) (r int32) {
@@ -133888,10 +133713,10 @@ func Xfchmodat(tls *TLS, fd int32, path uintptr, mode Tmode_t, flag int32) (r in
 		trc("tls=%v fd=%v path=%v mode=%v flag=%v, (%v:)", tls, fd, path, mode, flag, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	bp := tls.Alloc(176)
-	defer tls.Free(176)
+	bp := tls.Alloc(160)
+	defer tls.Free(160)
 	var fd2, ret, v1 int32
-	var _ /* proc at bp+144 */ [27]int8
+	var _ /* proc at bp+128 */ [27]int8
 	var _ /* st at bp+0 */ Tstat
 	_, _, _ = fd2, ret, v1
 	if !(flag != 0) {
@@ -133918,13 +133743,13 @@ func Xfchmodat(tls *TLS, fd int32, path uintptr, mode Tmode_t, flag int32) (r in
 		}
 		return int32(X__syscall_ret(tls, uint64(fd2)))
 	}
-	X__procfdname(tls, bp+144, uint32(fd2))
-	ret = Xstat(tls, bp+144, bp)
+	X__procfdname(tls, bp+128, uint32(fd2))
+	ret = Xstat(tls, bp+128, bp)
 	if !(ret != 0) {
 		if (*(*Tstat)(unsafe.Pointer(bp))).Fst_mode&uint32(S_IFMT) == uint32(S_IFLNK) {
 			ret = int32(X__syscall_ret(tls, uint64(-Int32FromInt32(EOPNOTSUPP))))
 		} else {
-			ret = int32(X__syscall_ret(tls, uint64(X__syscall3(tls, int64(SYS_fchmodat), int64(-Int32FromInt32(100)), int64(bp+144), int64(mode)))))
+			ret = int32(X__syscall_ret(tls, uint64(X__syscall3(tls, int64(SYS_fchmodat), int64(-Int32FromInt32(100)), int64(bp+128), int64(mode)))))
 		}
 	}
 	X__syscall1(tls, int64(SYS_close), int64(fd2))
@@ -134004,13 +133829,13 @@ func _fstatat_statx(tls *TLS, fd int32, path uintptr, st uintptr, flag int32) (r
 	*(*Tstat)(unsafe.Pointer(st)) = Tstat{
 		Fst_dev:     uint64((*(*Tstatx1)(unsafe.Pointer(bp))).Fstx_dev_major)&Uint64FromUint64(0xfffff000)<<Int32FromInt32(32) | uint64((*(*Tstatx1)(unsafe.Pointer(bp))).Fstx_dev_major)&Uint64FromUint64(0x00000fff)<<Int32FromInt32(8) | uint64((*(*Tstatx1)(unsafe.Pointer(bp))).Fstx_dev_minor)&Uint64FromUint64(0xffffff00)<<Int32FromInt32(12) | uint64((*(*Tstatx1)(unsafe.Pointer(bp))).Fstx_dev_minor)&Uint64FromUint64(0x000000ff),
 		Fst_ino:     (*(*Tstatx1)(unsafe.Pointer(bp))).Fstx_ino,
-		Fst_nlink:   uint64((*(*Tstatx1)(unsafe.Pointer(bp))).Fstx_nlink),
 		Fst_mode:    uint32((*(*Tstatx1)(unsafe.Pointer(bp))).Fstx_mode),
+		Fst_nlink:   (*(*Tstatx1)(unsafe.Pointer(bp))).Fstx_nlink,
 		Fst_uid:     (*(*Tstatx1)(unsafe.Pointer(bp))).Fstx_uid,
 		Fst_gid:     (*(*Tstatx1)(unsafe.Pointer(bp))).Fstx_gid,
 		Fst_rdev:    uint64((*(*Tstatx1)(unsafe.Pointer(bp))).Fstx_rdev_major)&Uint64FromUint64(0xfffff000)<<Int32FromInt32(32) | uint64((*(*Tstatx1)(unsafe.Pointer(bp))).Fstx_rdev_major)&Uint64FromUint64(0x00000fff)<<Int32FromInt32(8) | uint64((*(*Tstatx1)(unsafe.Pointer(bp))).Fstx_rdev_minor)&Uint64FromUint64(0xffffff00)<<Int32FromInt32(12) | uint64((*(*Tstatx1)(unsafe.Pointer(bp))).Fstx_rdev_minor)&Uint64FromUint64(0x000000ff),
 		Fst_size:    int64((*(*Tstatx1)(unsafe.Pointer(bp))).Fstx_size),
-		Fst_blksize: int64((*(*Tstatx1)(unsafe.Pointer(bp))).Fstx_blksize),
+		Fst_blksize: int32((*(*Tstatx1)(unsafe.Pointer(bp))).Fstx_blksize),
 		Fst_blocks:  int64((*(*Tstatx1)(unsafe.Pointer(bp))).Fstx_blocks),
 		Fst_atim: Ttimespec{
 			Ftv_sec:  (*(*Tstatx1)(unsafe.Pointer(bp))).Fstx_atime.Ftv_sec,
@@ -134028,84 +133853,6 @@ func _fstatat_statx(tls *TLS, fd int32, path uintptr, st uintptr, flag int32) (r
 	return 0
 }
 
-type Tkstat = struct {
-	Fst_dev        Tdev_t
-	Fst_ino        Tino_t
-	Fst_nlink      Tnlink_t
-	Fst_mode       Tmode_t
-	Fst_uid        Tuid_t
-	Fst_gid        Tgid_t
-	F__pad0        uint32
-	Fst_rdev       Tdev_t
-	Fst_size       Toff_t
-	Fst_blksize    Tblksize_t
-	Fst_blocks     Tblkcnt_t
-	Fst_atime_sec  int64
-	Fst_atime_nsec int64
-	Fst_mtime_sec  int64
-	Fst_mtime_nsec int64
-	Fst_ctime_sec  int64
-	Fst_ctime_nsec int64
-	F__unused      [3]int64
-}
-
-func _fstatat_kstat(tls *TLS, fd int32, path uintptr, st uintptr, flag int32) (r int32) {
-	bp := tls.Alloc(176)
-	defer tls.Free(176)
-	var ret int32
-	var _ /* buf at bp+144 */ [27]int8
-	var _ /* kst at bp+0 */ Tkstat
-	_ = ret
-	if flag == int32(AT_EMPTY_PATH) && fd >= 0 && !(*(*int8)(unsafe.Pointer(path)) != 0) {
-		ret = int32(X__syscall2(tls, int64(SYS_fstat), int64(fd), int64(bp)))
-		if ret == -int32(EBADF) && X__syscall2(tls, int64(SYS_fcntl), int64(fd), int64(Int32FromInt32(F_GETFD))) >= 0 {
-			ret = int32(X__syscall4(tls, int64(SYS_newfstatat), int64(fd), int64(path), int64(bp), int64(flag)))
-			if ret == -int32(EINVAL) {
-				X__procfdname(tls, bp+144, uint32(fd))
-				ret = int32(X__syscall2(tls, int64(SYS_stat), int64(bp+144), int64(bp)))
-			}
-		}
-	} else {
-		if (fd == -int32(100) || int32(*(*int8)(unsafe.Pointer(path))) == int32('/')) && flag == int32(AT_SYMLINK_NOFOLLOW) {
-			ret = int32(X__syscall2(tls, int64(SYS_lstat), int64(path), int64(bp)))
-		} else {
-			if (fd == -int32(100) || int32(*(*int8)(unsafe.Pointer(path))) == int32('/')) && !(flag != 0) {
-				ret = int32(X__syscall2(tls, int64(SYS_stat), int64(path), int64(bp)))
-			} else {
-				ret = int32(X__syscall4(tls, int64(SYS_newfstatat), int64(fd), int64(path), int64(bp), int64(flag)))
-			}
-		}
-	}
-	if ret != 0 {
-		return ret
-	}
-	*(*Tstat)(unsafe.Pointer(st)) = Tstat{
-		Fst_dev:     (*(*Tkstat)(unsafe.Pointer(bp))).Fst_dev,
-		Fst_ino:     (*(*Tkstat)(unsafe.Pointer(bp))).Fst_ino,
-		Fst_nlink:   (*(*Tkstat)(unsafe.Pointer(bp))).Fst_nlink,
-		Fst_mode:    (*(*Tkstat)(unsafe.Pointer(bp))).Fst_mode,
-		Fst_uid:     (*(*Tkstat)(unsafe.Pointer(bp))).Fst_uid,
-		Fst_gid:     (*(*Tkstat)(unsafe.Pointer(bp))).Fst_gid,
-		Fst_rdev:    (*(*Tkstat)(unsafe.Pointer(bp))).Fst_rdev,
-		Fst_size:    (*(*Tkstat)(unsafe.Pointer(bp))).Fst_size,
-		Fst_blksize: (*(*Tkstat)(unsafe.Pointer(bp))).Fst_blksize,
-		Fst_blocks:  (*(*Tkstat)(unsafe.Pointer(bp))).Fst_blocks,
-		Fst_atim: Ttimespec{
-			Ftv_sec:  (*(*Tkstat)(unsafe.Pointer(bp))).Fst_atime_sec,
-			Ftv_nsec: (*(*Tkstat)(unsafe.Pointer(bp))).Fst_atime_nsec,
-		},
-		Fst_mtim: Ttimespec{
-			Ftv_sec:  (*(*Tkstat)(unsafe.Pointer(bp))).Fst_mtime_sec,
-			Ftv_nsec: (*(*Tkstat)(unsafe.Pointer(bp))).Fst_mtime_nsec,
-		},
-		Fst_ctim: Ttimespec{
-			Ftv_sec:  (*(*Tkstat)(unsafe.Pointer(bp))).Fst_ctime_sec,
-			Ftv_nsec: (*(*Tkstat)(unsafe.Pointer(bp))).Fst_ctime_nsec,
-		},
-	}
-	return 0
-}
-
 func X__fstatat(tls *TLS, fd int32, path uintptr, st uintptr, flag int32) (r int32) {
 	if __ccgo_strace {
 		trc("tls=%v fd=%v path=%v st=%v flag=%v, (%v:)", tls, fd, path, st, flag, origin(2))
@@ -134113,13 +133860,7 @@ func X__fstatat(tls *TLS, fd int32, path uintptr, st uintptr, flag int32) (r int
 	}
 	var ret int32
 	_ = ret
-	if uint64(8) < uint64(8) {
-		ret = _fstatat_statx(tls, fd, path, st, flag)
-		if ret != -int32(ENOSYS) {
-			return int32(X__syscall_ret(tls, uint64(ret)))
-		}
-	}
-	ret = _fstatat_kstat(tls, fd, path, st, flag)
+	ret = _fstatat_statx(tls, fd, path, st, flag)
 	return int32(X__syscall_ret(tls, uint64(ret)))
 }
 
@@ -134203,7 +133944,7 @@ func Xmkdir(tls *TLS, path uintptr, mode Tmode_t) (r int32) {
 		trc("tls=%v path=%v mode=%v, (%v:)", tls, path, mode, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return int32(X__syscall_ret(tls, uint64(X__syscall2(tls, int64(SYS_mkdir), int64(path), int64(mode)))))
+	return int32(X__syscall_ret(tls, uint64(X__syscall3(tls, int64(SYS_mkdirat), int64(-Int32FromInt32(100)), int64(path), int64(mode)))))
 }
 
 func Xmkdirat(tls *TLS, fd int32, path uintptr, mode Tmode_t) (r int32) {
@@ -134235,7 +133976,7 @@ func Xmknod(tls *TLS, path uintptr, mode Tmode_t, dev Tdev_t) (r int32) {
 		trc("tls=%v path=%v mode=%v dev=%v, (%v:)", tls, path, mode, dev, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return int32(X__syscall_ret(tls, uint64(X__syscall3(tls, int64(SYS_mknod), int64(path), int64(mode), int64(dev)))))
+	return int32(X__syscall_ret(tls, uint64(X__syscall4(tls, int64(SYS_mknodat), int64(-Int32FromInt32(100)), int64(path), int64(mode), int64(dev)))))
 }
 
 func Xmknodat(tls *TLS, fd int32, path uintptr, mode Tmode_t, dev Tdev_t) (r int32) {
@@ -134256,7 +133997,7 @@ func Xstat(tls *TLS, path uintptr, buf uintptr) (r int32) {
 
 func ___statfs(tls *TLS, path uintptr, buf uintptr) (r int32) {
 	*(*Tstatfs)(unsafe.Pointer(buf)) = Tstatfs{}
-	return int32(X__syscall_ret(tls, uint64(X__syscall2(tls, int64(SYS_statfs), int64(path), int64(buf)))))
+	return int32(X__syscall_ret(tls, uint64(X__syscall2(tls, int64(__NR3264_statfs), int64(path), int64(buf)))))
 }
 
 func Xfstatfs(tls *TLS, fd int32, buf uintptr) (r int32) {
@@ -134265,7 +134006,7 @@ func Xfstatfs(tls *TLS, fd int32, buf uintptr) (r int32) {
 		defer func() { trc("-> %v", r) }()
 	}
 	*(*Tstatfs)(unsafe.Pointer(buf)) = Tstatfs{}
-	return int32(X__syscall_ret(tls, uint64(X__syscall2(tls, int64(SYS_fstatfs), int64(fd), int64(buf)))))
+	return int32(X__syscall_ret(tls, uint64(X__syscall2(tls, int64(__NR3264_fstatfs), int64(fd), int64(buf)))))
 }
 
 func _fixup(tls *TLS, out uintptr, in uintptr) {
@@ -134334,45 +134075,12 @@ func Xutimensat(tls *TLS, fd int32, path uintptr, times uintptr, flags int32) (r
 		trc("tls=%v fd=%v path=%v times=%v flags=%v, (%v:)", tls, fd, path, times, flags, origin(2))
 		defer func() { trc("-> %v", r1) }()
 	}
-	bp := tls.Alloc(32)
-	defer tls.Free(32)
-	var i, r int32
-	var tv uintptr
-	var _ /* tmp at bp+0 */ [4]int64
-	_, _, _ = i, r, tv
+	var r int32
+	_ = r
 	if times != 0 && (*(*Ttimespec)(unsafe.Pointer(times))).Ftv_nsec == int64(UTIME_NOW) && (*(*Ttimespec)(unsafe.Pointer(times + 1*16))).Ftv_nsec == int64(UTIME_NOW) {
 		times = uintptr(0)
 	}
 	r = int32(X__syscall4(tls, int64(SYS_utimensat), int64(fd), int64(path), int64(times), int64(flags)))
-	if r != -int32(ENOSYS) || flags != 0 {
-		return int32(X__syscall_ret(tls, uint64(r)))
-	}
-	tv = uintptr(0)
-	if times != 0 {
-		tv = bp
-		i = 0
-		for {
-			if !(i < int32(2)) {
-				break
-			}
-			if uint64((*(*Ttimespec)(unsafe.Pointer(times + uintptr(i)*16))).Ftv_nsec) >= uint64(1000000000) {
-				if (*(*Ttimespec)(unsafe.Pointer(times + uintptr(i)*16))).Ftv_nsec == int64(UTIME_NOW) || (*(*Ttimespec)(unsafe.Pointer(times + uintptr(i)*16))).Ftv_nsec == int64(UTIME_OMIT) {
-					return int32(X__syscall_ret(tls, uint64(-Int32FromInt32(ENOSYS))))
-				}
-				return int32(X__syscall_ret(tls, uint64(-Int32FromInt32(EINVAL))))
-			}
-			(*(*[4]int64)(unsafe.Pointer(bp)))[int32(2)*i+0] = (*(*Ttimespec)(unsafe.Pointer(times + uintptr(i)*16))).Ftv_sec
-			(*(*[4]int64)(unsafe.Pointer(bp)))[int32(2)*i+int32(1)] = (*(*Ttimespec)(unsafe.Pointer(times + uintptr(i)*16))).Ftv_nsec / int64(1000)
-			goto _1
-		_1:
-			i++
-		}
-	}
-	r = int32(X__syscall3(tls, int64(SYS_futimesat), int64(fd), int64(path), int64(tv)))
-	if r != -int32(ENOSYS) || fd != -int32(100) {
-		return int32(X__syscall_ret(tls, uint64(r)))
-	}
-	r = int32(X__syscall2(tls, int64(SYS_utimes), int64(path), int64(tv)))
 	return int32(X__syscall_ret(tls, uint64(r)))
 }
 
@@ -134396,7 +134104,7 @@ func X__fdopen(tls *TLS, fd int32, mode uintptr) (r uintptr) {
 	var _ /* wsz at bp+0 */ Twinsize
 	_, _, _, _ = f, flags, v1, v2
 	/* Check for valid initial mode character */
-	if !(Xstrchr(tls, __ccgo_ts+1492, int32(*(*int8)(unsafe.Pointer(mode)))) != 0) {
+	if !(Xstrchr(tls, __ccgo_ts+1465, int32(*(*int8)(unsafe.Pointer(mode)))) != 0) {
 		*(*int32)(unsafe.Pointer(X__errno_location(tls))) = int32(EINVAL)
 		return uintptr(0)
 	}
@@ -134419,13 +134127,13 @@ func X__fdopen(tls *TLS, fd int32, mode uintptr) (r uintptr) {
 	}
 	/* Apply close-on-exec flag */
 	if Xstrchr(tls, mode, int32('e')) != 0 {
-		X__syscall3(tls, int64(SYS_fcntl), int64(fd), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
+		X__syscall3(tls, int64(__NR3264_fcntl), int64(fd), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
 	}
 	/* Set append mode on fd if opened for append */
 	if int32(*(*int8)(unsafe.Pointer(mode))) == int32('a') {
-		flags = int32(X__syscall2(tls, int64(SYS_fcntl), int64(fd), int64(Int32FromInt32(F_GETFL))))
+		flags = int32(X__syscall2(tls, int64(__NR3264_fcntl), int64(fd), int64(Int32FromInt32(F_GETFL))))
 		if !(flags&Int32FromInt32(O_APPEND) != 0) {
-			X__syscall3(tls, int64(SYS_fcntl), int64(fd), int64(Int32FromInt32(F_SETFL)), int64(flags|Int32FromInt32(O_APPEND)))
+			X__syscall3(tls, int64(__NR3264_fcntl), int64(fd), int64(Int32FromInt32(F_SETFL)), int64(flags|Int32FromInt32(O_APPEND)))
 		}
 		*(*uint32)(unsafe.Pointer(f)) |= uint32(F_APP)
 	}
@@ -134497,11 +134205,11 @@ func X__fopen_rb_ca(tls *TLS, filename uintptr, f uintptr, buf uintptr, len1 Tsi
 		defer func() { trc("-> %v", r) }()
 	}
 	Xmemset(tls, f, 0, uint64(232))
-	(*TFILE)(unsafe.Pointer(f)).Ffd = int32(X__syscall_ret(tls, uint64(X__syscall2(tls, int64(SYS_open), int64(filename), int64(Int32FromInt32(O_RDONLY)|Int32FromInt32(O_CLOEXEC)|Int32FromInt32(O_LARGEFILE))))))
+	(*TFILE)(unsafe.Pointer(f)).Ffd = int32(X__syscall_ret(tls, uint64(X__syscall3(tls, int64(SYS_openat), int64(-Int32FromInt32(100)), int64(filename), int64(Int32FromInt32(O_RDONLY)|Int32FromInt32(O_CLOEXEC)|Int32FromInt32(O_LARGEFILE))))))
 	if (*TFILE)(unsafe.Pointer(f)).Ffd < 0 {
 		return uintptr(0)
 	}
-	X__syscall3(tls, int64(SYS_fcntl), int64((*TFILE)(unsafe.Pointer(f)).Ffd), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
+	X__syscall3(tls, int64(__NR3264_fcntl), int64((*TFILE)(unsafe.Pointer(f)).Ffd), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
 	(*TFILE)(unsafe.Pointer(f)).Fflags = uint32(Int32FromInt32(F_NOWR) | Int32FromInt32(F_PERM))
 	(*TFILE)(unsafe.Pointer(f)).Fbuf = buf + uintptr(UNGET)
 	(*TFILE)(unsafe.Pointer(f)).Fbuf_size = len1 - uint64(UNGET)
@@ -134624,7 +134332,7 @@ func X__stdio_read(tls *TLS, f uintptr, buf uintptr, len1 Tsize_t) (r Tsize_t) {
 	if (*(*[2]Tiovec)(unsafe.Pointer(bp)))[0].Fiov_len != 0 {
 		v1 = X__syscall_ret(tls, uint64(X__syscall3(tls, int64(SYS_readv), int64((*TFILE)(unsafe.Pointer(f)).Ffd), int64(bp), int64(Int32FromInt32(2)))))
 	} else {
-		v1 = X__syscall_ret(tls, uint64(X__syscall3(tls, SYS_read, int64((*TFILE)(unsafe.Pointer(f)).Ffd), int64((*(*[2]Tiovec)(unsafe.Pointer(bp)))[int32(1)].Fiov_base), int64((*(*[2]Tiovec)(unsafe.Pointer(bp)))[int32(1)].Fiov_len))))
+		v1 = X__syscall_ret(tls, uint64(X__syscall3(tls, int64(SYS_read), int64((*TFILE)(unsafe.Pointer(f)).Ffd), int64((*(*[2]Tiovec)(unsafe.Pointer(bp)))[int32(1)].Fiov_base), int64((*(*[2]Tiovec)(unsafe.Pointer(bp)))[int32(1)].Fiov_len))))
 	}
 	cnt = v1
 	if cnt <= 0 {
@@ -135239,51 +134947,104 @@ func Xfflush_unlocked(tls *TLS, f uintptr) (r int32) {
 	return Xfflush(tls, f)
 }
 
-func _locking_getc(tls *TLS, f uintptr) (r int32) {
-	var c, v1, v11, v12, v2, v4, v7, v8 int32
-	var v10, v5, v6 uintptr
-	_, _, _, _, _, _, _, _, _, _, _ = c, v1, v10, v11, v12, v2, v4, v5, v6, v7, v8
-	v1 = 0
-	// __asm__ __volatile__ (
-	//
-	//	"lock ; cmpxchg %3, %1"
-	//	: "=a"(t), "=m"(*p) : "a"(t), "r"(s) : "memory" );
-	X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 4, __ccgo_ts+1496)
-	v2 = v1
-	goto _3
-_3:
-	if v2 != 0 {
+func _locking_getc(tls *TLS, f uintptr) (r1 int32) {
+	var c, old, old1, r, v, v10, v14, v17, v19, v2, v22, v23, v6, v8 int32
+	var v1, v11, v12, v13, v21 uintptr
+	var v4 bool
+	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = c, old, old1, r, v, v1, v10, v11, v12, v13, v14, v17, v19, v2, v21, v22, v23, v4, v6, v8
+	v1 = f + 140
+	// __asm__ __volatile__ ("dbar 0" : : : "memory");
+	X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1469)
+	for {
+		// __asm__ __volatile__ (
+		//
+		//	"ll.w %0, %1"
+		//	: "=r"(v)
+		//	: "ZC"(*p));
+		X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 5, __ccgo_ts+1469)
+		v6 = v
+		goto _7
+	_7:
+		old = v6
+		goto _5
+	_5:
+		if v4 = old == 0; v4 {
+			// __asm__ __volatile__ (
+			//
+			//	"sc.w %0, %1"
+			//	: "=r"(r), "=ZC"(*p)
+			//	: "0"(v) : "memory");
+			X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 16, __ccgo_ts+1469)
+			v2 = r
+			goto _3
+		_3:
+		}
+		if !(v4 && !(v2 != 0)) {
+			break
+		}
+	}
+	// __asm__ __volatile__ ("dbar 0" : : : "memory");
+	X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1469)
+	v8 = old
+	goto _9
+_9:
+	if v8 != 0 {
 		___lockfile(tls, f)
 	}
 	if (*TFILE)(unsafe.Pointer(f)).Frpos != (*TFILE)(unsafe.Pointer(f)).Frend {
-		v6 = f + 8
-		v5 = *(*uintptr)(unsafe.Pointer(v6))
-		*(*uintptr)(unsafe.Pointer(v6))++
-		v4 = int32(*(*uint8)(unsafe.Pointer(v5)))
+		v12 = f + 8
+		v11 = *(*uintptr)(unsafe.Pointer(v12))
+		*(*uintptr)(unsafe.Pointer(v12))++
+		v10 = int32(*(*uint8)(unsafe.Pointer(v11)))
 	} else {
-		v4 = X__uflow(tls, f)
+		v10 = X__uflow(tls, f)
 	}
-	c = v4
-	v7 = 0
-	// __asm__ __volatile__(
-	//
-	//	"xchg %0, %1"
-	//	: "=r"(v), "=m"(*p) : "0"(v) : "memory" );
-	X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 22, __ccgo_ts+1496)
-	v8 = v7
-	goto _9
-_9:
-	if v8&int32(MAYBE_WAITERS) != 0 {
-		v10 = f + 140
-		v11 = int32(1)
-		v12 = int32(1)
-		if v12 != 0 {
-			v12 = int32(FUTEX_PRIVATE)
+	c = v10
+	v13 = f + 140
+	// __asm__ __volatile__ ("dbar 0" : : : "memory");
+	X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1469)
+	for {
+		// __asm__ __volatile__ (
+		//
+		//	"ll.w %0, %1"
+		//	: "=r"(v)
+		//	: "ZC"(*p));
+		X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 5, __ccgo_ts+1469)
+		v17 = v
+		goto _18
+	_18:
+		old1 = v17
+		goto _16
+	_16:
+		// __asm__ __volatile__ (
+		//
+		//	"sc.w %0, %1"
+		//	: "=r"(r), "=ZC"(*p)
+		//	: "0"(v) : "memory");
+		X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 16, __ccgo_ts+1469)
+		v14 = r
+		goto _15
+	_15:
+		if !!(v14 != 0) {
+			break
 		}
-		if v11 < Int32FromInt32(0) {
-			v11 = int32(INT_MAX)
+	}
+	// __asm__ __volatile__ ("dbar 0" : : : "memory");
+	X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1469)
+	v19 = old1
+	goto _20
+_20:
+	if v19&int32(MAYBE_WAITERS) != 0 {
+		v21 = f + 140
+		v22 = int32(1)
+		v23 = int32(1)
+		if v23 != 0 {
+			v23 = int32(FUTEX_PRIVATE)
 		}
-		_ = X__syscall3(tls, int64(SYS_futex), int64(v10), int64(Int32FromInt32(FUTEX_WAKE)|v12), int64(v11)) != int64(-int32(ENOSYS)) || X__syscall3(tls, int64(SYS_futex), int64(v10), int64(Int32FromInt32(FUTEX_WAKE)), int64(v11)) != 0
+		if v22 < Int32FromInt32(0) {
+			v22 = int32(INT_MAX)
+		}
+		_ = X__syscall3(tls, int64(SYS_futex), int64(v21), int64(Int32FromInt32(FUTEX_WAKE)|v23), int64(v22)) != int64(-int32(ENOSYS)) || X__syscall3(tls, int64(SYS_futex), int64(v21), int64(Int32FromInt32(FUTEX_WAKE)), int64(v22)) != 0
 	}
 	return c
 }
@@ -135542,7 +135303,7 @@ func X__fgetwc_unlocked(tls *TLS, f uintptr) (r Twint_t) {
 	var ploc uintptr
 	var wc Twchar_t
 	_, _, _ = loc, ploc, wc
-	ploc = ___get_tp(tls) + 168
+	ploc = ___get_tp(tls) + 152
 	loc = *(*Tlocale_t)(unsafe.Pointer(ploc))
 	if (*TFILE)(unsafe.Pointer(f)).Fmode <= 0 {
 		Xfwide(tls, f, int32(1))
@@ -135812,7 +135573,7 @@ func Xfmemopen(tls *TLS, buf uintptr, size Tsize_t, mode uintptr) (r uintptr) {
 	var v3 Tsize_t
 	_, _, _, _, _ = f, plus, v1, v2, v3
 	plus = BoolInt32(!!(Xstrchr(tls, mode, int32('+')) != 0))
-	if !(Xstrchr(tls, __ccgo_ts+1492, int32(*(*int8)(unsafe.Pointer(mode)))) != 0) {
+	if !(Xstrchr(tls, __ccgo_ts+1465, int32(*(*int8)(unsafe.Pointer(mode)))) != 0) {
 		*(*int32)(unsafe.Pointer(X__errno_location(tls))) = int32(EINVAL)
 		return uintptr(0)
 	}
@@ -135882,18 +135643,18 @@ func Xfopen(tls *TLS, filename uintptr, mode uintptr) (r uintptr) {
 	var fd, flags int32
 	_, _, _ = f, fd, flags
 	/* Check for valid initial mode character */
-	if !(Xstrchr(tls, __ccgo_ts+1492, int32(*(*int8)(unsafe.Pointer(mode)))) != 0) {
+	if !(Xstrchr(tls, __ccgo_ts+1465, int32(*(*int8)(unsafe.Pointer(mode)))) != 0) {
 		*(*int32)(unsafe.Pointer(X__errno_location(tls))) = int32(EINVAL)
 		return uintptr(0)
 	}
 	/* Compute the flags to pass to open() */
 	flags = X__fmodeflags(tls, mode)
-	fd = int32(X__syscall_ret(tls, uint64(X__syscall3(tls, int64(SYS_open), int64(filename), int64(flags|Int32FromInt32(O_LARGEFILE)), int64(Int32FromInt32(0666))))))
+	fd = int32(X__syscall_ret(tls, uint64(X__syscall4(tls, int64(SYS_openat), int64(-Int32FromInt32(100)), int64(filename), int64(flags|Int32FromInt32(O_LARGEFILE)), int64(Int32FromInt32(0666))))))
 	if fd < 0 {
 		return uintptr(0)
 	}
 	if flags&int32(O_CLOEXEC) != 0 {
-		X__syscall3(tls, int64(SYS_fcntl), int64(fd), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
+		X__syscall3(tls, int64(__NR3264_fcntl), int64(fd), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
 	}
 	f = X__fdopen(tls, fd, mode)
 	if f != 0 {
@@ -136036,7 +135797,7 @@ func Xfopencookie(tls *TLS, cookie uintptr, mode uintptr, iofuncs Tcookie_io_fun
 	var v2 int32
 	_, _, _ = f, v1, v2
 	/* Check for valid initial mode character */
-	if !(Xstrchr(tls, __ccgo_ts+1492, int32(*(*int8)(unsafe.Pointer(mode)))) != 0) {
+	if !(Xstrchr(tls, __ccgo_ts+1465, int32(*(*int8)(unsafe.Pointer(mode)))) != 0) {
 		*(*int32)(unsafe.Pointer(X__errno_location(tls))) = int32(EINVAL)
 		return uintptr(0)
 	}
@@ -136088,54 +135849,107 @@ func Xfprintf(tls *TLS, f uintptr, fmt uintptr, va uintptr) (r int32) {
 	return ret
 }
 
-func _locking_putc(tls *TLS, c int32, f uintptr) (r int32) {
-	var v1, v12, v13, v2, v4, v8, v9 int32
-	var v11, v6, v7 uintptr
-	var v5 uint8
-	_, _, _, _, _, _, _, _, _, _, _ = v1, v11, v12, v13, v2, v4, v5, v6, v7, v8, v9
-	v1 = 0
-	// __asm__ __volatile__ (
-	//
-	//	"lock ; cmpxchg %3, %1"
-	//	: "=a"(t), "=m"(*p) : "a"(t), "r"(s) : "memory" );
-	X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 4, __ccgo_ts+1509)
-	v2 = v1
-	goto _3
-_3:
-	if v2 != 0 {
+func _locking_putc(tls *TLS, c int32, f uintptr) (r1 int32) {
+	var old, old1, r, v, v10, v15, v18, v2, v20, v23, v24, v6, v8 int32
+	var v1, v12, v13, v14, v22 uintptr
+	var v11 uint8
+	var v4 bool
+	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = old, old1, r, v, v1, v10, v11, v12, v13, v14, v15, v18, v2, v20, v22, v23, v24, v4, v6, v8
+	v1 = f + 140
+	// __asm__ __volatile__ ("dbar 0" : : : "memory");
+	X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1482)
+	for {
+		// __asm__ __volatile__ (
+		//
+		//	"ll.w %0, %1"
+		//	: "=r"(v)
+		//	: "ZC"(*p));
+		X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 5, __ccgo_ts+1482)
+		v6 = v
+		goto _7
+	_7:
+		old = v6
+		goto _5
+	_5:
+		if v4 = old == 0; v4 {
+			// __asm__ __volatile__ (
+			//
+			//	"sc.w %0, %1"
+			//	: "=r"(r), "=ZC"(*p)
+			//	: "0"(v) : "memory");
+			X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 16, __ccgo_ts+1482)
+			v2 = r
+			goto _3
+		_3:
+		}
+		if !(v4 && !(v2 != 0)) {
+			break
+		}
+	}
+	// __asm__ __volatile__ ("dbar 0" : : : "memory");
+	X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1482)
+	v8 = old
+	goto _9
+_9:
+	if v8 != 0 {
 		___lockfile(tls, f)
 	}
 	if int32(uint8(c)) != (*TFILE)(unsafe.Pointer(f)).Flbf && (*TFILE)(unsafe.Pointer(f)).Fwpos != (*TFILE)(unsafe.Pointer(f)).Fwend {
-		v5 = uint8(c)
-		v7 = f + 40
-		v6 = *(*uintptr)(unsafe.Pointer(v7))
-		*(*uintptr)(unsafe.Pointer(v7))++
-		*(*uint8)(unsafe.Pointer(v6)) = v5
-		v4 = int32(v5)
+		v11 = uint8(c)
+		v13 = f + 40
+		v12 = *(*uintptr)(unsafe.Pointer(v13))
+		*(*uintptr)(unsafe.Pointer(v13))++
+		*(*uint8)(unsafe.Pointer(v12)) = v11
+		v10 = int32(v11)
 	} else {
-		v4 = X__overflow(tls, f, int32(uint8(c)))
+		v10 = X__overflow(tls, f, int32(uint8(c)))
 	}
-	c = v4
-	v8 = 0
-	// __asm__ __volatile__(
-	//
-	//	"xchg %0, %1"
-	//	: "=r"(v), "=m"(*p) : "0"(v) : "memory" );
-	X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 22, __ccgo_ts+1509)
-	v9 = v8
-	goto _10
-_10:
-	if v9&int32(MAYBE_WAITERS) != 0 {
-		v11 = f + 140
-		v12 = int32(1)
-		v13 = int32(1)
-		if v13 != 0 {
-			v13 = int32(FUTEX_PRIVATE)
+	c = v10
+	v14 = f + 140
+	// __asm__ __volatile__ ("dbar 0" : : : "memory");
+	X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1482)
+	for {
+		// __asm__ __volatile__ (
+		//
+		//	"ll.w %0, %1"
+		//	: "=r"(v)
+		//	: "ZC"(*p));
+		X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 5, __ccgo_ts+1482)
+		v18 = v
+		goto _19
+	_19:
+		old1 = v18
+		goto _17
+	_17:
+		// __asm__ __volatile__ (
+		//
+		//	"sc.w %0, %1"
+		//	: "=r"(r), "=ZC"(*p)
+		//	: "0"(v) : "memory");
+		X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 16, __ccgo_ts+1482)
+		v15 = r
+		goto _16
+	_16:
+		if !!(v15 != 0) {
+			break
 		}
-		if v12 < Int32FromInt32(0) {
-			v12 = int32(INT_MAX)
+	}
+	// __asm__ __volatile__ ("dbar 0" : : : "memory");
+	X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1482)
+	v20 = old1
+	goto _21
+_21:
+	if v20&int32(MAYBE_WAITERS) != 0 {
+		v22 = f + 140
+		v23 = int32(1)
+		v24 = int32(1)
+		if v24 != 0 {
+			v24 = int32(FUTEX_PRIVATE)
 		}
-		_ = X__syscall3(tls, int64(SYS_futex), int64(v11), int64(Int32FromInt32(FUTEX_WAKE)|v13), int64(v12)) != int64(-int32(ENOSYS)) || X__syscall3(tls, int64(SYS_futex), int64(v11), int64(Int32FromInt32(FUTEX_WAKE)), int64(v12)) != 0
+		if v23 < Int32FromInt32(0) {
+			v23 = int32(INT_MAX)
+		}
+		_ = X__syscall3(tls, int64(SYS_futex), int64(v22), int64(Int32FromInt32(FUTEX_WAKE)|v24), int64(v23)) != int64(-int32(ENOSYS)) || X__syscall3(tls, int64(SYS_futex), int64(v22), int64(Int32FromInt32(FUTEX_WAKE)), int64(v23)) != 0
 	}
 	return c
 }
@@ -136204,7 +136018,7 @@ func X__fputwc_unlocked(tls *TLS, c Twchar_t, f uintptr) (r Twint_t) {
 	var v2 uint8
 	var _ /* mbc at bp+0 */ [4]int8
 	_, _, _, _, _, _, _ = l, loc, ploc, v1, v2, v3, v4
-	ploc = ___get_tp(tls) + 168
+	ploc = ___get_tp(tls) + 152
 	loc = *(*Tlocale_t)(unsafe.Pointer(ploc))
 	if (*TFILE)(unsafe.Pointer(f)).Fmode <= 0 {
 		Xfwide(tls, f, int32(1))
@@ -136296,7 +136110,7 @@ func Xfputws(tls *TLS, _ws uintptr, f uintptr) (r int32) {
 	var _ /* buf at bp+8 */ [1024]uint8
 	_, _, _, _, _, _, _ = __need_unlock, l, loc, ploc, v1, v2, v3
 	l = uint64(0)
-	ploc = ___get_tp(tls) + 168
+	ploc = ___get_tp(tls) + 152
 	loc = *(*Tlocale_t)(unsafe.Pointer(ploc))
 	if AtomicLoadPInt32(f+140) >= 0 {
 		v1 = ___lockfile(tls, f)
@@ -136435,10 +136249,10 @@ func Xfreopen(tls *TLS, filename uintptr, mode uintptr, f uintptr) (r uintptr) {
 	Xfflush(tls, f)
 	if !(filename != 0) {
 		if fl&int32(O_CLOEXEC) != 0 {
-			X__syscall3(tls, int64(SYS_fcntl), int64((*TFILE)(unsafe.Pointer(f)).Ffd), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
+			X__syscall3(tls, int64(__NR3264_fcntl), int64((*TFILE)(unsafe.Pointer(f)).Ffd), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
 		}
 		fl &= ^(Int32FromInt32(O_CREAT) | Int32FromInt32(O_EXCL) | Int32FromInt32(O_CLOEXEC))
-		if X__syscall_ret(tls, uint64(X__syscall3(tls, int64(SYS_fcntl), int64((*TFILE)(unsafe.Pointer(f)).Ffd), int64(Int32FromInt32(F_SETFL)), int64(fl)))) < 0 {
+		if X__syscall_ret(tls, uint64(X__syscall3(tls, int64(__NR3264_fcntl), int64((*TFILE)(unsafe.Pointer(f)).Ffd), int64(Int32FromInt32(F_SETFL)), int64(fl)))) < 0 {
 			goto fail
 		}
 	} else {
@@ -136672,11 +136486,11 @@ func X__do_orphaned_stdio_locks(tls *TLS) {
 		if !(f != 0) {
 			break
 		}
-		// __asm__ __volatile__(
-		//
-		//	"mov %1, %0 ; lock ; orl $0,(%%rsp)"
-		//	: "=m"(*p) : "r"(x) : "memory" );
-		X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 88, __ccgo_ts+1522)
+		// __asm__ __volatile__ ("dbar 0" : : : "memory");
+		X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1495)
+		AtomicStorePInt32(f+140, int32(0x40000000))
+		// __asm__ __volatile__ ("dbar 0" : : : "memory");
+		X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1495)
 		goto _1
 	_1:
 		f = (*TFILE)(unsafe.Pointer(f)).Fnext_locked
@@ -136712,15 +136526,16 @@ func X__register_locked_file(tls *TLS, f uintptr, self Tpthread_t) {
 	(*t__pthread)(unsafe.Pointer(self)).Fstdio_locks = f
 }
 
-func Xftrylockfile(tls *TLS, f uintptr) (r int32) {
+func Xftrylockfile(tls *TLS, f uintptr) (r1 int32) {
 	if __ccgo_strace {
 		trc("tls=%v f=%v, (%v:)", tls, f, origin(2))
-		defer func() { trc("-> %v", r) }()
+		defer func() { trc("-> %v", r1) }()
 	}
-	var owner, tid, v1, v2, v3 int32
+	var old, owner, r, tid, v, v1, v3, v7, v9 int32
 	var self Tpthread_t
-	var v5 bool
-	_, _, _, _, _, _, _ = owner, self, tid, v1, v2, v3, v5
+	var v11, v5 bool
+	var v2 uintptr
+	_, _, _, _, _, _, _, _, _, _, _, _, _ = old, owner, r, self, tid, v, v1, v11, v2, v3, v5, v7, v9
 	self = ___get_tp(tls)
 	tid = (*t__pthread)(unsafe.Pointer(self)).Ftid
 	owner = AtomicLoadPInt32(f + 140)
@@ -136736,18 +136551,45 @@ func Xftrylockfile(tls *TLS, f uintptr) (r int32) {
 		owner = v1
 		AtomicStorePInt32(f+140, v1)
 	}
-	if v5 = owner != 0; !v5 {
-		v2 = 0
-		// __asm__ __volatile__ (
-		//
-		//	"lock ; cmpxchg %3, %1"
-		//	: "=a"(t), "=m"(*p) : "a"(t), "r"(s) : "memory" );
-		X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 4, __ccgo_ts+1548)
-		v3 = v2
-		goto _4
-	_4:
+	if v11 = owner != 0; !v11 {
+		v2 = f + 140
+		// __asm__ __volatile__ ("dbar 0" : : : "memory");
+		X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1521)
+		for {
+			// __asm__ __volatile__ (
+			//
+			//	"ll.w %0, %1"
+			//	: "=r"(v)
+			//	: "ZC"(*p));
+			X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 5, __ccgo_ts+1521)
+			v7 = v
+			goto _8
+		_8:
+			old = v7
+			goto _6
+		_6:
+			if v5 = old == 0; v5 {
+				// __asm__ __volatile__ (
+				//
+				//	"sc.w %0, %1"
+				//	: "=r"(r), "=ZC"(*p)
+				//	: "0"(v) : "memory");
+				X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 16, __ccgo_ts+1521)
+				v3 = r
+				goto _4
+			_4:
+			}
+			if !(v5 && !(v3 != 0)) {
+				break
+			}
+		}
+		// __asm__ __volatile__ ("dbar 0" : : : "memory");
+		X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1521)
+		v9 = old
+		goto _10
+	_10:
 	}
-	if v5 || v3 != 0 {
+	if v11 || v9 != 0 {
 		return -int32(1)
 	}
 	X__register_locked_file(tls, f, self)
@@ -136925,51 +136767,104 @@ func X__isoc99_fwscanf(tls *TLS, f uintptr, fmt uintptr, va uintptr) (r int32) {
 	return Xfwscanf(tls, f, fmt, va)
 }
 
-func _locking_getc1(tls *TLS, f uintptr) (r int32) {
-	var c, v1, v11, v12, v2, v4, v7, v8 int32
-	var v10, v5, v6 uintptr
-	_, _, _, _, _, _, _, _, _, _, _ = c, v1, v10, v11, v12, v2, v4, v5, v6, v7, v8
-	v1 = 0
-	// __asm__ __volatile__ (
-	//
-	//	"lock ; cmpxchg %3, %1"
-	//	: "=a"(t), "=m"(*p) : "a"(t), "r"(s) : "memory" );
-	X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 4, __ccgo_ts+1496)
-	v2 = v1
-	goto _3
-_3:
-	if v2 != 0 {
+func _locking_getc1(tls *TLS, f uintptr) (r1 int32) {
+	var c, old, old1, r, v, v10, v14, v17, v19, v2, v22, v23, v6, v8 int32
+	var v1, v11, v12, v13, v21 uintptr
+	var v4 bool
+	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = c, old, old1, r, v, v1, v10, v11, v12, v13, v14, v17, v19, v2, v21, v22, v23, v4, v6, v8
+	v1 = f + 140
+	// __asm__ __volatile__ ("dbar 0" : : : "memory");
+	X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1469)
+	for {
+		// __asm__ __volatile__ (
+		//
+		//	"ll.w %0, %1"
+		//	: "=r"(v)
+		//	: "ZC"(*p));
+		X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 5, __ccgo_ts+1469)
+		v6 = v
+		goto _7
+	_7:
+		old = v6
+		goto _5
+	_5:
+		if v4 = old == 0; v4 {
+			// __asm__ __volatile__ (
+			//
+			//	"sc.w %0, %1"
+			//	: "=r"(r), "=ZC"(*p)
+			//	: "0"(v) : "memory");
+			X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 16, __ccgo_ts+1469)
+			v2 = r
+			goto _3
+		_3:
+		}
+		if !(v4 && !(v2 != 0)) {
+			break
+		}
+	}
+	// __asm__ __volatile__ ("dbar 0" : : : "memory");
+	X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1469)
+	v8 = old
+	goto _9
+_9:
+	if v8 != 0 {
 		___lockfile(tls, f)
 	}
 	if (*TFILE)(unsafe.Pointer(f)).Frpos != (*TFILE)(unsafe.Pointer(f)).Frend {
-		v6 = f + 8
-		v5 = *(*uintptr)(unsafe.Pointer(v6))
-		*(*uintptr)(unsafe.Pointer(v6))++
-		v4 = int32(*(*uint8)(unsafe.Pointer(v5)))
+		v12 = f + 8
+		v11 = *(*uintptr)(unsafe.Pointer(v12))
+		*(*uintptr)(unsafe.Pointer(v12))++
+		v10 = int32(*(*uint8)(unsafe.Pointer(v11)))
 	} else {
-		v4 = X__uflow(tls, f)
+		v10 = X__uflow(tls, f)
 	}
-	c = v4
-	v7 = 0
-	// __asm__ __volatile__(
-	//
-	//	"xchg %0, %1"
-	//	: "=r"(v), "=m"(*p) : "0"(v) : "memory" );
-	X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 22, __ccgo_ts+1496)
-	v8 = v7
-	goto _9
-_9:
-	if v8&int32(MAYBE_WAITERS) != 0 {
-		v10 = f + 140
-		v11 = int32(1)
-		v12 = int32(1)
-		if v12 != 0 {
-			v12 = int32(FUTEX_PRIVATE)
+	c = v10
+	v13 = f + 140
+	// __asm__ __volatile__ ("dbar 0" : : : "memory");
+	X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1469)
+	for {
+		// __asm__ __volatile__ (
+		//
+		//	"ll.w %0, %1"
+		//	: "=r"(v)
+		//	: "ZC"(*p));
+		X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 5, __ccgo_ts+1469)
+		v17 = v
+		goto _18
+	_18:
+		old1 = v17
+		goto _16
+	_16:
+		// __asm__ __volatile__ (
+		//
+		//	"sc.w %0, %1"
+		//	: "=r"(r), "=ZC"(*p)
+		//	: "0"(v) : "memory");
+		X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 16, __ccgo_ts+1469)
+		v14 = r
+		goto _15
+	_15:
+		if !!(v14 != 0) {
+			break
 		}
-		if v11 < Int32FromInt32(0) {
-			v11 = int32(INT_MAX)
+	}
+	// __asm__ __volatile__ ("dbar 0" : : : "memory");
+	X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1469)
+	v19 = old1
+	goto _20
+_20:
+	if v19&int32(MAYBE_WAITERS) != 0 {
+		v21 = f + 140
+		v22 = int32(1)
+		v23 = int32(1)
+		if v23 != 0 {
+			v23 = int32(FUTEX_PRIVATE)
 		}
-		_ = X__syscall3(tls, int64(SYS_futex), int64(v10), int64(Int32FromInt32(FUTEX_WAKE)|v12), int64(v11)) != int64(-int32(ENOSYS)) || X__syscall3(tls, int64(SYS_futex), int64(v10), int64(Int32FromInt32(FUTEX_WAKE)), int64(v11)) != 0
+		if v22 < Int32FromInt32(0) {
+			v22 = int32(INT_MAX)
+		}
+		_ = X__syscall3(tls, int64(SYS_futex), int64(v21), int64(Int32FromInt32(FUTEX_WAKE)|v23), int64(v22)) != int64(-int32(ENOSYS)) || X__syscall3(tls, int64(SYS_futex), int64(v21), int64(Int32FromInt32(FUTEX_WAKE)), int64(v22)) != 0
 	}
 	return c
 }
@@ -137045,51 +136940,104 @@ func Xfgetc_unlocked(tls *TLS, f uintptr) (r int32) {
 	return Xgetc_unlocked(tls, f)
 }
 
-func _locking_getc2(tls *TLS, f uintptr) (r int32) {
-	var c, v1, v11, v12, v2, v4, v7, v8 int32
-	var v10, v5, v6 uintptr
-	_, _, _, _, _, _, _, _, _, _, _ = c, v1, v10, v11, v12, v2, v4, v5, v6, v7, v8
-	v1 = 0
-	// __asm__ __volatile__ (
-	//
-	//	"lock ; cmpxchg %3, %1"
-	//	: "=a"(t), "=m"(*p) : "a"(t), "r"(s) : "memory" );
-	X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 4, __ccgo_ts+1496)
-	v2 = v1
-	goto _3
-_3:
-	if v2 != 0 {
+func _locking_getc2(tls *TLS, f uintptr) (r1 int32) {
+	var c, old, old1, r, v, v10, v14, v17, v19, v2, v22, v23, v6, v8 int32
+	var v1, v11, v12, v13, v21 uintptr
+	var v4 bool
+	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = c, old, old1, r, v, v1, v10, v11, v12, v13, v14, v17, v19, v2, v21, v22, v23, v4, v6, v8
+	v1 = f + 140
+	// __asm__ __volatile__ ("dbar 0" : : : "memory");
+	X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1469)
+	for {
+		// __asm__ __volatile__ (
+		//
+		//	"ll.w %0, %1"
+		//	: "=r"(v)
+		//	: "ZC"(*p));
+		X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 5, __ccgo_ts+1469)
+		v6 = v
+		goto _7
+	_7:
+		old = v6
+		goto _5
+	_5:
+		if v4 = old == 0; v4 {
+			// __asm__ __volatile__ (
+			//
+			//	"sc.w %0, %1"
+			//	: "=r"(r), "=ZC"(*p)
+			//	: "0"(v) : "memory");
+			X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 16, __ccgo_ts+1469)
+			v2 = r
+			goto _3
+		_3:
+		}
+		if !(v4 && !(v2 != 0)) {
+			break
+		}
+	}
+	// __asm__ __volatile__ ("dbar 0" : : : "memory");
+	X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1469)
+	v8 = old
+	goto _9
+_9:
+	if v8 != 0 {
 		___lockfile(tls, f)
 	}
 	if (*TFILE)(unsafe.Pointer(f)).Frpos != (*TFILE)(unsafe.Pointer(f)).Frend {
-		v6 = f + 8
-		v5 = *(*uintptr)(unsafe.Pointer(v6))
-		*(*uintptr)(unsafe.Pointer(v6))++
-		v4 = int32(*(*uint8)(unsafe.Pointer(v5)))
+		v12 = f + 8
+		v11 = *(*uintptr)(unsafe.Pointer(v12))
+		*(*uintptr)(unsafe.Pointer(v12))++
+		v10 = int32(*(*uint8)(unsafe.Pointer(v11)))
 	} else {
-		v4 = X__uflow(tls, f)
+		v10 = X__uflow(tls, f)
 	}
-	c = v4
-	v7 = 0
-	// __asm__ __volatile__(
-	//
-	//	"xchg %0, %1"
-	//	: "=r"(v), "=m"(*p) : "0"(v) : "memory" );
-	X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 22, __ccgo_ts+1496)
-	v8 = v7
-	goto _9
-_9:
-	if v8&int32(MAYBE_WAITERS) != 0 {
-		v10 = f + 140
-		v11 = int32(1)
-		v12 = int32(1)
-		if v12 != 0 {
-			v12 = int32(FUTEX_PRIVATE)
+	c = v10
+	v13 = f + 140
+	// __asm__ __volatile__ ("dbar 0" : : : "memory");
+	X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1469)
+	for {
+		// __asm__ __volatile__ (
+		//
+		//	"ll.w %0, %1"
+		//	: "=r"(v)
+		//	: "ZC"(*p));
+		X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 5, __ccgo_ts+1469)
+		v17 = v
+		goto _18
+	_18:
+		old1 = v17
+		goto _16
+	_16:
+		// __asm__ __volatile__ (
+		//
+		//	"sc.w %0, %1"
+		//	: "=r"(r), "=ZC"(*p)
+		//	: "0"(v) : "memory");
+		X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 16, __ccgo_ts+1469)
+		v14 = r
+		goto _15
+	_15:
+		if !!(v14 != 0) {
+			break
 		}
-		if v11 < Int32FromInt32(0) {
-			v11 = int32(INT_MAX)
+	}
+	// __asm__ __volatile__ ("dbar 0" : : : "memory");
+	X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1469)
+	v19 = old1
+	goto _20
+_20:
+	if v19&int32(MAYBE_WAITERS) != 0 {
+		v21 = f + 140
+		v22 = int32(1)
+		v23 = int32(1)
+		if v23 != 0 {
+			v23 = int32(FUTEX_PRIVATE)
 		}
-		_ = X__syscall3(tls, int64(SYS_futex), int64(v10), int64(Int32FromInt32(FUTEX_WAKE)|v12), int64(v11)) != int64(-int32(ENOSYS)) || X__syscall3(tls, int64(SYS_futex), int64(v10), int64(Int32FromInt32(FUTEX_WAKE)), int64(v11)) != 0
+		if v22 < Int32FromInt32(0) {
+			v22 = int32(INT_MAX)
+		}
+		_ = X__syscall3(tls, int64(SYS_futex), int64(v21), int64(Int32FromInt32(FUTEX_WAKE)|v23), int64(v22)) != int64(-int32(ENOSYS)) || X__syscall3(tls, int64(SYS_futex), int64(v21), int64(Int32FromInt32(FUTEX_WAKE)), int64(v22)) != 0
 	}
 	return c
 }
@@ -137746,54 +137694,107 @@ func Xprintf(tls *TLS, fmt uintptr, va uintptr) (r int32) {
 	return ret
 }
 
-func _locking_putc1(tls *TLS, c int32, f uintptr) (r int32) {
-	var v1, v12, v13, v2, v4, v8, v9 int32
-	var v11, v6, v7 uintptr
-	var v5 uint8
-	_, _, _, _, _, _, _, _, _, _, _ = v1, v11, v12, v13, v2, v4, v5, v6, v7, v8, v9
-	v1 = 0
-	// __asm__ __volatile__ (
-	//
-	//	"lock ; cmpxchg %3, %1"
-	//	: "=a"(t), "=m"(*p) : "a"(t), "r"(s) : "memory" );
-	X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 4, __ccgo_ts+1509)
-	v2 = v1
-	goto _3
-_3:
-	if v2 != 0 {
+func _locking_putc1(tls *TLS, c int32, f uintptr) (r1 int32) {
+	var old, old1, r, v, v10, v15, v18, v2, v20, v23, v24, v6, v8 int32
+	var v1, v12, v13, v14, v22 uintptr
+	var v11 uint8
+	var v4 bool
+	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = old, old1, r, v, v1, v10, v11, v12, v13, v14, v15, v18, v2, v20, v22, v23, v24, v4, v6, v8
+	v1 = f + 140
+	// __asm__ __volatile__ ("dbar 0" : : : "memory");
+	X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1482)
+	for {
+		// __asm__ __volatile__ (
+		//
+		//	"ll.w %0, %1"
+		//	: "=r"(v)
+		//	: "ZC"(*p));
+		X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 5, __ccgo_ts+1482)
+		v6 = v
+		goto _7
+	_7:
+		old = v6
+		goto _5
+	_5:
+		if v4 = old == 0; v4 {
+			// __asm__ __volatile__ (
+			//
+			//	"sc.w %0, %1"
+			//	: "=r"(r), "=ZC"(*p)
+			//	: "0"(v) : "memory");
+			X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 16, __ccgo_ts+1482)
+			v2 = r
+			goto _3
+		_3:
+		}
+		if !(v4 && !(v2 != 0)) {
+			break
+		}
+	}
+	// __asm__ __volatile__ ("dbar 0" : : : "memory");
+	X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1482)
+	v8 = old
+	goto _9
+_9:
+	if v8 != 0 {
 		___lockfile(tls, f)
 	}
 	if int32(uint8(c)) != (*TFILE)(unsafe.Pointer(f)).Flbf && (*TFILE)(unsafe.Pointer(f)).Fwpos != (*TFILE)(unsafe.Pointer(f)).Fwend {
-		v5 = uint8(c)
-		v7 = f + 40
-		v6 = *(*uintptr)(unsafe.Pointer(v7))
-		*(*uintptr)(unsafe.Pointer(v7))++
-		*(*uint8)(unsafe.Pointer(v6)) = v5
-		v4 = int32(v5)
+		v11 = uint8(c)
+		v13 = f + 40
+		v12 = *(*uintptr)(unsafe.Pointer(v13))
+		*(*uintptr)(unsafe.Pointer(v13))++
+		*(*uint8)(unsafe.Pointer(v12)) = v11
+		v10 = int32(v11)
 	} else {
-		v4 = X__overflow(tls, f, int32(uint8(c)))
+		v10 = X__overflow(tls, f, int32(uint8(c)))
 	}
-	c = v4
-	v8 = 0
-	// __asm__ __volatile__(
-	//
-	//	"xchg %0, %1"
-	//	: "=r"(v), "=m"(*p) : "0"(v) : "memory" );
-	X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 22, __ccgo_ts+1509)
-	v9 = v8
-	goto _10
-_10:
-	if v9&int32(MAYBE_WAITERS) != 0 {
-		v11 = f + 140
-		v12 = int32(1)
-		v13 = int32(1)
-		if v13 != 0 {
-			v13 = int32(FUTEX_PRIVATE)
+	c = v10
+	v14 = f + 140
+	// __asm__ __volatile__ ("dbar 0" : : : "memory");
+	X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1482)
+	for {
+		// __asm__ __volatile__ (
+		//
+		//	"ll.w %0, %1"
+		//	: "=r"(v)
+		//	: "ZC"(*p));
+		X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 5, __ccgo_ts+1482)
+		v18 = v
+		goto _19
+	_19:
+		old1 = v18
+		goto _17
+	_17:
+		// __asm__ __volatile__ (
+		//
+		//	"sc.w %0, %1"
+		//	: "=r"(r), "=ZC"(*p)
+		//	: "0"(v) : "memory");
+		X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 16, __ccgo_ts+1482)
+		v15 = r
+		goto _16
+	_16:
+		if !!(v15 != 0) {
+			break
 		}
-		if v12 < Int32FromInt32(0) {
-			v12 = int32(INT_MAX)
+	}
+	// __asm__ __volatile__ ("dbar 0" : : : "memory");
+	X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1482)
+	v20 = old1
+	goto _21
+_21:
+	if v20&int32(MAYBE_WAITERS) != 0 {
+		v22 = f + 140
+		v23 = int32(1)
+		v24 = int32(1)
+		if v24 != 0 {
+			v24 = int32(FUTEX_PRIVATE)
 		}
-		_ = X__syscall3(tls, int64(SYS_futex), int64(v11), int64(Int32FromInt32(FUTEX_WAKE)|v13), int64(v12)) != int64(-int32(ENOSYS)) || X__syscall3(tls, int64(SYS_futex), int64(v11), int64(Int32FromInt32(FUTEX_WAKE)), int64(v12)) != 0
+		if v23 < Int32FromInt32(0) {
+			v23 = int32(INT_MAX)
+		}
+		_ = X__syscall3(tls, int64(SYS_futex), int64(v22), int64(Int32FromInt32(FUTEX_WAKE)|v24), int64(v23)) != int64(-int32(ENOSYS)) || X__syscall3(tls, int64(SYS_futex), int64(v22), int64(Int32FromInt32(FUTEX_WAKE)), int64(v23)) != 0
 	}
 	return c
 }
@@ -137876,54 +137877,107 @@ func Xfputc_unlocked(tls *TLS, c int32, f uintptr) (r int32) {
 	return Xputc_unlocked(tls, c, f)
 }
 
-func _locking_putc2(tls *TLS, c int32, f uintptr) (r int32) {
-	var v1, v12, v13, v2, v4, v8, v9 int32
-	var v11, v6, v7 uintptr
-	var v5 uint8
-	_, _, _, _, _, _, _, _, _, _, _ = v1, v11, v12, v13, v2, v4, v5, v6, v7, v8, v9
-	v1 = 0
-	// __asm__ __volatile__ (
-	//
-	//	"lock ; cmpxchg %3, %1"
-	//	: "=a"(t), "=m"(*p) : "a"(t), "r"(s) : "memory" );
-	X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 4, __ccgo_ts+1509)
-	v2 = v1
-	goto _3
-_3:
-	if v2 != 0 {
+func _locking_putc2(tls *TLS, c int32, f uintptr) (r1 int32) {
+	var old, old1, r, v, v10, v15, v18, v2, v20, v23, v24, v6, v8 int32
+	var v1, v12, v13, v14, v22 uintptr
+	var v11 uint8
+	var v4 bool
+	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = old, old1, r, v, v1, v10, v11, v12, v13, v14, v15, v18, v2, v20, v22, v23, v24, v4, v6, v8
+	v1 = f + 140
+	// __asm__ __volatile__ ("dbar 0" : : : "memory");
+	X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1482)
+	for {
+		// __asm__ __volatile__ (
+		//
+		//	"ll.w %0, %1"
+		//	: "=r"(v)
+		//	: "ZC"(*p));
+		X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 5, __ccgo_ts+1482)
+		v6 = v
+		goto _7
+	_7:
+		old = v6
+		goto _5
+	_5:
+		if v4 = old == 0; v4 {
+			// __asm__ __volatile__ (
+			//
+			//	"sc.w %0, %1"
+			//	: "=r"(r), "=ZC"(*p)
+			//	: "0"(v) : "memory");
+			X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 16, __ccgo_ts+1482)
+			v2 = r
+			goto _3
+		_3:
+		}
+		if !(v4 && !(v2 != 0)) {
+			break
+		}
+	}
+	// __asm__ __volatile__ ("dbar 0" : : : "memory");
+	X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1482)
+	v8 = old
+	goto _9
+_9:
+	if v8 != 0 {
 		___lockfile(tls, f)
 	}
 	if int32(uint8(c)) != (*TFILE)(unsafe.Pointer(f)).Flbf && (*TFILE)(unsafe.Pointer(f)).Fwpos != (*TFILE)(unsafe.Pointer(f)).Fwend {
-		v5 = uint8(c)
-		v7 = f + 40
-		v6 = *(*uintptr)(unsafe.Pointer(v7))
-		*(*uintptr)(unsafe.Pointer(v7))++
-		*(*uint8)(unsafe.Pointer(v6)) = v5
-		v4 = int32(v5)
+		v11 = uint8(c)
+		v13 = f + 40
+		v12 = *(*uintptr)(unsafe.Pointer(v13))
+		*(*uintptr)(unsafe.Pointer(v13))++
+		*(*uint8)(unsafe.Pointer(v12)) = v11
+		v10 = int32(v11)
 	} else {
-		v4 = X__overflow(tls, f, int32(uint8(c)))
+		v10 = X__overflow(tls, f, int32(uint8(c)))
 	}
-	c = v4
-	v8 = 0
-	// __asm__ __volatile__(
-	//
-	//	"xchg %0, %1"
-	//	: "=r"(v), "=m"(*p) : "0"(v) : "memory" );
-	X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 22, __ccgo_ts+1509)
-	v9 = v8
-	goto _10
-_10:
-	if v9&int32(MAYBE_WAITERS) != 0 {
-		v11 = f + 140
-		v12 = int32(1)
-		v13 = int32(1)
-		if v13 != 0 {
-			v13 = int32(FUTEX_PRIVATE)
+	c = v10
+	v14 = f + 140
+	// __asm__ __volatile__ ("dbar 0" : : : "memory");
+	X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1482)
+	for {
+		// __asm__ __volatile__ (
+		//
+		//	"ll.w %0, %1"
+		//	: "=r"(v)
+		//	: "ZC"(*p));
+		X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 5, __ccgo_ts+1482)
+		v18 = v
+		goto _19
+	_19:
+		old1 = v18
+		goto _17
+	_17:
+		// __asm__ __volatile__ (
+		//
+		//	"sc.w %0, %1"
+		//	: "=r"(r), "=ZC"(*p)
+		//	: "0"(v) : "memory");
+		X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 16, __ccgo_ts+1482)
+		v15 = r
+		goto _16
+	_16:
+		if !!(v15 != 0) {
+			break
 		}
-		if v12 < Int32FromInt32(0) {
-			v12 = int32(INT_MAX)
+	}
+	// __asm__ __volatile__ ("dbar 0" : : : "memory");
+	X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1482)
+	v20 = old1
+	goto _21
+_21:
+	if v20&int32(MAYBE_WAITERS) != 0 {
+		v22 = f + 140
+		v23 = int32(1)
+		v24 = int32(1)
+		if v24 != 0 {
+			v24 = int32(FUTEX_PRIVATE)
 		}
-		_ = X__syscall3(tls, int64(SYS_futex), int64(v11), int64(Int32FromInt32(FUTEX_WAKE)|v13), int64(v12)) != int64(-int32(ENOSYS)) || X__syscall3(tls, int64(SYS_futex), int64(v11), int64(Int32FromInt32(FUTEX_WAKE)), int64(v12)) != 0
+		if v23 < Int32FromInt32(0) {
+			v23 = int32(INT_MAX)
+		}
+		_ = X__syscall3(tls, int64(SYS_futex), int64(v22), int64(Int32FromInt32(FUTEX_WAKE)|v24), int64(v23)) != int64(-int32(ENOSYS)) || X__syscall3(tls, int64(SYS_futex), int64(v22), int64(Int32FromInt32(FUTEX_WAKE)), int64(v23)) != 0
 	}
 	return c
 }
@@ -138059,9 +138113,9 @@ func Xremove(tls *TLS, path uintptr) (r1 int32) {
 	}
 	var r int32
 	_ = r
-	r = int32(X__syscall1(tls, int64(SYS_unlink), int64(path)))
+	r = int32(X__syscall3(tls, int64(SYS_unlinkat), int64(-Int32FromInt32(100)), int64(path), int64(Int32FromInt32(0))))
 	if r == -int32(EISDIR) {
-		r = int32(X__syscall1(tls, int64(SYS_rmdir), int64(path)))
+		r = int32(X__syscall3(tls, int64(SYS_unlinkat), int64(-Int32FromInt32(100)), int64(path), int64(Int32FromInt32(AT_REMOVEDIR))))
 	}
 	return int32(X__syscall_ret(tls, uint64(r)))
 }
@@ -138071,7 +138125,7 @@ func Xrename(tls *TLS, old uintptr, new1 uintptr) (r int32) {
 		trc("tls=%v old=%v new1=%v, (%v:)", tls, old, new1, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return int32(X__syscall_ret(tls, uint64(X__syscall2(tls, int64(SYS_rename), int64(old), int64(new1)))))
+	return int32(X__syscall_ret(tls, uint64(X__syscall5(tls, int64(SYS_renameat2), int64(-Int32FromInt32(100)), int64(old), int64(-Int32FromInt32(100)), int64(new1), int64(Int32FromInt32(0))))))
 }
 
 func Xrewind(tls *TLS, f uintptr) {
@@ -138308,10 +138362,10 @@ func Xtempnam(tls *TLS, dir uintptr, pfx uintptr) (r1 uintptr) {
 	var _ /* s at bp+1 */ [4096]int8
 	_, _, _, _, _ = dl, l, pl, r, try
 	if !(dir != 0) {
-		dir = __ccgo_ts + 1561
+		dir = __ccgo_ts + 1534
 	}
 	if !(pfx != 0) {
-		pfx = __ccgo_ts + 1566
+		pfx = __ccgo_ts + 1539
 	}
 	dl = Xstrlen(tls, dir)
 	pl = Xstrlen(tls, pfx)
@@ -138332,7 +138386,7 @@ func Xtempnam(tls *TLS, dir uintptr, pfx uintptr) (r1 uintptr) {
 		}
 		___randname(tls, bp+1+uintptr(l)-uintptr(6))
 		*(*[1]int8)(unsafe.Pointer(bp)) = [1]int8{}
-		r = int32(X__syscall3(tls, int64(SYS_readlink), int64(bp+1), int64(bp), int64(Int32FromInt32(1))))
+		r = int32(X__syscall4(tls, int64(SYS_readlinkat), int64(-Int32FromInt32(100)), int64(bp+1), int64(bp), int64(Int32FromInt32(1))))
 		if r == -int32(ENOENT) {
 			return Xstrdup(tls, bp+1)
 		}
@@ -138361,10 +138415,10 @@ func Xtmpfile(tls *TLS) (r uintptr) {
 			break
 		}
 		___randname(tls, bp+uintptr(13))
-		fd = int32(X__syscall_ret(tls, uint64(X__syscall3(tls, int64(SYS_open), int64(bp), int64(Int32FromInt32(O_RDWR)|Int32FromInt32(O_CREAT)|Int32FromInt32(O_EXCL)|Int32FromInt32(O_LARGEFILE)), int64(Int32FromInt32(0600))))))
+		fd = int32(X__syscall_ret(tls, uint64(X__syscall4(tls, int64(SYS_openat), int64(-Int32FromInt32(100)), int64(bp), int64(Int32FromInt32(O_RDWR)|Int32FromInt32(O_CREAT)|Int32FromInt32(O_EXCL)|Int32FromInt32(O_LARGEFILE)), int64(Int32FromInt32(0600))))))
 		if fd >= 0 {
-			X__syscall1(tls, int64(SYS_unlink), int64(bp))
-			f = X__fdopen(tls, fd, __ccgo_ts+1571)
+			X__syscall3(tls, int64(SYS_unlinkat), int64(-Int32FromInt32(100)), int64(bp), int64(Int32FromInt32(0)))
+			f = X__fdopen(tls, fd, __ccgo_ts+1544)
 			if !(f != 0) {
 				X__syscall1(tls, int64(SYS_close), int64(fd))
 			}
@@ -138396,7 +138450,7 @@ func Xtmpnam(tls *TLS, buf uintptr) (r1 uintptr) {
 		}
 		___randname(tls, bp+1+uintptr(12))
 		*(*[1]int8)(unsafe.Pointer(bp)) = [1]int8{}
-		r = int32(X__syscall3(tls, int64(SYS_readlink), int64(bp+1), int64(bp), int64(Int32FromInt32(1))))
+		r = int32(X__syscall4(tls, int64(SYS_readlinkat), int64(-Int32FromInt32(100)), int64(bp+1), int64(bp), int64(Int32FromInt32(1))))
 		if r == -int32(ENOENT) {
 			if buf != 0 {
 				v2 = buf
@@ -138464,7 +138518,7 @@ func Xungetwc(tls *TLS, c Twint_t, f uintptr) (r Twint_t) {
 	var v3 bool
 	var _ /* mbc at bp+0 */ [4]uint8
 	_, _, _, _, _, _, _, _, _, _ = __need_unlock, l, loc, ploc, v1, v2, v3, v4, v5, p6
-	ploc = ___get_tp(tls) + 168
+	ploc = ___get_tp(tls) + 152
 	loc = *(*Tlocale_t)(unsafe.Pointer(ploc))
 	if AtomicLoadPInt32(f+140) >= 0 {
 		v1 = ___lockfile(tls, f)
@@ -138871,7 +138925,7 @@ func _fmt_fp(tls *TLS, f uintptr, y float64, w int32, p int32, fl int32, t int32
 	var _ /* ebuf0 at bp+538 */ [12]int8
 	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = a, b, carry, carry1, d, e, ebuf, estr, i, j, l, need, pl, prefix, r, re, rm, round, round1, s, s1, s2, s3, s4, sh, sh1, small, x, x1, x2, z, v1, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v20, v21, v22, v24, v25, v27, v28, v3, v31, v32, v36, v37, v38, v39, v40, v41, v42, v43, v44, v45, v46, v48, v49, v5, v51, v52, v54, v55, v56, v57, v58, v6, v7, v8, v9
 	*(*int32)(unsafe.Pointer(bp + 512)) = 0
-	prefix = __ccgo_ts + 1574
+	prefix = __ccgo_ts + 1547
 	ebuf = bp + 538 + uintptr(Uint64FromInt32(3)*Uint64FromInt64(4))
 	pl = int32(1)
 	*(*float64)(unsafe.Pointer(bp)) = y
@@ -138898,16 +138952,16 @@ _2:
 _4:
 	if !(BoolInt32(v3&(-Uint64FromUint64(1)>>Int32FromInt32(1)) < Uint64FromUint64(0x7ff)<<Int32FromInt32(52)) != 0) {
 		if t&int32(32) != 0 {
-			v5 = __ccgo_ts + 1593
+			v5 = __ccgo_ts + 1566
 		} else {
-			v5 = __ccgo_ts + 1597
+			v5 = __ccgo_ts + 1570
 		}
 		s1 = v5
 		if y != y {
 			if t&int32(32) != 0 {
-				v6 = __ccgo_ts + 322
+				v6 = __ccgo_ts + 256
 			} else {
-				v6 = __ccgo_ts + 1601
+				v6 = __ccgo_ts + 1574
 			}
 			s1 = v6
 		}
@@ -139343,7 +139397,7 @@ _4:
 			d += 4
 		}
 		if p != 0 || uint32(fl)&(Uint32FromUint32(1)<<(Int32FromUint8('#')-Int32FromUint8(' '))) != 0 {
-			_out(tls, f, __ccgo_ts+537, uint64(1))
+			_out(tls, f, __ccgo_ts+520, uint64(1))
 		}
 		for {
 			if !(d < z && p > 0) {
@@ -139393,7 +139447,7 @@ _4:
 				s4++
 				_out(tls, f, v56, uint64(1))
 				if p > 0 || uint32(fl)&(Uint32FromUint32(1)<<(Int32FromUint8('#')-Int32FromUint8(' '))) != 0 {
-					_out(tls, f, __ccgo_ts+537, uint64(1))
+					_out(tls, f, __ccgo_ts+520, uint64(1))
 				}
 			}
 			if int64(bp+516+UintptrFromInt32(9))-int64(s4) < int64(p) {
@@ -139631,7 +139685,7 @@ func _printf_core(tls *TLS, f uintptr, fmt uintptr, ap uintptr, nl_arg uintptr, 
 			return -int32(1)
 		}
 		z = bp + 16 + uintptr(24)
-		prefix = __ccgo_ts + 1605
+		prefix = __ccgo_ts + 1578
 		pl = 0
 		t = int32(*(*int8)(unsafe.Pointer(*(*uintptr)(unsafe.Pointer(bp)) + uintptr(-Int32FromInt32(1)))))
 		/* Transform ls,lc -> S,C */
@@ -139790,7 +139844,7 @@ func _printf_core(tls *TLS, f uintptr, fmt uintptr, ap uintptr, nl_arg uintptr, 
 		if *(*uintptr)(unsafe.Pointer(bp + 8)) != 0 {
 			v39 = *(*uintptr)(unsafe.Pointer(bp + 8))
 		} else {
-			v39 = __ccgo_ts + 1615
+			v39 = __ccgo_ts + 1588
 		}
 		a = v39
 	_38:
@@ -140853,7 +140907,7 @@ func _pad4(tls *TLS, f uintptr, n int32, fl int32) {
 	if uint32(fl)&(Uint32FromUint32(1)<<(Int32FromUint8('-')-Int32FromUint8(' '))) != 0 || !(n != 0) || (*TFILE)(unsafe.Pointer(f)).Fflags&uint32(F_ERR) != 0 {
 		return
 	}
-	Xfprintf(tls, f, __ccgo_ts+1622, VaList(bp+8, n, __ccgo_ts))
+	Xfprintf(tls, f, __ccgo_ts+1595, VaList(bp+8, n, __ccgo_ts))
 }
 
 func _getint1(tls *TLS, s uintptr) (r int32) {
@@ -141132,7 +141186,7 @@ func _wprintf_core(tls *TLS, f uintptr, fmt uintptr, ap uintptr, nl_arg uintptr,
 			fallthrough
 		case int32('s'):
 			if !(*(*uintptr)(unsafe.Pointer(bp + 16)) != 0) {
-				*(*uintptr)(unsafe.Pointer(bp + 16)) = __ccgo_ts + 1615
+				*(*uintptr)(unsafe.Pointer(bp + 16)) = __ccgo_ts + 1588
 			}
 			bs = *(*uintptr)(unsafe.Pointer(bp + 16))
 			v12 = Int32FromInt32(0)
@@ -141185,7 +141239,7 @@ func _wprintf_core(tls *TLS, f uintptr, fmt uintptr, ap uintptr, nl_arg uintptr,
 		if xp != 0 && p < 0 {
 			goto overflow
 		}
-		Xsnprintf(tls, bp+24, uint64(16), __ccgo_ts+1626, VaList(bp+56, __ccgo_ts+1646+BoolUintptr(!(fl&(Uint32FromUint32(1)<<(Int32FromUint8('#')-Int32FromUint8(' '))) != 0)), __ccgo_ts+1648+BoolUintptr(!(fl&(Uint32FromUint32(1)<<(Int32FromUint8('+')-Int32FromUint8(' '))) != 0)), __ccgo_ts+1650+BoolUintptr(!(fl&(Uint32FromUint32(1)<<(Int32FromUint8('-')-Int32FromUint8(' '))) != 0)), __ccgo_ts+654+BoolUintptr(!(fl&(Uint32FromUint32(1)<<(Int32FromUint8(' ')-Int32FromUint8(' '))) != 0)), __ccgo_ts+1652+BoolUintptr(!(fl&(Uint32FromUint32(1)<<(Int32FromUint8('0')-Int32FromUint8(' '))) != 0)), int32(_sizeprefix[t|int32(32)-int32('a')]), t))
+		Xsnprintf(tls, bp+24, uint64(16), __ccgo_ts+1599, VaList(bp+56, __ccgo_ts+1619+BoolUintptr(!(fl&(Uint32FromUint32(1)<<(Int32FromUint8('#')-Int32FromUint8(' '))) != 0)), __ccgo_ts+1621+BoolUintptr(!(fl&(Uint32FromUint32(1)<<(Int32FromUint8('+')-Int32FromUint8(' '))) != 0)), __ccgo_ts+1623+BoolUintptr(!(fl&(Uint32FromUint32(1)<<(Int32FromUint8('-')-Int32FromUint8(' '))) != 0)), __ccgo_ts+627+BoolUintptr(!(fl&(Uint32FromUint32(1)<<(Int32FromUint8(' ')-Int32FromUint8(' '))) != 0)), __ccgo_ts+1625+BoolUintptr(!(fl&(Uint32FromUint32(1)<<(Int32FromUint8('0')-Int32FromUint8(' '))) != 0)), int32(_sizeprefix[t|int32(32)-int32('a')]), t))
 		switch t | Int32FromInt32(32) {
 		case int32('a'):
 			fallthrough
@@ -141647,7 +141701,7 @@ func Xvfwscanf(tls *TLS, f uintptr, fmt uintptr, ap Tva_list) (r int32) {
 					width = int32(1)
 				}
 				invert = int32(1)
-				set = __ccgo_ts + 1654
+				set = __ccgo_ts + 1627
 			} else {
 				if t == int32('s') {
 					invert = int32(1)
@@ -141824,7 +141878,7 @@ func Xvfwscanf(tls *TLS, f uintptr, fmt uintptr, ap Tva_list) (r int32) {
 			if width < int32(1) {
 				width = 0
 			}
-			Xsnprintf(tls, bp+8, uint64(22), __ccgo_ts+1658, VaList(bp+40, int32(1)+BoolInt32(!(dest != 0)), __ccgo_ts+1676, width, uintptr(unsafe.Pointer(&_size_pfx))+uintptr(size+int32(2))*3, t))
+			Xsnprintf(tls, bp+8, uint64(22), __ccgo_ts+1631, VaList(bp+40, int32(1)+BoolInt32(!(dest != 0)), __ccgo_ts+1649, width, uintptr(unsafe.Pointer(&_size_pfx))+uintptr(size+int32(2))*3, t))
 			*(*Toff_t)(unsafe.Pointer(bp)) = 0
 			if dest != 0 {
 				v45 = dest
@@ -142479,7 +142533,7 @@ func Xecvt(tls *TLS, x float64, n int32, dp uintptr, sign uintptr) (r uintptr) {
 	if uint32(n)-uint32(1) > uint32(15) {
 		n = int32(15)
 	}
-	Xsprintf(tls, bp, __ccgo_ts+1679, VaList(bp+40, n-int32(1), x))
+	Xsprintf(tls, bp, __ccgo_ts+1652, VaList(bp+40, n-int32(1), x))
 	v1 = BoolInt32(int32((*(*[32]int8)(unsafe.Pointer(bp)))[0]) == Int32FromUint8('-'))
 	*(*int32)(unsafe.Pointer(sign)) = v1
 	i = v1
@@ -142515,12 +142569,12 @@ func Xfcvt(tls *TLS, x float64, n int32, dp uintptr, sign uintptr) (r uintptr) {
 	if uint32(n) > uint32(1400) {
 		n = int32(1400)
 	}
-	Xsprintf(tls, bp, __ccgo_ts+1684, VaList(bp+1512, n, x))
+	Xsprintf(tls, bp, __ccgo_ts+1657, VaList(bp+1512, n, x))
 	i = BoolInt32(int32((*(*[1500]int8)(unsafe.Pointer(bp)))[0]) == int32('-'))
 	if int32((*(*[1500]int8)(unsafe.Pointer(bp)))[i]) == int32('0') {
-		lz = int32(Xstrspn(tls, bp+uintptr(i)+uintptr(2), __ccgo_ts+1652))
+		lz = int32(Xstrspn(tls, bp+uintptr(i)+uintptr(2), __ccgo_ts+1625))
 	} else {
-		lz = -int32(Xstrcspn(tls, bp+uintptr(i), __ccgo_ts+537))
+		lz = -int32(Xstrcspn(tls, bp+uintptr(i), __ccgo_ts+520))
 	}
 	if n <= lz {
 		*(*int32)(unsafe.Pointer(sign)) = i
@@ -142528,7 +142582,7 @@ func Xfcvt(tls *TLS, x float64, n int32, dp uintptr, sign uintptr) (r uintptr) {
 		if uint32(n) > uint32(14) {
 			n = int32(14)
 		}
-		return __ccgo_ts + 1689 + UintptrFromInt32(14) - uintptr(n)
+		return __ccgo_ts + 1662 + UintptrFromInt32(14) - uintptr(n)
 	}
 	return Xecvt(tls, x, n-lz, dp, sign)
 }
@@ -142540,7 +142594,7 @@ func Xgcvt(tls *TLS, x float64, n int32, b uintptr) (r uintptr) {
 	}
 	bp := tls.Alloc(32)
 	defer tls.Free(32)
-	Xsprintf(tls, b, __ccgo_ts+1705, VaList(bp+8, n, x))
+	Xsprintf(tls, b, __ccgo_ts+1678, VaList(bp+8, n, x))
 	return b
 }
 
@@ -142625,15 +142679,24 @@ func Xlldiv(tls *TLS, num int64, den int64) (r Tlldiv_t) {
 type Tcmpfun = uintptr
 
 func _pntz(tls *TLS, p uintptr) (r1 int32) {
-	var r, v1 int32
-	var v2 bool
-	_, _, _ = r, v1, v2
-	r = _a_ctz_l(tls, *(*Tsize_t)(unsafe.Pointer(p))-uint64(1))
-	if v2 = r != 0; !v2 {
-		v1 = int32(Uint64FromInt32(8)*Uint64FromInt64(8) + uint64(_a_ctz_l(tls, *(*Tsize_t)(unsafe.Pointer(p + 1*8)))))
-		r = v1
+	var r, v2, v4, v6 int32
+	var v1, v5 uint64
+	var v8 bool
+	_, _, _, _, _, _, _ = r, v1, v2, v4, v5, v6, v8
+	v1 = *(*Tsize_t)(unsafe.Pointer(p)) - uint64(1)
+	v2 = _a_ctz_64(tls, v1)
+	goto _3
+_3:
+	r = v2
+	if v8 = r != 0; !v8 {
+		v5 = *(*Tsize_t)(unsafe.Pointer(p + 1*8))
+		v6 = _a_ctz_64(tls, v5)
+		goto _7
+	_7:
+		v4 = int32(Uint64FromInt32(8)*Uint64FromInt64(8) + uint64(v6))
+		r = v4
 	}
-	if v2 || uint64(v1) != Uint64FromInt32(8)*Uint64FromInt64(8) {
+	if v8 || uint64(v4) != Uint64FromInt32(8)*Uint64FromInt64(8) {
 		return r
 	}
 	return 0
@@ -143045,7 +143108,7 @@ func _do_read(tls *TLS, f uintptr, buf uintptr, len1 Tsize_t) (r Tsize_t) {
 	_, _, _, _, _ = i, wcs, v2, v3, v4
 	wcs = (*TFILE)(unsafe.Pointer(f)).Fcookie
 	if !(*(*Twchar_t)(unsafe.Pointer(wcs)) != 0) {
-		wcs = __ccgo_ts + 1710
+		wcs = __ccgo_ts + 1683
 	}
 	i = uint64(0)
 	for {
@@ -143148,7 +143211,7 @@ func _do_read1(tls *TLS, f uintptr, buf uintptr, len1 Tsize_t) (r Tsize_t) {
 	_, _, _, _, _ = i, wcs, v2, v3, v4
 	wcs = (*TFILE)(unsafe.Pointer(f)).Fcookie
 	if !(*(*Twchar_t)(unsafe.Pointer(wcs)) != 0) {
-		wcs = __ccgo_ts + 1710
+		wcs = __ccgo_ts + 1683
 	}
 	i = uint64(0)
 	for {
@@ -146358,7 +146421,7 @@ func Xmkdtemp(tls *TLS, template uintptr) (r uintptr) {
 	_, _, _ = l, retries, v1
 	l = Xstrlen(tls, template)
 	retries = int32(100)
-	if l < uint64(6) || Xmemcmp(tls, template+uintptr(l)-uintptr(6), __ccgo_ts+1718, uint64(6)) != 0 {
+	if l < uint64(6) || Xmemcmp(tls, template+uintptr(l)-uintptr(6), __ccgo_ts+1691, uint64(6)) != 0 {
 		*(*int32)(unsafe.Pointer(X__errno_location(tls))) = int32(EINVAL)
 		return uintptr(0)
 	}
@@ -146375,7 +146438,7 @@ func Xmkdtemp(tls *TLS, template uintptr) (r uintptr) {
 			break
 		}
 	}
-	Xmemcpy(tls, template+uintptr(l)-uintptr(6), __ccgo_ts+1718, uint64(6))
+	Xmemcpy(tls, template+uintptr(l)-uintptr(6), __ccgo_ts+1691, uint64(6))
 	return uintptr(0)
 }
 
@@ -146398,7 +146461,7 @@ func X__mkostemps(tls *TLS, template uintptr, len1 int32, flags int32) (r int32)
 	var l Tsize_t
 	_, _, _, _, _ = fd, l, retries, v1, v3
 	l = Xstrlen(tls, template)
-	if l < uint64(6) || uint64(len1) > l-uint64(6) || Xmemcmp(tls, template+uintptr(l)-uintptr(len1)-uintptr(6), __ccgo_ts+1718, uint64(6)) != 0 {
+	if l < uint64(6) || uint64(len1) > l-uint64(6) || Xmemcmp(tls, template+uintptr(l)-uintptr(len1)-uintptr(6), __ccgo_ts+1691, uint64(6)) != 0 {
 		*(*int32)(unsafe.Pointer(X__errno_location(tls))) = int32(EINVAL)
 		return -int32(1)
 	}
@@ -146419,7 +146482,7 @@ func X__mkostemps(tls *TLS, template uintptr, len1 int32, flags int32) (r int32)
 			break
 		}
 	}
-	Xmemcpy(tls, template+uintptr(l)-uintptr(len1)-uintptr(6), __ccgo_ts+1718, uint64(6))
+	Xmemcpy(tls, template+uintptr(l)-uintptr(len1)-uintptr(6), __ccgo_ts+1691, uint64(6))
 	return -int32(1)
 }
 
@@ -146452,15 +146515,15 @@ func Xmktemp(tls *TLS, template uintptr) (r uintptr) {
 		trc("tls=%v template=%v, (%v:)", tls, template, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	bp := tls.Alloc(144)
-	defer tls.Free(144)
+	bp := tls.Alloc(128)
+	defer tls.Free(128)
 	var l Tsize_t
 	var retries, v1 int32
 	var _ /* st at bp+0 */ Tstat
 	_, _, _ = l, retries, v1
 	l = Xstrlen(tls, template)
 	retries = int32(100)
-	if l < uint64(6) || Xmemcmp(tls, template+uintptr(l)-uintptr(6), __ccgo_ts+1718, uint64(6)) != 0 {
+	if l < uint64(6) || Xmemcmp(tls, template+uintptr(l)-uintptr(6), __ccgo_ts+1691, uint64(6)) != 0 {
 		*(*int32)(unsafe.Pointer(X__errno_location(tls))) = int32(EINVAL)
 		*(*int8)(unsafe.Pointer(template)) = 0
 		return template
@@ -146669,14 +146732,14 @@ func X__map_file(tls *TLS, pathname uintptr, size uintptr) (r uintptr) {
 		trc("tls=%v pathname=%v size=%v, (%v:)", tls, pathname, size, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	bp := tls.Alloc(144)
-	defer tls.Free(144)
+	bp := tls.Alloc(128)
+	defer tls.Free(128)
 	var fd int32
 	var map1, v1 uintptr
 	var _ /* st at bp+0 */ Tstat
 	_, _, _ = fd, map1, v1
 	map1 = uintptr(-Int32FromInt32(1))
-	fd = int32(X__syscall_ret(tls, uint64(X__syscall2(tls, int64(SYS_open), int64(pathname), int64(Int32FromInt32(O_RDONLY)|Int32FromInt32(O_CLOEXEC)|Int32FromInt32(O_NONBLOCK)|Int32FromInt32(O_LARGEFILE))))))
+	fd = int32(X__syscall_ret(tls, uint64(X__syscall3(tls, int64(SYS_openat), int64(-Int32FromInt32(100)), int64(pathname), int64(Int32FromInt32(O_RDONLY)|Int32FromInt32(O_CLOEXEC)|Int32FromInt32(O_NONBLOCK)|Int32FromInt32(O_LARGEFILE))))))
 	if fd < 0 {
 		return uintptr(0)
 	}
@@ -147037,9 +147100,9 @@ func _do_tzset(tls *TLS) {
 	_, _, _, _, _, _, _, _, _, _, _, _, _ = i, l, map1, p1, pathname, posix_form, scale, skip, try, v2, v5, v6, v7
 	pathname = bp + 6 + uintptr(24)
 	map1 = uintptr(0)
-	*(*uintptr)(unsafe.Pointer(bp + 288)) = Xgetenv(tls, __ccgo_ts+1725)
+	*(*uintptr)(unsafe.Pointer(bp + 288)) = Xgetenv(tls, __ccgo_ts+1698)
 	if !(*(*uintptr)(unsafe.Pointer(bp + 288)) != 0) {
-		*(*uintptr)(unsafe.Pointer(bp + 288)) = __ccgo_ts + 1728
+		*(*uintptr)(unsafe.Pointer(bp + 288)) = __ccgo_ts + 1701
 	}
 	if !(*(*int8)(unsafe.Pointer(*(*uintptr)(unsafe.Pointer(bp + 288)))) != 0) {
 		*(*uintptr)(unsafe.Pointer(bp + 288)) = uintptr(unsafe.Pointer(&X__utc))
@@ -147087,7 +147150,7 @@ func _do_tzset(tls *TLS) {
 	if int32(*(*int8)(unsafe.Pointer(*(*uintptr)(unsafe.Pointer(bp + 288))))) != int32(':') {
 		*(*uintptr)(unsafe.Pointer(bp + 296)) = *(*uintptr)(unsafe.Pointer(bp + 288))
 		_getname(tls, bp+308, bp+296)
-		if *(*uintptr)(unsafe.Pointer(bp + 296)) != *(*uintptr)(unsafe.Pointer(bp + 288)) && (int32(*(*int8)(unsafe.Pointer(*(*uintptr)(unsafe.Pointer(bp + 296))))) == int32('+') || int32(*(*int8)(unsafe.Pointer(*(*uintptr)(unsafe.Pointer(bp + 296))))) == int32('-') || BoolInt32(uint32(*(*int8)(unsafe.Pointer(*(*uintptr)(unsafe.Pointer(bp + 296)))))-uint32('0') < uint32(10)) != 0 || !(Xstrcmp(tls, bp+308, __ccgo_ts+1743) != 0) || !(Xstrcmp(tls, bp+308, __ccgo_ts+1747) != 0)) {
+		if *(*uintptr)(unsafe.Pointer(bp + 296)) != *(*uintptr)(unsafe.Pointer(bp + 288)) && (int32(*(*int8)(unsafe.Pointer(*(*uintptr)(unsafe.Pointer(bp + 296))))) == int32('+') || int32(*(*int8)(unsafe.Pointer(*(*uintptr)(unsafe.Pointer(bp + 296))))) == int32('-') || BoolInt32(uint32(*(*int8)(unsafe.Pointer(*(*uintptr)(unsafe.Pointer(bp + 296)))))-uint32('0') < uint32(10)) != 0 || !(Xstrcmp(tls, bp+308, __ccgo_ts+1716) != 0) || !(Xstrcmp(tls, bp+308, __ccgo_ts+1720) != 0)) {
 			posix_form = int32(1)
 		}
 	}
@@ -147099,7 +147162,7 @@ func _do_tzset(tls *TLS) {
 			*(*uintptr)(unsafe.Pointer(bp + 288))++
 		}
 		if int32(*(*int8)(unsafe.Pointer(*(*uintptr)(unsafe.Pointer(bp + 288))))) == int32('/') || int32(*(*int8)(unsafe.Pointer(*(*uintptr)(unsafe.Pointer(bp + 288))))) == int32('.') {
-			if !(X__libc.Fsecure != 0) || !(Xstrcmp(tls, *(*uintptr)(unsafe.Pointer(bp + 288)), __ccgo_ts+1728) != 0) {
+			if !(X__libc.Fsecure != 0) || !(Xstrcmp(tls, *(*uintptr)(unsafe.Pointer(bp + 288)), __ccgo_ts+1701) != 0) {
 				map1 = X__map_file(tls, *(*uintptr)(unsafe.Pointer(bp + 288)), uintptr(unsafe.Pointer(&_map_size)))
 			}
 		} else {
@@ -147125,7 +147188,7 @@ func _do_tzset(tls *TLS) {
 			*(*uintptr)(unsafe.Pointer(bp + 288)) = uintptr(unsafe.Pointer(&X__utc))
 		}
 	}
-	if map1 != 0 && (_map_size < uint64(44) || Xmemcmp(tls, map1, __ccgo_ts+1751, uint64(4)) != 0) {
+	if map1 != 0 && (_map_size < uint64(44) || Xmemcmp(tls, map1, __ccgo_ts+1724, uint64(4)) != 0) {
 		X__munmap(tls, map1, _map_size)
 		map1 = uintptr(0)
 		*(*uintptr)(unsafe.Pointer(bp + 288)) = uintptr(unsafe.Pointer(&X__utc))
@@ -147557,7 +147620,7 @@ func X__asctime_r(tls *TLS, tm uintptr, buf uintptr) (r uintptr) {
 	}
 	bp := tls.Alloc(64)
 	defer tls.Free(64)
-	if Xsnprintf(tls, buf, uint64(26), __ccgo_ts+1756, VaList(bp+8, X__nl_langinfo_l(tls, int32(ABDAY_1)+(*Ttm)(unsafe.Pointer(tm)).Ftm_wday, uintptr(unsafe.Pointer(&X__c_locale))), X__nl_langinfo_l(tls, int32(ABMON_1)+(*Ttm)(unsafe.Pointer(tm)).Ftm_mon, uintptr(unsafe.Pointer(&X__c_locale))), (*Ttm)(unsafe.Pointer(tm)).Ftm_mday, (*Ttm)(unsafe.Pointer(tm)).Ftm_hour, (*Ttm)(unsafe.Pointer(tm)).Ftm_min, (*Ttm)(unsafe.Pointer(tm)).Ftm_sec, int32(1900)+(*Ttm)(unsafe.Pointer(tm)).Ftm_year)) >= int32(26) {
+	if Xsnprintf(tls, buf, uint64(26), __ccgo_ts+1729, VaList(bp+8, X__nl_langinfo_l(tls, int32(ABDAY_1)+(*Ttm)(unsafe.Pointer(tm)).Ftm_wday, uintptr(unsafe.Pointer(&X__c_locale))), X__nl_langinfo_l(tls, int32(ABMON_1)+(*Ttm)(unsafe.Pointer(tm)).Ftm_mon, uintptr(unsafe.Pointer(&X__c_locale))), (*Ttm)(unsafe.Pointer(tm)).Ftm_mday, (*Ttm)(unsafe.Pointer(tm)).Ftm_hour, (*Ttm)(unsafe.Pointer(tm)).Ftm_min, (*Ttm)(unsafe.Pointer(tm)).Ftm_sec, int32(1900)+(*Ttm)(unsafe.Pointer(tm)).Ftm_year)) >= int32(26) {
 		/* ISO C requires us to use the above format string,
 		 * even if it will not fit in the buffer. Thus asctime_r
 		 * is _supposed_ to crash if the fields in tm are too large.
@@ -147565,8 +147628,7 @@ func X__asctime_r(tls *TLS, tm uintptr, buf uintptr) (r uintptr) {
 		 * application developers that they may not be so lucky
 		 * on other implementations (e.g. stack smashing..).
 		 */
-		// __asm__ __volatile__( "hlt" : : : "memory" );
-		X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 108, __ccgo_ts+1788)
+		*(*int8)(unsafe.Pointer(UintptrFromInt32(0))) = 0
 	}
 	return buf
 }
@@ -147774,14 +147836,14 @@ func Xgetdate(tls *TLS, s uintptr) (r uintptr) {
 	var _ /* fmt at bp+0 */ [100]int8
 	_, _, _, _ = datemsk, f, p, ret
 	ret = uintptr(0)
-	datemsk = Xgetenv(tls, __ccgo_ts+1800)
+	datemsk = Xgetenv(tls, __ccgo_ts+1761)
 	f = uintptr(0)
 	_pthread_setcancelstate(tls, PTHREAD_CANCEL_DEFERRED, bp+100)
 	if !(datemsk != 0) {
 		Xgetdate_err = int32(1)
 		goto out
 	}
-	f = Xfopen(tls, datemsk, __ccgo_ts+1228)
+	f = Xfopen(tls, datemsk, __ccgo_ts+1201)
 	if !(f != 0) {
 		if *(*int32)(unsafe.Pointer(X__errno_location(tls))) == int32(ENOMEM) {
 			Xgetdate_err = int32(6)
@@ -148009,7 +148071,7 @@ func X__strftime_fmt_1(tls *TLS, s uintptr, l uintptr, f int32, tm uintptr, loc 
 	var item Tnl_item
 	var val int64
 	_, _, _, _, _, _, _, _, _, _, _, _ = d, def_pad, fmt, item, val, width, v1, v2, v4, v5, v6, v7
-	fmt = __ccgo_ts + 1650
+	fmt = __ccgo_ts + 1623
 	width = int32(2)
 	def_pad = int32('0')
 	switch f {
@@ -148052,10 +148114,10 @@ func X__strftime_fmt_1(tls *TLS, s uintptr, l uintptr, f int32, tm uintptr, loc 
 		val = int64((*Ttm)(unsafe.Pointer(tm)).Ftm_mday)
 		goto number
 	case int32('D'):
-		fmt = __ccgo_ts + 1808
+		fmt = __ccgo_ts + 1769
 		goto recu_strftime
 	case int32('F'):
-		fmt = __ccgo_ts + 1817
+		fmt = __ccgo_ts + 1778
 		goto recu_strftime
 	case int32('g'):
 		fallthrough
@@ -148106,7 +148168,7 @@ func X__strftime_fmt_1(tls *TLS, s uintptr, l uintptr, f int32, tm uintptr, loc 
 		goto number
 	case int32('n'):
 		*(*Tsize_t)(unsafe.Pointer(l)) = uint64(1)
-		return __ccgo_ts + 1388
+		return __ccgo_ts + 1361
 	case int32('p'):
 		if (*Ttm)(unsafe.Pointer(tm)).Ftm_hour >= int32(12) {
 			v1 = int32(PM_STR)
@@ -148143,7 +148205,7 @@ func X__strftime_fmt_1(tls *TLS, s uintptr, l uintptr, f int32, tm uintptr, loc 
 		item = int32(T_FMT_AMPM)
 		goto nl_strftime
 	case int32('R'):
-		fmt = __ccgo_ts + 1826
+		fmt = __ccgo_ts + 1787
 		goto recu_strftime
 	case int32('s'):
 		val = X__tm_to_secs(tls, tm) - (*Ttm)(unsafe.Pointer(tm)).F__tm_gmtoff
@@ -148154,9 +148216,9 @@ func X__strftime_fmt_1(tls *TLS, s uintptr, l uintptr, f int32, tm uintptr, loc 
 		goto number
 	case int32('t'):
 		*(*Tsize_t)(unsafe.Pointer(l)) = uint64(1)
-		return __ccgo_ts + 1386
+		return __ccgo_ts + 1359
 	case int32('T'):
-		fmt = __ccgo_ts + 1832
+		fmt = __ccgo_ts + 1793
 		goto recu_strftime
 	case int32('u'):
 		if (*Ttm)(unsafe.Pointer(tm)).Ftm_wday != 0 {
@@ -148195,7 +148257,7 @@ func X__strftime_fmt_1(tls *TLS, s uintptr, l uintptr, f int32, tm uintptr, loc 
 	case int32('Y'):
 		val = int64((*Ttm)(unsafe.Pointer(tm)).Ftm_year) + int64(1900)
 		if val >= int64(10000) {
-			*(*Tsize_t)(unsafe.Pointer(l)) = uint64(Xsnprintf(tls, s, uint64(100), __ccgo_ts+1841, VaList(bp+8, val)))
+			*(*Tsize_t)(unsafe.Pointer(l)) = uint64(Xsnprintf(tls, s, uint64(100), __ccgo_ts+1802, VaList(bp+8, val)))
 			return s
 		}
 		width = int32(4)
@@ -148205,7 +148267,7 @@ func X__strftime_fmt_1(tls *TLS, s uintptr, l uintptr, f int32, tm uintptr, loc 
 			*(*Tsize_t)(unsafe.Pointer(l)) = uint64(0)
 			return __ccgo_ts
 		}
-		*(*Tsize_t)(unsafe.Pointer(l)) = uint64(Xsnprintf(tls, s, uint64(100), __ccgo_ts+1847, VaList(bp+8, (*Ttm)(unsafe.Pointer(tm)).F__tm_gmtoff/int64(3600)*int64(100)+(*Ttm)(unsafe.Pointer(tm)).F__tm_gmtoff%int64(3600)/int64(60))))
+		*(*Tsize_t)(unsafe.Pointer(l)) = uint64(Xsnprintf(tls, s, uint64(100), __ccgo_ts+1808, VaList(bp+8, (*Ttm)(unsafe.Pointer(tm)).F__tm_gmtoff/int64(3600)*int64(100)+(*Ttm)(unsafe.Pointer(tm)).F__tm_gmtoff%int64(3600)/int64(60))))
 		return s
 	case int32('Z'):
 		if (*Ttm)(unsafe.Pointer(tm)).Ftm_isdst < 0 {
@@ -148216,7 +148278,7 @@ func X__strftime_fmt_1(tls *TLS, s uintptr, l uintptr, f int32, tm uintptr, loc 
 		goto string
 	case int32('%'):
 		*(*Tsize_t)(unsafe.Pointer(l)) = uint64(1)
-		return __ccgo_ts + 376
+		return __ccgo_ts + 310
 	default:
 		return uintptr(0)
 	}
@@ -148228,13 +148290,13 @@ number:
 	}
 	switch v7 {
 	case int32('-'):
-		*(*Tsize_t)(unsafe.Pointer(l)) = uint64(Xsnprintf(tls, s, uint64(100), __ccgo_ts+1854, VaList(bp+8, val)))
+		*(*Tsize_t)(unsafe.Pointer(l)) = uint64(Xsnprintf(tls, s, uint64(100), __ccgo_ts+1815, VaList(bp+8, val)))
 	case int32('_'):
-		*(*Tsize_t)(unsafe.Pointer(l)) = uint64(Xsnprintf(tls, s, uint64(100), __ccgo_ts+1859, VaList(bp+8, width, val)))
+		*(*Tsize_t)(unsafe.Pointer(l)) = uint64(Xsnprintf(tls, s, uint64(100), __ccgo_ts+1820, VaList(bp+8, width, val)))
 	case int32('0'):
 		fallthrough
 	default:
-		*(*Tsize_t)(unsafe.Pointer(l)) = uint64(Xsnprintf(tls, s, uint64(100), __ccgo_ts+1865, VaList(bp+8, width, val)))
+		*(*Tsize_t)(unsafe.Pointer(l)) = uint64(Xsnprintf(tls, s, uint64(100), __ccgo_ts+1826, VaList(bp+8, width, val)))
 		break
 	}
 	return s
@@ -148573,7 +148635,7 @@ func Xstrptime(tls *TLS, s uintptr, f uintptr, tm uintptr) (r uintptr) {
 		range1 = int32(31)
 		goto numeric_range
 	_19:
-		s = Xstrptime(tls, s, __ccgo_ts+1808, tm)
+		s = Xstrptime(tls, s, __ccgo_ts+1769, tm)
 		if !(s != 0) {
 			return uintptr(0)
 		}
@@ -148648,7 +148710,7 @@ func Xstrptime(tls *TLS, s uintptr, f uintptr, tm uintptr) (r uintptr) {
 		}
 		goto _41
 	_29:
-		s = Xstrptime(tls, s, __ccgo_ts+1826, tm)
+		s = Xstrptime(tls, s, __ccgo_ts+1787, tm)
 		if !(s != 0) {
 			return uintptr(0)
 		}
@@ -148659,7 +148721,7 @@ func Xstrptime(tls *TLS, s uintptr, f uintptr, tm uintptr) (r uintptr) {
 		range1 = int32(61)
 		goto numeric_range
 	_31:
-		s = Xstrptime(tls, s, __ccgo_ts+1832, tm)
+		s = Xstrptime(tls, s, __ccgo_ts+1793, tm)
 		if !(s != 0) {
 			return uintptr(0)
 		}
@@ -148852,11 +148914,11 @@ func Xtimer_delete(tls *TLS, t Ttimer_t) (r int32) {
 	_ = td
 	if int64(t) < 0 {
 		td = uintptr(uint64(t) << Int32FromInt32(1))
-		// __asm__ __volatile__(
-		//
-		//	"mov %1, %0 ; lock ; orl $0,(%%rsp)"
-		//	: "=m"(*p) : "r"(x) : "memory" );
-		X__assert_fail(tls, __ccgo_ts+212, __ccgo_ts+247, 88, __ccgo_ts+1872)
+		// __asm__ __volatile__ ("dbar 0" : : : "memory");
+		X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1833)
+		AtomicStorePInt32(td+148, AtomicLoadPInt32(td+148)|(-Int32FromInt32(1)-Int32FromInt32(0x7fffffff)))
+		// __asm__ __volatile__ ("dbar 0" : : : "memory");
+		X__assert_fail(tls, __ccgo_ts+312, __ccgo_ts+347, 49, __ccgo_ts+1833)
 		X__syscall2(tls, int64(SYS_tkill), int64((*t__pthread)(unsafe.Pointer(td)).Ftid), int64(Int32FromInt32(SIGTIMER)))
 		return 0
 	}
@@ -148872,7 +148934,7 @@ func Xtimer_getoverrun(tls *TLS, t Ttimer_t) (r int32) {
 	_ = td
 	if int64(t) < 0 {
 		td = uintptr(uint64(t) << Int32FromInt32(1))
-		t = uintptr(uint64(AtomicLoadPInt32(td+164) & Int32FromInt32(INT_MAX)))
+		t = uintptr(uint64(AtomicLoadPInt32(td+148) & Int32FromInt32(INT_MAX)))
 	}
 	return int32(X__syscall_ret(tls, uint64(X__syscall1(tls, int64(SYS_timer_getoverrun), int64(t)))))
 }
@@ -148886,7 +148948,7 @@ func Xtimer_gettime(tls *TLS, t Ttimer_t, val uintptr) (r int32) {
 	_ = td
 	if int64(t) < 0 {
 		td = uintptr(uint64(t) << Int32FromInt32(1))
-		t = uintptr(uint64(AtomicLoadPInt32(td+164) & Int32FromInt32(INT_MAX)))
+		t = uintptr(uint64(AtomicLoadPInt32(td+148) & Int32FromInt32(INT_MAX)))
 	}
 	return int32(X__syscall_ret(tls, uint64(X__syscall2(tls, int64(SYS_timer_gettime), int64(t), int64(val)))))
 }
@@ -148900,7 +148962,7 @@ func Xtimer_settime(tls *TLS, t Ttimer_t, flags int32, val uintptr, old uintptr)
 	_ = td
 	if int64(t) < 0 {
 		td = uintptr(uint64(t) << Int32FromInt32(1))
-		t = uintptr(uint64(AtomicLoadPInt32(td+164) & Int32FromInt32(INT_MAX)))
+		t = uintptr(uint64(AtomicLoadPInt32(td+148) & Int32FromInt32(INT_MAX)))
 	}
 	return int32(X__syscall_ret(tls, uint64(X__syscall4(tls, int64(SYS_timer_settime), int64(t), int64(flags), int64(val), int64(old)))))
 }
@@ -149119,7 +149181,7 @@ func Xaccess(tls *TLS, filename uintptr, amode int32) (r int32) {
 		trc("tls=%v filename=%v amode=%v, (%v:)", tls, filename, amode, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return int32(X__syscall_ret(tls, uint64(X__syscall2(tls, int64(SYS_access), int64(filename), int64(amode)))))
+	return int32(X__syscall_ret(tls, uint64(X__syscall4(tls, int64(SYS_faccessat), int64(-Int32FromInt32(100)), int64(filename), int64(amode), int64(Int32FromInt32(0))))))
 }
 
 func Xacct(tls *TLS, filename uintptr) (r int32) {
@@ -149162,7 +149224,7 @@ func Xchown(tls *TLS, path uintptr, uid Tuid_t, gid Tgid_t) (r int32) {
 		trc("tls=%v path=%v uid=%v gid=%v, (%v:)", tls, path, uid, gid, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return int32(X__syscall_ret(tls, uint64(X__syscall3(tls, int64(SYS_chown), int64(path), int64(uid), int64(gid)))))
+	return int32(X__syscall_ret(tls, uint64(X__syscall5(tls, int64(SYS_fchownat), int64(-Int32FromInt32(100)), int64(path), int64(uid), int64(gid), int64(Int32FromInt32(0))))))
 }
 
 func _dummy12(tls *TLS, fd int32) (r int32) {
@@ -149192,9 +149254,9 @@ func Xctermid(tls *TLS, s uintptr) (r uintptr) {
 	var v1 uintptr
 	_ = v1
 	if s != 0 {
-		v1 = Xstrcpy(tls, s, __ccgo_ts+1885)
+		v1 = Xstrcpy(tls, s, __ccgo_ts+1846)
 	} else {
-		v1 = __ccgo_ts + 1885
+		v1 = __ccgo_ts + 1846
 	}
 	return v1
 }
@@ -149214,11 +149276,18 @@ func Xdup2(tls *TLS, old int32, new1 int32) (r1 int32) {
 	}
 	var r, v1 int32
 	_, _ = r, v1
-	for {
-		v1 = int32(X__syscall2(tls, int64(SYS_dup2), int64(old), int64(new1)))
-		r = v1
-		if !(v1 == -int32(EBUSY)) {
-			break
+	if old == new1 {
+		r = int32(X__syscall2(tls, int64(__NR3264_fcntl), int64(old), int64(Int32FromInt32(F_GETFD))))
+		if r >= 0 {
+			return old
+		}
+	} else {
+		for {
+			v1 = int32(X__syscall3(tls, int64(SYS_dup3), int64(old), int64(new1), int64(Int32FromInt32(0))))
+			r = v1
+			if !(v1 == -int32(EBUSY)) {
+				break
+			}
 		}
 	}
 	return int32(X__syscall_ret(tls, uint64(r)))
@@ -149229,35 +149298,14 @@ func X__dup3(tls *TLS, old int32, new1 int32, flags int32) (r1 int32) {
 		trc("tls=%v old=%v new1=%v flags=%v, (%v:)", tls, old, new1, flags, origin(2))
 		defer func() { trc("-> %v", r1) }()
 	}
-	var r, v1, v2 int32
-	_, _, _ = r, v1, v2
-	if old == new1 {
-		return int32(X__syscall_ret(tls, uint64(-Int32FromInt32(EINVAL))))
-	}
-	if flags != 0 {
-		for {
-			v1 = int32(X__syscall3(tls, int64(SYS_dup3), int64(old), int64(new1), int64(flags)))
-			r = v1
-			if !(v1 == -int32(EBUSY)) {
-				break
-			}
-		}
-		if r != -int32(ENOSYS) {
-			return int32(X__syscall_ret(tls, uint64(r)))
-		}
-		if flags & ^Int32FromInt32(O_CLOEXEC) != 0 {
-			return int32(X__syscall_ret(tls, uint64(-Int32FromInt32(EINVAL))))
-		}
-	}
+	var r, v1 int32
+	_, _ = r, v1
 	for {
-		v2 = int32(X__syscall2(tls, int64(SYS_dup2), int64(old), int64(new1)))
-		r = v2
-		if !(v2 == -int32(EBUSY)) {
+		v1 = int32(X__syscall3(tls, int64(SYS_dup3), int64(old), int64(new1), int64(flags)))
+		r = v1
+		if !(v1 == -int32(EBUSY)) {
 			break
 		}
-	}
-	if r >= 0 && flags&int32(O_CLOEXEC) != 0 {
-		X__syscall3(tls, int64(SYS_fcntl), int64(new1), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
 	}
 	return int32(X__syscall_ret(tls, uint64(r)))
 }
@@ -149322,7 +149370,7 @@ func Xfchdir(tls *TLS, fd int32) (r int32) {
 	var _ /* buf at bp+0 */ [27]int8
 	_ = ret
 	ret = int32(X__syscall1(tls, int64(SYS_fchdir), int64(fd)))
-	if ret != -int32(EBADF) || X__syscall2(tls, int64(SYS_fcntl), int64(fd), int64(Int32FromInt32(F_GETFD))) < 0 {
+	if ret != -int32(EBADF) || X__syscall2(tls, int64(__NR3264_fcntl), int64(fd), int64(Int32FromInt32(F_GETFD))) < 0 {
 		return int32(X__syscall_ret(tls, uint64(ret)))
 	}
 	X__procfdname(tls, bp, uint32(fd))
@@ -149340,11 +149388,11 @@ func Xfchown(tls *TLS, fd int32, uid Tuid_t, gid Tgid_t) (r int32) {
 	var _ /* buf at bp+0 */ [27]int8
 	_ = ret
 	ret = int32(X__syscall3(tls, int64(SYS_fchown), int64(fd), int64(uid), int64(gid)))
-	if ret != -int32(EBADF) || X__syscall2(tls, int64(SYS_fcntl), int64(fd), int64(Int32FromInt32(F_GETFD))) < 0 {
+	if ret != -int32(EBADF) || X__syscall2(tls, int64(__NR3264_fcntl), int64(fd), int64(Int32FromInt32(F_GETFD))) < 0 {
 		return int32(X__syscall_ret(tls, uint64(ret)))
 	}
 	X__procfdname(tls, bp, uint32(fd))
-	return int32(X__syscall_ret(tls, uint64(X__syscall3(tls, int64(SYS_chown), int64(bp), int64(uid), int64(gid)))))
+	return int32(X__syscall_ret(tls, uint64(X__syscall5(tls, int64(SYS_fchownat), int64(-Int32FromInt32(100)), int64(bp), int64(uid), int64(gid), int64(Int32FromInt32(0))))))
 }
 
 func Xfchownat(tls *TLS, fd int32, path uintptr, uid Tuid_t, gid Tgid_t, flag int32) (r int32) {
@@ -149376,7 +149424,7 @@ func Xftruncate(tls *TLS, fd int32, length Toff_t) (r int32) {
 		trc("tls=%v fd=%v length=%v, (%v:)", tls, fd, length, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return int32(X__syscall_ret(tls, uint64(X__syscall2(tls, int64(SYS_ftruncate), int64(fd), length))))
+	return int32(X__syscall_ret(tls, uint64(X__syscall2(tls, int64(__NR3264_ftruncate), int64(fd), length))))
 }
 
 func Xgetcwd(tls *TLS, buf uintptr, size Tsize_t) (r uintptr) {
@@ -149496,7 +149544,7 @@ func Xgetlogin(tls *TLS) (r uintptr) {
 		trc("tls=%v, (%v:)", tls, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return Xgetenv(tls, __ccgo_ts+1894)
+	return Xgetenv(tls, __ccgo_ts+1855)
 }
 
 func Xgetlogin_r(tls *TLS, name uintptr, size Tsize_t) (r int32) {
@@ -149590,7 +149638,7 @@ func Xlchown(tls *TLS, path uintptr, uid Tuid_t, gid Tgid_t) (r int32) {
 		trc("tls=%v path=%v uid=%v gid=%v, (%v:)", tls, path, uid, gid, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return int32(X__syscall_ret(tls, uint64(X__syscall3(tls, int64(SYS_lchown), int64(path), int64(uid), int64(gid)))))
+	return int32(X__syscall_ret(tls, uint64(X__syscall5(tls, int64(SYS_fchownat), int64(-Int32FromInt32(100)), int64(path), int64(uid), int64(gid), int64(Int32FromInt32(AT_SYMLINK_NOFOLLOW))))))
 }
 
 func Xlink(tls *TLS, existing uintptr, new1 uintptr) (r int32) {
@@ -149598,7 +149646,7 @@ func Xlink(tls *TLS, existing uintptr, new1 uintptr) (r int32) {
 		trc("tls=%v existing=%v new1=%v, (%v:)", tls, existing, new1, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return int32(X__syscall_ret(tls, uint64(X__syscall2(tls, int64(SYS_link), int64(existing), int64(new1)))))
+	return int32(X__syscall_ret(tls, uint64(X__syscall5(tls, int64(SYS_linkat), int64(-Int32FromInt32(100)), int64(existing), int64(-Int32FromInt32(100)), int64(new1), int64(Int32FromInt32(0))))))
 }
 
 func Xlinkat(tls *TLS, fd1 int32, existing uintptr, fd2 int32, new1 uintptr, flag int32) (r int32) {
@@ -149614,7 +149662,7 @@ func X__lseek(tls *TLS, fd int32, offset Toff_t, whence int32) (r Toff_t) {
 		trc("tls=%v fd=%v offset=%v whence=%v, (%v:)", tls, fd, offset, whence, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return X__syscall_ret(tls, uint64(X__syscall3(tls, int64(SYS_lseek), int64(fd), offset, int64(whence))))
+	return X__syscall_ret(tls, uint64(X__syscall3(tls, int64(__NR3264_lseek), int64(fd), offset, int64(whence))))
 }
 
 func Xlseek(tls *TLS, fd int32, offset Toff_t, whence int32) (r Toff_t) {
@@ -149660,7 +149708,7 @@ func Xpause(tls *TLS) (r int32) {
 		trc("tls=%v, (%v:)", tls, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return int32(X__syscall_ret(tls, uint64(___syscall_cp(tls, int64(SYS_pause), 0, 0, 0, 0, 0, 0))))
+	return int32(X__syscall_ret(tls, uint64(___syscall_cp(tls, int64(SYS_ppoll), int64(Int32FromInt32(0)), int64(Int32FromInt32(0)), int64(Int32FromInt32(0)), int64(Int32FromInt32(0)), 0, 0))))
 }
 
 func Xpipe(tls *TLS, fd uintptr) (r int32) {
@@ -149668,7 +149716,7 @@ func Xpipe(tls *TLS, fd uintptr) (r int32) {
 		trc("tls=%v fd=%v, (%v:)", tls, fd, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return int32(X__syscall_ret(tls, uint64(X__syscall1(tls, int64(SYS_pipe), int64(fd)))))
+	return int32(X__syscall_ret(tls, uint64(X__syscall2(tls, int64(SYS_pipe2), int64(fd), int64(Int32FromInt32(0))))))
 }
 
 func Xpipe2(tls *TLS, fd uintptr, flag int32) (r int32) {
@@ -149693,12 +149741,12 @@ func Xpipe2(tls *TLS, fd uintptr, flag int32) (r int32) {
 		return ret
 	}
 	if flag&int32(O_CLOEXEC) != 0 {
-		X__syscall3(tls, int64(SYS_fcntl), int64(*(*int32)(unsafe.Pointer(fd))), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
-		X__syscall3(tls, int64(SYS_fcntl), int64(*(*int32)(unsafe.Pointer(fd + 1*4))), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
+		X__syscall3(tls, int64(__NR3264_fcntl), int64(*(*int32)(unsafe.Pointer(fd))), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
+		X__syscall3(tls, int64(__NR3264_fcntl), int64(*(*int32)(unsafe.Pointer(fd + 1*4))), int64(Int32FromInt32(F_SETFD)), int64(Int32FromInt32(FD_CLOEXEC)))
 	}
 	if flag&int32(O_NONBLOCK) != 0 {
-		X__syscall3(tls, int64(SYS_fcntl), int64(*(*int32)(unsafe.Pointer(fd))), int64(Int32FromInt32(F_SETFL)), int64(Int32FromInt32(O_NONBLOCK)))
-		X__syscall3(tls, int64(SYS_fcntl), int64(*(*int32)(unsafe.Pointer(fd + 1*4))), int64(Int32FromInt32(F_SETFL)), int64(Int32FromInt32(O_NONBLOCK)))
+		X__syscall3(tls, int64(__NR3264_fcntl), int64(*(*int32)(unsafe.Pointer(fd))), int64(Int32FromInt32(F_SETFL)), int64(Int32FromInt32(O_NONBLOCK)))
+		X__syscall3(tls, int64(__NR3264_fcntl), int64(*(*int32)(unsafe.Pointer(fd + 1*4))), int64(Int32FromInt32(F_SETFL)), int64(Int32FromInt32(O_NONBLOCK)))
 	}
 	return 0
 }
@@ -149748,7 +149796,7 @@ func Xread(tls *TLS, fd int32, buf uintptr, count Tsize_t) (r Tssize_t) {
 		trc("tls=%v fd=%v buf=%v count=%v, (%v:)", tls, fd, buf, count, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return X__syscall_ret(tls, uint64(___syscall_cp(tls, SYS_read, int64(fd), int64(buf), int64(count), 0, 0, 0)))
+	return X__syscall_ret(tls, uint64(___syscall_cp(tls, int64(SYS_read), int64(fd), int64(buf), int64(count), 0, 0, 0)))
 }
 
 func Xreadlink(tls *TLS, path uintptr, buf uintptr, bufsize Tsize_t) (r1 Tssize_t) {
@@ -149765,7 +149813,7 @@ func Xreadlink(tls *TLS, path uintptr, buf uintptr, bufsize Tsize_t) (r1 Tssize_
 		buf = bp
 		bufsize = uint64(1)
 	}
-	r = int32(X__syscall3(tls, int64(SYS_readlink), int64(path), int64(buf), int64(bufsize)))
+	r = int32(X__syscall4(tls, int64(SYS_readlinkat), int64(-Int32FromInt32(100)), int64(path), int64(buf), int64(bufsize)))
 	if buf == bp && r > 0 {
 		r = 0
 	}
@@ -149806,7 +149854,7 @@ func Xrenameat(tls *TLS, oldfd int32, old uintptr, newfd int32, new1 uintptr) (r
 		trc("tls=%v oldfd=%v old=%v newfd=%v new1=%v, (%v:)", tls, oldfd, old, newfd, new1, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return int32(X__syscall_ret(tls, uint64(X__syscall4(tls, int64(SYS_renameat), int64(oldfd), int64(old), int64(newfd), int64(new1)))))
+	return int32(X__syscall_ret(tls, uint64(X__syscall5(tls, int64(SYS_renameat2), int64(oldfd), int64(old), int64(newfd), int64(new1), int64(Int32FromInt32(0))))))
 }
 
 func Xrmdir(tls *TLS, path uintptr) (r int32) {
@@ -149814,7 +149862,7 @@ func Xrmdir(tls *TLS, path uintptr) (r int32) {
 		trc("tls=%v path=%v, (%v:)", tls, path, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return int32(X__syscall_ret(tls, uint64(X__syscall1(tls, int64(SYS_rmdir), int64(path)))))
+	return int32(X__syscall_ret(tls, uint64(X__syscall3(tls, int64(SYS_unlinkat), int64(-Int32FromInt32(100)), int64(path), int64(Int32FromInt32(AT_REMOVEDIR))))))
 }
 
 func Xsetpgid(tls *TLS, pid Tpid_t, pgid Tpid_t) (r int32) {
@@ -149863,7 +149911,7 @@ func Xsymlink(tls *TLS, existing uintptr, new1 uintptr) (r int32) {
 		trc("tls=%v existing=%v new1=%v, (%v:)", tls, existing, new1, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return int32(X__syscall_ret(tls, uint64(X__syscall2(tls, int64(SYS_symlink), int64(existing), int64(new1)))))
+	return int32(X__syscall_ret(tls, uint64(X__syscall3(tls, int64(SYS_symlinkat), int64(existing), int64(-Int32FromInt32(100)), int64(new1)))))
 }
 
 func Xsymlinkat(tls *TLS, existing uintptr, fd int32, new1 uintptr) (r int32) {
@@ -149912,7 +149960,7 @@ func Xtruncate(tls *TLS, path uintptr, length Toff_t) (r int32) {
 		trc("tls=%v path=%v length=%v, (%v:)", tls, path, length, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return int32(X__syscall_ret(tls, uint64(X__syscall2(tls, int64(SYS_truncate), int64(path), length))))
+	return int32(X__syscall_ret(tls, uint64(X__syscall2(tls, int64(__NR3264_truncate), int64(path), length))))
 }
 
 /* Support signed or unsigned plain-char */
@@ -149947,18 +149995,18 @@ func Xttyname_r(tls *TLS, fd int32, name uintptr, size Tsize_t) (r int32) {
 		trc("tls=%v fd=%v name=%v size=%v, (%v:)", tls, fd, name, size, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	bp := tls.Alloc(320)
-	defer tls.Free(320)
+	bp := tls.Alloc(288)
+	defer tls.Free(288)
 	var l Tssize_t
-	var _ /* procname at bp+288 */ [29]int8
+	var _ /* procname at bp+256 */ [29]int8
 	var _ /* st1 at bp+0 */ Tstat
-	var _ /* st2 at bp+144 */ Tstat
+	var _ /* st2 at bp+128 */ Tstat
 	_ = l
 	if !(Xisatty(tls, fd) != 0) {
 		return *(*int32)(unsafe.Pointer(X__errno_location(tls)))
 	}
-	X__procfdname(tls, bp+288, uint32(fd))
-	l = Xreadlink(tls, bp+288, name, size)
+	X__procfdname(tls, bp+256, uint32(fd))
+	l = Xreadlink(tls, bp+256, name, size)
 	if l < 0 {
 		return *(*int32)(unsafe.Pointer(X__errno_location(tls)))
 	} else {
@@ -149967,10 +150015,10 @@ func Xttyname_r(tls *TLS, fd int32, name uintptr, size Tsize_t) (r int32) {
 		}
 	}
 	*(*int8)(unsafe.Pointer(name + uintptr(l))) = 0
-	if Xstat(tls, name, bp) != 0 || Xfstat(tls, fd, bp+144) != 0 {
+	if Xstat(tls, name, bp) != 0 || Xfstat(tls, fd, bp+128) != 0 {
 		return *(*int32)(unsafe.Pointer(X__errno_location(tls)))
 	}
-	if (*(*Tstat)(unsafe.Pointer(bp))).Fst_dev != (*(*Tstat)(unsafe.Pointer(bp + 144))).Fst_dev || (*(*Tstat)(unsafe.Pointer(bp))).Fst_ino != (*(*Tstat)(unsafe.Pointer(bp + 144))).Fst_ino {
+	if (*(*Tstat)(unsafe.Pointer(bp))).Fst_dev != (*(*Tstat)(unsafe.Pointer(bp + 128))).Fst_dev || (*(*Tstat)(unsafe.Pointer(bp))).Fst_ino != (*(*Tstat)(unsafe.Pointer(bp + 128))).Fst_ino {
 		return int32(ENODEV)
 	}
 	return 0
@@ -150002,7 +150050,7 @@ func Xunlink(tls *TLS, path uintptr) (r int32) {
 		trc("tls=%v path=%v, (%v:)", tls, path, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return int32(X__syscall_ret(tls, uint64(X__syscall1(tls, int64(SYS_unlink), int64(path)))))
+	return int32(X__syscall_ret(tls, uint64(X__syscall3(tls, int64(SYS_unlinkat), int64(-Int32FromInt32(100)), int64(path), int64(Int32FromInt32(0))))))
 }
 
 func Xunlinkat(tls *TLS, fd int32, path uintptr, flag int32) (r int32) {
@@ -150751,267 +150799,6 @@ var X__log2_data = Tlog2_data{
 			Flogc: float64(0.45121103315341315),
 		},
 	},
-	Ftab2: [64]struct {
-		Fchi float64
-		Fclo float64
-	}{
-		0: {
-			Fchi: float64(0.6914062848739648),
-			Fclo: float64(4.339971893418182e-17),
-		},
-		1: {
-			Fchi: float64(0.6992187580850853),
-			Fclo: float64(7.805593338712074e-18),
-		},
-		2: {
-			Fchi: float64(0.7070311366547563),
-			Fclo: float64(3.20843320369626e-17),
-		},
-		3: {
-			Fchi: float64(0.7148438556567389),
-			Fclo: float64(4.336491946473985e-17),
-		},
-		4: {
-			Fchi: float64(0.7226561915128084),
-			Fclo: float64(4.681890319761607e-17),
-		},
-		5: {
-			Fchi: float64(0.730468789763508),
-			Fclo: -Float64FromFloat64(1.647126642147294e-17),
-		},
-		6: {
-			Fchi: float64(0.7382812842650944),
-			Fclo: float64(2.0846837208642192e-17),
-		},
-		7: {
-			Fchi: float64(0.7460938437864584),
-			Fclo: -Float64FromFloat64(7.82131795361932e-18),
-		},
-		8: {
-			Fchi: float64(0.7539062159244969),
-			Fclo: -Float64FromFloat64(3.470987810015201e-17),
-		},
-		9: {
-			Fchi: float64(0.761718835645205),
-			Fclo: float64(1.2996798345429576e-17),
-		},
-		10: {
-			Fchi: float64(0.7695312342578777),
-			Fclo: -Float64FromFloat64(5.2071007285622585e-17),
-		},
-		11: {
-			Fchi: float64(0.7773438569208053),
-			Fclo: -Float64FromFloat64(4.513636731226183e-17),
-		},
-		12: {
-			Fchi: float64(0.7851561955110148),
-			Fclo: -Float64FromFloat64(2.0797044446832382e-17),
-		},
-		13: {
-			Fchi: float64(0.7929686538163826),
-			Fclo: -Float64FromFloat64(1.9947626198727574e-17),
-		},
-		14: {
-			Fchi: float64(0.8007813612514213),
-			Fclo: float64(1.472064871061342e-17),
-		},
-		15: {
-			Fchi: float64(0.8085937047812207),
-			Fclo: float64(5.290804109377209e-17),
-		},
-		16: {
-			Fchi: float64(0.816406173973453),
-			Fclo: -Float64FromFloat64(1.129659587857177e-17),
-		},
-		17: {
-			Fchi: float64(0.8242186867064328),
-			Fclo: float64(3.901543738154691e-17),
-		},
-		18: {
-			Fchi: float64(0.8320311501051142),
-			Fclo: -Float64FromFloat64(3.212482853127187e-17),
-		},
-		19: {
-			Fchi: float64(0.8398436860662717),
-			Fclo: float64(5.220081794706035e-18),
-		},
-		20: {
-			Fchi: float64(0.8476562221566525),
-			Fclo: -Float64FromFloat64(5.37416378988278e-17),
-		},
-		21: {
-			Fchi: float64(0.8554686571084844),
-			Fclo: float64(4.291992377471359e-18),
-		},
-		22: {
-			Fchi: float64(0.8632811779454657),
-			Fclo: float64(1.7319616935225806e-17),
-		},
-		23: {
-			Fchi: float64(0.8710937865301015),
-			Fclo: float64(1.8251073579011692e-17),
-		},
-		24: {
-			Fchi: float64(0.8789064200163806),
-			Fclo: float64(1.2113671810693101e-17),
-		},
-		25: {
-			Fchi: float64(0.8867188705623812),
-			Fclo: -Float64FromFloat64(2.431195196496269e-17),
-		},
-		26: {
-			Fchi: float64(0.894531433164887),
-			Fclo: -Float64FromFloat64(2.258952781769403e-17),
-		},
-		27: {
-			Fchi: float64(0.9023436779100781),
-			Fclo: float64(4.3322028821617186e-17),
-		},
-		28: {
-			Fchi: float64(0.9101562378188762),
-			Fclo: -Float64FromFloat64(5.2414676705491076e-18),
-		},
-		29: {
-			Fchi: float64(0.9179685755379005),
-			Fclo: -Float64FromFloat64(2.3432856904274634e-17),
-		},
-		30: {
-			Fchi: float64(0.9257810658494647),
-			Fclo: float64(3.9914341909758727e-17),
-		},
-		31: {
-			Fchi: float64(0.9335939394986237),
-			Fclo: -Float64FromFloat64(1.8218382846902827e-17),
-		},
-		32: {
-			Fchi: float64(0.9414062555172099),
-			Fclo: float64(4.423669374431538e-17),
-		},
-		33: {
-			Fchi: float64(0.9492189136192009),
-			Fclo: -Float64FromFloat64(2.6059674623550364e-17),
-		},
-		34: {
-			Fchi: float64(0.9570313243730211),
-			Fclo: -Float64FromFloat64(4.947019261946595e-17),
-		},
-		35: {
-			Fchi: float64(0.9648439529540691),
-			Fclo: -Float64FromFloat64(5.4644837229582306e-17),
-		},
-		36: {
-			Fchi: float64(0.9726564738338594),
-			Fclo: -Float64FromFloat64(5.4656321533328614e-17),
-		},
-		37: {
-			Fchi: float64(0.9804688208697894),
-			Fclo: -Float64FromFloat64(1.782581090537996e-18),
-		},
-		38: {
-			Fchi: float64(0.98828120632121),
-			Fclo: -Float64FromFloat64(5.2277711573086786e-18),
-		},
-		39: {
-			Fchi: float64(0.9960936700192217),
-			Fclo: float64(4.1586638841164565e-17),
-		},
-		40: {
-			Fchi: float64(1.007812515499802),
-			Fclo: float64(9.540912389137736e-17),
-		},
-		41: {
-			Fchi: float64(1.0234373952820537),
-			Fclo: float64(3.985821704561347e-17),
-		},
-		42: {
-			Fchi: float64(1.0390625391978199),
-			Fclo: -Float64FromFloat64(5.179495640960355e-18),
-		},
-		43: {
-			Fchi: float64(1.0546875982436061),
-			Fclo: -Float64FromFloat64(6.074512782488841e-17),
-		},
-		44: {
-			Fchi: float64(1.07031247275489),
-			Fclo: -Float64FromFloat64(4.853656019321416e-17),
-		},
-		45: {
-			Fchi: float64(1.0859374005459401),
-			Fclo: -Float64FromFloat64(1.0233609026899023e-16),
-		},
-		46: {
-			Fchi: float64(1.101562565835984),
-			Fclo: float64(9.714504510281668e-17),
-		},
-		47: {
-			Fchi: float64(1.1171875960464082),
-			Fclo: -Float64FromFloat64(5.728631491659617e-17),
-		},
-		48: {
-			Fchi: float64(1.1328125595809087),
-			Fclo: -Float64FromFloat64(4.3353271744463366e-17),
-		},
-		49: {
-			Fchi: float64(1.1484376438870962),
-			Fclo: float64(5.029455257812864e-17),
-		},
-		50: {
-			Fchi: float64(1.1640626551656426),
-			Fclo: -Float64FromFloat64(1.3886091944776072e-17),
-		},
-		51: {
-			Fchi: float64(1.179687381390876),
-			Fclo: float64(9.535864385063222e-17),
-		},
-		52: {
-			Fchi: float64(1.19531246968748),
-			Fclo: float64(2.5970710873556995e-17),
-		},
-		53: {
-			Fchi: float64(1.2109374417129501),
-			Fclo: -Float64FromFloat64(1.0412863482435496e-16),
-		},
-		54: {
-			Fchi: float64(1.2265626715770166),
-			Fclo: float64(1.903080930681457e-17),
-		},
-		55: {
-			Fchi: float64(1.2421875157698543),
-			Fclo: float64(9.884933154288451e-17),
-		},
-		56: {
-			Fchi: float64(1.2578125104996614),
-			Fclo: float64(2.605028401046449e-17),
-		},
-		57: {
-			Fchi: float64(1.273437549250769),
-			Fclo: float64(3.128070230699857e-17),
-		},
-		58: {
-			Fchi: float64(1.2890625161616944),
-			Fclo: -Float64FromFloat64(4.506460293510891e-17),
-		},
-		59: {
-			Fchi: float64(1.3046875156762752),
-			Fclo: -Float64FromFloat64(2.0874781900380847e-17),
-		},
-		60: {
-			Fchi: float64(1.3203123063212308),
-			Fclo: float64(8.50535702424751e-17),
-		},
-		61: {
-			Fchi: float64(1.3359374907988373),
-			Fclo: -Float64FromFloat64(3.99657459893118e-17),
-		},
-		62: {
-			Fchi: float64(1.351562448282023),
-			Fclo: float64(4.1576596545784e-17),
-		},
-		63: {
-			Fchi: float64(1.3671874254389709),
-			Fclo: -Float64FromFloat64(6.072295450780066e-17),
-		},
-	},
 }
 
 var X__log2f_data = Tlog2f_data{
@@ -151629,523 +151416,6 @@ var X__log_data = Tlog_data{
 		127: {
 			Finvc: float64(0.729344777457841),
 			Flogc: float64(0.31560871301871884),
-		},
-	},
-	Ftab2: [128]struct {
-		Fchi float64
-		Fclo float64
-	}{
-		0: {
-			Fchi: float64(0.6894531274426304),
-			Fclo: float64(2.60290652810535e-17),
-		},
-		1: {
-			Fchi: float64(0.6933593811533166),
-			Fclo: float64(5.1607448519931415e-17),
-		},
-		2: {
-			Fchi: float64(0.6972656502972674),
-			Fclo: float64(5.290672414887869e-17),
-		},
-		3: {
-			Fchi: float64(0.7011718886092148),
-			Fclo: float64(7.801030634806013e-18),
-		},
-		4: {
-			Fchi: float64(0.7050781228976939),
-			Fclo: -Float64FromFloat64(2.471355337688684e-17),
-		},
-		5: {
-			Fchi: float64(0.7089843887644558),
-			Fclo: -Float64FromFloat64(4.6413389636862956e-17),
-		},
-		6: {
-			Fchi: float64(0.7128906815542553),
-			Fclo: float64(3.3387408065940366e-17),
-		},
-		7: {
-			Fchi: float64(0.7167968359278303),
-			Fclo: -Float64FromFloat64(2.6454587338050098e-17),
-		},
-		8: {
-			Fchi: float64(0.7207031520563163),
-			Fclo: float64(2.4284096334522285e-17),
-		},
-		9: {
-			Fchi: float64(0.7246093683054673),
-			Fclo: float64(4.85782435031982e-17),
-		},
-		10: {
-			Fchi: float64(0.7285155644718035),
-			Fclo: -Float64FromFloat64(1.3014776598894487e-17),
-		},
-		11: {
-			Fchi: float64(0.7324219036935506),
-			Fclo: -Float64FromFloat64(1.0402317671225898e-17),
-		},
-		12: {
-			Fchi: float64(0.73632811474659),
-			Fclo: float64(3.078291427467431e-17),
-		},
-		13: {
-			Fchi: float64(0.7402343715130797),
-			Fclo: -Float64FromFloat64(1.4304998976623033e-17),
-		},
-		14: {
-			Fchi: float64(0.7441405900738403),
-			Fclo: -Float64FromFloat64(2.8625955785571303e-17),
-		},
-		15: {
-			Fchi: float64(0.7480468324364),
-			Fclo: float64(5.1609093535635645e-17),
-		},
-		16: {
-			Fchi: float64(0.7519531335902885),
-			Fclo: float64(4.423423949536319e-17),
-		},
-		17: {
-			Fchi: float64(0.7558594189116706),
-			Fclo: -Float64FromFloat64(4.683016762099508e-17),
-		},
-		18: {
-			Fchi: float64(0.7597656365502305),
-			Fclo: float64(4.466742007514772e-17),
-		},
-		19: {
-			Fchi: float64(0.7636719350887737),
-			Fclo: -Float64FromFloat64(4.8134498775190266e-17),
-		},
-		20: {
-			Fchi: float64(0.767578087670501),
-			Fclo: -Float64FromFloat64(4.3371015350542286e-17),
-		},
-		21: {
-			Fchi: float64(0.7714844396979536),
-			Fclo: -Float64FromFloat64(2.515644472251707e-17),
-		},
-		22: {
-			Fchi: float64(0.7753905747966752),
-			Fclo: -Float64FromFloat64(4.163636184961329e-17),
-		},
-		23: {
-			Fchi: float64(0.7792968686084766),
-			Fclo: float64(3.3837161384165165e-17),
-		},
-		24: {
-			Fchi: float64(0.783203182701066),
-			Fclo: float64(4.379206565056758e-17),
-		},
-		25: {
-			Fchi: float64(0.7871094109030913),
-			Fclo: float64(2.7322930976146396e-17),
-		},
-		26: {
-			Fchi: float64(0.7910155783031153),
-			Fclo: -Float64FromFloat64(5.463661225364046e-17),
-		},
-		27: {
-			Fchi: float64(0.7949218121071572),
-			Fclo: -Float64FromFloat64(1.4320502634189868e-17),
-		},
-		28: {
-			Fchi: float64(0.7988281031542229),
-			Fclo: -Float64FromFloat64(4.0766731402809024e-17),
-		},
-		29: {
-			Fchi: float64(0.8027343109146796),
-			Fclo: -Float64FromFloat64(4.0338264352540086e-17),
-		},
-		30: {
-			Fchi: float64(0.8066405901480322),
-			Fclo: float64(1.7241428071650815e-18),
-		},
-		31: {
-			Fchi: float64(0.8105469363625933),
-			Fclo: -Float64FromFloat64(4.5534218930924523e-17),
-		},
-		32: {
-			Fchi: float64(0.8144531571720115),
-			Fclo: float64(1.821216920589142e-17),
-		},
-		33: {
-			Fchi: float64(0.8183593894061396),
-			Fclo: float64(4.9864288025894273e-17),
-		},
-		34: {
-			Fchi: float64(0.8222656559018297),
-			Fclo: float64(4.335990416726689e-17),
-		},
-		35: {
-			Fchi: float64(0.8261719308006343),
-			Fclo: -Float64FromFloat64(5.422001471661127e-17),
-		},
-		36: {
-			Fchi: float64(0.830078177803083),
-			Fclo: -Float64FromFloat64(5.333603728929035e-17),
-		},
-		37: {
-			Fchi: float64(0.8339844538076674),
-			Fclo: -Float64FromFloat64(1.1270648442682386e-17),
-		},
-		38: {
-			Fchi: float64(0.8378905498984414),
-			Fclo: -Float64FromFloat64(3.165126734800398e-17),
-		},
-		39: {
-			Fchi: float64(0.8417968420618669),
-			Fclo: float64(1.1286283062565865e-17),
-		},
-		40: {
-			Fchi: float64(0.8457030568173808),
-			Fclo: float64(5.643595964448442e-18),
-		},
-		41: {
-			Fchi: float64(0.8496093725173733),
-			Fclo: -Float64FromFloat64(2.1687834632368187e-17),
-		},
-		42: {
-			Fchi: float64(0.8535155534462677),
-			Fclo: -Float64FromFloat64(2.2548234217914977e-17),
-		},
-		43: {
-			Fchi: float64(0.8574219432077146),
-			Fclo: float64(4.683260556353139e-17),
-		},
-		44: {
-			Fchi: float64(0.8613281129443706),
-			Fclo: float64(2.5148296884122795e-17),
-		},
-		45: {
-			Fchi: float64(0.8652342893532053),
-			Fclo: -Float64FromFloat64(8.672187570949467e-18),
-		},
-		46: {
-			Fchi: float64(0.8691405397938828),
-			Fclo: -Float64FromFloat64(1.2576268285559751e-17),
-		},
-		47: {
-			Fchi: float64(0.8730468608194392),
-			Fclo: -Float64FromFloat64(2.9930851265148e-17),
-		},
-		48: {
-			Fchi: float64(0.8769530685783117),
-			Fclo: float64(4.814801507681644e-17),
-		},
-		49: {
-			Fchi: float64(0.8808593488818101),
-			Fclo: -Float64FromFloat64(9.10549533611022e-18),
-		},
-		50: {
-			Fchi: float64(0.8847655593409667),
-			Fclo: -Float64FromFloat64(3.512414651620766e-17),
-		},
-		51: {
-			Fchi: float64(0.888671840226208),
-			Fclo: float64(3.555261815374023e-17),
-		},
-		52: {
-			Fchi: float64(0.8925780870017613),
-			Fclo: float64(1.692380503540994e-17),
-		},
-		53: {
-			Fchi: float64(0.8964844367374554),
-			Fclo: -Float64FromFloat64(1.0837881791715702e-17),
-		},
-		54: {
-			Fchi: float64(0.9003905608862683),
-			Fclo: float64(5.2900545724138363e-17),
-		},
-		55: {
-			Fchi: float64(0.9042968358682077),
-			Fclo: float64(5.3330721088784517e-17),
-		},
-		56: {
-			Fchi: float64(0.9082031671057441),
-			Fclo: float64(1.8640040753232978e-17),
-		},
-		57: {
-			Fchi: float64(0.9121093993305497),
-			Fclo: float64(4.467972832054075e-17),
-		},
-		58: {
-			Fchi: float64(0.9160155849026457),
-			Fclo: -Float64FromFloat64(5.216213419585033e-18),
-		},
-		59: {
-			Fchi: float64(0.9199219622862499),
-			Fclo: -Float64FromFloat64(2.7324731032846873e-17),
-		},
-		60: {
-			Fchi: float64(0.9238281880717143),
-			Fclo: -Float64FromFloat64(1.7769263393434193e-17),
-		},
-		61: {
-			Fchi: float64(0.9277343012727929),
-			Fclo: float64(4.943363080817441e-17),
-		},
-		62: {
-			Fchi: float64(0.9316407021562788),
-			Fclo: float64(4.164434042024055e-17),
-		},
-		63: {
-			Fchi: float64(0.935546825207466),
-			Fclo: float64(1.3011820859795741e-17),
-		},
-		64: {
-			Fchi: float64(0.9394530312562943),
-			Fclo: -Float64FromFloat64(2.7332907838481398e-17),
-		},
-		65: {
-			Fchi: float64(0.9433593066844669),
-			Fclo: float64(2.342133170803292e-17),
-		},
-		66: {
-			Fchi: float64(0.9472655994038329),
-			Fclo: float64(1.6478717480487438e-17),
-		},
-		67: {
-			Fchi: float64(0.9511718313032721),
-			Fclo: -Float64FromFloat64(5.19608290131499e-18),
-		},
-		68: {
-			Fchi: float64(0.9550781578218178),
-			Fclo: -Float64FromFloat64(3.5565573220579e-17),
-		},
-		69: {
-			Fchi: float64(0.9589843147339043),
-			Fclo: float64(2.0816772146458738e-17),
-		},
-		70: {
-			Fchi: float64(0.9628906735633685),
-			Fclo: -Float64FromFloat64(3.471962826146841e-18),
-		},
-		71: {
-			Fchi: float64(0.9667968893972092),
-			Fclo: -Float64FromFloat64(3.68646834472642e-17),
-		},
-		72: {
-			Fchi: float64(0.9707031054025779),
-			Fclo: -Float64FromFloat64(3.4674108076868834e-18),
-		},
-		73: {
-			Fchi: float64(0.9746094325494931),
-			Fclo: float64(4.598152624774392e-17),
-		},
-		74: {
-			Fchi: float64(0.9785156054582722),
-			Fclo: float64(4.553145752392568e-17),
-		},
-		75: {
-			Fchi: float64(0.9824218687812282),
-			Fclo: -Float64FromFloat64(7.811259169418978e-18),
-		},
-		76: {
-			Fchi: float64(0.9863280690752917),
-			Fclo: float64(2.0375615178047467e-17),
-		},
-		77: {
-			Fchi: float64(0.9902342909546034),
-			Fclo: -Float64FromFloat64(1.344597043422914e-17),
-		},
-		78: {
-			Fchi: float64(0.9941406780264008),
-			Fclo: float64(1.51853723695054e-17),
-		},
-		79: {
-			Fchi: float64(0.9980468598715558),
-			Fclo: -Float64FromFloat64(1.301926039598001e-17),
-		},
-		80: {
-			Fchi: float64(1.0039062067717412),
-			Fclo: -Float64FromFloat64(4.596120641744973e-17),
-		},
-		81: {
-			Fchi: float64(1.0117187035281372),
-			Fclo: -Float64FromFloat64(8.152405002665349e-17),
-		},
-		82: {
-			Fchi: float64(1.0195312424919558),
-			Fclo: float64(8.239927014757811e-17),
-		},
-		83: {
-			Fchi: float64(1.0273437641634193),
-			Fclo: float64(3.122851005327045e-17),
-		},
-		84: {
-			Fchi: float64(1.0351562274561221),
-			Fclo: -Float64FromFloat64(1.3010212611128995e-17),
-		},
-		85: {
-			Fchi: float64(1.0429687539123276),
-			Fclo: -Float64FromFloat64(5.984116688633458e-17),
-		},
-		86: {
-			Fchi: float64(1.0507812561238108),
-			Fclo: float64(2.860923854822335e-17),
-		},
-		87: {
-			Fchi: float64(1.0585937308350133),
-			Fclo: -Float64FromFloat64(1.9962944508904598e-17),
-		},
-		88: {
-			Fchi: float64(1.0664062936992642),
-			Fclo: float64(5.291469130309099e-17),
-		},
-		89: {
-			Fchi: float64(1.0742187309945372),
-			Fclo: float64(1.0321575006732523e-16),
-		},
-		90: {
-			Fchi: float64(1.082031301537134),
-			Fclo: float64(9.021194373419119e-17),
-		},
-		91: {
-			Fchi: float64(1.0898438063644336),
-			Fclo: float64(5.202798992357953e-17),
-		},
-		92: {
-			Fchi: float64(1.0976562356711468),
-			Fclo: float64(5.898318482500785e-17),
-		},
-		93: {
-			Fchi: float64(1.1054688179463226),
-			Fclo: float64(8.846377690653252e-17),
-		},
-		94: {
-			Fchi: float64(1.113281220803328),
-			Fclo: -Float64FromFloat64(9.529455965212574e-18),
-		},
-		95: {
-			Fchi: float64(1.1210937073167315),
-			Fclo: float64(6.765080709377787e-17),
-		},
-		96: {
-			Fchi: float64(1.1289062967338532),
-			Fclo: float64(1.0929327370933015e-16),
-		},
-		97: {
-			Fchi: float64(1.1367187631150848),
-			Fclo: float64(6.938570551230516e-17),
-		},
-		98: {
-			Fchi: float64(1.1445312490244826),
-			Fclo: float64(1.908841015045148e-17),
-		},
-		99: {
-			Fchi: float64(1.1523437096203593),
-			Fclo: float64(2.7744504138979832e-17),
-		},
-		100: {
-			Fchi: float64(1.1601563266482477),
-			Fclo: -Float64FromFloat64(1.5621964097491672e-17),
-		},
-		101: {
-			Fchi: float64(1.1679688257483505),
-			Fclo: -Float64FromFloat64(6.4191661495975e-17),
-		},
-		102: {
-			Fchi: float64(1.1757811754697645),
-			Fclo: -Float64FromFloat64(4.336465165059268e-17),
-		},
-		103: {
-			Fchi: float64(1.183593793665613),
-			Fclo: -Float64FromFloat64(3.8159292551356396e-17),
-		},
-		104: {
-			Fchi: float64(1.1914062331617676),
-			Fclo: -Float64FromFloat64(2.94933042768015e-17),
-		},
-		105: {
-			Fchi: float64(1.1992187450577771),
-			Fclo: -Float64FromFloat64(6.244142916351348e-17),
-		},
-		106: {
-			Fchi: float64(1.2070312971249755),
-			Fclo: float64(7.458644622627413e-17),
-		},
-		107: {
-			Fchi: float64(1.2148438169965134),
-			Fclo: float64(2.7760519266147807e-17),
-		},
-		108: {
-			Fchi: float64(1.222656225220801),
-			Fclo: -Float64FromFloat64(7.025106921079665e-17),
-		},
-		109: {
-			Fchi: float64(1.2304687681290862),
-			Fclo: float64(3.7292622364618835e-17),
-		},
-		110: {
-			Fchi: float64(1.2382812116234925),
-			Fclo: float64(2.2558949940652082e-17),
-		},
-		111: {
-			Fchi: float64(1.2460936706149877),
-			Fclo: float64(8.499368944400665e-17),
-		},
-		112: {
-			Fchi: float64(1.2539063289686938),
-			Fclo: float64(1.039515474644361e-17),
-		},
-		113: {
-			Fchi: float64(1.2617188367227732),
-			Fclo: float64(3.297262223275499e-17),
-		},
-		114: {
-			Fchi: float64(1.2695311590462317),
-			Fclo: float64(4.509883253594155e-17),
-		},
-		115: {
-			Fchi: float64(1.277343660657941),
-			Fclo: -Float64FromFloat64(7.546987371769545e-17),
-		},
-		116: {
-			Fchi: float64(1.2851561882963496),
-			Fclo: float64(9.454295598818184e-17),
-		},
-		117: {
-			Fchi: float64(1.2929686521915196),
-			Fclo: -Float64FromFloat64(7.28545609119749e-17),
-		},
-		118: {
-			Fchi: float64(1.3007813359167737),
-			Fclo: -Float64FromFloat64(8.934357651462802e-17),
-		},
-		119: {
-			Fchi: float64(1.3085938093753886),
-			Fclo: float64(8.15257059458102e-17),
-		},
-		120: {
-			Fchi: float64(1.3164063202609564),
-			Fclo: float64(6.946341460765881e-18),
-		},
-		121: {
-			Fchi: float64(1.3242188320313901),
-			Fclo: -Float64FromFloat64(7.892731380721676e-17),
-		},
-		122: {
-			Fchi: float64(1.3320311786874468),
-			Fclo: -Float64FromFloat64(4.3384657500713545e-17),
-		},
-		123: {
-			Fchi: float64(1.3398436880573092),
-			Fclo: float64(9.627577954598792e-17),
-		},
-		124: {
-			Fchi: float64(1.3476563390295309),
-			Fclo: float64(4.2492400590204517e-17),
-		},
-		125: {
-			Fchi: float64(1.3554687641043626),
-			Fclo: -Float64FromFloat64(1.0843419551446047e-16),
-		},
-		126: {
-			Fchi: float64(1.3632813590971713),
-			Fclo: -Float64FromFloat64(8.50172782472025e-17),
-		},
-		127: {
-			Fchi: float64(1.3710936595522603),
-			Fclo: -Float64FromFloat64(7.110627206162922e-17),
 		},
 	},
 }
@@ -153239,4 +152509,4 @@ var Xstdout = uintptr(unsafe.Pointer(&X__stdout_FILE))
 
 var __ccgo_ts = (*reflect.StringHeader)(unsafe.Pointer(&__ccgo_ts1)).Data
 
-var __ccgo_ts1 = "\x00/bin:/usr/bin\x00%s\x008b \xd0\xc1\xd2\xcf\xcc\xd8\x00$2a$00$abcdefghijklmnopqrstuu\x00\xff\xa334\xff\xff\xff\xa3345\x00*\x00\x80\xff\x80\x01 \x7f\x81\x80\x80\r\n\xff\x7f \x81 test\x00_0.../9Zz\x00_0.../9ZzX7iSJNd21sU\x00\x80x\x00\x80x22/wK52ZKGA\x00x\x00$1$\x00$5$\x00rounds=\x00rounds=%u$\x00$5$%s%.*s$\x00$6$\x00$6$%s%.*s$\x00toupper\x00tolower\x00assembler statements not supported\x00atomic_arch.h\x00__stack_chk_fail\x00Assertion failed: %s (%s: %s: %d)\n\x00infinity\x00nan\x00\x00\x01\x02\x04\a\x03\x06\x05\x00/proc/self/fd/\x00UTF-8\x00NLSPATH\x00LANG\x00_.@\x00.@\x00%\x00bindtextdomain\x00messages\x00%s/%.*s%.*s/%s/%s.mo\x00\x00n!=1;\x00Plural-Forms:\x00nplurals=\x00plural=\x00dcngettext\x00Ê̄Ê̌ê̄ê̌\x00utf8\x00ASCII\x00C\x00LC_ALL\x00C.UTF-8\x00POSIX\x00MUSL_LOCPATH\x00.\x00%*.*f\x00fma\x00/\x00ffsll\x00MSGVERB\x00label\x00severity\x00text\x00action\x00tag\x00HALT: \x00ERROR: \x00WARNING: \x00INFO: \x00/dev/console\x00: \x00\nTO FIX: \x00 \x00%s%s%s%s%s%s%s%s\n\x00PWD\x00: unrecognized option: \x00: option requires an argument: \x00: option does not take an argument: \x00: option is ambiguous: \x00%*[^\n]%*[\n]\x00 %n%*[^ \t]%n %n%*[^ \t]%n %n%*[^ \t]%n %n%*[^ \t]%n %d %d\x00%s\t%s\t%s\t%s\t%d\t%d\n\x00/dev/ptmx\x00/dev/pts/%d\x00%b %e %T\x00<%d>%s %n%s%s%.0d%s: \x00[\x00]\x00%.*s\x00/dev/shm/\x00%.2X\x00:%.2X\x00%d.%d.%d.%d.in-addr.arpa\x00ip6.arpa\x00/etc/hosts\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff\x00/etc/services\x00/udp\x00/tcp\x00tcp\x00udp\x00%s%s%s\n\x00%d.%d.%d.%d\x00%x:%x:%x:%x:%x:%x:%x:%x\x00%x:%x:%x:%x:%x:%x:%d.%d.%d.%d\x00:0\x00/etc/resolv.conf\x00options\x00ndots:\x00attempts:\x00timeout:\x00nameserver\x00domain\x00search\x00127.0.0.1\x00/etc/group\x00rbe\x00/etc/passwd\x00/dev/null\x00re\x00r\x00%s:%s:%u:\x00,\x00%s%s\x00%s:%s:%u:%u:%s:%s:%s\n\x00%s:%s:%.*ld:%.*ld:%.*ld:%.*ld:%.*ld:%.*ld:%.*lu\n\x00PATH\x00/usr/local/bin:/bin:/usr/bin\x00HOME\x00\t\x00\n\x00\r\x00\f\x00\a\x00\x1b\x00[[:alnum:]_]\x00[^[:alnum:]_]\x00[[:space:]]\x00[^[:space:]]\x00[[:digit:]]\x00[^[:digit:]]\x00__libc_sigaction\x00rwa\x00locking_getc\x00locking_putc\x00__do_orphaned_stdio_locks\x00ftrylockfile\x00/tmp\x00temp\x00w+\x00-0X+0X 0X-0x+0x 0x\x00inf\x00INF\x00NAN\x00-+   0X0x\x00(null)\x00%*s\x00%%%s%s%s%s%s*.*%c%c\x00#\x00+\x00-\x000\x00\x00\x00\x00\x00%.*s%.0d%s%c%%lln\x00%*\x00%.*e\x00%.*f\x00000000000000000\x00%.*g\x00@\x00\x00\x00\x00\x00\x00\x00XXXXXX\x00TZ\x00/etc/localtime\x00UTC\x00GMT\x00TZif\x00%.3s %.3s%3d %.2d:%.2d:%.2d %d\n\x00__asctime_r\x00DATEMSK\x00%m/%d/%y\x00%Y-%m-%d\x00%H:%M\x00%H:%M:%S\x00+%lld\x00%+.4ld\x00%lld\x00%*lld\x00%0*lld\x00timer_delete\x00/dev/tty\x00LOGNAME\x00"
+var __ccgo_ts1 = "\x00/bin:/usr/bin\x00%s\x008b \xd0\xc1\xd2\xcf\xcc\xd8\x00$2a$00$abcdefghijklmnopqrstuu\x00\xff\xa334\xff\xff\xff\xa3345\x00*\x00\x80\xff\x80\x01 \x7f\x81\x80\x80\r\n\xff\x7f \x81 test\x00_0.../9Zz\x00_0.../9ZzX7iSJNd21sU\x00\x80x\x00\x80x22/wK52ZKGA\x00x\x00$1$\x00$5$\x00rounds=\x00rounds=%u$\x00$5$%s%.*s$\x00$6$\x00$6$%s%.*s$\x00toupper\x00tolower\x00Assertion failed: %s (%s: %s: %d)\n\x00infinity\x00nan\x00\x00\x01\x02\x04\a\x03\x06\x05\x00/proc/self/fd/\x00UTF-8\x00NLSPATH\x00LANG\x00_.@\x00.@\x00%\x00assembler statements not supported\x00atomic_arch.h\x00bindtextdomain\x00messages\x00%s/%.*s%.*s/%s/%s.mo\x00\x00n!=1;\x00Plural-Forms:\x00nplurals=\x00plural=\x00dcngettext\x00Ê̄Ê̌ê̄ê̌\x00utf8\x00ASCII\x00C\x00LC_ALL\x00C.UTF-8\x00POSIX\x00MUSL_LOCPATH\x00.\x00%*.*f\x00/\x00MSGVERB\x00label\x00severity\x00text\x00action\x00tag\x00HALT: \x00ERROR: \x00WARNING: \x00INFO: \x00/dev/console\x00: \x00\nTO FIX: \x00 \x00%s%s%s%s%s%s%s%s\n\x00PWD\x00: unrecognized option: \x00: option requires an argument: \x00: option does not take an argument: \x00: option is ambiguous: \x00%*[^\n]%*[\n]\x00 %n%*[^ \t]%n %n%*[^ \t]%n %n%*[^ \t]%n %n%*[^ \t]%n %d %d\x00%s\t%s\t%s\t%s\t%d\t%d\n\x00/dev/ptmx\x00/dev/pts/%d\x00%b %e %T\x00<%d>%s %n%s%s%.0d%s: \x00[\x00]\x00%.*s\x00/dev/shm/\x00%.2X\x00:%.2X\x00%d.%d.%d.%d.in-addr.arpa\x00ip6.arpa\x00/etc/hosts\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff\x00/etc/services\x00/udp\x00/tcp\x00tcp\x00udp\x00%s%s%s\n\x00%d.%d.%d.%d\x00%x:%x:%x:%x:%x:%x:%x:%x\x00%x:%x:%x:%x:%x:%x:%d.%d.%d.%d\x00:0\x00/etc/resolv.conf\x00options\x00ndots:\x00attempts:\x00timeout:\x00nameserver\x00domain\x00search\x00127.0.0.1\x00/etc/group\x00rbe\x00/etc/passwd\x00/dev/null\x00re\x00r\x00%s:%s:%u:\x00,\x00%s%s\x00%s:%s:%u:%u:%s:%s:%s\n\x00%s:%s:%.*ld:%.*ld:%.*ld:%.*ld:%.*ld:%.*ld:%.*lu\n\x00PATH\x00/usr/local/bin:/bin:/usr/bin\x00HOME\x00\t\x00\n\x00\r\x00\f\x00\a\x00\x1b\x00[[:alnum:]_]\x00[^[:alnum:]_]\x00[[:space:]]\x00[^[:space:]]\x00[[:digit:]]\x00[^[:digit:]]\x00__libc_sigaction\x00rwa\x00locking_getc\x00locking_putc\x00__do_orphaned_stdio_locks\x00ftrylockfile\x00/tmp\x00temp\x00w+\x00-0X+0X 0X-0x+0x 0x\x00inf\x00INF\x00NAN\x00-+   0X0x\x00(null)\x00%*s\x00%%%s%s%s%s%s*.*%c%c\x00#\x00+\x00-\x000\x00\x00\x00\x00\x00%.*s%.0d%s%c%%lln\x00%*\x00%.*e\x00%.*f\x00000000000000000\x00%.*g\x00@\x00\x00\x00\x00\x00\x00\x00XXXXXX\x00TZ\x00/etc/localtime\x00UTC\x00GMT\x00TZif\x00%.3s %.3s%3d %.2d:%.2d:%.2d %d\n\x00DATEMSK\x00%m/%d/%y\x00%Y-%m-%d\x00%H:%M\x00%H:%M:%S\x00+%lld\x00%+.4ld\x00%lld\x00%*lld\x00%0*lld\x00timer_delete\x00/dev/tty\x00LOGNAME\x00"

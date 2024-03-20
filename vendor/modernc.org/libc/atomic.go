@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build linux && amd64
+//go:build linux && (amd64 || loong64)
 
 package libc // import "modernc.org/libc/v2"
 
@@ -45,6 +45,11 @@ func _a_ctz_l(tls *TLS, x ulong) int32 {
 	}
 
 	return int32(bits.TrailingZeros32(uint32(x)))
+}
+
+// static inline int a_ctz_64(uint64_t x)
+func _a_ctz_64(tls *TLS, x uint64) int32 {
+	return int32(bits.TrailingZeros64(x))
 }
 
 func AtomicAddFloat32(addr *float32, delta float32) (new float32) {
