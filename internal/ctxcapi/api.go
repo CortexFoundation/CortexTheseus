@@ -1797,6 +1797,11 @@ func (api *PrivateFsAPI) SeedingLocal(filePath string, isLinkMode bool) (string,
 	return api.b.SeedingLocal(filePath, isLinkMode)
 }
 
+// Simple Seed Local File In TorrentFs Instance
+func (api *PrivateFsAPI) SimpleSeeding(filePath string) (string, error) {
+	return api.b.SeedingLocal(filePath, false)
+}
+
 // Pause Local Seed From TorrentFs Instance
 func (api *PrivateFsAPI) PauseLocalSeed(ih string) error {
 	return api.b.PauseLocalSeed(ih)

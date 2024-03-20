@@ -853,6 +853,11 @@ web3._extend({
                         call: 'fs_seedingLocal',
                         params: 2,
                 }),
+	new web3._extend.Method({
+                        name: 'simpleSeeding',
+                        call: 'fs_simpleSeeding',
+                        params: 1,
+                }),
         new web3._extend.Method({
                         name: 'pauseLocalSeed',
                         call: 'fs_pauseLocalSeed',
