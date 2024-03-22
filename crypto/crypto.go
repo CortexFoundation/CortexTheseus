@@ -288,7 +288,5 @@ func PubkeyToAddress(p ecdsa.PublicKey) common.Address {
 }
 
 func zeroBytes(bytes []byte) {
-	for i := range bytes {
-		bytes[i] = 0
-	}
+	clear(bytes)
 }
