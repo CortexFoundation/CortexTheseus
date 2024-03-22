@@ -144,8 +144,8 @@ type Torrent struct {
 	_readerNowPieces       bitmap.Bitmap
 	_readerReadaheadPieces bitmap.Bitmap
 
-	// A cache of pieces we need to get. Calculated from various piece and
-	// file priorities and completion states elsewhere.
+	// A cache of pieces we need to get. Calculated from various piece and file priorities and
+	// completion states elsewhere. Includes piece data and piece v2 hashes.
 	_pendingPieces roaring.Bitmap
 	// A cache of completed piece indices.
 	_completedPieces roaring.Bitmap
@@ -232,7 +232,7 @@ func (t *Torrent) readerReadaheadPieces() bitmap.Bitmap {
 }
 
 func (t *Torrent) ignorePieceForRequests(i pieceIndex) bool {
-	return !t.wantPieceIndex(i)
+	return t.piece(i).ignoreForRequests()
 }
 
 // Returns a channel that is closed when the Torrent is closed.
@@ -425,22 +425,26 @@ func (t *Torrent) makePieces() {
 	}
 }
 
-func (t *Torrent) AddPieceLayers(layers map[string]string) (err error) {
+func (t *Torrent) addPieceLayersLocked(layers map[string]string) (errs []error) {
 	if layers == nil {
 		return
 	}
+files:
 	for _, f := range *t.files {
 		if !f.piecesRoot.Ok {
-			err = fmt.Errorf("no piece root set for file %v", f)
-			return
+			err := fmt.Errorf("no piece root set for file %v", f)
+			errs = append(errs, err)
+			continue files
 		}
 		compactLayer, ok := layers[string(f.piecesRoot.Value[:])]
 		var hashes [][32]byte
 		if ok {
+			var err error
 			hashes, err = merkle.CompactLayerToSliceHashes(compactLayer)
 			if err != nil {
 				err = fmt.Errorf("bad piece layers for file %q: %w", f, err)
-				return
+				errs = append(errs, err)
+				continue files
 			}
 		} else if f.length > t.info.PieceLength {
 			// BEP 52 is pretty strongly worded about this, even though we should be able to
@@ -452,21 +456,30 @@ func (t *Torrent) AddPieceLayers(layers map[string]string) (err error) {
 			hashes = [][32]byte{f.piecesRoot.Value}
 		}
 		if len(hashes) != f.numPieces() {
-			err = fmt.Errorf("file %q: got %v hashes expected %v", f, len(hashes), f.numPieces())
-			return
+			errs = append(
+				errs,
+				fmt.Errorf("file %q: got %v hashes expected %v", f, len(hashes), f.numPieces()),
+			)
+			continue files
+		}
+		root := merkle.RootWithPadHash(hashes, metainfo.HashForPiecePad(t.info.PieceLength))
+		if root != f.piecesRoot.Value {
+			errs = append(errs, fmt.Errorf("%v: expected hash %x got %x", f, f.piecesRoot.Value, root))
+			continue files
 		}
 		for i := range f.numPieces() {
 			pi := f.BeginPieceIndex() + i
 			p := t.piece(pi)
-			// See Torrent.onSetInfo. We want to trigger an initial check if appropriate, if we
-			// didn't yet have a piece hash (can occur with v2 when we don't start with piece
-			// layers).
-			if !p.hashV2.Set(hashes[i]).Ok && p.hash == nil {
-				t.queueInitialPieceCheck(pi)
-			}
+			p.setV2Hash(hashes[i])
 		}
 	}
-	return nil
+	return
+}
+
+func (t *Torrent) AddPieceLayers(layers map[string]string) (errs []error) {
+	t.cl.lock()
+	defer t.cl.unlock()
+	return t.addPieceLayersLocked(layers)
 }
 
 // Returns the index of the first file containing the piece. files must be
@@ -678,7 +691,7 @@ func (t *Torrent) name() string {
 
 func (t *Torrent) pieceState(index pieceIndex) (ret PieceState) {
 	p := &t.pieces[index]
-	ret.Priority = t.piecePriority(index)
+	ret.Priority = p.effectivePriority()
 	ret.Completion = p.completion()
 	ret.QueuedForHash = p.queuedForHash()
 	ret.Hashing = p.hashing
@@ -927,7 +940,7 @@ func (t *Torrent) newMetaInfo() metainfo.MetaInfo {
 	return metainfo.MetaInfo{
 		CreationDate: time.Now().Unix(),
 		Comment:      "dynamic metainfo from client",
-		CreatedBy:    "go.torrent",
+		CreatedBy:    "https://github.com/anacrolix/torrent",
 		AnnounceList: t.metainfo.UpvertedAnnounceList().Clone(),
 		InfoBytes: func() []byte {
 			if t.haveInfo() {
@@ -943,6 +956,7 @@ func (t *Torrent) newMetaInfo() metainfo.MetaInfo {
 			}
 			return ret
 		}(),
+		PieceLayers: t.pieceLayers(),
 	}
 }
 
@@ -1170,7 +1184,7 @@ func (t *Torrent) hashPiece(piece pieceIndex) (
 	var written int64
 	written, err = storagePiece.WriteTo(io.MultiWriter(writers...))
 	if err == nil && written != int64(p.length()) {
-		err = io.ErrShortWrite
+		err = fmt.Errorf("wrote %v bytes from storage, piece has length %v", written, p.length())
 	}
 	if logPieceContents {
 		t.logger.WithDefaultLevel(log.Debug).Printf("hashed %q with copy err %v", examineBuf.Bytes(), err)
@@ -1411,10 +1425,10 @@ func (t *Torrent) updatePiecePriorityNoTriggers(piece pieceIndex) (pendingChange
 		// request order.
 		t.updatePieceRequestOrderPiece(piece)
 	}
-	p := &t.pieces[piece]
-	newPrio := p.uncachedPriority()
+	p := t.piece(piece)
+	newPrio := p.effectivePriority()
 	// t.logger.Printf("torrent %p: piece %d: uncached priority: %v", t, piece, newPrio)
-	if newPrio == PiecePriorityNone {
+	if newPrio == PiecePriorityNone && p.haveHash() {
 		return t._pendingPieces.CheckedRemove(uint32(piece))
 	} else {
 		return t._pendingPieces.CheckedAdd(uint32(piece))
@@ -1474,10 +1488,6 @@ func (t *Torrent) forReaderOffsetPieces(f func(begin, end pieceIndex) (more bool
 		}
 	}
 	return true
-}
-
-func (t *Torrent) piecePriority(piece pieceIndex) piecePriority {
-	return t.piece(piece).uncachedPriority()
 }
 
 func (t *Torrent) pendRequest(req RequestIndex) {
@@ -3173,4 +3183,35 @@ func (t *Torrent) getFileByPiecesRoot(hash [32]byte) *File {
 		}
 	}
 	return nil
+}
+
+func (t *Torrent) pieceLayers() (pieceLayers map[string]string) {
+	if t.files == nil {
+		return
+	}
+	files := *t.files
+	g.MakeMapWithCap(&pieceLayers, len(files))
+file:
+	for _, f := range files {
+		if !f.piecesRoot.Ok {
+			continue
+		}
+		key := f.piecesRoot.Value
+		var value strings.Builder
+		for i := f.BeginPieceIndex(); i < f.EndPieceIndex(); i++ {
+			hashOpt := t.piece(i).hashV2
+			if !hashOpt.Ok {
+				// All hashes must be present. This implementation should handle missing files, so move on to the next file.
+				continue file
+			}
+			value.Write(hashOpt.Value[:])
+		}
+		if value.Len() == 0 {
+			// Non-empty files are not recorded in piece layers.
+			continue
+		}
+		// If multiple files have the same root that shouldn't matter.
+		pieceLayers[string(key[:])] = value.String()
+	}
+	return
 }

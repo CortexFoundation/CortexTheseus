@@ -451,7 +451,7 @@ func Xabort(tls *TLS) {
 
 type lock struct {
 	sync.Mutex
-	cnt int
+	waiters int
 }
 
 var (
@@ -459,20 +459,36 @@ var (
 	locks   = map[uintptr]*lock{}
 )
 
+/*
+
+	T1		T2
+
+	lock(&foo)			// foo: 0 -> 1
+
+			lock(&foo)	// foo: 1 -> 2
+
+	unlock(&foo)			// foo: 2 -> 1, non zero means waiter(s) active
+
+			unlock(&foo)	// foo: 1 -> 0
+
+*/
+
 func ___lock(tls *TLS, p uintptr) {
 	if atomic.AddInt32((*int32)(unsafe.Pointer(p)), 1) == 1 {
 		return
 	}
 
+	// foo was already acquired by some other C thread.
 	locksMu.Lock()
 	l := locks[p]
 	if l == nil {
 		l = &lock{}
 		locks[p] = l
+		l.Lock()
 	}
-	l.cnt++
+	l.waiters++
 	locksMu.Unlock()
-	l.Lock()
+	l.Lock() // Wait for T1 to release foo. (X below)
 }
 
 func ___unlock(tls *TLS, p uintptr) {
@@ -480,14 +496,20 @@ func ___unlock(tls *TLS, p uintptr) {
 		return
 	}
 
+	// Some other C thread is waiting for foo.
 	locksMu.Lock()
 	l := locks[p]
-	l.cnt--
-	if l.cnt == 0 {
+	if l == nil {
+		// We are T1 and we got the locksMu locked before T2.
+		l = &lock{waiters: 1}
+		l.Lock()
+	}
+	l.Unlock() // Release foo, T2 may now lock it. (X above)
+	l.waiters--
+	if l.waiters == 0 { // we are T2
 		delete(locks, p)
 	}
 	locksMu.Unlock()
-	l.Unlock()
 }
 
 type lockedFile struct {

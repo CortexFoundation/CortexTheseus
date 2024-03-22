@@ -48,6 +48,10 @@ func X__builtin_abs(t *TLS, j int32) int32 {
 	return Xabs(t, j)
 }
 
+func X__builtin_ctz(t *TLS, n uint32) int32 {
+	return int32(mbits.TrailingZeros32(n))
+}
+
 func X__builtin_clz(t *TLS, n uint32) int32 {
 	return int32(mbits.LeadingZeros32(n))
 }
@@ -416,4 +420,20 @@ func X__builtin_isprint(tls *TLS, c int32) (r int32) {
 
 func X__builtin_isblank(tls *TLS, c int32) (r int32) {
 	return Xisblank(tls, c)
+}
+
+func X__builtin_trunc(tls *TLS, x float64) (r float64) {
+	return Xtrunc(tls, x)
+}
+
+func X__builtin_hypot(tls *TLS, x float64, y float64) (r float64) {
+	return Xhypot(tls, x, y)
+}
+
+func X__builtin_fmax(tls *TLS, x float64, y float64) (r float64) {
+	return Xfmax(tls, x, y)
+}
+
+func X__builtin_fmin(tls *TLS, x float64, y float64) (r float64) {
+	return Xfmin(tls, x, y)
 }

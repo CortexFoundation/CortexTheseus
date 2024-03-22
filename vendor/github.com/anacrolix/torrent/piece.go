@@ -31,7 +31,7 @@ type Piece struct {
 	storageCompletionOk bool
 
 	publicPieceState PieceState
-	priority         piecePriority
+	priority         PiecePriority
 	// Availability adjustment for this piece relative to len(Torrent.connsWithAllPieces). This is
 	// incremented for any piece a peer has when a peer has a piece, Torrent.haveInfo is true, and
 	// the Peer isn't recorded in Torrent.connsWithAllPieces.
@@ -205,14 +205,15 @@ func (p *Piece) torrentEndOffset() int64 {
 	return p.torrentBeginOffset() + int64(p.t.usualPieceSize())
 }
 
-func (p *Piece) SetPriority(prio piecePriority) {
+func (p *Piece) SetPriority(prio PiecePriority) {
 	p.t.cl.lock()
 	defer p.t.cl.unlock()
 	p.priority = prio
 	p.t.updatePiecePriority(p.index, "Piece.SetPriority")
 }
 
-func (p *Piece) purePriority() (ret piecePriority) {
+// This is priority based only on piece, file and reader priorities.
+func (p *Piece) purePriority() (ret PiecePriority) {
 	for _, f := range p.files {
 		ret.Raise(f.prio)
 	}
@@ -229,8 +230,13 @@ func (p *Piece) purePriority() (ret piecePriority) {
 	return
 }
 
-func (p *Piece) uncachedPriority() (ret piecePriority) {
-	if p.hashing || p.marking || p.t.pieceComplete(p.index) || p.queuedForHash() {
+func (p *Piece) ignoreForRequests() bool {
+	return p.hashing || p.marking || !p.haveHash() || p.t.pieceComplete(p.index) || p.queuedForHash()
+}
+
+// This is the priority adjusted for piece state like completion, hashing etc.
+func (p *Piece) effectivePriority() (ret PiecePriority) {
+	if p.ignoreForRequests() {
 		return PiecePriorityNone
 	}
 	return p.purePriority()
@@ -273,4 +279,23 @@ func (p *Piece) mustGetOnlyFile() *File {
 		panic(len(p.files))
 	}
 	return p.files[0]
+}
+
+// Sets the v2 piece hash, queuing initial piece checks if appropriate.
+func (p *Piece) setV2Hash(v2h [32]byte) {
+	// See Torrent.onSetInfo. We want to trigger an initial check if appropriate, if we didn't yet
+	// have a piece hash (can occur with v2 when we don't start with piece layers).
+	if !p.hashV2.Set(v2h).Ok && p.hash == nil {
+		p.t.updatePieceCompletion(p.index)
+		p.t.queueInitialPieceCheck(p.index)
+	}
+}
+
+// Can't do certain things if we don't know the piece hash.
+func (p *Piece) haveHash() bool {
+	return p.hash != nil || p.hashV2.Ok
+}
+
+func pieceStateAllowsMessageWrites(p *Piece, pc *PeerConn) bool {
+	return (pc.shouldRequestHashes() && !p.haveHash()) || !p.t.ignorePieceForRequests(p.index)
 }

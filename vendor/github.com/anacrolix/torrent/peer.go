@@ -225,9 +225,9 @@ func (cn *Peer) statusFlags() (ret string) {
 	if cn.choking {
 		c('c')
 	}
-	c('-')
+	c(':')
 	ret += cn.connectionFlags()
-	c('-')
+	c(':')
 	if cn.peerInterested {
 		c('i')
 	}

@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -41,7 +42,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/gorilla/websocket"
-	"golang.org/x/exp/slog"
 )
 
 func init() {
