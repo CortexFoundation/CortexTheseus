@@ -32,7 +32,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"golang.org/x/exp/slog"
+
+	"log/slog"
 )
 
 var (

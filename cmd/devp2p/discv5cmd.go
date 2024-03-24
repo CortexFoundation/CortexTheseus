@@ -21,8 +21,8 @@ import (
 	"os"
 	"time"
 
-	"golang.org/x/exp/slog"
 	"gopkg.in/urfave/cli.v1"
+	"log/slog"
 
 	"github.com/CortexFoundation/CortexTheseus/cmd/devp2p/internal/v5test"
 	"github.com/CortexFoundation/CortexTheseus/common"
