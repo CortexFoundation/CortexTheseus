@@ -20,6 +20,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log/slog"
 	"math/rand"
 	"net/http/httptest"
 	"os"
@@ -37,7 +38,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p/simulations/adapters"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/mattn/go-colorable"
-	"golang.org/x/exp/slog"
 )
 
 func TestMain(m *testing.M) {

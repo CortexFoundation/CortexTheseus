@@ -18,13 +18,13 @@ package storage
 import (
 	"bytes"
 	"fmt"
+	"log/slog"
 	"os"
 	"testing"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/mattn/go-colorable"
-	"golang.org/x/exp/slog"
 )
 
 func TestEncryption(t *testing.T) {

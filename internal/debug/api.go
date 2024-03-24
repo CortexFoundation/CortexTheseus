@@ -24,6 +24,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"log/slog"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -35,7 +36,6 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"golang.org/x/exp/slog"
 )
 
 // Handler is the global debugging handler.

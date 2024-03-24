@@ -21,6 +21,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net"
 	"os"
 	"strconv"
@@ -34,7 +35,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p/enr"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 	"github.com/gorilla/websocket"
-	"golang.org/x/exp/slog"
 )
 
 // Node represents a node in a simulation network which is created by a

@@ -1248,6 +1248,7 @@ func (tm *TorrentManager) activeLoop() {
 									}
 								} else if t.Cited() < 0 {
 									tm.Dropping(i)
+									log.Info("File timeout dropped", "ih", i, "request", t.BytesRequested(), "complete", t.Torrent.BytesCompleted(), "total", t.Length(), "status", t.Status())
 									return
 								} else {
 									t.CitedDec()

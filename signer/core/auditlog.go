@@ -19,6 +19,7 @@ package core
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"os"
 
 	"github.com/CortexFoundation/CortexTheseus/accounts"
@@ -26,7 +27,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/internal/ctxcapi"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"golang.org/x/exp/slog"
 )
 
 type AuditLogger struct {
