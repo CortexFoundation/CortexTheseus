@@ -81,6 +81,7 @@ type Backend interface {
 
 	// Fs API
 	SeedingLocal(filePath string, isLinkMode bool) (string, error)
+	SimpleSeeding(filePath string) (string, error)
 	PauseLocalSeed(ih string) error
 	ResumeLocalSeed(ih string) error
 	ListAllTorrents() map[string]map[string]int

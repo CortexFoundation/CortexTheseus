@@ -66,6 +66,10 @@ func (b *CortexAPIBackend) SeedingLocal(filePath string, isLinkMode bool) (strin
 	return b.ctxc.synapse.SeedingLocal(filePath, isLinkMode)
 }
 
+func (b *CortexAPIBackend) SimpleSeeding(filePath string) (string, error) {
+	return b.ctxc.synapse.SeedingLocal(filePath, false)
+}
+
 func (b *CortexAPIBackend) PauseLocalSeed(ih string) error {
 	return b.ctxc.synapse.PauseLocalSeed(ih)
 }
