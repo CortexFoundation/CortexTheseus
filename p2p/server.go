@@ -38,7 +38,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p/enr"
 	"github.com/CortexFoundation/CortexTheseus/p2p/nat"
 	"github.com/CortexFoundation/CortexTheseus/p2p/netutil"
-	"golang.org/x/exp/slices"
+	"slices"
 )
 
 const (

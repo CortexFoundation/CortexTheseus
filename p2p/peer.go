@@ -31,7 +31,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enr"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
-	"golang.org/x/exp/slices"
+	"slices"
 )
 
 var (

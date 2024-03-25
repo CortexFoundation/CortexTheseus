@@ -24,7 +24,7 @@ import (
 	"testing"
 
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
-	"golang.org/x/exp/slices"
+	"slices"
 )
 
 // TestDatabaseSuite runs a suite of tests against a KeyValueStore database

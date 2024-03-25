@@ -28,7 +28,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/trie"
 	"golang.org/x/crypto/sha3"
-	"golang.org/x/exp/slices"
+	"slices"
 )
 
 type fuzzer struct {

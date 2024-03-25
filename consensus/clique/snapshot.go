@@ -22,7 +22,7 @@ import (
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
-	"golang.org/x/exp/slices"
+	"slices"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"

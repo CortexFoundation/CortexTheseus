@@ -30,7 +30,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/cespare/cp"
 	"github.com/davecgh/go-spew/spew"
-	"golang.org/x/exp/slices"
+	"slices"
 )
 
 var (

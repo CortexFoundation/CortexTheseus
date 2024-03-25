@@ -25,7 +25,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"golang.org/x/exp/slices"
+	"slices"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"

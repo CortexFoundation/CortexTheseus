@@ -29,7 +29,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enr"
-	"golang.org/x/exp/slices"
+	"slices"
 )
 
 var nullNode *enode.Node
