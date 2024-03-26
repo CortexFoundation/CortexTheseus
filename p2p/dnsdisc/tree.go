@@ -30,7 +30,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p/enr"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"golang.org/x/crypto/sha3"
-	"golang.org/x/exp/slices"
+	"slices"
 )
 
 // Tree is a merkle tree of node records.

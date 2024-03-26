@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"sort"
 
-	"golang.org/x/exp/slices"
+	"slices"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 )

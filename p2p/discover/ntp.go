@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"golang.org/x/exp/slices"
+	"slices"
 )
 
 const (

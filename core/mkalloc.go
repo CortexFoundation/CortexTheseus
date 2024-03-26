@@ -32,7 +32,7 @@ import (
 	"os"
 	"strconv"
 
-	"golang.org/x/exp/slices"
+	"slices"
 
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/rlp"

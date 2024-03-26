@@ -23,7 +23,7 @@ import (
 	"os"
 	"time"
 
-	"golang.org/x/exp/slices"
+	"slices"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"

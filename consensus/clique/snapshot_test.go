@@ -28,7 +28,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"golang.org/x/exp/slices"
+	"slices"
 )
 
 // testerAccountPool is a pool to maintain currently active tester accounts,

@@ -28,7 +28,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb/memorydb"
-	"golang.org/x/exp/slices"
+	"slices"
 )
 
 func init() {

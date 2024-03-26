@@ -27,7 +27,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/event"
-	"golang.org/x/exp/slices"
+	"slices"
 )
 
 var testSigData = make([]byte, 32)

@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"golang.org/x/exp/slices"
+	"slices"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
