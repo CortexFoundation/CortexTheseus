@@ -2,7 +2,7 @@
 # with Go source code. If you know what GOPATH is then you probably
 # don't need to bother with make.
 
-.PHONY: cortex android ios cortex-cross cvm all test clean
+.PHONY: cortex all test clean lint devtools help
 .PHONY: cortex-linux cortex-linux-386 cortex-linux-amd64 cortex-linux-mips64 cortex-linux-mips64le
 .PHONY: cortex-linux-arm cortex-linux-arm-5 cortex-linux-arm-6 cortex-linux-arm-7 cortex-linux-arm64
 .PHONY: cortex-darwin cortex-darwin-386 cortex-darwin-amd64
