@@ -809,7 +809,7 @@ type CallArgs struct {
 	Data     hexutil.Bytes   `json:"data"`
 }
 
-func (args *CallArgs) ToMessage(globalGasCap uint64, baseFee *big.Int) (*core.Message, error) {
+func (args *CallArgs) ToMessage(globalGasCap uint64, baseFee *big.Int) *core.Message {
 	// Reject invalid combinations of pre- and post-1559 fee styles
 	//if args.GasPrice != nil && (args.MaxFeePerGas != nil || args.MaxPriorityFeePerGas != nil) {
 	//	return types.Message{}, errors.New("both gasPrice and (maxFeePerGas or maxPriorityFeePerGas) specified")
@@ -845,8 +845,7 @@ func (args *CallArgs) ToMessage(globalGasCap uint64, baseFee *big.Int) (*core.Me
 		Data:              args.Data,
 		SkipAccountChecks: true,
 	}
-	return msg, nil
-
+	return msg
 }
 
 func newRevertError(revert []byte) *revertError {
@@ -912,10 +911,7 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 
 	// Create new call message
 	msg := types.NewMessage(addr, args.To, 0, args.Value.ToInt(), gas, gasPrice, args.Data, false)*/
-	msg, err := args.ToMessage(s.b.RPCGasCap(), nil) //types.NewMessage(addr, args.To, 0, args.Value.ToInt(), gas, gasPrice, args.Data, false)
-	if err != nil {
-		return nil, err
-	}
+	msg := args.ToMessage(s.b.RPCGasCap(), nil) //types.NewMessage(addr, args.To, 0, args.Value.ToInt(), gas, gasPrice, args.Data, false)
 
 	// Setup context so it may be cancelled the call has completed
 	// or, in case of unmetered gas, setup a context with a timeout.
