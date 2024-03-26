@@ -307,6 +307,7 @@ func (s *stateObject) updateTrie() Trie {
 	}
 
 	usedStorage := make([][]byte, 0, len(s.pendingStorage))
+	var deletions []common.Hash
 	for key, value := range s.pendingStorage {
 		// Skip noop changes, persist actual changes
 		if value == s.originStorage[key] {
@@ -316,19 +317,16 @@ func (s *stateObject) updateTrie() Trie {
 		s.originStorage[key] = value
 
 		var v []byte
-		if (value == common.Hash{}) {
-			if err := tr.TryDelete(key[:]); err != nil {
-				s.setError(err)
-				return nil
-			}
-			//continue
-		} else {
+		if (value != common.Hash{}) {
 			// Encoding []byte cannot fail, ok to ignore the error.
 			v, _ = rlp.EncodeToBytes(common.TrimLeftZeroes(value[:]))
 			if err := tr.TryUpdate(key[:], v); err != nil {
 				s.setError(err)
 				return nil
 			}
+			s.db.StorageUpdated += 1
+		} else {
+			deletions = append(deletions, key)
 		}
 		// Cache the mutated storage slots until commit
 		if storage == nil {
@@ -359,6 +357,14 @@ func (s *stateObject) updateTrie() Trie {
 		}
 		// Cache the items for preloading
 		usedStorage = append(usedStorage, common.CopyBytes(key[:])) // Copy needed for closure
+	}
+	for _, key := range deletions {
+		if err := tr.TryDelete(key[:]); err != nil {
+			s.setError(err)
+			return nil
+		}
+
+		s.db.StorageDeleted += 1
 	}
 	if s.db.prefetcher != nil {
 		s.db.prefetcher.used(s.data.Root, usedStorage)
