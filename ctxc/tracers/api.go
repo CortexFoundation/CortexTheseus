@@ -898,10 +898,7 @@ func (api *API) TraceCall(ctx context.Context, args ctxcapi.CallArgs, blockNrOrH
 		config.BlockOverrides.Apply(&vmctx)
 	}
 	// Execute the trace
-	msg, err := args.ToMessage(api.backend.RPCGasCap(), nil)
-	if err != nil {
-		return nil, err
-	}
+	msg := args.ToMessage(api.backend.RPCGasCap(), nil)
 
 	var traceConfig *TraceConfig
 	if config != nil {
