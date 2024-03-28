@@ -122,6 +122,11 @@ type StateDB struct {
 	SnapshotStorageReads time.Duration
 	SnapshotCommits      time.Duration
 	TrieDBCommits        time.Duration
+
+	AccountUpdated int
+	StorageUpdated int
+	AccountDeleted int
+	StorageDeleted int
 }
 
 // Create a new state from a given trie.
@@ -562,13 +567,12 @@ func (s *StateDB) updateStateObject(obj *stateObject) {
 }
 
 // deleteStateObject removes the given object from the state trie.
-func (s *StateDB) deleteStateObject(obj *stateObject) {
+func (s *StateDB) deleteStateObject(addr common.Address) {
 	// Track the amount of time wasted on deleting the account from the trie
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.AccountUpdates += time.Since(start) }(time.Now())
 	}
 	//stateObject.deleted = true
-	addr := obj.Address()
 	if err := s.trie.TryDeleteAccount(addr[:]); err != nil {
 		s.setError(fmt.Errorf("deleteStateObject (%x) error: %v", addr[:], err))
 	}
@@ -996,13 +1000,19 @@ func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 		}
 	}
 	usedAddrs := make([][]byte, 0, len(s.stateObjectsPending))
+	var deletedAddrs []common.Address
 	for addr := range s.stateObjectsPending {
-		if obj := s.stateObjects[addr]; obj.deleted {
-			s.deleteStateObject(obj)
-		} else {
+		if obj := s.stateObjects[addr]; !obj.deleted {
 			s.updateStateObject(obj)
+			s.AccountUpdated += 1
+		} else {
+			deletedAddrs = append(deletedAddrs, obj.address)
 		}
 		usedAddrs = append(usedAddrs, common.CopyBytes(addr[:])) // Copy needed for closure
+	}
+	for _, deletedAddr := range deletedAddrs {
+		s.deleteStateObject(deletedAddr)
+		s.AccountDeleted += 1
 	}
 	if prefetcher != nil {
 		prefetcher.used(s.originalRoot, usedAddrs)
@@ -1085,6 +1095,12 @@ func (s *StateDB) Commit(block uint64, deleteEmptyObjects bool) (common.Hash, er
 	if metrics.EnabledExpensive {
 		s.AccountCommits += time.Since(start)
 	}
+	accountUpdatedMeter.Mark(int64(s.AccountUpdated))
+	storageUpdatedMeter.Mark(int64(s.StorageUpdated))
+	accountDeletedMeter.Mark(int64(s.AccountDeleted))
+	storageDeletedMeter.Mark(int64(s.StorageDeleted))
+	s.AccountUpdated, s.AccountDeleted = 0, 0
+	s.StorageUpdated, s.StorageDeleted = 0, 0
 	// If snapshotting is enabled, update the snapshot tree with this new version
 	if s.snap != nil {
 		if metrics.EnabledExpensive {
