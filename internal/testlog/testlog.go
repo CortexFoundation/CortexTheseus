@@ -98,7 +98,11 @@ func LoggerWithHandler(t *testing.T, handler slog.Handler) log.Logger {
 	}
 }
 
-func (l *logger) Write(level slog.Level, msg string, ctx ...any) {}
+func (l *logger) Handler() slog.Handler {
+	return l.l.Handler()
+}
+
+func (l *logger) Write(level slog.Level, msg string, ctx ...interface{}) {}
 
 func (l *logger) Enabled(ctx context.Context, level slog.Level) bool {
 	return l.l.Enabled(ctx, level)
