@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"maps"
 	"math/big"
 	"time"
 
@@ -48,12 +49,7 @@ func (s Storage) String() (str string) {
 }
 
 func (s Storage) Copy() Storage {
-	cpy := make(Storage)
-	for key, value := range s {
-		cpy[key] = value
-	}
-
-	return cpy
+	return maps.Clone(s)
 }
 
 // stateObject represents an Cortex account which is being modified.
