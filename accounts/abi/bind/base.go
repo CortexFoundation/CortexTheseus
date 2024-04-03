@@ -344,7 +344,7 @@ func (c *BoundContract) FilterLogs(opts *FilterOpts, name string, query ...[]any
 	if err != nil {
 		return nil, nil, err
 	}
-	sub, err := event.NewSubscription(func(quit <-chan struct{}) error {
+	sub := event.NewSubscription(func(quit <-chan struct{}) error {
 		for _, log := range buff {
 			select {
 			case logs <- log:
@@ -353,11 +353,8 @@ func (c *BoundContract) FilterLogs(opts *FilterOpts, name string, query ...[]any
 			}
 		}
 		return nil
-	}), nil
+	})
 
-	if err != nil {
-		return nil, nil, err
-	}
 	return logs, sub, nil
 }
 
