@@ -210,8 +210,8 @@ type Block struct {
 	transactions Transactions
 
 	// caches
-	hash atomic.Value
-	size atomic.Value
+	hash atomic.Pointer[common.Hash]
+	size atomic.Uint64
 
 	// Td is used by package core to store the total difficulty
 	// of the chain up to and including the block.
@@ -395,8 +395,8 @@ func (b *Block) Body() *Body { return &Body{b.transactions, b.uncles} }
 // Size returns the true RLP encoded storage size of the block, either by encoding
 // and returning it, or returning a previsouly cached value.
 func (b *Block) Size() uint64 {
-	if size := b.size.Load(); size != nil {
-		return size.(uint64)
+	if size := b.size.Load(); size > 0 {
+		return size
 	}
 	c := writeCounter(0)
 	rlp.Encode(&c, b)
@@ -449,11 +449,11 @@ func (b *Block) WithBody(transactions []*Transaction, uncles []*Header) *Block {
 // The hash is computed on the first call and cached thereafter.
 func (b *Block) Hash() common.Hash {
 	if hash := b.hash.Load(); hash != nil {
-		return hash.(common.Hash)
+		return *hash
 	}
-	v := b.header.Hash()
-	b.hash.Store(v)
-	return v
+	h := b.header.Hash()
+	b.hash.Store(&h)
+	return h
 }
 
 type Blocks []*Block
