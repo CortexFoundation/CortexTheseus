@@ -135,6 +135,11 @@ func init() {
 // Setup initializes profiling and logging based on the CLI flags.
 // It should be called as early as possible in the program.
 func Setup(ctx *cli.Context) error {
+	//log.SetDefault(log.NewLogger(log.NewTerminalHandlerWithLevel(os.Stderr, log.LevelInfo, true)))
+
+	glogger = log.NewGlogHandler(log.NewTerminalHandlerWithLevel(os.Stderr, log.LevelInfo, true))
+	verbosity := log.FromLegacyLevel(ctx.Int(verbosityFlag.Name))
+	glogger.Verbosity(verbosity)
 	// logging
 	log.SetDefault(log.NewLogger(glogger))
 
