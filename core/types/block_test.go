@@ -22,7 +22,6 @@ import (
 	"hash"
 	"math/big"
 	"reflect"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -68,8 +67,6 @@ func TestBlockEncoding(t *testing.T) {
 		},
 		uncles:       nil,
 		transactions: Transactions{tx1},
-		hash:         atomic.Value{},
-		size:         atomic.Value{},
 		td:           nil,
 		ReceivedAt:   time.Time{},
 		ReceivedFrom: nil,

@@ -58,6 +58,7 @@ type StateDB interface {
 
 	GetState(common.Address, common.Hash) common.Hash
 	SetState(common.Address, common.Hash, common.Hash)
+	GetStorageRoot(addr common.Address) common.Hash
 
 	GetSolidityBytes(common.Address, common.Hash) ([]byte, error)
 
