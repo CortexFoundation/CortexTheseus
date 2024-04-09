@@ -48,7 +48,7 @@ func NewCVMBlockContext(header *types.Header, chain ChainContext, author *common
 	} else {
 		beneficiary = *author
 	}
-	if header.Difficulty.Cmp(common.Big0) == 0 {
+	if header.Difficulty.Sign() == 0 {
 		random = &header.MixDigest
 	}
 	return vm.BlockContext{

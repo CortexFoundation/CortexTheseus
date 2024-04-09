@@ -1472,7 +1472,7 @@ func (bc *BlockChain) addFutureBlock(block *types.Block) error {
 	if block.Time() > max {
 		return fmt.Errorf("future block timestamp %v > allowed %v", block.Time(), max)
 	}
-	if block.Difficulty().Cmp(common.Big0) == 0 {
+	if block.Difficulty().Sign() == 0 {
 		// Never add PoS blocks into the future queue
 		return nil
 	}
