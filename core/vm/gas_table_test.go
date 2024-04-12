@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"errors"
 	"math"
 	"math/big"
 	"testing"
@@ -94,7 +95,7 @@ func TestEIP2200(t *testing.T) {
 		vmenv := NewCVM(vmctx, TxContext{}, statedb, params.AllCuckooProtocolChanges, Config{ExtraEips: []int{2200}})
 
 		_, gas, _, err := vmenv.Call(AccountRef(common.Address{}), address, nil, tt.gaspool, new(big.Int))
-		if err != tt.failure {
+		if !errors.Is(err, tt.failure) {
 			t.Errorf("test %d: failure mismatch: have %v, want %v", i, err, tt.failure)
 		}
 		if used := tt.gaspool - gas; used != tt.used {

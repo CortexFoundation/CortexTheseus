@@ -39,11 +39,12 @@ var (
 	ErrNoCompatibleInterpreter = errors.New("no compatible interpreter")
 	ErrInvalidMetaAuthor       = errors.New("invalid meta author")
 
-	ErrGasUintOverflow     = errors.New("gas uint64 overflow")
-	ErrInvalidJump         = errors.New("invalid jump destination")
-	ErrWriteProtection     = errors.New("write protection")
-	ErrInvalidRetsub       = errors.New("invalid retsub")
-	ErrReturnStackExceeded = errors.New("return stack limit reached")
+	ErrMaxInitCodeSizeExceeded = errors.New("max initcode size exceeded")
+	ErrGasUintOverflow         = errors.New("gas uint64 overflow")
+	ErrInvalidJump             = errors.New("invalid jump destination")
+	ErrWriteProtection         = errors.New("write protection")
+	ErrInvalidRetsub           = errors.New("invalid retsub")
+	ErrReturnStackExceeded     = errors.New("return stack limit reached")
 
 	ErrDownloading    = errors.New("downloading")
 	ErrFileNotExist   = errors.New("file not exist")

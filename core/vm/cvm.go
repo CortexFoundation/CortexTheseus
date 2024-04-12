@@ -436,7 +436,10 @@ func (cvm *CVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 
 	// Ensure there's no existing contract already at the designated address
 	contractHash := cvm.StateDB.GetCodeHash(address)
-	if cvm.StateDB.GetNonce(address) != 0 || (contractHash != (common.Hash{}) && contractHash != types.EmptyCodeHash) {
+	storageRoot := cvm.StateDB.GetStorageRoot(address)
+	if cvm.StateDB.GetNonce(address) != 0 ||
+		(contractHash != (common.Hash{}) && contractHash != types.EmptyCodeHash) || // non-empty code
+		(storageRoot != (common.Hash{}) && storageRoot != types.EmptyRootHash) { // non-empty storage
 		return nil, common.Address{}, 0, nil, ErrContractAddressCollision
 	}
 	// Create a new account on the state
