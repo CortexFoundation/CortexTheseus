@@ -546,7 +546,7 @@ func TestThrottling65Full(t *testing.T) { testThrottling(t, 65, FullSync) }
 func TestThrottling65Fast(t *testing.T) { testThrottling(t, 65, FastSync) }
 
 func testThrottling(t *testing.T, protocol int, mode SyncMode) {
-	t.Parallel()
+	//t.Parallel()
 	tester := newTester()
 
 	// Create a long block chain to download and the tester
@@ -1496,7 +1496,7 @@ func testFakedSyncProgress(t *testing.T, protocol int, mode SyncMode) {
 // This test reproduces an issue where unexpected deliveries would
 // block indefinitely if they arrived at the right time.
 func TestDeliverHeadersHang(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	testCases := []struct {
 		protocol int
