@@ -541,8 +541,10 @@ func testCanonicalSynchronisation(t *testing.T, protocol int, mode SyncMode) {
 // func TestThrottling63Full(t *testing.T) { testThrottling(t, 63, FullSync) }
 // func TestThrottling63Fast(t *testing.T) { testThrottling(t, 63, FastSync) }
 func TestThrottling64Full(t *testing.T) { testThrottling(t, 64, FullSync) }
-//func TestThrottling64Fast(t *testing.T) { testThrottling(t, 64, FastSync) }
+
+// func TestThrottling64Fast(t *testing.T) { testThrottling(t, 64, FastSync) }
 func TestThrottling65Full(t *testing.T) { testThrottling(t, 65, FullSync) }
+
 //func TestThrottling65Fast(t *testing.T) { testThrottling(t, 65, FastSync) }
 
 func testThrottling(t *testing.T, protocol int, mode SyncMode) {
