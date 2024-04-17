@@ -120,12 +120,12 @@ func (cuckoo *Cuckoo) Seal(chain consensus.ChainHeaderReader, block *types.Block
 func (cuckoo *Cuckoo) Verify(block Block, hashNoNonce common.Hash, shareDiff *big.Int, solution *types.BlockSolution) (bool, bool, int64) {
 
 	blockDiff := block.Difficulty()
-	if blockDiff.Cmp(common.Big0) == 0 {
+	if blockDiff.Sign() == 0 {
 		log.Info("invalid block difficulty")
 		return false, false, 0
 	}
 
-	if shareDiff.Cmp(common.Big0) == 0 {
+	if shareDiff.Sign() == 0 {
 		log.Info("invalid share difficulty")
 		return false, false, 0
 	}
