@@ -54,8 +54,8 @@ type HeaderChain struct {
 	chainDb       ctxcdb.Database
 	genesisHeader *types.Header
 
-	currentHeader     atomic.Value // Current head of the header chain (may be above the block chain!)
-	currentHeaderHash common.Hash  // Hash of the current head of the header chain (prevent recomputing all the time)
+	currentHeader     atomic.Pointer[types.Header] // Current head of the header chain (maybe above the block chain!)
+	currentHeaderHash common.Hash                  // Hash of the current head of the header chain (prevent recomputing all the time)
 
 	headerCache *lru.Cache[common.Hash, *types.Header]
 	tdCache     *lru.Cache[common.Hash, *big.Int] // most recent total difficulties
@@ -560,7 +560,7 @@ func (hc *HeaderChain) GetCanonicalHash(number uint64) common.Hash {
 // CurrentHeader retrieves the current head header of the canonical chain. The
 // header is retrieved from the HeaderChain's internal cache.
 func (hc *HeaderChain) CurrentHeader() *types.Header {
-	return hc.currentHeader.Load().(*types.Header)
+	return hc.currentHeader.Load()
 }
 
 // SetCurrentHeader sets the current head header of the canonical chain.
