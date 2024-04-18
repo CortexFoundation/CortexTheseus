@@ -1448,7 +1448,11 @@ func (d *Downloader) processHeaders(origin uint64, td *big.Int) error {
 		}
 	}()
 	// Wait for batches of headers to process
-	gotHeaders := false
+	var (
+		gotHeaders = false
+		timer      = time.NewTimer(time.Second)
+	)
+	defer timer.Stop()
 
 	for {
 		select {
@@ -1557,11 +1561,12 @@ func (d *Downloader) processHeaders(origin uint64, td *big.Int) error {
 				if mode == FullSync || mode == FastSync {
 					// If we've reached the allowed number of pending headers, stall a bit
 					for d.queue.PendingBlocks() >= maxQueuedHeaders || d.queue.PendingReceipts() >= maxQueuedHeaders {
+						timer.Reset(time.Second)
 						select {
 						case <-d.cancelCh:
 							rollbackErr = errCanceled
 							return errCanceled
-						case <-time.After(time.Second):
+						case <-timer.C:
 						}
 					}
 					// Otherwise insert the headers for content retrieval
@@ -1672,7 +1677,9 @@ func (d *Downloader) processFastSyncContent() error {
 	var (
 		oldPivot *fetchResult   // Locked in pivot block, might change eventually
 		oldTail  []*fetchResult // Downloaded content after the pivot
+		timer    = time.NewTimer(time.Second)
 	)
+	defer timer.Stop()
 	for {
 		// Wait for the next batch of downloaded data to be available, and if the pivot
 		// block became stale, move the goalpost
@@ -1748,6 +1755,7 @@ func (d *Downloader) processFastSyncContent() error {
 				oldPivot = P
 			}
 			// Wait for completion, occasionally checking for pivot staleness
+			timer.Reset(time.Second)
 			select {
 			case <-sync.done:
 				if sync.err != nil {
@@ -1758,7 +1766,7 @@ func (d *Downloader) processFastSyncContent() error {
 				}
 				oldPivot = nil
 
-			case <-time.After(time.Second):
+			case <-timer.C:
 				oldTail = afterP
 				continue
 			}
