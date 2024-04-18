@@ -279,8 +279,14 @@ func (b *CortexAPIBackend) GetPoolTransaction(hash common.Hash) *types.Transacti
 }
 
 func (b *CortexAPIBackend) GetTransaction(ctx context.Context, txHash common.Hash) (*types.Transaction, common.Hash, uint64, uint64, error) {
-	tx, blockHash, blockNumber, index := rawdb.ReadTransaction(b.ctxc.ChainDb(), txHash)
-	return tx, blockHash, blockNumber, index, nil
+	lookup, tx, err := b.ctxc.blockchain.GetTransactionLookup(txHash)
+	if err != nil {
+		return nil, common.Hash{}, 0, 0, err
+	}
+	if lookup == nil || tx == nil {
+		return nil, common.Hash{}, 0, 0, nil
+	}
+	return tx, lookup.BlockHash, lookup.BlockIndex, lookup.Index, nil
 }
 
 func (b *CortexAPIBackend) GetPoolNonce(ctx context.Context, addr common.Address) (uint64, error) {
