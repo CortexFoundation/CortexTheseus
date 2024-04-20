@@ -1140,23 +1140,18 @@ func opPush1(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext)
 
 // make push instruction function
 func makePush(size uint64, pushByteSize int) executionFunc {
-	return func(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-		codeLen := len(callContext.Contract.Code)
-
-		startMin := codeLen
-		if int(*pc+1) < startMin {
-			startMin = int(*pc + 1)
-		}
-
-		endMin := codeLen
-		if startMin+pushByteSize < endMin {
-			endMin = startMin + pushByteSize
-		}
-
-		integer := new(uint256.Int)
-		callContext.Stack.push(integer.SetBytes(common.RightPadBytes(
-			callContext.Contract.Code[startMin:endMin], pushByteSize)))
-
+	return func(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+		var (
+			codeLen = len(scope.Contract.Code)
+			start   = min(codeLen, int(*pc+1))
+			end     = min(codeLen, start+pushByteSize)
+		)
+		scope.Stack.push(new(uint256.Int).SetBytes(
+			common.RightPadBytes(
+				scope.Contract.Code[start:end],
+				pushByteSize,
+			)),
+		)
 		*pc += size
 		return nil, nil
 	}
