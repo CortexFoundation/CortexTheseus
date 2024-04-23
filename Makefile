@@ -149,7 +149,7 @@ clean-all: clean-clib clean
 
 devtools:
 	env GOBIN= go install golang.org/x/tools/cmd/stringer@latest
-	env GOBIN= go install github.com/fjl/gencodec@latest
+	env GOBIN= go install github.com/fjl/gencodec
 	env GOGIN= go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 	env GOBIN= go install ./cmd/abigen
 	@type "npm" 2> /dev/null || echo 'Please install node.js and npm'

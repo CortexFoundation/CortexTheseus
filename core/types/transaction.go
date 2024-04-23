@@ -31,7 +31,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 )
 
-//go:generate go run github.com/fjl/gencodec@latest -type txdata -field-override txdataMarshaling -out gen_tx_json.go
+//go:generate go run github.com/fjl/gencodec -type txdata -field-override txdataMarshaling -out gen_tx_json.go
 
 var (
 	ErrInvalidSig = errors.New("invalid transaction v, r, s values")
