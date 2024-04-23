@@ -50,6 +50,7 @@ var (
 	ErrChunkTypeUnhandled            = errors.New("unhandled chunk type")
 	ErrHandshakeInitAck              = errors.New("handshake failed (INIT ACK)")
 	ErrHandshakeCookieEcho           = errors.New("handshake failed (COOKIE ECHO)")
+	ErrTooManyReconfigRequests       = errors.New("too many outstanding reconfig requests")
 )
 
 const (
@@ -99,6 +100,19 @@ const (
 // other constants
 const (
 	acceptChSize = 16
+	// avgChunkSize is an estimate of the average chunk size. There is no theory behind
+	// this estimate.
+	avgChunkSize = 500
+	// minTSNOffset is the minimum offset over the cummulative TSN that we will enqueue
+	// irrespective of the receive buffer size
+	// see Association.getMaxTSNOffset
+	minTSNOffset = 2000
+	// maxTSNOffset is the maximum offset over the cummulative TSN that we will enqueue
+	// irrespective of the receive buffer size
+	// see Association.getMaxTSNOffset
+	maxTSNOffset = 40000
+	// maxReconfigRequests is the maximum number of reconfig requests we will keep outstanding
+	maxReconfigRequests = 1000
 )
 
 func getAssociationStateString(a uint32) string {
@@ -150,6 +164,7 @@ type Association struct {
 	peerVerificationTag    uint32
 	myVerificationTag      uint32
 	state                  uint32
+	initialTSN             uint32
 	myNextTSN              uint32 // nextTSN
 	peerLastTSN            uint32 // lastRcvdTSN
 	minTSN2MeasureRTT      uint32 // for RTT measurement
@@ -325,6 +340,7 @@ func createAssociation(config Config) *Association {
 		mtu:                     initialMTU,
 		maxPayloadSize:          initialMTU - (commonHeaderSize + dataChunkHeaderSize),
 		myVerificationTag:       globalMathRandomGenerator.Uint32(),
+		initialTSN:              tsn,
 		myNextTSN:               tsn,
 		myNextRSN:               tsn,
 		minTSN2MeasureRTT:       tsn,
@@ -1110,6 +1126,23 @@ func (a *Association) SRTT() float64 {
 	return a.srtt.Load().(float64) //nolint:forcetypeassert
 }
 
+// getMaxTSNOffset returns the maximum offset over the current cummulative TSN that
+// we are willing to enqueue. Limiting the maximum offset limits the number of
+// tsns we have in the payloadQueue map. This ensures that we don't use too much space in
+// the map itself. This also ensures that we keep the bytes utilized in the receive
+// buffer within a small multiple of the user provided max receive buffer size.
+func (a *Association) getMaxTSNOffset() uint32 {
+	// 4 is a magic number here. There is no theory behind this.
+	offset := (a.maxReceiveBufferSize * 4) / avgChunkSize
+	if offset < minTSNOffset {
+		offset = minTSNOffset
+	}
+	if offset > maxTSNOffset {
+		offset = maxTSNOffset
+	}
+	return offset
+}
+
 func setSupportedExtensions(init *chunkInitCommon) {
 	// nolint:godox
 	// TODO RFC5061 https://tools.ietf.org/html/rfc6525#section-5.2
@@ -1378,7 +1411,7 @@ func (a *Association) handleData(d *chunkPayloadData) []*packet {
 		a.name, d.tsn, d.immediateSack, len(d.userData))
 	a.stats.incDATAs()
 
-	canPush := a.payloadQueue.canPush(d, a.peerLastTSN)
+	canPush := a.payloadQueue.canPush(d, a.peerLastTSN, a.getMaxTSNOffset())
 	if canPush {
 		s := a.getOrCreateStream(d.streamIdentifier, true, PayloadTypeUnknown)
 		if s == nil {
@@ -2110,15 +2143,39 @@ func (a *Association) handleReconfigParam(raw param) (*packet, error) {
 	switch p := raw.(type) {
 	case *paramOutgoingResetRequest:
 		a.log.Tracef("[%s] handleReconfigParam (OutgoingResetRequest)", a.name)
+		if a.peerLastTSN < p.senderLastTSN && len(a.reconfigRequests) >= maxReconfigRequests {
+			// We have too many reconfig requests outstanding. Drop the request and let
+			// the peer retransmit. A well behaved peer should only have 1 outstanding
+			// reconfig request.
+			//
+			// RFC 6525: https://www.rfc-editor.org/rfc/rfc6525.html#section-5.1.1
+			//    At any given time, there MUST NOT be more than one request in flight.
+			//    So, if the Re-configuration Timer is running and the RE-CONFIG chunk
+			//    contains at least one request parameter, the chunk MUST be buffered.
+			// chrome: https://chromium.googlesource.com/external/webrtc/+/refs/heads/main/net/dcsctp/socket/stream_reset_handler.cc#271
+			return nil, fmt.Errorf("%w: %d", ErrTooManyReconfigRequests, len(a.reconfigRequests))
+		}
 		a.reconfigRequests[p.reconfigRequestSequenceNumber] = p
 		resp := a.resetStreamsIfAny(p)
 		if resp != nil {
 			return resp, nil
 		}
 		return nil, nil //nolint:nilnil
-
 	case *paramReconfigResponse:
 		a.log.Tracef("[%s] handleReconfigParam (ReconfigResponse)", a.name)
+		if p.result == reconfigResultInProgress {
+			// RFC 6525: https://www.rfc-editor.org/rfc/rfc6525.html#section-5.2.7
+			//
+			//   If the Result field indicates "In progress", the timer for the
+			//   Re-configuration Request Sequence Number is started again.  If
+			//   the timer runs out, the RE-CONFIG chunk MUST be retransmitted
+			//   but the corresponding error counters MUST NOT be incremented.
+			if _, ok := a.reconfigs[p.reconfigResponseSequenceNumber]; ok {
+				a.tReconfig.stop()
+				a.tReconfig.start(a.rtoMgr.getRTO())
+			}
+			return nil, nil //nolint:nilnil
+		}
 		delete(a.reconfigs, p.reconfigResponseSequenceNumber)
 		if len(a.reconfigs) == 0 {
 			a.tReconfig.stop()
@@ -2524,6 +2581,12 @@ func (a *Association) handleChunk(p *packet, c chunk) error {
 func (a *Association) onRetransmissionTimeout(id int, nRtos uint) {
 	a.lock.Lock()
 	defer a.lock.Unlock()
+
+	// TSN hasn't been incremented in 3 attempts. Speculatively
+	// toggle ZeroChecksum because old Pion versions had a broken implementation
+	if a.cumulativeTSNAckPoint+1 == a.initialTSN && nRtos%3 == 0 {
+		a.sendZeroChecksum = !a.sendZeroChecksum
+	}
 
 	if id == timerT1Init {
 		err := a.sendInit()

@@ -473,6 +473,12 @@ func (m *MerkleTree) String() string {
 	return s
 }
 
+func (m *MerkleTree) Purge() {
+	m.Root = nil
+	m.merkleRoot = nil
+	clear(m.Leafs)
+}
+
 func print2DUtil(root *Node, space int) {
 	if root == nil {
 		return

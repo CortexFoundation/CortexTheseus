@@ -14,6 +14,17 @@ import (
 	"github.com/pion/transport/v2/packetio"
 )
 
+type udpMuxedConnAddr struct {
+	ip   [16]byte
+	port uint16
+}
+
+func newUDPMuxedConnAddr(addr *net.UDPAddr) (a udpMuxedConnAddr) {
+	copy(a.ip[:], addr.IP.To16())
+	a.port = uint16(addr.Port)
+	return a
+}
+
 type udpMuxedConnParams struct {
 	Mux       *UDPMuxDefault
 	AddrPool  *sync.Pool
@@ -26,7 +37,7 @@ type udpMuxedConnParams struct {
 type udpMuxedConn struct {
 	params *udpMuxedConnParams
 	// Remote addresses that we have sent to on this conn
-	addresses []string
+	addresses []udpMuxedConnAddr
 
 	// Channel holding incoming packets
 	buf        *packetio.Buffer
@@ -81,7 +92,7 @@ func (c *udpMuxedConn) WriteTo(buf []byte, rAddr net.Addr) (n int, err error) {
 		return 0, io.ErrClosedPipe
 	}
 	// Each time we write to a new address, we'll register it with the mux
-	addr := rAddr.String()
+	addr := newUDPMuxedConnAddr(rAddr.(*net.UDPAddr))
 	if !c.containsAddress(addr) {
 		c.addAddress(addr)
 	}
@@ -127,15 +138,15 @@ func (c *udpMuxedConn) isClosed() bool {
 	}
 }
 
-func (c *udpMuxedConn) getAddresses() []string {
+func (c *udpMuxedConn) getAddresses() []udpMuxedConnAddr {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	addresses := make([]string, len(c.addresses))
+	addresses := make([]udpMuxedConnAddr, len(c.addresses))
 	copy(addresses, c.addresses)
 	return addresses
 }
 
-func (c *udpMuxedConn) addAddress(addr string) {
+func (c *udpMuxedConn) addAddress(addr udpMuxedConnAddr) {
 	c.mu.Lock()
 	c.addresses = append(c.addresses, addr)
 	c.mu.Unlock()
@@ -144,11 +155,11 @@ func (c *udpMuxedConn) addAddress(addr string) {
 	c.params.Mux.registerConnForAddress(c, addr)
 }
 
-func (c *udpMuxedConn) removeAddress(addr string) {
+func (c *udpMuxedConn) removeAddress(addr udpMuxedConnAddr) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	newAddresses := make([]string, 0, len(c.addresses))
+	newAddresses := make([]udpMuxedConnAddr, 0, len(c.addresses))
 	for _, a := range c.addresses {
 		if a != addr {
 			newAddresses = append(newAddresses, a)
@@ -158,7 +169,7 @@ func (c *udpMuxedConn) removeAddress(addr string) {
 	c.addresses = newAddresses
 }
 
-func (c *udpMuxedConn) containsAddress(addr string) bool {
+func (c *udpMuxedConn) containsAddress(addr udpMuxedConnAddr) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	for _, a := range c.addresses {
@@ -203,44 +214,46 @@ func (c *udpMuxedConn) writePacket(data []byte, addr *net.UDPAddr) error {
 }
 
 func encodeUDPAddr(addr *net.UDPAddr, buf []byte) (int, error) {
-	ipData, err := addr.IP.MarshalText()
-	if err != nil {
-		return 0, err
-	}
-	total := 2 + len(ipData) + 2 + len(addr.Zone)
-	if total > len(buf) {
+	total := 1 + len(addr.IP) + 2 + len(addr.Zone)
+	if len(buf) < total {
 		return 0, io.ErrShortBuffer
 	}
 
-	binary.LittleEndian.PutUint16(buf, uint16(len(ipData)))
-	offset := 2
-	n := copy(buf[offset:], ipData)
-	offset += n
+	buf[0] = uint8(len(addr.IP))
+	offset := 1
+
+	copy(buf[offset:], addr.IP)
+	offset += len(addr.IP)
+
 	binary.LittleEndian.PutUint16(buf[offset:], uint16(addr.Port))
 	offset += 2
+
 	copy(buf[offset:], addr.Zone)
 	return total, nil
 }
 
 func decodeUDPAddr(buf []byte) (*net.UDPAddr, error) {
-	addr := net.UDPAddr{}
+	addr := &net.UDPAddr{}
 
-	offset := 0
-	ipLen := int(binary.LittleEndian.Uint16(buf[:2]))
-	offset += 2
 	// Basic bounds checking
-	if ipLen+offset > len(buf) {
+	if len(buf) == 0 || len(buf) < int(buf[0])+3 {
 		return nil, io.ErrShortBuffer
 	}
-	if err := addr.IP.UnmarshalText(buf[offset : offset+ipLen]); err != nil {
-		return nil, err
-	}
-	offset += ipLen
-	addr.Port = int(binary.LittleEndian.Uint16(buf[offset : offset+2]))
-	offset += 2
-	zone := make([]byte, len(buf[offset:]))
-	copy(zone, buf[offset:])
-	addr.Zone = string(zone)
 
-	return &addr, nil
+	ipLen := int(buf[0])
+	offset := 1
+
+	if ipLen == 0 {
+		addr.IP = nil
+	} else {
+		addr.IP = append(addr.IP[:0], buf[offset:offset+ipLen]...)
+		offset += ipLen
+	}
+
+	addr.Port = int(binary.LittleEndian.Uint16(buf[offset:]))
+	offset += 2
+
+	addr.Zone = string(buf[offset:])
+
+	return addr, nil
 }

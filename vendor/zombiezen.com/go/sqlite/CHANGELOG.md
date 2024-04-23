@@ -5,7 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-[Unreleased]: https://github.com/zombiezen/go-sqlite/compare/v1.1.2...main
+[Unreleased]: https://github.com/zombiezen/go-sqlite/compare/v1.2.0...main
+
+## [1.2.0][] - 2024-03-27
+
+Version 1.2.0 adds a `sqlitex.Pool.Take` method
+and improves error messages.
+
+[1.2.0]: https://github.com/zombiezen/go-sqlite/releases/tag/v1.2.0
+
+### Added
+
+- `sqlitex.Pool` has a new method `Take`
+  which returns an `error` along with a `Conn`
+  ([#83](https://github.com/zombiezen/go-sqlite/issues/83)).
+- `sqlite.ErrorOffset` is a new function
+  that returns the SQL byte offset that an error references.
+
+### Changed
+
+- `sqlite.Conn.Prep`, `sqlite.Conn.Prepare`, and `sqlite.Conn.PrepareTransient`
+  now include position information in error messages if available.
+- Many error messages around statement execution changed their format
+  for better readability.
+  Error messages are not stable API and should not be depended on.
+
+### Deprecated
+
+- The `sqlitex.Pool.Get` method has been deprecated
+  in favor of the new `Take` method.
+
+### Fixed
+
+- Error messages no longer duplicate information from their error code
+  (reported in [#84](https://github.com/zombiezen/go-sqlite/issues/84)).
 
 ## [1.1.2][] - 2024-02-14
 
