@@ -444,7 +444,14 @@ func (cvm *CVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	}
 	// Create a new account on the state
 	snapshot := cvm.StateDB.Snapshot()
-	cvm.StateDB.CreateAccount(address)
+	if !cvm.StateDB.Exist(address) {
+		cvm.StateDB.CreateAccount(address)
+	}
+	// CreateContract means that regardless of whether the account previously existed
+	// in the state trie or not, it _now_ becomes created as a _contract_ account.
+	// This is performed _prior_ to executing the initcode,  since the initcode
+	// acts inside that account.
+	cvm.StateDB.CreateContract(address)
 	if cvm.chainRules.IsEIP158 {
 		cvm.StateDB.SetNonce(address, 1)
 	}
