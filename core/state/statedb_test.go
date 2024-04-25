@@ -20,10 +20,12 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"maps"
 	"math"
 	"math/big"
 	"math/rand"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 	"testing/quick"
@@ -406,6 +408,10 @@ func (test *snapshotTest) checkEqual(state, checkstate *StateDB) error {
 		checkeq("GetCode", state.GetCode(addr), checkstate.GetCode(addr))
 		checkeq("GetCodeHash", state.GetCodeHash(addr), checkstate.GetCodeHash(addr))
 		checkeq("GetCodeSize", state.GetCodeSize(addr), checkstate.GetCodeSize(addr))
+		// Check newContract-flag
+		if obj := state.getStateObject(addr); obj != nil {
+			checkeq("IsNewContract", obj.newContract, checkstate.getStateObject(addr).newContract)
+		}
 		// Check storage.
 		if obj := state.getStateObject(addr); obj != nil {
 			state.ForEachStorage(addr, func(key, val common.Hash) bool {
@@ -414,12 +420,49 @@ func (test *snapshotTest) checkEqual(state, checkstate *StateDB) error {
 			checkstate.ForEachStorage(addr, func(key, checkval common.Hash) bool {
 				return checkeq("GetState("+key.Hex()+")", state.GetState(addr, key), checkval)
 			})
+			other := checkstate.getStateObject(addr)
+			// Check dirty storage which is not in trie
+			if !maps.Equal(obj.dirtyStorage, other.dirtyStorage) {
+				print := func(dirty map[common.Hash]common.Hash) string {
+					var keys []common.Hash
+					out := new(strings.Builder)
+					for key := range dirty {
+						keys = append(keys, key)
+					}
+					slices.SortFunc(keys, common.Hash.Cmp)
+					for i, key := range keys {
+						fmt.Fprintf(out, "  %d. %v %v\n", i, key, dirty[key])
+					}
+					return out.String()
+				}
+				return fmt.Errorf("dirty storage err, have\n%v\nwant\n%v",
+					print(obj.dirtyStorage),
+					print(other.dirtyStorage))
+			}
+		}
+		// Check transient storage.
+		{
+			have := state.transientStorage
+			want := checkstate.transientStorage
+			eq := maps.EqualFunc(have, want,
+				func(a Storage, b Storage) bool {
+					return maps.Equal(a, b)
+				})
+			if !eq {
+				return fmt.Errorf("transient storage differs ,have\n%v\nwant\n%v",
+					have.PrettyPrint(),
+					want.PrettyPrint())
+			}
 		}
 		if err != nil {
 			return err
 		}
 	}
-
+	if !checkstate.accessList.Equal(state.accessList) { // Check access lists
+		return fmt.Errorf("AccessLists are wrong, have \n%v\nwant\n%v",
+			checkstate.accessList.PrettyPrint(),
+			state.accessList.PrettyPrint())
+	}
 	if state.GetRefund() != checkstate.GetRefund() {
 		return fmt.Errorf("got GetRefund() == %d, want GetRefund() == %d",
 			state.GetRefund(), checkstate.GetRefund())
@@ -427,6 +470,23 @@ func (test *snapshotTest) checkEqual(state, checkstate *StateDB) error {
 	if !reflect.DeepEqual(state.GetLogs(common.Hash{}, 0, common.Hash{}), checkstate.GetLogs(common.Hash{}, 0, common.Hash{})) {
 		return fmt.Errorf("got GetLogs(common.Hash{}) == %v, want GetLogs(common.Hash{}) == %v",
 			state.GetLogs(common.Hash{}, 0, common.Hash{}), checkstate.GetLogs(common.Hash{}, 0, common.Hash{}))
+	}
+	if !maps.Equal(state.journal.dirties, checkstate.journal.dirties) {
+		getKeys := func(dirty map[common.Address]int) string {
+			var keys []common.Address
+			out := new(strings.Builder)
+			for key := range dirty {
+				keys = append(keys, key)
+			}
+			slices.SortFunc(keys, common.Address.Cmp)
+			for i, key := range keys {
+				fmt.Fprintf(out, "  %d. %v\n", i, key)
+			}
+			return out.String()
+		}
+		have := getKeys(state.journal.dirties)
+		want := getKeys(checkstate.journal.dirties)
+		return fmt.Errorf("dirty-journal set mismatch.\nhave:\n%v\nwant:\n%v\n", have, want)
 	}
 	return nil
 }
