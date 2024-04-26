@@ -268,9 +268,16 @@ func (s *stateObject) setState(key common.Hash, value *common.Hash) {
 func (s *stateObject) finalise(prefetch bool) {
 	slotsToPrefetch := make([][]byte, 0, len(s.dirtyStorage))
 	for key, value := range s.dirtyStorage {
-		s.pendingStorage[key] = value
+		// If the slot is different from its original value, move it into the
+		// pending area to be committed at the end of the block (and prefetch
+		// the pathways).
 		if value != s.originStorage[key] {
+			s.pendingStorage[key] = value
 			slotsToPrefetch = append(slotsToPrefetch, common.CopyBytes(key[:])) // Copy needed for closure
+		} else {
+			// Otherwise, the slot was reverted to its original value, remove it
+			// from the pending area to avoid thrashing the data strutures.
+			delete(s.pendingStorage, key)
 		}
 	}
 	if s.db.prefetcher != nil && prefetch && len(slotsToPrefetch) > 0 && s.data.Root != types.EmptyRootHash {
@@ -367,6 +374,11 @@ func (s *stateObject) updateTrie() Trie {
 		}
 
 		s.db.StorageDeleted += 1
+	}
+	// If no slots were touched, issue a warning as we shouldn't have done all
+	// the above work in the first place
+	if len(usedStorage) == 0 {
+		log.Error("State object update was noop", "addr", s.address, "slots", len(s.pendingStorage))
 	}
 	if s.db.prefetcher != nil {
 		s.db.prefetcher.used(s.data.Root, usedStorage)
