@@ -961,7 +961,12 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64) error {
 	ancestor := from
 	getHeaders(from)
 
-	//mode := d.getMode()
+	headerCheckTimer := time.NewTimer(fsHeaderContCheck)
+	defer headerCheckTimer.Stop()
+
+	headerDelayedTimer := time.NewTimer(fsHeaderContCheck)
+	defer headerDelayedTimer.Stop()
+
 	for {
 		select {
 		case <-d.cancelCh:
@@ -1025,8 +1030,9 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64) error {
 				// Don't abort header fetches while the pivot is downloading
 				if !d.committed.Load() && pivot <= from {
 					p.log.Debug("No headers, waiting for pivot commit")
+					headerCheckTimer.Reset(fsHeaderContCheck)
 					select {
-					case <-time.After(fsHeaderContCheck):
+					case <-headerCheckTimer.C:
 						getHeaders(from)
 						continue
 					case <-d.cancelCh:
@@ -1097,8 +1103,9 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64) error {
 			} else {
 				// No headers delivered, or all of them being delayed, sleep a bit and retry
 				p.log.Trace("All headers delayed, waiting")
+				headerDelayedTimer.Reset(fsHeaderContCheck)
 				select {
-				case <-time.After(fsHeaderContCheck):
+				case <-headerDelayedTimer.C:
 					getHeaders(from)
 					continue
 				case <-d.cancelCh:
