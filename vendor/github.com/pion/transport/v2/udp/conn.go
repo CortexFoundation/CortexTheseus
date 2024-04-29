@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/pion/logging"
 	"github.com/pion/transport/v2/deadline"
 	"github.com/pion/transport/v2/packetio"
 	"golang.org/x/net/ipv4"
@@ -51,6 +52,8 @@ type listener struct {
 
 	readDoneCh chan struct{}
 	errRead    atomic.Value // error
+
+	logger logging.LeveledLogger
 }
 
 // Accept waits for and returns the next connection to the listener.
@@ -151,6 +154,8 @@ type ListenConfig struct {
 	WriteBufferSize int
 
 	Batch BatchIOConfig
+
+	LoggerFactory logging.LoggerFactory
 }
 
 // Listen creates a new listener based on the ListenConfig.
@@ -175,6 +180,13 @@ func (lc *ListenConfig) Listen(network string, laddr *net.UDPAddr) (net.Listener
 		_ = conn.SetWriteBuffer(lc.WriteBufferSize)
 	}
 
+	loggerFactory := lc.LoggerFactory
+	if loggerFactory == nil {
+		loggerFactory = logging.NewDefaultLoggerFactory()
+	}
+
+	logger := loggerFactory.NewLogger("transport")
+
 	l := &listener{
 		pConn:        conn,
 		acceptCh:     make(chan *Conn, lc.Backlog),
@@ -183,6 +195,7 @@ func (lc *ListenConfig) Listen(network string, laddr *net.UDPAddr) (net.Listener
 		acceptFilter: lc.AcceptFilter,
 		connWG:       &sync.WaitGroup{},
 		readDoneCh:   make(chan struct{}),
+		logger:       logger,
 	}
 
 	if lc.Batch.Enable {
@@ -251,6 +264,7 @@ func (l *listener) read() {
 		n, raddr, err := l.pConn.ReadFrom(buf)
 		if err != nil {
 			l.errRead.Store(err)
+			l.logger.Tracef("error reading from connection err=%v", err)
 			return
 		}
 		l.dispatchMsg(raddr, buf[:n])
@@ -263,7 +277,10 @@ func (l *listener) dispatchMsg(addr net.Addr, buf []byte) {
 		return
 	}
 	if ok {
-		_, _ = conn.buffer.Write(buf)
+		_, err := conn.buffer.Write(buf)
+		if err != nil {
+			l.logger.Tracef("error dispatching message addr=%v err=%v", addr, err)
+		}
 	}
 }
 

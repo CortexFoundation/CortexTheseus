@@ -188,14 +188,16 @@ type H264Packet struct {
 	videoDepacketizer
 }
 
-func (p *H264Packet) doPackaging(nalu []byte) []byte {
+func (p *H264Packet) doPackaging(buf, nalu []byte) []byte {
 	if p.IsAVC {
-		naluLength := make([]byte, 4)
-		binary.BigEndian.PutUint32(naluLength, uint32(len(nalu)))
-		return append(naluLength, nalu...)
+		buf = binary.BigEndian.AppendUint32(buf, uint32(len(nalu)))
+		buf = append(buf, nalu...)
+		return buf
 	}
 
-	return append(annexbNALUStartCode, nalu...)
+	buf = append(buf, annexbNALUStartCode...)
+	buf = append(buf, nalu...)
+	return buf
 }
 
 // IsDetectedFinalPacketInSequence returns true of the packet passed in has the
@@ -206,6 +208,14 @@ func (p *H264Packet) IsDetectedFinalPacketInSequence(rtpPacketMarketBit bool) bo
 
 // Unmarshal parses the passed byte slice and stores the result in the H264Packet this method is called upon
 func (p *H264Packet) Unmarshal(payload []byte) ([]byte, error) {
+	if p.zeroAllocation {
+		return payload, nil
+	}
+
+	return p.parseBody(payload)
+}
+
+func (p *H264Packet) parseBody(payload []byte) ([]byte, error) {
 	if len(payload) == 0 {
 		return nil, fmt.Errorf("%w: %d <=0", errShortPacket, len(payload))
 	}
@@ -215,7 +225,7 @@ func (p *H264Packet) Unmarshal(payload []byte) ([]byte, error) {
 	naluType := payload[0] & naluTypeBitmask
 	switch {
 	case naluType > 0 && naluType < 24:
-		return p.doPackaging(payload), nil
+		return p.doPackaging(nil, payload), nil
 
 	case naluType == stapaNALUType:
 		currOffset := int(stapaHeaderSize)
@@ -228,7 +238,7 @@ func (p *H264Packet) Unmarshal(payload []byte) ([]byte, error) {
 				return nil, fmt.Errorf("%w STAP-A declared size(%d) is larger than buffer(%d)", errShortPacket, naluSize, len(payload)-currOffset)
 			}
 
-			result = append(result, p.doPackaging(payload[currOffset:currOffset+naluSize])...)
+			result = p.doPackaging(result, payload[currOffset:currOffset+naluSize])
 			currOffset += naluSize
 		}
 		return result, nil
@@ -251,7 +261,7 @@ func (p *H264Packet) Unmarshal(payload []byte) ([]byte, error) {
 			nalu := append([]byte{}, naluRefIdc|fragmentedNaluType)
 			nalu = append(nalu, p.fuaBuffer...)
 			p.fuaBuffer = nil
-			return p.doPackaging(nalu), nil
+			return p.doPackaging(nil, nalu), nil
 		}
 
 		return []byte{}, nil
