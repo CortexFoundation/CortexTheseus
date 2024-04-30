@@ -32,7 +32,7 @@ const (
 	opNoInput     = 3
 )
 
-//go:generate go run github.com/fjl/gencodec@latest -type FileInfo -out gen_fileinfo_json.go
+//go:generate go run github.com/fjl/gencodec -type FileInfo -out gen_fileinfo_json.go
 //go:generate go run ../rlp/rlpgen -type FileInfo -out gen_fileinfo_rlp.go
 
 type FileInfo struct {
@@ -45,7 +45,7 @@ type FileInfo struct {
 	Relate       []common.Address
 }
 
-//go:generate go run github.com/fjl/gencodec@latest -type Transaction -field-override transactionMarshaling -out gen_tx_json.go
+//go:generate go run github.com/fjl/gencodec -type Transaction -field-override transactionMarshaling -out gen_tx_json.go
 //go:generate go run ../rlp/rlpgen -type Transaction -out gen_tx_rlp.go
 
 type Transaction struct {
@@ -126,7 +126,7 @@ type transactionMarshaling struct {
 	Payload  hexutil.Bytes
 }
 
-//go:generate go run github.com/fjl/gencodec@latest -type Block -field-override blockMarshaling -out gen_block_json.go
+//go:generate go run github.com/fjl/gencodec -type Block -field-override blockMarshaling -out gen_block_json.go
 //go:generate go run ../rlp/rlpgen -type Block -out gen_block_rlp.go
 
 type Block struct {
@@ -140,7 +140,7 @@ type blockMarshaling struct {
 	Number hexutil.Uint64
 }
 
-//go:generate go run github.com/fjl/gencodec@latest -type Receipt -field-override receiptMarshaling -out gen_receipt_json.go
+//go:generate go run github.com/fjl/gencodec -type Receipt -field-override receiptMarshaling -out gen_receipt_json.go
 //go:generate go run ../rlp/rlpgen -type Receipt -out gen_receipt_rlp.go
 type Receipt struct {
 	// Contract Address
@@ -157,7 +157,7 @@ type receiptMarshaling struct {
 	GasUsed hexutil.Uint64
 }
 
-//go:generate go run github.com/fjl/gencodec@latest -type FileMeta -out gen_filemeta_json.go
+//go:generate go run github.com/fjl/gencodec -type FileMeta -out gen_filemeta_json.go
 //go:generate go run ../rlp/rlpgen -type FileMeta -out gen_filemeta_rlp.go
 type FileMeta struct {
 	InfoHash string `json:"infoHash"         gencodec:"required"`
@@ -165,6 +165,15 @@ type FileMeta struct {
 	// The raw size of the file counted in bytes
 	RawSize uint64 `json:"rawSize"          gencodec:"required"`
 	//BlockNum uint64 `json:"BlockNum"         gencodec:"required"`
+}
+
+func (fm *FileMeta) DecodeRLP(s *rlp.Stream) error {
+	var dec FileMeta
+	if err := s.Decode(&dec); err != nil {
+		return err
+	}
+	fm.InfoHash, fm.RawSize = dec.InfoHash, dec.RawSize
+	return nil
 }
 
 // DisplayName ...

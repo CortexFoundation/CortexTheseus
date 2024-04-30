@@ -30,7 +30,7 @@ type InferMeta interface {
 	Comment() string
 }
 
-//go:generate go run github.com/fjl/gencodec@latest -type Meta -out gen_meta_json.go
+//go:generate go run github.com/fjl/gencodec -type Meta -out gen_meta_json.go
 //go:generate go run ../rlp/rlpgen -type Meta -out gen_meta_rlp.go
 
 type Meta struct {
@@ -41,7 +41,7 @@ type Meta struct {
 	BlockNum big.Int        `json:"blockNum"`
 }
 
-//go:generate go run github.com/fjl/gencodec@latest -type ModelMeta -out gen_model_json.go
+//go:generate go run github.com/fjl/gencodec -type ModelMeta -out gen_model_json.go
 //go:generate go run ../rlp/rlpgen -type ModelMeta -out gen_model_rlp.go
 
 type ModelMeta struct {
@@ -57,7 +57,7 @@ type ModelMeta struct {
 	//RawBytes []byte `json:"RawBytes"`
 }
 
-//go:generate go run github.com/fjl/gencodec@latest -type InputMeta -out gen_input_json.go
+//go:generate go run github.com/fjl/gencodec -type InputMeta -out gen_input_json.go
 //go:generate go run ../rlp/rlpgen -type InputMeta -out gen_input_rlp.go
 
 type InputMeta struct {

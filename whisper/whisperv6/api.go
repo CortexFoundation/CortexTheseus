@@ -205,7 +205,7 @@ func (api *PublicWhisperAPI) CancelLightClient(ctx context.Context) bool {
 	return !api.w.LightClientMode()
 }
 
-//go:generate go run github.com/fjl/gencodec@latest -type NewMessage -field-override newMessageOverride -out gen_newmessage_json.go
+//go:generate go run github.com/fjl/gencodec -type NewMessage -field-override newMessageOverride -out gen_newmessage_json.go
 
 // NewMessage represents a new whisper message that is posted through the RPC.
 type NewMessage struct {
@@ -316,7 +316,7 @@ func (api *PublicWhisperAPI) Post(ctx context.Context, req NewMessage) (hexutil.
 	return result, err
 }
 
-//go:generate go run github.com/fjl/gencodec@latest -type Criteria -field-override criteriaOverride -out gen_criteria_json.go
+//go:generate go run github.com/fjl/gencodec -type Criteria -field-override criteriaOverride -out gen_criteria_json.go
 
 // Criteria holds various filter options for inbound messages.
 type Criteria struct {
@@ -430,7 +430,7 @@ func (api *PublicWhisperAPI) Messages(ctx context.Context, crit Criteria) (*rpc.
 	return rpcSub, nil
 }
 
-//go:generate go run github.com/fjl/gencodec@latest -type Message -field-override messageOverride -out gen_message_json.go
+//go:generate go run github.com/fjl/gencodec -type Message -field-override messageOverride -out gen_message_json.go
 
 // Message is the RPC representation of a whisper message.
 type Message struct {

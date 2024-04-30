@@ -11,14 +11,13 @@ import (
 	"github.com/anacrolix/torrent/metainfo"
 	pp "github.com/anacrolix/torrent/peer_protocol"
 	"github.com/anacrolix/torrent/storage"
-	infohash_v2 "github.com/anacrolix/torrent/types/infohash-v2"
 )
 
 type Piece struct {
 	// The completed piece SHA1 hash, from the metainfo "pieces" field. Nil if the info is not V1
 	// compatible.
 	hash   *metainfo.Hash
-	hashV2 g.Option[infohash_v2.T]
+	hashV2 g.Option[[32]byte]
 	t      *Torrent
 	index  pieceIndex
 	files  []*File
@@ -52,15 +51,17 @@ func (p *Piece) String() string {
 }
 
 func (p *Piece) Info() metainfo.Piece {
-	return p.t.info.Piece(int(p.index))
+	return p.t.info.Piece(p.index)
 }
 
 func (p *Piece) Storage() storage.Piece {
 	var pieceHash g.Option[[]byte]
 	if p.hash != nil {
 		pieceHash.Set(p.hash.Bytes())
+	} else if !p.hasPieceLayer() {
+		pieceHash.Set(p.mustGetOnlyFile().piecesRoot.UnwrapPtr()[:])
 	} else if p.hashV2.Ok {
-		pieceHash.Set(p.hashV2.Value.Bytes())
+		pieceHash.Set(p.hashV2.Value[:])
 	}
 	return p.t.storage.PieceWithHash(p.Info(), pieceHash)
 }
@@ -285,7 +286,10 @@ func (p *Piece) mustGetOnlyFile() *File {
 func (p *Piece) setV2Hash(v2h [32]byte) {
 	// See Torrent.onSetInfo. We want to trigger an initial check if appropriate, if we didn't yet
 	// have a piece hash (can occur with v2 when we don't start with piece layers).
-	if !p.hashV2.Set(v2h).Ok && p.hash == nil {
+	p.t.storageLock.Lock()
+	oldV2Hash := p.hashV2.Set(v2h)
+	p.t.storageLock.Unlock()
+	if !oldV2Hash.Ok && p.hash == nil {
 		p.t.updatePieceCompletion(p.index)
 		p.t.queueInitialPieceCheck(p.index)
 	}
@@ -293,9 +297,15 @@ func (p *Piece) setV2Hash(v2h [32]byte) {
 
 // Can't do certain things if we don't know the piece hash.
 func (p *Piece) haveHash() bool {
-	return p.hash != nil || p.hashV2.Ok
+	if p.hash != nil {
+		return true
+	}
+	if !p.hasPieceLayer() {
+		return true
+	}
+	return p.hashV2.Ok
 }
 
-func pieceStateAllowsMessageWrites(p *Piece, pc *PeerConn) bool {
-	return (pc.shouldRequestHashes() && !p.haveHash()) || !p.t.ignorePieceForRequests(p.index)
+func (p *Piece) hasPieceLayer() bool {
+	return int64(p.length()) > p.t.info.PieceLength
 }

@@ -1293,11 +1293,12 @@ func (tm *TorrentManager) activeLoop() {
 				}
 			}*/
 
-			counter++
+			var clean = []*caffe.Torrent{}
 			tm.torrents.Range(func(ih string, t *caffe.Torrent) bool {
 				if t.Running() {
 					if t.Torrent.BytesMissing() == 0 {
-						tm.finish(t)
+						//tm.finish(t)
+						clean = append(clean, t)
 					} else {
 						if t.Torrent.BytesCompleted() < t.BytesRequested() {
 							t.Leech()
@@ -1313,11 +1314,12 @@ func (tm *TorrentManager) activeLoop() {
 				return true
 			})
 
-			/*for _, i := range clean {
+			for _, i := range clean {
 				tm.finish(i)
 			}
 
-			clean = []*Torrent{}*/
+			counter++
+
 		case <-tm.closeAll:
 			log.Info("Active seed loop closed")
 			return
