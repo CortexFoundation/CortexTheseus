@@ -746,7 +746,7 @@ func (cuckoo *Cuckoo) FinalizeAndAssemble(chain consensus.ChainHeaderReader, hea
 	}
 
 	// Header seems complete, assemble into a block and return
-	return types.NewBlock(header, txs, uncles, receipts, trie.NewStackTrie(nil)), nil
+	return types.NewBlock(header, &types.Body{Transactions: txs, Uncles: uncles}, receipts, trie.NewStackTrie(nil)), nil
 }
 
 // FinalizeAndAssemble implements consensus.Engine, accumulating the block and
@@ -757,7 +757,7 @@ func (cuckoo *Cuckoo) FinalizeWithoutParent(chain consensus.ChainHeaderReader, h
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 
 	// Header seems complete, assemble into a block and return
-	return types.NewBlock(header, txs, uncles, receipts, trie.NewStackTrie(nil)), nil
+	return types.NewBlock(header, &types.Body{Transactions: txs, Uncles: uncles}, receipts, trie.NewStackTrie(nil)), nil
 }
 
 // SealHash returns the hash of a block prior to it being sealed.

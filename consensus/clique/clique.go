@@ -611,7 +611,7 @@ func (c *Clique) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *
 	c.Finalize(chain, header, state, txs, uncles)
 
 	// Assemble and return the final block for sealing
-	return types.NewBlock(header, txs, nil, receipts, trie.NewStackTrie(nil)), nil
+	return types.NewBlock(header, &types.Body{Transactions: txs}, receipts, trie.NewStackTrie(nil)), nil
 }
 
 // Finalize implements consensus.Engine, ensuring no uncles are set, nor block
@@ -621,8 +621,8 @@ func (c *Clique) FinalizeWithoutParent(chain consensus.ChainHeaderReader, header
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 	header.UncleHash = types.CalcUncleHash(nil)
 
-	// Assemble and return the final block for sealing
-	return types.NewBlock(header, txs, nil, receipts, trie.NewStackTrie(nil)), nil
+	// Assemble and return the final block for sealing.
+	return types.NewBlock(header, &types.Body{Transactions: txs}, receipts, trie.NewStackTrie(nil)), nil
 }
 
 // Authorize injects a private key into the consensus engine to mint new blocks

@@ -23,6 +23,7 @@ import (
 	"io"
 	"math/big"
 	"reflect"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -256,13 +257,17 @@ type storageblock struct {
 // changes to header and to the field values will not affect the
 // block.
 //
-// The values of TxHash, UncleHash, ReceiptHash and Bloom in header
-// are ignored and set to values derived from the given txs, uncles
-// and receipts.
-func NewBlock(header *Header, txs []*Transaction, uncles []*Header, receipts []*Receipt, hasher Hasher) *Block {
-	b := &Block{header: CopyHeader(header), td: new(big.Int)}
+// relevant portions of the header.
+func NewBlock(header *Header, body *Body, receipts []*Receipt, hasher Hasher) *Block {
+	if body == nil {
+		body = &Body{}
+	}
+	var (
+		b      = NewBlockWithHeader(header)
+		txs    = body.Transactions
+		uncles = body.Uncles
+	)
 
-	// TODO: panic if len(txs) != len(receipts)
 	if len(txs) == 0 {
 		b.header.TxHash = EmptyRootHash
 	} else {
@@ -431,16 +436,16 @@ func (b *Block) WithSeal(header *Header) *Block {
 	}
 }
 
-// WithBody returns a new block with the given transaction and uncle contents.
-func (b *Block) WithBody(transactions []*Transaction, uncles []*Header) *Block {
+// WithBody returns a new block with the original header and a deep copy of the
+// provided body.
+func (b *Block) WithBody(body Body) *Block {
 	block := &Block{
-		header:       CopyHeader(b.header),
-		transactions: make([]*Transaction, len(transactions)),
-		uncles:       make([]*Header, len(uncles)),
+		header:       b.header,
+		transactions: slices.Clone(body.Transactions),
+		uncles:       make([]*Header, len(body.Uncles)),
 	}
-	copy(block.transactions, transactions)
-	for i := range uncles {
-		block.uncles[i] = CopyHeader(uncles[i])
+	for i := range body.Uncles {
+		block.uncles[i] = CopyHeader(body.Uncles[i])
 	}
 	return block
 }
