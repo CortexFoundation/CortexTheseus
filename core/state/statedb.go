@@ -35,6 +35,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/trie"
+
+	"golang.org/x/sync/errgroup"
 )
 
 type proofList [][]byte
@@ -1023,7 +1025,8 @@ func (s *StateDB) Commit(block uint64, deleteEmptyObjects bool) (common.Hash, er
 
 	// Commit objects to the trie, measuring the elapsed time
 	var (
-		codeWriter = s.db.DiskDB().NewBatch()
+		code    = s.db.DiskDB().NewBatch()
+		workers errgroup.Group
 	)
 	// Handle all state updates afterwards
 	for addr, op := range s.mutations {
@@ -1034,20 +1037,44 @@ func (s *StateDB) Commit(block uint64, deleteEmptyObjects bool) (common.Hash, er
 
 		// Write any contract code associated with the state object
 		if obj.code != nil && obj.dirtyCode {
-			rawdb.WriteCode(codeWriter, common.BytesToHash(obj.CodeHash()), obj.code)
+			rawdb.WriteCode(code, common.BytesToHash(obj.CodeHash()), obj.code)
 			obj.dirtyCode = false
 		}
 		// Write any storage changes in the state object to its storage trie
-		if err := obj.commit(); err != nil {
+		/*if err := obj.commit(); err != nil {
 			return common.Hash{}, err
-		}
+		}*/
+		workers.Go(func() error {
+			// Write any storage changes in the state object to its storage trie
+			err := obj.commit()
+			if err != nil {
+				return err
+			}
+			return nil
+		})
 	}
 
-	if codeWriter.ValueSize() > 0 {
-		if err := codeWriter.Write(); err != nil {
+	// Schedule the code commits to run concurrently too. This shouldn't really
+	// take much since we don't often commit code, but since it's disk access,
+	// it's always yolo.
+	workers.Go(func() error {
+		if code.ValueSize() > 0 {
+			if err := code.Write(); err != nil {
+				log.Crit("Failed to commit dirty codes", "error", err)
+			}
+		}
+		return nil
+	})
+	// Wait for everything to finish and update the metrics
+	if err := workers.Wait(); err != nil {
+		return common.Hash{}, err
+	}
+
+	/*if code.ValueSize() > 0 {
+		if err := code.Write(); err != nil {
 			log.Crit("Failed to commit dirty codes", "error", err)
 		}
-	}
+	}*/
 	// Write the account trie changes, measuing the amount of wasted time
 	var start time.Time
 	if metrics.EnabledExpensive {
