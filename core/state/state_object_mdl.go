@@ -64,3 +64,17 @@ func (s *stateObject) Upload() *big.Int {
 func (s *stateObject) Num() *big.Int {
 	return s.data.Num
 }
+
+func (ch uploadChange) copy() journalEntry {
+	return uploadChange{
+		account: ch.account,
+		prev:    new(big.Int).Set(ch.prev),
+	}
+}
+
+func (ch numChange) copy() journalEntry {
+	return numChange{
+		account: ch.account,
+		prev:    new(big.Int).Set(ch.prev),
+	}
+}

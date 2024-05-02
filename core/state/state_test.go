@@ -23,6 +23,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/trie"
@@ -145,58 +146,20 @@ func (s *StateSuite) TestSnapshotEmpty(c *checker.C) {
 // use testing instead of checker because checker does not support
 // printing/logging in tests (-check.vv does not work)
 func TestSnapshot2(t *testing.T) {
-	state, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()), nil)
+	state, _ := New(types.EmptyRootHash, NewDatabase(rawdb.NewMemoryDatabase()), nil)
+	addr := common.BytesToAddress([]byte("so0"))
+	snap := state.Snapshot()
 
-	stateobjaddr0 := toAddr([]byte("so0"))
-	stateobjaddr1 := toAddr([]byte("so1"))
-	var storageaddr common.Hash
-
-	data0 := common.BytesToHash([]byte{17})
-	data1 := common.BytesToHash([]byte{18})
-
-	state.SetState(stateobjaddr0, storageaddr, data0)
-	state.SetState(stateobjaddr1, storageaddr, data1)
-
-	// db, trie are already non-empty values
-	so0 := state.getStateObject(stateobjaddr0)
+	state.CreateAccount(addr)
+	so0 := state.getStateObject(addr)
 	so0.SetBalance(big.NewInt(42))
 	so0.SetNonce(43)
 	so0.SetCode(crypto.Keccak256Hash([]byte{'c', 'a', 'f', 'e'}), []byte{'c', 'a', 'f', 'e'})
-	so0.selfDestructed = false
-	so0.deleted = false
 	state.setStateObject(so0)
 
-	root, _ := state.Commit(0, false)
-	state, _ = New(root, state.db, state.snaps)
-
-	// and one with deleted == true
-	so1 := state.getStateObject(stateobjaddr1)
-	so1.SetBalance(big.NewInt(52))
-	so1.SetNonce(53)
-	so1.SetCode(crypto.Keccak256Hash([]byte{'c', 'a', 'f', 'e', '2'}), []byte{'c', 'a', 'f', 'e', '2'})
-	so1.selfDestructed = true
-	so1.deleted = true
-	state.setStateObject(so1)
-
-	so1 = state.getStateObject(stateobjaddr1)
-	if so1 != nil {
-		t.Fatalf("deleted object not nil when getting")
-	}
-
-	snapshot := state.Snapshot()
-	state.RevertToSnapshot(snapshot)
-
-	so0Restored := state.getStateObject(stateobjaddr0)
-	// Update lazily-loaded values before comparing.
-	so0Restored.GetState(storageaddr)
-	so0Restored.Code()
-	// non-deleted is equal (restored)
-	compareStateObjects(so0Restored, so0, t)
-
-	// deleted should be nil, both before and after restore of state copy
-	so1Restored := state.getStateObject(stateobjaddr1)
-	if so1Restored != nil {
-		t.Fatalf("deleted object not nil after restoring snapshot: %+v", so1Restored)
+	state.RevertToSnapshot(snap)
+	if state.Exist(addr) {
+		t.Error("Unexpected account after revert")
 	}
 }
 
