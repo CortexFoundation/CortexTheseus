@@ -60,6 +60,8 @@ import (
 	"github.com/CortexFoundation/torrentfs/backend/job"
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
+
+	"golang.org/x/sync/errgroup"
 )
 
 type TorrentManager struct {
@@ -1198,6 +1200,8 @@ func (tm *TorrentManager) activeLoop() {
 		//timer_2 = time.NewTicker(time.Second * params.QueryTimeInterval * 3600 * 18)
 		//clean = []*Torrent{}
 		counter = 0
+
+		workers errgroup.Group
 	)
 
 	defer func() {
@@ -1301,7 +1305,7 @@ func (tm *TorrentManager) activeLoop() {
 						clean = append(clean, t)
 					} else {
 						if t.Torrent.BytesCompleted() < t.BytesRequested() {
-							t.Leech()
+							workers.Go(func() error { return t.Leech() })
 						}
 					}
 				}
@@ -1313,6 +1317,10 @@ func (tm *TorrentManager) activeLoop() {
 
 				return true
 			})
+
+			if err := workers.Wait(); err != nil {
+				log.Warn("Leech error", "err", err)
+			}
 
 			for _, i := range clean {
 				tm.finish(i)
