@@ -68,16 +68,13 @@ static int transient_bind_blob(sqlite3_stmt* stmt, int col, unsigned char* p, in
 	return sqlite3_bind_blob(stmt, col, p, n, SQLITE_TRANSIENT);
 }
 
-extern void log_fn(void* pArg, int code, char* msg);
 static void enable_logging() {
-	sqlite3_config(SQLITE_CONFIG_LOG, log_fn, NULL);
+	sqlite3_config(SQLITE_CONFIG_LOG, c_log_fn, NULL);
 }
 
 static int db_config_onoff(sqlite3* db, int op, int onoff) {
   return sqlite3_db_config(db, op, onoff, NULL);
 }
-
-extern int goBusyHandlerCallback(void *, int);
 */
 import "C"
 
@@ -399,7 +396,7 @@ func (c *Conn) setBusyHandler(handler func(count int) bool) {
 		return
 	}
 	busyHandlers.Store(c.conn, handler)
-	C.sqlite3_busy_handler(c.conn, (*[0]byte)(C.goBusyHandlerCallback), unsafe.Pointer(c.conn))
+	C.sqlite3_busy_handler(c.conn, (*[0]byte)(C.c_goBusyHandlerCallback), unsafe.Pointer(c.conn))
 }
 
 //export goBusyHandlerCallback
@@ -1328,8 +1325,8 @@ func sqliteInitFn() {
 	}
 }
 
-//export log_fn
-func log_fn(_ unsafe.Pointer, code C.int, msg *C.char) {
+//export go_log_fn
+func go_log_fn(_ unsafe.Pointer, code C.int, msg *C.char) {
 	var msgBytes []byte
 	if msg != nil {
 		str := C.GoString(msg) // TODO: do not copy msg.

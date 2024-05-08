@@ -27,6 +27,8 @@ type CortexStorage interface {
 	Stop() error
 
 	Download(ctx context.Context, ih string, request uint64) error
+
+	// File uploaded
 	SeedingLocal(ctx context.Context, filePath string, isLinkMode bool) (string, error)
 	PauseLocalSeed(ctx context.Context, ih string) error
 	ResumeLocalSeed(ctx context.Context, ih string) error
