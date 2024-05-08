@@ -854,8 +854,8 @@ web3._extend({
                         params: 2,
                 }),
 	new web3._extend.Method({
-                        name: 'simpleSeeding',
-                        call: 'fs_simpleSeeding',
+                        name: 'upload',
+                        call: 'fs_upload',
                         params: 1,
                 }),
         new web3._extend.Method({

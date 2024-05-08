@@ -1794,7 +1794,7 @@ func (api *PrivateFsAPI) SeedingLocal(filePath string, isLinkMode bool) (string,
 }
 
 // Simple Seed Local File In TorrentFs Instance
-func (api *PrivateFsAPI) SimpleSeeding(filePath string) (string, error) {
+func (api *PrivateFsAPI) Upload(filePath string) (string, error) {
 	return api.b.SeedingLocal(filePath, false)
 }
 
