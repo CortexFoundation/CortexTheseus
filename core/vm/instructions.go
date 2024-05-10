@@ -184,13 +184,9 @@ func opByte(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) 
 	return nil, nil
 }
 
-func opAddmod(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	x, y, z := callContext.Stack.pop(), callContext.Stack.pop(), callContext.Stack.peek()
-	if z.IsZero() {
-		z.Clear()
-	} else {
-		z.AddMod(&x, &y, z)
-	}
+func opAddmod(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	x, y, z := scope.Stack.pop(), scope.Stack.pop(), scope.Stack.peek()
+	z.AddMod(&x, &y, z)
 	return nil, nil
 }
 
