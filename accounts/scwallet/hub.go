@@ -96,6 +96,7 @@ func (hub *Hub) readPairings() error {
 		}
 		return err
 	}
+	defer pairingFile.Close()
 
 	pairingData, err := io.ReadAll(pairingFile)
 	if err != nil {
