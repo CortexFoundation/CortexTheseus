@@ -28,7 +28,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/trie"
-	"golang.org/x/crypto/sha3"
 )
 
 // stateReq represents a batch of state fetch requests grouped tocortexer into
@@ -300,7 +299,7 @@ func newStateSync(d *Downloader, root common.Hash) *stateSync {
 	return &stateSync{
 		d:         d,
 		sched:     state.NewStateSync(root, d.stateDB, d.stateBloom),
-		keccak:    sha3.NewLegacyKeccak256().(crypto.KeccakState),
+		keccak:    crypto.NewKeccakState(),
 		trieTasks: make(map[common.Hash]*trieTask),
 		codeTasks: make(map[common.Hash]*codeTask),
 		deliver:   make(chan *stateReq),

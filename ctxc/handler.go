@@ -42,8 +42,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/trie"
-
-	"golang.org/x/crypto/sha3"
 )
 
 const (
@@ -990,7 +988,7 @@ func (pm *ProtocolManager) BroadcastTransactions(txs types.Transactions) {
 
 	var (
 		signer = types.LatestSignerForChainID(pm.blockchain.Config().ChainID) // Don't care about chain status, we just need *a* sender
-		hasher = sha3.NewLegacyKeccak256().(crypto.KeccakState)
+		hasher = crypto.NewKeccakState()
 		hash   = make([]byte, 32)
 	)
 	for _, tx := range txs {
