@@ -136,7 +136,11 @@ func (s *StateDB) dump(c collector, excludeCode, excludeStorage, excludeMissingP
 		}
 		if !excludeStorage {
 			account.Storage = make(map[common.Hash]string)
-			storageIt := trie.NewIterator(obj.getTrie().NodeIterator(nil))
+			tr, err := obj.getTrie()
+			if err != nil {
+				continue
+			}
+			storageIt := trie.NewIterator(tr.NodeIterator(nil))
 			for storageIt.Next() {
 				_, content, _, err := rlp.Split(storageIt.Value)
 				if err != nil {
