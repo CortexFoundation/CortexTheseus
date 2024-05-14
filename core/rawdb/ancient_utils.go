@@ -56,7 +56,7 @@ func inspectFreezers(db ctxcdb.Database) ([]freezerInfo, error) {
 	var infos []freezerInfo
 	for _, freezer := range freezers {
 		switch freezer {
-		case chainFreezerName:
+		case ChainFreezerName:
 			// Chain ancient store is a bit special. It's always opened along
 			// with the key-value store, inspect the chain store directly.
 			info := freezerInfo{name: freezer}
@@ -100,9 +100,9 @@ func InspectFreezerTable(ancient string, freezerName string, tableName string, s
 		tables map[string]bool
 	)
 	switch freezerName {
-	case chainFreezerName:
+	case ChainFreezerName:
 		path, tables = resolveChainFreezerDir(ancient), chainFreezerNoSnappy
-	case stateFreezerName:
+	case StateFreezerName:
 		path, tables = filepath.Join(ancient, freezerName), stateFreezerNoSnappy
 	default:
 		return fmt.Errorf("unknown freezer, supported ones: %v", freezers)

@@ -31,6 +31,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb/memorydb"
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/internal/debug"
 	"github.com/CortexFoundation/CortexTheseus/log"
@@ -736,7 +737,7 @@ func (n *Node) OpenDatabaseWithFreezer(name string, cache, handles int, ancient 
 	var err error
 
 	if n.config.DataDir == "" {
-		db = rawdb.NewMemoryDatabase()
+		db, err = rawdb.NewDatabaseWithFreezer(memorydb.New(), "", namespace, readonly)
 	} else {
 		db, err = rawdb.Open(rawdb.OpenOptions{
 			Type:              n.config.DBEngine,
