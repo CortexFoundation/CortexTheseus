@@ -83,6 +83,14 @@ func newFetchResult(header *types.Header, fastSync bool) *fetchResult {
 	return item
 }
 
+// body returns a representation of the fetch result as a types.Body object.
+func (f *fetchResult) body() types.Body {
+	return types.Body{
+		Transactions: f.Transactions,
+		Uncles:       f.Uncles,
+	}
+}
+
 // SetBodyDone flags the body as finished.
 func (f *fetchResult) SetBodyDone() {
 	if v := f.pending.Load(); (v & (1 << bodyType)) != 0 {

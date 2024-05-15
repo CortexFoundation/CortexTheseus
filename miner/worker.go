@@ -770,8 +770,8 @@ func (w *worker) updateSnapshot() {
 
 	w.snapshotBlock = types.NewBlock(
 		w.current.header,
-		w.current.txs,
-		uncles,
+		&types.Body{Transactions: w.current.txs,
+			Uncles: uncles},
 		w.current.receipts,
 		trie.NewStackTrie(nil),
 	)
