@@ -489,7 +489,7 @@ func VerifyRangeProof(rootHash common.Hash, firstKey []byte, lastKey []byte, key
 			diskdb = memorydb.New()
 			triedb = NewDatabase(diskdb)
 		)
-		tr, err := New(common.Hash{}, triedb)
+		tr, err := New(TrieID(common.Hash{}), triedb)
 		if err != nil {
 			return nil, nil, nil, false, err
 		}

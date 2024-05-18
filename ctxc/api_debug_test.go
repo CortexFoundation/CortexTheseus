@@ -23,6 +23,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/state"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/trie"
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -31,9 +33,10 @@ var dumper = spew.ConfigState{Indent: "    "}
 func TestStorageRangeAt(t *testing.T) {
 	// Create a state where account 0x010000... has a few storage entries.
 	var (
-		state, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-		addr     = common.Address{0x01}
-		keys     = []common.Hash{ // hashes of Keys of storage
+		db     = state.NewDatabaseWithConfig(rawdb.NewMemoryDatabase(), &trie.Config{Cache: 16, Preimages: true})
+		sdb, _ = state.New(types.EmptyRootHash, db, nil)
+		addr   = common.Address{0x01}
+		keys   = []common.Hash{ // hashes of Keys of storage
 			common.HexToHash("340dd630ad21bf010b4e676dbfa9ba9a02175262d1fa356232cfde6cb5b47ef2"),
 			common.HexToHash("426fcb404ab2d5d8e61a3d918108006bbb0a9be65e92235bb10eefbdb6dcd053"),
 			common.HexToHash("48078cfed56339ea54962e72c37c7f588fc4f8e5bc173827ba75cb10a63a96a5"),
@@ -47,8 +50,10 @@ func TestStorageRangeAt(t *testing.T) {
 		}
 	)
 	for _, entry := range storage {
-		state.SetState(addr, *entry.Key, entry.Value)
+		sdb.SetState(addr, *entry.Key, entry.Value)
 	}
+	root, _ := sdb.Commit(0, false)
+	sdb, _ = state.New(root, db, nil)
 
 	// Check a few combinations of limit and start/end.
 	tests := []struct {
@@ -78,7 +83,7 @@ func TestStorageRangeAt(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		result, err := storageRangeAt(state.StorageTrie(addr), test.start, test.limit)
+		result, err := storageRangeAt(sdb.StorageTrie(addr), test.start, test.limit)
 		if err != nil {
 			t.Error(err)
 		}
