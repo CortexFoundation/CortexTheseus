@@ -27,16 +27,16 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb/memorydb"
 )
 
-func newEmptySecure() *SecureTrie {
-	trie, _ := NewSecure(TrieID(common.Hash{}), NewDatabase(memorydb.New()))
+func newEmptySecure() *StateTrie {
+	trie, _ := NewStateTrie(TrieID(common.Hash{}), NewDatabase(memorydb.New()))
 	return trie
 }
 
-// makeTestSecureTrie creates a large enough secure trie for testing.
-func makeTestSecureTrie() (*Database, *SecureTrie, map[string][]byte) {
+// makeTestStateTrie creates a large enough secure trie for testing.
+func makeTestStateTrie() (*Database, *StateTrie, map[string][]byte) {
 	// Create an empty trie
 	triedb := NewDatabase(memorydb.New())
-	trie, _ := NewSecure(TrieID(common.Hash{}), triedb)
+	trie, _ := NewStateTrie(TrieID(common.Hash{}), triedb)
 
 	// Fill it with some arbitrary data
 	content := make(map[string][]byte)
@@ -105,12 +105,12 @@ func TestSecureGetKey(t *testing.T) {
 	}
 }
 
-func TestSecureTrieConcurrency(t *testing.T) {
+func TestStateTrieConcurrency(t *testing.T) {
 	// Create an initial trie and copy if for concurrent access
-	_, trie, _ := makeTestSecureTrie()
+	_, trie, _ := makeTestStateTrie()
 
 	threads := runtime.NumCPU()
-	tries := make([]*SecureTrie, threads)
+	tries := make([]*StateTrie, threads)
 	for i := 0; i < threads; i++ {
 		tries[i] = trie.Copy()
 	}
