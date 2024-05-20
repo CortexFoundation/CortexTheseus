@@ -50,6 +50,9 @@ func (n *proofList) Delete(key []byte) error {
 	panic("not supported")
 }
 
+// TriesInMemory represents the number of layers that are kept in RAM.
+const TriesInMemory = 128
+
 type revision struct {
 	id           int
 	journalIndex int

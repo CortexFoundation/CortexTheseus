@@ -96,7 +96,6 @@ const (
 	maxFutureBlocks     = 256
 	maxTimeFutureBlocks = 30
 	badBlockLimit       = 10
-	TriesInMemory       = 128
 
 	// BlockChainVersion ensures that an incompatible database forces a resync from scratch.
 	//
@@ -932,7 +931,7 @@ func (bc *BlockChain) Stop() {
 	if !bc.cacheConfig.TrieDirtyDisabled {
 		triedb := bc.stateCache.TrieDB()
 
-		for _, offset := range []uint64{0, 1, TriesInMemory - 1} {
+		for _, offset := range []uint64{0, 1, state.TriesInMemory - 1} {
 			if number := bc.CurrentBlock().NumberU64(); number > offset {
 				num := number - offset
 				recent := bc.GetBlockByNumber(num)
@@ -1329,7 +1328,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 
 // writeBlockWithState writes the block and all associated state to the database,
 // but is expects the chain mutex to be held.
-func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.Receipt, logs []*types.Log, state *state.StateDB, emitHeadEvent bool) (status WriteStatus, err error) {
+func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.Receipt, logs []*types.Log, statedb *state.StateDB, emitHeadEvent bool) (status WriteStatus, err error) {
 	if bc.insertStopped() {
 		return NonStatTy, errInsertionInterrupted
 	}
@@ -1352,12 +1351,12 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	rawdb.WriteTd(blockBatch, block.Hash(), block.NumberU64(), externTd)
 	rawdb.WriteBlock(blockBatch, block)
 	rawdb.WriteReceipts(blockBatch, block.Hash(), block.NumberU64(), receipts)
-	rawdb.WritePreimages(blockBatch, state.Preimages())
+	rawdb.WritePreimages(blockBatch, statedb.Preimages())
 	if err := blockBatch.Write(); err != nil {
 		log.Crit("Failed to write block into disk", "err", err)
 	}
 	// Commit all cached state changes into underlying memory database.
-	root, err := state.Commit(block.NumberU64(), bc.chainConfig.IsEIP158(block.Number()))
+	root, err := statedb.Commit(block.NumberU64(), bc.chainConfig.IsEIP158(block.Number()))
 	if err != nil {
 		return NonStatTy, err
 	}
@@ -1373,7 +1372,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 		triedb.Reference(root, common.Hash{}) // metadata reference to keep trie alive
 		bc.triegc.Push(root, -int64(block.NumberU64()))
 
-		if current := block.NumberU64(); current > TriesInMemory {
+		if current := block.NumberU64(); current > state.TriesInMemory {
 			// If we exceeded our memory allowance, flush matured singleton nodes to disk
 			var (
 				nodes, imgs = triedb.Size()
@@ -1383,7 +1382,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 				triedb.Cap(limit - ctxcdb.IdealBatchSize)
 			}
 			// Find the next state trie we need to commit
-			chosen := current - TriesInMemory
+			chosen := current - state.TriesInMemory
 
 			// If we exceeded out time allowance, flush an entire trie to disk
 			if bc.gcproc > bc.cacheConfig.TrieTimeLimit {
@@ -1395,8 +1394,8 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 				} else {
 					// If we're exceeding limits but haven't reached a large enough memory gap,
 					// warn the user that the system is becoming unstable.
-					if chosen < lastWrite+TriesInMemory && bc.gcproc >= 2*bc.cacheConfig.TrieTimeLimit {
-						log.Info("State in memory for too long, committing", "time", bc.gcproc, "allowance", bc.cacheConfig.TrieTimeLimit, "optimum", float64(chosen-lastWrite)/TriesInMemory)
+					if chosen < lastWrite+state.TriesInMemory && bc.gcproc >= 2*bc.cacheConfig.TrieTimeLimit {
+						log.Info("State in memory for too long, committing", "time", bc.gcproc, "allowance", bc.cacheConfig.TrieTimeLimit, "optimum", float64(chosen-lastWrite)/state.TriesInMemory)
 					}
 					// Flush an entire trie and restart the counters
 					triedb.Commit(header.Root, true)
