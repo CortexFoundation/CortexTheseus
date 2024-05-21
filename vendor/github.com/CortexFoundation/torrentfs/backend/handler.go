@@ -1165,24 +1165,21 @@ func (tm *TorrentManager) pendingLoop() {
 	}
 }
 
-func (tm *TorrentManager) finish(t *caffe.Torrent) {
+func (tm *TorrentManager) finish(t *caffe.Torrent) error {
 	t.Lock()
 	defer t.Unlock()
 
 	if _, err := os.Stat(filepath.Join(tm.DataDir, t.InfoHash())); err == nil {
-		//tm.activeTorrents.Delete(t.InfoHash())
-		//tm.seedingChan <- t
-		tm.Seeding(t)
+		return tm.Seeding(t)
 	} else {
 		if err := os.Symlink(
 			filepath.Join(params.DefaultTmpPath, t.InfoHash()),
 			filepath.Join(tm.DataDir, t.InfoHash()),
 		); err == nil {
-			//tm.activeTorrents.Delete(t.InfoHash())
-			//tm.seedingChan <- t
-			tm.Seeding(t)
+			return tm.Seeding(t)
 		}
 	}
+	return nil
 }
 
 /*func (tm *TorrentManager) dur() uint64 {
@@ -1297,11 +1294,10 @@ func (tm *TorrentManager) activeLoop() {
 				}
 			}*/
 
-			var clean = []*caffe.Torrent{}
+			var clean = make([]*caffe.Torrent, 0, tm.torrents.Len())
 			tm.torrents.Range(func(ih string, t *caffe.Torrent) bool {
 				if t.Running() {
 					if t.Torrent.BytesMissing() == 0 {
-						//tm.finish(t)
 						clean = append(clean, t)
 					} else {
 						if t.Torrent.BytesCompleted() < t.BytesRequested() {
@@ -1323,7 +1319,11 @@ func (tm *TorrentManager) activeLoop() {
 			}
 
 			for _, i := range clean {
-				tm.finish(i)
+				workers.Go(func() error { return tm.finish(i) })
+			}
+
+			if err := workers.Wait(); err != nil {
+				log.Warn("Finished error", "err", err)
 			}
 
 			counter++

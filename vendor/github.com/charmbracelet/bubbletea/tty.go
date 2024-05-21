@@ -7,23 +7,13 @@ import (
 	"os"
 	"time"
 
-	isatty "github.com/mattn/go-isatty"
-	localereader "github.com/mattn/go-localereader"
 	"github.com/muesli/cancelreader"
 	"golang.org/x/term"
 )
 
 func (p *Program) initTerminal() error {
-	err := p.initInput()
-	if err != nil {
+	if err := p.initInput(); err != nil {
 		return err
-	}
-
-	if p.console != nil {
-		err = p.console.SetRaw()
-		if err != nil {
-			return fmt.Errorf("error entering raw mode: %w", err)
-		}
 	}
 
 	p.renderer.hideCursor()
@@ -34,6 +24,7 @@ func (p *Program) initTerminal() error {
 // Bubble Tea program.
 func (p *Program) restoreTerminalState() error {
 	if p.renderer != nil {
+		p.renderer.disableBracketedPaste()
 		p.renderer.showCursor()
 		p.disableMouse()
 
@@ -45,20 +36,23 @@ func (p *Program) restoreTerminalState() error {
 		}
 	}
 
-	if p.console != nil {
-		err := p.console.Reset()
-		if err != nil {
-			return fmt.Errorf("error restoring terminal state: %w", err)
+	return p.restoreInput()
+}
+
+// restoreInput restores the tty input to its original state.
+func (p *Program) restoreInput() error {
+	if p.tty != nil && p.previousTtyState != nil {
+		if err := term.Restore(int(p.tty.Fd()), p.previousTtyState); err != nil {
+			return fmt.Errorf("error restoring console: %w", err)
 		}
 	}
-
-	return p.restoreInput()
+	return nil
 }
 
 // initCancelReader (re)commences reading inputs.
 func (p *Program) initCancelReader() error {
 	var err error
-	p.cancelReader, err = cancelreader.NewReader(p.input)
+	p.cancelReader, err = newInputReader(p.input)
 	if err != nil {
 		return fmt.Errorf("error creating cancelreader: %w", err)
 	}
@@ -72,8 +66,7 @@ func (p *Program) initCancelReader() error {
 func (p *Program) readLoop() {
 	defer close(p.readLoopDone)
 
-	input := localereader.NewReader(p.cancelReader)
-	err := readInputs(p.ctx, p.msgs, input)
+	err := readInputs(p.ctx, p.msgs, p.cancelReader)
 	if !errors.Is(err, io.EOF) && !errors.Is(err, cancelreader.ErrCanceled) {
 		select {
 		case <-p.ctx.Done():
@@ -97,7 +90,7 @@ func (p *Program) waitForReadLoop() {
 // via a WindowSizeMsg.
 func (p *Program) checkResize() {
 	f, ok := p.output.TTY().(*os.File)
-	if !ok || !isatty.IsTerminal(f.Fd()) {
+	if !ok || !term.IsTerminal(int(f.Fd())) {
 		// can't query window size
 		return
 	}
