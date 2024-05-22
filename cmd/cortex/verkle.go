@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gballet/go-verkle"
+	"github.com/ethereum/go-verkle"
 	cli "gopkg.in/urfave/cli.v1"
 
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"

@@ -172,7 +172,6 @@ func (peer *Peer) broadcast() error {
 					Hash: k.Interface().(string),
 					Size: v.Value().(uint64),
 				}
-				//log.Debug("Broadcast", "ih", k.(string), "size", v.(uint64))
 				if err := p2p.Send(peer.ws, params.QueryCode, &query); err != nil {
 					return err
 				}
@@ -181,10 +180,6 @@ func (peer *Peer) broadcast() error {
 			}
 		}
 	}
-
-	//for k, _ := range peer.host.FullSeed() {
-	// TODO
-	//}
 
 	return nil
 }
