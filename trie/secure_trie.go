@@ -75,6 +75,32 @@ func (t *SecureTrie) Get(key []byte) []byte {
 	return res
 }
 
+// GetStorage attempts to retrieve a storage slot with provided account address
+// and slot key. The value bytes must not be modified by the caller.
+// If the specified storage slot is not in the trie, nil will be returned.
+// If a trie node is not found in the database, a MissingNodeError is returned.
+func (t *SecureTrie) GetStorage(_ common.Address, key []byte) ([]byte, error) {
+	enc, err := t.TryGet(key)
+	if len(enc) == 0 || err != nil {
+		return nil, err
+	}
+	_, content, _, err := rlp.Split(enc)
+	return content, err
+}
+
+// GetAccount attempts to retrieve an account with provided account address.
+// If the specified account is not in the trie, nil will be returned.
+// If a trie node is not found in the database, a MissingNodeError is returned.
+func (t *SecureTrie) GetAccount(address common.Address) (*types.StateAccount, error) {
+	res, err := t.TryGet(t.hashKey(address.Bytes()))
+	if res == nil || err != nil {
+		return nil, err
+	}
+	ret := new(types.StateAccount)
+	err = rlp.DecodeBytes(res, ret)
+	return ret, err
+}
+
 // TryGet returns the value for key stored in the trie.
 // The value bytes must not be modified by the caller.
 // If a node was not found in the database, a MissingNodeError is returned.
