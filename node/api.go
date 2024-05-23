@@ -24,14 +24,13 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
+	"github.com/CortexFoundation/CortexTheseus/p2p/discover"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 )
 
-// PrivateAdminAPI is the collection of administrative API methods exposed only
-// over a secure RPC channel.
 type PrivateAdminAPI struct {
-	node *Node // Node interfaced by this API
+	node *Node
 }
 
 // NewPrivateAdminAPI creates a new API definition for the private admin methods
@@ -314,4 +313,17 @@ func (s *PublicWeb3API) ClientVersion() string {
 // It assumes the input is hex encoded.
 func (s *PublicWeb3API) Sha3(input hexutil.Bytes) hexutil.Bytes {
 	return crypto.Keccak256(input)
+}
+
+// p2pDebugAPI provides access to p2p internals for debugging.
+type p2pDebugAPI struct {
+	stack *Node
+}
+
+func (s *p2pDebugAPI) DiscoveryV4Table() [][]discover.BucketNode {
+	disc := s.stack.server.DiscoveryV4()
+	if disc != nil {
+		return disc.TableBuckets()
+	}
+	return nil
 }
