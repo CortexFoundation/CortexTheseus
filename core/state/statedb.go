@@ -1017,6 +1017,7 @@ func (s *StateDB) Commit(block uint64, deleteEmptyObjects bool) (common.Hash, er
 	// Finalize any pending changes and merge everything into the tries
 	s.IntermediateRoot(deleteEmptyObjects)
 
+	start := time.Now()
 	// Commit objects to the trie, measuring the elapsed time
 	var (
 		code    = s.db.DiskDB().NewBatch()
@@ -1035,9 +1036,6 @@ func (s *StateDB) Commit(block uint64, deleteEmptyObjects bool) (common.Hash, er
 			obj.dirtyCode = false
 		}
 		// Write any storage changes in the state object to its storage trie
-		/*if err := obj.commit(); err != nil {
-			return common.Hash{}, err
-		}*/
 		workers.Go(func() error {
 			// Write any storage changes in the state object to its storage trie
 			err := obj.commit()
@@ -1064,16 +1062,7 @@ func (s *StateDB) Commit(block uint64, deleteEmptyObjects bool) (common.Hash, er
 		return common.Hash{}, err
 	}
 
-	/*if code.ValueSize() > 0 {
-		if err := code.Write(); err != nil {
-			log.Crit("Failed to commit dirty codes", "error", err)
-		}
-	}*/
 	// Write the account trie changes, measuing the amount of wasted time
-	var start time.Time
-	if metrics.EnabledExpensive {
-		start = time.Now()
-	}
 	// The onleaf func is called _serially_, so we can reuse the same account
 	// for unmarshalling every time.
 	var account types.StateAccount
@@ -1110,8 +1099,8 @@ func (s *StateDB) Commit(block uint64, deleteEmptyObjects bool) (common.Hash, er
 			// - head layer is paired with HEAD state
 			// - head-1 layer is paired with HEAD-1 state
 			// - head-127 layer(bottom-most diff layer) is paired with HEAD-127 state
-			if err := s.snaps.Cap(root, 128); err != nil {
-				log.Warn("Failed to cap snapshot tree", "root", root, "layers", 128, "err", err)
+			if err := s.snaps.Cap(root, TriesInMemory); err != nil {
+				log.Warn("Failed to cap snapshot tree", "root", root, "layers", TriesInMemory, "err", err)
 			}
 		}
 		if metrics.EnabledExpensive {
@@ -1122,26 +1111,6 @@ func (s *StateDB) Commit(block uint64, deleteEmptyObjects bool) (common.Hash, er
 	if root == (common.Hash{}) {
 		root = types.EmptyRootHash
 	}
-	/*origin := s.originalRoot
-	if origin == (common.Hash{}) {
-		origin = types.EmptyRootHash
-	}
-	if root != origin {
-		start := time.Now()
-			set := &triestate.Set{
-				Accounts:   s.accountsOrigin,
-				Storages:   s.storagesOrigin,
-				Incomplete: incomplete,
-			}
-			if err := s.db.TrieDB().Update(root, origin, nodes, set); err != nil {
-				return common.Hash{}, err
-			}
-			s.originalRoot = root
-
-		if metrics.EnabledExpensive {
-			s.TrieDBCommits += time.Since(start)
-		}
-	}*/
 
 	// Clear all internal flags at the end of commit operation.
 	s.accounts = make(map[common.Hash][]byte)

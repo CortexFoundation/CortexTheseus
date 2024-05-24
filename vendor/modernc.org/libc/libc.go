@@ -1202,6 +1202,20 @@ func X__builtin_round(t *TLS, x float64) float64 {
 	return math.Round(x)
 }
 
+func Xroundf(t *TLS, x float32) float32 {
+	if __ccgo_strace {
+		trc("t=%v x=%v, (%v:)", t, x, origin(2))
+	}
+	return float32(math.Round(float64(x)))
+}
+
+func X__builtin_roundf(t *TLS, x float32) float32 {
+	if __ccgo_strace {
+		trc("t=%v x=%v, (%v:)", t, x, origin(2))
+	}
+	return float32(math.Round(float64(x)))
+}
+
 func Xsin(t *TLS, x float64) float64 {
 	if __ccgo_strace {
 		trc("t=%v x=%v, (%v:)", t, x, origin(2))
