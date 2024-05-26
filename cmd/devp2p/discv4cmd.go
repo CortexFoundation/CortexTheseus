@@ -19,7 +19,6 @@ package main
 import (
 	"fmt"
 	"net"
-	"strings"
 	"time"
 
 	"gopkg.in/urfave/cli.v1"
@@ -27,13 +26,14 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/cmd/devp2p/internal/v4test"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
+	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p/discover"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/CortexTheseus/rpc"
+
 	"net/http"
-	"strconv"
 	"strings"
-	"time"
 )
 
 var (
@@ -46,7 +46,6 @@ var (
 			discv4ResolveCommand,
 			discv4ResolveJSONCommand,
 			discv4CrawlCommand,
-			discv4TestCommand,
 			discv4ListenCommand,
 		},
 	}
@@ -80,9 +79,13 @@ var (
 		Name:   "listen",
 		Usage:  "Runs a discovery node",
 		Action: discv4Listen,
-		Flags: flags.Merge(discoveryNodeFlags, []cli.Flag{
+		Flags: []cli.Flag{
+			bootnodesFlag,
+			nodekeyFlag,
+			nodedbFlag,
+			listenAddrFlag,
 			httpAddrFlag,
-		}),
+		},
 	}
 	discv4CrawlCommand = cli.Command{
 		Name:   "crawl",
@@ -349,4 +352,11 @@ func (api *discv4API) Buckets() [][]discover.BucketNode {
 
 func (api *discv4API) Self() *enode.Node {
 	return api.host.Self()
+}
+
+var discoveryNodeFlags = []cli.Flag{
+	bootnodesFlag,
+	nodekeyFlag,
+	nodedbFlag,
+	listenAddrFlag,
 }
