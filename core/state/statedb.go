@@ -34,7 +34,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/trie"
 
@@ -632,9 +631,7 @@ func (s *StateDB) getStateObject(addr common.Address) *stateObject {
 	if s.snap != nil {
 		start := time.Now()
 		acc, err := s.snap.Account(crypto.HashData(s.hasher, addr.Bytes()))
-		if metrics.EnabledExpensive {
-			s.SnapshotAccountReads += time.Since(start)
-		}
+		s.SnapshotAccountReads += time.Since(start)
 		if err == nil {
 			if acc == nil {
 				return nil
@@ -659,9 +656,7 @@ func (s *StateDB) getStateObject(addr common.Address) *stateObject {
 	if data == nil {
 		start := time.Now()
 		enc, err := s.trie.TryGet(addr.Bytes())
-		if metrics.EnabledExpensive {
-			s.AccountReads += time.Since(start)
-		}
+		s.AccountReads += time.Since(start)
 		if err != nil {
 			s.setError(fmt.Errorf("getDeleteStateObject (%x) error: %v", addr.Bytes(), err))
 			return nil
@@ -988,9 +983,7 @@ func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 		s.prefetcher.used(common.Hash{}, s.originalRoot, usedAddrs)
 	}
 	// Track the amount of time wasted on hashing the account trie
-	if metrics.EnabledExpensive {
-		defer func(start time.Time) { s.AccountHashes += time.Since(start) }(time.Now())
-	}
+	defer func(start time.Time) { s.AccountHashes += time.Since(start) }(time.Now())
 	return s.trie.Hash()
 }
 
@@ -1075,9 +1068,9 @@ func (s *StateDB) Commit(block uint64, deleteEmptyObjects bool) (common.Hash, er
 		}
 		return nil
 	})
-	if metrics.EnabledExpensive {
-		s.AccountCommits += time.Since(start)
-	}
+
+	s.AccountCommits += time.Since(start)
+
 	accountUpdatedMeter.Mark(int64(s.AccountUpdated))
 	storageUpdatedMeter.Mark(s.StorageUpdated.Load())
 	accountDeletedMeter.Mark(int64(s.AccountDeleted))
@@ -1087,9 +1080,7 @@ func (s *StateDB) Commit(block uint64, deleteEmptyObjects bool) (common.Hash, er
 
 	// If snapshotting is enabled, update the snapshot tree with this new version
 	if s.snap != nil {
-		if metrics.EnabledExpensive {
-			defer func(start time.Time) { s.SnapshotCommits += time.Since(start) }(time.Now())
-		}
+		defer func(start time.Time) { s.SnapshotCommits += time.Since(start) }(time.Now())
 		// Only update if there's a state transition (skip empty Clique blocks)
 		if parent := s.snap.Root(); parent != root {
 			if err := s.snaps.Update(root, parent, s.convertAccountSet(s.stateObjectsDestruct), s.accounts, s.storages); err != nil {
@@ -1103,9 +1094,7 @@ func (s *StateDB) Commit(block uint64, deleteEmptyObjects bool) (common.Hash, er
 				log.Warn("Failed to cap snapshot tree", "root", root, "layers", TriesInMemory, "err", err)
 			}
 		}
-		if metrics.EnabledExpensive {
-			s.SnapshotCommits += time.Since(start)
-		}
+		s.SnapshotCommits += time.Since(start)
 		s.snap = nil
 	}
 	if root == (common.Hash{}) {
