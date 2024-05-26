@@ -1956,7 +1956,7 @@ func (bc *BlockChain) insertSideChain(block *types.Block, it *insertIterator) (i
 
 	if len(hashes) > params.HEAVY_CHAIN_LIMIT {
 		if !bc.Viper || time.Now().Unix() > bc.utcNow+params.SPROUT_TIME {
-			return it.index, errors.New(fmt.Sprintf("Heavy side chain detected %v", len(hashes)))
+			return it.index, errors.New(fmt.Sprintf("Heavy side chain detected %v, use --viper to fix it", len(hashes)))
 		} else {
 			log.Info("Heavey chain import for blockchain protection", "offset", time.Now().Unix()-bc.utcNow, "size", len(hashes), "start", numbers[len(numbers)-1], "end", numbers[0], "viper", bc.Viper)
 		}

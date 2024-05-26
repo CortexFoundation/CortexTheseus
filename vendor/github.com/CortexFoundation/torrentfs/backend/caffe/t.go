@@ -40,6 +40,11 @@ func (t *Torrent) QuotaFull() bool {
 	return t.Info() != nil && t.bytesRequested.Load() >= t.Length()
 }
 
+func (t *Torrent) SpecNoTrackers() *torrent.TorrentSpec {
+	clear(t.spec.Trackers)
+	return t.spec
+}
+
 func (t *Torrent) Spec() *torrent.TorrentSpec {
 	return t.spec
 }

@@ -29,6 +29,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -76,8 +77,8 @@ type TorrentManager struct {
 	//pendingTorrents *shard.Map[*Torrent]
 	//maxSeedTask         int
 	//maxEstablishedConns int
-	trackers       [][]string
-	globalTrackers [][]string
+	trackers [][]string
+	//globalTrackers []string
 	//boostFetcher        *BoostDataFetcher
 	DataDir    string
 	TmpDataDir string
@@ -484,26 +485,6 @@ func (tm *TorrentManager) addInfoHash(ih string, bytesRequested int64) *caffe.To
 		}
 	}
 
-	/*if t, n, err := tm.client.AddTorrentSpec(spec); err == nil {
-		if !n {
-			log.Warn("Try to add a dupliated torrent", "ih", ih)
-		}
-
-		t.AddTrackers(tm.trackers)
-
-		if tm.globalTrackers != nil {
-			t.AddTrackers(tm.globalTrackers)
-		}
-
-		if t.Info() == nil && tm.kvdb != nil {
-			if v := tm.kvdb.Get([]byte(SEED_PRE + ih)); v != nil {
-				t.SetInfoBytes(v)
-			}
-		}
-	} else {
-		return nil
-	}*/
-
 	if t, err := tm.injectSpec(ih, spec); err != nil {
 		return nil
 	} else {
@@ -519,11 +500,10 @@ func (tm *TorrentManager) injectSpec(ih string, spec *torrent.TorrentSpec) (*tor
 			return t, errors.New("Try to add a dupliated torrent")
 		}
 
-		t.AddTrackers(tm.trackers)
+		t.AddTrackers(slices.Clone(tm.trackers))
+		//t.ModifyTrackers(slices.Clone(tm.trackers))
 
-		if tm.globalTrackers != nil {
-			t.AddTrackers(tm.globalTrackers)
-		}
+		log.Debug("Meta", "ih", ih, "mi", t.Metainfo().AnnounceList)
 
 		if t.Info() == nil && tm.kvdb != nil {
 			if v := tm.kvdb.Get([]byte(SEED_PRE + ih)); v != nil {
@@ -548,7 +528,11 @@ func (tm *TorrentManager) updateGlobalTrackers() error {
 	var total uint64
 
 	if global := tm.worm.BestTrackers(); len(global) > 0 {
-		tm.globalTrackers = [][]string{global}
+		if len(tm.trackers) > 1 {
+			tm.trackers = append(tm.trackers[:1], global)
+		} else {
+			tm.trackers = append(tm.trackers, global)
+		}
 
 		for _, url := range global {
 			score, _ := tm.wormScore(url)
@@ -805,10 +789,6 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 
 	torrentManager.worm = wormhole.New()
 	torrentManager.updateGlobalTrackers()
-	//if global, err := wormhole.BestTrackers(); global != nil && err == nil {
-	//	torrentManager.globalTrackers = [][]string{global}
-	//}
-
 	//torrentManager.updateColaList()
 
 	log.Debug("Fs client initialized", "config", config, "trackers", torrentManager.trackers)
@@ -964,7 +944,7 @@ type mainEvent struct {
 
 func (tm *TorrentManager) mainLoop() {
 	defer tm.wg.Done()
-	timer := time.NewTimer(time.Second * params.QueryTimeInterval * 3600 * 24)
+	timer := time.NewTimer(time.Second * params.QueryTimeInterval * 3600 * 12)
 	defer timer.Stop()
 
 	sub := tm.taskEvent.Subscribe(mainEvent{}) //, pendingEvent{}, runningEvent{}, seedingEvent{}, droppingEvent{})
@@ -989,7 +969,7 @@ func (tm *TorrentManager) mainLoop() {
 				} else {
 					if t.Stopping() {
 						log.Debug("Nas recovery", "ih", t.InfoHash(), "status", t.Status(), "complete", common.StorageSize(t.Torrent.BytesCompleted()))
-						if tt, err := tm.injectSpec(t.InfoHash(), t.Spec()); err == nil && tt != nil {
+						if tt, err := tm.injectSpec(t.InfoHash(), t.SpecNoTrackers()); err == nil && tt != nil {
 							t.SetStatus(caffe.TorrentPending)
 							t.Lock()
 							t.Torrent = tt
@@ -1132,8 +1112,6 @@ func (tm *TorrentManager) activeLoop() {
 	var (
 		timer   = time.NewTicker(time.Second * params.QueryTimeInterval)
 		timer_1 = time.NewTicker(time.Second * params.QueryTimeInterval * 60)
-		//timer_2 = time.NewTicker(time.Second * params.QueryTimeInterval * 3600 * 18)
-		//clean = []*Torrent{}
 		counter = 0
 
 		workers errgroup.Group
@@ -1143,7 +1121,6 @@ func (tm *TorrentManager) activeLoop() {
 		tm.wg.Done()
 		timer.Stop()
 		timer_1.Stop()
-		//timer_2.Stop()
 	}()
 
 	sub := tm.taskEvent.Subscribe(runningEvent{})
@@ -1217,8 +1194,6 @@ func (tm *TorrentManager) activeLoop() {
 			//stopped := int32(tm.torrents.Len()) - tm.seeds.Load() - tm.actives.Load() - tm.pends.Load()
 			log.Info("Fs status", "pending", tm.pends.Load(), "downloading", tm.actives.Load(), "seeding", tm.seeds.Load(), "stopping", tm.stops.Load(), "all", tm.torrents.Len(), "recovery", tm.recovery.Load(), "metrics", common.PrettyDuration(tm.Updates), "job", job.SEQ()) //, "total", common.StorageSize(tm.total()), "cost", common.PrettyDuration(time.Duration(tm.dur())), "speed", common.StorageSize(float64(tm.total()*1000*1000*1000)/float64(tm.dur())).String()+"/s")
 			//}
-		//case <-timer_2.C:
-		//	go tm.updateGlobalTrackers()
 		case <-timer.C:
 			/*for ih, t := range tm.activeTorrents {
 				if t.Torrent.BytesMissing() == 0 {
