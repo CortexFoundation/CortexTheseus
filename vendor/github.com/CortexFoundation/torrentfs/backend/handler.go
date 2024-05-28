@@ -149,27 +149,6 @@ func (tm *TorrentManager) blockCaculate(value int64) int64 {
 }
 
 func (tm *TorrentManager) register(t *torrent.Torrent, requested int64, ih string, spec *torrent.TorrentSpec) *caffe.Torrent {
-	/*tt := &Torrent{
-		Torrent: t,
-		//maxEstablishedConns: tm.maxEstablishedConns,
-		//minEstablishedConns: 1,
-		//currentConns:        tm.maxEstablishedConns,
-		bytesRequested: requested,
-		//bytesLimitation: tm.getLimitation(requested),
-		//bytesCompleted: 0,
-		//bytesMissing:        0,
-		status:   status,
-		infohash: ih,
-		filepath: filepath.Join(tm.TmpDataDir, ih),
-		cited:    0,
-		//weight:     1,
-		//loop:       0,
-		maxPieces: 0,
-		//isBoosting: false,
-		//fast:  false,
-		start: mclock.Now(),
-	}*/
-
 	tt := caffe.NewTorrent(t, requested, ih, filepath.Join(tm.TmpDataDir, ih), tm.slot, spec)
 	tm.setTorrent(tt)
 
@@ -180,13 +159,6 @@ func (tm *TorrentManager) register(t *torrent.Torrent, requested int64, ih strin
 }
 
 func (tm *TorrentManager) getTorrent(ih string) *caffe.Torrent {
-	/*tm.lock.RLock()
-	defer tm.lock.RUnlock()
-	if torrent, ok := tm.torrents[ih]; ok {
-		return torrent
-	}
-	return nil*/
-
 	if torrent, ok := tm.torrents.Get(ih); ok {
 		return torrent
 	}
@@ -1103,9 +1075,14 @@ func (tm *TorrentManager) pendingLoop() {
 func (tm *TorrentManager) meta(t *caffe.Torrent) error {
 	if b, err := bencode.Marshal(t.Torrent.Info()); err == nil {
 		if tm.kvdb != nil && tm.kvdb.Get([]byte(SEED_PRE+t.InfoHash())) == nil {
-			if err := t.WriteTorrent(); err == nil {
-				tm.kvdb.Set([]byte(SEED_PRE+t.InfoHash()), b)
+			if tm.mode != params.LAZY {
+				tm.wg.Add(1)
+				go func() {
+					defer tm.wg.Done()
+					t.WriteTorrent()
+				}()
 			}
+			tm.kvdb.Set([]byte(SEED_PRE+t.InfoHash()), b)
 		}
 	} else {
 		log.Error("Meta info marshal failed", "ih", t.InfoHash(), "err", err)
@@ -1114,18 +1091,16 @@ func (tm *TorrentManager) meta(t *caffe.Torrent) error {
 	}
 
 	if err := t.Start(); err != nil {
+		tm.Dropping(t.InfoHash())
 		log.Error("Nas start failed", "ih", t.InfoHash(), "err", err)
+		return err
 	}
 
-	if params.IsGood(t.InfoHash()) || tm.mode == params.FULL { //|| tm.colaList.Contains(t.InfoHash()) {
+	if params.IsGood(t.InfoHash()) || tm.mode == params.FULL || t.BytesRequested() > t.Length() {
 		t.SetBytesRequested(t.Length())
-	} else {
-		if t.BytesRequested() > t.Length() {
-			t.SetBytesRequested(t.Length())
-		}
 	}
-	tm.Running(t)
-	return nil
+
+	return tm.Running(t)
 }
 
 func (tm *TorrentManager) finish(t *caffe.Torrent) error {

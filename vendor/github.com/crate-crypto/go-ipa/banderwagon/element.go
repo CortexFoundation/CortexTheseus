@@ -59,8 +59,10 @@ func (p Element) Bytes() [CompressedSize]byte {
 	return affineX.Bytes()
 }
 
-// BytesUncompressed returns the uncompressed serialized version of the element.
-func (p Element) BytesUncompressed() [UncompressedSize]byte {
+// BytesUncompressedTrusted returns the uncompressed serialized version of the element.
+// The returned bytes can only be used with SetBytesUncompressed with the trusted flag on.
+// This is because this method doesn't do any (x, y) transformation regarding the sign of y.
+func (p Element) BytesUncompressedTrusted() [UncompressedSize]byte {
 	// Convert underlying point to affine representation
 	var affine bandersnatch.PointAffine
 	affine.FromProj(&p.inner)
