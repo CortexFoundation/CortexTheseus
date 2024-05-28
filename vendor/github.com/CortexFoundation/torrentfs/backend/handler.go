@@ -969,7 +969,7 @@ func (tm *TorrentManager) mainLoop() {
 				} else {
 					if t.Stopping() {
 						log.Debug("Nas recovery", "ih", t.InfoHash(), "status", t.Status(), "complete", common.StorageSize(t.Torrent.BytesCompleted()))
-						if tt, err := tm.injectSpec(t.InfoHash(), t.SpecNoTrackers()); err == nil && tt != nil {
+						if tt, err := tm.injectSpec(t.InfoHash(), t.Spec()); err == nil && tt != nil {
 							t.SetStatus(caffe.TorrentPending)
 							t.Lock()
 							t.Torrent = tt

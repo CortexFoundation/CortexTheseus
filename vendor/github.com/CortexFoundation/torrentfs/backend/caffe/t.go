@@ -285,6 +285,7 @@ func (t *Torrent) Stop() {
 		//if t.jobCh != nil {
 		//close(t.jobCh)
 		//}
+		clear(t.spec.Trackers)
 	}()
 
 	defer t.Torrent.Drop()
