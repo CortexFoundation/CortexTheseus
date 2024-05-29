@@ -40,9 +40,8 @@ import (
 // Node represents a node in a simulation network which is created by a
 // NodeAdapter, for example:
 //
-// * SimNode    - An in-memory node
-// * ExecNode   - A child process node
-// * DockerNode - A Docker container node
+//   - SimNode, an in-memory node in the same process
+//   - ExecNode, a child process node
 type Node interface {
 	// Addr returns the node's address (e.g. an Enode URL)
 	Addr() []byte

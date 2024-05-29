@@ -49,6 +49,10 @@ func (t *Torrent) Spec() *torrent.TorrentSpec {
 	return t.spec
 }
 
+func (t *Torrent) Trackers() [][]string {
+	return t.spec.Trackers
+}
+
 func (t *Torrent) Birth() mclock.AbsTime {
 	return t.start
 }
