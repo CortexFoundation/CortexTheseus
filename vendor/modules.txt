@@ -61,7 +61,7 @@ github.com/CortexFoundation/robot/backend
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit; go 1.16
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.65-0.20240529132130-2b695c1dbebb
+# github.com/CortexFoundation/torrentfs v1.0.65-0.20240530212050-2e1d7d9006e4
 ## explicit; go 1.22
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/backend
@@ -344,7 +344,7 @@ github.com/cespare/xxhash
 # github.com/cespare/xxhash/v2 v2.3.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/charmbracelet/bubbletea v0.26.3
+# github.com/charmbracelet/bubbletea v0.26.4
 ## explicit; go 1.18
 github.com/charmbracelet/bubbletea
 # github.com/charmbracelet/x/ansi v0.1.2
@@ -647,7 +647,7 @@ github.com/gorilla/websocket
 # github.com/hashicorp/go-cleanhttp v0.5.2
 ## explicit; go 1.13
 github.com/hashicorp/go-cleanhttp
-# github.com/hashicorp/go-retryablehttp v0.7.6
+# github.com/hashicorp/go-retryablehttp v0.7.7
 ## explicit; go 1.19
 github.com/hashicorp/go-retryablehttp
 # github.com/hashicorp/golang-lru v1.0.2
@@ -999,7 +999,7 @@ github.com/steakknife/hamming
 ## explicit; go 1.17
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
-# github.com/supranational/blst v0.3.11
+# github.com/supranational/blst v0.3.12
 ## explicit; go 1.11
 github.com/supranational/blst/bindings/go
 # github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d
@@ -1128,7 +1128,7 @@ golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/exp v0.0.0-20240529005216-23cca8864a10
+# golang.org/x/exp v0.0.0-20240530194437-404ba88c7ed0
 ## explicit; go 1.20
 golang.org/x/exp/constraints
 golang.org/x/exp/maps
