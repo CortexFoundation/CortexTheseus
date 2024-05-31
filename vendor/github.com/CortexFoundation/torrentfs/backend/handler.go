@@ -1152,7 +1152,7 @@ func (tm *TorrentManager) activeLoop() {
 				tm.wg.Add(1)
 				go func(i string, n int64) {
 					defer tm.wg.Done()
-					timer := time.NewTicker(time.Duration(n) * time.Second)
+					timer := time.NewTimer(time.Duration(n) * time.Second)
 					defer timer.Stop()
 					for {
 						select {
@@ -1178,6 +1178,7 @@ func (tm *TorrentManager) activeLoop() {
 								log.Error("Nil tor found", "ih", i)
 								return
 							}
+							timer.Reset(time.Duration(n) * time.Second)
 						case <-tm.closeAll:
 							return
 						}
