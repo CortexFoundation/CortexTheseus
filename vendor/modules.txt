@@ -61,12 +61,11 @@ github.com/CortexFoundation/robot/backend
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit; go 1.16
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.65-0.20240531105756-dd4e2d53299b
+# github.com/CortexFoundation/torrentfs v1.0.65-0.20240602195959-7de0242121c1
 ## explicit; go 1.22
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/backend
 github.com/CortexFoundation/torrentfs/backend/caffe
-github.com/CortexFoundation/torrentfs/backend/job
 github.com/CortexFoundation/torrentfs/params
 github.com/CortexFoundation/torrentfs/types
 # github.com/CortexFoundation/wormhole v0.0.2-0.20240503144741-71d4d22383f0
@@ -951,8 +950,8 @@ github.com/prometheus/client_model/go
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 github.com/prometheus/common/model
-# github.com/prometheus/procfs v0.15.0
-## explicit; go 1.21
+# github.com/prometheus/procfs v0.15.1
+## explicit; go 1.20
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
@@ -1037,7 +1036,7 @@ github.com/ucwong/filecache
 # github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb
 ## explicit; go 1.19
 github.com/ucwong/go-ttlmap
-# github.com/ucwong/golang-kv v1.0.24-0.20240526160259-ef630c06892e
+# github.com/ucwong/golang-kv v1.0.24-0.20240602190841-498c29550f39
 ## explicit; go 1.21
 github.com/ucwong/golang-kv
 github.com/ucwong/golang-kv/badger
@@ -1128,7 +1127,7 @@ golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/exp v0.0.0-20240530194437-404ba88c7ed0
+# golang.org/x/exp v0.0.0-20240531132922-fd00a4e0eefc
 ## explicit; go 1.20
 golang.org/x/exp/constraints
 golang.org/x/exp/maps
@@ -1282,7 +1281,7 @@ gopkg.in/yaml.v3
 lukechampine.com/blake3
 lukechampine.com/blake3/bao
 lukechampine.com/blake3/guts
-# modernc.org/libc v1.50.9
+# modernc.org/libc v1.51.0
 ## explicit; go 1.20
 modernc.org/libc
 modernc.org/libc/errno
@@ -1316,7 +1315,7 @@ modernc.org/mathutil
 # modernc.org/memory v1.8.0
 ## explicit; go 1.18
 modernc.org/memory
-# modernc.org/sqlite v1.29.10
+# modernc.org/sqlite v1.30.0
 ## explicit; go 1.20
 modernc.org/sqlite/lib
 # rsc.io/tmplfunc v0.0.3

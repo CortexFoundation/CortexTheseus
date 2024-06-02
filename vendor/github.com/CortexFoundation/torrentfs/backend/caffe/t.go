@@ -45,6 +45,10 @@ func (t *Torrent) SpecNoTrackers() *torrent.TorrentSpec {
 	return t.spec
 }
 
+func (t *Torrent) Dirty() bool {
+	return t.dirty.Load()
+}
+
 func (t *Torrent) Spec() *torrent.TorrentSpec {
 	return t.spec
 }
@@ -121,6 +125,8 @@ func (t *Torrent) BytesRequested() int64 {
 }
 
 func (t *Torrent) SetBytesRequested(bytesRequested int64) {
+	t.lock.Lock()
+	defer t.lock.Unlock()
 	// Store the torrent information in a variable for reuse
 	info := t.Info()
 
@@ -132,7 +138,10 @@ func (t *Torrent) SetBytesRequested(bytesRequested int64) {
 		}
 	}
 
-	t.bytesRequested.Store(bytesRequested)
+	if bytesRequested > t.bytesRequested.Load() || t.bytesRequested.Load() > t.Length() {
+		t.dirty.Store(true)
+		t.bytesRequested.Store(bytesRequested)
+	}
 }
 
 func (t *Torrent) Ready() bool {
@@ -215,6 +224,12 @@ func (t *Torrent) Paused() bool {
 }
 
 func (t *Torrent) Leech() error {
+	t.Lock()
+	defer t.Unlock()
+
+	defer func() {
+		t.dirty.Store(false)
+	}()
 	// Make sure the torrent info exists
 	if t.Torrent.Info() == nil {
 		return errors.New("info is nil")
@@ -298,6 +313,11 @@ func (t *Torrent) Stop() {
 	}
 	t.Torrent.Drop()
 	clear(t.spec.Trackers)
+	//if !t.IsSeeding() {
+	if t.BytesRequested() > t.BytesCompleted() {
+		log.Info("Not complete, set dirty", "ih", t.InfoHash(), "request", t.BytesRequested(), "complete", t.BytesCompleted(), "total", t.Length())
+		t.dirty.Store(true)
+	}
 }
 
 func (t *Torrent) stopListen() {
