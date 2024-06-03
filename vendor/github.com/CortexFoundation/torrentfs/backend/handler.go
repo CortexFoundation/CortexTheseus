@@ -1233,7 +1233,7 @@ func (tm *TorrentManager) activeLoop() {
 
 						//	if t.BytesRequested() > v {
 						if t.Dirty() {
-							log.Info("Request update", "ih", ih, "request", t.BytesRequested())
+							log.Debug("Request bytes leech", "ih", ih, "request", t.BytesRequested())
 							//		tm.filter[ih] = t.BytesRequested()
 							workers.Go(func() error { return t.Leech() })
 						}

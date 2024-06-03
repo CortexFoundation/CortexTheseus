@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # running the job for 5 hours
-let SLEEP_TIME=1*60*60
+let SLEEP_TIME=1*60*5
 
 # GOFLAGS=-modcacherw is required for our CI
 # to be able to remove go modules cache
