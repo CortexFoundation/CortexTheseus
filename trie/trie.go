@@ -104,6 +104,19 @@ func newWithRootNode(root node) *Trie {
 	}
 }
 
+// NewEmpty is a shortcut to create empty tree. It's mostly used in tests.
+func NewEmpty(db *Database) *Trie {
+	tr, _ := New(TrieID(types.EmptyRootHash), db)
+	return tr
+}
+
+// MustNodeIterator is a wrapper of NodeIterator and will omit any encountered
+// error but just print out an error message.
+func (t *Trie) MustNodeIterator(start []byte) NodeIterator {
+	it := t.NodeIterator(start)
+	return it
+}
+
 // NodeIterator returns an iterator that returns nodes of the trie. Iteration starts at
 // the key after the given start key.
 func (t *Trie) NodeIterator(start []byte) NodeIterator {
