@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.3.2
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.65-0.20240526145549-b060534fcf19
+	github.com/CortexFoundation/torrentfs v1.0.65-0.20240528085256-81c24aed642e
 	github.com/VictoriaMetrics/fastcache v1.12.2
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.27.0
@@ -146,7 +146,7 @@ require (
 	github.com/elliotchance/orderedmap v1.6.0 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
 	github.com/garslo/gogen v0.0.0-20170306192744-1d203ffc1f61 // indirect
-	github.com/getsentry/sentry-go v0.27.0 // indirect
+	github.com/getsentry/sentry-go v0.28.0 // indirect
 	github.com/go-llsqlite/adapter v0.1.0 // indirect
 	github.com/go-llsqlite/crawshaw v0.5.2 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
@@ -162,7 +162,7 @@ require (
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/flatbuffers v24.3.25+incompatible // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
-	github.com/google/pprof v0.0.0-20240525223248-4bfdf5a9a2af // indirect
+	github.com/google/pprof v0.0.0-20240528025155-186aa0362fba // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.6 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
@@ -187,7 +187,6 @@ require (
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/nutsdb/nutsdb v1.0.4 // indirect
-	github.com/nxadm/tail v1.4.11 // indirect
 	github.com/oapi-codegen/runtime v1.1.1 // indirect
 	github.com/otiai10/copy v1.14.0 // indirect
 	github.com/pion/datachannel v1.5.6 // indirect
@@ -227,7 +226,7 @@ require (
 	github.com/tklauser/numcpus v0.8.0 // indirect
 	github.com/ucwong/filecache v1.0.6-0.20230405163841-810d53ced4bd // indirect
 	github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb // indirect
-	github.com/ucwong/golang-kv v1.0.24-0.20240516111454-2b75a20c4c6b // indirect
+	github.com/ucwong/golang-kv v1.0.24-0.20240526160259-ef630c06892e // indirect
 	github.com/ucwong/shard v1.0.1-0.20240327124306-59a521744cae // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect

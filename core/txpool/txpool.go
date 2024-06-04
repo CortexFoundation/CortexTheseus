@@ -38,8 +38,6 @@ import (
 )
 
 const (
-	// chainHeadChanSize is the size of channel listening to ChainHeadEvent.
-	chainHeadChanSize = 10
 	// txSlotSize is used to calculate how many data slots a single transaction
 	// takes up based on its size. The slots are used as DoS protection, ensuring
 	// that validating a new transaction remains a constant operation (in reality
@@ -298,7 +296,7 @@ func NewTxPool(config Config, chainconfig *params.ChainConfig, chain blockChain)
 		queue:           make(map[common.Address]*list),
 		beats:           make(map[common.Address]time.Time),
 		all:             newLookup(),
-		chainHeadCh:     make(chan core.ChainHeadEvent, chainHeadChanSize),
+		chainHeadCh:     make(chan core.ChainHeadEvent),
 		reqResetCh:      make(chan *txpoolResetRequest),
 		reqPromoteCh:    make(chan *accountSet),
 		queueTxEventCh:  make(chan *types.Transaction),
@@ -333,8 +331,10 @@ func NewTxPool(config Config, chainconfig *params.ChainConfig, chain blockChain)
 
 	// Subscribe events from blockchain and start the main event loop.
 	pool.chainHeadSub = pool.chain.SubscribeChainHeadEvent(pool.chainHeadCh)
+
+	head := chain.CurrentBlock()
 	pool.wg.Add(1)
-	go pool.loop()
+	go pool.loop(head)
 
 	return pool
 }
@@ -342,7 +342,7 @@ func NewTxPool(config Config, chainconfig *params.ChainConfig, chain blockChain)
 // loop is the transaction pool's main event loop, waiting for and reacting to
 // outside blockchain events as well as for various reporting and transaction
 // eviction events.
-func (pool *TxPool) loop() {
+func (pool *TxPool) loop(head *types.Block) {
 	defer pool.wg.Done()
 
 	var (
@@ -351,8 +351,6 @@ func (pool *TxPool) loop() {
 		report  = time.NewTicker(statsReportInterval)
 		evict   = time.NewTicker(evictionInterval)
 		journal = time.NewTicker(pool.config.Rejournal)
-		// Track the previous head headers for transaction reorgs
-		head = pool.chain.CurrentBlock()
 	)
 	defer report.Stop()
 	defer evict.Stop()
@@ -360,7 +358,6 @@ func (pool *TxPool) loop() {
 
 	// Notify tests that the init phase is done
 	close(pool.initDoneCh)
-
 	for {
 		select {
 		// Handle ChainHeadEvent
