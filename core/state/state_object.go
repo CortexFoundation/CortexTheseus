@@ -143,7 +143,7 @@ func (c *stateObject) touch() {
 	}
 }
 
-// getTrie returns the associated storage trie. The trie will be opened if it'
+// getTrie returns the associated storage trie. The trie will be opened if it's
 // not loaded previously. An error will be returned if trie can't be loaded.
 //
 // If a new trie is opened, it will be cached within the state object to allow
@@ -172,7 +172,7 @@ func (s *stateObject) getPrefetchedTrie() (Trie, error) {
 	if s.data.Root == types.EmptyRootHash || s.db.prefetcher == nil {
 		return nil, nil
 	}
-	// Attempt to retrieve the trie from the pretecher
+	// Attempt to retrieve the trie from the prefetcher
 	return s.db.prefetcher.trie(s.addrHash, s.data.Root)
 }
 
@@ -327,11 +327,7 @@ func (s *stateObject) updateTrie() (Trie, error) {
 	if len(s.pendingStorage) == 0 {
 		return s.trie, nil
 	}
-	// Track the amount of time wasted on updating the storage trie
-	if metrics.EnabledExpensive {
-		defer func(start time.Time) { s.db.StorageUpdates += time.Since(start) }(time.Now())
-	}
-	// Retrieve a pretecher populated trie, or fall back to the database
+	// Retrieve a prefetcher populated trie, or fall back to the database
 	tr, err := s.getPrefetchedTrie()
 	switch {
 	case err != nil:
