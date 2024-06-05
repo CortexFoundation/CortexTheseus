@@ -285,15 +285,14 @@ func (t *Torrent) Stop() {
 		//if t.jobCh != nil {
 		//close(t.jobCh)
 		//}
-		clear(t.spec.Trackers)
 	}()
-
-	defer t.Torrent.Drop()
 
 	if t.Status() != TorrentStopping {
 		//log.Debug(ProgressBar(t.BytesCompleted(), t.Torrent.Length(), ""), "ih", t.InfoHash(), "total", common.StorageSize(t.Torrent.Length()), "req", common.StorageSize(t.BytesRequested()), "finish", common.StorageSize(t.Torrent.BytesCompleted()), "status", t.Status(), "cited", t.Cited())
 		t.status.Store(TorrentStopping)
 	}
+	t.Torrent.Drop()
+	clear(t.spec.Trackers)
 }
 
 func (t *Torrent) stopListen() {
