@@ -129,6 +129,25 @@ func (t *StateTrie) TryGetNode(path []byte) ([]byte, int, error) {
 	return t.trie.TryGetNode(path)
 }
 
+// UpdateStorage associates key with value in the trie. Subsequent calls to
+// Get will return value. If value has length zero, any existing value
+// is deleted from the trie and calls to Get will return nil.
+//
+// The value bytes must not be modified by the caller while they are
+// stored in the trie.
+//
+// If a node is not found in the database, a MissingNodeError is returned.
+func (t *StateTrie) UpdateStorage(_ common.Address, key, value []byte) error {
+	hk := t.hashKey(key)
+	v, _ := rlp.EncodeToBytes(value)
+	err := t.trie.TryUpdate(hk, v)
+	if err != nil {
+		return err
+	}
+	t.getSecKeyCache()[string(hk)] = common.CopyBytes(key)
+	return nil
+}
+
 // TryUpdateAccount account will abstract the write of an account to the
 // secure trie.
 func (t *StateTrie) TryUpdateAccount(key []byte, acc *types.StateAccount) error {
