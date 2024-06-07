@@ -33,7 +33,7 @@ const (
 )
 
 //go:generate go run github.com/fjl/gencodec -type FileInfo -out gen_fileinfo_json.go
-//go:generate go run ../rlp/rlpgen -type FileInfo -out gen_fileinfo_rlp.go
+//go:generate go run github.com/CortexFoundation/CortexTheseus/rlp/rlpgen -type FileInfo -out gen_fileinfo_rlp.go
 
 type FileInfo struct {
 	Meta *FileMeta
@@ -46,7 +46,7 @@ type FileInfo struct {
 }
 
 //go:generate go run github.com/fjl/gencodec -type Transaction -field-override transactionMarshaling -out gen_tx_json.go
-//go:generate go run ../rlp/rlpgen -type Transaction -out gen_tx_rlp.go
+//go:generate go run github.com/CortexFoundation/CortexTheseus/rlp/rlpgen -type Transaction -out gen_tx_rlp.go
 
 type Transaction struct {
 	//Price     *big.Int        `json:"gasPrice" gencodec:"required"`
@@ -127,7 +127,7 @@ type transactionMarshaling struct {
 }
 
 //go:generate go run github.com/fjl/gencodec -type Block -field-override blockMarshaling -out gen_block_json.go
-//go:generate go run ../rlp/rlpgen -type Block -out gen_block_rlp.go
+//go:generate go run github.com/CortexFoundation/CortexTheseus/rlp/rlpgen -type Block -out gen_block_rlp.go
 
 type Block struct {
 	Number uint64      `json:"number"           gencodec:"required"`
@@ -141,7 +141,7 @@ type blockMarshaling struct {
 }
 
 //go:generate go run github.com/fjl/gencodec -type Receipt -field-override receiptMarshaling -out gen_receipt_json.go
-//go:generate go run ../rlp/rlpgen -type Receipt -out gen_receipt_rlp.go
+//go:generate go run github.com/CortexFoundation/CortexTheseus/rlp/rlpgen -type Receipt -out gen_receipt_rlp.go
 type Receipt struct {
 	// Contract Address
 	ContractAddr *common.Address `json:"contractAddress"`
@@ -158,7 +158,7 @@ type receiptMarshaling struct {
 }
 
 //go:generate go run github.com/fjl/gencodec -type FileMeta -out gen_filemeta_json.go
-//go:generate go run ../rlp/rlpgen -type FileMeta -out gen_filemeta_rlp.go
+//go:generate go run github.com/CortexFoundation/CortexTheseus/rlp/rlpgen -type FileMeta -out gen_filemeta_rlp.go
 type FileMeta struct {
 	InfoHash string `json:"infoHash"         gencodec:"required"`
 	//	Name     string        `json:"Name"             gencodec:"required"`

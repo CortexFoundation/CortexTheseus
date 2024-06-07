@@ -4,7 +4,7 @@
 
 //go:build linux && (amd64 || arm64 || loong64)
 
-package libc // import "modernc.org/libc"
+package libc // import "modernc.org/libc"
 
 import (
 	"fmt"
