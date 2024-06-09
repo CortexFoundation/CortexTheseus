@@ -34,7 +34,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 )
 
-var adapterType = flag.String("adapter", "sim", `node adapter to use (one of "sim", "exec" or "docker")`)
+var adapterType = flag.String("adapter", "sim", `node adapter to use (one of "sim" or "exec")`)
 
 // main() starts a simulation network which contains nodes running a simple
 // ping-pong protocol

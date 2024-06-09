@@ -21,9 +21,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common/mclock"
-	"github.com/ethereum/go-ethereum/p2p/enode"
-	"github.com/ethereum/go-ethereum/p2p/enr"
+	"github.com/CortexFoundation/CortexTheseus/common/mclock"
+	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
+	"github.com/CortexFoundation/CortexTheseus/p2p/enr"
 )
 
 // This test checks that revalidation can handle a node disappearing while
@@ -110,10 +110,10 @@ func TestRevalidation_endpointUpdate(t *testing.T) {
 	}
 	tr.handleResponse(tab, resp)
 
-	if !tr.fast.contains(node.ID()) {
+	if tr.fast.nodes[0].ID() != node.ID() {
 		t.Fatal("node not contained in fast revalidation list")
 	}
-	if node.isValidatedLive {
+	if tr.fast.nodes[0].isValidatedLive {
 		t.Fatal("node is marked live after endpoint change")
 	}
 }
