@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 
 # running the job for 5 hours
-let SLEEP_TIME=5*60*60
+let SLEEP_TIME=1*60*60
 
 # GOFLAGS=-modcacherw is required for our CI
 # to be able to remove go modules cache
 GOFLAGS=-modcacherw make
 
 echo "running cortex..."
-./build/bin/cortex > nightly.log 2>&1 &
+./test.sh > nightly.log 2>&1 &
 
 CORTEX_PID=$!
 
