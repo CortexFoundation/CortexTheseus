@@ -23,12 +23,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
+	//"math"
 	"math/rand"
 	"net"
 	"os"
 	"path/filepath"
-	"runtime"
+	//"runtime"
 	"slices"
 	"strconv"
 	"sync"
@@ -58,7 +58,7 @@ import (
 	"github.com/ucwong/shard"
 
 	"github.com/CortexFoundation/torrentfs/backend/caffe"
-	"github.com/CortexFoundation/torrentfs/backend/job"
+	//"github.com/CortexFoundation/torrentfs/backend/job"
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
 
@@ -139,6 +139,8 @@ type TorrentManager struct {
 	//worms []Worm
 
 	worm *wormhole.Wormhole
+
+	//filter map[string]int64
 }
 
 func (tm *TorrentManager) getLimitation(value int64) int64 {
@@ -194,6 +196,8 @@ func (tm *TorrentManager) dropTorrent(t *caffe.Torrent) {
 	default:
 		log.Warn("Unknown status", "ih", t.InfoHash(), "status", t.Status())
 	}
+
+	//delete(tm.filter, t.InfoHash())
 
 	/*if t.Status() == torrentPending {
 		//tm.pending_lock.Lock()
@@ -584,24 +588,24 @@ func (tm *TorrentManager) ColaList() mapset.Set[string] {
 
 func (tm *TorrentManager) updateInfoHash(t *caffe.Torrent, bytesRequested int64) {
 	if t.Status() != caffe.TorrentSeeding {
-		if t.BytesRequested() < bytesRequested {
-			//if bytesRequested > t.Length() {
-			//	bytesRequested = t.Length()
-			//}
-			//t.lock.Lock()
-			//t.bytesRequested = bytesRequested
-			//t.bytesLimitation = tm.getLimitation(bytesRequested)
-			//t.lock.Unlock()
+		//if t.BytesRequested() < bytesRequested {
+		//if bytesRequested > t.Length() {
+		//	bytesRequested = t.Length()
+		//}
+		//t.lock.Lock()
+		//t.bytesRequested = bytesRequested
+		//t.bytesLimitation = tm.getLimitation(bytesRequested)
+		//t.lock.Unlock()
 
-			t.SetBytesRequested(bytesRequested)
-			//t.leechCh <- struct{}{}
+		t.SetBytesRequested(bytesRequested)
+		//t.leechCh <- struct{}{}
 
-			//if t.Status() == torrentRunning {
-			//if t.QuotaFull() {
-			//t.Leech()
-			//}
-			//}
-		}
+		//if t.Status() == torrentRunning {
+		//if t.QuotaFull() {
+		//t.Leech()
+		//}
+		//}
+		//}
 	} else if t.Cited() < 10 {
 		// call seeding t
 		log.Debug("Already seeding", "ih", t.InfoHash(), "cited", t.Cited())
@@ -652,8 +656,8 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 	//cfg.HTTPUserAgent = "Cortex"
 	cfg.Seed = true
 
-	cfg.EstablishedConnsPerTorrent = int(math.Min(float64(runtime.NumCPU()*2), float64(50))) //4 //len(config.DefaultTrackers)
-	cfg.HalfOpenConnsPerTorrent = cfg.EstablishedConnsPerTorrent / 2
+	//cfg.EstablishedConnsPerTorrent = 128 //int(math.Min(float64(runtime.NumCPU()*2), float64(50))) //4 //len(config.DefaultTrackers)
+	//cfg.HalfOpenConnsPerTorrent = cfg.EstablishedConnsPerTorrent / 2
 
 	cfg.ListenPort = config.Port
 	if !config.Quiet {
@@ -1081,7 +1085,7 @@ func (tm *TorrentManager) meta(t *caffe.Torrent) error {
 	}
 
 	if params.IsGood(t.InfoHash()) || tm.mode == params.FULL || t.BytesRequested() > t.Length() {
-		t.SetBytesRequested(t.Length())
+		t.SetBytesRequested(t.Length()) // request bytes fix after meta information got
 	}
 
 	return tm.Running(t)
@@ -1121,6 +1125,8 @@ func (tm *TorrentManager) activeLoop() {
 		workers errgroup.Group
 	)
 
+	//tm.filter = make(map[string]int64)
+
 	defer func() {
 		tm.wg.Done()
 		timer.Stop()
@@ -1152,7 +1158,7 @@ func (tm *TorrentManager) activeLoop() {
 				tm.wg.Add(1)
 				go func(i string, n int64) {
 					defer tm.wg.Done()
-					timer := time.NewTicker(time.Duration(n) * time.Second)
+					timer := time.NewTimer(time.Duration(n) * time.Second)
 					defer timer.Stop()
 					for {
 						select {
@@ -1178,6 +1184,7 @@ func (tm *TorrentManager) activeLoop() {
 								log.Error("Nil tor found", "ih", i)
 								return
 							}
+							timer.Reset(time.Duration(n) * time.Second)
 						case <-tm.closeAll:
 							return
 						}
@@ -1196,7 +1203,7 @@ func (tm *TorrentManager) activeLoop() {
 
 			//if tm.dur() > 0 {
 			//stopped := int32(tm.torrents.Len()) - tm.seeds.Load() - tm.actives.Load() - tm.pends.Load()
-			log.Info("Fs status", "pending", tm.pends.Load(), "downloading", tm.actives.Load(), "seeding", tm.seeds.Load(), "stopping", tm.stops.Load(), "all", tm.torrents.Len(), "recovery", tm.recovery.Load(), "metrics", common.PrettyDuration(tm.Updates), "job", job.SEQ()) //, "total", common.StorageSize(tm.total()), "cost", common.PrettyDuration(time.Duration(tm.dur())), "speed", common.StorageSize(float64(tm.total()*1000*1000*1000)/float64(tm.dur())).String()+"/s")
+			log.Info("Fs status", "pending", tm.pends.Load(), "downloading", tm.actives.Load(), "seeding", tm.seeds.Load(), "stopping", tm.stops.Load(), "all", tm.torrents.Len(), "recovery", tm.recovery.Load(), "metrics", common.PrettyDuration(tm.Updates)) //, "total", common.StorageSize(tm.total()), "cost", common.PrettyDuration(time.Duration(tm.dur())), "speed", common.StorageSize(float64(tm.total()*1000*1000*1000)/float64(tm.dur())).String()+"/s")
 			//}
 			timer_1.Reset(time.Second * params.QueryTimeInterval * 60)
 		case <-timer.C:
@@ -1217,12 +1224,26 @@ func (tm *TorrentManager) activeLoop() {
 				if t.Running() {
 					if t.Torrent.BytesMissing() == 0 {
 						//clean = append(clean, t)
+						//delete(filter, ih)
+						log.Trace("Finish", "ih", ih)
 						workers.Go(func() error { return tm.finish(t) })
 					} else {
-						if t.Torrent.BytesCompleted() < t.BytesRequested() {
+						//if t.Torrent.BytesCompleted() < t.BytesRequested() {
+						//if v, ok := tm.filter[ih]; ok {
+
+						//	if t.BytesRequested() > v {
+						if t.Dirty() {
+							log.Debug("Request bytes leech", "ih", ih, "request", t.BytesRequested())
+							//		tm.filter[ih] = t.BytesRequested()
 							workers.Go(func() error { return t.Leech() })
 						}
+						//} else {
+						//	log.Info("New filter item", "ih", ih, "request", t.BytesRequested())
+						//	tm.filter[ih] = t.BytesRequested()
+						//	workers.Go(func() error { return t.Leech() })
 					}
+					//	}
+					//}
 				}
 
 				if counter%60 == 0 {
