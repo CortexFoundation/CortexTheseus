@@ -188,6 +188,7 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 	var (
 		vmConfig = vm.Config{
 			EnablePreimageRecording: config.EnablePreimageRecording,
+			EnableWitnessCollection: config.EnableWitnessCollection,
 			StorageDir:              config.StorageDir,
 		}
 		cacheConfig = &core.CacheConfig{

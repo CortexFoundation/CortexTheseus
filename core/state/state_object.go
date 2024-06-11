@@ -248,6 +248,14 @@ func (s *stateObject) GetCommittedState(key common.Hash) common.Hash {
 		}
 		value.SetBytes(content)
 	}
+	// Independent of where we loaded the data from, add it to the prefetcher.
+	// Whilst this would be a bit weird if snapshots are disabled, but we still
+	// want the trie nodes to end up in the prefetcher too, so just push through.
+	if s.db.prefetcher != nil && s.data.Root != types.EmptyRootHash {
+		if err = s.db.prefetcher.prefetch(s.addrHash, s.origin.Root, s.address, [][]byte{key[:]}, true); err != nil {
+			log.Error("Failed to prefetch storage slot", "addr", s.address, "key", key, "err", err)
+		}
+	}
 	s.originStorage[key] = value
 	log.Trace("Committed state", "value", value, "key", key, "addr", s.address, "s.addrHash", s.addrHash, "s.data.Upload", s.data.Upload, "s.data.Num", s.data.Num)
 	return value
@@ -301,7 +309,7 @@ func (s *stateObject) finalise() {
 		}
 	}
 	if s.db.prefetcher != nil && len(slotsToPrefetch) > 0 && s.data.Root != types.EmptyRootHash {
-		if err := s.db.prefetcher.prefetch(s.addrHash, s.data.Root, s.address, slotsToPrefetch); err != nil {
+		if err := s.db.prefetcher.prefetch(s.addrHash, s.data.Root, s.address, slotsToPrefetch, false); err != nil {
 			log.Error("Failed to prefetch slots", "addr", s.address, "slots", len(slotsToPrefetch), "err", err)
 		}
 	}

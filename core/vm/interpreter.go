@@ -46,7 +46,8 @@ type Config struct {
 	StorageDir   string
 	// Storagefs    torrentfs.CVMStorage
 
-	ExtraEips []int // Additional EIPS that are to be enabled
+	ExtraEips               []int // Additional EIPS that are to be enabled
+	EnableWitnessCollection bool  // true if witness collection is enabled
 }
 
 // only for the sake of debug info of NewPublicBlockChainAPI

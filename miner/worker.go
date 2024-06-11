@@ -700,7 +700,7 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 	if err != nil {
 		return err
 	}
-	state.StartPrefetcher("miner")
+	state.StartPrefetcher("miner", false)
 
 	env := &environment{
 		signer:    types.NewEIP155Signer(w.chainConfig.ChainID),

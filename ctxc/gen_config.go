@@ -47,6 +47,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		TxPool                  txpool.Config
 		GPO                     gasprice.Config
 		EnablePreimageRecording bool
+		EnableWitnessCollection bool `toml:"-"`
 		InferURI                string
 		StorageDir              string
 		DocRoot                 string                         `toml:"-"`
@@ -86,6 +87,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.TxPool = c.TxPool
 	enc.GPO = c.GPO
 	enc.EnablePreimageRecording = c.EnablePreimageRecording
+	enc.EnableWitnessCollection = c.EnableWitnessCollection
 	enc.InferURI = c.InferURI
 	enc.StorageDir = c.StorageDir
 	enc.DocRoot = c.DocRoot
@@ -129,6 +131,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		TxPool                  *txpool.Config
 		GPO                     *gasprice.Config
 		EnablePreimageRecording *bool
+		EnableWitnessCollection *bool `toml:"-"`
 		InferURI                *string
 		StorageDir              *string
 		DocRoot                 *string                        `toml:"-"`
@@ -228,6 +231,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.EnablePreimageRecording != nil {
 		c.EnablePreimageRecording = *dec.EnablePreimageRecording
+	}
+	if dec.EnableWitnessCollection != nil {
+		c.EnableWitnessCollection = *dec.EnableWitnessCollection
 	}
 	if dec.InferURI != nil {
 		c.InferURI = *dec.InferURI
