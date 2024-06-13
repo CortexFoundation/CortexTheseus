@@ -174,6 +174,7 @@ func exit(t *TLS, status int32, audit bool) {
 func X_exit(_ *TLS, status int32) {
 	if dmesgs {
 		dmesg("%v: EXIT %v", origin(1), status)
+		dmesgFinish()
 	}
 	os.Exit(int(status))
 }

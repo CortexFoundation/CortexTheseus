@@ -11,8 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
-
 	"net"
 	"net/http"
 	"net/http/httptrace"
@@ -228,7 +226,6 @@ func (d *Dialer) DialContext(ctx context.Context, urlStr string, requestHeader h
 			k == "Connection" ||
 			k == "Sec-Websocket-Key" ||
 			k == "Sec-Websocket-Version" ||
-			//#nosec G101 (CWE-798): Potential HTTP request smuggling via parameter pollution
 			k == "Sec-Websocket-Extensions" ||
 			(k == "Sec-Websocket-Protocol" && len(d.Subprotocols) > 0):
 			return nil, nil, errors.New("websocket: duplicate header not allowed: " + k)
@@ -294,9 +291,7 @@ func (d *Dialer) DialContext(ctx context.Context, urlStr string, requestHeader h
 			}
 			err = c.SetDeadline(deadline)
 			if err != nil {
-				if err := c.Close(); err != nil {
-					log.Printf("websocket: failed to close network connection: %v", err)
-				}
+				c.Close()
 				return nil, err
 			}
 			return c, nil
@@ -336,9 +331,7 @@ func (d *Dialer) DialContext(ctx context.Context, urlStr string, requestHeader h
 
 	defer func() {
 		if netConn != nil {
-			if err := netConn.Close(); err != nil {
-				log.Printf("websocket: failed to close network connection: %v", err)
-			}
+			netConn.Close()
 		}
 	}()
 
@@ -429,9 +422,7 @@ func (d *Dialer) DialContext(ctx context.Context, urlStr string, requestHeader h
 	resp.Body = io.NopCloser(bytes.NewReader([]byte{}))
 	conn.subprotocol = resp.Header.Get("Sec-Websocket-Protocol")
 
-	if err := netConn.SetDeadline(time.Time{}); err != nil {
-		return nil, nil, err
-	}
+	netConn.SetDeadline(time.Time{})
 	netConn = nil // to avoid close in defer.
 	return conn, resp, nil
 }

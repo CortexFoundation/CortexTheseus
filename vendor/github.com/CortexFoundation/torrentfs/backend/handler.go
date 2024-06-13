@@ -1028,6 +1028,11 @@ func (tm *TorrentManager) pendingLoop() {
 			}
 			if m, ok := ev.Data.(pendingEvent); ok {
 				t := m.T
+				if t.Torrent.Info() != nil {
+					tm.meta(t)
+					continue
+				}
+
 				tm.wg.Add(1)
 				tm.pends.Add(1)
 				go func(t *caffe.Torrent) {
@@ -1035,11 +1040,6 @@ func (tm *TorrentManager) pendingLoop() {
 						tm.wg.Done()
 						tm.pends.Add(-1)
 					}()
-
-					if t.Torrent.Info() != nil {
-						tm.meta(t)
-						return
-					}
 
 					ctx, cancel := context.WithTimeout(context.Background(), (10+time.Duration(tm.slot&9))*time.Minute)
 					defer cancel()

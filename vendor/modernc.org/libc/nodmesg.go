@@ -10,3 +10,5 @@ package libc // import "modernc.org/libc"
 const dmesgs = false
 
 func dmesg(s string, args ...interface{}) {}
+
+func dmesgFinish() {}
