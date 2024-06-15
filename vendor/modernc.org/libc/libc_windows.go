@@ -90,7 +90,7 @@ type (
 var (
 	modkernel32 = syscall.NewLazyDLL("kernel32.dll")
 	//--
-	procGlobalDeleteAtom              = modkernel32.NewProc("GlobalDeleteAtom")
+	procGlobalDeleteAtom            = modkernel32.NewProc("GlobalDeleteAtom")
 	procGlobalAddAtomW              = modkernel32.NewProc("GlobalAddAtomW")
 	procSetFileTime                 = modkernel32.NewProc("SetFileTime")
 	procCancelSynchronousIo         = modkernel32.NewProc("CancelSynchronousIo")
@@ -250,11 +250,11 @@ var (
 
 	moduser32 = syscall.NewLazyDLL("user32.dll")
 	//--
-	procIsWindow                 = moduser32.NewProc("IsWindow")
-	procDdeGetLastError                 = moduser32.NewProc("DdeGetLastError")
-	procDdeFreeStringHandle                 = moduser32.NewProc("DdeFreeStringHandle")
-	procSendMessageTimeoutW                 = moduser32.NewProc("SendMessageTimeoutW")
-	procDdeConnect                 = moduser32.NewProc("DdeConnect")
+	procIsWindow                    = moduser32.NewProc("IsWindow")
+	procDdeGetLastError             = moduser32.NewProc("DdeGetLastError")
+	procDdeFreeStringHandle         = moduser32.NewProc("DdeFreeStringHandle")
+	procSendMessageTimeoutW         = moduser32.NewProc("SendMessageTimeoutW")
+	procDdeConnect                  = moduser32.NewProc("DdeConnect")
 	procEnumWindows                 = moduser32.NewProc("EnumWindows")
 	procRegisterClassExW            = moduser32.NewProc("RegisterClassExW")
 	procCharLowerW                  = moduser32.NewProc("CharLowerW")
@@ -1939,6 +1939,10 @@ func X__ms_vscanf(t *TLS, format, ap uintptr) int32 {
 
 // int vsnprintf(char *str, size_t size, const char *format, va_list ap);
 func X__ms_vsnprintf(t *TLS, str uintptr, size types.Size_t, format, ap uintptr) int32 {
+	return Xvsnprintf(t, str, size, format, ap)
+}
+
+func X_vsnprintf(t *TLS, str uintptr, size types.Size_t, format, ap uintptr) int32 {
 	return Xvsnprintf(t, str, size, format, ap)
 }
 
@@ -5123,10 +5127,12 @@ func XDdeUninitialize(t *TLS, idInst uint32) int32 {
 }
 
 // HCONV DdeConnect(
-//   [in]           DWORD        idInst,
-//   [in]           HSZ          hszService,
-//   [in]           HSZ          hszTopic,
-//   [in, optional] PCONVCONTEXT pCC
+//
+//	[in]           DWORD        idInst,
+//	[in]           HSZ          hszService,
+//	[in]           HSZ          hszTopic,
+//	[in, optional] PCONVCONTEXT pCC
+//
 // );
 func XDdeConnect(t *TLS, idInst uint32, hszService, hszTopic, pCC uintptr) uintptr {
 	r0, _, err := syscall.SyscallN(procDdeConnect.Addr(), uintptr(idInst), hszService, hszTopic, pCC)
@@ -5137,8 +5143,10 @@ func XDdeConnect(t *TLS, idInst uint32, hszService, hszTopic, pCC uintptr) uintp
 }
 
 // BOOL DdeFreeStringHandle(
-//   [in] DWORD idInst,
-//   [in] HSZ   hsz
+//
+//	[in] DWORD idInst,
+//	[in] HSZ   hsz
+//
 // );
 func XDdeFreeStringHandle(t *TLS, idInst uint32, hsz uintptr) int32 {
 	r0, _, err := syscall.SyscallN(procDdeFreeStringHandle.Addr(), uintptr(idInst), hsz)
@@ -5199,7 +5207,9 @@ func XEnumWindows(t *TLS, lpEnumFunc uintptr, lParam int64) int32 {
 }
 
 // BOOL IsWindow(
-//   [in, optional] HWND hWnd
+//
+//	[in, optional] HWND hWnd
+//
 // );
 func XIsWindow(t *TLS, hWnd uintptr) int32 {
 	r0, _, err := syscall.SyscallN(procIsWindow.Addr(), hWnd)
@@ -5210,7 +5220,9 @@ func XIsWindow(t *TLS, hWnd uintptr) int32 {
 }
 
 // ATOM GlobalDeleteAtom(
-//   [in] ATOM nAtom
+//
+//	[in] ATOM nAtom
+//
 // );
 func XGlobalDeleteAtom(t *TLS, nAtom uint16) uint16 {
 	r0, _, err := syscall.SyscallN(procGlobalDeleteAtom.Addr(), uintptr(nAtom))
@@ -5221,7 +5233,9 @@ func XGlobalDeleteAtom(t *TLS, nAtom uint16) uint16 {
 }
 
 // UINT DdeGetLastError(
-//   [in] DWORD idInst
+//
+//	[in] DWORD idInst
+//
 // );
 func XDdeGetLastError(t *TLS, idInst uint32) uint32 {
 	r0, _, err := syscall.SyscallN(procEnumWindows.Addr(), uintptr(idInst))

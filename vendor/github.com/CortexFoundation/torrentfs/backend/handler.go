@@ -656,7 +656,7 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 	//cfg.HTTPUserAgent = "Cortex"
 	cfg.Seed = true
 
-	//cfg.EstablishedConnsPerTorrent = 128 //int(math.Min(float64(runtime.NumCPU()*2), float64(50))) //4 //len(config.DefaultTrackers)
+	cfg.EstablishedConnsPerTorrent = 128 //int(math.Min(float64(runtime.NumCPU()*2), float64(50))) //4 //len(config.DefaultTrackers)
 	//cfg.HalfOpenConnsPerTorrent = cfg.EstablishedConnsPerTorrent / 2
 
 	cfg.ListenPort = config.Port
@@ -667,7 +667,7 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 
 		//cfg.Debug=true
 	}
-	cfg.DropDuplicatePeerIds = true
+	//cfg.DropDuplicatePeerIds = true
 	cfg.Bep20 = params.ClientVersion //"-COLA01-"
 	//id := strconv.FormatUint(fsid, 16)[0:14]
 	//cfg.PeerID = "cortex" + id

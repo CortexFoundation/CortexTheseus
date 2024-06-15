@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.3.2
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.66-0.20240613111741-a53114dd7c4c
+	github.com/CortexFoundation/torrentfs v1.0.67-0.20240614224604-f2760e71abfd
 	github.com/VictoriaMetrics/fastcache v1.12.2
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.27.2
@@ -17,7 +17,7 @@ require (
 	github.com/cespare/cp v1.1.1
 	github.com/charmbracelet/bubbletea v0.26.4
 	github.com/cloudflare/cloudflare-go v0.97.0
-	github.com/cockroachdb/pebble v1.1.0
+	github.com/cockroachdb/pebble v1.1.1
 	github.com/consensys/gnark-crypto v0.12.1
 	github.com/crate-crypto/go-kzg-4844 v1.0.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
@@ -34,7 +34,7 @@ require (
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb
 	github.com/google/gofuzz v1.2.1-0.20210524182514-9eed411d8615
 	github.com/google/uuid v1.6.0
-	github.com/gorilla/websocket v1.5.2
+	github.com/gorilla/websocket v1.5.3
 	github.com/hashicorp/golang-lru v1.0.2
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/holiman/uint256 v1.2.4
@@ -62,7 +62,7 @@ require (
 	github.com/urfave/cli/v2 v2.27.2
 	go.uber.org/automaxprocs v1.5.3
 	golang.org/x/crypto v0.24.0
-	golang.org/x/exp v0.0.0-20240604190554-fc45aab8b7f8
+	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8
 	golang.org/x/mobile v0.0.0-20201217150744-e6ae53a27f4f
 	golang.org/x/sync v0.7.0
 	golang.org/x/sys v0.21.0
@@ -131,6 +131,7 @@ require (
 	github.com/charmbracelet/x/term v0.1.1 // indirect
 	github.com/charmbracelet/x/windows v0.1.2 // indirect
 	github.com/cockroachdb/errors v1.11.3 // indirect
+	github.com/cockroachdb/fifo v0.0.0-20240606204812-0bbfbd93a7ce // indirect
 	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
 	github.com/cockroachdb/redact v1.1.5 // indirect
 	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
@@ -227,7 +228,7 @@ require (
 	github.com/tklauser/numcpus v0.8.0 // indirect
 	github.com/ucwong/filecache v1.0.6-0.20230405163841-810d53ced4bd // indirect
 	github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb // indirect
-	github.com/ucwong/golang-kv v1.0.24-0.20240613103600-2fea0db8b680 // indirect
+	github.com/ucwong/golang-kv v1.0.24-0.20240614101328-cacce2ee6faa // indirect
 	github.com/ucwong/shard v1.0.1-0.20240327124306-59a521744cae // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
@@ -245,7 +246,7 @@ require (
 	golang.org/x/term v0.21.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
-	modernc.org/libc v1.53.1 // indirect
+	modernc.org/libc v1.53.3 // indirect
 	modernc.org/mathutil v1.6.0 // indirect
 	modernc.org/memory v1.8.0 // indirect
 	modernc.org/sqlite v1.30.1 // indirect

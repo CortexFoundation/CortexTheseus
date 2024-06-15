@@ -599,13 +599,15 @@ func XDefWindowProcW(t *TLS, _ ...interface{}) int64 {
 }
 
 // LRESULT SendMessageTimeoutW(
-//   [in]            HWND       hWnd,
-//   [in]            UINT       Msg,
-//   [in]            WPARAM     wParam,
-//   [in]            LPARAM     lParam,
-//   [in]            UINT       fuFlags,
-//   [in]            UINT       uTimeout,
-//   [out, optional] PDWORD_PTR lpdwResult
+//
+//	[in]            HWND       hWnd,
+//	[in]            UINT       Msg,
+//	[in]            WPARAM     wParam,
+//	[in]            LPARAM     lParam,
+//	[in]            UINT       fuFlags,
+//	[in]            UINT       uTimeout,
+//	[out, optional] PDWORD_PTR lpdwResult
+//
 // );
 func XSendMessageTimeoutW(t *TLS, hWnd uintptr, Msg uint32, wParam uint64, lParam int64, fuFlags, uTimeout uint32, lpdwResult uintptr) int64 {
 	r0, _, err := syscall.SyscallN(procSendMessageTimeoutW.Addr(), hWnd, uintptr(Msg), uintptr(wParam), uintptr(lParam), uintptr(fuFlags), uintptr(uTimeout), lpdwResult)
