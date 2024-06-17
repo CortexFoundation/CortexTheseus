@@ -346,6 +346,8 @@ more:
 			arg = uint64(uint8(VaInt32(args)))
 		case mod32:
 			arg = uint64(VaInt32(args))
+		case modZ:
+			arg = uint64(VaInt64(args))
 		default:
 			panic(todo("", mod))
 		}

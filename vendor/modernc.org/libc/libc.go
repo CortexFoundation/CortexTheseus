@@ -1128,6 +1128,10 @@ func Xfmod(t *TLS, x, y float64) float64 {
 	return math.Mod(x, y)
 }
 
+func X__builtin_hypot(t *TLS, x float64, y float64) (r float64) {
+	return Xhypot(t, x, y)
+}
+
 func Xhypot(t *TLS, x, y float64) float64 {
 	if __ccgo_strace {
 		trc("t=%v y=%v, (%v:)", t, y, origin(2))
@@ -2475,4 +2479,43 @@ func Xlrint(tls *TLS, x float64) (r long) {
 		defer func() { trc("-> %v", r) }()
 	}
 	return long(Xrint(tls, x))
+}
+
+func Xtanf(tls *TLS, x float32) (r float32) {
+	return float32(math.Tan(float64(x)))
+}
+
+func Xsqrtf(t *TLS, x float32) float32 {
+	if __ccgo_strace {
+		trc("t=%v x=%v, (%v:)", t, x, origin(2))
+	}
+	return float32(math.Sqrt(float64(x)))
+}
+
+func Xacosf(t *TLS, x float32) float32 {
+	if __ccgo_strace {
+		trc("t=%v x=%v, (%v:)", t, x, origin(2))
+	}
+	return float32(math.Acos(float64(x)))
+}
+
+func Xfloorf(t *TLS, x float32) float32 {
+	if __ccgo_strace {
+		trc("t=%v x=%v, (%v:)", t, x, origin(2))
+	}
+	return float32(math.Floor(float64(x)))
+}
+
+func Xatan2f(t *TLS, x, y float32) float32 {
+	if __ccgo_strace {
+		trc("t=%v y=%v, (%v:)", t, y, origin(2))
+	}
+	return float32(math.Atan2(float64(x), float64(y)))
+}
+
+func Xfmodf(t *TLS, x, y float32) float32 {
+	if __ccgo_strace {
+		trc("t=%v y=%v, (%v:)", t, y, origin(2))
+	}
+	return float32(math.Mod(float64(x), float64(y)))
 }

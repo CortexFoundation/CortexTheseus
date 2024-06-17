@@ -31,7 +31,7 @@ type InferMeta interface {
 }
 
 //go:generate go run github.com/fjl/gencodec -type Meta -out gen_meta_json.go
-//go:generate go run ../rlp/rlpgen -type Meta -out gen_meta_rlp.go
+//go:generate go run github.com/CortexFoundation/CortexTheseus/rlp/rlpgen -type Meta -out gen_meta_rlp.go
 
 type Meta struct {
 	Comment  string         `json:"comment"`
@@ -42,7 +42,7 @@ type Meta struct {
 }
 
 //go:generate go run github.com/fjl/gencodec -type ModelMeta -out gen_model_json.go
-//go:generate go run ../rlp/rlpgen -type ModelMeta -out gen_model_rlp.go
+//go:generate go run github.com/CortexFoundation/CortexTheseus/rlp/rlpgen -type ModelMeta -out gen_model_rlp.go
 
 type ModelMeta struct {
 	Comment       string         `json:"comment"`
@@ -58,7 +58,7 @@ type ModelMeta struct {
 }
 
 //go:generate go run github.com/fjl/gencodec -type InputMeta -out gen_input_json.go
-//go:generate go run ../rlp/rlpgen -type InputMeta -out gen_input_rlp.go
+//go:generate go run github.com/CortexFoundation/CortexTheseus/rlp/rlpgen -type InputMeta -out gen_input_rlp.go
 
 type InputMeta struct {
 	Comment string         `json:"comment"`
