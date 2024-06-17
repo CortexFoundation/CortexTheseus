@@ -46,6 +46,8 @@ func (t *Torrent) SpecNoTrackers() *torrent.TorrentSpec {
 }
 
 func (t *Torrent) Dirty() bool {
+	//t.RLock()
+	//defer t.RUnlock()
 	return t.dirty.Load()
 }
 
@@ -127,20 +129,10 @@ func (t *Torrent) BytesRequested() int64 {
 func (t *Torrent) SetBytesRequested(bytesRequested int64) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
-	// Store the torrent information in a variable for reuse
-	info := t.Info()
 
-	// Check if the torrent has associated information
-	if info != nil {
-		// Limit the requested bytes to the total length of the torrent
-		if bytesRequested > t.Length() {
-			bytesRequested = t.Length()
-		}
-	}
-
-	if bytesRequested > t.bytesRequested.Load() || t.bytesRequested.Load() > t.Length() {
+	if bytesRequested > t.bytesRequested.Load() {
 		t.dirty.Store(true)
-		log.Debug("Request bytes updated", "ih", t.InfoHash(), "request", bytesRequested, "status", t.Status())
+		log.Debug("Request bytes updated", "ih", t.InfoHash(), "request", bytesRequested, "origin", t.bytesRequested.Load(), "len", t.Torrent.Length(), "status", t.Status(), "dirty", t.dirty.Load())
 		t.bytesRequested.Store(bytesRequested)
 	}
 }
