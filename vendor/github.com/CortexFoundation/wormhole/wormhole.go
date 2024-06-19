@@ -64,8 +64,8 @@ func (wh *Wormhole) BestTrackers() (ret []string) {
 			continue
 		}
 
-		// 2.5s for health check
-		wh.cl.SetTimeout(time.Millisecond * 2500)
+		// 0.5s for health check
+		wh.cl.SetTimeout(time.Millisecond * 500)
 
 		//var wg sync.WaitGroup
 		var (
