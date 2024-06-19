@@ -125,6 +125,8 @@ type Config struct {
 	GPO gasprice.Config
 
 	EnablePreimageRecording bool
+	// Enables prefetching trie nodes for read operations too
+	EnableWitnessCollection bool `toml:"-"`
 
 	InferURI   string
 	StorageDir string
