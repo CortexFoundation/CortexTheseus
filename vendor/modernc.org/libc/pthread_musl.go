@@ -8,7 +8,6 @@ package libc // import "modernc.org/libc"
 
 import (
 	"runtime"
-	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -399,7 +398,7 @@ func Xpthread_cond_timedwait(tls *TLS, c, m, ts uintptr) (r int32) {
 		waiters = conds.conds[c]
 		for i, v := range waiters {
 			if v == ch {
-				conds.conds[c] = slices.Delete(waiters, i, i+1)
+				conds.conds[c] = append(waiters[:i], waiters[i+1:]...)
 				return
 			}
 		}

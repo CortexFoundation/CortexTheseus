@@ -598,8 +598,23 @@ func XDefWindowProcW(t *TLS, _ ...interface{}) int64 {
 	panic(todo(""))
 }
 
-func XSendMessageTimeoutW(t *TLS, _ ...interface{}) int64 {
-	panic(todo(""))
+// LRESULT SendMessageTimeoutW(
+//
+//	[in]            HWND       hWnd,
+//	[in]            UINT       Msg,
+//	[in]            WPARAM     wParam,
+//	[in]            LPARAM     lParam,
+//	[in]            UINT       fuFlags,
+//	[in]            UINT       uTimeout,
+//	[out, optional] PDWORD_PTR lpdwResult
+//
+// );
+func XSendMessageTimeoutW(t *TLS, hWnd uintptr, Msg uint32, wParam uint64, lParam int64, fuFlags, uTimeout uint32, lpdwResult uintptr) int64 {
+	r0, _, err := syscall.SyscallN(procSendMessageTimeoutW.Addr(), hWnd, uintptr(Msg), uintptr(wParam), uintptr(lParam), uintptr(fuFlags), uintptr(uTimeout), lpdwResult)
+	if err != 0 {
+		t.setErrno(err)
+	}
+	return int64(r0)
 }
 
 func Xstrspn(tls *TLS, s uintptr, c uintptr) size_t { /* strspn.c:6:8: */

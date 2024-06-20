@@ -28,7 +28,7 @@ func init() {
 		panic(err.Error())
 	}
 
-	dmesg("%v", time.Now())
+	dmesg("==== dmesg init() %v", time.Now())
 }
 
 func dmesg(s string, args ...interface{}) {
@@ -42,4 +42,10 @@ func dmesg(s string, args ...interface{}) {
 	default:
 		fmt.Fprintln(logf, s)
 	}
+}
+
+func dmesgFinish() {
+	dmesg("==== dmesgFinish() %v", time.Now())
+	logf.Sync()
+	logf.Close()
 }

@@ -656,7 +656,7 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 	//cfg.HTTPUserAgent = "Cortex"
 	cfg.Seed = true
 
-	//cfg.EstablishedConnsPerTorrent = 128 //int(math.Min(float64(runtime.NumCPU()*2), float64(50))) //4 //len(config.DefaultTrackers)
+	cfg.EstablishedConnsPerTorrent = 128 //int(math.Min(float64(runtime.NumCPU()*2), float64(50))) //4 //len(config.DefaultTrackers)
 	//cfg.HalfOpenConnsPerTorrent = cfg.EstablishedConnsPerTorrent / 2
 
 	cfg.ListenPort = config.Port
@@ -667,7 +667,7 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 
 		//cfg.Debug=true
 	}
-	cfg.DropDuplicatePeerIds = true
+	//cfg.DropDuplicatePeerIds = true
 	cfg.Bep20 = params.ClientVersion //"-COLA01-"
 	//id := strconv.FormatUint(fsid, 16)[0:14]
 	//cfg.PeerID = "cortex" + id
@@ -1028,6 +1028,11 @@ func (tm *TorrentManager) pendingLoop() {
 			}
 			if m, ok := ev.Data.(pendingEvent); ok {
 				t := m.T
+				if t.Torrent.Info() != nil {
+					tm.meta(t)
+					continue
+				}
+
 				tm.wg.Add(1)
 				tm.pends.Add(1)
 				go func(t *caffe.Torrent) {
@@ -1035,11 +1040,6 @@ func (tm *TorrentManager) pendingLoop() {
 						tm.wg.Done()
 						tm.pends.Add(-1)
 					}()
-
-					if t.Torrent.Info() != nil {
-						tm.meta(t)
-						return
-					}
 
 					ctx, cancel := context.WithTimeout(context.Background(), (10+time.Duration(tm.slot&9))*time.Minute)
 					defer cancel()
