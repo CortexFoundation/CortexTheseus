@@ -830,6 +830,8 @@ func (t *Tree) disklayer() *diskLayer {
 	case *diskLayer:
 		return layer
 	case *diffLayer:
+		layer.lock.RLock()
+		defer layer.lock.RUnlock()
 		return layer.origin
 	default:
 		panic(fmt.Sprintf("%T: undefined layer", snap))
@@ -861,7 +863,7 @@ func (t *Tree) generating() (bool, error) {
 	return layer.genMarker != nil, nil
 }
 
-// diskRoot is a external helper function to return the disk layer root.
+// DiskRoot is an external helper function to return the disk layer root.
 func (t *Tree) DiskRoot() common.Hash {
 	t.lock.Lock()
 	defer t.lock.Unlock()
