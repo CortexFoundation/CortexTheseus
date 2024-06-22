@@ -240,7 +240,7 @@ func (t *StateTrie) Commit(onleaf LeafCallback) (root common.Hash, err error) {
 	// Write all the pre-images to the actual disk database
 	if len(t.getSecKeyCache()) > 0 {
 		if t.preimages != nil {
-			preimages := make(map[common.Hash][]byte)
+			preimages := make(map[common.Hash][]byte, len(t.secKeyCache))
 			for hk, key := range t.secKeyCache {
 				preimages[common.BytesToHash([]byte(hk))] = key
 			}
