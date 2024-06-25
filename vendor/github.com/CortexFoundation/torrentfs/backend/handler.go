@@ -1037,6 +1037,7 @@ func (tm *TorrentManager) pendingLoop() {
 				t := m.T
 				log.Debug("Searching", "ih", t.InfoHash())
 				if t.Torrent.Info() != nil {
+					t.AddTrackers(slices.Clone(tm.globalTrackers))
 					tm.meta(t)
 					continue
 				}
@@ -1099,6 +1100,7 @@ func (tm *TorrentManager) meta(t *caffe.Torrent) error {
 		return err
 	}
 
+	// TODO
 	if err := t.Start(); err != nil {
 		tm.Dropping(t.InfoHash())
 		log.Error("Nas start failed", "ih", t.InfoHash(), "err", err)
@@ -1316,7 +1318,7 @@ func (tm *TorrentManager) seedingLoop() {
 						t.Mux().Post(evn)
 
 						// to global
-						t.AddTrackers(slices.Clone(tm.globalTrackers))
+						// t.AddTrackers(slices.Clone(tm.globalTrackers))
 					}
 				}
 			case droppingEvent:
