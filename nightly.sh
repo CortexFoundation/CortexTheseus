@@ -10,7 +10,7 @@ GOFLAGS=-modcacherw make
 echo "running cortex..."
 #./test.sh > nightly.log 2>&1 &
 rm -rf /tmp/.cortex_test
-./build/bin/cortex --datadir=/tmp/.cortex_test/ --port=0 > nightly.log 2>&1 &
+./build/bin/cortex --datadir=/tmp/.cortex_test/ --port=0 --storage.mode=lazy > nightly.log 2>&1 &
 
 CORTEX_PID=$!
 
