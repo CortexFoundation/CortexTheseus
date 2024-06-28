@@ -171,7 +171,7 @@ func (t *Torrent) Seed() bool {
 		//defer t.Unlock()
 
 		t.status.Store(TorrentSeeding)
-		t.stopListen()
+		//t.stopListen()
 
 		elapsed := time.Duration(mclock.Now()) - time.Duration(t.start)
 		//if active, ok := params.GoodFiles[t.InfoHash()]; !ok {
@@ -229,8 +229,9 @@ func (t *Torrent) Leech() error {
 	}
 
 	if t.status.Load() != TorrentRunning {
-		log.Warn("Nas is not running", "ih", t.InfoHash(), "status", t.Status())
-		return errors.New("nas is not running")
+		//log.Warn("Nas is not running", "ih", t.InfoHash(), "status", t.Status())
+		//return errors.New("nas is not running")
+		t.status.Store(TorrentRunning)
 	}
 
 	if t.Torrent.BytesMissing() == 0 {
@@ -283,10 +284,10 @@ func (t *Torrent) Start() error {
 		return errors.New("nas run failed")
 	}
 
-	t.startOnce.Do(func() {
+	/*t.startOnce.Do(func() {
 		t.wg.Add(1)
 		go t.listen()
-	})
+	})*/
 	return nil
 }
 
@@ -313,21 +314,21 @@ func (t *Torrent) Stop() {
 	}
 }
 
-func (t *Torrent) stopListen() {
+/*func (t *Torrent) stopListen() {
 	t.stopOnce.Do(func() {
 		t.Lock()
 		defer t.Unlock()
 
 		//close(t.jobCh)
 
-		close(t.closeAll)
-		t.wg.Wait()
+		//close(t.closeAll)
+		//t.wg.Wait()
 
-		t.taskCh = nil
+		//t.taskCh = nil
 
 		log.Debug("Nas listener stopped", "ih", t.InfoHash(), "status", t.Status())
 	})
-}
+}*/
 
 func (t *Torrent) Close() {
 	t.Lock()

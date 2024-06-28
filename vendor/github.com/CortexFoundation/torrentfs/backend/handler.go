@@ -498,22 +498,28 @@ func (tm *TorrentManager) addInfoHash(ih string, bytesRequested int64) *caffe.To
 
 // Start the torrent leeching
 func (tm *TorrentManager) injectSpec(ih string, spec *torrent.TorrentSpec) (*torrent.Torrent, error) {
-	if t, n, err := tm.client.AddTorrentSpec(spec); err == nil {
-		if !n {
+	if spec != nil {
+		spec.Trackers = tm.trackers
+	} else {
+		return nil, errors.New("Nil spec")
+	}
+
+	if t, _, err := tm.client.AddTorrentSpec(spec); err == nil {
+		/*if !n {
 			log.Warn("Try to add a dupliated torrent", "ih", ih)
 			return t, errors.New("Try to add a dupliated torrent")
-		}
+		}*/
+
+		/*if len(spec.Trackers) == 0 {
+		          t.AddTrackers(tm.trackers)
+		  } else {
+		          t.ModifyTrackers(tm.trackers)
+		  }*/
 
 		if t.Info() == nil && tm.kvdb != nil {
 			if v := tm.kvdb.Get([]byte(SEED_PRE + ih)); v != nil {
 				t.SetInfoBytes(v)
 			}
-		}
-
-		if len(spec.Trackers) == 0 {
-			t.AddTrackers(slices.Clone(tm.trackers))
-		} else {
-			t.ModifyTrackers(slices.Clone(tm.trackers))
 		}
 
 		log.Debug("Meta", "ih", ih, "mi", t.Metainfo().AnnounceList)
@@ -1100,15 +1106,14 @@ func (tm *TorrentManager) meta(t *caffe.Torrent) error {
 		return err
 	}
 
-	// TODO
-	if err := t.Start(); err != nil {
+	/*if err := t.Start(); err != nil {
 		tm.Dropping(t.InfoHash())
 		log.Error("Nas start failed", "ih", t.InfoHash(), "err", err)
 		return err
-	}
+	}*/
 
 	log.Debug("Meta found", "ih", t.InfoHash(), "len", t.Length())
-	if params.IsGood(t.InfoHash()) || tm.mode == params.FULL {
+	if (params.IsGood(t.InfoHash()) && tm.mode != params.LAZY) || tm.mode == params.FULL {
 		t.SetBytesRequested(t.Length()) // request bytes fix after meta information got
 	}
 
@@ -1213,6 +1218,8 @@ func (tm *TorrentManager) activeLoop() {
 								return
 							}
 							timer.Reset(time.Duration(n) * time.Second)
+						case <-t.Closed():
+							return
 						case <-tm.closeAll:
 							return
 						}
@@ -1316,9 +1323,6 @@ func (tm *TorrentManager) seedingLoop() {
 
 						evn := caffe.TorrentEvent{S: t.Status()}
 						t.Mux().Post(evn)
-
-						// to global
-						// t.AddTrackers(slices.Clone(tm.globalTrackers))
 					}
 				}
 			case droppingEvent:

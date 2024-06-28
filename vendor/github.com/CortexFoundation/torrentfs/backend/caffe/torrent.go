@@ -17,11 +17,11 @@
 package caffe
 
 import (
-	"context"
-	"errors"
+	//"context"
+	//"errors"
 	"sync"
 	"sync/atomic"
-	"time"
+	//"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/event"
@@ -51,33 +51,33 @@ type Torrent struct {
 	//fast  bool
 	start mclock.AbsTime
 	//ch    chan bool
-	wg sync.WaitGroup
+	//wg sync.WaitGroup
 
 	lock sync.RWMutex
 
-	closeAll chan any
+	//closeAll chan any
 
-	taskCh chan task
+	//taskCh chan task
 
 	slot int
 
-	startOnce sync.Once
-	stopOnce  sync.Once
+	//startOnce sync.Once
+	//stopOnce  sync.Once
 
 	spec *torrent.TorrentSpec
 
 	//jobCh chan bool
-	priority int
+	//priority int
 
 	mux *event.TypeMux
 
 	dirty atomic.Bool
 }
 
-type task struct {
+/*type task struct {
 	start int
 	end   int
-}
+}*/
 
 type TorrentEvent struct {
 	S int
@@ -91,11 +91,11 @@ func NewTorrent(t *torrent.Torrent, requested int64, ih string, path string, slo
 		infohash: ih,
 		filepath: path,
 		start:    mclock.Now(),
-		taskCh:   make(chan task, 1),
-		closeAll: make(chan any),
-		slot:     slot,
-		spec:     spec,
-		mux:      new(event.TypeMux),
+		//taskCh:   make(chan task, 1),
+		//closeAll: make(chan any),
+		slot: slot,
+		spec: spec,
+		mux:  new(event.TypeMux),
 	}
 
 	//tor.bytesRequested.Store(requested)
@@ -124,19 +124,20 @@ func (t *Torrent) download(p int) error {
 
 	e = s + p
 
-	if t.taskCh != nil {
+	t.Torrent.DownloadPieces(s, e)
+
+	/*if t.taskCh != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		select {
 		case t.taskCh <- task{s, e}:
-			//log.Debug(ScaleBar(s, e, t.Torrent.NumPieces()), "ih", t.InfoHash(), "slot", t.slot, "s", s, "e", e, "p", p, "total", t.Torrent.NumPieces())
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-t.closeAll:
 		}
 	} else {
 		return errors.New("task channel is nil")
-	}
+	}*/
 	return nil
 }
 
@@ -154,7 +155,7 @@ func (t *Torrent) run() bool {
 	return true
 }
 
-func (t *Torrent) listen() {
+/*func (t *Torrent) listen() {
 	defer t.wg.Done()
 
 	log.Debug("Task listener started", "ih", t.InfoHash())
@@ -168,4 +169,4 @@ func (t *Torrent) listen() {
 			return
 		}
 	}
-}
+}*/

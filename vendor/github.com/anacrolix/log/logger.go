@@ -2,6 +2,7 @@ package log
 
 import (
 	"fmt"
+	"log/slog"
 )
 
 // Returns a new Logger with the names given, and Default's handlers. I'm not sure copying those
@@ -85,4 +86,8 @@ func (l Logger) Println(a ...interface{}) {
 	l.LazyLogDefaultLevel(func() Msg {
 		return Msgln(a...).Skip(1)
 	})
+}
+
+func (l Logger) Slogger() *slog.Logger {
+	return slog.New(slogHandler{l})
 }

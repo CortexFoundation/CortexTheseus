@@ -6,6 +6,12 @@ import (
 	"github.com/anacrolix/chansync/events"
 )
 
+type ReadOnlyFlag interface {
+	Bool() bool
+	On() events.Active
+	Off() events.Active
+}
+
 // Flag wraps a boolean value that starts as false (off). You can wait for it to be on or off, and
 // set the value as needed.
 type Flag struct {
