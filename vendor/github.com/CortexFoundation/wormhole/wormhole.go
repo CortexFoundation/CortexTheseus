@@ -56,7 +56,7 @@ func (wh *Wormhole) BestTrackers() (ret []string) {
 	defer wh.cl.SetTimeout(time.Second * 10)
 
 	for _, ur := range BestTrackerUrl {
-		log.Info("Fetch trackers", "url", ur)
+		log.Debug("Fetch trackers", "url", ur)
 		resp, err := wh.cl.R().Get(ur)
 
 		if err != nil || resp == nil || len(resp.String()) == 0 {
@@ -117,12 +117,12 @@ func (wh *Wormhole) BestTrackers() (ret []string) {
 			select {
 			case x := <-retCh:
 				//if len(x) > 0 {
-				log.Info("Healthy tracker", "url", x, "latency", common.PrettyDuration(time.Duration(mclock.Now())-time.Duration(start)))
+				log.Debug("Healthy tracker", "url", x, "latency", common.PrettyDuration(time.Duration(mclock.Now())-time.Duration(start)))
 				ret = append(ret, x)
 				//}
 			case x := <-failedCh:
 				// TODO
-				log.Info("Unhealthy tracker", "url", x, "latency", common.PrettyDuration(time.Duration(mclock.Now())-time.Duration(start)))
+				log.Debug("Unhealthy tracker", "url", x, "latency", common.PrettyDuration(time.Duration(mclock.Now())-time.Duration(start)))
 
 			}
 		}
