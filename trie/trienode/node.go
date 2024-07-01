@@ -171,21 +171,14 @@ func (set *NodeSet) Hashes() []common.Hash {
 func (set *NodeSet) Summary() string {
 	var out = new(strings.Builder)
 	fmt.Fprintf(out, "nodeset owner: %v\n", set.Owner)
-	if set.Nodes != nil {
-		for path, n := range set.Nodes {
-			// Deletion
-			if n.IsDeleted() {
-				fmt.Fprintf(out, "  [-]: %x prev: %x\n", path, n.Prev)
-				continue
-			}
-			// Insertion
-			if len(n.Prev) == 0 {
-				fmt.Fprintf(out, "  [+]: %x -> %v\n", path, n.Hash)
-				continue
-			}
-			// Update
-			fmt.Fprintf(out, "  [*]: %x -> %v prev: %x\n", path, n.Hash, n.Prev)
+	for path, n := range set.Nodes {
+		// Deletion
+		if n.IsDeleted() {
+			fmt.Fprintf(out, "  [-]: %x\n", path)
+			continue
 		}
+		// Insertion or update
+		fmt.Fprintf(out, "  [+/*]: %x -> %v \n", path, n.Hash)
 	}
 	for _, n := range set.Leaves {
 		fmt.Fprintf(out, "[leaf]: %v\n", n)
