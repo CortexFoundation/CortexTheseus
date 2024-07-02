@@ -163,7 +163,7 @@ type Torrent struct {
 	pex pexState
 
 	// Is On when all pieces are complete.
-	Complete chansync.Flag
+	complete chansync.Flag
 
 	// Torrent sources in use keyed by the source string.
 	activeSources sync.Map
@@ -511,7 +511,8 @@ func (t *Torrent) setInfo(info *metainfo.Info) error {
 	}
 	if t.storageOpener != nil {
 		var err error
-		t.storage, err = t.storageOpener.OpenTorrent(info, *t.canonicalShortInfohash())
+		ctx := log.ContextWithLogger(context.Background(), t.logger)
+		t.storage, err = t.storageOpener.OpenTorrent(ctx, info, *t.canonicalShortInfohash())
 		if err != nil {
 			return fmt.Errorf("error opening torrent storage: %s", err)
 		}
@@ -519,7 +520,8 @@ func (t *Torrent) setInfo(info *metainfo.Info) error {
 	t.nameMu.Lock()
 	t.info = info
 	t.nameMu.Unlock()
-	t._chunksPerRegularPiece = chunkIndexType((pp.Integer(t.usualPieceSize()) + t.chunkSize - 1) / t.chunkSize)
+	t._chunksPerRegularPiece = chunkIndexType(
+		(pp.Integer(t.usualPieceSize()) + t.chunkSize - 1) / t.chunkSize)
 	t.updateComplete()
 	t.displayName = "" // Save a few bytes lol.
 	t.initFiles()
@@ -2929,7 +2931,7 @@ func (t *Torrent) pieceRequestIndexOffset(piece pieceIndex) RequestIndex {
 }
 
 func (t *Torrent) updateComplete() {
-	t.Complete.SetBool(t.haveAllPieces())
+	t.complete.SetBool(t.haveAllPieces())
 }
 
 func (t *Torrent) cancelRequest(r RequestIndex) *Peer {
@@ -3255,4 +3257,9 @@ file:
 		pieceLayers[string(key[:])] = value.String()
 	}
 	return
+}
+
+// Is On when all pieces are complete.
+func (t *Torrent) Complete() chansync.ReadOnlyFlag {
+	return &t.complete
 }

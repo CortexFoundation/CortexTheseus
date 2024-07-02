@@ -3,6 +3,7 @@ package log
 import (
 	"fmt"
 	"path/filepath"
+	"slices"
 )
 
 // loggerCore is the essential part of Logger.
@@ -24,7 +25,8 @@ func (l loggerCore) asLogger() Logger {
 
 // Returns a logger that adds the given values to logged messages.
 func (l loggerCore) WithValues(v ...interface{}) Logger {
-	l.values = append(l.values, v...)
+	l.assertNonZero()
+	l.values = append(slices.Clone(l.values), v...)
 	return l.asLogger()
 }
 
@@ -91,6 +93,7 @@ func (l loggerCore) lazyLog(level Level, skip int, f func() Msg) {
 	for i := len(l.msgMaps) - 1; i >= 0; i-- {
 		r = l.msgMaps[i](r)
 	}
+	r = r.WithValues(l.values...)
 	l.handle(level, r, names)
 }
 
@@ -102,9 +105,7 @@ func (l loggerCore) handle(level Level, m Msg, names []string) {
 		Level: level,
 		Names: names,
 	}
-	if !l.nonZero {
-		panic(fmt.Sprintf("Logger uninitialized. names=%q", l.names))
-	}
+	l.assertNonZero()
 	for _, h := range l.Handlers {
 		h.Handle(r)
 	}
@@ -122,4 +123,10 @@ func (l loggerCore) WithNames(names ...string) Logger {
 func (l *loggerCore) SetHandlers(h ...Handler) {
 	l.Handlers = h
 	l.nonZero = true
+}
+
+func (l *loggerCore) assertNonZero() {
+	if !l.nonZero {
+		panic(fmt.Sprintf("Logger uninitialized. names=%q", l.names))
+	}
 }

@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"os"
+
 	"github.com/anacrolix/log"
 
 	"github.com/anacrolix/torrent/metainfo"
@@ -18,9 +20,12 @@ type PieceCompletion interface {
 }
 
 func pieceCompletionForDir(dir string) (ret PieceCompletion) {
+	// This should be happening before sqlite attempts to open a database in the intended directory.
+	os.MkdirAll(dir, 0o700)
 	ret, err := NewDefaultPieceCompletionForDir(dir)
 	if err != nil {
-		log.Printf("couldn't open piece completion db in %q: %s", dir, err)
+		// This kinda sux using the global logger. This code is ancient.
+		log.Levelf(log.Warning, "couldn't open piece completion db in %q: %s", dir, err)
 		ret = NewMapPieceCompletion()
 	}
 	return
