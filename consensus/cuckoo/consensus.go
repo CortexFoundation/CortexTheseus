@@ -892,7 +892,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 				r.Add(uncle.Number, big8)
 				r.Sub(r, header.Number)
 				r.Mul(r, blockReward)
-				r.Div(r, big8)
+				r.Rsh(r, 3)
 
 				header.Supply.Add(header.Supply, r)
 				if header.Supply.Cmp(params.CTXC_TOP) > 0 {
@@ -903,7 +903,7 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header,
 				state.AddBalance(uncle.Coinbase, r)
 				log.Trace("Uncle mining reward", "miner", uncle.Coinbase, "reward", toCoin(r), "total", toCoin(header.Supply))
 
-				r.Div(blockReward, big32)
+				r.Rsh(blockReward, 5)
 				header.Supply.Add(header.Supply, r)
 				if header.Supply.Cmp(params.CTXC_TOP) > 0 {
 					header.Supply.Sub(header.Supply, r)
@@ -982,7 +982,7 @@ func accumulateRewardsWithoutParent(config *params.ChainConfig, state *state.Sta
 				r.Add(uncle.Number, big8)
 				r.Sub(r, header.Number)
 				r.Mul(r, blockReward)
-				r.Div(r, big8)
+				r.Rsh(r, 3)
 
 				header.Supply.Add(header.Supply, r)
 				if header.Supply.Cmp(params.CTXC_TOP) > 0 {
@@ -993,7 +993,7 @@ func accumulateRewardsWithoutParent(config *params.ChainConfig, state *state.Sta
 				state.AddBalance(uncle.Coinbase, r)
 				log.Trace("Uncle mining reward", "miner", uncle.Coinbase, "reward", toCoin(r), "total", toCoin(header.Supply))
 
-				r.Div(blockReward, big32)
+				r.Rsh(blockReward, 5)
 				header.Supply.Add(header.Supply, r)
 				if header.Supply.Cmp(params.CTXC_TOP) > 0 {
 					header.Supply.Sub(header.Supply, r)
