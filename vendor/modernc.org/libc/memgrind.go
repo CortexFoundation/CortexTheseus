@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build !libc.membrk && libc.memgrind && !(linux && (amd64 || arm64 || loong64))
+//go:build !libc.membrk && libc.memgrind && !((linux && (amd64 || arm64 || loong64)) || windows)
 
 // This is a debug-only version of the memory handling functions. When a
 // program is built with -tags=libc.memgrind the functions MemAuditStart and
@@ -17,7 +17,7 @@ import (
 	"strings"
 	"unsafe"
 
-	"modernc.org/libc/errno"
+	cerrno "modernc.org/libc/errno"
 	"modernc.org/libc/sys/types"
 	"modernc.org/memory"
 )
@@ -80,16 +80,16 @@ func Xmalloc(t *TLS, size types.Size_t) uintptr {
 		return 0
 	}
 
-	allocMu.Lock()
+	allocatorMu.Lock()
 
-	defer allocMu.Unlock()
+	defer allocatorMu.Unlock()
 
 	p, err := allocator.UintptrCalloc(int(size))
 	// 	if dmesgs {
 	// 		dmesg("%v: %v -> %#x, %v", origin(1), size, p, err)
 	// 	}
 	if err != nil {
-		t.setErrno(errno.ENOMEM)
+		t.setErrno(cerrno.ENOMEM)
 		return 0
 	}
 
@@ -120,16 +120,16 @@ func Xcalloc(t *TLS, n, size types.Size_t) uintptr {
 		return 0
 	}
 
-	allocMu.Lock()
+	allocatorMu.Lock()
 
-	defer allocMu.Unlock()
+	defer allocatorMu.Unlock()
 
 	p, err := allocator.UintptrCalloc(int(n * size))
 	// 	if dmesgs {
 	// 		dmesg("%v: %v -> %#x, %v", origin(1), n*size, p, err)
 	// 	}
 	if err != nil {
-		t.setErrno(errno.ENOMEM)
+		t.setErrno(cerrno.ENOMEM)
 		return 0
 	}
 
@@ -155,9 +155,9 @@ func Xrealloc(t *TLS, ptr uintptr, size types.Size_t) uintptr {
 	if __ccgo_strace {
 		trc("t=%v ptr=%v size=%v, (%v:)", t, ptr, size, origin(2))
 	}
-	allocMu.Lock()
+	allocatorMu.Lock()
 
-	defer allocMu.Unlock()
+	defer allocatorMu.Unlock()
 
 	var pc uintptr
 	if memAuditEnabled {
@@ -188,7 +188,7 @@ func Xrealloc(t *TLS, ptr uintptr, size types.Size_t) uintptr {
 	// 		dmesg("%v: %#x, %v -> %#x, %v", origin(1), ptr, size, p, err)
 	// 	}
 	if err != nil {
-		t.setErrno(errno.ENOMEM)
+		t.setErrno(cerrno.ENOMEM)
 		return 0
 	}
 
@@ -217,9 +217,9 @@ func Xfree(t *TLS, p uintptr) {
 	// 		dmesg("%v: %#x", origin(1), p)
 	// 	}
 
-	allocMu.Lock()
+	allocatorMu.Lock()
 
-	defer allocMu.Unlock()
+	defer allocatorMu.Unlock()
 
 	sz := memory.UintptrUsableSize(p)
 	if memAuditEnabled {
@@ -250,9 +250,9 @@ func Xfree(t *TLS, p uintptr) {
 }
 
 func UsableSize(p uintptr) types.Size_t {
-	allocMu.Lock()
+	allocatorMu.Lock()
 
-	defer allocMu.Unlock()
+	defer allocatorMu.Unlock()
 
 	if memAuditEnabled {
 		pc, _, _, ok := runtime.Caller(1)
@@ -281,9 +281,9 @@ func UsableSize(p uintptr) types.Size_t {
 // It is intended only for debug/test builds. It slows down memory allocation
 // routines and it has additional memory costs.
 func MemAuditStart() {
-	allocMu.Lock()
+	allocatorMu.Lock()
 
-	defer allocMu.Unlock()
+	defer allocatorMu.Unlock()
 
 	allocs = map[uintptr]uintptr{} // addr: caller
 	allocsMore = map[uintptr]string{}
@@ -300,7 +300,7 @@ func MemAuditStart() {
 // It is intended only for debug/test builds. It slows down memory allocation
 // routines and it has additional memory costs.
 func MemAuditReport() (r error) {
-	allocMu.Lock()
+	allocatorMu.Lock()
 
 	defer func() {
 		allocs = nil
@@ -308,7 +308,7 @@ func MemAuditReport() (r error) {
 		frees = nil
 		memAuditEnabled = false
 		memAudit = nil
-		allocMu.Unlock()
+		allocatorMu.Unlock()
 	}()
 
 	if len(allocs) != 0 {
@@ -325,7 +325,7 @@ func MemAuditReport() (r error) {
 }
 
 func MemAuditAnnotate(pc uintptr, s string) {
-	allocMu.Lock()
+	allocatorMu.Lock()
 	allocsMore[pc] = s
-	allocMu.Unlock()
+	allocatorMu.Unlock()
 }

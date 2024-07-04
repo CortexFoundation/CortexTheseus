@@ -12,6 +12,7 @@ package libc // import "modernc.org/libc"
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 	"sort"
 	"strings"
@@ -57,6 +58,13 @@ var (
 	memAuditEnabled bool
 )
 
+func init() {
+	if os.Getenv("LIBC_MEMAUDIT_AUTOSTART") == "1" {
+		fmt.Fprintln(os.Stderr, "memory auditing autostarted")
+		MemAuditStart()
+	}
+}
+
 func pc2origin(pc uintptr) string {
 	f := runtime.FuncForPC(pc)
 	var fn, fns string
@@ -72,9 +80,10 @@ func pc2origin(pc uintptr) string {
 }
 
 // void *malloc(size_t size);
-func Xmalloc(t *TLS, size Tsize_t) uintptr {
+func Xmalloc(t *TLS, size Tsize_t) (r uintptr) {
 	if __ccgo_strace {
-		trc("t=%v size=%v, (%v:)", t, size, origin(2))
+		trc("t=%v size=%v, (%v: %v:)", t, size, origin(2), origin(3))
+		defer func() { trc("Xmalloc->%#0x(%[1]v)", r) }()
 	}
 	if size == 0 {
 		return 0
@@ -111,9 +120,10 @@ func Xmalloc(t *TLS, size Tsize_t) uintptr {
 }
 
 // void *calloc(size_t nmemb, size_t size);
-func Xcalloc(t *TLS, n, size Tsize_t) uintptr {
+func Xcalloc(t *TLS, n, size Tsize_t) (r uintptr) {
 	if __ccgo_strace {
-		trc("t=%v size=%v, (%v:)", t, size, origin(2))
+		trc("t=%v size=%v, (%v: %v:)", t, size, origin(2), origin(3))
+		defer func() { trc("Xcalloc->%#0x(%[1]v)", r) }()
 	}
 	rq := int(n * size)
 	if rq == 0 {
@@ -151,9 +161,10 @@ func Xcalloc(t *TLS, n, size Tsize_t) uintptr {
 }
 
 // void *realloc(void *ptr, size_t size);
-func Xrealloc(t *TLS, ptr uintptr, size Tsize_t) uintptr {
+func Xrealloc(t *TLS, ptr uintptr, size Tsize_t) (r uintptr) {
 	if __ccgo_strace {
-		trc("t=%v ptr=%v size=%v, (%v:)", t, ptr, size, origin(2))
+		trc("t=%v ptr=%v size=%v, (%v: %v)", t, ptr, size, origin(2), origin(3))
+		defer func() { trc("Xrealloc->%#0x(%[1]v)", r) }()
 	}
 	allocatorMu.Lock()
 

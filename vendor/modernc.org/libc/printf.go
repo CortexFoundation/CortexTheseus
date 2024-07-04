@@ -15,6 +15,97 @@ import (
 	"unsafe"
 )
 
+func VaInt32(app *uintptr) int32 {
+	ap := *(*uintptr)(unsafe.Pointer(app))
+	if ap == 0 {
+		return 0
+	}
+
+	ap = roundup(ap, 8)
+	v := int32(*(*int64)(unsafe.Pointer(ap)))
+	ap += 8
+	*(*uintptr)(unsafe.Pointer(app)) = ap
+	return v
+}
+
+func VaUint32(app *uintptr) uint32 {
+	ap := *(*uintptr)(unsafe.Pointer(app))
+	if ap == 0 {
+		return 0
+	}
+
+	ap = roundup(ap, 8)
+	v := uint32(*(*uint64)(unsafe.Pointer(ap)))
+	ap += 8
+	*(*uintptr)(unsafe.Pointer(app)) = ap
+	return v
+}
+
+func VaInt64(app *uintptr) int64 {
+	ap := *(*uintptr)(unsafe.Pointer(app))
+	if ap == 0 {
+		return 0
+	}
+
+	ap = roundup(ap, 8)
+	v := *(*int64)(unsafe.Pointer(ap))
+	ap += 8
+	*(*uintptr)(unsafe.Pointer(app)) = ap
+	return v
+}
+
+func VaUint64(app *uintptr) uint64 {
+	ap := *(*uintptr)(unsafe.Pointer(app))
+	if ap == 0 {
+		return 0
+	}
+
+	ap = roundup(ap, 8)
+	v := *(*uint64)(unsafe.Pointer(ap))
+	ap += 8
+	*(*uintptr)(unsafe.Pointer(app)) = ap
+	return v
+}
+
+func VaFloat32(app *uintptr) float32 {
+	ap := *(*uintptr)(unsafe.Pointer(app))
+	if ap == 0 {
+		return 0
+	}
+
+	ap = roundup(ap, 8)
+	v := *(*float64)(unsafe.Pointer(ap))
+	ap += 8
+	*(*uintptr)(unsafe.Pointer(app)) = ap
+	return float32(v)
+}
+
+func VaFloat64(app *uintptr) float64 {
+	ap := *(*uintptr)(unsafe.Pointer(app))
+	if ap == 0 {
+		return 0
+	}
+
+	ap = roundup(ap, 8)
+	v := *(*float64)(unsafe.Pointer(ap))
+	ap += 8
+	*(*uintptr)(unsafe.Pointer(app)) = ap
+	return v
+}
+
+func VaUintptr(app *uintptr) uintptr {
+	ap := *(*uintptr)(unsafe.Pointer(app))
+	if ap == 0 {
+		return 0
+	}
+
+	ap = roundup(ap, 8)
+	v := *(*uintptr)(unsafe.Pointer(ap))
+	ap += 8
+	*(*uintptr)(unsafe.Pointer(app)) = ap
+	return v
+}
+
 const (
 	modNone = iota
 	modHH
@@ -681,4 +772,21 @@ func fixNanInf(s string) string {
 	default:
 		return s
 	}
+}
+
+func Xvfprintf(t *TLS, stream, format, va uintptr) int32 {
+	return Xfprintf(t, stream, format, va)
+}
+
+func Xvsprintf(t *TLS, str, format, va uintptr) int32 {
+	return Xsprintf(t, str, format, va)
+}
+
+// int sprintf(char *str, const char *format, ...);
+func Xsprintf(t *TLS, str, format, args uintptr) (r int32) {
+	b := printf(format, args)
+	r = int32(len(b))
+	copy(unsafe.Slice((*byte)(unsafe.Pointer(str)), r)[:r:r], b)
+	*(*byte)(unsafe.Pointer(str + uintptr(r))) = 0
+	return int32(len(b))
 }

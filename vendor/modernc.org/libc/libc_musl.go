@@ -128,11 +128,6 @@ import (
 	"modernc.org/memory"
 )
 
-const (
-	heapAlign = 16
-	heapGuard = 16
-)
-
 var (
 	_ error = (*MemAuditError)(nil)
 

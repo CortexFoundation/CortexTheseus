@@ -9,7 +9,9 @@ SHELL=/bin/bash -o pipefail
 DIR = /tmp/libc
 TAR = musl-7ada6dde6f9dc6a2836c3d92c2f762d35fd229e0.tar.gz
 URL = https://git.musl-libc.org/cgit/musl/snapshot/$(TAR)
-MSVCRT = msvcrt_windows_amd64.go
+UCRT_386 = libc_windows_386.go
+UCRT_AMD64 = libc_windows_amd64.go
+UCRT_ARM64 = libc_windows_arm64.go
 
 all: editor
 	golint 2>&1
@@ -34,7 +36,7 @@ download:
 
 edit:
 	@touch log
-	@if [ -f "Session.vim" ]; then novim -S & else novim -p Makefile all_musl_test.go generator.go libc.go libc_musl.go & fi
+	@if [ -f "Session.vim" ]; then novim -S & else novim -p Makefile all_windows_test.go generator.go libc.go libc_windows*.go & fi
 
 editor:
 	gofmt -l -s -w *.go 2>&1 | tee log-editor
@@ -42,11 +44,18 @@ editor:
 	go install -v  2>&1 | tee -a log-editor
 	go build -o /dev/null generator*.go
 
-msvcrt:
+ucrt:
+	make ucrt_amd64 ucrt_arm64 ucrt_386
+	go build -v ./... 2>&1 | tee -a log-generate
+	GOOS=darwin go build -v ./... 2>&1 | tee -a log-generate
+	git status
+
+ucrt_amd64:
 	echo -n > log-generate
-	ccgo -v4 \
+	( ccgo -v4 \
 		--cpp=$(shell which x86_64-w64-mingw32-gcc) \
 		--goos=windows \
+		--goarch=amd64 \
 		--package-name libc \
 		--prefix-external=X \
 		--prefix-field=F \
@@ -55,109 +64,545 @@ msvcrt:
 		--prefix-tagged-struct=T \
 		--prefix-tagged-union=T \
 		--prefix-typename=T \
+		--winapi-test panic \
+		--winapi=ctype.h \
+		--winapi=float.h \
+		--winapi=io.h \
+		--winapi=libucrt.c \
+		--winapi=locale.h \
+		--winapi=malloc.h \
+		--winapi=math.h \
+		--winapi=process.h \
+		--winapi=types.h \
+		--winapi=stat.h \
+		--winapi=stdio.h \
 		--winapi=stdlib.h \
 		--winapi=string.h \
 		--winapi=time.h \
+		--winapi=timeb.h \
 		--winapi=wchar.h \
+		--winapi=winbase.h \
 		-build-lines=" " \
 		-eval-all-macros \
 		-hide __acrt_iob_func \
-		-hide __mingw_strtod \
-		-hide __mingw_vfwprintf \
-		-hide __mingw_vfwscanf \
-		-hide __mingw_vsnwprintf \
-		-hide __mingw_vswscanf \
-		-hide _byteswap_uint64 \
-		-hide _byteswap_ulong \
+		-hide __create_locale \
+		-hide __free_locale \
+		-hide __get_current_locale \
+		-hide __iob_func \
+		-hide __lock_fhandle \
+		-hide __sep__ \
+		-hide __updatetlocinfo \
+		-hide __updatetmbcinfo \
+		-hide _beginthread \
+		-hide _beginthreadex \
+		-hide _endthreadex \
 		-hide _errno \
-		-hide _exit \
-		-hide _gmtime64 \
-		-hide _localtime64 \
-		-hide _mktime64 \
-		-hide _set_abort_behavior \
-		-hide _snwprintf \
-		-hide _strdup \
-		-hide _stricmp \
-		-hide _strnicmp \
-		-hide _time64 \
-		-hide _vsnwprintf \
-		-hide _wcsicmp \
-		-hide _wcsnicmp \
+		-hide _filbuf \
+		-hide _flsbuf \
+		-hide _get_amblksiz \
+		-hide _get_osplatform \
+		-hide _get_osver \
+		-hide _get_output_format \
+		-hide _get_sbh_threshold \
+		-hide _get_winmajor \
+		-hide _get_winminor \
+		-hide _get_winver \
+		-hide _heapadd \
+		-hide _heapset \
+		-hide _heapused \
+		-hide _matherr \
+		-hide _onexit \
+		-hide _set_amblksiz \
+		-hide _set_malloc_crt_max_wait \
+		-hide _set_output_format \
+		-hide _set_sbh_threshold \
+		-hide _strcmpi \
+		-hide _strnset_l \
+		-hide _strset_l \
+		-hide _unlock_fhandle \
+		-hide _wcsncpy_l \
+		-hide _wctime \
+		-hide _wctime_s \
+		-hide _wgetdcwd_nolock \
 		-hide _wgetenv \
-		-hide _wopen \
 		-hide _wputenv \
-		-hide _wtoi \
-		-hide _wunlink \
-		-hide abort \
-		-hide abs \
+		-hide access \
+		-hide at_quick_exit \
 		-hide atexit \
-		-hide atof \
-		-hide atoi \
-		-hide atol \
-		-hide bsearch \
-		-hide calloc \
-		-hide div \
+		-hide chdir \
 		-hide exit \
-		-hide free \
-		-hide getenv \
-		-hide labs \
-		-hide ldiv \
-		-hide llabs \
 		-hide lldiv \
-		-hide malloc \
-		-hide mblen \
-		-hide mbstowcs \
-		-hide mbtowc \
-		-hide memchr \
-		-hide memcmp \
-		-hide memcpy \
-		-hide memmove \
-		-hide memset \
-		-hide perror \
-		-hide putenv \
 		-hide qsort \
-		-hide rand \
-		-hide realloc \
+		-hide chmod \
+		-hide chsize \
+		-hide close \
+		-hide creat \
+		-hide cwait \
+		-hide dup \
+		-hide dup2 \
+		-hide eof \
+		-hide execv \
+		-hide execve \
+		-hide execvp \
+		-hide execvpe \
+		-hide fcloseall \
+		-hide fdopen \
+		-hide fgetchar \
+		-hide fgetpos64 \
+		-hide filelength \
+		-hide fileno \
+		-hide flushall \
+		-hide fopen64 \
+		-hide fpreset \
+		-hide fputchar \
+		-hide fsetpos64 \
+		-hide ftime \
+		-hide fwide \
+		-hide getcwd \
+		-hide getpid \
+		-hide getw \
+		-hide isatty \
+		-hide itoa \
+		-hide lltoa \
+		-hide lltow \
+		-hide locking \
+		-hide lseek \
+		-hide lseek64 \
+		-hide ltoa \
+		-hide memccpy \
+		-hide memicmp \
+		-hide mempcpy \
+		-hide mkdir \
+		-hide mkstemp \
+		-hide mktemp \
+		-hide onexit \
+		-hide putenv \
+		-hide putw \
+		-hide read \
+		-hide rmdir \
+		-hide rmtmp \
+		-hide setmode \
+		-hide spawnv \
+		-hide spawnve \
+		-hide spawnvp \
+		-hide spawnvpe \
 		-hide strcasecmp \
-		-hide strcat \
-		-hide strchr \
-		-hide strcmp \
-		-hide strcpy \
-		-hide strcspn \
+		-hide strcmpi \
 		-hide strdup \
-		-hide strerror \
-		-hide strftime \
-		-hide strlen \
-		-hide strncmp \
-		-hide strncpy \
-		-hide strpbrk \
-		-hide strrchr \
-		-hide strspn \
-		-hide strstr \
-		-hide strtol \
-		-hide strtoul \
-		-hide strtoull \
-		-hide system \
+		-hide stricmp \
+		-hide strlwr \
+		-hide strlwr_l \
+		-hide strncasecmp \
+		-hide strnicmp \
+		-hide strnset \
+		-hide strrev \
+		-hide strset \
+		-hide strtok_r \
+		-hide strupr \
+		-hide swab \
+		-hide tell \
+		-hide tempnam \
 		-hide tzset \
-		-hide wcrtomb \
-		-hide wcschr \
-		-hide wcscmp \
-		-hide wcscpy \
+		-hide ulltoa \
+		-hide ulltow \
+		-hide ultoa \
+		-hide umask \
+		-hide unlink \
+		-hide wcsdup \
 		-hide wcsicmp \
-		-hide wcslen \
-		-hide wcsncmp \
-		-hide wcsrtombs \
-		-hide wcstombs \
-		-hide wctomb \
+		-hide wcsicoll \
+		-hide wcslwr \
+		-hide wcsnicmp \
+		-hide wcsnset \
+		-hide wcsrev \
+		-hide wcsset \
+		-hide wcsupr \
+		-hide wmemchr \
+		-hide wmemcmp \
+		-hide wmemcpy \
+		-hide wmemmove \
+		-hide wmempcpy \
+		-hide wmemset \
+		-hide write \
+		-hide wtoll \
+		-ignore-link-errors \
 		-import syscall \
-		-o $(MSVCRT) \
-		--prefix-macro m \
-		libmsvcrt.c \
-		2>&1 | tee -a log-generate
-	sed -i '/"modernc.org\/libc"/d' $(MSVCRT)
-	sed -i 's/\<libc\>\.//g' $(MSVCRT)
-	sed -i 's/\<dll\>\./modcrt./g' $(MSVCRT)
-	GOOS=windows go build -v ./... 2>&1 | tee -a log-generate
+		-keep-strings \
+		-o $(UCRT_AMD64) \
+		libucrt.c \
+		|| true ) 2>&1 | tee -a log-generate
+	sed -i '/"modernc.org\/libc"/d' $(UCRT_AMD64)
+	sed -i 's/\<libc\>\.//g' $(UCRT_AMD64)
+	GOOS=windows GOARCH=amd64 go build -v ./... 2>&1 | tee -a log-generate
+
+ucrt_arm64:
+	echo -n > log-generate
+	( ccgo -v4 \
+		--cpp=$(shell which x86_64-w64-mingw32-gcc) \
+		--goos=windows \
+		--goarch=amd64 \
+		--package-name libc \
+		--prefix-external=X \
+		--prefix-field=F \
+		--prefix-static-internal=_ \
+		--prefix-static-none=_ \
+		--prefix-tagged-struct=T \
+		--prefix-tagged-union=T \
+		--prefix-typename=T \
+		--winapi-test panic \
+		--winapi=ctype.h \
+		--winapi=float.h \
+		--winapi=io.h \
+		--winapi=libucrt.c \
+		--winapi=locale.h \
+		--winapi=malloc.h \
+		--winapi=math.h \
+		--winapi=process.h \
+		--winapi=types.h \
+		--winapi=stat.h \
+		--winapi=stdio.h \
+		--winapi=stdlib.h \
+		--winapi=string.h \
+		--winapi=time.h \
+		--winapi=timeb.h \
+		--winapi=wchar.h \
+		--winapi=winbase.h \
+		-build-lines=" " \
+		-eval-all-macros \
+		-hide __acrt_iob_func \
+		-hide _errno \
+		-hide _wgetenv \
+		-hide _wputenv \
+		-hide exit \
+		-hide lldiv \
+		-hide qsort \
+		-hide __sep__ \
+		-hide __create_locale \
+		-hide __free_locale \
+		-hide __get_current_locale \
+		-hide __iob_func \
+		-hide __lock_fhandle \
+		-hide __updatetlocinfo \
+		-hide __updatetmbcinfo \
+		-hide _beginthread \
+		-hide _beginthreadex \
+		-hide _endthreadex \
+		-hide _filbuf \
+		-hide _flsbuf \
+		-hide _get_amblksiz \
+		-hide _get_osplatform \
+		-hide _get_osver \
+		-hide _get_output_format \
+		-hide _get_sbh_threshold \
+		-hide _get_winmajor \
+		-hide _get_winminor \
+		-hide _get_winver \
+		-hide _heapadd \
+		-hide _heapset \
+		-hide _heapused \
+		-hide _matherr \
+		-hide _onexit \
+		-hide _set_amblksiz \
+		-hide _set_malloc_crt_max_wait \
+		-hide _set_output_format \
+		-hide _set_sbh_threshold \
+		-hide _strcmpi \
+		-hide _strnset_l \
+		-hide _strset_l \
+		-hide _unlock_fhandle \
+		-hide _wcsncpy_l \
+		-hide _wctime \
+		-hide _wctime_s \
+		-hide _wgetdcwd_nolock \
+		-hide access \
+		-hide at_quick_exit \
+		-hide atexit \
+		-hide chdir \
+		-hide chmod \
+		-hide chsize \
+		-hide close \
+		-hide creat \
+		-hide cwait \
+		-hide dup \
+		-hide dup2 \
+		-hide eof \
+		-hide execv \
+		-hide execve \
+		-hide execvp \
+		-hide execvpe \
+		-hide fcloseall \
+		-hide fdopen \
+		-hide fgetchar \
+		-hide fgetpos64 \
+		-hide filelength \
+		-hide fileno \
+		-hide flushall \
+		-hide fopen64 \
+		-hide fpreset \
+		-hide fputchar \
+		-hide fsetpos64 \
+		-hide ftime \
+		-hide fwide \
+		-hide getcwd \
+		-hide getpid \
+		-hide getw \
+		-hide isatty \
+		-hide itoa \
+		-hide lltoa \
+		-hide lltow \
+		-hide locking \
+		-hide lseek \
+		-hide lseek64 \
+		-hide ltoa \
+		-hide memccpy \
+		-hide memicmp \
+		-hide mempcpy \
+		-hide mkdir \
+		-hide mkstemp \
+		-hide mktemp \
+		-hide onexit \
+		-hide putenv \
+		-hide putw \
+		-hide read \
+		-hide rmdir \
+		-hide rmtmp \
+		-hide setmode \
+		-hide spawnv \
+		-hide spawnve \
+		-hide spawnvp \
+		-hide spawnvpe \
+		-hide strcasecmp \
+		-hide strcmpi \
+		-hide strdup \
+		-hide stricmp \
+		-hide strlwr \
+		-hide strlwr_l \
+		-hide strncasecmp \
+		-hide strnicmp \
+		-hide strnset \
+		-hide strrev \
+		-hide strset \
+		-hide strtok_r \
+		-hide strupr \
+		-hide swab \
+		-hide tell \
+		-hide tempnam \
+		-hide tzset \
+		-hide ulltoa \
+		-hide ulltow \
+		-hide ultoa \
+		-hide umask \
+		-hide unlink \
+		-hide wcsdup \
+		-hide wcsicmp \
+		-hide wcsicoll \
+		-hide wcslwr \
+		-hide wcsnicmp \
+		-hide wcsnset \
+		-hide wcsrev \
+		-hide wcsset \
+		-hide wcsupr \
+		-hide wmemchr \
+		-hide wmemcmp \
+		-hide wmemcpy \
+		-hide wmemmove \
+		-hide wmempcpy \
+		-hide wmemset \
+		-hide write \
+		-hide wtoll \
+		-ignore-link-errors \
+		-import syscall \
+		-keep-strings \
+		-o $(UCRT_ARM64) \
+		libucrt.c \
+		|| true ) 2>&1 | tee -a log-generate
+	sed -i '/"modernc.org\/libc"/d' $(UCRT_ARM64)
+	sed -i 's/\<libc\>\.//g' $(UCRT_ARM64)
+	GOOS=windows GOARCH=arm64 go build -v ./... 2>&1 | tee -a log-generate
+
+ucrt_386:
+	echo -n > log-generate
+	( ccgo -v4 \
+		--cpp=$(shell which i686-w64-mingw32-gcc) \
+		--goos=windows \
+		--goarch=386 \
+		--package-name libc \
+		--prefix-external=X \
+		--prefix-field=F \
+		--prefix-static-internal=_ \
+		--prefix-static-none=_ \
+		--prefix-tagged-struct=T \
+		--prefix-tagged-union=T \
+		--prefix-typename=T \
+		--winapi-test panic \
+		--winapi=ctype.h \
+		--winapi=float.h \
+		--winapi=io.h \
+		--winapi=libucrt.c \
+		--winapi=locale.h \
+		--winapi=malloc.h \
+		--winapi=math.h \
+		--winapi=process.h \
+		--winapi=types.h \
+		--winapi=stat.h \
+		--winapi=stdio.h \
+		--winapi=stdlib.h \
+		--winapi=string.h \
+		--winapi=time.h \
+		--winapi=timeb.h \
+		--winapi=wchar.h \
+		--winapi=winbase.h \
+		-build-lines=" " \
+		-eval-all-macros \
+		-hide __acrt_iob_func \
+		-hide _errno \
+		-hide _wgetenv \
+		-hide _wputenv \
+		-hide exit \
+		-hide lldiv \
+		-hide qsort \
+		-hide __sep__ \
+		-hide __create_locale \
+		-hide __free_locale \
+		-hide __get_current_locale \
+		-hide __lock_fhandle \
+		-hide __updatetlocinfo \
+		-hide __updatetmbcinfo \
+		-hide _beginthread \
+		-hide _beginthreadex \
+		-hide _endthreadex \
+		-hide _filbuf \
+		-hide _flsbuf \
+		-hide _get_amblksiz \
+		-hide _get_osplatform \
+		-hide _get_osver \
+		-hide _get_output_format \
+		-hide _get_sbh_threshold \
+		-hide _get_winmajor \
+		-hide _get_winminor \
+		-hide _get_winver \
+		-hide _heapadd \
+		-hide _heapset \
+		-hide _heapused \
+		-hide _matherr \
+		-hide _onexit \
+		-hide _set_amblksiz \
+		-hide _set_malloc_crt_max_wait \
+		-hide _set_output_format \
+		-hide _set_sbh_threshold \
+		-hide _strcmpi \
+		-hide _strnset_l \
+		-hide _strset_l \
+		-hide _unlock_fhandle \
+		-hide _wcsncpy_l \
+		-hide _wctime \
+		-hide _wctime_s \
+		-hide _wgetdcwd_nolock \
+		-hide access \
+		-hide at_quick_exit \
+		-hide atexit \
+		-hide chdir \
+		-hide chmod \
+		-hide chsize \
+		-hide close \
+		-hide creat \
+		-hide cwait \
+		-hide dup \
+		-hide dup2 \
+		-hide eof \
+		-hide execv \
+		-hide execve \
+		-hide execvp \
+		-hide execvpe \
+		-hide fcloseall \
+		-hide fdopen \
+		-hide fgetchar \
+		-hide fgetpos64 \
+		-hide filelength \
+		-hide fileno \
+		-hide flushall \
+		-hide fopen64 \
+		-hide fpreset \
+		-hide fputchar \
+		-hide fsetpos64 \
+		-hide ftime \
+		-hide fwide \
+		-hide getcwd \
+		-hide getpid \
+		-hide getw \
+		-hide isatty \
+		-hide itoa \
+		-hide lltoa \
+		-hide lltow \
+		-hide locking \
+		-hide lseek \
+		-hide lseek64 \
+		-hide ltoa \
+		-hide memccpy \
+		-hide memicmp \
+		-hide mempcpy \
+		-hide mkdir \
+		-hide mkstemp \
+		-hide mktemp \
+		-hide onexit \
+		-hide putenv \
+		-hide putw \
+		-hide read \
+		-hide rmdir \
+		-hide rmtmp \
+		-hide setmode \
+		-hide spawnv \
+		-hide spawnve \
+		-hide spawnvp \
+		-hide spawnvpe \
+		-hide strcasecmp \
+		-hide strcmpi \
+		-hide strdup \
+		-hide stricmp \
+		-hide strlwr \
+		-hide strlwr_l \
+		-hide strncasecmp \
+		-hide strnicmp \
+		-hide strnset \
+		-hide strrev \
+		-hide strset \
+		-hide strtok_r \
+		-hide strupr \
+		-hide swab \
+		-hide tell \
+		-hide tempnam \
+		-hide tzset \
+		-hide ulltoa \
+		-hide ulltow \
+		-hide ultoa \
+		-hide umask \
+		-hide unlink \
+		-hide wcsdup \
+		-hide wcsicmp \
+		-hide wcsicoll \
+		-hide wcslwr \
+		-hide wcsnicmp \
+		-hide wcsnset \
+		-hide wcsrev \
+		-hide wcsset \
+		-hide wcsupr \
+		-hide wmemchr \
+		-hide wmemcmp \
+		-hide wmemcpy \
+		-hide wmemmove \
+		-hide wmempcpy \
+		-hide wmemset \
+		-hide write \
+		-hide wtoll \
+		-ignore-link-errors \
+		-import syscall \
+		-keep-strings \
+		-o $(UCRT_386) \
+		libucrt.c \
+		|| true ) 2>&1 | tee -a log-generate
+	sed -i '/"modernc.org\/libc"/d' $(UCRT_386)
+	sed -i 's/\<libc\>\.//g' $(UCRT_386)
+	GOOS=windows GOARCH=386 go build -v ./... 2>&1 | tee -a log-generate
 
 generate: download
 	mkdir -p $(DIR) || true

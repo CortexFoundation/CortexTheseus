@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build !libc.membrk && !libc.memgrind && !(linux && (amd64 || arm64 || loong64))
+//go:build !libc.membrk && !libc.memgrind && !((linux && (amd64 || arm64 || loong64)) || windows)
 
 package libc // import "modernc.org/libc"
 
@@ -27,9 +27,9 @@ func Xmalloc(t *TLS, n types.Size_t) uintptr {
 		return 0
 	}
 
-	allocMu.Lock()
+	allocatorMu.Lock()
 
-	defer allocMu.Unlock()
+	defer allocatorMu.Unlock()
 
 	p, err := allocator.UintptrMalloc(int(n))
 	if err != nil {
@@ -50,9 +50,9 @@ func Xcalloc(t *TLS, n, size types.Size_t) uintptr {
 		return 0
 	}
 
-	allocMu.Lock()
+	allocatorMu.Lock()
 
-	defer allocMu.Unlock()
+	defer allocatorMu.Unlock()
 
 	p, err := allocator.UintptrCalloc(int(n * size))
 	if err != nil {
@@ -68,9 +68,9 @@ func Xrealloc(t *TLS, ptr uintptr, size types.Size_t) uintptr {
 	if __ccgo_strace {
 		trc("t=%v ptr=%v size=%v, (%v:)", t, ptr, size, origin(2))
 	}
-	allocMu.Lock()
+	allocatorMu.Lock()
 
-	defer allocMu.Unlock()
+	defer allocatorMu.Unlock()
 
 	p, err := allocator.UintptrRealloc(ptr, int(size))
 	if err != nil {
@@ -90,9 +90,9 @@ func Xfree(t *TLS, p uintptr) {
 		return
 	}
 
-	allocMu.Lock()
+	allocatorMu.Lock()
 
-	defer allocMu.Unlock()
+	defer allocatorMu.Unlock()
 
 	allocator.UintptrFree(p)
 }
@@ -106,17 +106,17 @@ func Xmalloc_usable_size(tls *TLS, p uintptr) (r types.Size_t) {
 		return 0
 	}
 
-	allocMu.Lock()
+	allocatorMu.Lock()
 
-	defer allocMu.Unlock()
+	defer allocatorMu.Unlock()
 
 	return types.Size_t(memory.UintptrUsableSize(p))
 }
 
 func UsableSize(p uintptr) types.Size_t {
-	allocMu.Lock()
+	allocatorMu.Lock()
 
-	defer allocMu.Unlock()
+	defer allocatorMu.Unlock()
 
 	return types.Size_t(memory.UintptrUsableSize(p))
 }
