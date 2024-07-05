@@ -1,4 +1,16 @@
-## 0.99.0 (Unreleased)
+## 0.100.0 (Unreleased)
+
+## 0.99.0 (July 3rd, 2024)
+
+ENHANCEMENTS:
+
+* teams: added per account certificate setting to teams gateway configuration ([#2713](https://github.com/cloudflare/cloudflare-go/issues/2713))
+* teams_list: Added description to ZT list item ([#2621](https://github.com/cloudflare/cloudflare-go/issues/2621))
+* teams_rules: Added ZT rule settings `ignore_cname_category_matches` ([#2621](https://github.com/cloudflare/cloudflare-go/issues/2621))
+
+DEPENDENCIES:
+
+* deps: bumps github.com/hashicorp/go-retryablehttp from 0.7.1 to 0.7.7 ([#2699](https://github.com/cloudflare/cloudflare-go/issues/2699))
 
 ## 0.98.0 (June 19th, 2024)
 

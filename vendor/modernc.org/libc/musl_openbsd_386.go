@@ -2076,41 +2076,6 @@ func Xfmodl(tls *TLS, x float64, y float64) float64 { /* fmodl.c:4:13: */
 	}
 	return Xfmod(tls, x, y)
 }
-
-var toint double_t = float64(float64(1)) / 2.22044604925031308085e-16 /* rint.c:10:23 */
-
-func Xrint(tls *TLS, x float64) float64 { /* rint.c:12:8: */
-	if __ccgo_strace {
-		trc("tls=%v x=%v, (%v:)", tls, x, origin(2))
-	}
-	bp := tls.Alloc(8)
-	defer tls.Free(8)
-
-	*(*struct{ Ff float64 })(unsafe.Pointer(bp)) = func() (r struct{ Ff float64 }) {
-		*(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(&r)) + 0)) = x
-		return r
-	}()
-	var e int32 = int32(*(*uint64_t)(unsafe.Pointer(bp)) >> 52 & uint64(0x7ff))
-	var s int32 = int32(*(*uint64_t)(unsafe.Pointer(bp)) >> 63)
-	var y double_t
-
-	if e >= 0x3ff+52 {
-		return x
-	}
-	if s != 0 {
-		y = x - toint + toint
-	} else {
-		y = x + toint - toint
-	}
-	if y == float64(0) {
-		if s != 0 {
-			return -Float64FromFloat64(0.0)
-		}
-		return float64(0)
-	}
-	return y
-}
-
 func Xscalbn(tls *TLS, x float64, n int32) float64 { /* scalbn.c:4:8: */
 	if __ccgo_strace {
 		trc("tls=%v x=%v n=%v, (%v:)", tls, x, n, origin(2))
