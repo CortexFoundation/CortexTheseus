@@ -161,6 +161,9 @@ func (s *srtpCipherAesCmHmacSha1) decryptRTCP(out, encrypted []byte, index, ssrc
 		return nil, err
 	}
 	tailOffset := len(encrypted) - (authTagLen + srtcpIndexSize)
+	if tailOffset < 8 {
+		return nil, errTooShortRTCP
+	}
 	out = out[0:tailOffset]
 
 	expectedTag, err := s.generateSrtcpAuthTag(encrypted[:len(encrypted)-authTagLen])

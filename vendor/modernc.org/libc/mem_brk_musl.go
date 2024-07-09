@@ -27,7 +27,6 @@ import (
 )
 
 const (
-	memgrind = false
 	isMemBrk = true
 
 	heapSize = 1 << 30
