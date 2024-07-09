@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build !((linux && (amd64 || arm64 || loong64)) || windows)
+//go:build !(linux && (amd64 || arm64 || loong64))
 
 package libc // import "modernc.org/libc"
 
@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
@@ -59,6 +60,50 @@ func init() {
 	if n := stackHeaderSize; n%16 != 0 {
 		panic(fmt.Errorf("internal error: stackHeaderSize %v == %v (mod 16)", n, n%16))
 	}
+}
+
+func origin(skip int) string {
+	pc, fn, fl, _ := runtime.Caller(skip)
+	f := runtime.FuncForPC(pc)
+	var fns string
+	if f != nil {
+		fns = f.Name()
+		if x := strings.LastIndex(fns, "."); x > 0 {
+			fns = fns[x+1:]
+		}
+	}
+	return fmt.Sprintf("%s:%d:%s", filepath.Base(fn), fl, fns)
+}
+
+func trc(s string, args ...interface{}) string { //TODO-
+	switch {
+	case s == "":
+		s = fmt.Sprintf(strings.Repeat("%v ", len(args)), args...)
+	default:
+		s = fmt.Sprintf(s, args...)
+	}
+	r := fmt.Sprintf("%s: TRC %s", origin(2), s)
+	fmt.Fprintf(os.Stdout, "%s\n", r)
+	os.Stdout.Sync()
+	return r
+}
+
+func todo(s string, args ...interface{}) string { //TODO-
+	switch {
+	case s == "":
+		s = fmt.Sprintf(strings.Repeat("%v ", len(args)), args...)
+	default:
+		s = fmt.Sprintf(s, args...)
+	}
+	r := fmt.Sprintf("%s: TODOTODO %s", origin(2), s) //TODOOK
+	if dmesgs {
+		dmesg("%s", r)
+	}
+	fmt.Fprintf(os.Stdout, "%s\n", r)
+	fmt.Fprintf(os.Stdout, "%s\n", debug.Stack()) //TODO-
+	os.Stdout.Sync()
+	os.Exit(1)
+	panic("unrechable")
 }
 
 var coverPCs [1]uintptr //TODO not concurrent safe
@@ -436,6 +481,97 @@ func VaOther(app *uintptr, sz uint64) (r uintptr) {
 	return r
 }
 
+func VaInt32(app *uintptr) int32 {
+	ap := *(*uintptr)(unsafe.Pointer(app))
+	if ap == 0 {
+		return 0
+	}
+
+	ap = roundup(ap, 8)
+	v := int32(*(*int64)(unsafe.Pointer(ap)))
+	ap += 8
+	*(*uintptr)(unsafe.Pointer(app)) = ap
+	return v
+}
+
+func VaUint32(app *uintptr) uint32 {
+	ap := *(*uintptr)(unsafe.Pointer(app))
+	if ap == 0 {
+		return 0
+	}
+
+	ap = roundup(ap, 8)
+	v := uint32(*(*uint64)(unsafe.Pointer(ap)))
+	ap += 8
+	*(*uintptr)(unsafe.Pointer(app)) = ap
+	return v
+}
+
+func VaInt64(app *uintptr) int64 {
+	ap := *(*uintptr)(unsafe.Pointer(app))
+	if ap == 0 {
+		return 0
+	}
+
+	ap = roundup(ap, 8)
+	v := *(*int64)(unsafe.Pointer(ap))
+	ap += 8
+	*(*uintptr)(unsafe.Pointer(app)) = ap
+	return v
+}
+
+func VaUint64(app *uintptr) uint64 {
+	ap := *(*uintptr)(unsafe.Pointer(app))
+	if ap == 0 {
+		return 0
+	}
+
+	ap = roundup(ap, 8)
+	v := *(*uint64)(unsafe.Pointer(ap))
+	ap += 8
+	*(*uintptr)(unsafe.Pointer(app)) = ap
+	return v
+}
+
+func VaFloat32(app *uintptr) float32 {
+	ap := *(*uintptr)(unsafe.Pointer(app))
+	if ap == 0 {
+		return 0
+	}
+
+	ap = roundup(ap, 8)
+	v := *(*float64)(unsafe.Pointer(ap))
+	ap += 8
+	*(*uintptr)(unsafe.Pointer(app)) = ap
+	return float32(v)
+}
+
+func VaFloat64(app *uintptr) float64 {
+	ap := *(*uintptr)(unsafe.Pointer(app))
+	if ap == 0 {
+		return 0
+	}
+
+	ap = roundup(ap, 8)
+	v := *(*float64)(unsafe.Pointer(ap))
+	ap += 8
+	*(*uintptr)(unsafe.Pointer(app)) = ap
+	return v
+}
+
+func VaUintptr(app *uintptr) uintptr {
+	ap := *(*uintptr)(unsafe.Pointer(app))
+	if ap == 0 {
+		return 0
+	}
+
+	ap = roundup(ap, 8)
+	v := *(*uintptr)(unsafe.Pointer(ap))
+	ap += 8
+	*(*uintptr)(unsafe.Pointer(app)) = ap
+	return v
+}
+
 func getVaList(va uintptr) []string {
 	r := []string{}
 
@@ -499,6 +635,30 @@ func Bool64(b bool) int64 {
 	}
 
 	return 0
+}
+
+type sorter struct {
+	len  int
+	base uintptr
+	sz   uintptr
+	f    func(*TLS, uintptr, uintptr) int32
+	t    *TLS
+}
+
+func (s *sorter) Len() int { return s.len }
+
+func (s *sorter) Less(i, j int) bool {
+	return s.f(s.t, s.base+uintptr(i)*s.sz, s.base+uintptr(j)*s.sz) < 0
+}
+
+func (s *sorter) Swap(i, j int) {
+	p := uintptr(s.base + uintptr(i)*s.sz)
+	q := uintptr(s.base + uintptr(j)*s.sz)
+	for i := 0; i < int(s.sz); i++ {
+		*(*byte)(unsafe.Pointer(p)), *(*byte)(unsafe.Pointer(q)) = *(*byte)(unsafe.Pointer(q)), *(*byte)(unsafe.Pointer(p))
+		p++
+		q++
+	}
 }
 
 func CString(s string) (uintptr, error) {

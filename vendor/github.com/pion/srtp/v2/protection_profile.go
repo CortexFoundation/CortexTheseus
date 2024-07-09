@@ -84,3 +84,18 @@ func (p ProtectionProfile) authKeyLen() (int, error) {
 		return 0, fmt.Errorf("%w: %#v", errNoSuchSRTPProfile, p)
 	}
 }
+
+func (p ProtectionProfile) String() string {
+	switch p {
+	case ProtectionProfileAes128CmHmacSha1_80:
+		return "SRTP_AES128_CM_HMAC_SHA1_80"
+	case ProtectionProfileAes128CmHmacSha1_32:
+		return "SRTP_AES128_CM_HMAC_SHA1_32"
+	case ProtectionProfileAeadAes128Gcm:
+		return "SRTP_AEAD_AES_128_GCM"
+	case ProtectionProfileAeadAes256Gcm:
+		return "SRTP_AEAD_AES_256_GCM"
+	default:
+		return fmt.Sprintf("Unknown SRTP profile: %#v", p)
+	}
+}

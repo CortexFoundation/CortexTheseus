@@ -9,6 +9,15 @@ import (
 )
 
 func (c *Context) decryptRTP(dst, ciphertext []byte, header *rtp.Header, headerLen int) ([]byte, error) {
+	authTagLen, err := c.cipher.rtpAuthTagLen()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(ciphertext) < headerLen+authTagLen {
+		return nil, errTooShortRTP
+	}
+
 	s := c.getSRTPSSRCState(header.SSRC)
 
 	roc, diff, _ := s.nextRolloverCount(header.SequenceNumber)
@@ -21,10 +30,6 @@ func (c *Context) decryptRTP(dst, ciphertext []byte, header *rtp.Header, headerL
 		}
 	}
 
-	authTagLen, err := c.cipher.rtpAuthTagLen()
-	if err != nil {
-		return nil, err
-	}
 	dst = growBufferSize(dst, len(ciphertext)-authTagLen)
 
 	dst, err = c.cipher.decryptRTP(dst, ciphertext, header, headerLen, roc)

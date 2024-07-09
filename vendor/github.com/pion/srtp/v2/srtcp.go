@@ -63,6 +63,10 @@ func (c *Context) DecryptRTCP(dst, encrypted []byte, header *rtcp.Header) ([]byt
 }
 
 func (c *Context) encryptRTCP(dst, decrypted []byte) ([]byte, error) {
+	if len(decrypted) < 8 {
+		return nil, fmt.Errorf("%w: %d", errTooShortRTCP, len(decrypted))
+	}
+
 	ssrc := binary.BigEndian.Uint32(decrypted[4:])
 	s := c.getSRTCPSSRCState(ssrc)
 

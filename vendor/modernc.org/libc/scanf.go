@@ -497,17 +497,21 @@ flags:
 		skipReaderWhiteSpace(r)
 		c, err := r.ReadByte()
 		if err != nil {
-			panic(todo("", err))
+			panic(todo(""))
 		}
 
-		if c == '0' {
-			if c, err = r.ReadByte(); err != nil {
-				panic(todo("", err))
-			}
+		if c != '0' {
+			r.UnreadByte()
+			panic(todo(""))
+		}
 
-			if c != 'x' && c != 'X' {
-				r.UnreadByte()
-			}
+		if c, err = r.ReadByte(); err != nil {
+			panic(todo(""))
+		}
+
+		if c != 'x' && c != 'X' {
+			r.UnreadByte()
+			panic(todo(""))
 		}
 
 		var digit, n uint64

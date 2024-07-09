@@ -10,6 +10,7 @@ package libc // import "modernc.org/libc"
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -17,6 +18,7 @@ import (
 const dmesgs = true
 
 var (
+	pid  = fmt.Sprintf("[%v %v] ", os.Getpid(), filepath.Base(os.Args[0]))
 	logf *os.File
 )
 
@@ -26,7 +28,7 @@ func init() {
 		panic(err.Error())
 	}
 
-	dmesg("==== dmesg init() %v", time.Now())
+	dmesg("%v", time.Now())
 }
 
 func dmesg(s string, args ...interface{}) {
@@ -40,10 +42,4 @@ func dmesg(s string, args ...interface{}) {
 	default:
 		fmt.Fprintln(logf, s)
 	}
-}
-
-func dmesgFinish() {
-	dmesg("==== dmesgFinish() %v", time.Now())
-	logf.Sync()
-	logf.Close()
 }
