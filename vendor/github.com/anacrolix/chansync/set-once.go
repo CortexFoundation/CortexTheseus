@@ -11,7 +11,7 @@ import (
 type SetOnce struct {
 	ch chan struct{}
 	// Could be faster than trying to receive from ch
-	closed    uint32
+	closed    atomic.Bool
 	initOnce  sync.Once
 	closeOnce sync.Once
 }
@@ -33,12 +33,12 @@ func (me *SetOnce) Set() (first bool) {
 	me.closeOnce.Do(func() {
 		me.init()
 		first = true
-		atomic.StoreUint32(&me.closed, 1)
+		me.closed.Store(true)
 		close(me.ch)
 	})
 	return
 }
 
 func (me *SetOnce) IsSet() bool {
-	return atomic.LoadUint32(&me.closed) != 0
+	return me.closed.Load()
 }
