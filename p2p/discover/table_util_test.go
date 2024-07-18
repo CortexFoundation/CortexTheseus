@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/crypto"
+	"github.com/CortexFoundation/CortexTheseus/p2p/discover/v4wire"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enr"
 	"slices"
@@ -284,7 +285,7 @@ func hexEncPrivkey(h string) *ecdsa.PrivateKey {
 }
 
 // hexEncPubkey decodes h as a public key.
-func hexEncPubkey(h string) (ret encPubkey) {
+func hexEncPubkey(h string) (ret v4wire.Pubkey) {
 	b, err := hex.DecodeString(h)
 	if err != nil {
 		panic(err)
