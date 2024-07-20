@@ -3,27 +3,27 @@ module github.com/CortexFoundation/CortexTheseus
 go 1.22
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.3.2
+	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.4.0
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.67-0.20240716091553-900c48134ed3
+	github.com/CortexFoundation/torrentfs v1.0.67-0.20240720095228-14bdae9272e0
 	github.com/VictoriaMetrics/fastcache v1.12.2
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.30.3
-	github.com/aws/aws-sdk-go-v2/config v1.27.26
-	github.com/aws/aws-sdk-go-v2/credentials v1.17.26
+	github.com/aws/aws-sdk-go-v2/config v1.27.27
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.27
 	github.com/aws/aws-sdk-go-v2/service/route53 v1.42.3
 	github.com/btcsuite/btcd/btcec/v2 v2.3.4
 	github.com/cespare/cp v1.1.1
 	github.com/charmbracelet/bubbletea v0.26.6
-	github.com/cloudflare/cloudflare-go v0.99.0
+	github.com/cloudflare/cloudflare-go v0.100.0
 	github.com/cockroachdb/pebble v1.1.1
-	github.com/consensys/gnark-crypto v0.12.1
-	github.com/crate-crypto/go-kzg-4844 v1.0.0
+	github.com/consensys/gnark-crypto v0.13.0
+	github.com/crate-crypto/go-kzg-4844 v1.1.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/dop251/goja v0.0.0-20240707163329-b1681fb2a2f5
-	github.com/ethereum/c-kzg-4844 v1.0.2
+	github.com/ethereum/c-kzg-4844 v1.0.3
 	github.com/ethereum/go-verkle v0.1.1-0.20240306133620-7d920df305f0
 	github.com/fjl/gencodec v0.0.0-20230517082657-f9840df7b83e
 	github.com/fjl/memsize v0.0.2
@@ -62,7 +62,7 @@ require (
 	github.com/urfave/cli/v2 v2.27.2
 	go.uber.org/automaxprocs v1.5.3
 	golang.org/x/crypto v0.25.0
-	golang.org/x/exp v0.0.0-20240707233637-46b078467d37
+	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 	golang.org/x/mobile v0.0.0-20201217150744-e6ae53a27f4f
 	golang.org/x/sync v0.7.0
 	golang.org/x/sys v0.22.0
@@ -76,12 +76,12 @@ require (
 )
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.12.0 // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/internal v1.9.1 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.13.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/internal v1.10.0 // indirect
 	github.com/CortexFoundation/compress v0.0.0-20240218153512-9074bdc2397c // indirect
 	github.com/CortexFoundation/cvm-runtime v0.0.0-20221117094012-b5a251885572 // indirect
 	github.com/CortexFoundation/merkletree v0.0.0-20240407093305-416581a62b5b // indirect
-	github.com/CortexFoundation/robot v1.0.7-0.20240227124625-67fbc38a2059 // indirect
+	github.com/CortexFoundation/robot v1.0.7-0.20240719132903-d52425bb9e09 // indirect
 	github.com/CortexFoundation/wormhole v0.0.2-0.20240624201423-33e289eb7662 // indirect
 	github.com/DataDog/zstd v1.5.6-0.20230622172052-ea68dcab66c0 // indirect
 	github.com/RoaringBitmap/roaring v1.9.4 // indirect
@@ -113,7 +113,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.11.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.17 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.22.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.22.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.26.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.30.3 // indirect
 	github.com/aws/smithy-go v1.20.3 // indirect
@@ -127,7 +127,7 @@ require (
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/charmbracelet/x/ansi v0.1.4 // indirect
-	github.com/charmbracelet/x/input v0.1.2 // indirect
+	github.com/charmbracelet/x/input v0.1.3 // indirect
 	github.com/charmbracelet/x/term v0.1.1 // indirect
 	github.com/charmbracelet/x/windows v0.1.2 // indirect
 	github.com/cockroachdb/errors v1.11.3 // indirect
@@ -204,11 +204,11 @@ require (
 	github.com/pion/rtp v1.8.7 // indirect
 	github.com/pion/sctp v1.8.19 // indirect
 	github.com/pion/sdp/v3 v3.0.9 // indirect
-	github.com/pion/srtp/v2 v2.0.19 // indirect
+	github.com/pion/srtp/v2 v2.0.20 // indirect
 	github.com/pion/stun v0.6.1 // indirect
 	github.com/pion/transport/v2 v2.2.5 // indirect
 	github.com/pion/turn/v2 v2.1.6 // indirect
-	github.com/pion/webrtc/v3 v3.2.46 // indirect
+	github.com/pion/webrtc/v3 v3.2.47 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.19.1 // indirect
@@ -248,7 +248,7 @@ require (
 	golang.org/x/term v0.22.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
-	modernc.org/libc v1.55.2 // indirect
+	modernc.org/libc v1.55.3 // indirect
 	modernc.org/mathutil v1.6.0 // indirect
 	modernc.org/memory v1.8.0 // indirect
 	modernc.org/sqlite v1.30.2 // indirect
