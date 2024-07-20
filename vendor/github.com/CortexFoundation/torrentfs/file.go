@@ -67,8 +67,8 @@ func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSi
 					}
 				case <-ctx.Done():
 					fs.retry.Add(1)
-					ex, co, to, _ := fs.storage().ExistsOrActive(ctx, infohash, rawSize)
-					log.Warn("Timeout", "ih", infohash, "size", common.StorageSize(rawSize), "err", ctx.Err(), "retry", fs.retry.Load(), "complete", common.StorageSize(co), "timeout", to, "exist", ex)
+					ex, co, to, e := fs.storage().ExistsOrActive(ctx, infohash, rawSize)
+					log.Warn("Timeout", "ih", infohash, "size", common.StorageSize(rawSize), "err", ctx.Err(), "retry", fs.retry.Load(), "complete", common.StorageSize(co), "timeout", to, "exist", ex, "err", e)
 					return nil, ctx.Err()
 				case <-fs.closeAll:
 					log.Info("File out")

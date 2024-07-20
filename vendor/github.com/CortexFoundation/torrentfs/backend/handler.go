@@ -1106,11 +1106,11 @@ func (tm *TorrentManager) meta(t *caffe.Torrent) error {
 		return err
 	}
 
-	/*if err := t.Start(); err != nil {
+	if err := t.Start(); err != nil {
 		tm.Dropping(t.InfoHash())
 		log.Error("Nas start failed", "ih", t.InfoHash(), "err", err)
 		return err
-	}*/
+	}
 
 	log.Debug("Meta found", "ih", t.InfoHash(), "len", t.Length())
 	if (params.IsGood(t.InfoHash()) && tm.mode != params.LAZY) || tm.mode == params.FULL {
