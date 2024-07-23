@@ -114,7 +114,7 @@ type StateDB struct {
 	// resurrection. The account value is tracked as the original value
 	// before the transition. This map is populated at the transaction
 	// boundaries.
-	stateObjectsDestruct map[common.Address]*types.StateAccount
+	stateObjectsDestruct map[common.Address]*stateObject
 
 	// This map tracks the account mutations that occurred during the
 	// transition. Uncommitted mutations belonging to the same account
@@ -189,7 +189,7 @@ func New(root common.Hash, db Database, snaps *snapshot.Tree) (*StateDB, error) 
 		accountsOrigin:       make(map[common.Address][]byte),
 		storagesOrigin:       make(map[common.Address]map[common.Hash][]byte),
 		stateObjects:         make(map[common.Address]*stateObject),
-		stateObjectsDestruct: make(map[common.Address]*types.StateAccount),
+		stateObjectsDestruct: make(map[common.Address]*stateObject),
 		mutations:            make(map[common.Address]*mutation),
 		logs:                 make(map[common.Hash][]*types.Log),
 		preimages:            make(map[common.Hash][]byte),
@@ -510,18 +510,30 @@ func (s *StateDB) SetState(addr common.Address, key, value common.Hash) {
 // SetStorage replaces the entire storage for the specified account with given
 // storage. This function should only be used for debugging.
 func (s *StateDB) SetStorage(addr common.Address, storage map[common.Hash]common.Hash) {
-	// SetStorage needs to wipe existing storage. We achieve this by pretending
-	// that the account self-destructed earlier in this block, by flagging
-	// it in stateObjectsDestruct. The effect of doing so is that storage lookups
-	// will not hit disk, since it is assumed that the disk-data is belonging
+	// SetStorage needs to wipe the existing storage. We achieve this by marking
+	// the account as self-destructed in this block. The effect is that storage
+	// lookups will not hit the disk, as it is assumed that the disk data belongs
 	// to a previous incarnation of the object.
-	// state and all mutations made should all be discarded afterwards.
-	if _, ok := s.stateObjectsDestruct[addr]; !ok {
-		s.stateObjectsDestruct[addr] = nil
+	//
+	// TODO (rjl493456442): This function should only be supported by 'unwritable'
+	// state, and all mutations made should be discarded afterward.
+	obj := s.getStateObject(addr)
+	if obj != nil {
+		if _, ok := s.stateObjectsDestruct[addr]; !ok {
+			s.stateObjectsDestruct[addr] = obj
+		}
 	}
-	stateObject := s.getOrNewStateObject(addr)
+	newObj := s.createObject(addr)
 	for k, v := range storage {
-		stateObject.SetState(k, v)
+		newObj.SetState(k, v)
+	}
+	// Inherit the metadata of original object if it was existent
+	if obj != nil {
+		newObj.SetCode(common.BytesToHash(obj.CodeHash()), obj.code)
+		newObj.SetNonce(obj.Nonce())
+		newObj.SetBalance(obj.Balance())
+		newObj.SetNum(obj.Num())
+		newObj.SetUpload(obj.Upload())
 	}
 }
 
@@ -812,6 +824,10 @@ func (s *StateDB) Copy() *StateDB {
 	for addr, obj := range s.stateObjects {
 		state.stateObjects[addr] = obj.deepCopy(state)
 	}
+	// Deep copy destructed state objects.
+	for addr, obj := range s.stateObjectsDestruct {
+		state.stateObjectsDestruct[addr] = obj.deepCopy(state)
+	}
 	// Deep copy the object state markers.
 	for addr, op := range s.mutations {
 		state.mutations[addr] = op.copy()
@@ -888,7 +904,7 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 			// We need to maintain account deletions explicitly (will remain
 			// set indefinitely).
 			if _, ok := s.stateObjectsDestruct[obj.address]; !ok {
-				s.stateObjectsDestruct[obj.address] = obj.origin
+				s.stateObjectsDestruct[obj.address] = obj
 			}
 
 			// If state snapshotting is active, also mark the destruction there.
@@ -1128,7 +1144,7 @@ func (s *StateDB) Commit(block uint64, deleteEmptyObjects bool) (common.Hash, er
 	s.accountsOrigin = make(map[common.Address][]byte)
 	s.storagesOrigin = make(map[common.Address]map[common.Hash][]byte)
 	s.mutations = make(map[common.Address]*mutation)
-	s.stateObjectsDestruct = make(map[common.Address]*types.StateAccount)
+	s.stateObjectsDestruct = make(map[common.Address]*stateObject)
 
 	return root, err
 }
@@ -1168,7 +1184,7 @@ func (s *StateDB) SlotInAccessList(addr common.Address, slot common.Hash) (addre
 	return s.accessList.Contains(addr, slot)
 }
 
-func (s *StateDB) convertAccountSet(set map[common.Address]*types.StateAccount) map[common.Hash]struct{} {
+func (s *StateDB) convertAccountSet(set map[common.Address]*stateObject) map[common.Hash]struct{} {
 	ret := make(map[common.Hash]struct{}, len(set))
 	for addr := range set {
 		obj, exist := s.stateObjects[addr]
