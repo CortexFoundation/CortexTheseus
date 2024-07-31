@@ -17,8 +17,10 @@
 package robot
 
 import (
+	"context"
 	"errors"
-	"strconv"
+	"fmt"
+	//"strconv"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
@@ -68,7 +70,9 @@ func (m *Monitor) rpcBlockByNumber(blockNumber uint64) (*types.Block, error) {
 	block := &types.Block{}
 
 	rpcBlockMeter.Mark(1)
-	err := m.cl.Call(block, "ctxc_getBlockByNumber", "0x"+strconv.FormatUint(blockNumber, 16), true)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	err := m.cl.CallContext(ctx, block, "ctxc_getBlockByNumber", hexutil.EncodeUint64(blockNumber), true)
 	if err == nil {
 		return block, nil
 	}
@@ -76,7 +80,37 @@ func (m *Monitor) rpcBlockByNumber(blockNumber uint64) (*types.Block, error) {
 	return nil, err //errors.New("[ Internal IPC Error ] try to get block out of times")
 }
 
-func (m *Monitor) rpcBatchBlockByNumber(from, to uint64) (result []*types.Block, err error) {
+func (m *Monitor) rpcBatchBlockByNumber(from, to uint64) ([]*types.Block, error) {
+	batch := to - from
+	result := make([]*types.Block, batch)
+	reqs := make([]rpc.BatchElem, batch)
+	for i := range reqs {
+		reqs[i] = rpc.BatchElem{
+			Method: "ctxc_getBlockByNumber",
+			Args:   []any{hexutil.EncodeUint64(from + uint64(i)), true},
+			Result: &result[i],
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := m.cl.BatchCallContext(ctx, reqs); err != nil {
+		return nil, err
+	}
+
+	for i := range reqs {
+		if reqs[i].Error != nil {
+			return nil, reqs[i].Error
+		}
+		if result[i] == nil {
+			return nil, fmt.Errorf("got null block %d", i)
+		}
+	}
+
+	return result, nil
+}
+
+func (m *Monitor) rpcBatchBlockByNumberLegacy(from, to uint64) (result []*types.Block, err error) {
 	batch := to - from
 	result = make([]*types.Block, batch)
 	var e error = nil
@@ -84,6 +118,7 @@ func (m *Monitor) rpcBatchBlockByNumber(from, to uint64) (result []*types.Block,
 		m.rpcWg.Add(1)
 		go func(index int) {
 			defer m.rpcWg.Done()
+			//log.Info("bach rpc", "from", from, "to", to, "i", index)
 			result[index], e = m.rpcBlockByNumber(from + uint64(index))
 			if e != nil {
 				err = e
@@ -102,7 +137,9 @@ func (m *Monitor) getRemainingSize(address string) (uint64, error) {
 	}
 	var remainingSize hexutil.Uint64
 	rpcUploadMeter.Mark(1)
-	if err := m.cl.Call(&remainingSize, "ctxc_getUpload", address, "latest"); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := m.cl.CallContext(ctx, &remainingSize, "ctxc_getUpload", address, "latest"); err != nil {
 		return 0, err
 	}
 	remain := uint64(remainingSize)
@@ -114,7 +151,9 @@ func (m *Monitor) getRemainingSize(address string) (uint64, error) {
 
 func (m *Monitor) getReceipt(tx string) (receipt types.Receipt, err error) {
 	rpcReceiptMeter.Mark(1)
-	if err = m.cl.Call(&receipt, "ctxc_getTransactionReceipt", tx); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err = m.cl.CallContext(ctx, &receipt, "ctxc_getTransactionReceipt", tx); err != nil {
 		log.Warn("R is nil", "R", tx, "err", err)
 	}
 
@@ -128,7 +167,9 @@ func (m *Monitor) currentBlock() (uint64, bool, error) {
 	)
 
 	rpcCurrentMeter.Mark(1)
-	if err := m.cl.Call(&currentNumber, "ctxc_blockNumber"); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := m.cl.CallContext(ctx, &currentNumber, "ctxc_blockNumber"); err != nil {
 		log.Error("Call ipc method ctxc_blockNumber failed", "error", err)
 		return m.currentNumber.Load(), false, err
 	}

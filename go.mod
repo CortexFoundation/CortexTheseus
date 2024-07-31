@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.4.0
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.67-0.20240720095228-14bdae9272e0
+	github.com/CortexFoundation/torrentfs v1.0.68-0.20240731093113-2b7013b3fb86
 	github.com/VictoriaMetrics/fastcache v1.12.2
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.30.3
@@ -16,7 +16,7 @@ require (
 	github.com/btcsuite/btcd/btcec/v2 v2.3.4
 	github.com/cespare/cp v1.1.1
 	github.com/charmbracelet/bubbletea v0.26.6
-	github.com/cloudflare/cloudflare-go v0.100.0
+	github.com/cloudflare/cloudflare-go v0.101.0
 	github.com/cockroachdb/pebble v1.1.1
 	github.com/consensys/gnark-crypto v0.13.0
 	github.com/crate-crypto/go-kzg-4844 v1.1.0
@@ -30,14 +30,14 @@ require (
 	github.com/fogleman/ease v0.0.0-20170301025033-8da417bf1776
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
-	github.com/gofrs/flock v0.12.0
+	github.com/gofrs/flock v0.12.1
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb
 	github.com/google/gofuzz v1.2.1-0.20210524182514-9eed411d8615
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/hashicorp/golang-lru v1.0.2
 	github.com/holiman/bloomfilter/v2 v2.0.3
-	github.com/holiman/uint256 v1.3.0
+	github.com/holiman/uint256 v1.3.1
 	github.com/huin/goupnp v1.3.0
 	github.com/influxdata/influxdb-client-go/v2 v2.13.0
 	github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c
@@ -59,7 +59,7 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d
 	github.com/ucwong/color v1.10.1-0.20200624105241-fba1e010fe1e
-	github.com/urfave/cli/v2 v2.27.2
+	github.com/urfave/cli/v2 v2.27.3
 	go.uber.org/automaxprocs v1.5.3
 	golang.org/x/crypto v0.25.0
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
@@ -81,9 +81,9 @@ require (
 	github.com/CortexFoundation/compress v0.0.0-20240218153512-9074bdc2397c // indirect
 	github.com/CortexFoundation/cvm-runtime v0.0.0-20221117094012-b5a251885572 // indirect
 	github.com/CortexFoundation/merkletree v0.0.0-20240407093305-416581a62b5b // indirect
-	github.com/CortexFoundation/robot v1.0.7-0.20240719132903-d52425bb9e09 // indirect
+	github.com/CortexFoundation/robot v1.0.7-0.20240728100700-258c7a048a1f // indirect
 	github.com/CortexFoundation/wormhole v0.0.2-0.20240624201423-33e289eb7662 // indirect
-	github.com/DataDog/zstd v1.5.6-0.20230622172052-ea68dcab66c0 // indirect
+	github.com/DataDog/zstd v1.5.6 // indirect
 	github.com/RoaringBitmap/roaring v1.9.4 // indirect
 	github.com/ajwerner/btree v0.0.0-20211221152037-f427b3e689c0 // indirect
 	github.com/alecthomas/atomic v0.1.0-alpha2 // indirect
@@ -100,7 +100,7 @@ require (
 	github.com/anacrolix/multiless v0.3.1-0.20221221005021-2d12701f83f7 // indirect
 	github.com/anacrolix/stm v0.5.0 // indirect
 	github.com/anacrolix/sync v0.5.1 // indirect
-	github.com/anacrolix/torrent v1.56.2-0.20240713113757-02fe1a9a0b69 // indirect
+	github.com/anacrolix/torrent v1.56.2-0.20240724052102-f63b38aad662 // indirect
 	github.com/anacrolix/upnp v0.1.4 // indirect
 	github.com/anacrolix/utp v0.2.0 // indirect
 	github.com/antlabs/stl v0.0.2 // indirect
@@ -138,7 +138,7 @@ require (
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be // indirect
 	github.com/consensys/bavard v0.1.13 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
-	github.com/crate-crypto/go-ipa v0.0.0-20240223125850-b1e8a79f509c // indirect
+	github.com/crate-crypto/go-ipa v0.0.0-20240724233137-53bbb0ceb27a // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
 	github.com/dgraph-io/badger/v4 v4.2.1-0.20240119135526-6acc8e801739 // indirect
 	github.com/dgraph-io/ristretto v0.1.1 // indirect
@@ -164,9 +164,7 @@ require (
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/flatbuffers v24.3.25+incompatible // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
-	github.com/google/pprof v0.0.0-20240711041743-f6c9dda6c6da // indirect
-	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
-	github.com/hashicorp/go-retryablehttp v0.7.7 // indirect
+	github.com/google/pprof v0.0.0-20240727154555-813a5fbdbec8 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/influxdata/line-protocol v0.0.0-20210922203350-b1ad95c89adf // indirect
@@ -177,7 +175,7 @@ require (
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect
-	github.com/mattn/go-runewidth v0.0.15 // indirect
+	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/mmcloughlin/addchain v0.4.0 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
@@ -194,8 +192,8 @@ require (
 	github.com/otiai10/copy v1.14.1-0.20240615124421-e40f4e6d0e0b // indirect
 	github.com/otiai10/mint v1.6.3 // indirect
 	github.com/pion/datachannel v1.5.8 // indirect
-	github.com/pion/dtls/v2 v2.2.11 // indirect
-	github.com/pion/ice/v2 v2.3.29 // indirect
+	github.com/pion/dtls/v2 v2.2.12 // indirect
+	github.com/pion/ice/v2 v2.3.31 // indirect
 	github.com/pion/interceptor v0.1.29 // indirect
 	github.com/pion/logging v0.2.2 // indirect
 	github.com/pion/mdns v0.0.12 // indirect
@@ -206,9 +204,9 @@ require (
 	github.com/pion/sdp/v3 v3.0.9 // indirect
 	github.com/pion/srtp/v2 v2.0.20 // indirect
 	github.com/pion/stun v0.6.1 // indirect
-	github.com/pion/transport/v2 v2.2.5 // indirect
+	github.com/pion/transport/v2 v2.2.9 // indirect
 	github.com/pion/turn/v2 v2.1.6 // indirect
-	github.com/pion/webrtc/v3 v3.2.47 // indirect
+	github.com/pion/webrtc/v3 v3.2.50 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.19.1 // indirect
@@ -223,7 +221,7 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
-	github.com/supranational/blst v0.3.12 // indirect
+	github.com/supranational/blst v0.3.13 // indirect
 	github.com/tidwall/btree v1.7.0 // indirect
 	github.com/tidwall/hashmap v1.8.1 // indirect
 	github.com/tklauser/go-sysconf v0.3.14 // indirect
@@ -232,6 +230,7 @@ require (
 	github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb // indirect
 	github.com/ucwong/golang-kv v1.0.24-0.20240715083735-0847eedd3ac5 // indirect
 	github.com/ucwong/shard v1.0.1-0.20240327124306-59a521744cae // indirect
+	github.com/wlynxg/anet v0.0.3 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	github.com/xujiajun/mmap-go v1.0.1 // indirect
@@ -248,10 +247,10 @@ require (
 	golang.org/x/term v0.22.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
-	modernc.org/libc v1.55.3 // indirect
+	modernc.org/libc v1.55.7 // indirect
 	modernc.org/mathutil v1.6.0 // indirect
 	modernc.org/memory v1.8.0 // indirect
-	modernc.org/sqlite v1.30.2 // indirect
+	modernc.org/sqlite v1.31.1 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
 	zombiezen.com/go/sqlite v1.3.0 // indirect
 )

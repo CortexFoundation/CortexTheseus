@@ -133958,13 +133958,13 @@ func _walk(tls *TLS, r uintptr, action uintptr, d int32) {
 		return
 	}
 	if (*Tnode1)(unsafe.Pointer(r)).Fh == int32(1) {
-		(*(*func(*TLS, uintptr, TVISIT, int32))(unsafe.Pointer(&struct{ uintptr }{action})))(tls, r, _leaf, d)
+		(*(*func(*TLS, uintptr, TVISIT, int32))(unsafe.Pointer(&struct{ uintptr }{action})))(tls, r, int32(_leaf), d)
 	} else {
-		(*(*func(*TLS, uintptr, TVISIT, int32))(unsafe.Pointer(&struct{ uintptr }{action})))(tls, r, _preorder, d)
+		(*(*func(*TLS, uintptr, TVISIT, int32))(unsafe.Pointer(&struct{ uintptr }{action})))(tls, r, int32(_preorder), d)
 		_walk(tls, *(*uintptr)(unsafe.Pointer(r + 8)), action, d+int32(1))
-		(*(*func(*TLS, uintptr, TVISIT, int32))(unsafe.Pointer(&struct{ uintptr }{action})))(tls, r, _postorder, d)
+		(*(*func(*TLS, uintptr, TVISIT, int32))(unsafe.Pointer(&struct{ uintptr }{action})))(tls, r, int32(_postorder), d)
 		_walk(tls, *(*uintptr)(unsafe.Pointer(r + 8 + 1*8)), action, d+int32(1))
-		(*(*func(*TLS, uintptr, TVISIT, int32))(unsafe.Pointer(&struct{ uintptr }{action})))(tls, r, _endorder, d)
+		(*(*func(*TLS, uintptr, TVISIT, int32))(unsafe.Pointer(&struct{ uintptr }{action})))(tls, r, int32(_endorder), d)
 	}
 }
 

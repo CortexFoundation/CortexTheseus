@@ -25,7 +25,7 @@ import (
 	"io"
 	//"math"
 	"math/rand"
-	"net"
+	//"net"
 	"os"
 	"path/filepath"
 	//"runtime"
@@ -40,13 +40,13 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/wormhole"
-	"github.com/anacrolix/dht/v2"
-	"github.com/anacrolix/dht/v2/int160"
-	peer_store "github.com/anacrolix/dht/v2/peer-store"
+	//"github.com/anacrolix/dht/v2"
+	//"github.com/anacrolix/dht/v2/int160"
+	//peer_store "github.com/anacrolix/dht/v2/peer-store"
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/analysis"
 	"github.com/anacrolix/torrent/bencode"
-	"github.com/anacrolix/torrent/iplist"
+	//"github.com/anacrolix/torrent/iplist"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/anacrolix/torrent/mmap_span"
 	//pp "github.com/anacrolix/torrent/peer_protocol"
@@ -632,13 +632,13 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 	cfg.DisableTCP = config.DisableTCP
 	cfg.DisableIPv6 = config.DisableIPv6
 
-	cfg.IPBlocklist = iplist.New([]iplist.Range{
+	/*cfg.IPBlocklist = iplist.New([]iplist.Range{
 		{First: net.ParseIP("10.0.0.1"), Last: net.ParseIP("10.0.0.255")}})
 
 	if blocklist, err := iplist.MMapPackedFile("packed-blocklist"); err == nil {
 		log.Info("Block list loaded")
 		cfg.IPBlocklist = blocklist
-	}
+	}*/
 
 	//cfg.MinPeerExtensions.SetBit(pp.ExtensionBitFast, true)
 	//cfg.DisableWebtorrent = false
@@ -682,14 +682,14 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 	//cfg.ListenHost = torrent.LoopbackListenHost
 	//cfg.DhtStartingNodes = dht.GlobalBootstrapAddrs //func() ([]dht.Addr, error) { return nil, nil }
 
-	cfg.ConfigureAnacrolixDhtServer = func(cfg *dht.ServerConfig) {
+	/*cfg.ConfigureAnacrolixDhtServer = func(cfg *dht.ServerConfig) {
 		cfg.InitNodeId()
 		if cfg.PeerStore == nil {
 			cfg.PeerStore = &peer_store.InMemory{
 				RootId: int160.FromByteArray(cfg.NodeId),
 			}
 		}
-	}
+	}*/
 
 	cl, err := torrent.NewClient(cfg)
 	if err != nil {
@@ -1041,10 +1041,9 @@ func (tm *TorrentManager) pendingLoop() {
 			}
 			if m, ok := ev.Data.(pendingEvent); ok {
 				t := m.T
-				log.Debug("Searching", "ih", t.InfoHash())
 				if t.Torrent.Info() != nil {
 					t.AddTrackers(slices.Clone(tm.globalTrackers))
-					tm.meta(t)
+					tm.active(t)
 					continue
 				}
 
@@ -1058,12 +1057,13 @@ func (tm *TorrentManager) pendingLoop() {
 
 					ctx, cancel := context.WithTimeout(context.Background(), (10+time.Duration(tm.slot&9))*time.Minute)
 					defer cancel()
-					timer := time.NewTimer(time.Second * 15)
+					timer := time.NewTimer(time.Second * 5)
 					defer timer.Stop()
 					for {
 						select {
 						case <-t.Torrent.GotInfo():
-							tm.meta(t)
+							log.Info("Searching", "ih", t.InfoHash(), "elapsed", common.PrettyDuration(time.Duration(mclock.Now())-time.Duration(t.Birth())), "wait", tm.pends.Load())
+							tm.active(t)
 							return
 						case <-t.Closed():
 							return
@@ -1074,7 +1074,7 @@ func (tm *TorrentManager) pendingLoop() {
 							return
 						case <-timer.C:
 							// Invoked once
-							log.Debug("Add new global trackers", "ih", t.InfoHash())
+							log.Info("Global trackers added", "ih", t.InfoHash())
 							t.AddTrackers(slices.Clone(tm.globalTrackers))
 							timer.Stop()
 						}
@@ -1088,7 +1088,7 @@ func (tm *TorrentManager) pendingLoop() {
 	}
 }
 
-func (tm *TorrentManager) meta(t *caffe.Torrent) error {
+func (tm *TorrentManager) active(t *caffe.Torrent) error {
 	if b, err := bencode.Marshal(t.Torrent.Info()); err == nil {
 		if tm.kvdb != nil && tm.kvdb.Get([]byte(SEED_PRE+t.InfoHash())) == nil {
 			if tm.mode != params.LAZY {
@@ -1147,9 +1147,10 @@ func (tm *TorrentManager) cost(s uint64) {
 
 func (tm *TorrentManager) activeLoop() {
 	var (
-		timer   = time.NewTimer(time.Second * params.QueryTimeInterval)
-		timer_1 = time.NewTimer(time.Second * params.QueryTimeInterval * 60)
-		counter = 0
+		interval = time.Millisecond * 100
+		timer    = time.NewTimer(interval)
+		timer_1  = time.NewTimer(time.Second * params.QueryTimeInterval * 60)
+		counter  = 0
 
 		workers errgroup.Group
 	)
@@ -1293,7 +1294,7 @@ func (tm *TorrentManager) activeLoop() {
 			}*/
 
 			counter++
-			timer.Reset(time.Second * params.QueryTimeInterval)
+			timer.Reset(interval)
 
 		case <-tm.closeAll:
 			log.Info("Active seed loop closed")

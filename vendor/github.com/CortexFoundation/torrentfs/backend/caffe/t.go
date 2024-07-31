@@ -354,7 +354,8 @@ func (t *Torrent) WriteTorrent() error {
 	if f, err := os.OpenFile(filepath.Join(t.filepath, TORRENT), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0777); err == nil {
 		defer f.Close()
 		log.Debug("Write seed file", "path", t.filepath)
-		if err := t.Metainfo().Write(f); err != nil {
+		mi := t.Metainfo()
+		if err := (&mi).Write(f); err != nil {
 			log.Warn("Write seed error", "err", err)
 			return err
 		}

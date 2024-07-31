@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -224,18 +225,23 @@ var (
 	userenvapi                = syscall.NewLazyDLL("userenv.dll")
 	procGetProfilesDirectoryW = userenvapi.NewProc("GetProfilesDirectoryW")
 
-	modcrt          = syscall.NewLazyDLL("msvcrt.dll")
-	procAccess      = modcrt.NewProc("_access")
-	procChmod       = modcrt.NewProc("_chmod")
-	procGmtime      = modcrt.NewProc("gmtime")
-	procGmtime32    = modcrt.NewProc("_gmtime32")
-	procGmtime64    = modcrt.NewProc("_gmtime64")
-	procStat64i32   = modcrt.NewProc("_stat64i32")
-	procStati64     = modcrt.NewProc("_stati64")
-	procStrftime    = modcrt.NewProc("strftime")
-	procStrtod      = modcrt.NewProc("strtod")
+	modcrt        = syscall.NewLazyDLL("msvcrt.dll")
+	procAccess    = modcrt.NewProc("_access")
+	procChmod     = modcrt.NewProc("_chmod")
+	procCtime64   = modcrt.NewProc("ctime64")
+	procGmtime    = modcrt.NewProc("gmtime")
+	procGmtime32  = modcrt.NewProc("_gmtime32")
+	procGmtime64  = modcrt.NewProc("_gmtime64")
+	procStat64i32 = modcrt.NewProc("_stat64i32")
+	procStati64   = modcrt.NewProc("_stati64")
+	procStrftime  = modcrt.NewProc("strftime")
+	procStrnicmp  = modcrt.NewProc("_strnicmp")
+	procStrtod    = modcrt.NewProc("strtod")
+	procTime64    = modcrt.NewProc("time64")
+	procWcsncpy   = modcrt.NewProc("wcsncpy")
+	procWcsrchr   = modcrt.NewProc("wcsrchr")
 
-	moducrt = syscall.NewLazyDLL("ucrtbase.dll")
+	moducrt         = syscall.NewLazyDLL("ucrtbase.dll")
 	procFindfirst32 = moducrt.NewProc("_findfirst32")
 	procFindnext32  = moducrt.NewProc("_findnext32")
 )
@@ -2337,7 +2343,7 @@ func XIsDebuggerPresent(t *TLS) int32 {
 	if __ccgo_strace {
 		trc("t=%v, (%v:)", t, origin(2))
 	}
-	panic(todo(""))
+	return 0
 }
 
 func XExitProcess(t *TLS, _ ...interface{}) int32 {
@@ -3042,10 +3048,6 @@ func XSetCommState(t *TLS, _ ...interface{}) int32 {
 	panic(todo(""))
 }
 
-func X_strnicmp(t *TLS, _ ...interface{}) int32 {
-	panic(todo(""))
-}
-
 func XEscapeCommFunction(t *TLS, _ ...interface{}) int32 {
 	panic(todo(""))
 }
@@ -3715,7 +3717,7 @@ func XGetFileAttributesA(t *TLS, lpFileName uintptr) uint32 {
 //	LPVOID                 lpFileInformation
 //
 // );
-func XGetFileAttributesExW(t *TLS, lpFileName uintptr, fInfoLevelId uint32, lpFileInformation uintptr) int32 {
+func XGetFileAttributesExW(t *TLS, lpFileName uintptr, fInfoLevelId int32, lpFileInformation uintptr) int32 {
 	if __ccgo_strace {
 		trc("t=%v lpFileName=%v fInfoLevelId=%v lpFileInformation=%v, (%v:)", t, lpFileName, fInfoLevelId, lpFileInformation, origin(2))
 	}
@@ -6475,7 +6477,7 @@ func XGetAce(tls *TLS, _pAcl uintptr, _dwAceIndex uint32, _pAce uintptr) (r int3
 //	ACL_INFORMATION_CLASS dwAclInformationClass
 //
 // );
-func XGetAclInformation(t *TLS, pAcl, pAclInformation uintptr, nAclInformationLength, dwAclInformationClass uint32) int32 {
+func XGetAclInformation(t *TLS, pAcl, pAclInformation uintptr, nAclInformationLength uint32, dwAclInformationClass int32) int32 {
 	if __ccgo_strace {
 		trc("t=%v pAclInformation=%v dwAclInformationClass=%v, (%v:)", t, pAclInformation, dwAclInformationClass, origin(2))
 	}
@@ -6667,7 +6669,7 @@ func XSetErrorMode(t *TLS, uMode uint32) int32 {
 //	PACL                 pSacl
 //
 // );
-func XSetNamedSecurityInfoA(t *TLS, pObjectName uintptr, ObjectType, SecurityInfo uint32, psidOwner, psidGroup, pDacl, pSacl uintptr) uint32 {
+func XSetNamedSecurityInfoA(t *TLS, pObjectName uintptr, ObjectType int32, SecurityInfo uint32, psidOwner, psidGroup, pDacl, pSacl uintptr) uint32 {
 	if __ccgo_strace {
 		trc("t=%v pObjectName=%v SecurityInfo=%v pSacl=%v, (%v:)", t, pObjectName, SecurityInfo, pSacl, origin(2))
 	}
@@ -6786,7 +6788,6 @@ func X_stati64(t *TLS, path, buffer uintptr) int32 {
 	}
 	return int32(r0)
 }
-
 
 // int _fstati64(int fd, struct _stati64 *buffer);
 func X_fstati64(t *TLS, fd int32, buffer uintptr) int32 {
@@ -7551,4 +7552,79 @@ func Xstrtod(t *TLS, s uintptr, p uintptr) float64 {
 		t.setErrno(err)
 	}
 	return math.Float64frombits(uint64(r0))
+}
+
+// int vsnprintf(char *str, size_t size, const char *format, va_list ap);
+func X_vsnprintf(t *TLS, str uintptr, size types.Size_t, format, ap uintptr) int32 {
+	if __ccgo_strace {
+		trc("t=%v str=%v size=%v ap=%v, (%v:)", t, str, size, ap, origin(2))
+	}
+	return Xvsnprintf(t, str, size, format, ap)
+}
+
+func X__ccgo_SyscallFP() {
+	s := fmt.Sprintf("%s\nTODO syscall: function pointer", debug.Stack())
+	panic(s)
+}
+
+func CreateThread(t *TLS, lpThreadAttributes uintptr, dwStackSize types.Size_t, lpStartAddress, lpParameter uintptr, dwCreationFlags uint32, lpThreadId uintptr) uintptr {
+	return XCreateThread(t, lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpThreadId)
+}
+
+// wchar_t *wcsncpy(wchar_t *strDest, const wchar_t *strSource, size_t count);
+func Xwcsncpy(t *TLS, strDest, strSource uintptr, count types.Size_t) uintptr {
+	r0, _, err := syscall.SyscallN(procWcsncpy.Addr(), strDest, strSource, uintptr(count))
+	if err != 0 {
+		t.setErrno(err)
+	}
+	return r0
+}
+
+// wchar_t *wcsrchr(const wchar_t *str, wchar_t c);
+func Xwcsrchr(t *TLS, str uintptr, c types.Wchar_t) uintptr {
+	r0, _, err := syscall.SyscallN(procWcsrchr.Addr(), str, uintptr(c))
+	if err != 0 {
+		t.setErrno(err)
+	}
+	return r0
+}
+
+// __attribute__ ((__dllimport__)) char * __attribute__((__cdecl__)) _ctime64(const __time64_t *_Time);
+func X_ctime64(tls *TLS, __Time uintptr) (r uintptr) {
+	if __ccgo_strace {
+		trc("_Time=%+v", __Time)
+		defer func() { trc(`X_ctime64->%+v`, r) }()
+	}
+	r0, _, err := syscall.SyscallN(procCtime64.Addr(), __Time)
+	if err != 0 {
+		tls.setErrno(int32(err))
+	}
+	return uintptr(r0)
+}
+
+// __attribute__ ((__dllimport__)) __time64_t __attribute__((__cdecl__)) _time64(__time64_t *_Time);
+func X_time64(tls *TLS, __Time uintptr) (r int64) {
+	if __ccgo_strace {
+		trc("_Time=%+v", __Time)
+		defer func() { trc(`X_time64->%+v`, r) }()
+	}
+	r0, _, err := syscall.SyscallN(procTime64.Addr(), __Time)
+	if err != 0 {
+		tls.setErrno(int32(err))
+	}
+	return int64(r0)
+}
+
+
+// __attribute__ ((__dllimport__)) int __attribute__((__cdecl__)) _strnicmp(const char *_Str1,const char *_Str2,size_t _MaxCount);
+func X_strnicmp(tls *TLS, __Str1 uintptr, __Str2 uintptr, __MaxCount types.Size_t) (r int32) {
+	if __ccgo_strace {
+		trc("_Str1=%+v _Str2=%+v _MaxCount=%+v", __Str1, __Str2, __MaxCount)
+		defer func() { trc(`X_strnicmp->%+v`, r) }()
+	}
+	r0, _, err := syscall.SyscallN(procStrnicmp.Addr(), __Str1, __Str2, uintptr(__MaxCount))
+	if err != 0 {
+		tls.setErrno(int32(err))
+	}
+	return int32(r0)
 }
