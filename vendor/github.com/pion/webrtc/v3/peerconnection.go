@@ -68,7 +68,8 @@ type PeerConnection struct {
 	// should be defined (see JSEP 3.4.1).
 	greaterMid int
 
-	rtpTransceivers []*RTPTransceiver
+	rtpTransceivers        []*RTPTransceiver
+	nonMediaBandwidthProbe atomic.Value // RTPReceiver
 
 	onSignalingStateChangeHandler     func(SignalingState)
 	onICEConnectionStateChangeHandler atomic.Value // func(ICEConnectionState)
@@ -1524,6 +1525,32 @@ func (pc *PeerConnection) handleUndeclaredSSRC(ssrc SSRC, remoteDescription *Ses
 	return true, nil
 }
 
+// Chrome sends probing traffic on SSRC 0. This reads the packets to ensure that we properly
+// generate TWCC reports for it. Since this isn't actually media we don't pass this to the user
+func (pc *PeerConnection) handleNonMediaBandwidthProbe() {
+	nonMediaBandwidthProbe, err := pc.api.NewRTPReceiver(RTPCodecTypeVideo, pc.dtlsTransport)
+	if err != nil {
+		pc.log.Errorf("handleNonMediaBandwidthProbe failed to create RTPReceiver: %v", err)
+		return
+	}
+
+	if err = nonMediaBandwidthProbe.Receive(RTPReceiveParameters{
+		Encodings: []RTPDecodingParameters{{RTPCodingParameters: RTPCodingParameters{}}},
+	}); err != nil {
+		pc.log.Errorf("handleNonMediaBandwidthProbe failed to start RTPReceiver: %v", err)
+		return
+	}
+
+	pc.nonMediaBandwidthProbe.Store(nonMediaBandwidthProbe)
+	b := make([]byte, pc.api.settingEngine.getReceiveMTU())
+	for {
+		if _, _, err = nonMediaBandwidthProbe.readRTP(b, nonMediaBandwidthProbe.Track()); err != nil {
+			pc.log.Tracef("handleNonMediaBandwidthProbe read exiting: %v", err)
+			return
+		}
+	}
+}
+
 func (pc *PeerConnection) handleIncomingSSRC(rtpStream io.Reader, ssrc SSRC) error { //nolint:gocognit
 	remoteDescription := pc.RemoteDescription()
 	if remoteDescription == nil {
@@ -1643,20 +1670,41 @@ func (pc *PeerConnection) undeclaredRTPMediaProcessor() {
 			return
 		}
 
-		stream, ssrc, err := srtpSession.AcceptStream()
+		srtcpSession, err := pc.dtlsTransport.getSRTCPSession()
+		if err != nil {
+			pc.log.Warnf("undeclaredMediaProcessor failed to open SrtcpSession: %v", err)
+			return
+		}
+
+		srtpReadStream, ssrc, err := srtpSession.AcceptStream()
 		if err != nil {
 			pc.log.Warnf("Failed to accept RTP %v", err)
 			return
 		}
 
+		// open accompanying srtcp stream
+		srtcpReadStream, err := srtcpSession.OpenReadStream(ssrc)
+		if err != nil {
+			pc.log.Warnf("Failed to open RTCP stream for %d: %v", ssrc, err)
+			return
+		}
+
 		if pc.isClosed.get() {
-			if err = stream.Close(); err != nil {
+			if err = srtpReadStream.Close(); err != nil {
 				pc.log.Warnf("Failed to close RTP stream %v", err)
+			}
+			if err = srtcpReadStream.Close(); err != nil {
+				pc.log.Warnf("Failed to close RTCP stream %v", err)
 			}
 			continue
 		}
 
-		pc.dtlsTransport.storeSimulcastStream(stream)
+		pc.dtlsTransport.storeSimulcastStream(srtpReadStream, srtcpReadStream)
+
+		if ssrc == 0 {
+			go pc.handleNonMediaBandwidthProbe()
+			continue
+		}
 
 		if atomic.AddUint64(&simulcastRoutineCount, 1) >= simulcastMaxProbeRoutines {
 			atomic.AddUint64(&simulcastRoutineCount, ^uint64(0))
@@ -1669,7 +1717,7 @@ func (pc *PeerConnection) undeclaredRTPMediaProcessor() {
 				pc.log.Errorf(incomingUnhandledRTPSsrc, ssrc, err)
 			}
 			atomic.AddUint64(&simulcastRoutineCount, ^uint64(0))
-		}(stream, SSRC(ssrc))
+		}(srtpReadStream, SSRC(ssrc))
 	}
 }
 
@@ -2062,6 +2110,9 @@ func (pc *PeerConnection) Close() error {
 			closeErrs = append(closeErrs, t.Stop())
 		}
 	}
+	if nonMediaBandwidthProbe, ok := pc.nonMediaBandwidthProbe.Load().(*RTPReceiver); ok {
+		closeErrs = append(closeErrs, nonMediaBandwidthProbe.Stop())
+	}
 	pc.mu.Unlock()
 
 	// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-close (step #5)
@@ -2104,10 +2155,11 @@ func (pc *PeerConnection) addRTPTransceiver(t *RTPTransceiver) {
 // by the ICEAgent since the offer or answer was created.
 func (pc *PeerConnection) CurrentLocalDescription() *SessionDescription {
 	pc.mu.Lock()
+	defer pc.mu.Unlock()
+
 	localDescription := pc.currentLocalDescription
 	iceGather := pc.iceGatherer
 	iceGatheringState := pc.ICEGatheringState()
-	pc.mu.Unlock()
 	return populateLocalCandidates(localDescription, iceGather, iceGatheringState)
 }
 
@@ -2117,10 +2169,11 @@ func (pc *PeerConnection) CurrentLocalDescription() *SessionDescription {
 // PeerConnection is in the stable state, the value is null.
 func (pc *PeerConnection) PendingLocalDescription() *SessionDescription {
 	pc.mu.Lock()
+	defer pc.mu.Unlock()
+
 	localDescription := pc.pendingLocalDescription
 	iceGather := pc.iceGatherer
 	iceGatheringState := pc.ICEGatheringState()
-	pc.mu.Unlock()
 	return populateLocalCandidates(localDescription, iceGather, iceGatheringState)
 }
 

@@ -110,7 +110,7 @@ func New(flag *params.Config, cache, compress, listen bool, callback chan any) (
 		exitCh: make(chan any),
 		srvCh:  make(chan int),
 		//exitSyncCh: make(chan any),
-		scope: uint64(math.Max(float64(runtime.NumCPU()*2), float64(4))),
+		scope: uint64(math.Max(float64(runtime.NumCPU()*2), float64(8))),
 		//taskCh: make(chan *types.Block, batch),
 		//taskCh:        make(chan *types.Block, 1),
 		//start: mclock.Now(),
@@ -589,7 +589,8 @@ func (m *Monitor) syncLastBlock() uint64 {
 				m.taskCh <- rpcBlock
 			}
 
-			for n := 0; n < len(blocks); n++ {
+			size := len(blocks)
+			for n := 0; n < size; n++ {
 				select {
 				case err := <-m.errCh:
 					if err != nil {
@@ -603,8 +604,8 @@ func (m *Monitor) syncLastBlock() uint64 {
 					return 0
 				}
 			}
-			i += uint64(len(blocks))
-			counter += len(blocks)
+			i += uint64(size)
+			counter += size
 		} else {
 			rpcBlock, rpcErr := m.rpcBlockByNumber(i)
 			if rpcErr != nil {

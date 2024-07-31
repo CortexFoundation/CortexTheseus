@@ -56,6 +56,10 @@ func X__builtin_ctz(t *TLS, n uint32) int32 {
 	return int32(mbits.TrailingZeros32(n))
 }
 
+func X__builtin_ctzl(tls *TLS, x ulong) int32 {
+	return int32(mbits.TrailingZeros64(x))
+}
+
 func X__builtin_clz(t *TLS, n uint32) int32 {
 	return int32(mbits.LeadingZeros32(n))
 }

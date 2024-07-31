@@ -2,6 +2,7 @@ package metainfo
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"net/url"
 	"os"
@@ -38,7 +39,11 @@ func Load(r io.Reader) (*MetaInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &mi, nil
+	err = d.ReadEOF()
+	if err != nil {
+		err = fmt.Errorf("error after decoding metainfo: %w", err)
+	}
+	return &mi, err
 }
 
 // Convenience function for loading a MetaInfo from a file.
@@ -53,7 +58,7 @@ func LoadFromFile(filename string) (*MetaInfo, error) {
 	return Load(&buf)
 }
 
-func (mi MetaInfo) UnmarshalInfo() (info Info, err error) {
+func (mi *MetaInfo) UnmarshalInfo() (info Info, err error) {
 	err = bencode.Unmarshal(mi.InfoBytes, &info)
 	return
 }
@@ -63,7 +68,7 @@ func (mi *MetaInfo) HashInfoBytes() (infoHash Hash) {
 }
 
 // Encode to bencoded form.
-func (mi MetaInfo) Write(w io.Writer) error {
+func (mi *MetaInfo) Write(w io.Writer) error {
 	return bencode.NewEncoder(w).Encode(mi)
 }
 
