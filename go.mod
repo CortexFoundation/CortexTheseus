@@ -26,7 +26,6 @@ require (
 	github.com/ethereum/c-kzg-4844 v1.0.3
 	github.com/ethereum/go-verkle v0.1.1-0.20240306133620-7d920df305f0
 	github.com/fjl/gencodec v0.0.0-20230517082657-f9840df7b83e
-	github.com/fjl/memsize v0.0.2
 	github.com/fogleman/ease v0.0.0-20170301025033-8da417bf1776
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08

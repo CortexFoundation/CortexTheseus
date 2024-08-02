@@ -540,10 +540,6 @@ github.com/ethereum/go-verkle
 # github.com/fjl/gencodec v0.0.0-20230517082657-f9840df7b83e
 ## explicit; go 1.18
 github.com/fjl/gencodec
-# github.com/fjl/memsize v0.0.2
-## explicit
-github.com/fjl/memsize
-github.com/fjl/memsize/memsizeui
 # github.com/fogleman/ease v0.0.0-20170301025033-8da417bf1776
 ## explicit
 github.com/fogleman/ease
