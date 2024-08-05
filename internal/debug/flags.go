@@ -28,11 +28,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/metrics/exp"
-	"github.com/fjl/memsize/memsizeui"
 	"gopkg.in/urfave/cli.v1"
 )
-
-var Memsize memsizeui.Handler
 
 var (
 	verbosityFlag = cli.IntFlag{
@@ -203,7 +200,6 @@ func StartPProf(address string, withMetrics bool) {
 		exp.Exp(metrics.DefaultRegistry)
 	}
 	exp.Exp(metrics.DefaultRegistry)
-	http.Handle("/memsize/", http.StripPrefix("/memsize", &Memsize))
 	log.Info("Starting pprof server", "addr", fmt.Sprintf("http://%s/debug/pprof", address))
 	go func() {
 		if err := http.ListenAndServe(address, nil); err != nil {
