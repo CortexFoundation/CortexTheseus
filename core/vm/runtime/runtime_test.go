@@ -470,3 +470,32 @@ func BenchmarkSimpleLoop(b *testing.B) {
 	//benchmarkNonModifyingCode(10000000, staticCallIdentity, "staticcall-identity-10M", b)
 	//benchmarkNonModifyingCode(10000000, loopingCode, "loop-10M", b)
 }
+
+func BenchmarkVM_SWAP1(b *testing.B) {
+	// returns a contract that does n swaps (SWAP1)
+	swapContract := func(n uint64) []byte {
+		contract := []byte{
+			byte(vm.PUSH0), // PUSH0
+			byte(vm.PUSH0), // PUSH0
+		}
+		for i := uint64(0); i < n; i++ {
+			contract = append(contract, byte(vm.SWAP1))
+		}
+		return contract
+	}
+
+	state, _ := state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+	contractAddr := common.BytesToAddress([]byte("contract"))
+
+	b.Run("10k", func(b *testing.B) {
+		contractCode := swapContract(10_000)
+		state.SetCode(contractAddr, contractCode)
+
+		for i := 0; i < b.N; i++ {
+			_, _, err := Call(contractAddr, []byte{}, &Config{State: state})
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}
