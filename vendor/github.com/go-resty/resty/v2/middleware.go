@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2023 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
+// Copyright (c) 2015-2024 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
 // resty source code and usage is governed by a MIT style
 // license that can be found in the LICENSE file.
 
@@ -307,6 +307,16 @@ func addCredentials(c *Client, r *Request) error {
 	return nil
 }
 
+func createCurlCmd(c *Client, r *Request) (err error) {
+	if r.trace {
+		if r.resultCurlCmd == nil {
+			r.resultCurlCmd = new(string)
+		}
+		*r.resultCurlCmd = buildCurlRequest(r.RawRequest, c.httpClient.Jar)
+	}
+	return nil
+}
+
 func requestLogger(c *Client, r *Request) error {
 	if r.Debug {
 		rr := r.RawRequest
@@ -329,6 +339,8 @@ func requestLogger(c *Client, r *Request) error {
 		}
 
 		reqLog := "\n==============================================================================\n" +
+			"~~~ REQUEST(curl) ~~~\n" +
+			fmt.Sprintf("CURL:\n	%v\n", buildCurlRequest(r.RawRequest, r.client.httpClient.Jar)) +
 			"~~~ REQUEST ~~~\n" +
 			fmt.Sprintf("%s  %s  %s\n", r.Method, rr.URL.RequestURI(), rr.Proto) +
 			fmt.Sprintf("HOST   : %s\n", rr.URL.Host) +
