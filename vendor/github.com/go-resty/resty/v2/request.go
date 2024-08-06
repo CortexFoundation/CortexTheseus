@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2023 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
+// Copyright (c) 2015-2024 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
 // resty source code and usage is governed by a MIT style
 // license that can be found in the LICENSE file.
 
@@ -39,6 +39,7 @@ type Request struct {
 	Time          time.Time
 	Body          interface{}
 	Result        interface{}
+	resultCurlCmd *string
 	Error         interface{}
 	RawRequest    *http.Request
 	SRV           *SRVRecord
@@ -71,6 +72,24 @@ type Request struct {
 	multipartFiles      []*File
 	multipartFields     []*MultipartField
 	retryConditions     []RetryConditionFunc
+}
+
+// Generate curl command for the request.
+func (r *Request) GenerateCurlCommand() string {
+	if r.resultCurlCmd != nil {
+		return *r.resultCurlCmd
+	} else {
+		if r.RawRequest == nil {
+			r.client.executeBefore(r) // mock with r.Get("/")
+		}
+		if r.resultCurlCmd == nil {
+			r.resultCurlCmd = new(string)
+		}
+		if *r.resultCurlCmd == "" {
+			*r.resultCurlCmd = buildCurlRequest(r.RawRequest, r.client.httpClient.Jar)
+		}
+		return *r.resultCurlCmd
+	}
 }
 
 // Context method returns the Context if its already set in request
@@ -886,7 +905,7 @@ func (r *Request) Patch(url string) (*Response, error) {
 // for current `Request`.
 //
 //	req := client.R()
-//	req.Method = resty.GET
+//	req.Method = resty.MethodGet
 //	req.URL = "http://httpbin.org/get"
 //	resp, err := req.Send()
 func (r *Request) Send() (*Response, error) {
@@ -896,7 +915,7 @@ func (r *Request) Send() (*Response, error) {
 // Execute method performs the HTTP request with given HTTP method and URL
 // for current `Request`.
 //
-//	resp, err := client.R().Execute(resty.GET, "http://httpbin.org/get")
+//	resp, err := client.R().Execute(resty.MethodGet, "http://httpbin.org/get")
 func (r *Request) Execute(method, url string) (*Response, error) {
 	var addrs []*net.SRV
 	var resp *Response

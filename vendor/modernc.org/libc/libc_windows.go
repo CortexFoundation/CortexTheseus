@@ -7615,7 +7615,6 @@ func X_time64(tls *TLS, __Time uintptr) (r int64) {
 	return int64(r0)
 }
 
-
 // __attribute__ ((__dllimport__)) int __attribute__((__cdecl__)) _strnicmp(const char *_Str1,const char *_Str2,size_t _MaxCount);
 func X_strnicmp(tls *TLS, __Str1 uintptr, __Str2 uintptr, __MaxCount types.Size_t) (r int32) {
 	if __ccgo_strace {
