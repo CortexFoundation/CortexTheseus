@@ -83,7 +83,7 @@ func GetMemoryCopyPadded(m *vm.Memory, offset, size int64) ([]byte, error) {
 		return nil, fmt.Errorf("offset or size must not be negative")
 	}
 	if int(offset+size) < m.Len() { // slice fully inside memory
-		return m.GetCopy(offset, size), nil
+		return m.GetCopy(uint64(offset), uint64(size)), nil
 	}
 	paddingNeeded := int(offset+size) - m.Len()
 	if paddingNeeded > memoryPadLimit {
@@ -91,7 +91,7 @@ func GetMemoryCopyPadded(m *vm.Memory, offset, size int64) ([]byte, error) {
 	}
 	cpy := make([]byte, size)
 	if overlap := int64(m.Len()) - offset; overlap > 0 {
-		copy(cpy, m.GetPtr(offset, overlap))
+		copy(cpy, m.GetPtr(uint64(offset), uint64(overlap)))
 	}
 	return cpy, nil
 }

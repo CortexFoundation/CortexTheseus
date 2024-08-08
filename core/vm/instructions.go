@@ -39,69 +39,69 @@ var (
 	errInvalidJump           = errors.New("cvm: invalid jump destination")
 )
 
-func opAdd(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	x, y := callContext.Stack.pop(), callContext.Stack.peek()
+func opAdd(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	x, y := scope.Stack.pop(), scope.Stack.peek()
 	y.Add(&x, y)
 	return nil, nil
 }
 
-func opSub(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	x, y := callContext.Stack.pop(), callContext.Stack.peek()
+func opSub(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	x, y := scope.Stack.pop(), scope.Stack.peek()
 	y.Sub(&x, y)
 	return nil, nil
 }
 
-func opMul(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	x, y := callContext.Stack.pop(), callContext.Stack.peek()
+func opMul(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	x, y := scope.Stack.pop(), scope.Stack.peek()
 	y.Mul(&x, y)
 
 	return nil, nil
 }
 
-func opDiv(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	x, y := callContext.Stack.pop(), callContext.Stack.peek()
+func opDiv(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	x, y := scope.Stack.pop(), scope.Stack.peek()
 	y.Div(&x, y)
 	return nil, nil
 }
 
-func opSdiv(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	x, y := callContext.Stack.pop(), callContext.Stack.peek()
+func opSdiv(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	x, y := scope.Stack.pop(), scope.Stack.peek()
 	y.SDiv(&x, y)
 	return nil, nil
 }
 
-func opMod(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	x, y := callContext.Stack.pop(), callContext.Stack.peek()
+func opMod(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	x, y := scope.Stack.pop(), scope.Stack.peek()
 	y.Mod(&x, y)
 	return nil, nil
 }
 
-func opSmod(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	x, y := callContext.Stack.pop(), callContext.Stack.peek()
+func opSmod(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	x, y := scope.Stack.pop(), scope.Stack.peek()
 	y.SMod(&x, y)
 	return nil, nil
 }
 
-func opExp(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	base, exponent := callContext.Stack.pop(), callContext.Stack.peek()
+func opExp(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	base, exponent := scope.Stack.pop(), scope.Stack.peek()
 	exponent.Exp(&base, exponent)
 	return nil, nil
 }
 
-func opSignExtend(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	back, num := callContext.Stack.pop(), callContext.Stack.peek()
+func opSignExtend(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	back, num := scope.Stack.pop(), scope.Stack.peek()
 	num.ExtendSign(num, &back)
 	return nil, nil
 }
 
-func opNot(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	x := callContext.Stack.peek()
+func opNot(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	x := scope.Stack.peek()
 	x.Not(x)
 	return nil, nil
 }
 
-func opLt(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	x, y := callContext.Stack.pop(), callContext.Stack.peek()
+func opLt(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	x, y := scope.Stack.pop(), scope.Stack.peek()
 	if x.Lt(y) {
 		y.SetOne()
 	} else {
@@ -110,8 +110,8 @@ func opLt(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([
 	return nil, nil
 }
 
-func opGt(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	x, y := callContext.Stack.pop(), callContext.Stack.peek()
+func opGt(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	x, y := scope.Stack.pop(), scope.Stack.peek()
 	if x.Gt(y) {
 		y.SetOne()
 	} else {
@@ -120,8 +120,8 @@ func opGt(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([
 	return nil, nil
 }
 
-func opSlt(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	x, y := callContext.Stack.pop(), callContext.Stack.peek()
+func opSlt(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	x, y := scope.Stack.pop(), scope.Stack.peek()
 	if x.Slt(y) {
 		y.SetOne()
 	} else {
@@ -130,8 +130,8 @@ func opSlt(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) (
 	return nil, nil
 }
 
-func opSgt(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	x, y := callContext.Stack.pop(), callContext.Stack.peek()
+func opSgt(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	x, y := scope.Stack.pop(), scope.Stack.peek()
 	if x.Sgt(y) {
 		y.SetOne()
 	} else {
@@ -140,8 +140,8 @@ func opSgt(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) (
 	return nil, nil
 }
 
-func opEq(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	x, y := callContext.Stack.pop(), callContext.Stack.peek()
+func opEq(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	x, y := scope.Stack.pop(), scope.Stack.peek()
 	if x.Eq(y) {
 		y.SetOne()
 	} else {
@@ -150,8 +150,8 @@ func opEq(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([
 	return nil, nil
 }
 
-func opIszero(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	x := callContext.Stack.peek()
+func opIszero(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	x := scope.Stack.peek()
 	if x.IsZero() {
 		x.SetOne()
 	} else {
@@ -160,26 +160,26 @@ func opIszero(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext
 	return nil, nil
 }
 
-func opAnd(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	x, y := callContext.Stack.pop(), callContext.Stack.peek()
+func opAnd(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	x, y := scope.Stack.pop(), scope.Stack.peek()
 	y.And(&x, y)
 	return nil, nil
 }
 
-func opOr(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	x, y := callContext.Stack.pop(), callContext.Stack.peek()
+func opOr(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	x, y := scope.Stack.pop(), scope.Stack.peek()
 	y.Or(&x, y)
 	return nil, nil
 }
 
-func opXor(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	x, y := callContext.Stack.pop(), callContext.Stack.peek()
+func opXor(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	x, y := scope.Stack.pop(), scope.Stack.peek()
 	y.Xor(&x, y)
 	return nil, nil
 }
 
-func opByte(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	th, val := callContext.Stack.pop(), callContext.Stack.peek()
+func opByte(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	th, val := scope.Stack.pop(), scope.Stack.peek()
 	val.Byte(&th)
 	return nil, nil
 }
@@ -190,8 +190,8 @@ func opAddmod(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]b
 	return nil, nil
 }
 
-func opMulmod(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	x, y, z := callContext.Stack.pop(), callContext.Stack.pop(), callContext.Stack.peek()
+func opMulmod(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	x, y, z := scope.Stack.pop(), scope.Stack.pop(), scope.Stack.peek()
 	z.MulMod(&x, &y, z)
 	return nil, nil
 }
@@ -199,9 +199,9 @@ func opMulmod(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext
 // opSHL implements Shift Left
 // The SHL instruction (shift left) pops 2 values from the stack, first arg1 and then arg2,
 // and pushes on the stack arg2 shifted to the left by arg1 number of bits.
-func opSHL(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
+func opSHL(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
 	// Note, second operand is left in the stack; accumulate result into it, and no need to push it afterwards
-	shift, value := callContext.Stack.pop(), callContext.Stack.peek()
+	shift, value := scope.Stack.pop(), scope.Stack.peek()
 	if shift.LtUint64(256) {
 		value.Lsh(value, uint(shift.Uint64()))
 	} else {
@@ -213,9 +213,9 @@ func opSHL(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) (
 // opSHR implements Logical Shift Right
 // The SHR instruction (logical shift right) pops 2 values from the stack, first arg1 and then arg2,
 // and pushes on the stack arg2 shifted to the right by arg1 number of bits with zero fill.
-func opSHR(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
+func opSHR(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
 	// Note, second operand is left in the stack; accumulate result into it, and no need to push it afterwards
-	shift, value := callContext.Stack.pop(), callContext.Stack.peek()
+	shift, value := scope.Stack.pop(), scope.Stack.peek()
 	if shift.LtUint64(256) {
 		value.Rsh(value, uint(shift.Uint64()))
 	} else {
@@ -227,8 +227,8 @@ func opSHR(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) (
 // opSAR implements Arithmetic Shift Right
 // The SAR instruction (arithmetic shift right) pops 2 values from the stack, first arg1 and then arg2,
 // and pushes on the stack arg2 shifted to the right by arg1 number of bits with sign extension.
-func opSAR(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	shift, value := callContext.Stack.pop(), callContext.Stack.peek()
+func opSAR(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	shift, value := scope.Stack.pop(), scope.Stack.peek()
 	if shift.GtUint64(256) {
 		if value.Sign() >= 0 {
 			value.Clear()
@@ -243,9 +243,9 @@ func opSAR(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) (
 	return nil, nil
 }
 
-func opKeccak256(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	offset, size := callContext.Stack.pop(), callContext.Stack.peek()
-	data := callContext.Memory.GetPtr(int64(offset.Uint64()), int64(size.Uint64()))
+func opKeccak256(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	offset, size := scope.Stack.pop(), scope.Stack.peek()
+	data := scope.Memory.GetPtr(offset.Uint64(), size.Uint64())
 
 	if interpreter.hasher == nil {
 		interpreter.hasher = crypto.NewKeccakState()
@@ -264,38 +264,38 @@ func opKeccak256(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeCont
 	return nil, nil
 }
 
-func opAddress(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	callContext.Stack.push(new(uint256.Int).SetBytes(callContext.Contract.Address().Bytes()))
+func opAddress(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	scope.Stack.push(new(uint256.Int).SetBytes(scope.Contract.Address().Bytes()))
 	return nil, nil
 }
 
-func opBalance(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	slot := callContext.Stack.peek()
+func opBalance(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	slot := scope.Stack.peek()
 	address := common.Address(slot.Bytes20())
 	slot.SetFromBig(interpreter.cvm.StateDB.GetBalance(address))
 	return nil, nil
 }
 
-func opOrigin(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	callContext.Stack.push(new(uint256.Int).SetBytes(interpreter.cvm.Origin.Bytes()))
+func opOrigin(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	scope.Stack.push(new(uint256.Int).SetBytes(interpreter.cvm.Origin.Bytes()))
 	return nil, nil
 }
 
-func opCaller(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	callContext.Stack.push(new(uint256.Int).SetBytes(callContext.Contract.Caller().Bytes()))
+func opCaller(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	scope.Stack.push(new(uint256.Int).SetBytes(scope.Contract.Caller().Bytes()))
 	return nil, nil
 }
 
-func opCallValue(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	v, _ := uint256.FromBig(callContext.Contract.value)
-	callContext.Stack.push(v)
+func opCallValue(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	v, _ := uint256.FromBig(scope.Contract.value)
+	scope.Stack.push(v)
 	return nil, nil
 }
 
-func opCallDataLoad(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	x := callContext.Stack.peek()
+func opCallDataLoad(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	x := scope.Stack.peek()
 	if offset, overflow := x.Uint64WithOverflow(); !overflow {
-		data := getData(callContext.Contract.Input, offset, 32)
+		data := getData(scope.Contract.Input, offset, 32)
 		x.SetBytes(data)
 	} else {
 		x.Clear()
@@ -303,16 +303,16 @@ func opCallDataLoad(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeC
 	return nil, nil
 }
 
-func opCallDataSize(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	callContext.Stack.push(new(uint256.Int).SetUint64(uint64(len(callContext.Contract.Input))))
+func opCallDataSize(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	scope.Stack.push(new(uint256.Int).SetUint64(uint64(len(scope.Contract.Input))))
 	return nil, nil
 }
 
-func opCallDataCopy(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
+func opCallDataCopy(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
 	var (
-		memOffset  = callContext.Stack.pop()
-		dataOffset = callContext.Stack.pop()
-		length     = callContext.Stack.pop()
+		memOffset  = scope.Stack.pop()
+		dataOffset = scope.Stack.pop()
+		length     = scope.Stack.pop()
 	)
 	dataOffset64, overflow := dataOffset.Uint64WithOverflow()
 	if overflow {
@@ -321,20 +321,20 @@ func opCallDataCopy(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeC
 	// These values are checked for overflow during gas cost calculation
 	memOffset64 := memOffset.Uint64()
 	length64 := length.Uint64()
-	callContext.Memory.Set(memOffset64, length64, getData(callContext.Contract.Input, dataOffset64, length64))
+	scope.Memory.Set(memOffset64, length64, getData(scope.Contract.Input, dataOffset64, length64))
 	return nil, nil
 }
 
-func opReturnDataSize(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	callContext.Stack.push(new(uint256.Int).SetUint64(uint64(len(interpreter.returnData))))
+func opReturnDataSize(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	scope.Stack.push(new(uint256.Int).SetUint64(uint64(len(interpreter.returnData))))
 	return nil, nil
 }
 
-func opReturnDataCopy(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
+func opReturnDataCopy(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
 	var (
-		memOffset  = callContext.Stack.pop()
-		dataOffset = callContext.Stack.pop()
-		length     = callContext.Stack.pop()
+		memOffset  = scope.Stack.pop()
+		dataOffset = scope.Stack.pop()
+		length     = scope.Stack.pop()
 	)
 
 	offset64, overflow := dataOffset.Uint64WithOverflow()
@@ -348,43 +348,43 @@ func opReturnDataCopy(pc *uint64, interpreter *CVMInterpreter, callContext *Scop
 	if overflow || uint64(len(interpreter.returnData)) < end64 {
 		return nil, ErrReturnDataOutOfBounds
 	}
-	callContext.Memory.Set(memOffset.Uint64(), length.Uint64(), interpreter.returnData[offset64:end64])
+	scope.Memory.Set(memOffset.Uint64(), length.Uint64(), interpreter.returnData[offset64:end64])
 	return nil, nil
 }
 
-func opExtCodeSize(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	slot := callContext.Stack.peek()
+func opExtCodeSize(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	slot := scope.Stack.peek()
 	slot.SetUint64(uint64(interpreter.cvm.StateDB.GetCodeSize(slot.Bytes20())))
 
 	return nil, nil
 }
 
-func opCodeSize(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
+func opCodeSize(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
 	l := new(uint256.Int)
-	l.SetUint64(uint64(len(callContext.Contract.Code)))
-	callContext.Stack.push(l)
+	l.SetUint64(uint64(len(scope.Contract.Code)))
+	scope.Stack.push(l)
 
 	return nil, nil
 }
 
-func opCodeCopy(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
+func opCodeCopy(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
 	var (
-		memOffset  = callContext.Stack.pop()
-		codeOffset = callContext.Stack.pop()
-		length     = callContext.Stack.pop()
+		memOffset  = scope.Stack.pop()
+		codeOffset = scope.Stack.pop()
+		length     = scope.Stack.pop()
 	)
 	uint64CodeOffset, overflow := codeOffset.Uint64WithOverflow()
 	if overflow {
 		uint64CodeOffset = math.MaxUint64
 	}
-	codeCopy := getData(callContext.Contract.Code, uint64CodeOffset, length.Uint64())
-	callContext.Memory.Set(memOffset.Uint64(), length.Uint64(), codeCopy)
+	codeCopy := getData(scope.Contract.Code, uint64CodeOffset, length.Uint64())
+	scope.Memory.Set(memOffset.Uint64(), length.Uint64(), codeCopy)
 	return nil, nil
 }
 
-func opExtCodeCopy(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
+func opExtCodeCopy(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
 	var (
-		stack      = callContext.Stack
+		stack      = scope.Stack
 		a          = stack.pop()
 		memOffset  = stack.pop()
 		codeOffset = stack.pop()
@@ -396,7 +396,7 @@ func opExtCodeCopy(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeCo
 	}
 	addr := common.Address(a.Bytes20())
 	codeCopy := getData(interpreter.cvm.StateDB.GetCode(addr), uint64CodeOffset, length.Uint64())
-	callContext.Memory.Set(memOffset.Uint64(), length.Uint64(), codeCopy)
+	scope.Memory.Set(memOffset.Uint64(), length.Uint64(), codeCopy)
 	return nil, nil
 }
 
@@ -434,8 +434,8 @@ func opExtCodeCopy(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeCo
 //	(6) Caller tries to get the code hash for an account which is marked as deleted,
 //
 // this account should be regarded as a non-existent account and zero should be returned.
-func opExtCodeHash(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	slot := callContext.Stack.peek()
+func opExtCodeHash(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	slot := scope.Stack.peek()
 	address := common.Address(slot.Bytes20())
 	if interpreter.cvm.StateDB.Empty(address) {
 		slot.Clear()
@@ -445,14 +445,14 @@ func opExtCodeHash(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeCo
 	return nil, nil
 }
 
-func opGasprice(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
+func opGasprice(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
 	v, _ := uint256.FromBig(interpreter.cvm.GasPrice)
-	callContext.Stack.push(v)
+	scope.Stack.push(v)
 	return nil, nil
 }
 
-func opBlockhash(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	num := callContext.Stack.peek()
+func opBlockhash(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	num := scope.Stack.peek()
 	num64, overflow := num.Uint64WithOverflow()
 	if overflow {
 		num.Clear()
@@ -473,25 +473,25 @@ func opBlockhash(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeCont
 	return nil, nil
 }
 
-func opCoinbase(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	callContext.Stack.push(new(uint256.Int).SetBytes(interpreter.cvm.Context.Coinbase.Bytes()))
+func opCoinbase(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	scope.Stack.push(new(uint256.Int).SetBytes(interpreter.cvm.Context.Coinbase.Bytes()))
 	return nil, nil
 }
 
-func opTimestamp(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	callContext.Stack.push(new(uint256.Int).SetUint64(interpreter.cvm.Context.Time))
+func opTimestamp(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	scope.Stack.push(new(uint256.Int).SetUint64(interpreter.cvm.Context.Time))
 	return nil, nil
 }
 
-func opNumber(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
+func opNumber(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
 	v, _ := uint256.FromBig(interpreter.cvm.Context.BlockNumber)
-	callContext.Stack.push(v)
+	scope.Stack.push(v)
 	return nil, nil
 }
 
-func opDifficulty(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
+func opDifficulty(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
 	v, _ := uint256.FromBig(interpreter.cvm.Context.Difficulty)
-	callContext.Stack.push(v)
+	scope.Stack.push(v)
 	return nil, nil
 }
 
@@ -501,74 +501,74 @@ func opRandom(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]b
 	return nil, nil
 }
 
-func opGasLimit(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	callContext.Stack.push(new(uint256.Int).SetUint64(interpreter.cvm.Context.GasLimit))
+func opGasLimit(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	scope.Stack.push(new(uint256.Int).SetUint64(interpreter.cvm.Context.GasLimit))
 	return nil, nil
 }
 
-func opPop(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	callContext.Stack.pop()
+func opPop(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	scope.Stack.pop()
 	return nil, nil
 }
 
-func opMload(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	v := callContext.Stack.peek()
-	offset := int64(v.Uint64())
-	v.SetBytes(callContext.Memory.GetPtr(offset, 32))
+func opMload(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	v := scope.Stack.peek()
+	offset := v.Uint64()
+	v.SetBytes(scope.Memory.GetPtr(offset, 32))
 	return nil, nil
 }
 
-func opMstore(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
+func opMstore(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
 	// pop value of the stack
-	mStart, val := callContext.Stack.pop(), callContext.Stack.pop()
-	callContext.Memory.Set32(mStart.Uint64(), &val)
+	mStart, val := scope.Stack.pop(), scope.Stack.pop()
+	scope.Memory.Set32(mStart.Uint64(), &val)
 	return nil, nil
 }
 
-func opMstore8(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	off, val := callContext.Stack.pop(), callContext.Stack.pop()
-	callContext.Memory.store[off.Uint64()] = byte(val.Uint64())
+func opMstore8(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	off, val := scope.Stack.pop(), scope.Stack.pop()
+	scope.Memory.store[off.Uint64()] = byte(val.Uint64())
 
 	return nil, nil
 }
 
-func opSload(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	loc := callContext.Stack.peek()
+func opSload(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	loc := scope.Stack.peek()
 	hash := common.Hash(loc.Bytes32())
-	val := interpreter.cvm.StateDB.GetState(callContext.Contract.Address(), hash)
+	val := interpreter.cvm.StateDB.GetState(scope.Contract.Address(), hash)
 	loc.SetBytes(val.Bytes())
 	return nil, nil
 }
 
-func opSstore(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
+func opSstore(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
 	if interpreter.readOnly {
 		return nil, ErrWriteProtection
 	}
-	loc := callContext.Stack.pop()
-	val := callContext.Stack.pop()
-	interpreter.cvm.StateDB.SetState(callContext.Contract.Address(), loc.Bytes32(), val.Bytes32())
+	loc := scope.Stack.pop()
+	val := scope.Stack.pop()
+	interpreter.cvm.StateDB.SetState(scope.Contract.Address(), loc.Bytes32(), val.Bytes32())
 	return nil, nil
 }
 
-func opJump(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
+func opJump(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
 	if interpreter.cvm.abort.Load() {
 		return nil, errStopToken
 	}
-	pos := callContext.Stack.pop()
-	if !callContext.Contract.validJumpdest(&pos) {
+	pos := scope.Stack.pop()
+	if !scope.Contract.validJumpdest(&pos) {
 		return nil, ErrInvalidJump
 	}
 	*pc = pos.Uint64() - 1 // pc will be increased by the interpreter loop
 	return nil, nil
 }
 
-func opJumpi(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
+func opJumpi(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
 	if interpreter.cvm.abort.Load() {
 		return nil, errStopToken
 	}
-	pos, cond := callContext.Stack.pop(), callContext.Stack.pop()
+	pos, cond := scope.Stack.pop(), scope.Stack.pop()
 	if !cond.IsZero() {
-		if !callContext.Contract.validJumpdest(&pos) {
+		if !scope.Contract.validJumpdest(&pos) {
 			return nil, ErrInvalidJump
 		}
 		*pc = pos.Uint64() - 1 // pc will be increased by the interpreter loop
@@ -576,50 +576,50 @@ func opJumpi(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext)
 	return nil, nil
 }
 
-func opJumpdest(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
+func opJumpdest(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
 	return nil, nil
 }
 
-func opPc(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	callContext.Stack.push(new(uint256.Int).SetUint64(*pc))
+func opPc(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	scope.Stack.push(new(uint256.Int).SetUint64(*pc))
 	return nil, nil
 }
 
-func opMsize(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	callContext.Stack.push(new(uint256.Int).SetUint64(uint64(callContext.Memory.Len())))
+func opMsize(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	scope.Stack.push(new(uint256.Int).SetUint64(uint64(scope.Memory.Len())))
 	return nil, nil
 }
 
-func opGas(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	callContext.Stack.push(new(uint256.Int).SetUint64(callContext.Contract.Gas))
+func opGas(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	scope.Stack.push(new(uint256.Int).SetUint64(scope.Contract.Gas))
 	return nil, nil
 }
 
 /*
-	func opInfer(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-		_modelAddr, _inputAddr, _outputOffset := callContext.Stack.pop(), callContext.Stack.pop(), callContext.Stack.pop()
+	func opInfer(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+		_modelAddr, _inputAddr, _outputOffset := scope.Stack.pop(), scope.Stack.pop(), scope.Stack.pop()
 		modelAddr := common.Address(_modelAddr.Bytes20())
 		inputAddr := common.Address(_inputAddr.Bytes20())
 		var (
 			modelMeta *torrentfs.ModelMeta
 			inputMeta *torrentfs.InputMeta
 		)
-		modelMeta, modelErr := checkModel(interpreter.cvm, callContext.Stack, modelAddr)
+		modelMeta, modelErr := checkModel(interpreter.cvm, scope.Stack, modelAddr)
 		if modelErr != nil {
-			callContext.Stack.push(new(uint256.Int).Clear())
+			scope.Stack.push(new(uint256.Int).Clear())
 			return nil, modelErr
 		}
 
-		inputMeta, inputErr := checkInputMeta(interpreter.cvm, callContext.Stack, inputAddr)
+		inputMeta, inputErr := checkInputMeta(interpreter.cvm, scope.Stack, inputAddr)
 		if inputErr != nil {
-			callContext.Stack.push(new(uint256.Int).Clear())
+			scope.Stack.push(new(uint256.Int).Clear())
 			return nil, inputErr
 		}
 
 		log.Debug("interpreter check shape 1", "modelMeta", modelMeta, "inputMeta", inputMeta)
 		// Model&Input shape should match
 		if len(modelMeta.InputShape) != len(inputMeta.Shape) {
-			callContext.Stack.push(new(uint256.Int).Clear())
+			scope.Stack.push(new(uint256.Int).Clear())
 			if interpreter.cvm.vmConfig.DebugInferVM {
 				fmt.Println("modelmeta: ", modelMeta.InputShape, " inputmeta: ", inputMeta.Shape)
 			}
@@ -628,7 +628,7 @@ func opGas(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) (
 		log.Debug("interpreter check shape 2", "modelMeta", modelMeta, "inputMeta", inputMeta)
 		for idx, modelShape := range modelMeta.InputShape {
 			if modelShape != inputMeta.Shape[idx] || modelShape == 0 || inputMeta.Shape[idx] == 0 {
-				callContext.Stack.push(new(uint256.Int).Clear())
+				scope.Stack.push(new(uint256.Int).Clear())
 				if interpreter.cvm.vmConfig.DebugInferVM {
 					fmt.Println("modelmeta: ", modelMeta.InputShape, " inputmeta: ", inputMeta.Shape)
 				}
@@ -642,14 +642,14 @@ func opGas(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) (
 			fmt.Println("DebugInferVM ", "output: ", output, " err: ", err, "model = ", modelMeta.Hash.Hex(), "input = ", inputMeta.Hash.Hex())
 		}
 		if err != nil {
-			callContext.Stack.push(new(uint256.Int).Clear())
+			scope.Stack.push(new(uint256.Int).Clear())
 			return nil, err
 		}
-		if err := callContext.Memory.WriteSolidityUint256Array(int64(_outputOffset.Uint64()), output); err != nil {
-			callContext.Stack.push(new(uint256.Int).Clear())
+		if err := scope.Memory.WriteSolidityUint256Array(int64(_outputOffset.Uint64()), output); err != nil {
+			scope.Stack.push(new(uint256.Int).Clear())
 			return nil, err
 		}
-		callContext.Stack.push(new(uint256.Int).SetOne())
+		scope.Stack.push(new(uint256.Int).SetOne())
 
 		return nil, nil
 	}
@@ -719,10 +719,10 @@ func opGas(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) (
 		return inputMeta, nil
 	}
 
-	func opInferArray(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-		_modelAddr, _inputHeaderOffset, _outputOffset := callContext.Stack.pop(), callContext.Stack.pop(), callContext.Stack.pop()
+	func opInferArray(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+		_modelAddr, _inputHeaderOffset, _outputOffset := scope.Stack.pop(), scope.Stack.pop(), scope.Stack.pop()
 		// fmt.Println(fmt.Sprintf("%d, %d, %d", _modelAddr, _inputHeaderOffset, _outputOffset))
-		inputBuff, inputError := interpreter.cvm.StateDB.GetSolidityBytes(callContext.Contract.Address(), common.Hash(_inputHeaderOffset.Bytes32()))
+		inputBuff, inputError := interpreter.cvm.StateDB.GetSolidityBytes(scope.Contract.Address(), common.Hash(_inputHeaderOffset.Bytes32()))
 		if inputError != nil {
 			return nil, inputError
 		}
@@ -730,9 +730,9 @@ func opGas(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) (
 		modelAddr := common.Address(_modelAddr.Bytes20())
 		// log.Debug(fmt.Sprintf("_input = %v, payload = %v ", inputSize, inputBuff))
 
-		modelMeta, modelErr := checkModel(interpreter.cvm, callContext.Stack, modelAddr)
+		modelMeta, modelErr := checkModel(interpreter.cvm, scope.Stack, modelAddr)
 		if modelErr != nil {
-			callContext.Stack.push(new(uint256.Int).Clear())
+			scope.Stack.push(new(uint256.Int).Clear())
 			return nil, modelErr
 		}
 
@@ -743,7 +743,7 @@ func opGas(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) (
 				dataSize *= modelShape
 			}
 			if dataSize != inputSize.Uint64() {
-				callContext.Stack.push(new(uint256.Int).Clear())
+				scope.Stack.push(new(uint256.Int).Clear())
 				if interpreter.cvm.vmConfig.DebugInferVM {
 					fmt.Println("modelmeta: ", modelMeta.InputShape, "datasize: ", dataSize, "inputSize: ", inputSize)
 				}
@@ -755,18 +755,18 @@ func opGas(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) (
 		output, err = interpreter.cvm.InferArray(modelMeta.Hash.Hex(),
 			inputBuff, modelMeta.RawSize)
 		if err != nil {
-			callContext.Stack.push(new(uint256.Int).Clear())
+			scope.Stack.push(new(uint256.Int).Clear())
 			return nil, err
 		}
 		if interpreter.cvm.vmConfig.DebugInferVM {
 			fmt.Println("output", output)
 		}
-		if err := callContext.Memory.WriteSolidityUint256Array(int64(_outputOffset.Uint64()), output); err != nil {
-			callContext.Stack.push(new(uint256.Int).Clear())
+		if err := scope.Memory.WriteSolidityUint256Array(int64(_outputOffset.Uint64()), output); err != nil {
+			scope.Stack.push(new(uint256.Int).Clear())
 			return nil, err
 		}
 		// interpreter.intPool.get().SetUint64
-		callContext.Stack.push(new(uint256.Int).SetOne())
+		scope.Stack.push(new(uint256.Int).SetOne())
 
 		return nil, nil
 	}
@@ -851,15 +851,15 @@ func opSwap16(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]b
 	return nil, nil
 }
 
-func opCreate(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
+func opCreate(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
 	if interpreter.readOnly {
 		return nil, ErrWriteProtection
 	}
 	var (
-		value        = callContext.Stack.pop()
-		offset, size = callContext.Stack.pop(), callContext.Stack.pop()
-		input        = callContext.Memory.GetCopy(int64(offset.Uint64()), int64(size.Uint64()))
-		gas          = callContext.Contract.Gas
+		value        = scope.Stack.pop()
+		offset, size = scope.Stack.pop(), scope.Stack.pop()
+		input        = scope.Memory.GetCopy(offset.Uint64(), size.Uint64())
+		gas          = scope.Contract.Gas
 	)
 	if interpreter.cvm.chainRules.IsEIP150 {
 		gas -= gas / 64
@@ -867,14 +867,14 @@ func opCreate(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext
 	// reuse size int for stackvalue
 	stackvalue := size
 
-	callContext.Contract.UseGas(gas)
+	scope.Contract.UseGas(gas)
 	//TODO: use uint256.Int instead of converting with toBig()
 	var bigVal = big0
 	if !value.IsZero() {
 		bigVal = value.ToBig()
 	}
 
-	ret, addr, returnGas, modelGas, suberr := interpreter.cvm.Create(callContext.Contract, input, gas, bigVal)
+	ret, addr, returnGas, modelGas, suberr := interpreter.cvm.Create(scope.Contract, input, gas, bigVal)
 	// Push item on the stack based on the returned error. If the ruleset is
 	// homestead we must check for CodeStoreOutOfGasError (homestead only
 	// rule) and treat as an error, if the ruleset is frontier we must
@@ -886,11 +886,11 @@ func opCreate(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext
 	} else {
 		stackvalue.SetBytes(addr.Bytes())
 	}
-	callContext.Stack.push(&stackvalue)
-	callContext.Contract.Gas += returnGas
+	scope.Stack.push(&stackvalue)
+	scope.Contract.Gas += returnGas
 
 	for addr, mGas := range modelGas {
-		callContext.Contract.ModelGas[addr] += mGas
+		scope.Contract.ModelGas[addr] += mGas
 	}
 	if suberr == ErrExecutionReverted {
 		if interpreter.cvm.chainRules.IsNeo {
@@ -904,21 +904,21 @@ func opCreate(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext
 	return nil, nil
 }
 
-func opCreate2(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
+func opCreate2(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
 	if interpreter.readOnly {
 		return nil, ErrWriteProtection
 	}
 	var (
-		endowment    = callContext.Stack.pop()
-		offset, size = callContext.Stack.pop(), callContext.Stack.pop()
-		salt         = callContext.Stack.pop()
-		input        = callContext.Memory.GetCopy(int64(offset.Uint64()), int64(size.Uint64()))
-		gas          = callContext.Contract.Gas
+		endowment    = scope.Stack.pop()
+		offset, size = scope.Stack.pop(), scope.Stack.pop()
+		salt         = scope.Stack.pop()
+		input        = scope.Memory.GetCopy(offset.Uint64(), size.Uint64())
+		gas          = scope.Contract.Gas
 	)
 
 	// Apply EIP150
 	gas -= gas / 64
-	callContext.Contract.UseGas(gas)
+	scope.Contract.UseGas(gas)
 	// reuse size int for stackvalue
 	stackvalue := size
 	//TODO: use uint256.Int instead of converting with toBig()
@@ -926,18 +926,18 @@ func opCreate2(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContex
 	if !endowment.IsZero() {
 		bigEndowment = endowment.ToBig()
 	}
-	ret, addr, returnGas, modelGas, suberr := interpreter.cvm.Create2(callContext.Contract, input, gas, bigEndowment, &salt)
+	ret, addr, returnGas, modelGas, suberr := interpreter.cvm.Create2(scope.Contract, input, gas, bigEndowment, &salt)
 	// Push item on the stack based on the returned error.
 	if suberr != nil {
 		stackvalue.Clear()
 	} else {
 		stackvalue.SetBytes(addr.Bytes())
 	}
-	callContext.Stack.push(&stackvalue)
-	callContext.Contract.Gas += returnGas
+	scope.Stack.push(&stackvalue)
+	scope.Contract.Gas += returnGas
 
 	for addr, mGas := range modelGas {
-		callContext.Contract.ModelGas[addr] += mGas
+		scope.Contract.ModelGas[addr] += mGas
 	}
 
 	if suberr == ErrExecutionReverted {
@@ -952,8 +952,8 @@ func opCreate2(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContex
 	return nil, nil
 }
 
-func opCall(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	stack := callContext.Stack
+func opCall(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	stack := scope.Stack
 	// Pop gas. The actual gas in interpreter.cvm.callGasTemp.
 	// We can use this as a temporary value
 	temp := stack.pop()
@@ -962,7 +962,7 @@ func opCall(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) 
 	addr, value, inOffset, inSize, retOffset, retSize := stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop()
 	toAddr := common.Address(addr.Bytes20())
 	// Get the arguments from the memory.
-	args := callContext.Memory.GetPtr(int64(inOffset.Uint64()), int64(inSize.Uint64()))
+	args := scope.Memory.GetPtr(inOffset.Uint64(), inSize.Uint64())
 
 	if interpreter.readOnly && !value.IsZero() {
 		return nil, ErrWriteProtection
@@ -975,7 +975,7 @@ func opCall(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) 
 		gas += params.CallStipend
 		bigVal = value.ToBig()
 	}
-	ret, returnGas, modelGas, err := interpreter.cvm.Call(callContext.Contract, toAddr, args, gas, bigVal)
+	ret, returnGas, modelGas, err := interpreter.cvm.Call(scope.Contract, toAddr, args, gas, bigVal)
 	if err != nil {
 		temp.Clear()
 	} else {
@@ -986,11 +986,11 @@ func opCall(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) 
 		if interpreter.cvm.chainRules.IsNeo {
 			ret = common.CopyBytes(ret)
 		}
-		callContext.Memory.Set(retOffset.Uint64(), retSize.Uint64(), ret)
+		scope.Memory.Set(retOffset.Uint64(), retSize.Uint64(), ret)
 	}
-	callContext.Contract.Gas += returnGas
+	scope.Contract.Gas += returnGas
 	for addr, mGas := range modelGas {
-		callContext.Contract.ModelGas[addr] += mGas
+		scope.Contract.ModelGas[addr] += mGas
 	}
 	if interpreter.cvm.chainRules.IsNeo {
 		interpreter.returnData = ret
@@ -1000,9 +1000,9 @@ func opCall(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) 
 	return ret, nil
 }
 
-func opCallCode(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
+func opCallCode(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
 	// Pop gas. The actual gas is in interpreter.cvm.callGasTemp.
-	stack := callContext.Stack
+	stack := scope.Stack
 	// We use it as a temporary value
 	temp := stack.pop()
 	gas := interpreter.cvm.callGasTemp
@@ -1010,7 +1010,7 @@ func opCallCode(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeConte
 	addr, value, inOffset, inSize, retOffset, retSize := stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop()
 	toAddr := common.Address(addr.Bytes20())
 	// Get arguments from the memory.
-	args := callContext.Memory.GetPtr(int64(inOffset.Uint64()), int64(inSize.Uint64()))
+	args := scope.Memory.GetPtr(inOffset.Uint64(), inSize.Uint64())
 
 	//TODO: use uint256.Int instead of converting with toBig()
 	var bigVal = big0
@@ -1018,7 +1018,7 @@ func opCallCode(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeConte
 		gas += params.CallStipend
 		bigVal = value.ToBig()
 	}
-	ret, returnGas, modelGas, err := interpreter.cvm.CallCode(callContext.Contract, toAddr, args, gas, bigVal)
+	ret, returnGas, modelGas, err := interpreter.cvm.CallCode(scope.Contract, toAddr, args, gas, bigVal)
 	if err != nil {
 		temp.Clear()
 	} else {
@@ -1029,11 +1029,11 @@ func opCallCode(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeConte
 		if interpreter.cvm.chainRules.IsNeo {
 			ret = common.CopyBytes(ret)
 		}
-		callContext.Memory.Set(retOffset.Uint64(), retSize.Uint64(), ret)
+		scope.Memory.Set(retOffset.Uint64(), retSize.Uint64(), ret)
 	}
-	callContext.Contract.Gas += returnGas
+	scope.Contract.Gas += returnGas
 	for addr, mGas := range modelGas {
-		callContext.Contract.ModelGas[addr] += mGas
+		scope.Contract.ModelGas[addr] += mGas
 	}
 	if interpreter.cvm.chainRules.IsNeo {
 		interpreter.returnData = ret // set REVERT data to return data buffer
@@ -1043,8 +1043,8 @@ func opCallCode(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeConte
 	return ret, nil
 }
 
-func opDelegateCall(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	stack := callContext.Stack
+func opDelegateCall(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	stack := scope.Stack
 	// Pop gas. The actual gas is in interpreter.cvm.callGasTemp.
 	// We use it as a temporary value
 	temp := stack.pop()
@@ -1053,9 +1053,9 @@ func opDelegateCall(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeC
 	addr, inOffset, inSize, retOffset, retSize := stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop()
 	toAddr := common.Address(addr.Bytes20())
 	// Get arguments from the memory.
-	args := callContext.Memory.GetPtr(int64(inOffset.Uint64()), int64(inSize.Uint64()))
+	args := scope.Memory.GetPtr(inOffset.Uint64(), inSize.Uint64())
 
-	ret, returnGas, modelGas, err := interpreter.cvm.DelegateCall(callContext.Contract, toAddr, args, gas)
+	ret, returnGas, modelGas, err := interpreter.cvm.DelegateCall(scope.Contract, toAddr, args, gas)
 	if err != nil {
 		temp.Clear()
 	} else {
@@ -1066,11 +1066,11 @@ func opDelegateCall(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeC
 		if interpreter.cvm.chainRules.IsNeo {
 			ret = common.CopyBytes(ret)
 		}
-		callContext.Memory.Set(retOffset.Uint64(), retSize.Uint64(), ret)
+		scope.Memory.Set(retOffset.Uint64(), retSize.Uint64(), ret)
 	}
-	callContext.Contract.Gas += returnGas
+	scope.Contract.Gas += returnGas
 	for addr, mGas := range modelGas {
-		callContext.Contract.ModelGas[addr] += mGas
+		scope.Contract.ModelGas[addr] += mGas
 	}
 
 	if interpreter.cvm.chainRules.IsNeo {
@@ -1081,9 +1081,9 @@ func opDelegateCall(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeC
 	return ret, nil
 }
 
-func opStaticCall(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
+func opStaticCall(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
 	// Pop gas. The actual gas is in interpreter.cvm.callGasTemp.
-	stack := callContext.Stack
+	stack := scope.Stack
 	// We use it as a temporary value
 	temp := stack.pop()
 	gas := interpreter.cvm.callGasTemp
@@ -1091,9 +1091,9 @@ func opStaticCall(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeCon
 	addr, inOffset, inSize, retOffset, retSize := stack.pop(), stack.pop(), stack.pop(), stack.pop(), stack.pop()
 	toAddr := common.Address(addr.Bytes20())
 	// Get arguments from the memory.
-	args := callContext.Memory.GetPtr(int64(inOffset.Uint64()), int64(inSize.Uint64()))
+	args := scope.Memory.GetPtr(inOffset.Uint64(), inSize.Uint64())
 
-	ret, returnGas, modelGas, err := interpreter.cvm.StaticCall(callContext.Contract, toAddr, args, gas)
+	ret, returnGas, modelGas, err := interpreter.cvm.StaticCall(scope.Contract, toAddr, args, gas)
 	if err != nil {
 		temp.Clear()
 	} else {
@@ -1104,11 +1104,11 @@ func opStaticCall(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeCon
 		if interpreter.cvm.chainRules.IsNeo {
 			ret = common.CopyBytes(ret)
 		}
-		callContext.Memory.Set(retOffset.Uint64(), retSize.Uint64(), ret)
+		scope.Memory.Set(retOffset.Uint64(), retSize.Uint64(), ret)
 	}
-	callContext.Contract.Gas += returnGas
+	scope.Contract.Gas += returnGas
 	for addr, mGas := range modelGas {
-		callContext.Contract.ModelGas[addr] += mGas
+		scope.Contract.ModelGas[addr] += mGas
 	}
 	if interpreter.cvm.chainRules.IsNeo {
 		interpreter.returnData = ret // set REVERT data to return data buffer
@@ -1118,16 +1118,16 @@ func opStaticCall(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeCon
 	return ret, nil
 }
 
-func opReturn(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	offset, size := callContext.Stack.pop(), callContext.Stack.pop()
-	ret := callContext.Memory.GetPtr(int64(offset.Uint64()), int64(size.Uint64()))
+func opReturn(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	offset, size := scope.Stack.pop(), scope.Stack.pop()
+	ret := scope.Memory.GetPtr(offset.Uint64(), size.Uint64())
 
 	return ret, errStopToken
 }
 
-func opRevert(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	offset, size := callContext.Stack.pop(), callContext.Stack.pop()
-	ret := callContext.Memory.GetPtr(int64(offset.Uint64()), int64(size.Uint64()))
+func opRevert(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	offset, size := scope.Stack.pop(), scope.Stack.pop()
+	ret := scope.Memory.GetPtr(offset.Uint64(), size.Uint64())
 
 	if interpreter.cvm.chainRules.IsNeo {
 		interpreter.returnData = ret // set REVERT data to return data buffer
@@ -1137,22 +1137,22 @@ func opRevert(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext
 	return ret, ErrExecutionReverted
 }
 
-func opUndefined(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	return nil, &ErrInvalidOpCode{opcode: OpCode(callContext.Contract.Code[*pc])}
+func opUndefined(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	return nil, &ErrInvalidOpCode{opcode: OpCode(scope.Contract.Code[*pc])}
 }
 
-func opStop(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
+func opStop(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
 	return nil, errStopToken
 }
 
-func opSuicide(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
+func opSuicide(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
 	if interpreter.readOnly {
 		return nil, ErrWriteProtection
 	}
-	beneficiary := callContext.Stack.pop()
-	balance := interpreter.cvm.StateDB.GetBalance(callContext.Contract.Address())
+	beneficiary := scope.Stack.pop()
+	balance := interpreter.cvm.StateDB.GetBalance(scope.Contract.Address())
 	interpreter.cvm.StateDB.AddBalance(beneficiary.Bytes20(), balance)
-	interpreter.cvm.StateDB.SelfDestruct(callContext.Contract.Address())
+	interpreter.cvm.StateDB.SelfDestruct(scope.Contract.Address())
 	return nil, errStopToken
 }
 
@@ -1174,21 +1174,21 @@ func opSelfdestruct6780(pc *uint64, interpreter *CVMInterpreter, scope *ScopeCon
 
 // make log instruction function
 func makeLog(size int) executionFunc {
-	return func(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
+	return func(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
 		if interpreter.readOnly {
 			return nil, ErrWriteProtection
 		}
 		topics := make([]common.Hash, size)
-		stack := callContext.Stack
+		stack := scope.Stack
 		mStart, mSize := stack.pop(), stack.pop()
 		for i := 0; i < size; i++ {
 			addr := stack.pop()
 			topics[i] = addr.Bytes32()
 		}
 
-		d := callContext.Memory.GetCopy(int64(mStart.Uint64()), int64(mSize.Uint64()))
+		d := scope.Memory.GetCopy(mStart.Uint64(), mSize.Uint64())
 		interpreter.cvm.StateDB.AddLog(&types.Log{
-			Address: callContext.Contract.Address(),
+			Address: scope.Contract.Address(),
 			Topics:  topics,
 			Data:    d,
 			// This is a non-consensus field, but assigned here because
@@ -1201,16 +1201,16 @@ func makeLog(size int) executionFunc {
 }
 
 // opPush1 is a specialized version of pushN
-func opPush1(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
+func opPush1(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
 	var (
-		codeLen = uint64(len(callContext.Contract.Code))
+		codeLen = uint64(len(scope.Contract.Code))
 		integer = new(uint256.Int)
 	)
 	*pc += 1
 	if *pc < codeLen {
-		callContext.Stack.push(integer.SetUint64(uint64(callContext.Contract.Code[*pc])))
+		scope.Stack.push(integer.SetUint64(uint64(scope.Contract.Code[*pc])))
 	} else {
-		callContext.Stack.push(integer.Clear())
+		scope.Stack.push(integer.Clear())
 	}
 	return nil, nil
 }
@@ -1236,8 +1236,8 @@ func makePush(size uint64, pushByteSize int) executionFunc {
 
 // make dup instruction function
 func makeDup(size int64) executionFunc {
-	return func(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-		callContext.Stack.dup(int(size))
+	return func(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+		scope.Stack.dup(int(size))
 		return nil, nil
 	}
 }
@@ -1246,8 +1246,8 @@ func makeDup(size int64) executionFunc {
 func makeSwap(size int64) executionFunc {
 	// switch n + 1 otherwise n would be swapped with n
 	size++
-	return func(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-		callContext.Stack.swap(int(size))
+	return func(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+		scope.Stack.swap(int(size))
 		return nil, nil
 	}
 }

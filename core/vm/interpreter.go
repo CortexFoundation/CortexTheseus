@@ -200,10 +200,10 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	}
 
 	var (
-		op          OpCode        // current opcode
-		mem         = NewMemory() // bound memory
-		stack       = newstack()  // local stack
-		callContext = &ScopeContext{
+		op    OpCode        // current opcode
+		mem   = NewMemory() // bound memory
+		stack = newstack()  // local stack
+		scope = &ScopeContext{
 			Memory:   mem,
 			Stack:    stack,
 			Contract: contract,
@@ -233,9 +233,9 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		defer func() {
 			if err != nil {
 				if !logged {
-					in.cvm.Config().Tracer.CaptureState(pcCopy, op, gasCopy, cost, callContext, in.returnData, in.cvm.depth, err)
+					in.cvm.Config().Tracer.CaptureState(pcCopy, op, gasCopy, cost, scope, in.returnData, in.cvm.depth, err)
 				} else {
-					in.cvm.Config().Tracer.CaptureFault(pcCopy, op, gasCopy, cost, callContext, in.cvm.depth, err)
+					in.cvm.Config().Tracer.CaptureFault(pcCopy, op, gasCopy, cost, scope, in.cvm.depth, err)
 				}
 			}
 		}()
@@ -325,12 +325,12 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 
 		if debug {
-			in.cvm.Config().Tracer.CaptureState(pc, op, gasCopy, cost, callContext, in.returnData, in.cvm.depth, err)
+			in.cvm.Config().Tracer.CaptureState(pc, op, gasCopy, cost, scope, in.returnData, in.cvm.depth, err)
 			logged = true
 		}
 
 		// execute the operation
-		ret, err = operation.execute(&pc, in, callContext)
+		ret, err = operation.execute(&pc, in, scope)
 		if in.cvm.Config().RPC_GetInternalTransaction {
 			if op == CALL {
 				res = append(res, ret...)

@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.4.0
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.68-0.20240804220854-bccdab28464b
+	github.com/CortexFoundation/torrentfs v1.0.68-0.20240808213116-e0ec514d812a
 	github.com/VictoriaMetrics/fastcache v1.12.2
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.30.3
@@ -22,7 +22,7 @@ require (
 	github.com/crate-crypto/go-kzg-4844 v1.1.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/deckarep/golang-set/v2 v2.6.0
-	github.com/dop251/goja v0.0.0-20240804150220-aafb077cb27b
+	github.com/dop251/goja v0.0.0-20240806095544-3491d4a58fbe
 	github.com/ethereum/c-kzg-4844 v1.0.3
 	github.com/ethereum/go-verkle v0.1.1-0.20240306133620-7d920df305f0
 	github.com/fjl/gencodec v0.0.0-20230517082657-f9840df7b83e
@@ -60,14 +60,14 @@ require (
 	github.com/ucwong/color v1.10.1-0.20200624105241-fba1e010fe1e
 	github.com/urfave/cli/v2 v2.27.3
 	go.uber.org/automaxprocs v1.5.3
-	golang.org/x/crypto v0.25.0
-	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
+	golang.org/x/crypto v0.26.0
+	golang.org/x/exp v0.0.0-20240808152545-0cdaa3abc0fa
 	golang.org/x/mobile v0.0.0-20201217150744-e6ae53a27f4f
 	golang.org/x/sync v0.8.0
-	golang.org/x/sys v0.23.0
-	golang.org/x/text v0.16.0
+	golang.org/x/sys v0.24.0
+	golang.org/x/text v0.17.0
 	golang.org/x/time v0.6.0
-	golang.org/x/tools v0.23.0
+	golang.org/x/tools v0.24.0
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
@@ -75,7 +75,7 @@ require (
 )
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.13.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.14.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.10.0 // indirect
 	github.com/CortexFoundation/compress v0.0.0-20240218153512-9074bdc2397c // indirect
 	github.com/CortexFoundation/cvm-runtime v0.0.0-20221117094012-b5a251885572 // indirect
@@ -192,20 +192,20 @@ require (
 	github.com/otiai10/mint v1.6.3 // indirect
 	github.com/pion/datachannel v1.5.8 // indirect
 	github.com/pion/dtls/v2 v2.2.12 // indirect
-	github.com/pion/ice/v2 v2.3.33 // indirect
-	github.com/pion/interceptor v0.1.29 // indirect
+	github.com/pion/ice/v2 v2.3.34 // indirect
+	github.com/pion/interceptor v0.1.30 // indirect
 	github.com/pion/logging v0.2.2 // indirect
 	github.com/pion/mdns v0.0.12 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/rtcp v1.2.14 // indirect
-	github.com/pion/rtp v1.8.8 // indirect
+	github.com/pion/rtp v1.8.9 // indirect
 	github.com/pion/sctp v1.8.20 // indirect
 	github.com/pion/sdp/v3 v3.0.9 // indirect
 	github.com/pion/srtp/v2 v2.0.20 // indirect
 	github.com/pion/stun v0.6.1 // indirect
 	github.com/pion/transport/v2 v2.2.10 // indirect
 	github.com/pion/turn/v2 v2.1.6 // indirect
-	github.com/pion/webrtc/v3 v3.2.50 // indirect
+	github.com/pion/webrtc/v3 v3.2.51 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.19.1 // indirect
@@ -242,14 +242,14 @@ require (
 	go.opentelemetry.io/otel/metric v1.28.0 // indirect
 	go.opentelemetry.io/otel/trace v1.28.0 // indirect
 	golang.org/x/mod v0.20.0 // indirect
-	golang.org/x/net v0.27.0 // indirect
-	golang.org/x/term v0.22.0 // indirect
+	golang.org/x/net v0.28.0 // indirect
+	golang.org/x/term v0.23.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
-	modernc.org/libc v1.56.0 // indirect
+	modernc.org/libc v1.57.0 // indirect
 	modernc.org/mathutil v1.6.0 // indirect
 	modernc.org/memory v1.8.0 // indirect
-	modernc.org/sqlite v1.31.1 // indirect
+	modernc.org/sqlite v1.32.0 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
 	zombiezen.com/go/sqlite v1.3.0 // indirect
 )
