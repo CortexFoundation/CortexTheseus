@@ -28,30 +28,30 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
-func opInfer(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	_modelAddr, _inputAddr, _outputOffset := callContext.Stack.pop(), callContext.Stack.pop(), callContext.Stack.pop()
+func opInfer(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	_modelAddr, _inputAddr, _outputOffset := scope.Stack.pop(), scope.Stack.pop(), scope.Stack.pop()
 	modelAddr := common.Address(_modelAddr.Bytes20())
 	inputAddr := common.Address(_inputAddr.Bytes20())
 	var (
 		modelMeta *torrentfs.ModelMeta
 		inputMeta *torrentfs.InputMeta
 	)
-	modelMeta, modelErr := checkModel(interpreter.cvm, callContext.Stack, modelAddr)
+	modelMeta, modelErr := checkModel(interpreter.cvm, scope.Stack, modelAddr)
 	if modelErr != nil {
-		callContext.Stack.push(new(uint256.Int).Clear())
+		scope.Stack.push(new(uint256.Int).Clear())
 		return nil, modelErr
 	}
 
-	inputMeta, inputErr := checkInputMeta(interpreter.cvm, callContext.Stack, inputAddr)
+	inputMeta, inputErr := checkInputMeta(interpreter.cvm, scope.Stack, inputAddr)
 	if inputErr != nil {
-		callContext.Stack.push(new(uint256.Int).Clear())
+		scope.Stack.push(new(uint256.Int).Clear())
 		return nil, inputErr
 	}
 
 	log.Debug("interpreter check shape 1", "modelMeta", modelMeta, "inputMeta", inputMeta)
 	// Model&Input shape should match
 	if len(modelMeta.InputShape) != len(inputMeta.Shape) {
-		callContext.Stack.push(new(uint256.Int).Clear())
+		scope.Stack.push(new(uint256.Int).Clear())
 		if interpreter.cvm.vmConfig.DebugInferVM {
 			fmt.Println("modelmeta: ", modelMeta.InputShape, " inputmeta: ", inputMeta.Shape)
 		}
@@ -60,7 +60,7 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext)
 	log.Debug("interpreter check shape 2", "modelMeta", modelMeta, "inputMeta", inputMeta)
 	for idx, modelShape := range modelMeta.InputShape {
 		if modelShape != inputMeta.Shape[idx] || modelShape == 0 || inputMeta.Shape[idx] == 0 {
-			callContext.Stack.push(new(uint256.Int).Clear())
+			scope.Stack.push(new(uint256.Int).Clear())
 			if interpreter.cvm.vmConfig.DebugInferVM {
 				fmt.Println("modelmeta: ", modelMeta.InputShape, " inputmeta: ", inputMeta.Shape)
 			}
@@ -74,14 +74,14 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext)
 		fmt.Println("DebugInferVM ", "output: ", output, " err: ", err, "model = ", modelMeta.Hash.Hex(), "input = ", inputMeta.Hash.Hex())
 	}
 	if err != nil {
-		callContext.Stack.push(new(uint256.Int).Clear())
+		scope.Stack.push(new(uint256.Int).Clear())
 		return nil, err
 	}
-	if err := callContext.Memory.WriteSolidityUint256Array(int64(_outputOffset.Uint64()), output); err != nil {
-		callContext.Stack.push(new(uint256.Int).Clear())
+	if err := scope.Memory.WriteSolidityUint256Array(int64(_outputOffset.Uint64()), output); err != nil {
+		scope.Stack.push(new(uint256.Int).Clear())
 		return nil, err
 	}
-	callContext.Stack.push(new(uint256.Int).SetOne())
+	scope.Stack.push(new(uint256.Int).SetOne())
 
 	return nil, nil
 }
@@ -151,10 +151,10 @@ func checkInputMeta(cvm *CVM, stack *Stack, inputAddr common.Address) (*torrentf
 	return inputMeta, nil
 }
 
-func opInferArray(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeContext) ([]byte, error) {
-	_modelAddr, _inputHeaderOffset, _outputOffset := callContext.Stack.pop(), callContext.Stack.pop(), callContext.Stack.pop()
+func opInferArray(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	_modelAddr, _inputHeaderOffset, _outputOffset := scope.Stack.pop(), scope.Stack.pop(), scope.Stack.pop()
 	// fmt.Println(fmt.Sprintf("%d, %d, %d", _modelAddr, _inputHeaderOffset, _outputOffset))
-	inputBuff, inputError := interpreter.cvm.StateDB.GetSolidityBytes(callContext.Contract.Address(), common.Hash(_inputHeaderOffset.Bytes32()))
+	inputBuff, inputError := interpreter.cvm.StateDB.GetSolidityBytes(scope.Contract.Address(), common.Hash(_inputHeaderOffset.Bytes32()))
 	if inputError != nil {
 		return nil, inputError
 	}
@@ -162,9 +162,9 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeCon
 	modelAddr := common.Address(_modelAddr.Bytes20())
 	// log.Debug(fmt.Sprintf("_input = %v, payload = %v ", inputSize, inputBuff))
 
-	modelMeta, modelErr := checkModel(interpreter.cvm, callContext.Stack, modelAddr)
+	modelMeta, modelErr := checkModel(interpreter.cvm, scope.Stack, modelAddr)
 	if modelErr != nil {
-		callContext.Stack.push(new(uint256.Int).Clear())
+		scope.Stack.push(new(uint256.Int).Clear())
 		return nil, modelErr
 	}
 
@@ -175,7 +175,7 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeCon
 			dataSize *= modelShape
 		}
 		if dataSize != inputSize.Uint64() {
-			callContext.Stack.push(new(uint256.Int).Clear())
+			scope.Stack.push(new(uint256.Int).Clear())
 			if interpreter.cvm.vmConfig.DebugInferVM {
 				fmt.Println("modelmeta: ", modelMeta.InputShape, "datasize: ", dataSize, "inputSize: ", inputSize)
 			}
@@ -189,18 +189,18 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, callContext *ScopeCon
 	output, err = interpreter.cvm.InferArray(modelMeta.Hash.Hex(),
 		inputBuff, modelMeta.RawSize)
 	if err != nil {
-		callContext.Stack.push(new(uint256.Int).Clear())
+		scope.Stack.push(new(uint256.Int).Clear())
 		return nil, err
 	}
 	if interpreter.cvm.vmConfig.DebugInferVM {
 		fmt.Println("output", output)
 	}
-	if err := callContext.Memory.WriteSolidityUint256Array(int64(_outputOffset.Uint64()), output); err != nil {
-		callContext.Stack.push(new(uint256.Int).Clear())
+	if err := scope.Memory.WriteSolidityUint256Array(int64(_outputOffset.Uint64()), output); err != nil {
+		scope.Stack.push(new(uint256.Int).Clear())
 		return nil, err
 	}
 	// interpreter.intPool.get().SetUint64
-	callContext.Stack.push(new(uint256.Int).SetOne())
+	scope.Stack.push(new(uint256.Int).SetOne())
 
 	return nil, nil
 }

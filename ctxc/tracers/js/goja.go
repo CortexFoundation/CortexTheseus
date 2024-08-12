@@ -620,7 +620,7 @@ func (mo *memoryObj) getUint(addr int64) (*big.Int, error) {
 	if mo.memory.Len() < int(addr)+32 || addr < 0 {
 		return nil, fmt.Errorf("tracer accessed out of bound memory: available %d, offset %d, size %d", mo.memory.Len(), addr, 32)
 	}
-	return new(big.Int).SetBytes(mo.memory.GetPtr(addr, 32)), nil
+	return new(big.Int).SetBytes(mo.memory.GetPtr(uint64(addr), 32)), nil
 }
 
 func (mo *memoryObj) Length() int {

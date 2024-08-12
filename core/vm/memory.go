@@ -69,32 +69,25 @@ func (m *Memory) Resize(size uint64) {
 }
 
 // GetCopy returns offset + size as a new slice
-func (m *Memory) GetCopy(offset, size int64) (cpy []byte) {
+func (m *Memory) GetCopy(offset, size uint64) (cpy []byte) {
 	if size == 0 {
 		return nil
 	}
 
-	if len(m.store) > int(offset) {
-		cpy = make([]byte, size)
-		copy(cpy, m.store[offset:offset+size])
-
-		return
-	}
-
+	// memory is always resized before being accessed, no need to check bounds
+	cpy = make([]byte, size)
+	copy(cpy, m.store[offset:offset+size])
 	return
 }
 
 // GetPtr returns the offset + size
-func (m *Memory) GetPtr(offset, size int64) []byte {
+func (m *Memory) GetPtr(offset, size uint64) []byte {
 	if size == 0 {
 		return nil
 	}
 
-	if len(m.store) > int(offset) {
-		return m.store[offset : offset+size]
-	}
-
-	return nil
+	// memory is always resized before being accessed, no need to check bounds
+	return m.store[offset : offset+size]
 }
 
 // Len returns the length of the backing slice
@@ -124,9 +117,9 @@ func (m *Memory) Print() {
 
 func (m *Memory) GetSolidityBytes(slot int64) ([]byte, error) {
 	bigLen := new(uint256.Int)
-	length_buff := m.GetPtr(slot, 32)
+	length_buff := m.GetPtr(uint64(slot), 32)
 	bigLen.SetBytes(length_buff)
-	buff := m.GetPtr(slot+32, int64(bigLen.Uint64()))
+	buff := m.GetPtr(uint64(slot+32), bigLen.Uint64())
 	return buff, nil
 }
 
@@ -146,7 +139,7 @@ func (m* Memory) GetLengthOfSolidityUint256Array(slot int64) (uint64, error) {
 
 func (m *Memory) WriteSolidityUint256Array(slot int64, data []byte) error {
 	bigLen := new(uint256.Int)
-	length_buff := m.GetPtr(slot, 32)
+	length_buff := m.GetPtr(uint64(slot), 32)
 	bigLen.SetBytes(length_buff)
 	// uint256 has 32 bytes
 	bigLen.Mul(bigLen, uint256.NewInt(32))
@@ -159,10 +152,10 @@ func (m *Memory) WriteSolidityUint256Array(slot int64, data []byte) error {
 
 func (m *Memory) GetSolidityUint256(slot int64) ([]byte, error) {
 	bigLen := new(uint256.Int)
-	length_buff := m.GetPtr(slot, 32)
+	length_buff := m.GetPtr(uint64(slot), 32)
 	bigLen.SetBytes(length_buff)
 	bigLen.Mul(bigLen, uint256.NewInt(32))
-	buff := m.GetPtr(slot+32, int64(bigLen.Uint64()))
+	buff := m.GetPtr(uint64(slot+32), bigLen.Uint64())
 	return buff, nil
 }
 
