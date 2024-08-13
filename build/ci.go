@@ -42,6 +42,8 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"crypto/sha256"
+	"io"
 	"encoding/base64"
 	"flag"
 	"fmt"
@@ -353,6 +355,8 @@ func doLint(cmdline []string) {
 	linter := downloadLinter(*cachedir)
 	lflags := []string{"run", "--config", ".golangci.yml"}
 	build.MustRunCommandWithOutput(linter, append(lflags, packages...)...)
+
+	doGoModTidy()
 	fmt.Println("You have achieved perfection.")
 }
 
@@ -1288,5 +1292,55 @@ func doPurge(cmdline []string) {
 	// Delete all marked as such and return
 	if err := build.AzureBlobstoreDelete(auth, blobs); err != nil {
 		log.Fatal(err)
+	}
+}
+
+// hashSourceFiles iterates the provided set of filepaths (relative to the top-level geth project directory)
+// computing the hash of each file.
+func hashSourceFiles(files []string) (map[string]common.Hash, error) {
+	res := make(map[string]common.Hash)
+	for _, filePath := range files {
+		f, err := os.OpenFile(filePath, os.O_RDONLY, 0666)
+		if err != nil {
+			return nil, err
+		}
+		hasher := sha256.New()
+		if _, err := io.Copy(hasher, f); err != nil {
+			return nil, err
+		}
+		res[filePath] = common.Hash(hasher.Sum(nil))
+	}
+	return res, nil
+}
+
+// compareHashedFilesets compares two maps (key is relative file path to top-level geth directory, value is its hash)
+// and returns the list of file paths whose hashes differed.
+func compareHashedFilesets(preHashes map[string]common.Hash, postHashes map[string]common.Hash) []string {
+	updates := []string{}
+	for path, postHash := range postHashes {
+		preHash, ok := preHashes[path]
+		if !ok || preHash != postHash {
+			updates = append(updates, path)
+		}
+	}
+	return updates
+}
+
+func doGoModTidy() {
+	targetFiles := []string{"go.mod", "go.sum"}
+	preHashes, err := hashSourceFiles(targetFiles)
+	if err != nil {
+		log.Fatal("failed to hash go.mod/go.sum", "err", err)
+	}
+	tc := new(build.GoToolchain)
+	c := tc.Go("mod", "tidy")
+	build.MustRun(c)
+	postHashes, err := hashSourceFiles(targetFiles)
+	updates := compareHashedFilesets(preHashes, postHashes)
+	for _, updatedFile := range updates {
+		fmt.Fprintf(os.Stderr, "changed file %s\n", updatedFile)
+	}
+	if len(updates) != 0 {
+		log.Fatal("go.sum and/or go.mod were updated by running 'go mod tidy'")
 	}
 }
