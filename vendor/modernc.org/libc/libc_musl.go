@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build linux && (amd64 || arm64 || loong64 || ppc64le || s390x)
+//go:build linux && (amd64 || arm64 || loong64 || ppc64le || s390x || riscv64 || 386 || arm)
 
 //go:generate go run generator.go
 
@@ -648,7 +648,7 @@ func ___randname(tls *TLS, template uintptr) (r1 uintptr) {
 	X__clock_gettime(tls, CLOCK_REALTIME, bp)
 	goto _2
 _2:
-	r = uint64((*(*Ttimespec)(unsafe.Pointer(bp))).Ftv_sec+(*(*Ttimespec)(unsafe.Pointer(bp))).Ftv_nsec) + uint64(tls.ID)*uint64(65537)
+	r = uint64((*(*Ttimespec)(unsafe.Pointer(bp))).Ftv_sec+int64((*(*Ttimespec)(unsafe.Pointer(bp))).Ftv_nsec)) + uint64(tls.ID)*uint64(65537)
 	i = 0
 	for {
 		if !(i < int32(6)) {
