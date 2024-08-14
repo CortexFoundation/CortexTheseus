@@ -23,7 +23,7 @@ import (
 	"testing"
 
 	"github.com/CortexFoundation/CortexTheseus/crypto"
-	"github.com/CortexFoundation/CortexTheseus/p2p/simulations/pipes"
+	"github.com/CortexFoundation/CortexTheseus/p2p/pipes"
 	"github.com/davecgh/go-spew/spew"
 )
 

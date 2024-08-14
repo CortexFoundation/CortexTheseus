@@ -30,7 +30,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/crypto/ecies"
-	"github.com/CortexFoundation/CortexTheseus/p2p/simulations/pipes"
+	"github.com/CortexFoundation/CortexTheseus/p2p/pipes"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
