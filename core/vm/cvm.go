@@ -462,10 +462,6 @@ func (cvm *CVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	contract := NewContract(caller, AccountRef(address), value, gas)
 	contract.SetCodeOptionalHash(&address, codeAndHash)
 
-	//if cvm.vmConfig.NoRecursion && cvm.depth > 0 {
-	//	return nil, address, gas, nil, nil
-	//}
-
 	if cvm.Config().Tracer != nil {
 		if cvm.depth == 0 {
 			cvm.vmConfig.Tracer.CaptureStart(cvm, caller.Address(), address, true, codeAndHash.code, gas, value)
@@ -474,28 +470,7 @@ func (cvm *CVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 		}
 	}
 
-	ret, err := cvm.interpreter.Run(contract, nil, false)
-
-	if cvm.vmConfig.RPC_GetInternalTransaction {
-		ret = append(ret, []byte(caller.Address().String()+"-"+address.String()+"-"+value.String()+",")...)
-	}
-
-	// check whether the max code size has been exceeded
-	if err == nil && cvm.chainRules.IsEIP158 && len(ret) > params.MaxCodeSize {
-		err = errMaxCodeSizeExceeded
-	}
-	// if the contract creation ran successfully and no errors were returned
-	// calculate the gas required to store the code. If the code could not
-	// be stored due to not enough gas set an error and let it be handled
-	// by the error checking condition below.
-	if err == nil {
-		createDataGas := uint64(len(ret)) * params.CreateDataGas
-		if contract.UseGas(createDataGas) {
-			cvm.StateDB.SetCode(address, ret)
-		} else {
-			err = ErrCodeStoreOutOfGas
-		}
-	}
+	ret, err := cvm.initNewContract(contract, address, value)
 
 	// When an error was returned by the CVM or when setting the creation code
 	// above we revert to the snapshot and consume any gas remaining. Additionally
@@ -506,6 +481,11 @@ func (cvm *CVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 			contract.UseGas(contract.Gas)
 		}
 	}
+
+	if cvm.vmConfig.RPC_GetInternalTransaction {
+		ret = append(ret, []byte(caller.Address().String()+"-"+address.String()+"-"+value.String()+",")...)
+	}
+
 	if cvm.Config().Tracer != nil {
 		if cvm.depth == 0 {
 			cvm.vmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, err)
@@ -513,7 +493,36 @@ func (cvm *CVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 			cvm.Config().Tracer.CaptureExit(ret, gas-contract.Gas, err)
 		}
 	}
+
 	return ret, address, contract.Gas, contract.ModelGas, err
+}
+
+// initNewContract runs a new contract's creation code, performs checks on the
+// resulting code that is to be deployed, and consumes necessary gas.
+func (cvm *CVM) initNewContract(contract *Contract, address common.Address, value *big.Int) ([]byte, error) {
+	ret, err := cvm.interpreter.Run(contract, nil, false)
+	if err != nil {
+		return ret, err
+	}
+
+	// check whether the max code size has been exceeded
+	if err == nil && cvm.chainRules.IsEIP158 && len(ret) > params.MaxCodeSize {
+		return ret, ErrMaxCodeSizeExceeded
+	}
+	// if the contract creation ran successfully and no errors were returned
+	// calculate the gas required to store the code. If the code could not
+	// be stored due to not enough gas set an error and let it be handled
+	// by the error checking condition below.
+	if err == nil {
+		createDataGas := uint64(len(ret)) * params.CreateDataGas
+		if contract.UseGas(createDataGas) {
+			cvm.StateDB.SetCode(address, ret)
+		} else {
+			return ret, ErrCodeStoreOutOfGas
+		}
+	}
+
+	return ret, err
 }
 
 // Create creates a new contract using code as deployment code.

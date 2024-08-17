@@ -39,6 +39,7 @@ var (
 	ErrNoCompatibleInterpreter = errors.New("no compatible interpreter")
 	ErrInvalidMetaAuthor       = errors.New("invalid meta author")
 
+	ErrMaxCodeSizeExceeded     = errors.New("max code size exceeded")
 	ErrMaxInitCodeSizeExceeded = errors.New("max initcode size exceeded")
 	ErrGasUintOverflow         = errors.New("gas uint64 overflow")
 	ErrInvalidJump             = errors.New("invalid jump destination")
