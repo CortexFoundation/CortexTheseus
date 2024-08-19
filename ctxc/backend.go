@@ -48,6 +48,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/miner"
 	"github.com/CortexFoundation/CortexTheseus/node"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
+	"github.com/CortexFoundation/CortexTheseus/p2p/dnsdisc"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enr"
 	"github.com/CortexFoundation/CortexTheseus/params"
@@ -70,7 +71,7 @@ type Cortex struct {
 	blockchain      *core.BlockChain
 	protocolManager *ProtocolManager
 
-	dialCandidates enode.Iterator
+	discmix *enode.FairMix
 
 	// DB interfaces
 	chainDb ctxcdb.Database // Block chain database
@@ -152,6 +153,7 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 		bloomRequests:     make(chan chan *bloombits.Retrieval),
 		bloomIndexer:      NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
 		p2pServer:         stack.Server(),
+		discmix:           enode.NewFairMix(0),
 		shutdownTracker:   shutdowncheck.NewShutdownTracker(chainDb),
 	}
 
@@ -252,7 +254,6 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 		gpoParams.Default = config.Miner.GasPrice
 	}
 	ctxc.APIBackend.gpo = gasprice.NewOracle(ctxc.APIBackend, gpoParams)
-	ctxc.dialCandidates, err = ctxc.setupDiscovery()
 	if err != nil {
 		return nil, err
 	}
@@ -569,7 +570,7 @@ func (s *Cortex) Protocols() []p2p.Protocol {
 	for i, vsn := range ProtocolVersions {
 		protos[i] = s.protocolManager.makeProtocol(vsn)
 		protos[i].Attributes = []enr.Entry{s.currentCtxcEntry(s.BlockChain())}
-		protos[i].DialCandidates = s.dialCandidates
+		protos[i].DialCandidates = s.discmix
 	}
 	return protos
 }
@@ -578,6 +579,7 @@ func (s *Cortex) Protocols() []p2p.Protocol {
 // Cortex protocol implementation.
 func (s *Cortex) Start(srvr *p2p.Server) error {
 	s.startCtxcEntryUpdate(srvr.LocalNode())
+	s.setupDiscovery()
 	// Start the bloom bits servicing goroutines
 	s.startBloomHandlers(params.BloomBitsBlocks)
 
@@ -594,12 +596,33 @@ func (s *Cortex) Start(srvr *p2p.Server) error {
 	return nil
 }
 
+func (s *Cortex) setupDiscovery() error {
+	dnsclient := dnsdisc.NewClient(dnsdisc.Config{})
+	if len(s.config.DiscoveryURLs) > 0 {
+		iter, err := dnsclient.NewIterator(s.config.DiscoveryURLs...)
+		if err != nil {
+			return err
+		}
+		s.discmix.AddSource(iter)
+	}
+
+	// Add DHT nodes from discv5.
+	if s.p2pServer.DiscoveryV5() != nil {
+		filter := NewNodeFilter(s.blockchain)
+		iter := enode.Filter(s.p2pServer.DiscoveryV5().RandomNodes(), filter)
+		s.discmix.AddSource(iter)
+	}
+
+	return nil
+}
+
 // Stop implements node.Service, terminating all internal goroutines used by the
 // Cortex protocol.
 func (s *Cortex) Stop() error {
 	if s.synapse != nil {
 		s.synapse.Close()
 	}
+	s.discmix.Close()
 	s.protocolManager.Stop()
 	// Then stop everything else.
 	s.bloomIndexer.Close()

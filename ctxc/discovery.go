@@ -19,7 +19,6 @@ package ctxc
 import (
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/forkid"
-	"github.com/CortexFoundation/CortexTheseus/p2p/dnsdisc"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 )
@@ -65,11 +64,16 @@ func (ctxc *Cortex) currentCtxcEntry(chain *core.BlockChain) *ctxcEntry {
 	}
 }
 
-// setupDiscovery creates the node discovery source for the ctxc protocol.
-func (ctxc *Cortex) setupDiscovery() (enode.Iterator, error) {
-	if len(ctxc.config.DiscoveryURLs) == 0 {
-		return nil, nil
+// NewNodeFilter returns a filtering function that returns whether the provided
+// enode advertises a forkid compatible with the current chain.
+func NewNodeFilter(chain *core.BlockChain) func(*enode.Node) bool {
+	filter := forkid.NewFilter(chain)
+	return func(n *enode.Node) bool {
+		var entry ctxcEntry
+		if err := n.Load(entry); err != nil {
+			return false
+		}
+		err := filter(entry.ForkID)
+		return err == nil
 	}
-	client := dnsdisc.NewClient(dnsdisc.Config{})
-	return client.NewIterator(ctxc.config.DiscoveryURLs...)
 }
