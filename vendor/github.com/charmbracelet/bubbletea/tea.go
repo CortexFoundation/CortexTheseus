@@ -151,6 +151,9 @@ type Program struct {
 	previousOutputState *term.State
 	renderer            renderer
 
+	// the environment variables for the program, defaults to os.Environ().
+	environ []string
+
 	// where to read inputs from, this will usually be os.Stdin.
 	input io.Reader
 	// ttyInput is null if input is not a TTY.
@@ -181,6 +184,22 @@ func Quit() Msg {
 // Quit.
 type QuitMsg struct{}
 
+// Suspend is a special command that tells the Bubble Tea program to suspend.
+func Suspend() Msg {
+	return SuspendMsg{}
+}
+
+// SuspendMsg signals the program should suspend.
+// This usually happens when ctrl+z is pressed on common programs, but since
+// bubbletea puts the terminal in raw mode, we need to handle it in a
+// per-program basis.
+// You can send this message with Suspend.
+type SuspendMsg struct{}
+
+// ResumeMsg can be listen to to do something once a program is resumed back
+// from a suspend state.
+type ResumeMsg struct{}
+
 // NewProgram creates a new Program.
 func NewProgram(model Model, opts ...ProgramOption) *Program {
 	p := &Program{
@@ -204,6 +223,11 @@ func NewProgram(model Model, opts ...ProgramOption) *Program {
 	// if no output was set, set it to stdout
 	if p.output == nil {
 		p.output = os.Stdout
+	}
+
+	// if no environment was set, set it to os.Environ()
+	if p.environ == nil {
+		p.environ = os.Environ()
 	}
 
 	return p
@@ -327,6 +351,11 @@ func (p *Program) eventLoop(model Model, cmds chan Cmd) (Model, error) {
 			case QuitMsg:
 				return model, nil
 
+			case SuspendMsg:
+				if suspendSupported {
+					p.suspend()
+				}
+
 			case clearScreenMsg:
 				p.renderer.clearScreen()
 
@@ -401,6 +430,9 @@ func (p *Program) eventLoop(model Model, cmds chan Cmd) (Model, error) {
 
 			case setWindowTitleMsg:
 				p.SetWindowTitle(string(msg))
+
+			case windowSizeMsg:
+				go p.checkResize()
 			}
 
 			// Process internal messages for the renderer.
@@ -550,7 +582,7 @@ func (p *Program) Run() (Model, error) {
 	model, err := p.eventLoop(model, cmds)
 	killed := p.ctx.Err() != nil
 	if killed {
-		err = ErrProgramKilled
+		err = fmt.Errorf("%w: %s", ErrProgramKilled, p.ctx.Err())
 	} else {
 		// Ensure we rendered the final state of the model.
 		p.renderer.write(model.View())

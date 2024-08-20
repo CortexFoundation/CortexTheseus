@@ -5,6 +5,8 @@
 package libc // import "modernc.org/libc"
 
 import (
+	"math/bits"
+	"sync/atomic"
 	"unsafe"
 )
 
@@ -41,4 +43,28 @@ func _fetestexcept(t *TLS, _ int32) int32 {
 
 func _feclearexcept(t *TLS, _ int32) int32 {
 	return 0
+}
+
+func _a_crash(tls *TLS) {
+	panic("crash")
+}
+
+var atomicBarrier atomic.Int32
+
+func _a_barrier(tls *TLS) {
+	atomicBarrier.Add(1)
+}
+
+// static inline int a_sc(volatile int *p, int v)
+func _a_sc(*TLS, uintptr, int32) int32 {
+	panic(todo(""))
+}
+
+// static inline int a_ll(volatile int *p)
+func _a_ll(*TLS, uintptr) int32 {
+	panic(todo(""))
+}
+
+func _a_clz_32(tls *TLS, x uint32) int32 {
+	return int32(bits.LeadingZeros32(x))
 }
