@@ -41,7 +41,8 @@ var (
 const (
 	// Timeouts
 	defaultDialTimeout = 10 * time.Second // used if context has no deadline
-	subscribeTimeout   = 5 * time.Second  // overall timeout ctxc_subscribe, rpc_modules calls
+	subscribeTimeout   = 10 * time.Second // overall timeout eth_subscribe, rpc_modules calls
+	unsubscribeTimeout = 10 * time.Second // timeout for *_unsubscribe calls
 )
 
 const (
