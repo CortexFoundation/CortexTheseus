@@ -19,9 +19,16 @@ package vm
 import (
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/holiman/uint256"
 )
+
+var memoryPool = sync.Pool{
+	New: func() any {
+		return &Memory{}
+	},
+}
 
 // Memory implements a simple memory model for the cortex virtual machine.
 type Memory struct {
@@ -31,7 +38,18 @@ type Memory struct {
 
 // NewMemory returns a new memory memory model.
 func NewMemory() *Memory {
-	return &Memory{}
+	return memoryPool.Get().(*Memory)
+}
+
+// Free returns the memory to the pool.
+func (m *Memory) Free() {
+	// To reduce peak allocation, return only smaller memory instances to the pool.
+	const maxBufferSize = 16 << 10
+	if cap(m.store) <= maxBufferSize {
+		m.store = m.store[:0]
+		m.lastGasCost = 0
+		memoryPool.Put(m)
+	}
 }
 
 // Set sets offset + size to value
