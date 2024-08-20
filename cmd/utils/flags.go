@@ -1221,6 +1221,7 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	if cfg.DiscoveryV5 {
 		cfg.NoDiscovery = false
 	}*/
+	log.Info("Discovery version", "v4", cfg.DiscoveryV4, "v5", cfg.DiscoveryV5)
 
 	if netrestrict := ctx.GlobalString(NetrestrictFlag.Name); netrestrict != "" {
 		list, err := netutil.ParseNetlist(netrestrict)
