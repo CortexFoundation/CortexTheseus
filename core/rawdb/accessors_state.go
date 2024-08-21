@@ -98,8 +98,8 @@ func WriteCode(db ctxcdb.KeyValueWriter, hash common.Hash, code []byte) {
 	}
 }
 
-// WriteTrieNode writes the provided trie node database.
-func WriteTrieNode(db ctxcdb.KeyValueWriter, hash common.Hash, node []byte) {
+// WriteLegacyTrieNode writes the provided trie node database.
+func WriteLegacyTrieNode(db ctxcdb.KeyValueWriter, hash common.Hash, node []byte) {
 	if err := db.Put(hash.Bytes(), node); err != nil {
 		log.Crit("Failed to store trie node", "err", err)
 	}

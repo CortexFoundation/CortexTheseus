@@ -312,7 +312,7 @@ func (s *Sync) Process(result SyncResult) error {
 func (s *Sync) Commit(dbw ctxcdb.Batch) error {
 	// Dump the membatch into a database dbw
 	for key, value := range s.membatch.nodes {
-		rawdb.WriteTrieNode(dbw, key, value)
+		rawdb.WriteLegacyTrieNode(dbw, key, value)
 		s.bloom.Add(key[:])
 	}
 	for key, value := range s.membatch.codes {

@@ -574,7 +574,7 @@ func (db *Database) Cap(limit common.StorageSize) error {
 	for size > limit && oldest != (common.Hash{}) {
 		// Fetch the oldest referenced node and push into the batch
 		node := db.dirties[oldest]
-		rawdb.WriteTrieNode(batch, oldest, node.rlp())
+		rawdb.WriteLegacyTrieNode(batch, oldest, node.rlp())
 
 		// If we exceeded the ideal batch size, commit and reset
 		if batch.ValueSize() >= ctxcdb.IdealBatchSize {
@@ -704,7 +704,7 @@ func (db *Database) commit(hash common.Hash, batch ctxcdb.Batch, uncacher *clean
 		return err
 	}
 	// If we've reached an optimal batch size, commit and start over
-	rawdb.WriteTrieNode(batch, hash, node.rlp())
+	rawdb.WriteLegacyTrieNode(batch, hash, node.rlp())
 	if batch.ValueSize() >= ctxcdb.IdealBatchSize {
 		if err := batch.Write(); err != nil {
 			return err
