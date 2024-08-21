@@ -47,6 +47,9 @@ import (
 const (
 	softResponseLimit = 2 * 1024 * 1024 // Target maximum size of returned blocks, headers or node data.
 	estHeaderRlpSize  = 500             // Approximate size of an RLP encoded block header
+	// maxHeadersServe is the maximum number of block headers to serve. This number
+	// is there to limit the number of disk lookups.
+	maxHeadersServe = 1024
 
 	// txChanSize is the size of channel listening to NewTxsEvent.
 	// The number is referenced from the size of tx pool.
@@ -483,6 +486,170 @@ func (pm *ProtocolManager) handle(p *peer) error {
 	}
 }
 
+func serviceNonContiguousBlockHeaderQuery(chain *core.BlockChain, query *getBlockHeadersData, peer *peer) []rlp.RawValue {
+	hashMode := query.Origin.Hash != (common.Hash{})
+	first := true
+	maxNonCanonical := uint64(100)
+	// Gather headers until the fetch or network limits is reached
+	var (
+		bytes   common.StorageSize
+		headers []rlp.RawValue
+		unknown bool
+		lookups int
+	)
+	for !unknown && len(headers) < int(query.Amount) && bytes < softResponseLimit &&
+		len(headers) < maxHeadersServe && lookups < 2*maxHeadersServe {
+		lookups++
+		// Retrieve the next header satisfying the query
+		var origin *types.Header
+		if hashMode {
+			if first {
+				first = false
+				origin = chain.GetHeaderByHash(query.Origin.Hash)
+				if origin != nil {
+					query.Origin.Number = origin.Number.Uint64()
+				}
+			} else {
+				origin = chain.GetHeader(query.Origin.Hash, query.Origin.Number)
+			}
+		} else {
+			origin = chain.GetHeaderByNumber(query.Origin.Number)
+		}
+		if origin == nil {
+			break
+		}
+		if rlpData, err := rlp.EncodeToBytes(origin); err != nil {
+			log.Crit("Unable to encode our own headers", "err", err)
+		} else {
+			headers = append(headers, rlp.RawValue(rlpData))
+			bytes += common.StorageSize(len(rlpData))
+		}
+		// Advance to the next header of the query
+		switch {
+		case hashMode && query.Reverse:
+			// Hash based traversal towards the genesis block
+			ancestor := query.Skip + 1
+			if ancestor == 0 {
+				unknown = true
+			} else {
+				query.Origin.Hash, query.Origin.Number = chain.GetAncestor(query.Origin.Hash, query.Origin.Number, ancestor, &maxNonCanonical)
+				unknown = (query.Origin.Hash == common.Hash{})
+			}
+		case hashMode && !query.Reverse:
+			// Hash based traversal towards the leaf block
+			var (
+				current = origin.Number.Uint64()
+				next    = current + query.Skip + 1
+			)
+			if next <= current {
+				infos, _ := json.MarshalIndent(peer.Peer.Info(), "", "  ")
+				peer.Log().Warn("GetBlockHeaders skip overflow attack", "current", current, "skip", query.Skip, "next", next, "attacker", infos)
+				unknown = true
+			} else {
+				if header := chain.GetHeaderByNumber(next); header != nil {
+					nextHash := header.Hash()
+					expOldHash, _ := chain.GetAncestor(nextHash, next, query.Skip+1, &maxNonCanonical)
+					if expOldHash == query.Origin.Hash {
+						query.Origin.Hash, query.Origin.Number = nextHash, next
+					} else {
+						unknown = true
+					}
+				} else {
+					unknown = true
+				}
+			}
+		case query.Reverse:
+			// Number based traversal towards the genesis block
+			if query.Origin.Number >= query.Skip+1 {
+				query.Origin.Number -= query.Skip + 1
+			} else {
+				unknown = true
+			}
+		case !query.Reverse:
+			// Number based traversal towards the leaf block
+			query.Origin.Number += query.Skip + 1
+		}
+	}
+	return headers
+}
+
+func serviceContiguousBlockHeaderQuery(chain *core.BlockChain, query *getBlockHeadersData) []rlp.RawValue {
+	count := query.Amount
+	if count > maxHeadersServe {
+		count = maxHeadersServe
+	}
+	if query.Origin.Hash == (common.Hash{}) {
+		// Number mode, just return the canon chain segment. The backend
+		// delivers in [N, N-1, N-2..] descending order, so we need to
+		// accommodate for that.
+		from := query.Origin.Number
+		if !query.Reverse {
+			from = from + count - 1
+		}
+		headers := chain.GetHeadersFrom(from, count)
+		if !query.Reverse {
+			for i, j := 0, len(headers)-1; i < j; i, j = i+1, j-1 {
+				headers[i], headers[j] = headers[j], headers[i]
+			}
+		}
+		return headers
+	}
+	// Hash mode.
+	var (
+		headers []rlp.RawValue
+		hash    = query.Origin.Hash
+		header  = chain.GetHeaderByHash(hash)
+	)
+	if header != nil {
+		rlpData, _ := rlp.EncodeToBytes(header)
+		headers = append(headers, rlpData)
+	} else {
+		// We don't even have the origin header
+		return headers
+	}
+	num := header.Number.Uint64()
+	if !query.Reverse {
+		// Theoretically, we are tasked to deliver header by hash H, and onwards.
+		// However, if H is not canon, we will be unable to deliver any descendants of
+		// H.
+		if canonHash := chain.GetCanonicalHash(num); canonHash != hash {
+			// Not canon, we can't deliver descendants
+			return headers
+		}
+		descendants := chain.GetHeadersFrom(num+count-1, count-1)
+		for i, j := 0, len(descendants)-1; i < j; i, j = i+1, j-1 {
+			descendants[i], descendants[j] = descendants[j], descendants[i]
+		}
+		headers = append(headers, descendants...)
+		return headers
+	}
+	{ // Last mode: deliver ancestors of H
+		for i := uint64(1); i < count; i++ {
+			header = chain.GetHeaderByHash(header.ParentHash)
+			if header == nil {
+				break
+			}
+			rlpData, _ := rlp.EncodeToBytes(header)
+			headers = append(headers, rlpData)
+		}
+		return headers
+	}
+}
+
+// ServiceGetBlockHeadersQuery assembles the response to a header query. It is
+// exposed to allow external packages to test protocol behavior.
+func ServiceGetBlockHeadersQuery(chain *core.BlockChain, query *getBlockHeadersData, peer *peer) []rlp.RawValue {
+	if query.Amount == 0 {
+		return nil
+	}
+	if query.Skip == 0 {
+		// The fast path: when the request is for a contiguous segment of headers.
+		return serviceContiguousBlockHeaderQuery(chain, query)
+	} else {
+		return serviceNonContiguousBlockHeaderQuery(chain, query, peer)
+	}
+}
+
 // handleMsg is invoked whenever an inbound message is received from a remote
 // peer. The remote connection is torn down upon returning any error.
 func (pm *ProtocolManager) handleMsg(p *peer) error {
@@ -509,91 +676,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if err := msg.Decode(&query); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
-		hashMode := query.Origin.Hash != (common.Hash{})
-		first := true
-		maxNonCanonical := uint64(100)
 
-		// Gather headers until the fetch or network limits is reached
-		var (
-			bytes   common.StorageSize
-			headers []rlp.RawValue
-			unknown bool
-		)
-		for !unknown && len(headers) < int(query.Amount) && bytes < softResponseLimit && len(headers) < downloader.MaxHeaderFetch {
-			// Retrieve the next header satisfying the query
-			var origin *types.Header
-			if hashMode {
-				if first {
-					first = false
-					origin = pm.blockchain.GetHeaderByHash(query.Origin.Hash)
-					if origin != nil {
-						query.Origin.Number = origin.Number.Uint64()
-					}
-				} else {
-					origin = pm.blockchain.GetHeader(query.Origin.Hash, query.Origin.Number)
-				}
-			} else {
-				origin = pm.blockchain.GetHeaderByNumber(query.Origin.Number)
-			}
-			if origin == nil {
-				break
-			}
-
-			if rlpData, err := rlp.EncodeToBytes(origin); err != nil {
-				log.Crit("Unable to decode our own headers", "err", err)
-			} else {
-				headers = append(headers, rlp.RawValue(rlpData))
-				bytes += common.StorageSize(len(rlpData))
-			}
-
-			// Advance to the next header of the query
-			switch {
-			case hashMode && query.Reverse:
-				// Hash based traversal towards the genesis block
-				ancestor := query.Skip + 1
-				if ancestor == 0 {
-					unknown = true
-				} else {
-					query.Origin.Hash, query.Origin.Number = pm.blockchain.GetAncestor(query.Origin.Hash, query.Origin.Number, ancestor, &maxNonCanonical)
-					unknown = (query.Origin.Hash == common.Hash{})
-				}
-			case hashMode && !query.Reverse:
-				// Hash based traversal towards the leaf block
-				var (
-					current = origin.Number.Uint64()
-					next    = current + query.Skip + 1
-				)
-				if next <= current {
-					infos, _ := json.MarshalIndent(p.Peer.Info(), "", "  ")
-					p.Log().Warn("GetBlockHeaders skip overflow attack", "current", current, "skip", query.Skip, "next", next, "attacker", infos)
-					unknown = true
-				} else {
-					if header := pm.blockchain.GetHeaderByNumber(next); header != nil {
-						nextHash := header.Hash()
-						expOldHash, _ := pm.blockchain.GetAncestor(nextHash, next, query.Skip+1, &maxNonCanonical)
-						if expOldHash == query.Origin.Hash {
-							query.Origin.Hash, query.Origin.Number = nextHash, next
-						} else {
-							unknown = true
-						}
-					} else {
-						unknown = true
-					}
-				}
-			case query.Reverse:
-				// Number based traversal towards the genesis block
-				if query.Origin.Number >= query.Skip+1 {
-					query.Origin.Number -= query.Skip + 1
-				} else {
-					unknown = true
-				}
-
-			case !query.Reverse:
-				// Number based traversal towards the leaf block
-				query.Origin.Number += query.Skip + 1
-			}
-		}
-		return p.SendBlockHeaders(headers)
+		response := ServiceGetBlockHeadersQuery(pm.blockchain, &query, p)
+		return p.SendBlockHeaders(response)
 
 	case msg.Code == ctxc.BlockHeadersMsg:
 		// A batch of headers arrived to one of our previous requests
