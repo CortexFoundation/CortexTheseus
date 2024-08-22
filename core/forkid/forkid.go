@@ -141,6 +141,10 @@ func newFilter(config *params.ChainConfig, genesis *types.Block, headfn func() (
 	// Add two sentries to simplify the fork checks and don't require special
 	// casing the last one.
 	forks = append(forks, math.MaxUint64) // Last fork will never be passed
+	if len(forksByTime) == 0 {
+		// In purely block based forks, avoid the sentry spilling into timestapt territory
+		forksByBlock = append(forksByBlock, math.MaxUint64) // Last fork will never be passed
+	}
 
 	// Create a validator that will filter out incompatible chains
 	return func(id ID) error {
