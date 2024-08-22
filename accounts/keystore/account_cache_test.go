@@ -298,7 +298,7 @@ func TestCacheFind(t *testing.T) {
 	}
 }
 
-// waitWatcherStarts waits up to 1s for the keystore watcher to start.
+// waitWatcherStart waits up to 1s for the keystore watcher to start.
 func waitWatcherStart(ks *KeyStore) bool {
 	// On systems where file watch is not supported, just return "ok".
 	if !ks.cache.watcher.enabled() {
