@@ -376,6 +376,9 @@ func (sub *ClientSubscription) unmarshal(result json.RawMessage) (any, error) {
 }
 
 func (sub *ClientSubscription) requestUnsubscribe() error {
-	var result any
-	return sub.client.Call(&result, sub.namespace+unsubscribeMethodSuffix, sub.subid)
+	var result interface{}
+	ctx, cancel := context.WithTimeout(context.Background(), unsubscribeTimeout)
+	defer cancel()
+	err := sub.client.CallContext(ctx, &result, sub.namespace+unsubscribeMethodSuffix, sub.subid)
+	return err
 }
