@@ -35,10 +35,7 @@ func (s *stateObject) SubUpload(amount *big.Int) *big.Int {
 }
 
 func (s *stateObject) SetUpload(amount *big.Int) {
-	s.db.journal.append(uploadChange{
-		account: &s.address,
-		prev:    new(big.Int).Set(s.data.Upload),
-	})
+	s.db.journal.uploadChange(s.address, s.data.Upload)
 	s.setUpload(amount)
 }
 
@@ -47,10 +44,7 @@ func (s *stateObject) setNum(num *big.Int) {
 }
 
 func (s *stateObject) SetNum(num *big.Int) {
-	s.db.journal.append(numChange{
-		account: &s.address,
-		prev:    new(big.Int).Set(s.data.Num),
-	})
+	s.db.journal.numChange(s.address, s.data.Num)
 	s.setNum(num)
 }
 
@@ -61,20 +55,7 @@ func (s *stateObject) setUpload(amount *big.Int) {
 func (s *stateObject) Upload() *big.Int {
 	return s.data.Upload
 }
+
 func (s *stateObject) Num() *big.Int {
 	return s.data.Num
-}
-
-func (ch uploadChange) copy() journalEntry {
-	return uploadChange{
-		account: ch.account,
-		prev:    new(big.Int).Set(ch.prev),
-	}
-}
-
-func (ch numChange) copy() journalEntry {
-	return numChange{
-		account: ch.account,
-		prev:    new(big.Int).Set(ch.prev),
-	}
 }
