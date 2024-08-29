@@ -2510,3 +2510,11 @@ func X__fpclassifyd(tls *TLS, x float64) (r int32) {
 }
 
 var Xin6addr_any = in6_addr{}
+
+func X__builtin_lround(tls *TLS, x float64) (r long) {
+	return Xlround(tls, x)
+}
+
+func Xlround(tls *TLS, x float64) (r long) {
+	return long(Xround(tls, x))
+}

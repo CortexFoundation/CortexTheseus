@@ -421,6 +421,8 @@ func (m *mutex) lock(id int32) int32 {
 	// shall return zero; otherwise, an error number shall be returned to indicate
 	// the error.
 	switch m.typ {
+	default:
+		fallthrough
 	case pthread.PTHREAD_MUTEX_NORMAL:
 		// If the mutex type is PTHREAD_MUTEX_NORMAL, deadlock detection shall not be
 		// provided. Attempting to relock the mutex causes deadlock. If a thread
@@ -450,8 +452,6 @@ func (m *mutex) lock(id int32) int32 {
 			// intentional empty section - wake up other waiters
 			m.wait.Unlock()
 		}
-	default:
-		panic(todo("", m.typ))
 	}
 }
 
@@ -461,6 +461,8 @@ func (m *mutex) tryLock(id int32) int32 {
 	}
 
 	switch m.typ {
+	default:
+		fallthrough
 	case pthread.PTHREAD_MUTEX_NORMAL:
 		return errno.EBUSY
 	case pthread.PTHREAD_MUTEX_RECURSIVE:
@@ -480,8 +482,6 @@ func (m *mutex) tryLock(id int32) int32 {
 
 		m.Unlock()
 		return errno.EBUSY
-	default:
-		panic(todo("", m.typ))
 	}
 }
 
@@ -494,6 +494,8 @@ func (m *mutex) unlock() int32 {
 	// shall return zero; otherwise, an error number shall be returned to indicate
 	// the error.
 	switch m.typ {
+	default:
+		fallthrough
 	case pthread.PTHREAD_MUTEX_NORMAL:
 		// If the mutex type is PTHREAD_MUTEX_NORMAL, deadlock detection shall not be
 		// provided. Attempting to relock the mutex causes deadlock. If a thread
@@ -511,8 +513,6 @@ func (m *mutex) unlock() int32 {
 		}
 		m.Unlock()
 		return 0
-	default:
-		panic(todo("", m.typ))
 	}
 }
 

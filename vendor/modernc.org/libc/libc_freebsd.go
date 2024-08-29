@@ -1591,7 +1591,16 @@ func Xwritev(t *TLS, fd int32, iov uintptr, iovcnt int32) types.Ssize_t {
 	if __ccgo_strace {
 		trc("t=%v fd=%v iov=%v iovcnt=%v, (%v:)", t, fd, iov, iovcnt, origin(2))
 	}
-	panic(todo(""))
+	r, _, err := unix.Syscall(unix.SYS_WRITEV, uintptr(fd), iov, uintptr(iovcnt))
+	if err != 0 {
+		if dmesgs {
+			dmesg("%v: %v FAIL", origin(1), err)
+		}
+		t.setErrno(err)
+		return -1
+	}
+
+	return types.Ssize_t(r)
 }
 
 // int __isoc99_sscanf(const char *str, const char *format, ...);
@@ -1968,4 +1977,59 @@ func Xpwrite(t *TLS, fd int32, buf uintptr, count types.Size_t, offset types.Off
 	// 		dmesg("%v: ok", origin(1))
 	// 	}
 	return types.Ssize_t(n)
+}
+
+func Xexplicit_bzero(tls *TLS, d uintptr, n types.Size_t) {
+	Xmemset(tls, d, 0, n)
+}
+
+// int issetugid(void);
+func Xissetugid(t *TLS) int32 {
+	if __ccgo_strace {
+		trc("t=%v, (%v:)", t, origin(2))
+	}
+	panic(todo(""))
+}
+
+var progname uintptr
+
+// const char *getprogname(void);
+func Xgetprogname(t *TLS) uintptr {
+	if __ccgo_strace {
+		trc("t=%v, (%v:)", t, origin(2))
+	}
+	if progname != 0 {
+		return progname
+	}
+
+	var err error
+	progname, err = CString(filepath.Base(os.Args[0]))
+	if err != nil {
+		t.setErrno(err)
+		return 0
+	}
+
+	return progname
+}
+
+func Xstrncasecmp(tls *TLS, _l uintptr, _r uintptr, n types.Size_t) int32 { /* strncasecmp.c:4:5: */
+	var l uintptr = _l
+	var r uintptr = _r
+	if !(int32(PostDecUint64(&n, 1)) != 0) {
+		return 0
+	}
+__1:
+	if !(*(*uint8)(unsafe.Pointer(l)) != 0 && *(*uint8)(unsafe.Pointer(r)) != 0 && n != 0 && (int32(*(*uint8)(unsafe.Pointer(l))) == int32(*(*uint8)(unsafe.Pointer(r))) || Xtolower(tls, int32(*(*uint8)(unsafe.Pointer(l)))) == Xtolower(tls, int32(*(*uint8)(unsafe.Pointer(r)))))) {
+		goto __3
+	}
+	goto __2
+__2:
+	l++
+	r++
+	n--
+	goto __1
+	goto __3
+__3:
+	;
+	return Xtolower(tls, int32(*(*uint8)(unsafe.Pointer(l)))) - Xtolower(tls, int32(*(*uint8)(unsafe.Pointer(r))))
 }

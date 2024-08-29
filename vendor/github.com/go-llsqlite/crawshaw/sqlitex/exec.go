@@ -324,12 +324,16 @@ func setArg(stmt *sqlite.Stmt, i int, v reflect.Value) {
 		stmt.BindBool(i, v.Bool())
 	case reflect.Invalid:
 		stmt.BindNull(i)
-	default:
-		if v.Kind() == reflect.Slice && v.Type().Elem().Kind() == reflect.Uint8 {
+	case reflect.Slice, reflect.Array:
+		if v.Type().Elem().Kind() == reflect.Uint8 {
+			// Array values are not addressable. Pass a pointer or slice it before passing it to
+			// this API.
 			stmt.BindBytes(i, v.Bytes())
-		} else {
-			stmt.BindText(i, fmt.Sprint(v.Interface()))
+			return
 		}
+		fallthrough
+	default:
+		stmt.BindText(i, fmt.Sprint(v.Interface()))
 	}
 }
 

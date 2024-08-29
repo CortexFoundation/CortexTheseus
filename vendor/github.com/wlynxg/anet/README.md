@@ -25,9 +25,7 @@ The specific fix logic includes:
 Removing the `Bind()` operation on `Netlink` sockets in the `NetlinkRIB()` function.
 Using `ioctl` based on the Index number returned by `RTM_GETADDR` to retrieve the network card's name, MTU, and flags.
 
-
-
-
+There are two implementations of the `net` package: one from the [Go standard library](https://pkg.go.dev/net) and another from the [golang.org/x/net](https://pkg.go.dev/golang.org/x/net) module. Both of these implementations have the same issues in the Android environment. The `anet` package should be compatible with both of them.
 
 ## Test Code
 ### net.Interface()
@@ -117,3 +115,6 @@ result:
 192.168.6.143/24
 fe80::7e4f:4446:eb3:1eb8/64
 ```
+
+## Other issues due to #40569
+- https://github.com/golang/go/issues/68082
