@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.4.0
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.68-0.20240820152357-a6ca6adae8f2
+	github.com/CortexFoundation/torrentfs v1.0.68-0.20240821125451-fb71840dd86b
 	github.com/VictoriaMetrics/fastcache v1.12.2
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.30.4
@@ -232,7 +232,7 @@ require (
 	github.com/xujiajun/utils v0.0.0-20220904132955-5f7c5b914235 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	github.com/zeebo/xxh3 v1.0.3-0.20230502181907-3808c706a06a // indirect
-	go.etcd.io/bbolt v1.3.10 // indirect
+	go.etcd.io/bbolt v1.3.11 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/otel v1.28.0 // indirect
 	go.opentelemetry.io/otel/metric v1.28.0 // indirect
