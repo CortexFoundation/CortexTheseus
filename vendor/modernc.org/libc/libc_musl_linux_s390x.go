@@ -26,6 +26,10 @@ func Xfesetround(tls *TLS, r int32) (r1 int32) {
 }
 
 func Xmmap(tls *TLS, start uintptr, len1 Tsize_t, prot int32, flags int32, fd int32, off Toff_t) (r uintptr) {
+	if __ccgo_strace {
+		trc("tls=%v start=%v len1=%v prot=%v flags=%v fd=%v off=%v, (%v:)", tls, start, len1, prot, flags, fd, off, origin(2))
+		defer func() { trc("-> %v", r) }()
+	}
 	return ___mmap(tls, start, len1, prot, flags, fd, off)
 }
 
