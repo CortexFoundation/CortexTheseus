@@ -50,6 +50,16 @@ const (
 	// maxHeadersServe is the maximum number of block headers to serve. This number
 	// is there to limit the number of disk lookups.
 	maxHeadersServe = 1024
+	// maxBodiesServe is the maximum number of block bodies to serve. This number
+	// is mostly there to limit the number of disk lookups. With 24KB block sizes
+	// nowadays, the practical limit will always be softResponseLimit.
+	maxBodiesServe = 1024
+
+	// maxReceiptsServe is the maximum number of block receipts to serve. This
+	// number is mostly there to limit the number of disk lookups. With block
+	// containing 200+ transactions nowadays, the practical limit will always
+	// be softResponseLimit.
+	maxReceiptsServe = 1024
 
 	// txChanSize is the size of channel listening to NewTxsEvent.
 	// The number is referenced from the size of tx pool.
@@ -741,11 +751,13 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		// Gather blocks until the fetch or network limits is reached
 		var (
-			hash   common.Hash
-			bytes  int
-			bodies []rlp.RawValue
+			hash    common.Hash
+			bytes   int
+			bodies  []rlp.RawValue
+			lookups int
 		)
-		for bytes < softResponseLimit && len(bodies) < downloader.MaxBlockFetch {
+		for bytes < softResponseLimit && len(bodies) < downloader.MaxBlockFetch && lookups < 2*maxBodiesServe {
+			lookups++
 			// Retrieve the hash of the next block
 			if err := msgStream.Decode(&hash); err == rlp.EOL {
 				break
@@ -846,8 +858,10 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			hash     common.Hash
 			bytes    int
 			receipts []rlp.RawValue
+			lookups  int
 		)
-		for bytes < softResponseLimit && len(receipts) < downloader.MaxReceiptFetch {
+		for bytes < softResponseLimit && len(receipts) < maxReceiptsServe && lookups < 2*maxReceiptsServe {
+			lookups++
 			// Retrieve the hash of the next block
 			if err := msgStream.Decode(&hash); err == rlp.EOL {
 				break
