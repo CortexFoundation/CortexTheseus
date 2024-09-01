@@ -84,47 +84,43 @@ func (fs *TorrentFS) handleMsg(p *Peer) error {
 
 	log.Debug("Nas "+params.ProtocolVersionStr+" package", "size", packet.Size, "code", packet.Code, "peer", p.peer.ID())
 
-	switch packet.Code {
-	case params.StatusCode:
+	switch {
+	case packet.Code == params.StatusCode:
 		var info *PeerInfo
 		if err := packet.Decode(&info); err != nil {
 			log.Warn("failed to decode peer state, peer will be disconnected", "peer", p.peer.ID(), "err", err)
 			return errors.New("invalid peer state")
 		}
 		p.peerInfo = info
-	case params.QueryCode:
-		if params.ProtocolVersion >= 4 {
-			var info *Query
-			if err := packet.Decode(&info); err != nil {
-				log.Warn("failed to decode msg, peer will be disconnected", "peer", p.peer.ID(), "err", err)
-				return errors.New("invalid msg")
-			}
+	case packet.Code == params.QueryCode && params.ProtocolVersion >= 4:
+		var info *Query
+		if err := packet.Decode(&info); err != nil {
+			log.Warn("failed to decode msg, peer will be disconnected", "peer", p.peer.ID(), "err", err)
+			return errors.New("invalid msg")
+		}
 
-			if !common.IsHexAddress(info.Hash) {
-				return errors.New("invalid address")
-			}
+		if !common.IsHexAddress(info.Hash) {
+			return errors.New("invalid address")
+		}
 
-			// already in
-			if ok := fs.collapse(info.Hash, info.Size); ok {
-				return nil
-			}
+		// already in
+		if ok := fs.collapse(info.Hash, info.Size); ok {
+			return nil
+		}
 
-			// wake up service
-			if err := fs.wakeup(context.Background(), info.Hash); err == nil {
-				if err := fs.traverse(info.Hash, info.Size); err == nil {
-					fs.received.Add(1)
-				}
+		// wake up service
+		if err := fs.wakeup(context.Background(), info.Hash); err == nil {
+			if err := fs.traverse(info.Hash, info.Size); err == nil {
+				fs.received.Add(1)
 			}
 		}
-	case params.MsgCode:
-		if params.ProtocolVersion > 4 {
-			var info *MsgInfo
-			if err := packet.Decode(&info); err != nil {
-				log.Warn("failed to decode msg, peer will be disconnected", "peer", p.peer.ID(), "err", err)
-				return errors.New("invalid msg")
-			}
-			log.Warn("Nas msg testing", "code", params.MsgCode, "desc", info.Desc)
+	case packet.Code == params.MsgCode && params.ProtocolVersion > 5:
+		var info *MsgInfo
+		if err := packet.Decode(&info); err != nil {
+			log.Warn("failed to decode msg, peer will be disconnected", "peer", p.peer.ID(), "err", err)
+			return errors.New("invalid msg")
 		}
+		log.Warn("Nas msg testing", "code", params.MsgCode, "desc", info.Desc)
 	default:
 		log.Warn("Encounter package code", "code", packet.Code)
 		return errors.New("invalid code")
