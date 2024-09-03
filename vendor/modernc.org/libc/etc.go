@@ -19,7 +19,6 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-	"syscall"
 	"time"
 	"unsafe"
 
@@ -199,7 +198,7 @@ again:
 	case *os.PathError:
 		err = x.Err
 		goto again
-	case syscall.Errno:
+	case syscallErrno:
 		*(*int32)(unsafe.Pointer(t.errnop)) = int32(x)
 	case *os.SyscallError:
 		err = x.Err
