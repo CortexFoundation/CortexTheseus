@@ -325,6 +325,15 @@ func doTest(cmdline []string) {
 	}
 	gotest := tc.Go("test")
 
+	// CI needs a bit more time for the statetests (default 10m).
+	gotest.Args = append(gotest.Args, "-timeout=30m")
+
+	// Enable CKZG backend in CI.
+	gotest.Args = append(gotest.Args, "-tags=ckzg")
+
+	// Enable integration-tests
+	gotest.Args = append(gotest.Args, "-tags=integrationtests")
+
 	// Test a single package at a time. CI builders are slow
 	// and some tests run into timeouts under load.
 	gotest.Args = append(gotest.Args, "-p", "1")
