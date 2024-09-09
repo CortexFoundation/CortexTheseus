@@ -23,11 +23,11 @@ import (
 
 type (
 	uploadChange struct {
-		account *common.Address
+		account common.Address
 		prev    *big.Int
 	}
 	numChange struct {
-		account *common.Address
+		account common.Address
 		prev    *big.Int
 	}
 )
@@ -47,31 +47,31 @@ func (ch numChange) copy() journalEntry {
 }
 
 func (ch uploadChange) revert(s *StateDB) {
-	s.getStateObject(*ch.account).setUpload(ch.prev)
+	s.getStateObject(ch.account).setUpload(ch.prev)
 }
 
 func (ch uploadChange) dirtied() *common.Address {
-	return ch.account
+	return &ch.account
 }
 
 func (ch numChange) revert(s *StateDB) {
-	s.getStateObject(*ch.account).setNum(ch.prev)
+	s.getStateObject(ch.account).setNum(ch.prev)
 }
 
 func (ch numChange) dirtied() *common.Address {
-	return ch.account
+	return &ch.account
 }
 
 func (j *journal) uploadChange(addr common.Address, previous *big.Int) {
 	j.append(uploadChange{
-		account: &addr,
+		account: addr,
 		prev:    new(big.Int).Set(previous),
 	})
 }
 
 func (j *journal) numChange(addr common.Address, previous *big.Int) {
 	j.append(numChange{
-		account: &addr,
+		account: addr,
 		prev:    new(big.Int).Set(previous),
 	})
 }
