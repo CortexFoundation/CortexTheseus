@@ -256,9 +256,6 @@ func (f *TxFetcher) Notify(peer string, hashes []common.Hash) error {
 
 		default:
 			unknownHashes = append(unknownHashes, hash)
-			// Transaction metadata has been available since eth68, and all
-			// legacy eth protocols (prior to eth68) have been deprecated.
-			// Therefore, metadata is always expected in the announcement.
 			unknownMetas = append(unknownMetas, txMetadata{})
 		}
 	}
