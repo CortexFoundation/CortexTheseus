@@ -37,6 +37,14 @@ var (
 	ErrInvalidSig = errors.New("invalid transaction v, r, s values")
 )
 
+// Transaction types.
+const (
+	LegacyTxType     = 0x00
+	AccessListTxType = 0x01
+	DynamicFeeTxType = 0x02
+	BlobTxType       = 0x03
+)
+
 type Transaction struct {
 	data txdata    // Consensus contents of a transaction
 	time time.Time // Time first seen locally (spam avoidance)
