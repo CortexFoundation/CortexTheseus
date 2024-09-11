@@ -256,7 +256,7 @@ func (f *TxFetcher) Notify(peer string, hashes []common.Hash) error {
 
 		default:
 			unknownHashes = append(unknownHashes, hash)
-			unknownMetas = append(unknownMetas, txMetadata{})
+			unknownMetas = append(unknownMetas, txMetadata{kind: types.LegacyTxType, size: 0})
 		}
 	}
 	txAnnounceKnownMeter.Mark(duplicate)
