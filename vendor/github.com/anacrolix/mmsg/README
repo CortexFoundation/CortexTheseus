@@ -1,0 +1,8 @@
+github.com/anacrolix/mmsg exposes the batching methods from golang.org/x/net/internal/socket, falling back on OSs that don't implement them.
+
+golang.org/x/net does expose the batching APIs but you have to be explicit about whether you're using ipv4 or ipv6, and IDGAF, it shouldn't be exposed like that.
+
+./socket is taken from golang.org/x/net/internal/socket because we need access to the package and it's internal to golang.org/x/net/internal/socket.
+./internal/nettest is taken from golang.org/x/net/nettest. I think because ./socket expects it and we don't want to unnecessarily introduce extra dependencies to golang.org/x/net.
+
+The LICENSE file is taken from golang.org/x/net and put into the respective directories sourced from that module.

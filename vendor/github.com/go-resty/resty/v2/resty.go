@@ -14,7 +14,7 @@ import (
 )
 
 // Version # of resty
-const Version = "2.14.0"
+const Version = "2.15.1"
 
 // New method creates a new Resty client.
 func New() *Client {
@@ -24,12 +24,12 @@ func New() *Client {
 	})
 }
 
-// NewWithClient method creates a new Resty client with given `http.Client`.
+// NewWithClient method creates a new Resty client with given [http.Client].
 func NewWithClient(hc *http.Client) *Client {
 	return createClient(hc)
 }
 
-// NewWithLocalAddr method creates a new Resty client with given Local Address
+// NewWithLocalAddr method creates a new Resty client with the given Local Address.
 // to dial from.
 func NewWithLocalAddr(localAddr net.Addr) *Client {
 	cookieJar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})

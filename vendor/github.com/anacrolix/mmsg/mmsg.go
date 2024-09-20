@@ -1,9 +1,9 @@
 package mmsg
 
 import (
+	"errors"
 	"net"
-
-	"github.com/anacrolix/missinggo/expect"
+	"strings"
 
 	"github.com/anacrolix/mmsg/socket"
 )
@@ -13,6 +13,7 @@ import (
 const flags = 0
 
 type Conn struct {
+	// If this is not nil, attempts to use batch APIs will be skipped automatically.
 	err error
 	s   *socket.Conn
 	pr  PacketReader
@@ -22,11 +23,17 @@ type PacketReader interface {
 	ReadFrom([]byte) (int, net.Addr, error)
 }
 
+// pr must implement net.Conn for mmsg to be enabled.
 func NewConn(pr PacketReader) *Conn {
 	ret := Conn{
 		pr: pr,
 	}
-	ret.s, ret.err = socket.NewConn(pr)
+	nc, ok := pr.(net.Conn)
+	if ok {
+		ret.s, ret.err = socket.NewConn(nc)
+	} else {
+		ret.err = errors.New("mmsg.NewConn: not a net.Conn")
+	}
 	return &ret
 }
 
@@ -47,8 +54,10 @@ func (me *Conn) RecvMsgs(ms []Message) (n int, err error) {
 		sms[i].Buffers = ms[i].Buffers
 	}
 	n, err = me.s.RecvMsgs(sms, flags)
-	if err != nil && err.Error() == "not implemented" {
-		expect.Nil(me.err)
+	if err != nil && strings.Contains(err.Error(), "not implemented") {
+		if me.err != nil {
+			panic(me.err)
+		}
 		me.err = err
 		if n <= 0 {
 			return me.recvMsgAsMsgs(ms)
@@ -96,6 +105,7 @@ func (me *Message) Payload() (p []byte) {
 	panic(n)
 }
 
+// Returns not nil if message batching is not working.
 func (me *Conn) Err() error {
 	return me.err
 }

@@ -4,7 +4,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/anacrolix/missinggo/perf"
+	"github.com/anacrolix/missinggo/v2/perf"
 )
 
 var (
@@ -16,7 +16,6 @@ var (
 type (
 	lockStats    = perf.Event
 	lockStackKey = [32]uintptr
-	lockCount    = int64
 )
 
 type stackLockStats struct {
