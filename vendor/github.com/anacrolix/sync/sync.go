@@ -25,7 +25,7 @@ import (
 	"sync"
 	"text/tabwriter"
 
-	"github.com/anacrolix/missinggo"
+	"github.com/anacrolix/missinggo/v2"
 )
 
 var (

@@ -87,7 +87,9 @@ func (s *Server) WriteStatus(w io.Writer) {
 	fmt.Fprintf(w, "Nodes in table: %d good, %d total\n", s.numGoodNodes(), s.numNodes())
 	fmt.Fprintf(w, "Ongoing transactions: %d\n", s.transactions.NumActive())
 	fmt.Fprintf(w, "Server node ID: %x\n", s.id.Bytes())
-	for i, b := range s.table.buckets {
+	buckets := &s.table.buckets
+	for i := range s.table.buckets {
+		b := &buckets[i]
 		if b.Len() == 0 && b.lastChanged.IsZero() {
 			continue
 		}
@@ -1180,7 +1182,15 @@ func (s *Server) Close() {
 	go s.socket.Close()
 }
 
-func (s *Server) GetPeers(ctx context.Context, addr Addr, infoHash int160.T, scrape bool, rl QueryRateLimiting) (ret QueryResult) {
+func (s *Server) GetPeers(
+	ctx context.Context,
+	addr Addr,
+	infoHash int160.T,
+	// Be advised that if you set this, you might not get any "Return.values" back. That wasn't my
+	// reading of BEP 33 but there you go.
+	scrape bool,
+	rl QueryRateLimiting,
+) (ret QueryResult) {
 	args := krpc.MsgArgs{
 		InfoHash: infoHash.AsByteArray(),
 		// TODO: Maybe IPv4-only Servers won't want IPv6 nodes?
@@ -1332,7 +1342,7 @@ func (s *Server) refreshBucket(bucketIndex int) *traversal.Stats {
 			res := s.FindNode(NewAddr(addr.UDP()), id, QueryRateLimiting{})
 			err := res.Err
 			if err != nil && !errors.Is(err, TransactionTimeout) {
-				s.logger().Levelf(log.Warning, "error doing find node while refreshing bucket: %v", err)
+				s.logger().Levelf(log.Debug, "error doing find node while refreshing bucket: %v", err)
 			}
 			return res.TraversalQueryResult(addr)
 		},

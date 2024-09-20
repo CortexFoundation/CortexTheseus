@@ -29,3 +29,6 @@ func (me Semaphore) Release() events.Release {
 func (me Semaphore) Value() int {
 	return len(me.ch)
 }
+
+// Returns the resource count when all are available.
+func (me Semaphore) Cap() int { return cap(me.ch) }

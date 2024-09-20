@@ -1,8 +1,9 @@
 package chansync
 
 import (
-	"github.com/anacrolix/chansync/events"
 	"github.com/anacrolix/sync"
+
+	"github.com/anacrolix/chansync/events"
 )
 
 // Can be used as zero-value. Due to the caller needing to bring their own synchronization, an
