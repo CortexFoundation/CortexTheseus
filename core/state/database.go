@@ -23,6 +23,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
+	"github.com/CortexFoundation/CortexTheseus/core/state/snapshot"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
@@ -59,6 +60,9 @@ type Database interface {
 
 	// TrieDB retrieves the low level trie database used for data storage.
 	TrieDB() *trie.Database
+
+	// Snapshot returns the underlying state snapshot.
+	Snapshot() *snapshot.Tree
 }
 
 // Trie is a Merkle Patricia trie.
@@ -132,17 +136,18 @@ type Trie interface {
 // NewDatabase creates a backing store for state. The returned database is safe for
 // concurrent use, but does not retain any recent trie nodes in memory. To keep some
 // historical state in memory, use the NewDatabaseWithCache constructor.
-func NewDatabase(db ctxcdb.Database) Database {
-	return NewDatabaseWithConfig(db, nil)
+func NewDatabase(db ctxcdb.Database, snap *snapshot.Tree) Database {
+	return NewDatabaseWithConfig(db, snap, nil)
 }
 
 // NewDatabaseWithCache creates a backing store for state. The returned database
 // is safe for concurrent use and retains a lot of collapsed RLP trie nodes in a
 // large memory cache.
-func NewDatabaseWithConfig(db ctxcdb.Database, config *trie.Config) Database {
+func NewDatabaseWithConfig(db ctxcdb.Database, snap *snapshot.Tree, config *trie.Config) Database {
 	return &cachingDB{
 		triedb:        trie.NewDatabaseWithConfig(db, config),
 		disk:          db,
+		snap:          snap,
 		codeSizeCache: lru.NewCache[common.Hash, int](codeSizeCacheSize),
 		codeCache:     lru.NewSizeConstrainedCache[common.Hash, []byte](codeCacheSize),
 	}
@@ -151,6 +156,7 @@ func NewDatabaseWithConfig(db ctxcdb.Database, config *trie.Config) Database {
 type cachingDB struct {
 	triedb        *trie.Database
 	disk          ctxcdb.KeyValueStore
+	snap          *snapshot.Tree
 	codeSizeCache *lru.Cache[common.Hash, int]
 	codeCache     *lru.SizeConstrainedCache[common.Hash, []byte]
 }
@@ -232,4 +238,9 @@ func (db *cachingDB) DiskDB() ctxcdb.KeyValueStore {
 // TrieDB retrieves any intermediate trie-node caching layer.
 func (db *cachingDB) TrieDB() *trie.Database {
 	return db.triedb
+}
+
+// Snapshot returns the underlying state snapshot.
+func (db *cachingDB) Snapshot() *snapshot.Tree {
+	return db.snap
 }

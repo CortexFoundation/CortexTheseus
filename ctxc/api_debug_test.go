@@ -33,7 +33,7 @@ var dumper = spew.ConfigState{Indent: "    "}
 func TestStorageRangeAt(t *testing.T) {
 	// Create a state where account 0x010000... has a few storage entries.
 	var (
-		db     = state.NewDatabaseWithConfig(rawdb.NewMemoryDatabase(), &trie.Config{Cache: 16, Preimages: true})
+		db     = state.NewDatabaseWithConfig(rawdb.NewMemoryDatabase(), nil, &trie.Config{Cache: 16, Preimages: true})
 		sdb, _ = state.New(types.EmptyRootHash, db, nil)
 		addr   = common.Address{0x01}
 		keys   = []common.Hash{ // hashes of Keys of storage

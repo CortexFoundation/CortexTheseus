@@ -1108,8 +1108,18 @@ func (s *StateDB) Commit(block uint64, deleteEmptyObjects bool) (common.Hash, er
 		s.SnapshotCommits += time.Since(start)
 		s.snap = nil
 	}
+
 	if root == (common.Hash{}) {
 		root = types.EmptyRootHash
+	}
+
+	origin := s.originalRoot
+	if origin == (common.Hash{}) {
+		origin = types.EmptyRootHash
+	}
+
+	if root != origin {
+		s.originalRoot = root
 	}
 
 	// Clear all internal flags at the end of commit operation.

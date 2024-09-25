@@ -547,7 +547,7 @@ func (api *PrivateDebugAPI) computeStateDB(block *types.Block, reexec uint64) (*
 	}
 	// Otherwise try to reexec blocks until we find a state or reach our limit
 	origin := block.NumberU64()
-	database := state.NewDatabaseWithConfig(api.ctxc.ChainDb(), &trie.Config{Cache: 16, Preimages: true})
+	database := state.NewDatabaseWithConfig(api.ctxc.ChainDb(), nil, &trie.Config{Cache: 16, Preimages: true})
 
 	for i := uint64(0); i < reexec; i++ {
 		block = api.ctxc.blockchain.GetBlock(block.ParentHash(), block.NumberU64()-1)

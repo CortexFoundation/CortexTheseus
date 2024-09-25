@@ -244,7 +244,7 @@ func NewBlockChain(db ctxcdb.Database, cacheConfig *CacheConfig, chainConfig *pa
 	}
 
 	// Open trie database with provided config
-	triedb := state.NewDatabaseWithConfig(db, &trie.Config{
+	triedb := state.NewDatabaseWithConfig(db, nil, &trie.Config{
 		Cache:     cacheConfig.TrieCleanLimit,
 		Journal:   cacheConfig.TrieCleanJournal,
 		Preimages: cacheConfig.Preimages,
