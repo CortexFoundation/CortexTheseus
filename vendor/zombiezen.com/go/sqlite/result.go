@@ -1,4 +1,4 @@
-// Copyright 2021 Ross Light
+// Copyright 2021 Roxy Light
 // SPDX-License-Identifier: ISC
 
 package sqlite
@@ -326,7 +326,10 @@ func (code ResultCode) String() string {
 
 // Message returns the English-language text that describes the result code.
 func (code ResultCode) Message() string {
-	cstr := lib.Xsqlite3_errstr(nil, int32(code))
+	tls := libc.NewTLS()
+	defer tls.Close()
+	initlib(tls)
+	cstr := lib.Xsqlite3_errstr(tls, int32(code))
 	return libc.GoString(cstr)
 }
 

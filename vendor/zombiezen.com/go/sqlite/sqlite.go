@@ -1,5 +1,5 @@
 // Copyright (c) 2018 David Crawshaw <david@zentus.com>
-// Copyright (c) 2021 Ross Light <ross@zombiezen.com>
+// Copyright (c) 2021 Roxy Light <roxy@zombiezen.com>
 //
 // Permission to use, copy, modify, and distribute this software for any
 // purpose with or without fee is hereby granted, provided that the above
@@ -38,6 +38,14 @@ const Version = lib.SQLITE_VERSION
 // is the major version number (always 3), Y is the minor version number, and Z
 // is the release number.
 const VersionNumber = lib.SQLITE_VERSION_NUMBER
+
+var initOnce sync.Once
+
+func initlib(tls *libc.TLS) {
+	initOnce.Do(func() {
+		lib.Xsqlite3_initialize(tls)
+	})
+}
 
 // Conn is an open connection to an SQLite3 database.
 //
@@ -155,6 +163,7 @@ func openConn(path string, openFlags OpenFlags) (_ *Conn, err error) {
 			tls.Close()
 		}
 	}()
+	initlib(tls)
 	unlockNote, err := allocUnlockNote(tls)
 	if err != nil {
 		return nil, fmt.Errorf("sqlite: open %q: %w", path, err)
@@ -211,6 +220,9 @@ func openConn(path string, openFlags OpenFlags) (_ *Conn, err error) {
 func (c *Conn) Close() error {
 	if c == nil {
 		return fmt.Errorf("sqlite: close: nil connection")
+	}
+	if c.closed {
+		return fmt.Errorf("sqlite: close: already closed")
 	}
 	c.cancelInterrupt()
 	c.closed = true
