@@ -97,7 +97,7 @@ func TestExecute(t *testing.T) {
 }
 
 func TestCall(t *testing.T) {
-	state, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+	state, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase(), nil), nil)
 	address := common.HexToAddress("0x0a")
 	state.SetCode(address, []byte{
 		byte(vm.PUSH1), 10,
@@ -153,7 +153,7 @@ func BenchmarkCall(b *testing.B) {
 }
 func benchmarkCVM_Create(bench *testing.B, code string) {
 	var (
-		statedb, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+		statedb, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase(), nil), nil)
 		sender     = common.BytesToAddress([]byte("sender"))
 		receiver   = common.BytesToAddress([]byte("receiver"))
 	)
@@ -218,7 +218,7 @@ func BenchmarkEVM_RETURN(b *testing.B) {
 		return contract
 	}
 
-	state, _ := state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+	state, _ := state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase(), nil), nil)
 	contractAddr := common.BytesToAddress([]byte("contract"))
 
 	for _, n := range []uint64{1_000, 10_000, 100_000, 1_000_000} {
@@ -356,7 +356,7 @@ func TestBlockhash(t *testing.T) {
 func benchmarkNonModifyingCode(gas uint64, code []byte, name string, b *testing.B) {
 	cfg := new(Config)
 	setDefaults(cfg)
-	cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+	cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase(), nil), nil)
 	cfg.GasLimit = gas
 	var (
 		destination = common.BytesToAddress([]byte("contract"))
@@ -521,7 +521,7 @@ func BenchmarkVM_SWAP1(b *testing.B) {
 		return contract
 	}
 
-	state, _ := state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+	state, _ := state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase(), nil), nil)
 	contractAddr := common.BytesToAddress([]byte("contract"))
 
 	b.Run("10k", func(b *testing.B) {
