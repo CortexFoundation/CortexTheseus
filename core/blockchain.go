@@ -206,7 +206,7 @@ type BlockChain struct {
 	currentFinalizedBlock atomic.Value // Current finalized head
 	currentSafeBlock      atomic.Value // Current safe head
 
-	stateCache    state.Database // State database to reuse between imports (contains state cache)
+	stateCache    *state.CachingDB // State database to reuse between imports (contains state cache)
 	bodyCache     *lru.Cache[common.Hash, *types.Body]
 	bodyRLPCache  *lru.Cache[common.Hash, rlp.RawValue]
 	receiptsCache *lru.Cache[common.Hash, []*types.Receipt]
@@ -244,7 +244,7 @@ func NewBlockChain(db ctxcdb.Database, cacheConfig *CacheConfig, chainConfig *pa
 	}
 
 	// Open trie database with provided config
-	triedb := state.NewDatabaseWithConfig(db, nil, &trie.Config{
+	stateCache := state.NewDatabaseWithConfig(db, nil, &trie.Config{
 		Cache:     cacheConfig.TrieCleanLimit,
 		Journal:   cacheConfig.TrieCleanJournal,
 		Preimages: cacheConfig.Preimages,
@@ -255,7 +255,7 @@ func NewBlockChain(db ctxcdb.Database, cacheConfig *CacheConfig, chainConfig *pa
 		cacheConfig:   cacheConfig,
 		db:            db,
 		triegc:        prque.New[int64, common.Hash](nil),
-		stateCache:    triedb,
+		stateCache:    stateCache,
 		quit:          make(chan struct{}),
 		chainmu:       syncx.NewClosableMutex(),
 		bodyCache:     lru.NewCache[common.Hash, *types.Body](bodyCacheLimit),
@@ -404,6 +404,8 @@ func NewBlockChain(db ctxcdb.Database, cacheConfig *CacheConfig, chainConfig *pa
 			AsyncBuild: !bc.cacheConfig.SnapshotWait,
 		}
 		bc.snaps, _ = snapshot.New(snapconfig, bc.db, bc.stateCache.TrieDB(), head.Root())
+
+		bc.stateCache.SetSnapshot(bc.snaps)
 	}
 
 	// Start future block processor.

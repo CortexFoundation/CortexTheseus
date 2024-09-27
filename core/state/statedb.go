@@ -83,7 +83,6 @@ type StateDB struct {
 	prefetcher *triePrefetcher
 	trie       Trie
 	hasher     crypto.KeccakState
-	snaps      *snapshot.Tree    // Nil if snapshot is not available
 	snap       snapshot.Snapshot // Nil if snapshot is not available
 
 	// originalRoot is the pre-state root, before any changes were made.
@@ -175,7 +174,6 @@ func New(root common.Hash, db Database, snaps *snapshot.Tree) (*StateDB, error) 
 		db:                   db,
 		trie:                 tr,
 		originalRoot:         root,
-		snaps:                snaps,
 		accounts:             make(map[common.Hash][]byte),
 		storages:             make(map[common.Hash]map[common.Hash][]byte),
 		accountsOrigin:       make(map[common.Address][]byte),
@@ -190,8 +188,8 @@ func New(root common.Hash, db Database, snaps *snapshot.Tree) (*StateDB, error) 
 		transientStorage:     newTransientStorage(),
 		hasher:               crypto.NewKeccakState(),
 	}
-	if sdb.snaps != nil {
-		sdb.snap = sdb.snaps.Snapshot(root)
+	if snaps := sdb.db.Snapshot(); snaps != nil {
+		sdb.snap = snaps.Snapshot(root)
 	}
 	return sdb, nil
 }
@@ -808,8 +806,7 @@ func (s *StateDB) Copy() *StateDB {
 		// to the snapshot tree, we need to copy that as well. Otherwise, any
 		// block mined by ourselves will cause gaps in the tree, and force the
 		// miner to operate trie-backed only.
-		snaps: s.snaps,
-		snap:  s.snap,
+		snap: s.snap,
 	}
 	// Deep copy cached state objects.
 	for addr, obj := range s.stateObjects {
@@ -1094,14 +1091,14 @@ func (s *StateDB) Commit(block uint64, deleteEmptyObjects bool) (common.Hash, er
 		defer func(start time.Time) { s.SnapshotCommits += time.Since(start) }(time.Now())
 		// Only update if there's a state transition (skip empty Clique blocks)
 		if parent := s.snap.Root(); parent != root {
-			if err := s.snaps.Update(root, parent, s.convertAccountSet(s.stateObjectsDestruct), s.accounts, s.storages); err != nil {
+			if err := s.db.Snapshot().Update(root, parent, s.convertAccountSet(s.stateObjectsDestruct), s.accounts, s.storages); err != nil {
 				log.Warn("Failed to update snapshot tree", "from", parent, "to", root, "err", err)
 			}
 			// Keep 128 diff layers in the memory, persistent layer is 129th.
 			// - head layer is paired with HEAD state
 			// - head-1 layer is paired with HEAD-1 state
 			// - head-127 layer(bottom-most diff layer) is paired with HEAD-127 state
-			if err := s.snaps.Cap(root, TriesInMemory); err != nil {
+			if err := s.db.Snapshot().Cap(root, TriesInMemory); err != nil {
 				log.Warn("Failed to cap snapshot tree", "root", root, "layers", TriesInMemory, "err", err)
 			}
 		}
