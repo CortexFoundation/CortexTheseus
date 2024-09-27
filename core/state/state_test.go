@@ -46,13 +46,13 @@ type stateTest struct {
 
 func newStateTest() *stateTest {
 	db := rawdb.NewMemoryDatabase()
-	sdb, _ := New(common.Hash{}, NewDatabase(db, nil), nil)
+	sdb, _ := New(common.Hash{}, NewDatabase(db, nil))
 	return &stateTest{db: db, state: sdb}
 }
 
 func TestDump(t *testing.T) {
 	db := rawdb.NewMemoryDatabase()
-	sdb, _ := New(common.Hash{}, NewDatabaseWithConfig(db, nil, &trie.Config{Preimages: true}), nil)
+	sdb, _ := New(common.Hash{}, NewDatabaseWithConfig(db, nil, &trie.Config{Preimages: true}))
 	s := &stateTest{db: db, state: sdb}
 
 	// generate a few entries
@@ -146,7 +146,7 @@ func (s *StateSuite) TestSnapshotEmpty(c *checker.C) {
 // use testing instead of checker because checker does not support
 // printing/logging in tests (-check.vv does not work)
 func TestSnapshot2(t *testing.T) {
-	state, _ := New(types.EmptyRootHash, NewDatabase(rawdb.NewMemoryDatabase(), nil), nil)
+	state, _ := New(types.EmptyRootHash, NewDatabase(rawdb.NewMemoryDatabase(), nil))
 	addr := common.BytesToAddress([]byte("so0"))
 	snap := state.Snapshot()
 

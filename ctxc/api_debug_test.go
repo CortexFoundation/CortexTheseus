@@ -34,7 +34,7 @@ func TestStorageRangeAt(t *testing.T) {
 	// Create a state where account 0x010000... has a few storage entries.
 	var (
 		db     = state.NewDatabaseWithConfig(rawdb.NewMemoryDatabase(), nil, &trie.Config{Cache: 16, Preimages: true})
-		sdb, _ = state.New(types.EmptyRootHash, db, nil)
+		sdb, _ = state.New(types.EmptyRootHash, db)
 		addr   = common.Address{0x01}
 		keys   = []common.Hash{ // hashes of Keys of storage
 			common.HexToHash("340dd630ad21bf010b4e676dbfa9ba9a02175262d1fa356232cfde6cb5b47ef2"),
@@ -53,7 +53,7 @@ func TestStorageRangeAt(t *testing.T) {
 		sdb.SetState(addr, *entry.Key, entry.Value)
 	}
 	root, _ := sdb.Commit(0, false)
-	sdb, _ = state.New(root, db, nil)
+	sdb, _ = state.New(root, db)
 
 	// Check a few combinations of limit and start/end.
 	tests := []struct {
