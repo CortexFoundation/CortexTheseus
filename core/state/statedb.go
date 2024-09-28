@@ -793,7 +793,7 @@ func (s *StateDB) Copy() *StateDB {
 		accountsOrigin:       copySet(s.accountsOrigin),
 		storagesOrigin:       copy2DSet(s.storagesOrigin),
 		stateObjects:         make(map[common.Address]*stateObject, len(s.stateObjects)),
-		stateObjectsDestruct: maps.Clone(s.stateObjectsDestruct),
+		stateObjectsDestruct: make(map[common.Address]*stateObject, len(s.stateObjectsDestruct)),
 		mutations:            make(map[common.Address]*mutation, len(s.mutations)),
 		dbErr:                s.dbErr,
 		refund:               s.refund,

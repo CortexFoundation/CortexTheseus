@@ -306,7 +306,6 @@ func NewBlockChain(db ctxcdb.Database, cacheConfig *CacheConfig, chainConfig *pa
 	// Make sure the state associated with the block is available
 	head := bc.CurrentBlock()
 	if !bc.HasState(head.Root()) {
-		//if _, err := state.New(head.Root(), bc.stateCache, bc.snaps); err != nil {
 		// Head state is missing, before the state recovery, find out the
 		// disk layer point of snapshot(if it's enabled). Make sure the
 		// rewound point is lower than disk layer.
