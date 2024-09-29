@@ -1088,22 +1088,24 @@ func (s *StateDB) Commit(block uint64, deleteEmptyObjects bool) (common.Hash, er
 
 	// If snapshotting is enabled, update the snapshot tree with this new version
 	if s.snap != nil {
-		defer func(start time.Time) { s.SnapshotCommits += time.Since(start) }(time.Now())
-		// Only update if there's a state transition (skip empty Clique blocks)
-		if parent := s.snap.Root(); parent != root {
-			if err := s.db.Snapshot().Update(root, parent, s.convertAccountSet(s.stateObjectsDestruct), s.accounts, s.storages); err != nil {
-				log.Warn("Failed to update snapshot tree", "from", parent, "to", root, "err", err)
+		if snaps := s.db.Snapshot(); snaps != nil {
+			defer func(start time.Time) { s.SnapshotCommits += time.Since(start) }(time.Now())
+			// Only update if there's a state transition (skip empty Clique blocks)
+			if parent := s.snap.Root(); parent != root {
+				if err := snaps.Update(root, parent, s.convertAccountSet(s.stateObjectsDestruct), s.accounts, s.storages); err != nil {
+					log.Warn("Failed to update snapshot tree", "from", parent, "to", root, "err", err)
+				}
+				// Keep 128 diff layers in the memory, persistent layer is 129th.
+				// - head layer is paired with HEAD state
+				// - head-1 layer is paired with HEAD-1 state
+				// - head-127 layer(bottom-most diff layer) is paired with HEAD-127 state
+				if err := snaps.Cap(root, TriesInMemory); err != nil {
+					log.Warn("Failed to cap snapshot tree", "root", root, "layers", TriesInMemory, "err", err)
+				}
 			}
-			// Keep 128 diff layers in the memory, persistent layer is 129th.
-			// - head layer is paired with HEAD state
-			// - head-1 layer is paired with HEAD-1 state
-			// - head-127 layer(bottom-most diff layer) is paired with HEAD-127 state
-			if err := s.db.Snapshot().Cap(root, TriesInMemory); err != nil {
-				log.Warn("Failed to cap snapshot tree", "root", root, "layers", TriesInMemory, "err", err)
-			}
+			s.SnapshotCommits += time.Since(start)
+			s.snap = nil
 		}
-		s.SnapshotCommits += time.Since(start)
-		s.snap = nil
 	}
 
 	if root == (common.Hash{}) {
@@ -1116,6 +1118,12 @@ func (s *StateDB) Commit(block uint64, deleteEmptyObjects bool) (common.Hash, er
 	}
 
 	if root != origin {
+		/*if db := s.db.TrieDB(); db != nil {
+			if err := db.Commit(root, false); err != nil {
+				return common.Hash{}, err
+			}
+		}*/
+
 		s.originalRoot = root
 	}
 
