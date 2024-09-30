@@ -335,7 +335,7 @@ func (bc *BlockChain) ContractCodeWithPrefix(hash common.Hash) ([]byte, error) {
 	}
 	// TODO(rjl493456442) The associated account address is also required
 	// in Verkle scheme. Fix it once snap-sync is supported for Verkle.
-	return bc.stateCache.(codeReader).ContractCodeWithPrefix(common.Address{}, hash)
+	return bc.stateCache.ContractCodeWithPrefix(common.Address{}, hash)
 }
 
 // State returns a new mutable state based on the current HEAD block.

@@ -136,15 +136,15 @@ type Trie interface {
 // NewDatabase creates a backing store for state. The returned database is safe for
 // concurrent use, but does not retain any recent trie nodes in memory. To keep some
 // historical state in memory, use the NewDatabaseWithCache constructor.
-func NewDatabase(db ctxcdb.Database, snap *snapshot.Tree) Database {
+func NewDatabase(db ctxcdb.Database, snap *snapshot.Tree) *CachingDB {
 	return NewDatabaseWithConfig(db, snap, nil)
 }
 
 // NewDatabaseWithCache creates a backing store for state. The returned database
 // is safe for concurrent use and retains a lot of collapsed RLP trie nodes in a
 // large memory cache.
-func NewDatabaseWithConfig(db ctxcdb.Database, snap *snapshot.Tree, config *trie.Config) Database {
-	return &cachingDB{
+func NewDatabaseWithConfig(db ctxcdb.Database, snap *snapshot.Tree, config *trie.Config) *CachingDB {
+	return &CachingDB{
 		triedb:        trie.NewDatabaseWithConfig(db, config),
 		disk:          db,
 		snap:          snap,
@@ -153,7 +153,7 @@ func NewDatabaseWithConfig(db ctxcdb.Database, snap *snapshot.Tree, config *trie
 	}
 }
 
-type cachingDB struct {
+type CachingDB struct {
 	triedb        *trie.Database
 	disk          ctxcdb.KeyValueStore
 	snap          *snapshot.Tree
@@ -162,7 +162,7 @@ type cachingDB struct {
 }
 
 // OpenTrie opens the main account trie at a specific root hash.
-func (db *cachingDB) OpenTrie(root common.Hash) (Trie, error) {
+func (db *CachingDB) OpenTrie(root common.Hash) (Trie, error) {
 	tr, err := trie.NewStateTrie(trie.StateTrieID(root), db.triedb)
 	if err != nil {
 		return nil, err
@@ -171,7 +171,7 @@ func (db *cachingDB) OpenTrie(root common.Hash) (Trie, error) {
 }
 
 // OpenStorageTrie opens the storage trie of an account.
-func (db *cachingDB) OpenStorageTrie(stateRoot common.Hash, address common.Address, root common.Hash, self Trie) (Trie, error) {
+func (db *CachingDB) OpenStorageTrie(stateRoot common.Hash, address common.Address, root common.Hash, self Trie) (Trie, error) {
 	tr, err := trie.NewStateTrie(trie.StorageTrieID(stateRoot, crypto.Keccak256Hash(address.Bytes()), root), db.triedb)
 	if err != nil {
 		return nil, err
@@ -180,7 +180,7 @@ func (db *cachingDB) OpenStorageTrie(stateRoot common.Hash, address common.Addre
 }
 
 // CopyTrie returns an independent copy of the given trie.
-func (db *cachingDB) CopyTrie(t Trie) Trie {
+func (db *CachingDB) CopyTrie(t Trie) Trie {
 	switch t := t.(type) {
 	case *trie.StateTrie:
 		return t.Copy()
@@ -190,7 +190,7 @@ func (db *cachingDB) CopyTrie(t Trie) Trie {
 }
 
 // ContractCode retrieves a particular contract's code.
-func (db *cachingDB) ContractCode(address common.Address, codeHash common.Hash) ([]byte, error) {
+func (db *CachingDB) ContractCode(address common.Address, codeHash common.Hash) ([]byte, error) {
 	code, _ := db.codeCache.Get(codeHash)
 	if len(code) > 0 {
 		return code, nil
@@ -207,7 +207,7 @@ func (db *cachingDB) ContractCode(address common.Address, codeHash common.Hash) 
 // ContractCodeWithPrefix retrieves a particular contract's code. If the
 // code can't be found in the cache, then check the existence with **new**
 // db scheme.
-func (db *cachingDB) ContractCodeWithPrefix(address common.Address, codeHash common.Hash) ([]byte, error) {
+func (db *CachingDB) ContractCodeWithPrefix(address common.Address, codeHash common.Hash) ([]byte, error) {
 	code, _ := db.codeCache.Get(codeHash)
 	if len(code) > 0 {
 		return code, nil
@@ -222,7 +222,7 @@ func (db *cachingDB) ContractCodeWithPrefix(address common.Address, codeHash com
 }
 
 // ContractCodeSize retrieves a particular contracts code's size.
-func (db *cachingDB) ContractCodeSize(addr common.Address, codeHash common.Hash) (int, error) {
+func (db *CachingDB) ContractCodeSize(addr common.Address, codeHash common.Hash) (int, error) {
 	if cached, ok := db.codeSizeCache.Get(codeHash); ok {
 		return cached, nil
 	}
@@ -231,16 +231,20 @@ func (db *cachingDB) ContractCodeSize(addr common.Address, codeHash common.Hash)
 }
 
 // DiskDB returns the underlying key-value disk database.
-func (db *cachingDB) DiskDB() ctxcdb.KeyValueStore {
+func (db *CachingDB) DiskDB() ctxcdb.KeyValueStore {
 	return db.disk
 }
 
 // TrieDB retrieves any intermediate trie-node caching layer.
-func (db *cachingDB) TrieDB() *trie.Database {
+func (db *CachingDB) TrieDB() *trie.Database {
 	return db.triedb
 }
 
 // Snapshot returns the underlying state snapshot.
-func (db *cachingDB) Snapshot() *snapshot.Tree {
+func (db *CachingDB) Snapshot() *snapshot.Tree {
 	return db.snap
+}
+
+func (db *CachingDB) SetSnapshot(snap *snapshot.Tree) {
+	db.snap = snap
 }

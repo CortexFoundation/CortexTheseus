@@ -500,7 +500,7 @@ func (test *snapshotTest) checkEqual(state, checkstate *StateDB) error {
 func (s *StateSuite) TestTouchDelete(c *check.C) {
 	s.state.getOrNewStateObject(common.Address{})
 	root, _ := s.state.Commit(0, false)
-	s.state, _ = New(root, s.state.db, s.state.snaps)
+	s.state, _ = New(root, s.state.db, nil)
 
 	snapshot := s.state.Snapshot()
 	s.state.AddBalance(common.Address{}, new(big.Int))
@@ -702,7 +702,7 @@ func TestDeleteCreateRevert(t *testing.T) {
 	state.SetBalance(addr, big.NewInt(1))
 
 	root, _ := state.Commit(0, false)
-	state, _ = New(root, state.db, state.snaps)
+	state, _ = New(root, state.db, nil)
 
 	// Simulate self-destructing in one transaction, then create-reverting in another
 	state.SelfDestruct(addr)
@@ -714,7 +714,7 @@ func TestDeleteCreateRevert(t *testing.T) {
 
 	// Commit the entire state and make sure we don't crash and have the correct state
 	root, _ = state.Commit(0, true)
-	state, _ = New(root, state.db, state.snaps)
+	state, _ = New(root, state.db, nil)
 
 	if state.getStateObject(addr) != nil {
 		t.Fatalf("self-destructed contract came alive")
