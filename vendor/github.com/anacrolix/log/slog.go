@@ -2,8 +2,10 @@ package log
 
 import (
 	"log/slog"
+	"math"
 )
 
+// Returns false if the level doesn't convert perfectly.
 func toSlogLevel(level Level) (slog.Level, bool) {
 	switch level {
 	case Never:
@@ -20,8 +22,29 @@ func toSlogLevel(level Level) (slog.Level, bool) {
 		return slog.LevelError, true
 	case Critical:
 		return slog.LevelError + 1, true
-	case disabled:
+	case Disabled:
 		return slog.LevelDebug - 1, false
+	default:
+		panic(level)
+	}
+}
+
+func toSlogMinLevel(level Level) slog.Level {
+	switch level {
+	case NotSet:
+		return math.MinInt
+	case Debug:
+		return slog.LevelDebug
+	case Info:
+		return slog.LevelInfo
+	case Warning:
+		return slog.LevelWarn
+	case Error:
+		return slog.LevelError
+	case Critical:
+		return slog.LevelError + 1
+	case Disabled:
+		return math.MaxInt
 	default:
 		panic(level)
 	}

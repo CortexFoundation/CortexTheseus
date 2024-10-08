@@ -40,3 +40,15 @@ func URLJoinSubPath(base, rel string) string {
 	baseURL.Path = path.Join(baseURL.Path, rel)
 	return baseURL.String()
 }
+
+// This exists because it's nontrivial to get everything after the scheme in a URL. You can't just
+// use URL.Opaque because path handling kicks in if there's a slash after the scheme's colon.
+func PopScheme(u *url.URL) (scheme string, popped string) {
+	// We can copy just the part we modify. We can't modify it in place because the caller could pass
+	// through directly from the app arguments, and they don't know how deep our mutation goes.
+	uCopy := *u
+	scheme = uCopy.Scheme
+	uCopy.Scheme = ""
+	popped = uCopy.String()
+	return
+}

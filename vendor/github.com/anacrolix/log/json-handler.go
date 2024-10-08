@@ -14,11 +14,11 @@ type JsonHandler struct {
 	SlogHandler slog.Handler
 }
 
-func NewJsonHandler(w io.Writer) *JsonHandler {
+func NewJsonHandler(w io.Writer, minLevel Level) *JsonHandler {
 	return &JsonHandler{
 		SlogHandler: slog.NewJSONHandler(w, &slog.HandlerOptions{
 			AddSource:   false,
-			Level:       slog.LevelDebug - 4,
+			Level:       toSlogMinLevel(minLevel),
 			ReplaceAttr: nil,
 		}),
 	}

@@ -3,7 +3,7 @@ package perf
 import (
 	"sync"
 
-	"github.com/anacrolix/missinggo/v2"
+	"github.com/anacrolix/missinggo"
 )
 
 type TimedLocker struct {

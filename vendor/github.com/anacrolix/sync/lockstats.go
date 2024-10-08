@@ -4,7 +4,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/anacrolix/missinggo/v2/perf"
+	"github.com/anacrolix/missinggo/perf"
 )
 
 var (

@@ -68,6 +68,7 @@ type msgWithValues struct {
 	values []interface{}
 }
 
+// TODO: Support Msg.SlogRecord
 func (me msgWithValues) Values(cb valueIterCallback) {
 	for _, v := range me.values {
 		if !cb(v) {
@@ -157,6 +158,7 @@ type msgWithText struct {
 	text func() string
 }
 
+// TODO: Support Msg.SlogRecord
 func (me msgWithText) Text() string {
 	return me.text()
 }

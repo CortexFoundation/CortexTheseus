@@ -29,3 +29,13 @@ func (r Result[T]) ToOption() Option[T] {
 		Value: r.Ok,
 	}
 }
+
+func (r *Result[T]) SetOk(ok T) {
+	r.Ok = ok
+	r.Err = nil
+}
+
+func (r *Result[T]) SetErr(err error) {
+	SetZero(&r.Ok)
+	r.Err = err
+}

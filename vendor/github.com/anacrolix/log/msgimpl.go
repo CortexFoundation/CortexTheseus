@@ -1,6 +1,8 @@
 package log
 
 import (
+	g "github.com/anacrolix/generics"
+	"log/slog"
 	"runtime"
 )
 
@@ -15,6 +17,8 @@ type MsgImpl interface {
 	Callers(skip int, pc []uintptr) int
 	// Iterates over the values as added LIFO.
 	Values(callback valueIterCallback)
+	// Returns Some(slog.Record) if the Msg supports it.
+	SlogRecord() g.Option[slog.Record]
 }
 
 // maybe implement finalizer to ensure msgs are sunk
@@ -31,3 +35,7 @@ func (m rootMsgImpl) Callers(skip int, pc []uintptr) int {
 }
 
 func (m rootMsgImpl) Values(valueIterCallback) {}
+
+func (m rootMsgImpl) SlogRecord() g.Option[slog.Record] {
+	return g.Some(slog.Record{Message: m.text()})
+}

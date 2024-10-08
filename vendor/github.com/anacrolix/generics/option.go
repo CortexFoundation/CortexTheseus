@@ -1,5 +1,9 @@
 package generics
 
+import (
+	"fmt"
+)
+
 type Option[V any] struct {
 	// Value must be zeroed when Ok is false for deterministic comparability.
 	Value V
@@ -80,4 +84,28 @@ func OptionFromTuple[T any](t T, ok bool) Option[T] {
 	} else {
 		return None[T]()
 	}
+}
+
+func (me Option[V]) String() string {
+	if me.Ok {
+		return fmt.Sprintf("Some(%v)", me.Value)
+	} else {
+		return "None"
+	}
+}
+
+// Returns an Option that is the left Option if it's Some else the right Option.
+func (me Option[V]) Or(or Option[V]) Option[V] {
+	if me.Ok {
+		return me
+	}
+	return or
+}
+
+// Converts the option to an option expressed as a pointer (old-school nonsense).
+func (me Option[V]) ToPtr() *V {
+	if me.Ok {
+		return &me.Value
+	}
+	return nil
 }
