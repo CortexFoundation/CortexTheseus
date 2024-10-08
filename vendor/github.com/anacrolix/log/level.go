@@ -19,7 +19,9 @@ var (
 	Warning  = Level{3}
 	Error    = Level{4}
 	Critical = Level{5}
-	disabled = Level{6} // It shouldn't be possible to define a message at this level.
+	// It shouldn't be possible to define a message at this level. Filtering at this level should
+	// mean no messages ever get through.
+	Disabled = Level{6}
 )
 
 func (l Level) isNotSet() bool {

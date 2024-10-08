@@ -53,7 +53,7 @@ func parseRuleString(s string) (_ Rule, ok bool, _ error) {
 		level, ok, err = levelFromString(ss[1])
 		if !ok {
 			// blah= means disable the name, but just blah means to always include it
-			level = disabled
+			level = Disabled
 		}
 		if err != nil {
 			return nil, false, fmt.Errorf("parsing level %q: %w", ss[1], err)

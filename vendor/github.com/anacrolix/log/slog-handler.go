@@ -2,6 +2,7 @@ package log
 
 import (
 	"context"
+	g "github.com/anacrolix/generics"
 	"log/slog"
 )
 
@@ -31,6 +32,10 @@ func (s slogHandler) WithGroup(name string) slog.Handler {
 
 type slogMsg struct {
 	record slog.Record
+}
+
+func (s slogMsg) SlogRecord() g.Option[slog.Record] {
+	return g.Some(s.record)
 }
 
 func (s slogMsg) Text() string {

@@ -1,4 +1,11 @@
-## 0.106.0 (Unreleased)
+## 0.107.0 (Unreleased)
+
+## 0.106.0 (September 27th, 2024)
+
+ENHANCEMENTS:
+
+* access_application: added target contexts support for access application type infrastructure ([#3186](https://github.com/cloudflare/cloudflare-go/issues/3186))
+* access_policy: added infrastructure connection rule support for access policy ([#3186](https://github.com/cloudflare/cloudflare-go/issues/3186))
 
 ## 0.105.0 (September 25th, 2024)
 

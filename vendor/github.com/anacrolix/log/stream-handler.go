@@ -34,6 +34,14 @@ func twoLineFormatter(msg Record) []byte {
 		b = append(b, name...)
 	}
 	b = append(b, "]\n  "...)
+
+	slogRecord := msg.SlogRecord()
+	if slogRecord.Ok {
+		gstbhLocker.Lock()
+		defer gstbhLocker.Unlock()
+		return globalSlogTextBufferHandler.handleAppend(b, slogRecord.Value)
+	}
+
 	b = append(b, msg.Text()...)
 	msg.Values(func(value interface{}) (more bool) {
 		b = append(b, ' ')

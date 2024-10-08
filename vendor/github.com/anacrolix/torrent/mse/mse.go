@@ -19,8 +19,6 @@ import (
 	"sync"
 
 	"github.com/anacrolix/torrent/internal/ctxrw"
-
-	"github.com/anacrolix/missinggo/v2/perf"
 )
 
 const (
@@ -562,7 +560,6 @@ func InitiateHandshakeContext(
 		ia:             initialPayload,
 		cryptoProvides: cryptoProvides,
 	}
-	defer perf.ScopeTimerErr(&err)()
 	return h.Do(ctx)
 }
 
