@@ -335,7 +335,6 @@ github.com/bradfitz/iter
 # github.com/btcsuite/btcd/btcec/v2 v2.3.4
 ## explicit; go 1.17
 github.com/btcsuite/btcd/btcec/v2
-github.com/btcsuite/btcd/btcec/v2/ecdsa
 # github.com/bwmarrin/snowflake v0.3.0
 ## explicit
 github.com/bwmarrin/snowflake
