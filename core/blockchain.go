@@ -531,7 +531,7 @@ func (bc *BlockChain) SetHead(head uint64) error {
 		return err
 	}
 	// Send chain head event to update the transaction pool
-	bc.chainHeadFeed.Send(ChainHeadEvent{Block: bc.CurrentBlock()})
+	bc.chainHeadFeed.Send(ChainHeadEvent{Header: bc.CurrentHeader()})
 	return nil
 }
 
@@ -544,7 +544,7 @@ func (bc *BlockChain) SetHeadWithTimestamp(timestamp uint64) error {
 		return err
 	}
 	// Send chain head event to update the transaction pool
-	bc.chainHeadFeed.Send(ChainHeadEvent{Block: bc.CurrentBlock()})
+	bc.chainHeadFeed.Send(ChainHeadEvent{Header: bc.CurrentHeader()})
 	return nil
 }
 
@@ -1465,7 +1465,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 		// we will fire an accumulated ChainHeadEvent and disable fire
 		// event here.
 		if emitHeadEvent {
-			bc.chainHeadFeed.Send(ChainHeadEvent{Block: block})
+			bc.chainHeadFeed.Send(ChainHeadEvent{Header: block.Header()})
 		}
 	} else {
 		bc.chainSideFeed.Send(ChainSideEvent{Header: block.Header()})
@@ -1565,7 +1565,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 	// Fire a single chain head event if we've progressed the chain
 	defer func() {
 		if lastCanon != nil && bc.CurrentBlock().Hash() == lastCanon.Hash() {
-			bc.chainHeadFeed.Send(ChainHeadEvent{lastCanon})
+			bc.chainHeadFeed.Send(ChainHeadEvent{lastCanon.Header()})
 		}
 	}()
 	// Start the parallel header verifier
@@ -2355,7 +2355,7 @@ func (bc *BlockChain) maintainTxIndex() {
 		case head := <-headCh:
 			if done == nil {
 				done = make(chan struct{})
-				go bc.indexBlocks(rawdb.ReadTxIndexTail(bc.db), head.Block.NumberU64(), done)
+				go bc.indexBlocks(rawdb.ReadTxIndexTail(bc.db), head.Header.Number.Uint64(), done)
 			}
 		case <-done:
 			done = nil

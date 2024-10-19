@@ -332,7 +332,7 @@ func NewTxPool(config Config, chainconfig *params.ChainConfig, chain blockChain)
 	// Subscribe events from blockchain and start the main event loop.
 	pool.chainHeadSub = pool.chain.SubscribeChainHeadEvent(pool.chainHeadCh)
 
-	head := chain.CurrentBlock()
+	head := chain.CurrentBlock().Header()
 	pool.wg.Add(1)
 	go pool.loop(head)
 
@@ -342,7 +342,7 @@ func NewTxPool(config Config, chainconfig *params.ChainConfig, chain blockChain)
 // loop is the transaction pool's main event loop, waiting for and reacting to
 // outside blockchain events as well as for various reporting and transaction
 // eviction events.
-func (pool *TxPool) loop(head *types.Block) {
+func (pool *TxPool) loop(head *types.Header) {
 	defer pool.wg.Done()
 
 	var (
@@ -362,9 +362,9 @@ func (pool *TxPool) loop(head *types.Block) {
 		select {
 		// Handle ChainHeadEvent
 		case ev := <-pool.chainHeadCh:
-			if ev.Block != nil {
-				pool.requestReset(head.Header(), ev.Block.Header())
-				head = ev.Block
+			if ev.Header != nil {
+				pool.requestReset(head, ev.Header)
+				head = ev.Header
 			}
 
 		// System shutdown.
