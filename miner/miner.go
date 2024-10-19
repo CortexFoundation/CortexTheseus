@@ -81,7 +81,7 @@ type Miner struct {
 }
 
 // New create an instance of Miner
-func New(ctxc Backend, config *Config, chainConfig *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, isLocalBlock func(block *types.Block) bool) *Miner {
+func New(ctxc Backend, config *Config, chainConfig *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, isLocalBlock func(block *types.Header) bool) *Miner {
 	miner := &Miner{
 		ctxc:    ctxc,
 		mux:     mux,

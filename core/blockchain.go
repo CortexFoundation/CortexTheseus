@@ -232,8 +232,8 @@ type BlockChain struct {
 	processor  Processor // Block transaction processor interface
 	vmConfig   vm.Config
 
-	shouldPreserve     func(*types.Block) bool // Function used to determine whether should preserve the given block.
-	writeLegacyJournal bool                    // Testing flag used to flush the snapshot journal in legacy format.
+	shouldPreserve     func(*types.Header) bool // Function used to determine whether should preserve the given block.
+	writeLegacyJournal bool                     // Testing flag used to flush the snapshot journal in legacy format.
 	utcNow             int64
 	Viper              bool
 }
@@ -241,7 +241,7 @@ type BlockChain struct {
 // NewBlockChain returns a fully initialised block chain using information
 // available in the database. It initialises the default Cortex Validator and
 // Processor.
-func NewBlockChain(db ctxcdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine, vmConfig vm.Config, shouldPreserve func(block *types.Block) bool, txLookupLimit *uint64) (*BlockChain, error) {
+func NewBlockChain(db ctxcdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine, vmConfig vm.Config, shouldPreserve func(block *types.Header) bool, txLookupLimit *uint64) (*BlockChain, error) {
 	if cacheConfig == nil {
 		cacheConfig = defaultCacheConfig
 	}
@@ -1431,7 +1431,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 		} else if block.NumberU64() == currentBlock.NumberU64() {
 			var currentPreserve, blockPreserve bool
 			if bc.shouldPreserve != nil {
-				currentPreserve, blockPreserve = bc.shouldPreserve(currentBlock), bc.shouldPreserve(block)
+				currentPreserve, blockPreserve = bc.shouldPreserve(currentBlock.Header()), bc.shouldPreserve(block.Header())
 			}
 			reorg = !currentPreserve && (blockPreserve || mrand.Float64() < 0.5)
 		}
@@ -1468,7 +1468,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 			bc.chainHeadFeed.Send(ChainHeadEvent{Block: block})
 		}
 	} else {
-		bc.chainSideFeed.Send(ChainSideEvent{Block: block})
+		bc.chainSideFeed.Send(ChainSideEvent{Header: block.Header()})
 	}
 	return status, nil
 }
@@ -2123,7 +2123,7 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Header) error {
 				return errInvalidOldChain // Corrupt database, mostly here to avoid weird panics
 			}
 			// Also send event for blocks removed from the canon chain.
-			bc.chainSideFeed.Send(ChainSideEvent{Block: block})
+			bc.chainSideFeed.Send(ChainSideEvent{Header: block.Header()})
 
 			// Collect deleted logs for notification
 			if logs := bc.collectLogs(block, true); len(logs) > 0 {
