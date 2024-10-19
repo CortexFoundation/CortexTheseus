@@ -36,9 +36,9 @@ type NewMinedBlockEvent struct{ Block *types.Block }
 type RemovedLogsEvent struct{ Logs []*types.Log }
 
 type ChainEvent struct {
-	Block *types.Block
-	Hash  common.Hash
-	Logs  []*types.Log
+	Header *types.Header
+	Hash   common.Hash
+	Logs   []*types.Log
 }
 
 type ChainSideEvent struct {
