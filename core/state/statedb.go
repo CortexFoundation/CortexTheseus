@@ -215,7 +215,7 @@ func (s *StateDB) StartPrefetcher(namespace string, noreads bool) {
 		// To prevent this, the account trie is always scheduled for prefetching once
 		// the prefetcher is constructed. For more details, see:
 		// https://github.com/ethereum/go-ethereum/issues/29880
-		if err := s.prefetcher.prefetch(common.Hash{}, s.originalRoot, common.Address{}, nil, false); err != nil {
+		if err := s.prefetcher.prefetch(common.Hash{}, s.originalRoot, common.Address{}, nil, nil, false); err != nil {
 			log.Error("Failed to prefetch account trie", "root", s.originalRoot, "err", err)
 		}
 	}
@@ -690,7 +690,7 @@ func (s *StateDB) getStateObject(addr common.Address) *stateObject {
 	// Whilst this would be a bit weird if snapshots are disabled, but we still
 	// want the trie nodes to end up in the prefetcher too, so just push through.
 	if s.prefetcher != nil {
-		if err := s.prefetcher.prefetch(common.Hash{}, s.originalRoot, common.Address{}, [][]byte{addr[:]}, true); err != nil {
+		if err := s.prefetcher.prefetch(common.Hash{}, s.originalRoot, common.Address{}, []common.Address{addr}, nil, true); err != nil {
 			log.Error("Failed to prefetch account", "addr", addr, "err", err)
 		}
 	}
@@ -859,7 +859,7 @@ func (s *StateDB) GetRefund() uint64 {
 // the journal as well as the refunds. Finalise, however, will not push any updates
 // into the tries just yet. Only IntermediateRoot or Commit will do that.
 func (s *StateDB) Finalise(deleteEmptyObjects bool) {
-	addressesToPrefetch := make([][]byte, 0, len(s.journal.dirties))
+	addressesToPrefetch := make([]common.Address, 0, len(s.journal.dirties))
 	for addr := range s.journal.dirties {
 		obj, exist := s.stateObjects[addr]
 		if !exist {
@@ -896,10 +896,10 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 		// At this point, also ship the address off to the precacher. The precacher
 		// will start loading tries, and when the change is eventually committed,
 		// the commit-phase will be a lot faster
-		addressesToPrefetch = append(addressesToPrefetch, common.CopyBytes(addr[:])) // Copy needed for closure
+		addressesToPrefetch = append(addressesToPrefetch, addr) // Copy needed for closure
 	}
 	if s.prefetcher != nil && len(addressesToPrefetch) > 0 {
-		if err := s.prefetcher.prefetch(common.Hash{}, s.originalRoot, common.Address{}, addressesToPrefetch, false); err != nil {
+		if err := s.prefetcher.prefetch(common.Hash{}, s.originalRoot, common.Address{}, addressesToPrefetch, nil, false); err != nil {
 			log.Error("Failed to prefetch addresses", "addresses", len(addressesToPrefetch), "err", err)
 		}
 	}
@@ -967,7 +967,7 @@ func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 	// into a shortnode. This requires `B` to be resolved from disk.
 	// Whereas if the created node is handled first, then the collapse is avoided, and `B` is not resolved.
 	var (
-		usedAddrs    [][]byte
+		usedAddrs    []common.Address
 		deletedAddrs []common.Address
 	)
 	for addr, op := range s.mutations {
@@ -982,7 +982,7 @@ func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 			s.updateStateObject(s.stateObjects[addr])
 			s.AccountUpdated += 1
 		}
-		usedAddrs = append(usedAddrs, common.CopyBytes(addr[:])) // Copy needed for closure
+		usedAddrs = append(usedAddrs, addr) // Copy needed for closure
 	}
 	for _, deletedAddr := range deletedAddrs {
 		s.deleteStateObject(deletedAddr)
@@ -991,7 +991,7 @@ func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 	s.AccountUpdates += time.Since(start)
 
 	if s.prefetcher != nil {
-		s.prefetcher.used(common.Hash{}, s.originalRoot, usedAddrs)
+		s.prefetcher.used(common.Hash{}, s.originalRoot, usedAddrs, nil)
 	}
 	// Track the amount of time wasted on hashing the account trie
 	defer func(start time.Time) { s.AccountHashes += time.Since(start) }(time.Now())
