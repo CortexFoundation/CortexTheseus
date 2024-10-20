@@ -21,6 +21,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	gomath "math"
 	"math/big"
 
 	"github.com/consensys/gnark-crypto/ecc"
@@ -379,7 +380,7 @@ func (c *bigModExp) RequiredGas(input []byte) uint64 {
 		// 2. Different divisor (`GQUADDIVISOR`) (3)
 		gas.Div(gas, big3)
 		if gas.BitLen() > 64 {
-			return math.MaxUint64
+			return gomath.MaxUint64
 		}
 		// 3. Minimum price of 200 gas
 		if gas.Uint64() < 200 {
@@ -392,7 +393,7 @@ func (c *bigModExp) RequiredGas(input []byte) uint64 {
 	gas.Div(gas, big20)
 
 	if gas.BitLen() > 64 {
-		return math.MaxUint64
+		return gomath.MaxUint64
 	}
 	return gas.Uint64()
 }

@@ -18,11 +18,11 @@ package rpc
 
 import (
 	"encoding/json"
+	"math"
 	"reflect"
 	"testing"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/common/math"
 )
 
 func TestBlockNumberJSONUnmarshal(t *testing.T) {

@@ -17,10 +17,11 @@
 package vm
 
 import (
+	"math"
+
 	"github.com/holiman/uint256"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/common/math"
 )
 
 // calcMemSize64 calculates the required memory size, and returns

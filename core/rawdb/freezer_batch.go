@@ -18,10 +18,10 @@ package rawdb
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/golang/snappy"
 
-	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 )
 
