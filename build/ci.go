@@ -173,7 +173,7 @@ func executablePath(name string) string {
 func main() {
 	log.SetFlags(log.Lshortfile)
 
-	if !common.FileExist(filepath.Join("build", "ci.go")) {
+	if !build.FileExist(filepath.Join("build", "ci.go")) {
 		log.Fatal("this script must be run from the root of the repository")
 	}
 	if len(os.Args) < 2 {
@@ -780,7 +780,7 @@ func ppaUpload(workdir, ppa, sshUser string, files []string) {
 	var idfile string
 	if sshkey := getenvBase64("PPA_SSH_KEY"); len(sshkey) > 0 {
 		idfile = filepath.Join(workdir, "sshkey")
-		if !common.FileExist(idfile) {
+		if !build.FileExist(idfile) {
 			os.WriteFile(idfile, sshkey, 0600)
 		}
 	}
