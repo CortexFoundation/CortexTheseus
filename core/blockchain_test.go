@@ -17,9 +17,6 @@
 package core
 
 import (
-	"errors"
-	"fmt"
-	gomath "math"
 	"math/big"
 	"testing"
 

@@ -61,7 +61,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/crypto/signify"
 	"github.com/CortexFoundation/CortexTheseus/internal/build"
-	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/CortexTheseus/internal/version"
 	"github.com/cespare/cp"
 )
 
@@ -119,7 +119,7 @@ var (
 	// A debian package is created for all executables listed here.
 	debCortex = debPackage{
 		Name:        "cortex",
-		Version:     params.Version,
+		Version:     version.Semantic,
 		Executables: debExecutables,
 	}
 
@@ -425,7 +425,7 @@ func doArchive(cmdline []string) {
 
 	var (
 		env        = build.Env()
-		basecortex = archiveBasename(*arch, params.ArchiveVersion(env.Commit))
+		basecortex = archiveBasename(*arch, version.Archive(env.Commit))
 		cortex     = "cortex-" + basecortex + ext
 		alltools   = "cortex-alltools-" + basecortex + ext
 	)
@@ -550,12 +550,12 @@ func doDocker(cmdline []string) {
 	case env.Branch == "master":
 		tags = []string{"latest"}
 	case strings.HasPrefix(env.Tag, "v1."):
-		tags = []string{"stable", fmt.Sprintf("release-1.%d", params.VersionMinor), "v" + params.Version}
+		tags = []string{"stable", fmt.Sprintf("release-%v", version.Family), "v" + version.Semantic}
 	}
 	// If architecture specific image builds are requested, build and push them
 	if *image {
-		build.MustRunCommand("docker", "build", "--build-arg", "COMMIT="+env.Commit, "--build-arg", "VERSION="+params.VersionWithMeta, "--build-arg", "BUILDNUM="+env.Buildnum, "--tag", fmt.Sprintf("%s:TAG", *upload), ".")
-		build.MustRunCommand("docker", "build", "--build-arg", "COMMIT="+env.Commit, "--build-arg", "VERSION="+params.VersionWithMeta, "--build-arg", "BUILDNUM="+env.Buildnum, "--tag", fmt.Sprintf("%s:alltools-TAG", *upload), "-f", "Dockerfile.alltools", ".")
+		build.MustRunCommand("docker", "build", "--build-arg", "COMMIT="+env.Commit, "--build-arg", "VERSION="+version.WithMeta, "--build-arg", "BUILDNUM="+env.Buildnum, "--tag", fmt.Sprintf("%s:TAG", *upload), ".")
+		build.MustRunCommand("docker", "build", "--build-arg", "COMMIT="+env.Commit, "--build-arg", "VERSION="+version.WithMeta, "--build-arg", "BUILDNUM="+env.Buildnum, "--tag", fmt.Sprintf("%s:alltools-TAG", *upload), "-f", "Dockerfile.alltools", ".")
 
 		// Tag and upload the images to Docker Hub
 		for _, tag := range tags {
@@ -1010,16 +1010,16 @@ func doWindowsInstaller(cmdline []string) {
 	// Build the installer. This assumes that all the needed files have been previously
 	// built (don't mix building and packaging to keep cross compilation complexity to a
 	// minimum).
-	version := strings.Split(params.Version, ".")
+	ver := strings.Split(version.Semantic, ".")
 	if env.Commit != "" {
-		version[2] += "-" + env.Commit[:8]
+		ver[2] += "-" + env.Commit[:8]
 	}
-	installer, _ := filepath.Abs("cortex-" + archiveBasename(*arch, params.ArchiveVersion(env.Commit)) + ".exe")
+	installer, _ := filepath.Abs("cortex-" + archiveBasename(*arch, version.Archive(env.Commit)) + ".exe")
 	build.MustRunCommand("makensis.exe",
 		"/DOUTPUTFILE="+installer,
-		"/DMAJORVERSION="+version[0],
-		"/DMINORVERSION="+version[1],
-		"/DBUILDVERSION="+version[2],
+		"/DMAJORVERSION="+ver[0],
+		"/DMINORVERSION="+ver[1],
+		"/DBUILDVERSION="+ver[2],
 		"/DARCH="+*arch,
 		filepath.Join(*workdir, "cortex.nsi"),
 	)
@@ -1073,7 +1073,7 @@ func doAndroidArchive(cmdline []string) {
 	maybeSkipArchive(env)
 
 	// Sign and upload the archive to Azure
-	archive := "cortex-" + archiveBasename("android", params.ArchiveVersion(env.Commit)) + ".aar"
+	archive := "cortex-" + archiveBasename("android", version.Archive(env.Commit)) + ".aar"
 	os.Rename("cortex.aar", archive)
 
 	if err := archiveUpload(archive, *upload, *signer, *signify); err != nil {
@@ -1153,13 +1153,13 @@ func newMavenMetadata(env build.Environment) mavenMetadata {
 		}
 	}
 	// Render the version and package strings
-	version := params.Version
+	ver := version.Semantic
 	if isUnstableBuild(env) {
-		version += "-SNAPSHOT"
+		ver += "-SNAPSHOT"
 	}
 	return mavenMetadata{
-		Version:      version,
-		Package:      "cortex-" + version,
+		Version:      ver,
+		Package:      "cortex-" + ver,
 		Develop:      isUnstableBuild(env),
 		Contributors: contribs,
 	}
@@ -1194,7 +1194,7 @@ func doXCodeFramework(cmdline []string) {
 
 	// Create the archive.
 	maybeSkipArchive(env)
-	archive := "cortex-" + archiveBasename("ios", params.ArchiveVersion(env.Commit))
+	archive := "cortex-" + archiveBasename("ios", version.Archive(env.Commit))
 	if err := os.MkdirAll(archive, 0755); err != nil {
 		log.Fatal(err)
 	}
@@ -1247,7 +1247,7 @@ func newPodMetadata(env build.Environment, archive string) podMetadata {
 			}
 		}
 	}
-	version := params.Version
+	version := version.Semantic
 	if isUnstableBuild(env) {
 		version += "-unstable." + env.Buildnum
 	}

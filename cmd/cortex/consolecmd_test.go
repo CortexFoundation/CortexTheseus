@@ -24,7 +24,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CortexFoundation/CortexTheseus/params"
+	vrs "github.com/CortexFoundation/CortexTheseus/internal/version"
 )
 
 const (
@@ -130,7 +130,7 @@ func testAttachWelcome(t *testing.T, cortex *testcortex, endpoint, apis string) 
 	attach.SetTemplateFunc("goos", func() string { return runtime.GOOS })
 	attach.SetTemplateFunc("goarch", func() string { return runtime.GOARCH })
 	attach.SetTemplateFunc("gover", runtime.Version)
-	attach.SetTemplateFunc("cortexver", func() string { return params.VersionWithMeta })
+	attach.SetTemplateFunc("cortexver", func() string { return vrs.WithMeta })
 	attach.SetTemplateFunc("coinbase", func() string { return cortex.Coinbase })
 	attach.SetTemplateFunc("niltime", func() string { return time.Unix(0, 0).Format(time.RFC1123) })
 	attach.SetTemplateFunc("ipc", func() bool { return strings.HasPrefix(endpoint, "ipc") })
