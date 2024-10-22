@@ -58,7 +58,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/crypto/signify"
 	"github.com/CortexFoundation/CortexTheseus/internal/build"
 	"github.com/CortexFoundation/CortexTheseus/internal/version"
@@ -1314,8 +1313,8 @@ func doPurge(cmdline []string) {
 
 // hashSourceFiles iterates the provided set of filepaths (relative to the top-level geth project directory)
 // computing the hash of each file.
-func hashSourceFiles(files []string) (map[string]common.Hash, error) {
-	res := make(map[string]common.Hash)
+func hashSourceFiles(files []string) (map[string][32]byte, error) {
+	res := make(map[string][32]byte)
 	for _, filePath := range files {
 		f, err := os.OpenFile(filePath, os.O_RDONLY, 0666)
 		if err != nil {
@@ -1325,14 +1324,14 @@ func hashSourceFiles(files []string) (map[string]common.Hash, error) {
 		if _, err := io.Copy(hasher, f); err != nil {
 			return nil, err
 		}
-		res[filePath] = common.Hash(hasher.Sum(nil))
+		res[filePath] = [32]byte(hasher.Sum(nil))
 	}
 	return res, nil
 }
 
 // compareHashedFilesets compares two maps (key is relative file path to top-level geth directory, value is its hash)
 // and returns the list of file paths whose hashes differed.
-func compareHashedFilesets(preHashes map[string]common.Hash, postHashes map[string]common.Hash) []string {
+func compareHashedFilesets(preHashes map[string][32]byte, postHashes map[string][32]byte) []string {
 	updates := []string{}
 	for path, postHash := range postHashes {
 		preHash, ok := preHashes[path]
