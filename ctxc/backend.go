@@ -427,10 +427,10 @@ func (s *Cortex) Coinbase() (eb common.Address, err error) {
 	return common.Address{}, fmt.Errorf("coinbase must be explicitly specified")
 }
 
-func (s *Cortex) isLocalBlock(block *types.Block) bool {
-	author, err := s.engine.Author(block.Header())
+func (s *Cortex) isLocalBlock(block *types.Header) bool {
+	author, err := s.engine.Author(block)
 	if err != nil {
-		log.Warn("Failed to retrieve block author", "number", block.NumberU64(), "hash", block.Hash(), "err", err)
+		log.Warn("Failed to retrieve block author", "number", block.Number.Uint64(), "hash", block.Hash(), "err", err)
 		return false
 	}
 	// Check whether the given address is etherbase.
@@ -453,7 +453,7 @@ func (s *Cortex) isLocalBlock(block *types.Block) bool {
 // shouldPreserve checks whether we should preserve the given block
 // during the chain reorg depending on whether the author of block
 // is a local account.
-func (s *Cortex) shouldPreserve(block *types.Block) bool {
+func (s *Cortex) shouldPreserve(block *types.Header) bool {
 	// The reason we need to disable the self-reorg preserving for clique
 	// is it can be probable to introduce a deadlock.
 	//
