@@ -413,7 +413,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			commit(false, commitInterruptNewHead)
 
 		case head := <-w.chainHeadCh:
-			clearPending(head.Block.NumberU64())
+			clearPending(head.Header.Number.Uint64())
 			timestamp = time.Now().Unix()
 			commit(false, commitInterruptNewHead)
 

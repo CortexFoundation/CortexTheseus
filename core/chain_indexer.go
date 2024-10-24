@@ -218,7 +218,7 @@ func (c *ChainIndexer) eventLoop(currentHeader *types.Header, events chan ChainH
 				errc <- nil
 				return
 			}
-			header := ev.Block.Header()
+			header := ev.Header
 			if header.ParentHash != prevHash {
 				// Reorg to the common ancestor if needed (might not exist in light sync mode, skip reorg then)
 

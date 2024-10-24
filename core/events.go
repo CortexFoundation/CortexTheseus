@@ -45,4 +45,4 @@ type ChainSideEvent struct {
 	Header *types.Header
 }
 
-type ChainHeadEvent struct{ Block *types.Block }
+type ChainHeadEvent struct{ Header *types.Header }
