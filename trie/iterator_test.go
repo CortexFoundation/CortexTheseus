@@ -489,7 +489,7 @@ func (l *loggingDb) Put(key []byte, value []byte) error {
 func (l *loggingDb) Delete(key []byte) error {
 	return l.backend.Delete(key)
 }
-
+func (s *loggingDb) DeleteRange(start, end []byte) error { panic("implement me") }
 func (l *loggingDb) NewBatch() ctxcdb.Batch {
 	return l.backend.NewBatch()
 }
