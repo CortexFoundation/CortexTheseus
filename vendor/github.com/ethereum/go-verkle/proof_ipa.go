@@ -53,6 +53,9 @@ type VerkleProof struct {
 }
 
 func (vp *VerkleProof) Copy() *VerkleProof {
+	if vp == nil {
+		return nil
+	}
 	ret := &VerkleProof{
 		OtherStems:            make([][StemSize]byte, len(vp.OtherStems)),
 		DepthExtensionPresent: make([]byte, len(vp.DepthExtensionPresent)),
@@ -71,6 +74,35 @@ func (vp *VerkleProof) Copy() *VerkleProof {
 	}
 
 	return ret
+}
+
+func (vp *VerkleProof) Equal(other *VerkleProof) error {
+	if len(vp.OtherStems) != len(other.OtherStems) {
+		return fmt.Errorf("different number of other stems: %d != %d", len(vp.OtherStems), len(other.OtherStems))
+	}
+	for i := range vp.OtherStems {
+		if vp.OtherStems[i] != other.OtherStems[i] {
+			return fmt.Errorf("different other stem: %x != %x", vp.OtherStems[i], other.OtherStems[i])
+		}
+	}
+	if len(vp.DepthExtensionPresent) != len(other.DepthExtensionPresent) {
+		return fmt.Errorf("different number of depth extension present: %d != %d", len(vp.DepthExtensionPresent), len(other.DepthExtensionPresent))
+	}
+	if !bytes.Equal(vp.DepthExtensionPresent, other.DepthExtensionPresent) {
+		return fmt.Errorf("different depth extension present: %x != %x", vp.DepthExtensionPresent, other.DepthExtensionPresent)
+	}
+	if len(vp.CommitmentsByPath) != len(other.CommitmentsByPath) {
+		return fmt.Errorf("different number of commitments by path: %d != %d", len(vp.CommitmentsByPath), len(other.CommitmentsByPath))
+	}
+	for i := range vp.CommitmentsByPath {
+		if vp.CommitmentsByPath[i] != other.CommitmentsByPath[i] {
+			return fmt.Errorf("different commitment by path: %x != %x", vp.CommitmentsByPath[i], other.CommitmentsByPath[i])
+		}
+	}
+	if vp.D != other.D {
+		return fmt.Errorf("different D: %x != %x", vp.D, other.D)
+	}
+	return nil
 }
 
 type Proof struct {
@@ -116,6 +148,40 @@ func (sd StateDiff) Copy() StateDiff {
 		}
 	}
 	return ret
+}
+
+func (sd StateDiff) Equal(other StateDiff) error {
+	if len(sd) != len(other) {
+		return fmt.Errorf("different number of stem state diffs: %d != %d", len(sd), len(other))
+	}
+	for i := range sd {
+		if sd[i].Stem != other[i].Stem {
+			return fmt.Errorf("different stem: %x != %x", sd[i].Stem, other[i].Stem)
+		}
+		if len(sd[i].SuffixDiffs) != len(other[i].SuffixDiffs) {
+			return fmt.Errorf("different number of suffix state diffs: %d != %d", len(sd[i].SuffixDiffs), len(other[i].SuffixDiffs))
+		}
+		for j := range sd[i].SuffixDiffs {
+			if sd[i].SuffixDiffs[j].Suffix != other[i].SuffixDiffs[j].Suffix {
+				return fmt.Errorf("different suffix: %x != %x", sd[i].SuffixDiffs[j].Suffix, other[i].SuffixDiffs[j].Suffix)
+			}
+			if sd[i].SuffixDiffs[j].CurrentValue != nil && other[i].SuffixDiffs[j].CurrentValue != nil {
+				if *sd[i].SuffixDiffs[j].CurrentValue != *other[i].SuffixDiffs[j].CurrentValue {
+					return fmt.Errorf("different current value: %x != %x", *sd[i].SuffixDiffs[j].CurrentValue, *other[i].SuffixDiffs[j].CurrentValue)
+				}
+			} else if sd[i].SuffixDiffs[j].CurrentValue != nil || other[i].SuffixDiffs[j].CurrentValue != nil {
+				return fmt.Errorf("different current value: %x != %x", sd[i].SuffixDiffs[j].CurrentValue, other[i].SuffixDiffs[j].CurrentValue)
+			}
+			if sd[i].SuffixDiffs[j].NewValue != nil && other[i].SuffixDiffs[j].NewValue != nil {
+				if *sd[i].SuffixDiffs[j].NewValue != *other[i].SuffixDiffs[j].NewValue {
+					return fmt.Errorf("different new value: %x != %x", *sd[i].SuffixDiffs[j].NewValue, *other[i].SuffixDiffs[j].NewValue)
+				}
+			} else if sd[i].SuffixDiffs[j].NewValue != nil || other[i].SuffixDiffs[j].NewValue != nil {
+				return fmt.Errorf("different new value: %x != %x", sd[i].SuffixDiffs[j].NewValue, other[i].SuffixDiffs[j].NewValue)
+			}
+		}
+	}
+	return nil
 }
 
 func GetCommitmentsForMultiproof(root VerkleNode, keys [][]byte, resolver NodeResolverFn) (*ProofElements, []byte, []Stem, error) {
@@ -202,21 +268,21 @@ func MakeVerkleMultiProof(preroot, postroot VerkleNode, keys [][]byte, resolver 
 	return proof, pe.Cis, pe.Zis, pe.Yis, nil
 }
 
-// VerifyVerkleProofWithPreState takes a proof and a trusted tree root and verifies that the proof is valid.
-func VerifyVerkleProofWithPreState(proof *Proof, preroot VerkleNode) error {
+// verifyVerkleProofWithPreState takes a proof and a trusted tree root and verifies that the proof is valid.
+func verifyVerkleProofWithPreState(proof *Proof, preroot VerkleNode) error {
 	pe, _, _, _, err := getProofElementsFromTree(preroot, nil, proof.Keys, nil)
 	if err != nil {
 		return fmt.Errorf("error getting proof elements: %w", err)
 	}
 
-	if ok, err := VerifyVerkleProof(proof, pe.Cis, pe.Zis, pe.Yis, GetConfig()); !ok || err != nil {
+	if ok, err := verifyVerkleProof(proof, pe.Cis, pe.Zis, pe.Yis, GetConfig()); !ok || err != nil {
 		return fmt.Errorf("error verifying proof: verifies=%v, error=%w", ok, err)
 	}
 
 	return nil
 }
 
-func VerifyVerkleProof(proof *Proof, Cs []*Point, indices []uint8, ys []*Fr, tc *Config) (bool, error) {
+func verifyVerkleProof(proof *Proof, Cs []*Point, indices []uint8, ys []*Fr, tc *Config) (bool, error) {
 	tr := common.NewTranscript("vt")
 	return ipa.CheckMultiProof(tr, tc.conf, proof.Multipoint, Cs, ys, indices)
 }
@@ -555,3 +621,59 @@ type bytesSlice []Stem
 func (x bytesSlice) Len() int           { return len(x) }
 func (x bytesSlice) Less(i, j int) bool { return bytes.Compare(x[i], x[j]) < 0 }
 func (x bytesSlice) Swap(i, j int)      { x[i], x[j] = x[j], x[i] }
+
+// Verify is the API function that verifies a verkle proofs as found in a block/execution payload.
+func Verify(vp *VerkleProof, preStateRoot []byte, postStateRoot []byte, statediff StateDiff) error {
+
+	proof, err := DeserializeProof(vp, statediff)
+	if err != nil {
+		return fmt.Errorf("verkle proof deserialization error: %w", err)
+	}
+
+	rootC := new(Point)
+	if err := rootC.SetBytes(preStateRoot); err != nil {
+		return fmt.Errorf("error setting prestate root: %w", err)
+	}
+	pretree, err := PreStateTreeFromProof(proof, rootC)
+	if err != nil {
+		return fmt.Errorf("error rebuilding the pre-tree from proof: %w", err)
+	}
+	// TODO this should not be necessary, remove it
+	// after the new proof generation code has stabilized.
+	for _, stemdiff := range statediff {
+		for _, suffixdiff := range stemdiff.SuffixDiffs {
+			var key [32]byte
+			copy(key[:31], stemdiff.Stem[:])
+			key[31] = suffixdiff.Suffix
+
+			val, err := pretree.Get(key[:], nil)
+			if err != nil {
+				return fmt.Errorf("could not find key %x in tree rebuilt from proof: %w", key, err)
+			}
+			if len(val) > 0 {
+				if !bytes.Equal(val, suffixdiff.CurrentValue[:]) {
+					return fmt.Errorf("could not find correct value at %x in tree rebuilt from proof: %x != %x", key, val, *suffixdiff.CurrentValue)
+				}
+			} else {
+				if suffixdiff.CurrentValue != nil && len(suffixdiff.CurrentValue) != 0 {
+					return fmt.Errorf("could not find correct value at %x in tree rebuilt from proof: %x != %x", key, val, *suffixdiff.CurrentValue)
+				}
+			}
+		}
+	}
+
+	// TODO: this is necessary to verify that the post-values are the correct ones.
+	// But all this can be avoided with a even faster way. The EVM block execution can
+	// keep track of the written keys, and compare that list with this post-values list.
+	// This can avoid regenerating the post-tree which is somewhat expensive.
+	posttree, err := PostStateTreeFromStateDiff(pretree, statediff)
+	if err != nil {
+		return fmt.Errorf("error rebuilding the post-tree from proof: %w", err)
+	}
+	regeneratedPostTreeRoot := posttree.Commitment().Bytes()
+	if !bytes.Equal(regeneratedPostTreeRoot[:], postStateRoot) {
+		return fmt.Errorf("post tree root mismatch: %x != %x", regeneratedPostTreeRoot, postStateRoot)
+	}
+
+	return verifyVerkleProofWithPreState(proof, pretree)
+}

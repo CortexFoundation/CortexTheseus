@@ -28,7 +28,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/dgraph-io/ristretto/z"
+	"github.com/dgraph-io/ristretto/v2/z"
 )
 
 var (
@@ -52,7 +52,7 @@ type Cache[K Key, V any] struct {
 	// storedItems is the central concurrent hashmap where key-value items are stored.
 	storedItems store[V]
 	// cachePolicy determines what gets let in to the cache and what gets kicked out.
-	cachePolicy policy[V]
+	cachePolicy *defaultPolicy[V]
 	// getBuf is a custom ring buffer implementation that gets pushed to when
 	// keys are read.
 	getBuf *ringBuffer
