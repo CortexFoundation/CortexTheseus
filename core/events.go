@@ -17,7 +17,7 @@
 package core
 
 import (
-	"github.com/CortexFoundation/CortexTheseus/common"
+	//"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 )
 
@@ -37,8 +37,8 @@ type RemovedLogsEvent struct{ Logs []*types.Log }
 
 type ChainEvent struct {
 	Header *types.Header
-	Hash   common.Hash
-	Logs   []*types.Log
+	//Hash   common.Hash
+	//Logs   []*types.Log
 }
 
 type ChainSideEvent struct {
