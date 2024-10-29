@@ -29,6 +29,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb/pebble"
 	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
@@ -150,18 +151,13 @@ func benchInsertChain(b *testing.B, disk bool, gen func(int, *BlockGen)) {
 	if !disk {
 		db = rawdb.NewMemoryDatabase()
 	} else {
-		dir, err := os.MkdirTemp("", "eth-core-bench")
-		if err != nil {
-			b.Fatalf("cannot create temporary directory: %v", err)
-		}
-		defer os.RemoveAll(dir)
-		db, err = rawdb.NewLevelDBDatabase(dir, 128, 128, "", false)
+		pdb, err := pebble.New(b.TempDir(), 128, 128, "", false)
 		if err != nil {
 			b.Fatalf("cannot create temporary database: %v", err)
 		}
+		db = rawdb.NewDatabase(pdb)
 		defer db.Close()
 	}
-
 	// Generate a chain of b.N blocks using the supplied block
 	// generator function.
 	gspec := Genesis{
@@ -249,14 +245,15 @@ func makeChainForBench(db ctxcdb.Database, full bool, count uint64) {
 
 func benchWriteChain(b *testing.B, full bool, count uint64) {
 	for i := 0; i < b.N; i++ {
-		dir, err := os.MkdirTemp("", "eth-chain-bench")
+		dir, err := os.MkdirTemp("", "ctxc-chain-bench")
 		if err != nil {
 			b.Fatalf("cannot create temporary directory: %v", err)
 		}
-		db, err := rawdb.NewLevelDBDatabase(dir, 128, 1024, "", false)
+		pdb, err := pebble.New(b.TempDir(), 1024, 128, "", false)
 		if err != nil {
-			b.Fatalf("error opening database at %v: %v", dir, err)
+			b.Fatalf("error opening database: %v", err)
 		}
+		db := rawdb.NewDatabase(pdb)
 		makeChainForBench(db, full, count)
 		db.Close()
 		os.RemoveAll(dir)
@@ -270,10 +267,12 @@ func benchReadChain(b *testing.B, full bool, count uint64) {
 	}
 	defer os.RemoveAll(dir)
 
-	db, err := rawdb.NewLevelDBDatabase(dir, 128, 1024, "", false)
+	pdb, err := pebble.New(dir, 1024, 128, "", false)
 	if err != nil {
-		b.Fatalf("error opening database at %v: %v", dir, err)
+		b.Fatalf("error opening database: %v", err)
 	}
+	db := rawdb.NewDatabase(pdb)
+
 	makeChainForBench(db, full, count)
 	db.Close()
 
@@ -281,15 +280,16 @@ func benchReadChain(b *testing.B, full bool, count uint64) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		db, err := rawdb.NewLevelDBDatabase(dir, 128, 1024, "", false)
+		pdb, err = pebble.New(dir, 1024, 128, "", false)
 		if err != nil {
-			b.Fatalf("error opening database at %v: %v", dir, err)
+			b.Fatalf("error opening database: %v", err)
 		}
+		db = rawdb.NewDatabase(pdb)
 		chain, err := NewBlockChain(db, nil, params.TestChainConfig, &CuckooFakeForTest{}, vm.Config{}, nil, nil)
+
 		if err != nil {
 			b.Fatalf("error creating chain: %v", err)
 		}
-
 		for n := uint64(0); n < count; n++ {
 			header := chain.GetHeaderByNumber(n)
 			if full {

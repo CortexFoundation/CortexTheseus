@@ -66,10 +66,7 @@ func benchmarkBloomBits(b *testing.B, sectionSize uint64) {
 	benchDataDir := node.DefaultDataDir() + "/cortex/chaindata"
 	b.Log("Running bloombits benchmark   section size:", sectionSize)
 
-	db, err := rawdb.NewLevelDBDatabase(benchDataDir, 128, 1024, "", false)
-	if err != nil {
-		b.Fatalf("error opening database at %v: %v", benchDataDir, err)
-	}
+	var db = rawdb.NewMemoryDatabase()
 	head := rawdb.ReadHeadBlockHash(db)
 	if head == (common.Hash{}) {
 		b.Fatalf("chain data not found at %v", benchDataDir)
@@ -130,7 +127,7 @@ func benchmarkBloomBits(b *testing.B, sectionSize uint64) {
 	for i := 0; i < benchFilterCnt; i++ {
 		if i%20 == 0 {
 			db.Close()
-			db, _ = rawdb.NewLevelDBDatabase(benchDataDir, 128, 1024, "", false)
+			db = rawdb.NewMemoryDatabase()
 			backend = &testBackend{db: db, sections: cnt}
 			sys = NewFilterSystem(backend, Config{})
 		}
@@ -164,10 +161,7 @@ func BenchmarkNoBloomBits(b *testing.B) {
 	b.Skip("test disabled: this tests presume (and modify) an existing datadir.")
 	benchDataDir := node.DefaultDataDir() + "/cortex/chaindata"
 	b.Log("Running benchmark without bloombits")
-	db, err := rawdb.NewLevelDBDatabase(benchDataDir, 128, 1024, "", false)
-	if err != nil {
-		b.Fatalf("error opening database at %v: %v", benchDataDir, err)
-	}
+	var db = rawdb.NewMemoryDatabase()
 	head := rawdb.ReadHeadBlockHash(db)
 	if head == (common.Hash{}) {
 		b.Fatalf("chain data not found at %v", benchDataDir)
