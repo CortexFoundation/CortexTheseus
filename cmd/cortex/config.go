@@ -114,7 +114,7 @@ func defaultNodeConfig() node.Config {
 	cfg.Version = vrs.WithCommit(gitCommit, "")
 	cfg.HTTPModules = append(cfg.HTTPModules, "ctxc")
 	cfg.WSModules = append(cfg.WSModules, "ctxc")
-	cfg.IPCPath = "cortex.ipc"
+	cfg.IPCPath = clientIdentifier + ".ipc"
 	return cfg
 }
 
