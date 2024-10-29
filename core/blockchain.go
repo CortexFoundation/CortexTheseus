@@ -531,7 +531,15 @@ func (bc *BlockChain) SetHead(head uint64) error {
 		return err
 	}
 	// Send chain head event to update the transaction pool
-	bc.chainHeadFeed.Send(ChainHeadEvent{Header: bc.CurrentHeader()})
+	if block := bc.CurrentBlock(); block == nil {
+		// This should never happen. In practice, previously currentBlock
+		// contained the entire block whereas now only a "marker", so there
+		// is an ever so slight chance for a race we should handle.
+		log.Error("Current block not found in database", "block", block.Number(), "hash", block.Hash())
+		return fmt.Errorf("current block missing: #%d [%x..]", block.Number(), block.Hash().Bytes()[:4])
+	} else {
+		bc.chainHeadFeed.Send(ChainHeadEvent{Header: block.Header()})
+	}
 	return nil
 }
 
@@ -544,7 +552,15 @@ func (bc *BlockChain) SetHeadWithTimestamp(timestamp uint64) error {
 		return err
 	}
 	// Send chain head event to update the transaction pool
-	bc.chainHeadFeed.Send(ChainHeadEvent{Header: bc.CurrentHeader()})
+	if block := bc.CurrentBlock(); block == nil {
+		// This should never happen. In practice, previously currentBlock
+		// contained the entire block whereas now only a "marker", so there
+		// is an ever so slight chance for a race we should handle.
+		log.Error("Current block not found in database", "block", block.Number(), "hash", block.Hash())
+		return fmt.Errorf("current block missing: #%d [%x..]", block.Number(), block.Hash().Bytes()[:4])
+	} else {
+		bc.chainHeadFeed.Send(ChainHeadEvent{Header: block.Header()})
+	}
 	return nil
 }
 
@@ -1566,7 +1582,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 	// Fire a single chain head event if we've progressed the chain
 	defer func() {
 		if lastCanon != nil && bc.CurrentBlock().Hash() == lastCanon.Hash() {
-			bc.chainHeadFeed.Send(ChainHeadEvent{lastCanon.Header()})
+			bc.chainHeadFeed.Send(ChainHeadEvent{Header: lastCanon.Header()})
 		}
 	}()
 	// Start the parallel header verifier
