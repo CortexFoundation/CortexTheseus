@@ -316,9 +316,15 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			}
 		}
 
-		if err != nil || !contract.UseGas(cost) {
-			log.Debug("Interpreter", "cost", cost, "err", err, "cgas", cgas)
+		if err != nil {
 			return nil, ErrOutOfGas
+		}
+
+		// for tracing: this gas consumption event is emitted below in the debug section.
+		if contract.Gas < cost {
+			return nil, ErrOutOfGas
+		} else {
+			contract.Gas -= cost
 		}
 
 		if memorySize > 0 {
