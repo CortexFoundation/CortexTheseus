@@ -245,7 +245,7 @@ func (s *stateObject) GetCommittedState(key common.Hash) common.Hash {
 	// Whilst this would be a bit weird if snapshots are disabled, but we still
 	// want the trie nodes to end up in the prefetcher too, so just push through.
 	if s.db.prefetcher != nil && s.data.Root != types.EmptyRootHash {
-		if err = s.db.prefetcher.prefetch(s.addrHash, s.origin.Root, s.address, [][]byte{key[:]}, true); err != nil {
+		if err = s.db.prefetcher.prefetch(s.addrHash, s.origin.Root, s.address, nil, []common.Hash{key}, true); err != nil {
 			log.Error("Failed to prefetch storage slot", "addr", s.address, "key", key, "err", err)
 		}
 	}
@@ -281,14 +281,14 @@ func (s *stateObject) setState(key common.Hash, value common.Hash, origin common
 // finalise moves all dirty storage slots into the pending area to be hashed or
 // committed later. It is invoked at the end of every transaction.
 func (s *stateObject) finalise() {
-	slotsToPrefetch := make([][]byte, 0, len(s.dirtyStorage))
+	slotsToPrefetch := make([]common.Hash, 0, len(s.dirtyStorage))
 	for key, value := range s.dirtyStorage {
 		// If the slot is different from its original value, move it into the
 		// pending area to be committed at the end of the block (and prefetch
 		// the pathways).
 		if value != s.originStorage[key] {
 			s.pendingStorage[key] = value
-			slotsToPrefetch = append(slotsToPrefetch, common.CopyBytes(key[:])) // Copy needed for closure
+			slotsToPrefetch = append(slotsToPrefetch, key) // Copy needed for closure
 		} else {
 			// Otherwise, the slot was reverted to its original value, remove it
 			// from the pending area to avoid thrashing the data structure.
@@ -296,7 +296,7 @@ func (s *stateObject) finalise() {
 		}
 	}
 	if s.db.prefetcher != nil && len(slotsToPrefetch) > 0 && s.data.Root != types.EmptyRootHash {
-		if err := s.db.prefetcher.prefetch(s.addrHash, s.data.Root, s.address, slotsToPrefetch, false); err != nil {
+		if err := s.db.prefetcher.prefetch(s.addrHash, s.data.Root, s.address, nil, slotsToPrefetch, false); err != nil {
 			log.Error("Failed to prefetch slots", "addr", s.address, "slots", len(slotsToPrefetch), "err", err)
 		}
 	}
@@ -343,7 +343,6 @@ func (s *stateObject) updateTrie() (Trie, error) {
 		origin  map[common.Hash][]byte
 	)
 	// Insert all the pending storage updates into the trie
-	usedStorage := make([][]byte, 0, len(s.pendingStorage))
 
 	hasher := hasherPool.Get().(crypto.KeccakState)
 	defer hasherPool.Put(hasher)
@@ -358,7 +357,10 @@ func (s *stateObject) updateTrie() (Trie, error) {
 	// If the deletion is handled first, then `P` would be left with only one child, thus collapsed
 	// into a shortnode. This requires `B` to be resolved from disk.
 	// Whereas if the created node is handled first, then the collapse is avoided, and `B` is not resolved.
-	var deletions []common.Hash
+	var (
+		deletions []common.Hash
+		used      = make([]common.Hash, 0, len(s.pendingStorage))
+	)
 	for key, value := range s.pendingStorage {
 		// Skip noop changes, persist actual changes
 		if value == s.originStorage[key] {
@@ -411,7 +413,7 @@ func (s *stateObject) updateTrie() (Trie, error) {
 			}
 		}
 		// Cache the items for preloading
-		usedStorage = append(usedStorage, common.CopyBytes(key[:])) // Copy needed for closure
+		used = append(used, key) // Copy needed for closure
 	}
 	for _, key := range deletions {
 		if err := tr.TryDelete(key[:]); err != nil {
@@ -420,13 +422,9 @@ func (s *stateObject) updateTrie() (Trie, error) {
 		}
 		s.db.StorageDeleted.Add(1)
 	}
-	// If no slots were touched, issue a warning as we shouldn't have done all
-	// the above work in the first place
-	if len(usedStorage) == 0 {
-		log.Error("State object update was noop", "addr", s.address, "slots", len(s.pendingStorage))
-	}
+
 	if s.db.prefetcher != nil {
-		s.db.prefetcher.used(s.addrHash, s.data.Root, usedStorage)
+		s.db.prefetcher.used(s.addrHash, s.data.Root, nil, used)
 	}
 
 	s.pendingStorage = make(Storage) // reset pending map
