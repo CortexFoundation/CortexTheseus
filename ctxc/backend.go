@@ -44,6 +44,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/internal/ctxcapi"
 	"github.com/CortexFoundation/CortexTheseus/internal/shutdowncheck"
+	"github.com/CortexFoundation/CortexTheseus/internal/version"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/miner"
 	"github.com/CortexFoundation/CortexTheseus/node"
@@ -54,6 +55,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
+	vrs "github.com/CortexFoundation/CortexTheseus/version"
 	"github.com/CortexFoundation/inference/synapse"
 	"github.com/CortexFoundation/torrentfs"
 )
@@ -168,7 +170,7 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 	if !config.SkipBcVersionCheck {
 		if bcVersion != nil && *bcVersion > core.BlockChainVersion {
 			if bcVersion != nil {
-				return nil, fmt.Errorf("database version is v%d, Ctxc %s only supports v%d", *bcVersion, params.VersionWithMeta, core.BlockChainVersion)
+				return nil, fmt.Errorf("database version is v%d, Ctxc %s only supports v%d", *bcVersion, version.WithMeta, core.BlockChainVersion)
 			}
 		} else if bcVersion == nil || *bcVersion < core.BlockChainVersion {
 			log.Warn("Upgrade blockchain database version", "from", dbVer, "to", core.BlockChainVersion)
@@ -270,7 +272,7 @@ func makeExtraData(extra []byte) []byte {
 	if len(extra) == 0 {
 		// create default extradata
 		extra, _ = rlp.EncodeToBytes([]any{
-			uint(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch),
+			uint(vrs.Major<<16 | vrs.Minor<<8 | vrs.Patch),
 			"cortex",
 			runtime.Version(),
 			runtime.GOOS,

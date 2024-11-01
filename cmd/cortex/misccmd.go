@@ -27,8 +27,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/ctxc"
 
-	// "github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
-	"github.com/CortexFoundation/CortexTheseus/params"
+	vrs "github.com/CortexFoundation/CortexTheseus/internal/version"
 )
 
 var (
@@ -109,7 +108,7 @@ The output of this command is supposed to be machine-readable.
 
 func version(ctx *cli.Context) error {
 	fmt.Println(strings.Title(clientIdentifier))
-	fmt.Println("Version:", params.VersionWithMeta)
+	fmt.Println("Version:", vrs.WithMeta)
 	if gitCommit != "" {
 		fmt.Println("Git Commit:", gitCommit)
 	}

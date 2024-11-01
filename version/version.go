@@ -14,29 +14,29 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the CortexFoundation library. If not, see <http://www.gnu.org/licenses/>.
 
-package params
+package version
 
 import (
 	"fmt"
 )
 
 const (
-	VersionMajor = 1          // Major version component of the current release
-	VersionMinor = 10         // Minor version component of the current release
-	VersionPatch = 60         // Patch version component of the current release
-	VersionMeta  = "unstable" // Version metadata to append to the version string
+	Major = 1          // Major version component of the current release
+	Minor = 10         // Minor version component of the current release
+	Patch = 60         // Patch version component of the current release
+	Meta  = "unstable" // Version metadata to append to the version string
 )
 
 // Version holds the textual version string.
 var Version = func() string {
-	return fmt.Sprintf("%d.%d.%d", VersionMajor, VersionMinor, VersionPatch)
+	return fmt.Sprintf("%d.%d.%d", Major, Minor, Patch)
 }()
 
 // VersionWithMeta holds the textual version string including the metadata.
 var VersionWithMeta = func() string {
 	v := Version
-	if VersionMeta != "" {
-		v += "-" + VersionMeta
+	if Meta != "" {
+		v += "-" + Meta
 	}
 	return v
 }()
@@ -47,8 +47,8 @@ var VersionWithMeta = func() string {
 //	"1.8.13-unstable-21c059b6" for unstable releases
 func ArchiveVersion(gitCommit string) string {
 	vsn := Version
-	if VersionMeta != "stable" {
-		vsn += "-" + VersionMeta
+	if Meta != "stable" {
+		vsn += "-" + Meta
 	}
 	if len(gitCommit) >= 8 {
 		vsn += "-" + gitCommit[:8]
@@ -61,7 +61,7 @@ func VersionWithCommit(gitCommit, gitDate string) string {
 	if len(gitCommit) >= 8 {
 		vsn += "-" + gitCommit[:8]
 	}
-	if (VersionMeta != "stable") && (gitDate != "") {
+	if (Meta != "stable") && (gitDate != "") {
 		vsn += "-" + gitDate
 	}
 	return vsn

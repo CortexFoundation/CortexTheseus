@@ -23,34 +23,49 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/CortexFoundation/CortexTheseus/params"
+	"github.com/CortexFoundation/CortexTheseus/version"
 )
 
 const ourPath = "github.com/CortexFoundation/CortexTheseus" // Path to our module
 
-// These variables are set at build-time by the linker when the build is
-// done by build/ci.go.
-var gitCommit, gitDate string
+// Family holds the textual version string for major.minor
+var Family = fmt.Sprintf("%d.%d", version.Major, version.Minor)
 
-// VCSInfo represents the git repository state.
-type VCSInfo struct {
-	Commit string // head commit hash
-	Date   string // commit time in YYYYMMDD format
-	Dirty  bool
+// Semantic holds the textual version string for major.minor.patch.
+var Semantic = fmt.Sprintf("%d.%d.%d", version.Major, version.Minor, version.Patch)
+
+// WithMeta holds the textual version string including the metadata.
+var WithMeta = func() string {
+	v := Semantic
+	if version.Meta != "" {
+		v += "-" + version.Meta
+	}
+	return v
+}()
+
+func WithCommit(gitCommit, gitDate string) string {
+	vsn := WithMeta
+	if len(gitCommit) >= 8 {
+		vsn += "-" + gitCommit[:8]
+	}
+	if (version.Meta != "stable") && (gitDate != "") {
+		vsn += "-" + gitDate
+	}
+	return vsn
 }
 
-// VCS returns version control information of the current executable.
-func VCS() (VCSInfo, bool) {
-	if gitCommit != "" {
-		// Use information set by the build script if present.
-		return VCSInfo{Commit: gitCommit, Date: gitDate}, true
+// Archive holds the textual version string used for Geth archives. e.g.
+// "1.8.11-dea1ce05" for stable releases, or "1.8.13-unstable-21c059b6" for unstable
+// releases.
+func Archive(gitCommit string) string {
+	vsn := Semantic
+	if version.Meta != "stable" {
+		vsn += "-" + version.Meta
 	}
-	if buildInfo, ok := debug.ReadBuildInfo(); ok {
-		if buildInfo.Main.Path == ourPath {
-			return buildInfoVCS(buildInfo)
-		}
+	if len(gitCommit) >= 8 {
+		vsn += "-" + gitCommit[:8]
 	}
-	return VCSInfo{}, false
+	return vsn
 }
 
 // ClientName creates a software name/version identifier according to common
@@ -59,7 +74,7 @@ func ClientName(clientIdentifier string) string {
 	git, _ := VCS()
 	return fmt.Sprintf("%s/v%v/%v-%v/%v",
 		strings.Title(clientIdentifier),
-		params.VersionWithCommit(git.Commit, git.Date),
+		WithCommit(git.Commit, git.Date),
 		runtime.GOOS, runtime.GOARCH,
 		runtime.Version(),
 	)
@@ -72,7 +87,7 @@ func ClientName(clientIdentifier string) string {
 // it will assume it's imported by a third-party and will return the imported
 // version and whether it was replaced by another module.
 func Info() (version, vcs string) {
-	version = params.VersionWithMeta
+	version = WithMeta
 	buildInfo, ok := debug.ReadBuildInfo()
 	if !ok {
 		return version, ""
@@ -99,9 +114,9 @@ func Info() (version, vcs string) {
 // information. If it is unable to determine which module is related to our
 // package it falls back to the hardcoded values in the params package.
 func versionInfo(info *debug.BuildInfo) string {
-	// If the main package is from our repo, prefix version with "geth".
+	// If the main package is from our repo, prefix version with "cortex".
 	if strings.HasPrefix(info.Path, ourPath) {
-		return fmt.Sprintf("geth %s", info.Main.Version)
+		return fmt.Sprintf("cortex %s", info.Main.Version)
 	}
 	// Not our main package, so explicitly print out the module path and
 	// version.
@@ -115,7 +130,7 @@ func versionInfo(info *debug.BuildInfo) string {
 		// If our module path wasn't imported, it's unclear which
 		// version of our code they are running. Fallback to hardcoded
 		// version.
-		return version + fmt.Sprintf("geth %s", params.VersionWithMeta)
+		return version + fmt.Sprintf("cortex %s", WithMeta)
 	}
 	// Our package is a dependency for the main module. Return path and
 	// version data for both.

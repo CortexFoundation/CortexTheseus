@@ -47,6 +47,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/consensus/clique"
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
 	"github.com/CortexFoundation/CortexTheseus/core"
+	"github.com/CortexFoundation/CortexTheseus/internal/version"
 
 	//"github.com/CortexFoundation/CortexTheseus/ctxc/tracers"
 	"github.com/CortexFoundation/CortexTheseus/core/txpool"
@@ -122,7 +123,7 @@ func NewApp(gitCommit, usage string) *cli.App {
 	app.HelpName = "cortex"
 	app.Author = "Cortex Labs"
 	app.Email = "support@cortexlabs.ai"
-	app.Version = params.VersionWithMeta
+	app.Version = version.WithMeta
 	if len(gitCommit) >= 8 {
 		app.Version += "-" + gitCommit[:8]
 	}

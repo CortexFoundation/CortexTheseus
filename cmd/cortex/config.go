@@ -40,9 +40,9 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/ctxc"
+	vrs "github.com/CortexFoundation/CortexTheseus/internal/version"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/node"
-	"github.com/CortexFoundation/CortexTheseus/params"
 	whisper "github.com/CortexFoundation/CortexTheseus/whisper/whisperv6"
 )
 
@@ -111,7 +111,7 @@ func loadConfig(file string, cfg *cortexConfig) error {
 func defaultNodeConfig() node.Config {
 	cfg := node.DefaultConfig
 	cfg.Name = clientIdentifier
-	cfg.Version = params.VersionWithCommit(gitCommit, "")
+	cfg.Version = vrs.WithCommit(gitCommit, "")
 	cfg.HTTPModules = append(cfg.HTTPModules, "ctxc")
 	cfg.WSModules = append(cfg.WSModules, "ctxc")
 	cfg.IPCPath = "cortex.ipc"

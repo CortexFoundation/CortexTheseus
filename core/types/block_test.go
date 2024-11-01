@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"hash"
-	gomath "math"
 	"math/big"
 	"reflect"
 	"testing"

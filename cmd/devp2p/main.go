@@ -25,8 +25,8 @@ import (
 	"gopkg.in/urfave/cli.v1"
 
 	"github.com/CortexFoundation/CortexTheseus/internal/debug"
+	"github.com/CortexFoundation/CortexTheseus/internal/version"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
-	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
 var (
@@ -36,7 +36,7 @@ var (
 	app       = &cli.App{
 		Name:        filepath.Base(os.Args[0]),
 		Usage:       "CortexTheseus devp2p tool",
-		Version:     params.VersionWithCommit(gitCommit, gitDate),
+		Version:     version.WithCommit(gitCommit, gitDate),
 		Writer:      os.Stdout,
 		HideVersion: true,
 	}
