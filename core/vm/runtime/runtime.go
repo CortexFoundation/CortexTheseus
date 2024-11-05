@@ -112,14 +112,16 @@ func Execute(code, input []byte, cfg *Config) ([]byte, *state.StateDB, error) {
 	// set the receiver's (the executing contract) code for execution.
 	cfg.State.SetCode(address, code)
 	// Call the code with the given configuration.
-	ret, _, _, err := vmenv.Call(
+	ret, leftOverGas, _, err := vmenv.Call(
 		sender,
 		common.BytesToAddress([]byte("contract")),
 		input,
 		cfg.GasLimit,
 		cfg.Value,
 	)
-
+	if cfg.CVMConfig.Tracer != nil && cfg.CVMConfig.Tracer.OnTxEnd != nil {
+		cfg.CVMConfig.Tracer.OnTxEnd(&types.Receipt{GasUsed: cfg.GasLimit - leftOverGas}, err)
+	}
 	return ret, cfg.State, err
 }
 
@@ -145,6 +147,9 @@ func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
 		cfg.GasLimit,
 		cfg.Value,
 	)
+	if cfg.CVMConfig.Tracer != nil && cfg.CVMConfig.Tracer.OnTxEnd != nil {
+		cfg.CVMConfig.Tracer.OnTxEnd(&types.Receipt{GasUsed: cfg.GasLimit - leftOverGas}, err)
+	}
 	return code, address, leftOverGas, err
 }
 
@@ -167,6 +172,8 @@ func Call(address common.Address, input []byte, cfg *Config) ([]byte, uint64, er
 		cfg.GasLimit,
 		cfg.Value,
 	)
-
+	if cfg.CVMConfig.Tracer != nil && cfg.CVMConfig.Tracer.OnTxEnd != nil {
+		cfg.CVMConfig.Tracer.OnTxEnd(&types.Receipt{GasUsed: cfg.GasLimit - leftOverGas}, err)
+	}
 	return ret, leftOverGas, err
 }
