@@ -42,6 +42,7 @@ type account struct {
 	Code    []byte                      `json:"code,omitempty"`
 	Nonce   uint64                      `json:"nonce,omitempty"`
 	Storage map[common.Hash]common.Hash `json:"storage,omitempty"`
+	empty   bool
 }
 
 func (a *account) exists() bool {
@@ -68,7 +69,9 @@ type prestateTracer struct {
 }
 
 type prestateTracerConfig struct {
-	DiffMode bool `json:"diffMode"` // If true, this tracer will return state modifications
+	DiffMode       bool `json:"diffMode"`       // If true, this tracer will return state modifications
+	DisableCode    bool `json:"disableCode"`    // If true, this tracer will not return the contract code
+	DisableStorage bool `json:"disableStorage"` // If true, this tracer will not return the contract storage
 }
 
 func newPrestateTracer(ctx *tracers.Context, cfg json.RawMessage) (tracers.Tracer, error) {
@@ -126,7 +129,7 @@ func (t *prestateTracer) CaptureEnd(output []byte, gasUsed uint64, err error) {
 
 	if t.create {
 		// Keep existing account prior to contract creation at that address
-		if s := t.pre[t.to]; s != nil && !s.exists() {
+		if s := t.pre[t.to]; s != nil && s.empty {
 			// Exclude newly created contract.
 			delete(t.pre, t.to)
 		}
@@ -203,7 +206,6 @@ func (t *prestateTracer) CaptureTxEnd(restGas uint64) {
 		postAccount := &account{Storage: make(map[common.Hash]common.Hash)}
 		newBalance := t.env.StateDB.GetBalance(addr)
 		newNonce := t.env.StateDB.GetNonce(addr)
-		newCode := t.env.StateDB.GetCode(addr)
 
 		if newBalance.Cmp(t.pre[addr].Balance) != 0 {
 			modified = true
@@ -213,25 +215,30 @@ func (t *prestateTracer) CaptureTxEnd(restGas uint64) {
 			modified = true
 			postAccount.Nonce = newNonce
 		}
-		if !bytes.Equal(newCode, t.pre[addr].Code) {
-			modified = true
-			postAccount.Code = newCode
+		if !t.config.DisableCode {
+			newCode := t.env.StateDB.GetCode(addr)
+			if !bytes.Equal(newCode, t.pre[addr].Code) {
+				modified = true
+				postAccount.Code = newCode
+			}
 		}
 
-		for key, val := range state.Storage {
-			// don't include the empty slot
-			if val == (common.Hash{}) {
-				delete(t.pre[addr].Storage, key)
-			}
+		if !t.config.DisableStorage {
+			for key, val := range state.Storage {
+				// don't include the empty slot
+				if val == (common.Hash{}) {
+					delete(t.pre[addr].Storage, key)
+				}
 
-			newVal := t.env.StateDB.GetState(addr, key)
-			if val == newVal {
-				// Omit unchanged slots
-				delete(t.pre[addr].Storage, key)
-			} else {
-				modified = true
-				if newVal != (common.Hash{}) {
-					postAccount.Storage[key] = newVal
+				newVal := t.env.StateDB.GetState(addr, key)
+				if val == newVal {
+					// Omit unchanged slots
+					delete(t.pre[addr].Storage, key)
+				} else {
+					modified = true
+					if newVal != (common.Hash{}) {
+						postAccount.Storage[key] = newVal
+					}
 				}
 			}
 		}
@@ -284,18 +291,31 @@ func (t *prestateTracer) lookupAccount(addr common.Address) {
 		return
 	}
 
-	t.pre[addr] = &account{
+	acc := &account{
 		Balance: t.env.StateDB.GetBalance(addr),
 		Nonce:   t.env.StateDB.GetNonce(addr),
 		Code:    t.env.StateDB.GetCode(addr),
-		Storage: make(map[common.Hash]common.Hash),
 	}
+	if !acc.exists() {
+		acc.empty = true
+	}
+	// The code must be fetched first for the emptiness check.
+	if t.config.DisableCode {
+		acc.Code = nil
+	}
+	if !t.config.DisableStorage {
+		acc.Storage = make(map[common.Hash]common.Hash)
+	}
+	t.pre[addr] = acc
 }
 
 // lookupStorage fetches the requested storage slot and adds
 // it to the prestate of the given contract. It assumes `lookupAccount`
 // has been performed on the contract before.
 func (t *prestateTracer) lookupStorage(addr common.Address, key common.Hash) {
+	if t.config.DisableStorage {
+		return
+	}
 	if _, ok := t.pre[addr].Storage[key]; ok {
 		return
 	}
