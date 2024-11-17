@@ -177,7 +177,7 @@ func TestAccountIteratorTraversal(t *testing.T) {
 	head := snaps.Snapshot(common.HexToHash("0x04"))
 
 	verifyIterator(t, 3, head.(snapshot).AccountIterator(common.Hash{}))
-	verifyIterator(t, 7, head.(*diffLayer).newBinaryAccountIterator())
+	verifyIterator(t, 7, head.(*diffLayer).newBinaryAccountIterator(common.Hash{}))
 
 	it, _ := snaps.AccountIterator(common.HexToHash("0x04"), common.Hash{})
 	defer it.Release()
@@ -289,7 +289,7 @@ func TestAccountIteratorLargeTraversal(t *testing.T) {
 	// Iterate the entire stack and ensure everything is hit only once
 	head := snaps.Snapshot(common.HexToHash("0x80"))
 	verifyIterator(t, 200, head.(snapshot).AccountIterator(common.Hash{}))
-	verifyIterator(t, 200, head.(*diffLayer).newBinaryAccountIterator())
+	verifyIterator(t, 200, head.(*diffLayer).newBinaryAccountIterator(common.Hash{}))
 
 	it, _ := snaps.AccountIterator(common.HexToHash("0x80"), common.Hash{})
 	defer it.Release()
@@ -472,12 +472,12 @@ func BenchmarkAccountIteratorTraversal(b *testing.B) {
 	// We call this once before the benchmark, so the creation of
 	// sorted accountlists are not included in the results.
 	head := snaps.Snapshot(common.HexToHash("0x65"))
-	head.(*diffLayer).newBinaryAccountIterator()
+	head.(*diffLayer).newBinaryAccountIterator(common.Hash{})
 
 	b.Run("binary iterator keys", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			got := 0
-			it := head.(*diffLayer).newBinaryAccountIterator()
+			it := head.(*diffLayer).newBinaryAccountIterator(common.Hash{})
 			for it.Next() {
 				got++
 			}
@@ -489,7 +489,7 @@ func BenchmarkAccountIteratorTraversal(b *testing.B) {
 	b.Run("binary iterator values", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			got := 0
-			it := head.(*diffLayer).newBinaryAccountIterator()
+			it := head.(*diffLayer).newBinaryAccountIterator(common.Hash{})
 			for it.Next() {
 				got++
 				head.(*diffLayer).accountRLP(it.Hash(), 0)
@@ -569,12 +569,12 @@ func BenchmarkAccountIteratorLargeBaselayer(b *testing.B) {
 	// We call this once before the benchmark, so the creation of
 	// sorted accountlists are not included in the results.
 	head := snaps.Snapshot(common.HexToHash("0x65"))
-	head.(*diffLayer).newBinaryAccountIterator()
+	head.(*diffLayer).newBinaryAccountIterator(common.Hash{})
 
 	b.Run("binary iterator (keys)", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			got := 0
-			it := head.(*diffLayer).newBinaryAccountIterator()
+			it := head.(*diffLayer).newBinaryAccountIterator(common.Hash{})
 			for it.Next() {
 				got++
 			}
@@ -586,7 +586,7 @@ func BenchmarkAccountIteratorLargeBaselayer(b *testing.B) {
 	b.Run("binary iterator (values)", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			got := 0
-			it := head.(*diffLayer).newBinaryAccountIterator()
+			it := head.(*diffLayer).newBinaryAccountIterator(common.Hash{})
 			for it.Next() {
 				got++
 				v := it.Hash()
@@ -631,7 +631,7 @@ func BenchmarkAccountIteratorLargeBaselayer(b *testing.B) {
 /*
 func BenchmarkBinaryAccountIteration(b *testing.B) {
 	benchmarkAccountIteration(b, func(snap snapshot) AccountIterator {
-		return snap.(*diffLayer).newBinaryAccountIterator()
+		return snap.(*diffLayer).newBinaryAccountIterator(common.Hash{})
 	})
 }
 
