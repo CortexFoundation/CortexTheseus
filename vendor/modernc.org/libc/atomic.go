@@ -45,7 +45,7 @@ func _a_ctz_l(tls *TLS, x ulong) int32 {
 
 // static inline int a_ctz_64(uint64_t x)
 func _a_ctz_64(tls *TLS, x uint64) int32 {
-	return int32(mbits.TrailingZeros64(uint64(x)))
+	return int32(mbits.TrailingZeros64(x))
 }
 
 func AtomicAddFloat32(addr *float32, delta float32) (new float32) {

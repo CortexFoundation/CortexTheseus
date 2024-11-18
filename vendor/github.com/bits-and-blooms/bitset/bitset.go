@@ -106,9 +106,17 @@ func From(buf []uint64) *BitSet {
 	return FromWithLength(uint(len(buf))*64, buf)
 }
 
-// FromWithLength constructs from an array of words and length.
-func FromWithLength(len uint, set []uint64) *BitSet {
-	return &BitSet{len, set}
+// FromWithLength constructs from an array of words and length in bits.
+// This function is for advanced users, most users should prefer
+// the From function.
+// As a user of FromWithLength, you are responsible for ensuring
+// that the length is correct: your slice should have length at
+// least (length+63)/64 in 64-bit words.
+func FromWithLength(length uint, set []uint64) *BitSet {
+	if len(set) < wordsNeeded(length) {
+		panic("BitSet.FromWithLength: slice is too short")
+	}
+	return &BitSet{length, set}
 }
 
 // Bytes returns the bitset as array of 64-bit words, giving direct access to the internal representation.
@@ -195,6 +203,26 @@ func (b *BitSet) Test(i uint) bool {
 		return false
 	}
 	return b.set[i>>log2WordSize]&(1<<wordsIndex(i)) != 0
+}
+
+// GetWord64AtBit retrieves bits i through i+63 as a single uint64 value
+func (b *BitSet) GetWord64AtBit(i uint) uint64 {
+	firstWordIndex := int(i >> log2WordSize)
+	subWordIndex := wordsIndex(i)
+
+	// The word that the index falls within, shifted so the index is at bit 0
+	var firstWord, secondWord uint64
+	if firstWordIndex < len(b.set) {
+		firstWord = b.set[firstWordIndex] >> subWordIndex
+	}
+
+	// The next word, masked to only include the necessary bits and shifted to cover the
+	// top of the word
+	if (firstWordIndex + 1) < len(b.set) {
+		secondWord = b.set[firstWordIndex+1] << uint64(wordSize-subWordIndex)
+	}
+
+	return firstWord | secondWord
 }
 
 // Set bit i to 1, the capacity of the bitset is automatically
