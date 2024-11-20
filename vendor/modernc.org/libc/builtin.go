@@ -73,7 +73,7 @@ func X__builtin_clzl(t *TLS, n ulong) int32 {
 }
 
 func X__builtin_clzll(t *TLS, n uint64) int32 {
-	return int32(mbits.LeadingZeros64(uint64(n)))
+	return int32(mbits.LeadingZeros64(n))
 }
 func X__builtin_constant_p_impl() { panic(todo("internal error: should never be called")) }
 

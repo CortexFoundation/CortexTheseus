@@ -1,4 +1,12 @@
-## 0.109.0 (Unreleased)
+## 0.110.0 (Unreleased)
+
+## 0.109.0 (November 6th, 2024)
+
+ENHANCEMENTS:
+
+* access_application: add support for controlling schema strictness in Access SCIM application provisioning mappings ([#3510](https://github.com/cloudflare/cloudflare-go/issues/3510))
+* regional_hostname: add support for `routing` attribute ([#3560](https://github.com/cloudflare/cloudflare-go/issues/3560))
+* snippets: add missing delete and get a single snippet methods ([#3529](https://github.com/cloudflare/cloudflare-go/issues/3529))
 
 ## 0.108.0 (October 23rd, 2024)
 
