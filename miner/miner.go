@@ -62,7 +62,7 @@ type Config struct {
 var DefaultConfig = Config{
 	GasFloor: params.MinerGasFloor,
 	GasCeil:  params.MinerGasCeil,
-	GasPrice: big.NewInt(params.GWei / 1000),
+	GasPrice: big.NewInt(params.GWei),
 	Recommit: 3 * time.Second,
 }
 
