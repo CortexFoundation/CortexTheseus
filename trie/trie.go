@@ -151,7 +151,7 @@ func (t *Trie) tryGet(origNode node, key []byte, pos int) (value []byte, newnode
 	case valueNode:
 		return n, n, false, nil
 	case *shortNode:
-		if len(key)-pos < len(n.Key) || !bytes.Equal(n.Key, key[pos:pos+len(n.Key)]) {
+		if !bytes.HasPrefix(key[pos:], n.Key) {
 			// key not found in trie
 			return nil, n, false, nil
 		}
@@ -190,10 +190,7 @@ func (t *Trie) TryGetNode(path []byte) ([]byte, int, error) {
 	if resolved > 0 {
 		t.root = newroot
 	}
-	if item == nil {
-		return nil, resolved, nil
-	}
-	return item, resolved, err
+	return item, resolved, nil
 }
 
 func (t *Trie) tryGetNode(origNode node, path []byte, pos int) (item []byte, newnode node, resolved int, err error) {
@@ -225,7 +222,7 @@ func (t *Trie) tryGetNode(origNode node, path []byte, pos int) (item []byte, new
 		return nil, nil, 0, nil
 
 	case *shortNode:
-		if len(path)-pos < len(n.Key) || !bytes.Equal(n.Key, path[pos:pos+len(n.Key)]) {
+		if !bytes.HasPrefix(path[pos:], n.Key) {
 			// Path branches off from short node
 			return nil, n, 0, nil
 		}
