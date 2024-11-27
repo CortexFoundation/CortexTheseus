@@ -17,6 +17,7 @@
 package core
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -274,6 +275,24 @@ func (bc *BlockChain) GetTransactionLookup(hash common.Hash) (*rawdb.LegacyTxLoo
 
 	tx, blockHash, blockNumber, txIndex := rawdb.ReadTransaction(bc.db, hash)
 	if tx == nil {
+		progress, err := bc.TxIndexProgress()
+		if err != nil {
+			// No error is returned if the transaction indexing progress is unreachable
+			// due to unexpected internal errors. In such cases, it is impossible to
+			// determine whether the transaction does not exist or has simply not been
+			// indexed yet without a progress marker.
+			//
+			// In such scenarios, the transaction is treated as unreachable, though
+			// this is clearly an unintended and unexpected situation.
+			return nil, nil, nil
+		}
+		// The transaction indexing is not finished yet, returning an
+		// error to explicitly indicate it.
+		if !progress.Done() {
+			return nil, nil, errors.New("transaction indexing still in progress")
+		}
+		// The transaction is already indexed, the transaction is either
+		// not existent or not in the range of index, returning null.
 		return nil, nil, nil
 	}
 
@@ -382,6 +401,14 @@ func (bc *BlockChain) GasLimit() uint64 {
 // Genesis retrieves the chain's genesis block.
 func (bc *BlockChain) Genesis() *types.Block {
 	return bc.genesisBlock
+}
+
+// TxIndexProgress returns the transaction indexing progress.
+func (bc *BlockChain) TxIndexProgress() (TxIndexProgress, error) {
+	if bc.txIndexer == nil {
+		return TxIndexProgress{}, errors.New("tx indexer is not enabled")
+	}
+	return bc.txIndexer.txIndexProgress()
 }
 
 // GetVMConfig returns the block chain VM config.

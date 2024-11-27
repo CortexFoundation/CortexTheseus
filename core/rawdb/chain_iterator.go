@@ -178,7 +178,7 @@ func iterateTransactions(db ctxcdb.Database, from uint64, to uint64, reverse boo
 //
 // There is a passed channel, the whole procedure will be interrupted if any
 // signal received.
-func indexTransactions(db ctxcdb.Database, from uint64, to uint64, interrupt chan struct{}, hook func(uint64) bool) {
+func indexTransactions(db ctxcdb.Database, from uint64, to uint64, interrupt chan struct{}, hook func(uint64) bool, report bool) {
 	// short circuit for invalid range
 	if from >= to {
 		return
@@ -240,11 +240,15 @@ func indexTransactions(db ctxcdb.Database, from uint64, to uint64, interrupt cha
 		log.Crit("Failed writing batch to db", "error", err)
 		return
 	}
+	logger := log.Debug
+	if report {
+		logger = log.Info
+	}
 	select {
 	case <-interrupt:
-		log.Debug("Transaction indexing interrupted", "blocks", blocks, "txs", txs, "tail", lastNum, "elapsed", common.PrettyDuration(time.Since(start)))
+		logger("Transaction indexing interrupted", "blocks", blocks, "txs", txs, "tail", lastNum, "elapsed", common.PrettyDuration(time.Since(start)))
 	default:
-		log.Debug("Indexed transactions", "blocks", blocks, "txs", txs, "tail", lastNum, "elapsed", common.PrettyDuration(time.Since(start)))
+		logger("Indexed transactions", "blocks", blocks, "txs", txs, "tail", lastNum, "elapsed", common.PrettyDuration(time.Since(start)))
 	}
 }
 
@@ -257,20 +261,20 @@ func indexTransactions(db ctxcdb.Database, from uint64, to uint64, interrupt cha
 //
 // There is a passed channel, the whole procedure will be interrupted if any
 // signal received.
-func IndexTransactions(db ctxcdb.Database, from uint64, to uint64, interrupt chan struct{}) {
-	indexTransactions(db, from, to, interrupt, nil)
+func IndexTransactions(db ctxcdb.Database, from uint64, to uint64, interrupt chan struct{}, report bool) {
+	indexTransactions(db, from, to, interrupt, nil, report)
 }
 
 // indexTransactionsForTesting is the internal debug version with an additional hook.
 func indexTransactionsForTesting(db ctxcdb.Database, from uint64, to uint64, interrupt chan struct{}, hook func(uint64) bool) {
-	indexTransactions(db, from, to, interrupt, hook)
+	indexTransactions(db, from, to, interrupt, hook, false)
 }
 
 // unindexTransactions removes txlookup indices of the specified block range.
 //
 // There is a passed channel, the whole procedure will be interrupted if any
 // signal received.
-func unindexTransactions(db ctxcdb.Database, from uint64, to uint64, interrupt chan struct{}, hook func(uint64) bool) {
+func unindexTransactions(db ctxcdb.Database, from uint64, to uint64, interrupt chan struct{}, hook func(uint64) bool, report bool) {
 	// short circuit for invalid range
 	if from >= to {
 		return
@@ -332,11 +336,15 @@ func unindexTransactions(db ctxcdb.Database, from uint64, to uint64, interrupt c
 		log.Crit("Failed writing batch to db", "error", err)
 		return
 	}
+	logger := log.Debug
+	if report {
+		logger = log.Info
+	}
 	select {
 	case <-interrupt:
-		log.Debug("Transaction unindexing interrupted", "blocks", blocks, "txs", txs, "tail", to, "elapsed", common.PrettyDuration(time.Since(start)))
+		logger("Transaction unindexing interrupted", "blocks", blocks, "txs", txs, "tail", to, "elapsed", common.PrettyDuration(time.Since(start)))
 	default:
-		log.Debug("Unindexed transactions", "blocks", blocks, "txs", txs, "tail", to, "elapsed", common.PrettyDuration(time.Since(start)))
+		logger("Unindexed transactions", "blocks", blocks, "txs", txs, "tail", to, "elapsed", common.PrettyDuration(time.Since(start)))
 	}
 }
 
@@ -345,11 +353,11 @@ func unindexTransactions(db ctxcdb.Database, from uint64, to uint64, interrupt c
 //
 // There is a passed channel, the whole procedure will be interrupted if any
 // signal received.
-func UnindexTransactions(db ctxcdb.Database, from uint64, to uint64, interrupt chan struct{}) {
-	unindexTransactions(db, from, to, interrupt, nil)
+func UnindexTransactions(db ctxcdb.Database, from uint64, to uint64, interrupt chan struct{}, report bool) {
+	unindexTransactions(db, from, to, interrupt, nil, report)
 }
 
 // unindexTransactionsForTesting is the internal debug version with an additional hook.
 func unindexTransactionsForTesting(db ctxcdb.Database, from uint64, to uint64, interrupt chan struct{}, hook func(uint64) bool) {
-	unindexTransactions(db, from, to, interrupt, hook)
+	unindexTransactions(db, from, to, interrupt, hook, false)
 }

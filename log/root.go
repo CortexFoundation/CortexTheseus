@@ -38,7 +38,7 @@ func Root() Logger {
 //	log.Trace("msg")
 //	log.Trace("msg", "key1", val1)
 //	log.Trace("msg", "key1", val1, "key2", val2)
-func Trace(msg string, ctx ...any) {
+func Trace(msg string, ctx ...interface{}) {
 	Root().Write(LevelTrace, msg, ctx...)
 }
 
@@ -51,7 +51,7 @@ func Trace(msg string, ctx ...any) {
 //	log.Debug("msg")
 //	log.Debug("msg", "key1", val1)
 //	log.Debug("msg", "key1", val1, "key2", val2)
-func Debug(msg string, ctx ...any) {
+func Debug(msg string, ctx ...interface{}) {
 	Root().Write(slog.LevelDebug, msg, ctx...)
 }
 
