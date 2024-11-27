@@ -151514,14 +151514,6 @@ func Xfsync(tls *TLS, fd int32) (r int32) {
 	return X__syscall_ret(tls, uint32(___syscall_cp(tls, int32(SYS_fsync), fd, 0, 0, 0, 0, 0)))
 }
 
-func Xftruncate(tls *TLS, fd int32, length Toff_t) (r int32) {
-	if __ccgo_strace {
-		trc("tls=%v fd=%v length=%v, (%v:)", tls, fd, length, origin(2))
-		defer func() { trc("-> %v", r) }()
-	}
-	return X__syscall_ret(tls, uint32(X__syscall2(tls, int32(SYS_ftruncate64), fd, int32(length))))
-}
-
 func Xgetcwd(tls *TLS, buf uintptr, size Tsize_t) (r uintptr) {
 	if __ccgo_strace {
 		trc("tls=%v buf=%v size=%v, (%v:)", tls, buf, size, origin(2))
@@ -151880,14 +151872,6 @@ func Xpwritev(tls *TLS, fd int32, iov uintptr, count int32, ofs Toff_t) (r Tssiz
 	return X__syscall_ret(tls, uint32(___syscall_cp(tls, int32(SYS_pwritev), fd, int32(iov), count, int32(ofs), int32(ofs>>Int32FromInt32(32)), 0)))
 }
 
-func Xread(tls *TLS, fd int32, buf uintptr, count Tsize_t) (r Tssize_t) {
-	if __ccgo_strace {
-		trc("tls=%v fd=%v buf=%v count=%v, (%v:)", tls, fd, buf, count, origin(2))
-		defer func() { trc("-> %v", r) }()
-	}
-	return X__syscall_ret(tls, uint32(___syscall_cp(tls, int32(SYS_read), fd, int32(buf), int32(count), 0, 0, 0)))
-}
-
 func Xreadlink(tls *TLS, path uintptr, buf uintptr, bufsize Tsize_t) (r1 Tssize_t) {
 	if __ccgo_strace {
 		trc("tls=%v path=%v buf=%v bufsize=%v, (%v:)", tls, path, buf, bufsize, origin(2))
@@ -152235,14 +152219,6 @@ func Xusleep(tls *TLS, useconds uint32) (r int32) {
 		Ftv_nsec: int32(useconds % uint32(1000000) * uint32(1000)),
 	}
 	return Xnanosleep(tls, bp, bp)
-}
-
-func Xwrite(tls *TLS, fd int32, buf uintptr, count Tsize_t) (r Tssize_t) {
-	if __ccgo_strace {
-		trc("tls=%v fd=%v buf=%v count=%v, (%v:)", tls, fd, buf, count, origin(2))
-		defer func() { trc("-> %v", r) }()
-	}
-	return X__syscall_ret(tls, uint32(___syscall_cp(tls, int32(SYS_write), fd, int32(buf), int32(count), 0, 0, 0)))
 }
 
 func Xwritev(tls *TLS, fd int32, iov uintptr, count int32) (r Tssize_t) {
