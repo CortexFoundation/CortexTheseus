@@ -138,13 +138,15 @@ type Agent struct {
 	udpMux      UDPMux
 	udpMuxSrflx UniversalUDPMux
 
-	interfaceFilter func(string) bool
-	ipFilter        func(net.IP) bool
+	interfaceFilter func(string) (keep bool)
+	ipFilter        func(net.IP) (keep bool)
 	includeLoopback bool
 
 	insecureSkipVerify bool
 
 	proxyDialer proxy.Dialer
+
+	enableUseCandidateCheckPriority bool
 }
 
 // NewAgent creates a new Agent
@@ -219,6 +221,8 @@ func NewAgent(config *AgentConfig) (*Agent, error) { //nolint:gocognit
 		disableActiveTCP: config.DisableActiveTCP,
 
 		userBindingRequestHandler: config.BindingRequestHandler,
+
+		enableUseCandidateCheckPriority: config.EnableUseCandidateCheckPriority,
 	}
 	a.connectionStateNotifier = &handlerNotifier{connectionStateFunc: a.onConnectionStateChange, done: make(chan struct{})}
 	a.candidateNotifier = &handlerNotifier{candidateFunc: a.onCandidate, done: make(chan struct{})}
@@ -1218,4 +1222,8 @@ func (a *Agent) setGatheringState(newState GatheringState) error {
 
 	<-done
 	return nil
+}
+
+func (a *Agent) needsToCheckPriorityOnNominated() bool {
+	return !a.lite || a.enableUseCandidateCheckPriority
 }
