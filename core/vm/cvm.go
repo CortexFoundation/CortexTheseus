@@ -127,11 +127,10 @@ type CVM struct {
 
 // NewCVM returns a new CVM. The returned CVM is not thread safe and should
 // only ever be used *once*.
-func NewCVM(blockCtx BlockContext, txCtx TxContext, statedb StateDB, chainConfig *params.ChainConfig, vmConfig Config) *CVM {
+func NewCVM(blockCtx BlockContext, statedb StateDB, chainConfig *params.ChainConfig, vmConfig Config) *CVM {
 
 	cvm := &CVM{
 		Context:     blockCtx,
-		TxContext:   txCtx,
 		StateDB:     statedb,
 		vmConfig:    vmConfig,
 		chainConfig: chainConfig,
@@ -149,6 +148,10 @@ func NewCVM(blockCtx BlockContext, txCtx TxContext, statedb StateDB, chainConfig
 func (cvm *CVM) Reset(txCtx TxContext, statedb StateDB) {
 	cvm.TxContext = txCtx
 	cvm.StateDB = statedb
+}
+
+func (cvm *CVM) SetTxContext(txCtx TxContext) {
+	cvm.TxContext = txCtx
 }
 
 // Cancel cancels any running CVM operation. This may be called concurrently and

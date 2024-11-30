@@ -232,9 +232,8 @@ func (b *CortexAPIBackend) GetTd(ctx context.Context, blockHash common.Hash) *bi
 
 func (b *CortexAPIBackend) GetCVM(ctx context.Context, msg *core.Message, state *state.StateDB, header *types.Header, vmCfg vm.Config) *vm.CVM {
 
-	txContext := core.NewCVMTxContext(msg)
 	context := core.NewCVMBlockContext(header, b.ctxc.BlockChain(), nil)
-	return vm.NewCVM(context, txContext, state, b.ctxc.chainConfig, vmCfg)
+	return vm.NewCVM(context, state, b.ctxc.chainConfig, vmCfg)
 }
 
 func (b *CortexAPIBackend) SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription {

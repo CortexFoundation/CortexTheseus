@@ -193,7 +193,8 @@ func NewStateTransition(cvm *vm.CVM, msg *Message, gp *GasPool, qp *QuotaPool) *
 // indicates a core error meaning that the message would always fail for that particular
 // state and would never be accepted within a block.
 func ApplyMessage(cvm *vm.CVM, msg *Message, gp *GasPool, qp *QuotaPool) (*ExecutionResult, error) {
-	return NewStateTransition(cvm, msg, gp, qp).TransitionDb()
+	cvm.SetTxContext(NewCVMTxContext(msg))
+	return NewStateTransition(cvm, msg, gp, qp).execute()
 }
 
 // to returns the recipient of the message.
@@ -291,10 +292,10 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 		return
 	}
 }*/
-// TransitionDb will transition the state by applying the current message and
+// execute will transition the state by applying the current message and
 // returning the result including the used gas. It returns an error if failed.
 // An error indicates a consensus issue.
-func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
+func (st *StateTransition) execute() (*ExecutionResult, error) {
 	if err := st.preCheck(); err != nil {
 		return nil, err
 	}

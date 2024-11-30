@@ -416,13 +416,12 @@ func (api *PrivateDebugAPI) computeTxEnv(blockHash common.Hash, txIndex int, ree
 	for idx, tx := range block.Transactions() {
 		// Assemble the transaction call message and return if the requested offset
 		msg, _ := core.TransactionToMessage(tx, signer)
-		txContext := core.NewCVMTxContext(msg)
 		context := core.NewCVMBlockContext(block.Header(), api.ctxc.blockchain, nil)
 		if idx == txIndex {
 			return msg, context, statedb, nil
 		}
 		// Not yet the searched for transaction, execute on top of the current state
-		vmenv := vm.NewCVM(context, txContext, statedb, api.config, vm.Config{})
+		vmenv := vm.NewCVM(context, statedb, api.config, vm.Config{})
 		if _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(tx.Gas()), new(core.QuotaPool).AddQuota(math.MaxUint64)); err != nil {
 			return nil, vm.BlockContext{}, nil, fmt.Errorf("tx %x failed: %v", tx.Hash(), err)
 		}
