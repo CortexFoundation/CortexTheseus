@@ -148,11 +148,11 @@ type AgentConfig struct {
 
 	// InterfaceFilter is a function that you can use in order to whitelist or blacklist
 	// the interfaces which are used to gather ICE candidates.
-	InterfaceFilter func(string) bool
+	InterfaceFilter func(string) (keep bool)
 
 	// IPFilter is a function that you can use in order to whitelist or blacklist
 	// the ips which are used to gather ICE candidates.
-	IPFilter func(net.IP) bool
+	IPFilter func(net.IP) (keep bool)
 
 	// InsecureSkipVerify controls if self-signed certificates are accepted when connecting
 	// to TURN servers via TLS or DTLS
@@ -200,6 +200,13 @@ type AgentConfig struct {
 	// * Implement draft-thatcher-ice-renomination
 	// * Implement custom CandidatePair switching logic
 	BindingRequestHandler func(m *stun.Message, local, remote Candidate, pair *CandidatePair) bool
+
+	// EnableUseCandidateCheckPriority can be used to enable checking for equal or higher priority to
+	// switch selected candidate pair if the peer requests USE-CANDIDATE and agent is a lite agent.
+	// This is disabled by default, i. e. when peer requests USE-CANDIDATE, the selected pair will be
+	// switched to that irrespective of relative priority between current selected pair
+	// and priority of the pair being switched to.
+	EnableUseCandidateCheckPriority bool
 }
 
 // initWithDefaults populates an agent and falls back to defaults if fields are unset

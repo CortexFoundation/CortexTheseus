@@ -145,7 +145,10 @@ func wordsIndex(i uint) uint {
 	return i & (wordSize - 1)
 }
 
-// New creates a new BitSet with a hint that length bits will be required
+// New creates a new BitSet with a hint that length bits will be required.
+// The memory usage is at least length/8 bytes.
+// In case of allocation failure, the function will return a BitSet with zero
+// capacity.
 func New(length uint) (bset *BitSet) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -599,6 +602,56 @@ func (b *BitSet) NextClear(i uint) (uint, bool) {
 	return 0, false
 }
 
+// PreviousSet returns the previous set bit from the specified index,
+// including possibly the current index
+// along with an error code (true = valid, false = no bit found i.e. all bits are clear)
+func (b *BitSet) PreviousSet(i uint) (uint, bool) {
+	x := int(i >> log2WordSize)
+	if x >= len(b.set) {
+		return 0, false
+	}
+	w := b.set[x]
+	// Clear the bits above the index
+	w = w & ((1 << (wordsIndex(i) + 1)) - 1)
+	if w != 0 {
+		return uint(x<<log2WordSize) + len64(w) - 1, true
+	}
+	for x--; x >= 0; x-- {
+		w = b.set[x]
+		if w != 0 {
+			return uint(x<<log2WordSize) + len64(w) - 1, true
+		}
+	}
+	return 0, false
+}
+
+// PreviousClear returns the previous clear bit from the specified index,
+// including possibly the current index
+// along with an error code (true = valid, false = no clear bit found i.e. all bits are set)
+func (b *BitSet) PreviousClear(i uint) (uint, bool) {
+	x := int(i >> log2WordSize)
+	if x >= len(b.set) {
+		return 0, false
+	}
+	w := b.set[x]
+	// Flip all bits and find the highest one bit
+	w = ^w
+	// Clear the bits above the index
+	w = w & ((1 << (wordsIndex(i) + 1)) - 1)
+	if w != 0 {
+		return uint(x<<log2WordSize) + len64(w) - 1, true
+	}
+
+	for x--; x >= 0; x-- {
+		w = b.set[x]
+		w = ^w
+		if w != 0 {
+			return uint(x<<log2WordSize) + len64(w) - 1, true
+		}
+	}
+	return 0, false
+}
+
 // ClearAll clears the entire BitSet.
 // It does not free the memory.
 func (b *BitSet) ClearAll() *BitSet {
@@ -627,7 +680,8 @@ func (b *BitSet) wordCount() int {
 	return wordsNeededUnbound(b.length)
 }
 
-// Clone this BitSet
+// Clone this BitSet, returning a new BitSet that has the same bits set.
+// In case of allocation failure, the function will return an empty BitSet.
 func (b *BitSet) Clone() *BitSet {
 	c := New(b.length)
 	if b.set != nil { // Clone should not modify current object
@@ -785,6 +839,7 @@ func sortByLength(a *BitSet, b *BitSet) (ap *BitSet, bp *BitSet) {
 
 // Intersection of base set and other set
 // This is the BitSet equivalent of & (and)
+// In case of allocation failure, the function will return an empty BitSet.
 func (b *BitSet) Intersection(compare *BitSet) (result *BitSet) {
 	panicIfNull(b)
 	panicIfNull(compare)
@@ -959,6 +1014,7 @@ func (b *BitSet) cleanLastWord() {
 }
 
 // Complement computes the (local) complement of a bitset (up to length bits)
+// In case of allocation failure, the function will return an empty BitSet.
 func (b *BitSet) Complement() (result *BitSet) {
 	panicIfNull(b)
 	result = New(b.length)
