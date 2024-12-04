@@ -18,6 +18,7 @@
 package types
 
 import (
+	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -296,13 +297,6 @@ func NewBlock(header *Header, body *Body, receipts []*Receipt, hasher Hasher) *B
 	return b
 }
 
-// NewBlockWithHeader creates a block with the given header data. The
-// header data is copied, changes to header and to the field values
-// will not affect the block.
-func NewBlockWithHeader(header *Header) *Block {
-	return &Block{header: CopyHeader(header)}
-}
-
 // CopyHeader creates a deep copy of a block header to prevent side effects from
 // modifying a header variable.
 func CopyHeader(h *Header) *Header {
@@ -422,6 +416,28 @@ func (c *writeCounter) Write(b []byte) (int, error) {
 
 func CalcUncleHash(uncles []*Header) common.Hash {
 	return rlpHash(uncles)
+}
+
+// CalcRequestsHash creates the block requestsHash value for a list of requests.
+func CalcRequestsHash(requests [][]byte) common.Hash {
+	h1, h2 := sha256.New(), sha256.New()
+	var buf common.Hash
+	for _, item := range requests {
+		if len(item) > 1 { // skip items with only requestType and no data.
+			h1.Reset()
+			h1.Write(item)
+			h2.Write(h1.Sum(buf[:0]))
+		}
+	}
+	h2.Sum(buf[:0])
+	return buf
+}
+
+// NewBlockWithHeader creates a block with the given header data. The
+// header data is copied, changes to header and to the field values
+// will not affect the block.
+func NewBlockWithHeader(header *Header) *Block {
+	return &Block{header: CopyHeader(header)}
 }
 
 // WithSeal returns a new block with the data from b but the header replaced with
