@@ -52,7 +52,7 @@ func (p *statePrefetcher) Prefetch(block *types.Block, statedb *state.StateDB, c
 		header       = block.Header()
 		gaspool      = new(GasPool).AddGas(block.GasLimit())
 		blockContext = NewCVMBlockContext(header, p.bc, nil)
-		cvm          = vm.NewCVM(blockContext, vm.TxContext{}, statedb, p.config, cfg)
+		cvm          = vm.NewCVM(blockContext, statedb, p.config, cfg)
 		signer       = types.MakeSigner(p.config, header.Number, header.Time)
 		quotaPool    = NewQuotaPool(header.Quota)
 	)

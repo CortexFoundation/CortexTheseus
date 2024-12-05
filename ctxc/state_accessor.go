@@ -206,13 +206,12 @@ func (ctxc *Cortex) stateAtTransaction(block *types.Block, txIndex int, reexec u
 	for idx, tx := range block.Transactions() {
 		// Assemble the transaction call message and return if the requested offset
 		msg, _ := core.TransactionToMessage(tx, signer)
-		txContext := core.NewCVMTxContext(msg)
 		context := core.NewCVMBlockContext(block.Header(), ctxc.blockchain, nil)
 		if idx == txIndex {
 			return msg, context, statedb, release, nil
 		}
 		// Not yet the searched for transaction, execute on top of the current state
-		vmenv := vm.NewCVM(context, txContext, statedb, ctxc.blockchain.Config(), vm.Config{})
+		vmenv := vm.NewCVM(context, statedb, ctxc.blockchain.Config(), vm.Config{})
 		statedb.SetTxContext(tx.Hash(), idx)
 		if _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(tx.Gas()), new(core.QuotaPool).AddQuota(block.Quota())); err != nil {
 			return nil, vm.BlockContext{}, nil, nil, fmt.Errorf("transaction %#x failed: %v", tx.Hash(), err)

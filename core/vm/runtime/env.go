@@ -22,10 +22,6 @@ import (
 )
 
 func NewEnv(cfg *Config) *vm.CVM {
-	txContext := vm.TxContext{
-		Origin:   cfg.Origin,
-		GasPrice: cfg.GasPrice,
-	}
 	blockContext := vm.BlockContext{
 		CanTransfer: core.CanTransfer,
 		Transfer:    core.Transfer,
@@ -38,5 +34,5 @@ func NewEnv(cfg *Config) *vm.CVM {
 		Random:      cfg.Random,
 	}
 
-	return vm.NewCVM(blockContext, txContext, cfg.State, cfg.ChainConfig, cfg.CVMConfig)
+	return vm.NewCVM(blockContext, cfg.State, cfg.ChainConfig, cfg.CVMConfig)
 }

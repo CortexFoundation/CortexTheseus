@@ -92,7 +92,7 @@ func init() {
 func testTwoOperandOp(t *testing.T, tests []TwoOperandTestcase, opFn executionFunc, name string) {
 
 	var (
-		env            = NewCVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
+		env            = NewCVM(BlockContext{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
 		pc             = uint64(0)
 		cvmInterpreter = env.interpreter
@@ -191,7 +191,7 @@ func TestSAR(t *testing.T) {
 
 func TestAddMod(t *testing.T) {
 	var (
-		env            = NewCVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
+		env            = NewCVM(BlockContext{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
 		cvmInterpreter = NewCVMInterpreter(env)
 		pc             = uint64(0)
@@ -230,7 +230,7 @@ func TestAddMod(t *testing.T) {
 // getResult is a convenience function to generate the expected values
 func getResult(args []*twoOperandParams, opFn executionFunc) []TwoOperandTestcase {
 	var (
-		env         = NewCVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
+		env         = NewCVM(BlockContext{}, nil, params.TestChainConfig, Config{})
 		stack       = newstack()
 		pc          = uint64(0)
 		interpreter = env.interpreter
@@ -280,7 +280,7 @@ func TestJsonTestcases(t *testing.T) {
 
 func opBenchmark(bench *testing.B, op executionFunc, args ...string) {
 	var (
-		env            = NewCVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
+		env            = NewCVM(BlockContext{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
 		cvmInterpreter = NewCVMInterpreter(env)
 	)
@@ -514,7 +514,7 @@ func BenchmarkOpIsZero(b *testing.B) {
 
 func TestOpMstore(t *testing.T) {
 	var (
-		env            = NewCVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
+		env            = NewCVM(BlockContext{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
 		mem            = NewMemory()
 		cvmInterpreter = NewCVMInterpreter(env)
@@ -538,7 +538,7 @@ func TestOpMstore(t *testing.T) {
 
 func BenchmarkOpMstore(bench *testing.B) {
 	var (
-		env            = NewCVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
+		env            = NewCVM(BlockContext{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
 		mem            = NewMemory()
 		cvmInterpreter = NewCVMInterpreter(env)
@@ -559,7 +559,7 @@ func BenchmarkOpMstore(bench *testing.B) {
 
 func BenchmarkOpSHA3(bench *testing.B) {
 	var (
-		env            = NewCVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
+		env            = NewCVM(BlockContext{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
 		mem            = NewMemory()
 		cvmInterpreter = NewCVMInterpreter(env)

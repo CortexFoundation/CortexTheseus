@@ -92,7 +92,7 @@ func TestEIP2200(t *testing.T) {
 			CanTransfer: func(StateDB, common.Address, *big.Int) bool { return true },
 			Transfer:    func(StateDB, common.Address, common.Address, *big.Int) {},
 		}
-		vmenv := NewCVM(vmctx, TxContext{}, statedb, params.AllCuckooProtocolChanges, Config{ExtraEips: []int{2200}})
+		vmenv := NewCVM(vmctx, statedb, params.AllCuckooProtocolChanges, Config{ExtraEips: []int{2200}})
 
 		_, gas, _, err := vmenv.Call(AccountRef(common.Address{}), address, nil, tt.gaspool, new(big.Int))
 		if !errors.Is(err, tt.failure) {

@@ -77,7 +77,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	//}
 	var (
 		blockContext = NewCVMBlockContext(header, p.bc, nil)
-		vmenv        = vm.NewCVM(blockContext, vm.TxContext{}, statedb, p.config, cfg)
+		vmenv        = vm.NewCVM(blockContext, statedb, p.config, cfg)
 		signer       = types.MakeSigner(p.config, header.Number, header.Time)
 	)
 	// Iterate over and process the individual transactions
@@ -166,8 +166,6 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 		return nil, err
 	}
 	// Create a new context to be used in the CVM environment
-	blockContext := NewCVMBlockContext(header, bc, author)
-	txContext := NewCVMTxContext(msg)
-	vmenv := vm.NewCVM(blockContext, txContext, statedb, config, cfg)
+	vmenv := vm.NewCVM(NewCVMBlockContext(header, bc, author), statedb, config, cfg)
 	return applyTransaction(msg, config, gp, qp, statedb, header, header.Number, header.Hash(), tx, usedGas, vmenv)
 }

@@ -561,9 +561,8 @@ func (api *API) IntermediateRoots(ctx context.Context, hash common.Hash, config 
 	)
 	for i, tx := range block.Transactions() {
 		var (
-			msg, _    = core.TransactionToMessage(tx, signer)
-			txContext = core.NewCVMTxContext(msg)
-			vmenv     = vm.NewCVM(vmctx, txContext, statedb, chainConfig, vm.Config{})
+			msg, _ = core.TransactionToMessage(tx, signer)
+			vmenv  = vm.NewCVM(vmctx, statedb, chainConfig, vm.Config{})
 		)
 		statedb.SetTxContext(tx.Hash(), i)
 		if _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(msg.GasLimit), new(core.QuotaPool).AddQuota(block.Quota())); err != nil {
@@ -661,7 +660,7 @@ func (api *API) traceBlock(ctx context.Context, block *types.Block, config *Trac
 		// Generate the next state snapshot fast without tracing
 		msg, _ := core.TransactionToMessage(tx, signer)
 		statedb.SetTxContext(tx.Hash(), i)
-		vmenv := vm.NewCVM(blockCtx, core.NewCVMTxContext(msg), statedb, api.backend.ChainConfig(), vm.Config{})
+		vmenv := vm.NewCVM(blockCtx, statedb, api.backend.ChainConfig(), vm.Config{})
 		if _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(msg.GasLimit), new(core.QuotaPool).AddQuota(block.Quota())); err != nil {
 			failed = err
 			break
@@ -742,12 +741,11 @@ func (api *API) standardTraceBlockToFile(ctx context.Context, block *types.Block
 	for i, tx := range block.Transactions() {
 		// Prepare the transaction for un-traced execution
 		var (
-			msg, _    = core.TransactionToMessage(tx, signer)
-			txContext = core.NewCVMTxContext(msg)
-			vmConf    vm.Config
-			dump      *os.File
-			writer    *bufio.Writer
-			err       error
+			msg, _ = core.TransactionToMessage(tx, signer)
+			vmConf vm.Config
+			dump   *os.File
+			writer *bufio.Writer
+			err    error
 		)
 		// If the transaction needs tracing, swap out the configs
 		if tx.Hash() == txHash || txHash == (common.Hash{}) {
@@ -770,7 +768,7 @@ func (api *API) standardTraceBlockToFile(ctx context.Context, block *types.Block
 			}
 		}
 		// Execute the transaction and flush any traces to disk
-		vmenv := vm.NewCVM(vmctx, txContext, statedb, chainConfig, vmConf)
+		vmenv := vm.NewCVM(vmctx, statedb, chainConfig, vmConf)
 		statedb.SetTxContext(tx.Hash(), i)
 		_, err = core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(msg.GasLimit), new(core.QuotaPool).AddQuota(block.Quota()))
 		if writer != nil {
@@ -912,10 +910,9 @@ func (api *API) TraceCall(ctx context.Context, args ctxcapi.CallArgs, blockNrOrH
 // be tracer dependent.
 func (api *API) traceTx(ctx context.Context, message *core.Message, txctx *Context, vmctx vm.BlockContext, statedb *state.StateDB, config *TraceConfig) (any, error) {
 	var (
-		tracer    Tracer
-		err       error
-		timeout   = defaultTraceTimeout
-		txContext = core.NewCVMTxContext(message)
+		tracer  Tracer
+		err     error
+		timeout = defaultTraceTimeout
 	)
 	if config == nil {
 		config = &TraceConfig{}
@@ -928,7 +925,7 @@ func (api *API) traceTx(ctx context.Context, message *core.Message, txctx *Conte
 			return nil, err
 		}
 	}
-	vmenv := vm.NewCVM(vmctx, txContext, statedb, api.backend.ChainConfig(), vm.Config{Tracer: tracer})
+	vmenv := vm.NewCVM(vmctx, statedb, api.backend.ChainConfig(), vm.Config{Tracer: tracer})
 	// Define a meaningful timeout of a single transaction trace
 	if config.Timeout != nil {
 		if timeout, err = time.ParseDuration(*config.Timeout); err != nil {
