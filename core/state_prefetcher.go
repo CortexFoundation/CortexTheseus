@@ -72,7 +72,10 @@ func (p *statePrefetcher) Prefetch(block *types.Block, statedb *state.StateDB, c
 			return // Also invalid block, bail out
 		}
 		statedb.SetTxContext(tx.Hash(), i)
-		if err := precacheTransaction(msg, p.config, gaspool, quotaPool, statedb, header, cvm); err != nil {
+
+		// We attempt to apply a transaction. The goal is not to execute
+		// the transaction successfully, rather to warm up touched data slots.
+		if _, err := ApplyMessage(cvm, msg, gaspool, quotaPool); err != nil {
 			return // Ugh, something went horribly wrong, bail out
 		}
 		// If we're pre-byzantium, pre-load trie nodes for the intermediate root
@@ -84,14 +87,4 @@ func (p *statePrefetcher) Prefetch(block *types.Block, statedb *state.StateDB, c
 	if byzantium {
 		statedb.IntermediateRoot(true)
 	}
-}
-
-// precacheTransaction attempts to apply a transaction to the given state database
-// and uses the input parameters for its environment. The goal is not to execute
-// the transaction successfully, rather to warm up touched data slots.
-func precacheTransaction(msg *Message, config *params.ChainConfig, gaspool *GasPool, quotaPool *QuotaPool, statedb *state.StateDB, header *types.Header, cvm *vm.CVM) error {
-	cvm.Reset(NewCVMTxContext(msg), statedb)
-
-	_, err := ApplyMessage(cvm, msg, gaspool, quotaPool)
-	return err
 }
