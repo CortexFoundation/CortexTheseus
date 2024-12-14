@@ -137,14 +137,18 @@ func applyTransaction(msg *Message, config *params.ChainConfig, gp *GasPool, qp 
 	}
 
 	*usedGas += result.UsedGas
+	return MakeReceipt(cvm, result, statedb, blockNumber, blockHash, tx, *usedGas, root), nil
+}
 
+// MakeReceipt generates the receipt object for a transaction given its execution result.
+func MakeReceipt(cvm *vm.CVM, result *ExecutionResult, statedb *state.StateDB, blockNumber *big.Int, blockHash common.Hash, tx *types.Transaction, usedGas uint64, root []byte) *types.Receipt {
 	// Create a new receipt for the transaction, storing the intermediate root and gas used
 	// by the tx.
-	receipt := types.NewReceipt(root, result.Failed(), *usedGas)
+	receipt := types.NewReceipt(root, result.Failed(), usedGas)
 	receipt.TxHash = tx.Hash()
 	receipt.GasUsed = result.UsedGas
 	// if the transaction created a contract, store the creation address in the receipt.
-	if msg.To == nil {
+	if tx.To() == nil {
 		receipt.ContractAddress = crypto.CreateAddress(cvm.TxContext.Origin, tx.Nonce())
 	}
 	// Set the receipt logs and create a bloom for filtering
@@ -153,7 +157,7 @@ func applyTransaction(msg *Message, config *params.ChainConfig, gp *GasPool, qp 
 	receipt.BlockHash = blockHash
 	receipt.BlockNumber = blockNumber
 	receipt.TransactionIndex = uint(statedb.TxIndex())
-	return receipt, err
+	return receipt
 }
 
 // ApplyTransaction attempts to apply a transaction to the given state database
