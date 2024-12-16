@@ -1,16 +1,5 @@
-// Copyright 2020 ConsenSys Software Inc.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Copyright 2020-2024 Consensys Software Inc.
+// Licensed under the Apache License, Version 2.0. See the LICENSE file for details.
 
 package bavard
 
@@ -39,30 +28,30 @@ func helpers() template.FuncMap {
 		"div":        div,
 		"divides":    divides,
 		"first":      first,
-		"gt":		  gt,
+		"gt":         gt,
 		"interval":   interval,
 		"iterate":    iterate,
-		"select":	_select,
+		"select":     _select,
 		"last":       last,
 		"list":       makeSlice,
 		"log":        fmt.Println,
-		"lt":		  lt,
-		"mod":       mod,
-		"mul":       mul,
-		"mul2":      mul2,
-		"noFirst":   noFirst,
-		"noLast":    noLast,
-		"notNil":    notNil,
-		"pretty":    pretty,
-		"printList": printList,
-		"reverse":   reverse,
-		"sub":       sub,
-		"supScr":    toSuperscript,
-		"toInt64":   toInt64,
-		"toLower":   strings.ToLower,
-		"toTitle":   strings.Title,
-		"toUpper":   strings.ToUpper,
-		"words64":   bigIntToUint64SliceAsString,
+		"lt":         lt,
+		"mod":        mod,
+		"mul":        mul,
+		"mul2":       mul2,
+		"noFirst":    noFirst,
+		"noLast":     noLast,
+		"notNil":     notNil,
+		"pretty":     pretty,
+		"printList":  printList,
+		"reverse":    reverse,
+		"sub":        sub,
+		"supScr":     toSuperscript,
+		"toInt64":    toInt64,
+		"toLower":    strings.ToLower,
+		"toTitle":    strings.Title,
+		"toUpper":    strings.ToUpper,
+		"words64":    bigIntToUint64SliceAsString,
 	}
 }
 
@@ -109,7 +98,7 @@ func gt(a, b interface{}) (bool, error) {
 func getBitsBig(a big.Int) ([]bool, error) {
 	l := a.BitLen()
 	res := make([]bool, l)
-	for i := 0; i < l; i ++ {
+	for i := 0; i < l; i++ {
 		res[i] = a.Bit(i) == 1
 	}
 	return res, nil
@@ -143,9 +132,9 @@ func toBigInt(a interface{}) (big.Int, error) {
 	case *big.Int:
 		return *i, nil
 	/*case string:
-		var res big.Int
-		res.SetString(i, 0)
-		return res, nil*/
+	var res big.Int
+	res.SetString(i, 0)
+	return res, nil*/
 	default:
 		n, err := toInt64(i)
 		return *big.NewInt(n), err
@@ -506,8 +495,8 @@ var superscripts = map[rune]rune{
 }
 
 // toSuperscript writes a number as a "power"
-//TODO: Use https://github.com/lynn9388/supsub ?
-//Copying supsub
+// TODO: Use https://github.com/lynn9388/supsub ?
+// Copying supsub
 func toSuperscript(a interface{}) (string, error) {
 	i, err := toInt64(a)
 
