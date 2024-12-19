@@ -438,8 +438,11 @@ func (d *DataChannel) ensureOpen() error {
 	return nil
 }
 
-// Detach allows you to detach the underlying datachannel. This provides
-// an idiomatic API to work with, however it disables the OnMessage callback.
+// Detach allows you to detach the underlying datachannel.
+// This provides an idiomatic API to work with
+// (`io.ReadWriteCloser` with its `.Read()` and `.Write()` methods,
+// as opposed to `.Send()` and `.OnMessage`),
+// however it disables the OnMessage callback.
 // Before calling Detach you have to enable this behavior by calling
 // webrtc.DetachDataChannels(). Combining detached and normal data channels
 // is not supported.
@@ -447,6 +450,12 @@ func (d *DataChannel) ensureOpen() error {
 // pion/datachannel documentation for the correct way to handle the
 // resulting DataChannel object.
 func (d *DataChannel) Detach() (datachannel.ReadWriteCloser, error) {
+	return d.DetachWithDeadline()
+}
+
+// DetachWithDeadline allows you to detach the underlying datachannel.
+// It is the same as Detach but returns a ReadWriteCloserDeadliner.
+func (d *DataChannel) DetachWithDeadline() (datachannel.ReadWriteCloserDeadliner, error) {
 	d.mu.Lock()
 
 	if !d.api.settingEngine.detach.DataChannels {
