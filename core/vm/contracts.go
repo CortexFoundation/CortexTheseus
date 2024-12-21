@@ -47,6 +47,9 @@ type PrecompiledContract interface {
 	Run(input []byte) ([]byte, error) // Run runs the precompiled contract
 }
 
+// PrecompiledContracts contains the precompiled contracts supported at the given fork.
+type PrecompiledContracts map[common.Address]PrecompiledContract
+
 // PrecompiledContractsHomestead contains the default set of pre-compiled CortexTheseus
 // contracts used in the Frontier and Homestead releases.
 var PrecompiledContractsHomestead = map[common.Address]PrecompiledContract{
@@ -167,6 +170,17 @@ func init() {
 	}
 	for k := range PrecompiledContractsPrague {
 		PrecompiledAddressesPrague = append(PrecompiledAddressesPrague, k)
+	}
+}
+
+func activePrecompiledContracts(rules params.Rules) PrecompiledContracts {
+	switch {
+	case rules.IsIstanbul:
+		return PrecompiledContractsIstanbul
+	case rules.IsByzantium:
+		return PrecompiledContractsByzantium
+	default:
+		return PrecompiledContractsHomestead
 	}
 }
 
