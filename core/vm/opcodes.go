@@ -154,7 +154,11 @@ const (
 	PUSH30
 	PUSH31
 	PUSH32
-	DUP1
+)
+
+// 0x80 range - dups.
+const (
+	DUP1 OpCode = 0x80 + iota
 	DUP2
 	DUP3
 	DUP4
@@ -170,7 +174,11 @@ const (
 	DUP14
 	DUP15
 	DUP16
-	SWAP1
+)
+
+// 0x90 range - swaps.
+const (
+	SWAP1 OpCode = 0x90 + iota
 	SWAP2
 	SWAP3
 	SWAP4
