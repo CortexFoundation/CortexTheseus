@@ -123,6 +123,9 @@ type CVM struct {
 	// applied in opCall*.
 	callGasTemp uint64
 	//Fs          *torrentfs.FileStorage
+
+	// precompiles holds the precompiled contracts for the current epoch
+	precompiles map[common.Address]PrecompiledContract
 }
 
 // NewCVM returns a new CVM. The returned CVM is not thread safe and should
@@ -138,9 +141,17 @@ func NewCVM(blockCtx BlockContext, statedb StateDB, chainConfig *params.ChainCon
 		chainRules:  chainConfig.Rules(blockCtx.BlockNumber, blockCtx.Random != nil, blockCtx.Time),
 	}
 
+	cvm.precompiles = activePrecompiledContracts(cvm.chainRules)
 	cvm.interpreter = NewCVMInterpreter(cvm)
 
 	return cvm
+}
+
+// SetPrecompiles sets the precompiled contracts for the EVM.
+// This method is only used through RPC calls.
+// It is not thread-safe.
+func (cvm *CVM) SetPrecompiles(precompiles PrecompiledContracts) {
+	cvm.precompiles = precompiles
 }
 
 // Reset resets the CVM with a new transaction context.Reset
