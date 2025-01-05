@@ -1,4 +1,14 @@
-## 0.113.0 (Unreleased)
+## 0.114.0 (Unreleased)
+
+## 0.113.0 (January 1st, 2025)
+
+ENHANCEMENTS:
+
+* teams_location: make location parameters optional ([#3758](https://github.com/cloudflare/cloudflare-go/issues/3758))
+
+DEPENDENCIES:
+
+* deps: bumps golang.org/x/net from 0.32.0 to 0.33.0 ([#3756](https://github.com/cloudflare/cloudflare-go/issues/3756))
 
 ## 0.112.0 (December 18th, 2024)
 

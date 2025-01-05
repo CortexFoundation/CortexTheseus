@@ -61,7 +61,7 @@ github.com/CortexFoundation/robot/backend
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit; go 1.16
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.69-0.20241230221326-0ea7c42c017f
+# github.com/CortexFoundation/torrentfs v1.0.69-0.20250104140644-17be233707ac
 ## explicit; go 1.23.4
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/backend
@@ -357,7 +357,7 @@ github.com/charmbracelet/x/ansi/parser
 # github.com/charmbracelet/x/term v0.2.1
 ## explicit; go 1.18
 github.com/charmbracelet/x/term
-# github.com/cloudflare/cloudflare-go v0.112.0
+# github.com/cloudflare/cloudflare-go v0.113.0
 ## explicit; go 1.21
 github.com/cloudflare/cloudflare-go
 # github.com/cockroachdb/errors v1.11.3
@@ -387,7 +387,7 @@ github.com/cockroachdb/fifo
 # github.com/cockroachdb/logtags v0.0.0-20241215232642-bb51bb14a506
 ## explicit; go 1.18
 github.com/cockroachdb/logtags
-# github.com/cockroachdb/pebble v1.1.2
+# github.com/cockroachdb/pebble v1.1.3
 ## explicit; go 1.20
 github.com/cockroachdb/pebble
 github.com/cockroachdb/pebble/bloom
@@ -525,7 +525,7 @@ github.com/dustin/go-humanize
 # github.com/edsrzf/mmap-go v1.2.0
 ## explicit; go 1.17
 github.com/edsrzf/mmap-go
-# github.com/elliotchance/orderedmap v1.7.1
+# github.com/elliotchance/orderedmap v1.8.0
 ## explicit; go 1.12
 github.com/elliotchance/orderedmap
 # github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f
@@ -553,14 +553,13 @@ github.com/garslo/gogen
 # github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
 ## explicit
 github.com/gballet/go-libpcsclite
-# github.com/getsentry/sentry-go v0.30.0
+# github.com/getsentry/sentry-go v0.31.1
 ## explicit; go 1.21
 github.com/getsentry/sentry-go
 github.com/getsentry/sentry-go/internal/debug
 github.com/getsentry/sentry-go/internal/otel/baggage
 github.com/getsentry/sentry-go/internal/otel/baggage/internal/baggage
 github.com/getsentry/sentry-go/internal/ratelimit
-github.com/getsentry/sentry-go/internal/traceparser
 # github.com/go-llsqlite/adapter v0.1.0
 ## explicit; go 1.18
 github.com/go-llsqlite/adapter
@@ -820,7 +819,7 @@ github.com/oapi-codegen/runtime/types
 # github.com/olekukonko/tablewriter v0.0.5
 ## explicit; go 1.12
 github.com/olekukonko/tablewriter
-# github.com/otiai10/copy v1.14.1-0.20240615124421-e40f4e6d0e0b
+# github.com/otiai10/copy v1.14.1
 ## explicit; go 1.18
 github.com/otiai10/copy
 # github.com/otiai10/mint v1.6.3
@@ -1037,7 +1036,7 @@ github.com/ucwong/filecache
 # github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb
 ## explicit; go 1.19
 github.com/ucwong/go-ttlmap
-# github.com/ucwong/golang-kv v1.0.24-0.20241226161542-979e6164edb6
+# github.com/ucwong/golang-kv v1.0.24-0.20250103230400-bc670d50fd4f
 ## explicit; go 1.23
 github.com/ucwong/golang-kv
 github.com/ucwong/golang-kv/badger
@@ -1133,7 +1132,7 @@ golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67
+# golang.org/x/exp v0.0.0-20250103183323-7d7fa50e5329
 ## explicit; go 1.22.0
 golang.org/x/exp/constraints
 golang.org/x/exp/maps
@@ -1176,14 +1175,14 @@ golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
 golang.org/x/sync/singleflight
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.28.0
+# golang.org/x/sys v0.29.0
 ## explicit; go 1.18
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/term v0.27.0
+# golang.org/x/term v0.28.0
 ## explicit; go 1.18
 golang.org/x/term
 # golang.org/x/text v0.21.0
@@ -1202,7 +1201,7 @@ golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 golang.org/x/text/unicode/rangetable
 golang.org/x/text/width
-# golang.org/x/time v0.8.0
+# golang.org/x/time v0.9.0
 ## explicit; go 1.18
 golang.org/x/time/rate
 # golang.org/x/tools v0.28.0
@@ -1321,8 +1320,8 @@ modernc.org/libc/wctype
 # modernc.org/mathutil v1.7.1
 ## explicit; go 1.21
 modernc.org/mathutil
-# modernc.org/memory v1.8.0
-## explicit; go 1.18
+# modernc.org/memory v1.8.1
+## explicit; go 1.21
 modernc.org/memory
 # modernc.org/sqlite v1.34.4
 ## explicit; go 1.21
