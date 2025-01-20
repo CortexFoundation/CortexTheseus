@@ -126,6 +126,9 @@ func abigen(c *cli.Context) error {
 	if c.GlobalString(pkgFlag.Name) == "" {
 		utils.Fatalf("No destination package specified (--pkg)")
 	}
+	if c.String(abiFlag.Name) == "" && c.String(jsonFlag.Name) == "" {
+		utils.Fatalf("Either contract ABI source (--abi) or combined-json (--combined-json) are required")
+	}
 	var lang bind.Lang
 	switch c.GlobalString(langFlag.Name) {
 	case "go":
