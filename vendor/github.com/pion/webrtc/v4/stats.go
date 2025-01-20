@@ -567,6 +567,34 @@ type InboundRTPStreamStats struct {
 	// these numbers are not expected to match the numbers seen on sending. Not all
 	// OSes make this information available.
 	PerDSCPPacketsReceived map[string]uint32 `json:"perDscpPacketsReceived"`
+
+	// Identifies the decoder implementation used. This is useful for diagnosing interoperability issues.
+	// Does not exist for audio.
+	DecoderImplementation string `json:"decoderImplementation"`
+
+	// PauseCount is the total number of video pauses experienced by this receiver.
+	// Video is considered to be paused if time passed since last rendered frame exceeds 5 seconds.
+	// PauseCount is incremented when a frame is rendered after such a pause. Does not exist for audio.
+	PauseCount uint32 `json:"pauseCount"`
+
+	// TotalPausesDuration is the total duration of pauses (for definition of pause see PauseCount), in seconds.
+	// Does not exist for audio.
+	TotalPausesDuration float64 `json:"totalPausesDuration"`
+
+	// FreezeCount is the total number of video freezes experienced by this receiver.
+	// It is a freeze if frame duration, which is time interval between two consecutively rendered frames,
+	// is equal or exceeds Max(3 * avg_frame_duration_ms, avg_frame_duration_ms + 150),
+	// where avg_frame_duration_ms is linear average of durations of last 30 rendered frames.
+	// Does not exist for audio.
+	FreezeCount uint32 `json:"freezeCount"`
+
+	// TotalFreezesDuration is the total duration of rendered frames which are considered as frozen
+	// (for definition of freeze see freezeCount), in seconds. Does not exist for audio.
+	TotalFreezesDuration float64 `json:"totalFreezesDuration"`
+
+	// PowerEfficientDecoder indicates whether the decoder currently used is considered power efficient
+	// by the user agent. Does not exist for audio.
+	PowerEfficientDecoder bool `json:"powerEfficientDecoder"`
 }
 
 func (s InboundRTPStreamStats) statsMarker() {}
@@ -806,6 +834,17 @@ type OutboundRTPStreamStats struct {
 	// Active indicates whether this RTP stream is configured to be sent or disabled. Note that an
 	// active stream can still not be sending, e.g. when being limited by network conditions.
 	Active bool `json:"active"`
+
+	// Identifies the encoder implementation used. This is useful for diagnosing interoperability issues.
+	// Does not exist for audio.
+	EncoderImplementation string `json:"encoderImplementation"`
+
+	// PowerEfficientEncoder indicates whether the encoder currently used is considered power efficient.
+	// by the user agent. Does not exist for audio.
+	PowerEfficientEncoder bool `json:"powerEfficientEncoder"`
+
+	// ScalabilityMode identifies the layering mode used for video encoding. Does not exist for audio.
+	ScalabilityMode string `json:"scalabilityMode"`
 }
 
 func (s OutboundRTPStreamStats) statsMarker() {}

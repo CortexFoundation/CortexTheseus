@@ -320,8 +320,13 @@ func (d *DataChannel) onMessage(msg DataChannelMessage) {
 
 func (d *DataChannel) handleOpen(dc *datachannel.DataChannel, isRemote, isAlreadyNegotiated bool) {
 	d.mu.Lock()
-	if d.isGracefulClosed {
+	if d.isGracefulClosed { // The channel was closed during the connecting state
 		d.mu.Unlock()
+		if err := dc.Close(); err != nil {
+			d.log.Errorf("Failed to close DataChannel that was closed during connecting state %v", err.Error())
+		}
+		d.onClose()
+
 		return
 	}
 	d.dataChannel = dc
@@ -459,10 +464,12 @@ func (d *DataChannel) DetachWithDeadline() (datachannel.ReadWriteCloserDeadliner
 	d.mu.Lock()
 
 	if !d.api.settingEngine.detach.DataChannels {
+		d.mu.Unlock()
 		return nil, errDetachNotEnabled
 	}
 
 	if d.dataChannel == nil {
+		d.mu.Unlock()
 		return nil, errDetachBeforeOpened
 	}
 
