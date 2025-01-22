@@ -186,6 +186,10 @@ func (m *marshalMethod) intermediateType(name string) Struct {
 		typ := f.typ
 		if m.isUnmarshal {
 			typ = ensureNilCheckable(typ)
+		} else if isNonEmptyInterface(f.origTyp) {
+			// Non-empty interface is left as-is for Marshal*, i.e. we let the
+			// interface value handle its own marshaling.
+			typ = f.origTyp
 		}
 		s.Fields = append(s.Fields, Field{
 			Name:     f.name,
@@ -237,14 +241,21 @@ func (m *marshalMethod) marshalConversions(from, to Var, fieldName string) (s []
 		if f.function != nil {
 			value = CallFunction{Func: accessFrom}
 		}
-		s = append(s, m.convert(value, accessTo, f.origTyp, f.typ, fieldName)...)
+		// Non-empty interface values are handled differently between Marshal* and Unmarshal*.
+		// The conversion is only applied in the Unmarshal* method.
+		// For Marshal*, we let the value handle its own encoding, i.e. conversion is skipped.
+		var fieldType = f.typ
+		if isNonEmptyInterface(f.origTyp) {
+			fieldType = f.origTyp
+		}
+		s = append(s, m.convert(value, accessTo, f.origTyp, fieldType, fieldName)...)
 	}
 	return s
 }
 
 func (m *marshalMethod) convert(from, to Expression, fromtyp, totyp types.Type, fieldName string) (s []Statement) {
 	// Remove pointer introduced by ensureNilCheckable during field building.
-	if isPointer(fromtyp) && !isPointer(totyp) {
+	if isPointer(fromtyp) && !isPointer(totyp) && !isInterface(totyp) {
 		from = Star{Value: from}
 		fromtyp = fromtyp.(*types.Pointer).Elem()
 	} else if !isPointer(fromtyp) && isPointer(totyp) {
