@@ -491,7 +491,7 @@ func VerifyRangeProof(rootHash common.Hash, firstKey []byte, lastKey []byte, key
 			return nil, nil, nil, false, err
 		}
 		for index, key := range keys {
-			tr.TryUpdate(key, values[index])
+			tr.Update(key, values[index])
 		}
 		if tr.Hash() != rootHash {
 			return nil, nil, nil, false, fmt.Errorf("invalid proof, want hash %x, got %x", rootHash, tr.Hash())
@@ -586,7 +586,7 @@ func VerifyRangeProof(rootHash common.Hash, firstKey []byte, lastKey []byte, key
 		tr.root = nil
 	}
 	for index, key := range keys {
-		tr.TryUpdate(key, values[index])
+		tr.Update(key, values[index])
 	}
 	if tr.Hash() != rootHash {
 		return nil, nil, nil, false, fmt.Errorf("invalid proof, want hash %x, got %x", rootHash, tr.Hash())

@@ -174,7 +174,7 @@ func TestStackTrieInsertAndHash(t *testing.T) {
 			st.Reset()
 			for j := 0; j < l; j++ {
 				kv := &test[j]
-				if err := st.TryUpdate(common.FromHex(kv.K), []byte(kv.V)); err != nil {
+				if err := st.Update(common.FromHex(kv.K), []byte(kv.V)); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -193,8 +193,8 @@ func TestSizeBug(t *testing.T) {
 	leaf := common.FromHex("290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563")
 	value := common.FromHex("94cf40d0d2b44f2b66e07cace1372ca42b73cf21a3")
 
-	nt.TryUpdate(leaf, value)
-	st.TryUpdate(leaf, value)
+	nt.Update(leaf, value)
+	st.Update(leaf, value)
 
 	if nt.Hash() != st.Hash() {
 		t.Fatalf("error %x != %x", st.Hash(), nt.Hash())
@@ -218,8 +218,8 @@ func TestEmptyBug(t *testing.T) {
 	}
 
 	for _, kv := range kvs {
-		nt.TryUpdate(common.FromHex(kv.K), common.FromHex(kv.V))
-		st.TryUpdate(common.FromHex(kv.K), common.FromHex(kv.V))
+		nt.Update(common.FromHex(kv.K), common.FromHex(kv.V))
+		st.Update(common.FromHex(kv.K), common.FromHex(kv.V))
 	}
 
 	if nt.Hash() != st.Hash() {
@@ -241,8 +241,8 @@ func TestValLength56(t *testing.T) {
 	}
 
 	for _, kv := range kvs {
-		nt.TryUpdate(common.FromHex(kv.K), common.FromHex(kv.V))
-		st.TryUpdate(common.FromHex(kv.K), common.FromHex(kv.V))
+		nt.Update(common.FromHex(kv.K), common.FromHex(kv.V))
+		st.Update(common.FromHex(kv.K), common.FromHex(kv.V))
 	}
 
 	if nt.Hash() != st.Hash() {
@@ -263,8 +263,8 @@ func TestUpdateSmallNodes(t *testing.T) {
 		{"65", "3000"},       // stacktrie.Update
 	}
 	for _, kv := range kvs {
-		nt.TryUpdate(common.FromHex(kv.K), common.FromHex(kv.V))
-		st.TryUpdate(common.FromHex(kv.K), common.FromHex(kv.V))
+		nt.Update(common.FromHex(kv.K), common.FromHex(kv.V))
+		st.Update(common.FromHex(kv.K), common.FromHex(kv.V))
 	}
 	if nt.Hash() != st.Hash() {
 		t.Fatalf("error %x != %x", st.Hash(), nt.Hash())
@@ -291,8 +291,8 @@ func TestUpdateVariableKeys(t *testing.T) {
 		{"0x3330353463653239356131303167617430", "313131"},
 	}
 	for _, kv := range kvs {
-		nt.TryUpdate(common.FromHex(kv.K), common.FromHex(kv.V))
-		st.TryUpdate(common.FromHex(kv.K), common.FromHex(kv.V))
+		nt.Update(common.FromHex(kv.K), common.FromHex(kv.V))
+		st.Update(common.FromHex(kv.K), common.FromHex(kv.V))
 	}
 	if nt.Hash() != st.Hash() {
 		t.Fatalf("error %x != %x", st.Hash(), nt.Hash())
@@ -309,7 +309,7 @@ func TestStacktrieNotModifyValues(t *testing.T) {
 		value := make([]byte, 1, 100)
 		value[0] = 0x2
 		want := common.CopyBytes(value)
-		st.TryUpdate([]byte{0x01}, value)
+		st.Update([]byte{0x01}, value)
 		st.Hash()
 		if have := value; !bytes.Equal(have, want) {
 			t.Fatalf("tiny trie: have %#x want %#x", have, want)
@@ -330,7 +330,7 @@ func TestStacktrieNotModifyValues(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		key := common.BigToHash(keyB)
 		value := getValue(i)
-		st.TryUpdate(key.Bytes(), value)
+		st.Update(key.Bytes(), value)
 		vals = append(vals, value)
 		keyB = keyB.Add(keyB, keyDelta)
 		keyDelta.Add(keyDelta, common.Big1)
@@ -344,50 +344,5 @@ func TestStacktrieNotModifyValues(t *testing.T) {
 			t.Fatalf("item %d, have %#x want %#x", i, have, want)
 		}
 
-	}
-}
-
-// TestStacktrieSerialization tests that the stacktrie works well if we
-// serialize/unserialize it a lot
-func TestStacktrieSerialization(t *testing.T) {
-	var (
-		st       = NewStackTrie(nil)
-		nt, _    = New(TrieID(common.Hash{}), NewDatabase(memorydb.New()))
-		keyB     = big.NewInt(1)
-		keyDelta = big.NewInt(1)
-		vals     [][]byte
-		keys     [][]byte
-	)
-	getValue := func(i int) []byte {
-		if i%2 == 0 { // large
-			return crypto.Keccak256(big.NewInt(int64(i)).Bytes())
-		} else { //small
-			return big.NewInt(int64(i)).Bytes()
-		}
-	}
-	for i := 0; i < 10; i++ {
-		vals = append(vals, getValue(i))
-		keys = append(keys, common.BigToHash(keyB).Bytes())
-		keyB = keyB.Add(keyB, keyDelta)
-		keyDelta.Add(keyDelta, common.Big1)
-	}
-	for i, k := range keys {
-		nt.TryUpdate(k, common.CopyBytes(vals[i]))
-	}
-
-	for i, k := range keys {
-		blob, err := st.MarshalBinary()
-		if err != nil {
-			t.Fatal(err)
-		}
-		newSt, err := NewFromBinary(blob, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		st = newSt
-		st.TryUpdate(k, common.CopyBytes(vals[i]))
-	}
-	if have, want := st.Hash(), nt.Hash(); have != want {
-		t.Fatalf("have %#x want %#x", have, want)
 	}
 }
