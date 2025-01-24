@@ -72,6 +72,15 @@ func isPointer(typ types.Type) bool {
 	return ok
 }
 
+func isNonEmptyInterface(typ types.Type) bool {
+	iftype := underlying[*types.Interface](typ)
+	return iftype != nil && iftype.NumMethods() > 0
+}
+
+func isInterface(typ types.Type) bool {
+	return underlying[*types.Interface](typ) != nil
+}
+
 func underlyingArray(typ types.Type) *types.Array {
 	return underlying[*types.Array](typ)
 }
@@ -86,11 +95,11 @@ func underlyingMap(typ types.Type) *types.Map {
 
 func underlying[T types.Type](typ types.Type) T {
 	for {
-		switch typ.(type) {
+		switch t := typ.(type) {
 		case *types.Named:
-			typ = typ.Underlying()
+			typ = t.Underlying()
 		case T:
-			return typ.(T)
+			return t
 		default:
 			var zero T
 			return zero

@@ -537,8 +537,8 @@ github.com/ethereum/c-kzg-4844/bindings/go
 # github.com/ethereum/go-verkle v0.2.2
 ## explicit; go 1.22
 github.com/ethereum/go-verkle
-# github.com/fjl/gencodec v0.0.0-20230517082657-f9840df7b83e
-## explicit; go 1.18
+# github.com/fjl/gencodec v0.1.0
+## explicit; go 1.22.0
 github.com/fjl/gencodec
 # github.com/fogleman/ease v0.0.0-20170301025033-8da417bf1776
 ## explicit
