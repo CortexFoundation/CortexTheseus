@@ -57,6 +57,7 @@ require (
 	github.com/status-im/keycard-go v0.3.3
 	github.com/steakknife/bloomfilter v0.0.0-20180922174646-6819c0d2a570
 	github.com/stretchr/testify v1.10.0
+	github.com/supranational/blst v0.3.13
 	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d
 	github.com/ucwong/color v1.10.1-0.20200624105241-fba1e010fe1e
 	github.com/urfave/cli/v2 v2.27.5
@@ -220,7 +221,6 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
-	github.com/supranational/blst v0.3.13 // indirect
 	github.com/tidwall/btree v1.7.0 // indirect
 	github.com/tidwall/hashmap v1.8.1 // indirect
 	github.com/tklauser/go-sysconf v0.3.14 // indirect
