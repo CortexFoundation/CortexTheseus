@@ -327,13 +327,13 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			contract.Gas -= cost
 		}
 
-		if memorySize > 0 {
-			mem.Resize(memorySize)
-		}
-
 		if debug {
 			in.cvm.Config().Tracer.CaptureState(pc, op, gasCopy, cost, scope, in.returnData, in.cvm.depth, err)
 			logged = true
+		}
+
+		if memorySize > 0 {
+			mem.Resize(memorySize)
 		}
 
 		// execute the operation
