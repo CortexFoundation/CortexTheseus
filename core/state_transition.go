@@ -17,6 +17,7 @@
 package core
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"math"
@@ -146,15 +147,12 @@ func IntrinsicGas(data []byte, contractCreation, upload, isHomestead, isEIP2028 
 			gas = params.TxGas
 		}
 	}
+	dataLen := uint64(len(data))
 	// Bump the required gas by the amount of transactional data
-	if len(data) > 0 {
+	if dataLen > 0 {
 		// Zero and non-zero bytes are priced differently
-		var nz uint64
-		for _, byt := range data {
-			if byt != 0 {
-				nz++
-			}
-		}
+		z := uint64(bytes.Count(data, []byte{0}))
+		nz := dataLen - z
 		// Make sure we don't exceed uint64 for all data combinations
 		nonZeroGas := params.TxDataNonZeroGasFrontier
 		if isEIP2028 {
@@ -165,7 +163,6 @@ func IntrinsicGas(data []byte, contractCreation, upload, isHomestead, isEIP2028 
 		}
 		gas += nz * nonZeroGas
 
-		z := uint64(len(data)) - nz
 		if (math.MaxUint64-gas)/params.TxDataZeroGas < z {
 			return 0, vm.ErrOutOfGas
 		}
