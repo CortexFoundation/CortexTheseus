@@ -4,6 +4,7 @@ package sqlitex
 
 import (
 	"context"
+	"sync"
 
 	"github.com/go-llsqlite/crawshaw/sqlitex"
 
@@ -27,12 +28,17 @@ func ExecuteScript(conn *sqlite.Conn, queries string, opts *ExecOptions) (err er
 	return sqlitex.ExecuteScript(conn.Conn, queries, opts)
 }
 
+var execOptions = sync.Pool{New: func() any { return &ExecOptions{} }}
+
 // TODO: Actually implement checked for crawshaw.
 func ExecChecked(conn *sqlite.Conn, query string, resultFn func(stmt *sqlite.Stmt) error, args ...interface{}) error {
-	return sqlitex.Execute(conn.Conn, query, &ExecOptions{
+	opts := execOptions.Get().(*ExecOptions)
+	*opts = ExecOptions{
 		Args:       args,
 		ResultFunc: resultFn,
-	})
+	}
+	defer execOptions.Put(opts)
+	return sqlitex.Execute(conn.Conn, query, opts)
 }
 
 func ExecScript(conn *sqlite.Conn, queries string) error {

@@ -26095,7 +26095,10 @@ func Xposix_fadvise(tls *TLS, fd int32, base Toff_t, len1 Toff_t, advice int32) 
 		trc("tls=%v fd=%v base=%v len1=%v advice=%v, (%v:)", tls, fd, base, len1, advice, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return -X__syscall6(tls, int32(SYS_fadvise64_64), fd, int32(base), int32(base>>Int32FromInt32(32)), int32(len1), int32(len1>>Int32FromInt32(32)), advice)
+	/* Some archs, at least arm and powerpc, have the syscall
+	 * arguments reordered to avoid needing 7 argument registers
+	 * due to 64-bit argument alignment. */
+	return -X__syscall6(tls, int32(SYS_fadvise64_64), fd, advice, int32(base), int32(base>>Int32FromInt32(32)), int32(len1), int32(len1>>Int32FromInt32(32)))
 }
 
 func Xposix_fallocate(tls *TLS, fd int32, base Toff_t, len1 Toff_t) (r int32) {
@@ -30891,7 +30894,7 @@ func Xreadahead(tls *TLS, fd int32, pos Toff_t, len1 Tsize_t) (r Tssize_t) {
 		trc("tls=%v fd=%v pos=%v len1=%v, (%v:)", tls, fd, pos, len1, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return X__syscall_ret(tls, Uint32FromInt32(X__syscall4(tls, int32(SYS_readahead), fd, int32(pos), int32(pos>>Int32FromInt32(32)), Int32FromUint32(len1))))
+	return X__syscall_ret(tls, Uint32FromInt32(X__syscall5(tls, int32(SYS_readahead), fd, Int32FromInt32(0), int32(pos), int32(pos>>Int32FromInt32(32)), Int32FromUint32(len1))))
 }
 
 const RB_AUTOBOOT = 19088743
@@ -151517,7 +151520,7 @@ func Xftruncate(tls *TLS, fd int32, length Toff_t) (r int32) {
 		trc("tls=%v fd=%v length=%v, (%v:)", tls, fd, length, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return X__syscall_ret(tls, Uint32FromInt32(X__syscall3(tls, int32(SYS_ftruncate64), fd, int32(length), int32(length>>Int32FromInt32(32)))))
+	return X__syscall_ret(tls, Uint32FromInt32(X__syscall4(tls, int32(SYS_ftruncate64), fd, Int32FromInt32(0), int32(length), int32(length>>Int32FromInt32(32)))))
 }
 
 func Xgetcwd(tls *TLS, buf uintptr, size Tsize_t) (r uintptr) {
@@ -151867,7 +151870,7 @@ func Xpread(tls *TLS, fd int32, buf uintptr, size Tsize_t, ofs Toff_t) (r Tssize
 		trc("tls=%v fd=%v buf=%v size=%v ofs=%v, (%v:)", tls, fd, buf, size, ofs, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return X__syscall_ret(tls, Uint32FromInt32(___syscall_cp(tls, int32(SYS_pread64), fd, int32(buf), Int32FromUint32(size), int32(ofs), int32(ofs>>Int32FromInt32(32)), 0)))
+	return X__syscall_ret(tls, Uint32FromInt32(___syscall_cp(tls, int32(SYS_pread64), fd, int32(buf), Int32FromUint32(size), Int32FromInt32(0), int32(ofs), int32(ofs>>Int32FromInt32(32)))))
 }
 
 func Xpreadv(tls *TLS, fd int32, iov uintptr, count int32, ofs Toff_t) (r Tssize_t) {
@@ -151883,7 +151886,7 @@ func Xpwrite(tls *TLS, fd int32, buf uintptr, size Tsize_t, ofs Toff_t) (r Tssiz
 		trc("tls=%v fd=%v buf=%v size=%v ofs=%v, (%v:)", tls, fd, buf, size, ofs, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return X__syscall_ret(tls, Uint32FromInt32(___syscall_cp(tls, int32(SYS_pwrite64), fd, int32(buf), Int32FromUint32(size), int32(ofs), int32(ofs>>Int32FromInt32(32)), 0)))
+	return X__syscall_ret(tls, Uint32FromInt32(___syscall_cp(tls, int32(SYS_pwrite64), fd, int32(buf), Int32FromUint32(size), Int32FromInt32(0), int32(ofs), int32(ofs>>Int32FromInt32(32)))))
 }
 
 func Xpwritev(tls *TLS, fd int32, iov uintptr, count int32, ofs Toff_t) (r Tssize_t) {
@@ -152135,7 +152138,7 @@ func Xtruncate(tls *TLS, path uintptr, length Toff_t) (r int32) {
 		trc("tls=%v path=%v length=%v, (%v:)", tls, path, length, origin(2))
 		defer func() { trc("-> %v", r) }()
 	}
-	return X__syscall_ret(tls, Uint32FromInt32(X__syscall3(tls, int32(SYS_truncate64), int32(path), int32(length), int32(length>>Int32FromInt32(32)))))
+	return X__syscall_ret(tls, Uint32FromInt32(X__syscall4(tls, int32(SYS_truncate64), int32(path), Int32FromInt32(0), int32(length), int32(length>>Int32FromInt32(32)))))
 }
 
 /* Support signed or unsigned plain-char */

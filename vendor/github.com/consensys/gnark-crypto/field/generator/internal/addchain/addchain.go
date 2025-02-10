@@ -158,7 +158,7 @@ type AddChainData struct {
 	N string // base 16 value of the value
 }
 
-// PrepareData builds input template data for the given addition chain script.
+// prepareAddChainData builds input template data for the given addition chain script.
 func prepareAddChainData(s *ast.Chain, n string) (*AddChainData, error) {
 	// Prepare template data.
 	allocator := pass.Allocator{
@@ -299,29 +299,38 @@ func initCache() {
 	}
 
 	// preload pre-computed add chains
+	var wg sync.WaitGroup
+	var lock sync.Mutex
 	for _, entry := range files {
 		if entry.IsDir() {
 			continue
 		}
-		f, err := os.Open(filepath.Join(addChainDir, entry.Name()))
-		if err != nil {
-			log.Fatal(err)
-		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			f, err := os.Open(filepath.Join(addChainDir, entry.Name()))
+			if err != nil {
+				log.Fatal(err)
+			}
 
-		// decode the addchain.Program
-		dec := gob.NewDecoder(f)
-		var p addchain.Program
-		err = dec.Decode(&p)
-		_ = f.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-		data := processSearchResult(p, filepath.Base(f.Name()))
-		log.Println("read", filepath.Base(f.Name()))
+			// decode the addchain.Program
+			dec := gob.NewDecoder(f)
+			var p addchain.Program
+			err = dec.Decode(&p)
+			_ = f.Close()
+			if err != nil {
+				log.Fatal(err)
+			}
+			data := processSearchResult(p, filepath.Base(f.Name()))
 
-		// save the data
-		mAddchains[filepath.Base(f.Name())] = data
+			// save the data
+			lock.Lock()
+			mAddchains[filepath.Base(f.Name())] = data
+			lock.Unlock()
+		}()
 
 	}
+
+	wg.Wait()
 
 }
