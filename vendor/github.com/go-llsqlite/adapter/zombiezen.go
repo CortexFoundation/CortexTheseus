@@ -10,8 +10,9 @@ type (
 	FunctionImpl = sqlite.FunctionImpl
 	Context      = sqlite.Context
 	Value        = sqlite.Value
-	ResultCode   sqlite.ResultCode
-	Blob         = sqlite.Blob
+	// We define some extra methods locally so can't alias it.
+	ResultCode sqlite.ResultCode
+	Blob       = sqlite.Blob
 )
 
 const (
@@ -52,5 +53,5 @@ var (
 // This produces an error code even if it's not an underlying sqlite error. This could differ from
 // the crawshaw implementation.
 func GetResultCode(err error) (ResultCode, bool) {
-	return sqlite.ErrCode(err), true
+	return ResultCode(sqlite.ErrCode(err)), true
 }
