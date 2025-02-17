@@ -33,10 +33,11 @@ import (
 )
 
 var (
-	errInvalidTopic      = errors.New("invalid topic(s)")
-	errFilterNotFound    = errors.New("filter not found")
-	errInvalidBlockRange = errors.New("invalid block range params")
-	errExceedMaxTopics   = errors.New("exceed max topics")
+	errInvalidTopic           = errors.New("invalid topic(s)")
+	errFilterNotFound         = errors.New("filter not found")
+	errInvalidBlockRange      = errors.New("invalid block range params")
+	errExceedMaxTopics        = errors.New("exceed max topics")
+	errPendingLogsUnsupported = errors.New("pending logs are not supported")
 )
 
 // The maximum number of topic criteria allowed, vm.LOG4 - vm.LOG0

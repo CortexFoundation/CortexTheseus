@@ -36,7 +36,7 @@ func makeReceipt(addr common.Address) *types.Receipt {
 	receipt.Logs = []*types.Log{
 		{Address: addr},
 	}
-	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
+	receipt.Bloom = types.CreateBloom(receipt)
 	return receipt
 }
 
@@ -64,15 +64,19 @@ func BenchmarkFilters(b *testing.B) {
 		case 2403:
 			receipt := makeReceipt(addr1)
 			gen.AddUncheckedReceipt(receipt)
+			gen.AddUncheckedTx(types.NewTransaction(999, common.HexToAddress("0x999"), big.NewInt(999), 999, nil, nil))
 		case 1034:
 			receipt := makeReceipt(addr2)
 			gen.AddUncheckedReceipt(receipt)
+			gen.AddUncheckedTx(types.NewTransaction(999, common.HexToAddress("0x999"), big.NewInt(999), 999, nil, nil))
 		case 34:
 			receipt := makeReceipt(addr3)
 			gen.AddUncheckedReceipt(receipt)
+			gen.AddUncheckedTx(types.NewTransaction(999, common.HexToAddress("0x999"), big.NewInt(999), 999, nil, nil))
 		case 99999:
 			receipt := makeReceipt(addr4)
 			gen.AddUncheckedReceipt(receipt)
+			gen.AddUncheckedTx(types.NewTransaction(999, common.HexToAddress("0x999"), big.NewInt(999), 999, nil, nil))
 
 		}
 	})
@@ -127,6 +131,7 @@ func TestFilters(t *testing.T) {
 					Topics:  []common.Hash{hash1},
 				},
 			}
+			receipt.Bloom = types.CreateBloom(receipt)
 			gen.AddUncheckedReceipt(receipt)
 			gen.AddUncheckedTx(types.NewTransaction(1, common.HexToAddress("0x1"), big.NewInt(1), 1, big.NewInt(1), nil))
 		case 2:
@@ -137,6 +142,7 @@ func TestFilters(t *testing.T) {
 					Topics:  []common.Hash{hash2},
 				},
 			}
+			receipt.Bloom = types.CreateBloom(receipt)
 			gen.AddUncheckedReceipt(receipt)
 			gen.AddUncheckedTx(types.NewTransaction(2, common.HexToAddress("0x2"), big.NewInt(2), 2, big.NewInt(2), nil))
 
@@ -148,6 +154,7 @@ func TestFilters(t *testing.T) {
 					Topics:  []common.Hash{hash3},
 				},
 			}
+			receipt.Bloom = types.CreateBloom(receipt)
 			gen.AddUncheckedReceipt(receipt)
 			gen.AddUncheckedTx(types.NewTransaction(998, common.HexToAddress("0x998"), big.NewInt(998), 998, big.NewInt(998), nil))
 		case 999:
@@ -158,6 +165,7 @@ func TestFilters(t *testing.T) {
 					Topics:  []common.Hash{hash4},
 				},
 			}
+			receipt.Bloom = types.CreateBloom(receipt)
 			gen.AddUncheckedReceipt(receipt)
 			gen.AddUncheckedTx(types.NewTransaction(999, common.HexToAddress("0x999"), big.NewInt(999), 999, big.NewInt(999), nil))
 		}
