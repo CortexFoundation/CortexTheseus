@@ -695,6 +695,7 @@ func (db *Database) commit(hash common.Hash, batch ctxcdb.Batch, uncacher *clean
 		return nil
 	}
 	var err error
+
 	node.forChildren(func(child common.Hash) {
 		if err == nil {
 			err = db.commit(child, batch, uncacher)
