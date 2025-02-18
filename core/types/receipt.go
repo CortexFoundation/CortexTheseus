@@ -232,7 +232,7 @@ func decodeStoredReceiptRLP(r *ReceiptForStorage, blob []byte) error {
 	for i, log := range stored.Logs {
 		r.Logs[i] = (*Log)(log)
 	}
-	r.Bloom = CreateBloom(Receipts{(*Receipt)(r)})
+	r.Bloom = CreateBloom((*Receipt)(r))
 
 	return nil
 }
@@ -253,7 +253,7 @@ func decodeV4StoredReceiptRLP(r *ReceiptForStorage, blob []byte) error {
 	for i, log := range stored.Logs {
 		r.Logs[i] = (*Log)(log)
 	}
-	r.Bloom = CreateBloom(Receipts{(*Receipt)(r)})
+	r.Bloom = CreateBloom((*Receipt)(r))
 
 	return nil
 }

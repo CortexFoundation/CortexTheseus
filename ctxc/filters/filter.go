@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"slices"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/bloombits"
@@ -104,22 +105,12 @@ func (f *Filter) Logs(ctx context.Context) ([]*types.Log, error) {
 		if header == nil {
 			return nil, errors.New("unknown block")
 		}
-		return f.blockLogs(ctx, header, false)
+		return f.blockLogs(ctx, header)
 	}
 
-	var (
-		beginPending = f.begin == rpc.PendingBlockNumber.Int64()
-		endPending   = f.end == rpc.PendingBlockNumber.Int64()
-	)
-
-	// special case for pending logs
-	if beginPending && !endPending {
-		return nil, errInvalidBlockRange
-	}
-
-	// Short-cut if all we care about is pending logs
-	if beginPending && endPending {
-		return f.pendingLogs(), nil
+	// Disallow pending logs.
+	if f.begin == rpc.PendingBlockNumber.Int64() || f.end == rpc.PendingBlockNumber.Int64() {
+		return nil, errPendingLogsUnsupported
 	}
 
 	resolveSpecial := func(number int64) (int64, error) {
@@ -164,16 +155,7 @@ func (f *Filter) Logs(ctx context.Context) ([]*types.Log, error) {
 		case log := <-logChan:
 			logs = append(logs, log)
 		case err := <-errChan:
-			if err != nil {
-				// if an error occurs during extraction, we do return the extracted data
-				return logs, err
-			}
-			// Append the pending ones
-			if endPending {
-				pendingLogs := f.pendingLogs()
-				logs = append(logs, pendingLogs...)
-			}
-			return logs, nil
+			return logs, err
 		}
 	}
 }
@@ -251,7 +233,7 @@ func (f *Filter) indexedLogs(ctx context.Context, end uint64, logChan chan *type
 			if header == nil || err != nil {
 				return err
 			}
-			found, err := f.blockLogs(ctx, header, true)
+			found, err := f.checkMatches(ctx, header)
 			if err != nil {
 				return err
 			}
@@ -273,10 +255,13 @@ func (f *Filter) unindexedLogs(ctx context.Context, end uint64, logChan chan *ty
 		if header == nil || err != nil {
 			return err
 		}
-		found, err := f.blockLogs(ctx, header, false)
+		found, err := f.blockLogs(ctx, header)
 		if err != nil {
 			return err
 		}
+		if len(found) > 0 {
+		}
+
 		for _, log := range found {
 			select {
 			case logChan <- log:
@@ -289,15 +274,8 @@ func (f *Filter) unindexedLogs(ctx context.Context, end uint64, logChan chan *ty
 }
 
 // blockLogs returns the logs matching the filter criteria within a single block.
-func (f *Filter) blockLogs(ctx context.Context, header *types.Header, skipBloom bool) ([]*types.Log, error) {
-	// Fast track: no filtering criteria
-	if len(f.addresses) == 0 && len(f.topics) == 0 {
-		list, err := f.sys.cachedGetLogs(ctx, header.Hash(), header.Number.Uint64())
-		if err != nil {
-			return nil, err
-		}
-		return flatten(list), nil
-	} else if skipBloom || bloomFilter(header.Bloom, f.addresses, f.topics) {
+func (f *Filter) blockLogs(ctx context.Context, header *types.Header) ([]*types.Log, error) {
+	if bloomFilter(header.Bloom, f.addresses, f.topics) {
 		return f.checkMatches(ctx, header)
 	}
 	return nil, nil
@@ -365,7 +343,7 @@ func filterLogs(logs []*types.Log, fromBlock, toBlock *big.Int, addresses []comm
 		if toBlock != nil && toBlock.Int64() >= 0 && toBlock.Uint64() < log.BlockNumber {
 			return false
 		}
-		if len(addresses) > 0 && !includes(addresses, log.Address) {
+		if len(addresses) > 0 && !slices.Contains(addresses, log.Address) {
 			return false
 		}
 		// If the to filtered topics is greater than the amount of topics in logs, skip.
@@ -376,7 +354,7 @@ func filterLogs(logs []*types.Log, fromBlock, toBlock *big.Int, addresses []comm
 			if len(sub) == 0 {
 				continue // empty rule set == wildcard
 			}
-			if !includes(sub, log.Topics[i]) {
+			if !slices.Contains(sub, log.Topics[i]) {
 				return false
 			}
 		}
