@@ -106,14 +106,13 @@ func Execute(code, input []byte, cfg *Config) ([]byte, *state.StateDB, error) {
 	var (
 		address = common.BytesToAddress([]byte("contract"))
 		vmenv   = NewEnv(cfg)
-		sender  = vm.AccountRef(cfg.Origin)
 	)
 	cfg.State.CreateAccount(address)
 	// set the receiver's (the executing contract) code for execution.
 	cfg.State.SetCode(address, code)
 	// Call the code with the given configuration.
 	ret, _, _, err := vmenv.Call(
-		sender,
+		cfg.Origin,
 		common.BytesToAddress([]byte("contract")),
 		input,
 		cfg.GasLimit,
@@ -134,13 +133,12 @@ func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
 		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase(), nil))
 	}
 	var (
-		vmenv  = NewEnv(cfg)
-		sender = vm.AccountRef(cfg.Origin)
+		vmenv = NewEnv(cfg)
 	)
 
 	// Call the code with the given configuration.
 	code, address, leftOverGas, _, err := vmenv.Create(
-		sender,
+		cfg.Origin,
 		input,
 		cfg.GasLimit,
 		cfg.Value,
@@ -158,10 +156,9 @@ func Call(address common.Address, input []byte, cfg *Config) ([]byte, uint64, er
 
 	vmenv := NewEnv(cfg)
 
-	sender := vm.AccountRef(cfg.Origin)
 	// Call the code with the given configuration.
 	ret, leftOverGas, _, err := vmenv.Call(
-		sender,
+		cfg.Origin,
 		address,
 		input,
 		cfg.GasLimit,
