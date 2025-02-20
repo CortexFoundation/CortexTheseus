@@ -75,6 +75,8 @@ func newMergeInstructionSet() JumpTable {
 		validateStack: makeStackFunc(0, 1),
 	}
 	enable5656(&instructionSet) // EIP-5656 (MCOPY opcode)
+	enable3855(&instructionSet) // PUSH0 instruction
+	//enable3860(&instructionSet) // Limit and meter initcode
 	return validate(instructionSet)
 }
 
