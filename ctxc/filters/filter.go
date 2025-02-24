@@ -259,9 +259,6 @@ func (f *Filter) unindexedLogs(ctx context.Context, end uint64, logChan chan *ty
 		if err != nil {
 			return err
 		}
-		if len(found) > 0 {
-		}
-
 		for _, log := range found {
 			select {
 			case logChan <- log:
@@ -284,7 +281,12 @@ func (f *Filter) blockLogs(ctx context.Context, header *types.Header) ([]*types.
 // checkMatches checks if the receipts belonging to the given header contain any log events that
 // match the filter criteria. This function is called when the bloom filter signals a potential match.
 func (f *Filter) checkMatches(ctx context.Context, header *types.Header) ([]*types.Log, error) {
-	logsList, err := f.sys.cachedGetLogs(ctx, header.Hash(), header.Number.Uint64())
+	hash := header.Hash()
+	// Logs in cache are partially filled with context data
+	// such as tx index, block hash, etc.
+	// Notably tx hash is NOT filled in because it needs
+	// access to block body data.
+	logsList, err := f.sys.cachedGetLogs(ctx, hash, header.Number.Uint64())
 	if err != nil {
 		return nil, err
 	}
@@ -294,7 +296,7 @@ func (f *Filter) checkMatches(ctx context.Context, header *types.Header) ([]*typ
 	if len(logs) > 0 {
 		// We have matching logs, check if we need to resolve full logs via the light client
 		if logs[0].TxHash == (common.Hash{}) {
-			receipts, err := f.sys.backend.GetReceipts(ctx, header.Hash())
+			receipts, err := f.sys.backend.GetReceipts(ctx, hash)
 			if err != nil {
 				return nil, err
 			}
@@ -323,15 +325,6 @@ func (f *Filter) pendingLogs() []*types.Log {
 		return filterLogs(unfiltered, nil, nil, f.addresses, f.topics)
 	}
 	return nil
-}
-
-func includes[T comparable](things []T, element T) bool {
-	for _, thing := range things {
-		if thing == element {
-			return true
-		}
-	}
-	return false
 }
 
 // filterLogs creates a slice of logs matching the given criteria.
