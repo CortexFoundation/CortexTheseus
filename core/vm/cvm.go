@@ -270,6 +270,7 @@ func (cvm *CVM) Call(caller common.Address, addr common.Address, input []byte, g
 			ret, err = nil, nil // gas is unchanged
 		} else {
 			contract := NewContract(caller, addr, value, gas, cvm.jumpDests)
+			contract.IsSystemCall = isSystemCall(caller)
 			contract.SetCallCode(cvm.resolveCodeHash(addr), code)
 			ret, err = cvm.interpreter.Run(contract, input, false)
 			gas = contract.Gas
