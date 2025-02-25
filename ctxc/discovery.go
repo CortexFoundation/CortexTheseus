@@ -42,6 +42,7 @@ func (ctxc *Cortex) startCtxcEntryUpdate(ln *enode.LocalNode) {
 	var newHead = make(chan core.ChainHeadEvent, 10)
 	sub := ctxc.blockchain.SubscribeChainHeadEvent(newHead)
 
+	ln.Set(ctxc.currentCtxcEntry(ctxc.blockchain))
 	go func() {
 		defer sub.Unsubscribe()
 		for {
@@ -70,7 +71,7 @@ func NewNodeFilter(chain *core.BlockChain) func(*enode.Node) bool {
 	filter := forkid.NewFilter(chain)
 	return func(n *enode.Node) bool {
 		var entry ctxcEntry
-		if err := n.Load(entry); err != nil {
+		if err := n.Load(&entry); err != nil {
 			return false
 		}
 		err := filter(entry.ForkID)
