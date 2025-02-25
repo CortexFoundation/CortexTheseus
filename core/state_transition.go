@@ -298,7 +298,6 @@ func (st *StateTransition) execute() (*ExecutionResult, error) {
 	}
 
 	msg := st.msg
-	sender := vm.AccountRef(msg.From)
 	homestead := st.cvm.ChainConfig().IsHomestead(st.cvm.Context.BlockNumber)
 	istanbul := st.cvm.ChainConfig().IsIstanbul(st.cvm.Context.BlockNumber)
 	//matureBlockNumber := st.cvm.ChainConfig().GetMatureBlock()
@@ -337,14 +336,14 @@ func (st *StateTransition) execute() (*ExecutionResult, error) {
 		vmerr error
 	)
 	if contractCreation {
-		ret, _, st.gas, st.modelGas, vmerr = st.cvm.Create(sender, msg.Data, st.gas, msg.Value)
+		ret, _, st.gas, st.modelGas, vmerr = st.cvm.Create(msg.From, msg.Data, st.gas, msg.Value)
 	} else {
 		// Increment the nonce for the next transaction
 		//if pool.config.NoInfers && asm.HasInferOp(tx.Data()) {
 		//	fmt.Println("Has INFER operation !!! continue ...")
 		//}
-		st.state.SetNonce(msg.From, st.state.GetNonce(sender.Address())+1)
-		ret, st.gas, st.modelGas, vmerr = st.cvm.Call(sender, st.to(), msg.Data, st.gas, msg.Value)
+		st.state.SetNonce(msg.From, st.state.GetNonce(msg.From)+1)
+		ret, st.gas, st.modelGas, vmerr = st.cvm.Call(msg.From, st.to(), msg.Data, st.gas, msg.Value)
 	}
 
 	if vmerr != nil {

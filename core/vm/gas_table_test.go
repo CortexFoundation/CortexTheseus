@@ -94,7 +94,7 @@ func TestEIP2200(t *testing.T) {
 		}
 		vmenv := NewCVM(vmctx, statedb, params.AllCuckooProtocolChanges, Config{ExtraEips: []int{2200}})
 
-		_, gas, _, err := vmenv.Call(AccountRef(common.Address{}), address, nil, tt.gaspool, new(big.Int))
+		_, gas, _, err := vmenv.Call(common.Address{}, address, nil, tt.gaspool, new(big.Int))
 		if !errors.Is(err, tt.failure) {
 			t.Errorf("test %d: failure mismatch: have %v, want %v", i, err, tt.failure)
 		}

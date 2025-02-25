@@ -30,16 +30,16 @@ func NoopTransfer(db StateDB, from, to common.Address, amount *big.Int) {}
 
 type NoopCVMCallContext struct{}
 
-func (NoopCVMCallContext) Call(caller ContractRef, addr common.Address, data []byte, gas, value *big.Int) ([]byte, error) {
+func (NoopCVMCallContext) Call(caller common.Address, addr common.Address, data []byte, gas, value *big.Int) ([]byte, error) {
 	return nil, nil
 }
-func (NoopCVMCallContext) CallCode(caller ContractRef, addr common.Address, data []byte, gas, value *big.Int) ([]byte, error) {
+func (NoopCVMCallContext) CallCode(caller common.Address, addr common.Address, data []byte, gas, value *big.Int) ([]byte, error) {
 	return nil, nil
 }
-func (NoopCVMCallContext) Create(caller ContractRef, data []byte, gas, value *big.Int) ([]byte, common.Address, error) {
+func (NoopCVMCallContext) Create(caller common.Address, data []byte, gas, value *big.Int) ([]byte, common.Address, error) {
 	return nil, common.Address{}, nil
 }
-func (NoopCVMCallContext) DelegateCall(me ContractRef, addr common.Address, data []byte, gas *big.Int) ([]byte, error) {
+func (NoopCVMCallContext) DelegateCall(me common.Address, addr common.Address, data []byte, gas *big.Int) ([]byte, error) {
 	return nil, nil
 }
 

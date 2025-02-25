@@ -875,7 +875,7 @@ func opCreate(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]b
 		bigVal = value.ToBig()
 	}
 
-	ret, addr, returnGas, modelGas, suberr := interpreter.cvm.Create(scope.Contract, input, gas, bigVal)
+	ret, addr, returnGas, modelGas, suberr := interpreter.cvm.Create(scope.Contract.Address(), input, gas, bigVal)
 	// Push item on the stack based on the returned error. If the ruleset is
 	// homestead we must check for CodeStoreOutOfGasError (homestead only
 	// rule) and treat as an error, if the ruleset is frontier we must
@@ -927,7 +927,7 @@ func opCreate2(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]
 	if !endowment.IsZero() {
 		bigEndowment = endowment.ToBig()
 	}
-	ret, addr, returnGas, modelGas, suberr := interpreter.cvm.Create2(scope.Contract, input, gas, bigEndowment, &salt)
+	ret, addr, returnGas, modelGas, suberr := interpreter.cvm.Create2(scope.Contract.Address(), input, gas, bigEndowment, &salt)
 	// Push item on the stack based on the returned error.
 	if suberr != nil {
 		stackvalue.Clear()
@@ -976,7 +976,7 @@ func opCall(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byt
 		gas += params.CallStipend
 		bigVal = value.ToBig()
 	}
-	ret, returnGas, modelGas, err := interpreter.cvm.Call(scope.Contract, toAddr, args, gas, bigVal)
+	ret, returnGas, modelGas, err := interpreter.cvm.Call(scope.Contract.Address(), toAddr, args, gas, bigVal)
 	if err != nil {
 		temp.Clear()
 	} else {
@@ -1019,7 +1019,7 @@ func opCallCode(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([
 		gas += params.CallStipend
 		bigVal = value.ToBig()
 	}
-	ret, returnGas, modelGas, err := interpreter.cvm.CallCode(scope.Contract, toAddr, args, gas, bigVal)
+	ret, returnGas, modelGas, err := interpreter.cvm.CallCode(scope.Contract.Address(), toAddr, args, gas, bigVal)
 	if err != nil {
 		temp.Clear()
 	} else {
@@ -1056,7 +1056,7 @@ func opDelegateCall(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext
 	// Get arguments from the memory.
 	args := scope.Memory.GetPtr(inOffset.Uint64(), inSize.Uint64())
 
-	ret, returnGas, modelGas, err := interpreter.cvm.DelegateCall(scope.Contract, toAddr, args, gas)
+	ret, returnGas, modelGas, err := interpreter.cvm.DelegateCall(scope.Contract.Caller(), scope.Contract.Address(), toAddr, args, gas, scope.Contract.value)
 	if err != nil {
 		temp.Clear()
 	} else {
@@ -1094,7 +1094,7 @@ func opStaticCall(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) 
 	// Get arguments from the memory.
 	args := scope.Memory.GetPtr(inOffset.Uint64(), inSize.Uint64())
 
-	ret, returnGas, modelGas, err := interpreter.cvm.StaticCall(scope.Contract, toAddr, args, gas)
+	ret, returnGas, modelGas, err := interpreter.cvm.StaticCall(scope.Contract.Address(), toAddr, args, gas)
 	if err != nil {
 		temp.Clear()
 	} else {
