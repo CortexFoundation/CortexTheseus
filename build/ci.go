@@ -208,6 +208,8 @@ func main() {
 		doXCodeFramework(os.Args[2:])
 	case "purge":
 		doPurge(os.Args[2:])
+	case "sanitycheck":
+		doSanityCheck()
 	default:
 		log.Fatal("unknown command ", os.Args[1])
 	}
@@ -229,7 +231,7 @@ func doInstall(cmdline []string) {
 	tc := build.GoToolchain{GOARCH: *arch, CC: *cc}
 	if *dlgo {
 		csdb := build.MustLoadChecksums("build/checksums.txt")
-		tc.Root = build.DownloadGo(csdb, dlgoVersion)
+		tc.Root = build.DownloadGo(csdb)
 	}
 	// Disable CLI markdown doc generation in release builds.
 	buildTags := []string{"urfave_cli_no_docs"}
@@ -328,7 +330,7 @@ func doTest(cmdline []string) {
 	tc := build.GoToolchain{GOARCH: *arch, CC: *cc}
 	if *dlgo {
 		csdb := build.MustLoadChecksums("build/checksums.txt")
-		tc.Root = build.DownloadGo(csdb, dlgoVersion)
+		tc.Root = build.DownloadGo(csdb)
 	}
 	gotest := tc.Go("test")
 
@@ -387,10 +389,10 @@ func doLint(cmdline []string) {
 func downloadLinter(cachedir string) string {
 
 	csdb := build.MustLoadChecksums("build/checksums.txt")
-        version, err := build.Version(csdb, "golangci")
+	version, err := build.Version(csdb, "golangci")
 	if err != nil {
-                log.Fatal(err)
-        }
+		log.Fatal(err)
+	}
 	arch := runtime.GOARCH
 	ext := ".tar.gz"
 
@@ -1008,7 +1010,7 @@ func doAndroidArchive(cmdline []string) {
 	}
 
 	// Build gomobile.
-	install := tc.Install(GOBIN, "golang.org/x/mobile/cmd/gomobile@latest", "golang.org/x/mobile/cmd/gobind@latest")
+	install := tc.Go(GOBIN, "golang.org/x/mobile/cmd/gomobile@latest", "golang.org/x/mobile/cmd/gobind@latest")
 	install.Env = append(install.Env)
 	build.MustRun(install)
 
@@ -1139,7 +1141,7 @@ func doXCodeFramework(cmdline []string) {
 	tc := new(build.GoToolchain)
 
 	// Build gomobile.
-	build.MustRun(tc.Install(GOBIN, "golang.org/x/mobile/cmd/gomobile", "golang.org/x/mobile/cmd/gobind"))
+	build.MustRun(tc.Go(GOBIN, "golang.org/x/mobile/cmd/gomobile", "golang.org/x/mobile/cmd/gobind"))
 
 	// Build the iOS XCode framework
 	bind := gomobileTool("bind", "-ldflags", "-s -w", "--target", "ios", "-v", "github.com/CortexFoundation/CortexTheseus/mobile")
@@ -1429,4 +1431,8 @@ func protocArchiveBaseName() (string, error) {
 	default:
 		return "", fmt.Errorf("no prebuilt release of protoc available for this system (os: %s, arch: %s)", runtime.GOOS, runtime.GOARCH)
 	}
+}
+
+func doSanityCheck() {
+	build.DownloadAndVerifyChecksums(build.MustLoadChecksums("build/checksums.txt"))
 }
