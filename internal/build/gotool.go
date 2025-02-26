@@ -147,3 +147,22 @@ func DownloadGo(csdb *ChecksumDB, version string) string {
 	}
 	return goroot
 }
+
+// Version returns the versions defined in the checksumdb.
+func Version(csdb *ChecksumDB, version string) (string, error) {
+	for _, l := range csdb.allChecksums {
+		if !strings.HasPrefix(l, "# version:") {
+			continue
+		}
+		v := strings.Split(l, ":")[1]
+		parts := strings.Split(v, " ")
+		if len(parts) != 2 {
+			log.Print("Erroneous version-string", "v", l)
+			continue
+		}
+		if parts[0] == version {
+			return parts[1], nil
+		}
+	}
+	return "", fmt.Errorf("no version found for '%v'", version)
+}
