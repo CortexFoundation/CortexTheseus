@@ -244,7 +244,7 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 		return nil, err
 	}
 
-	ctxc.miner = miner.New(ctxc, &config.Miner, ctxc.chainConfig, ctxc.EventMux(), ctxc.engine, ctxc.isLocalBlock)
+	ctxc.miner = miner.New(ctxc, &config.Miner, ctxc.chainConfig, ctxc.eventMux, ctxc.engine, ctxc.isLocalBlock)
 	ctxc.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
 
 	ctxc.APIBackend = &CortexAPIBackend{stack.Config().AllowUnprotectedTxs, ctxc, nil}
@@ -553,7 +553,6 @@ func (s *Cortex) Miner() *miner.Miner { return s.miner }
 func (s *Cortex) AccountManager() *accounts.Manager  { return s.accountManager }
 func (s *Cortex) BlockChain() *core.BlockChain       { return s.blockchain }
 func (s *Cortex) TxPool() *txpool.TxPool             { return s.txPool }
-func (s *Cortex) EventMux() *event.TypeMux           { return s.eventMux }
 func (s *Cortex) Engine() consensus.Engine           { return s.engine }
 func (s *Cortex) ChainDb() ctxcdb.Database           { return s.chainDb }
 func (s *Cortex) IsListening() bool                  { return true } // Always listening
