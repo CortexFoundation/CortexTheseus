@@ -40,6 +40,10 @@ type Contract struct {
 	CodeHash common.Hash
 	Input    []byte
 
+	// is the execution frame represented by this object a contract deployment
+	IsDeployment bool
+	IsSystemCall bool
+
 	Gas   uint64
 	value *big.Int
 
