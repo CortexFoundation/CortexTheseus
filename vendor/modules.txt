@@ -92,8 +92,8 @@ github.com/alecthomas/atomic
 ## explicit; go 1.16
 github.com/anacrolix/chansync
 github.com/anacrolix/chansync/events
-# github.com/anacrolix/dht/v2 v2.22.0
-## explicit; go 1.18
+# github.com/anacrolix/dht/v2 v2.22.1
+## explicit; go 1.23
 github.com/anacrolix/dht/v2
 github.com/anacrolix/dht/v2/bep44
 github.com/anacrolix/dht/v2/containers
@@ -712,8 +712,8 @@ github.com/klauspost/compress/s2
 github.com/klauspost/compress/snappy
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
-# github.com/klauspost/cpuid/v2 v2.2.9
-## explicit; go 1.20
+# github.com/klauspost/cpuid/v2 v2.2.10
+## explicit; go 1.22
 github.com/klauspost/cpuid/v2
 # github.com/kr/pretty v0.3.1
 ## explicit; go 1.12
@@ -995,8 +995,8 @@ github.com/remyoudompheng/bigfft
 # github.com/rivo/uniseg v0.4.7
 ## explicit; go 1.18
 github.com/rivo/uniseg
-# github.com/rogpeppe/go-internal v1.13.1
-## explicit; go 1.22
+# github.com/rogpeppe/go-internal v1.14.0
+## explicit; go 1.23
 github.com/rogpeppe/go-internal/fmtsort
 # github.com/rs/cors v1.11.1
 ## explicit; go 1.13
@@ -1139,7 +1139,7 @@ go.uber.org/automaxprocs
 go.uber.org/automaxprocs/internal/cgroups
 go.uber.org/automaxprocs/internal/runtime
 go.uber.org/automaxprocs/maxprocs
-# golang.org/x/crypto v0.34.0
+# golang.org/x/crypto v0.35.0
 ## explicit; go 1.23.0
 golang.org/x/crypto/blake2b
 golang.org/x/crypto/blake2s
@@ -1313,8 +1313,8 @@ gopkg.in/urfave/cli.v1
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
-# lukechampine.com/blake3 v1.3.0
-## explicit; go 1.17
+# lukechampine.com/blake3 v1.4.0
+## explicit; go 1.22
 lukechampine.com/blake3
 lukechampine.com/blake3/bao
 lukechampine.com/blake3/guts
