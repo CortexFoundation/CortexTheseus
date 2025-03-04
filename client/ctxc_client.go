@@ -116,7 +116,7 @@ func (ec *Client) PeerCount(ctx context.Context) (uint64, error) {
 // BlockReceipts returns the receipts of a given block number or hash.
 func (ec *Client) BlockReceipts(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) ([]*types.Receipt, error) {
 	var r []*types.Receipt
-	err := ec.c.CallContext(ctx, &r, "eth_getBlockReceipts", blockNrOrHash.String())
+	err := ec.c.CallContext(ctx, &r, "ctxc_getBlockReceipts", blockNrOrHash.String())
 	if err == nil && r == nil {
 		return nil, cortex.NotFound
 	}
@@ -412,7 +412,7 @@ func (ec *Client) BalanceAt(ctx context.Context, account common.Address, blockNu
 // BalanceAtHash returns the wei balance of the given account.
 func (ec *Client) BalanceAtHash(ctx context.Context, account common.Address, blockHash common.Hash) (*big.Int, error) {
 	var result hexutil.Big
-	err := ec.c.CallContext(ctx, &result, "eth_getBalance", account, rpc.BlockNumberOrHashWithHash(blockHash, false))
+	err := ec.c.CallContext(ctx, &result, "ctxc_getBalance", account, rpc.BlockNumberOrHashWithHash(blockHash, false))
 	return (*big.Int)(&result), err
 }
 
@@ -551,7 +551,7 @@ func (ec *Client) CallContract(ctx context.Context, msg cortex.CallMsg, blockNum
 // the block by block hash instead of block height.
 func (ec *Client) CallContractAtHash(ctx context.Context, msg cortex.CallMsg, blockHash common.Hash) ([]byte, error) {
 	var hex hexutil.Bytes
-	err := ec.c.CallContext(ctx, &hex, "eth_call", toCallArg(msg), rpc.BlockNumberOrHashWithHash(blockHash, false))
+	err := ec.c.CallContext(ctx, &hex, "ctxc_call", toCallArg(msg), rpc.BlockNumberOrHashWithHash(blockHash, false))
 	if err != nil {
 		return nil, err
 	}
