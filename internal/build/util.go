@@ -1,5 +1,5 @@
 // Copyright 2016 The go-ethereum Authors
-// This file is part of The go-ethereum library.
+// This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -12,7 +12,7 @@
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with The go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package build
 
@@ -27,8 +27,8 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -39,7 +39,7 @@ var DryRunFlag = flag.Bool("n", false, "dry run, don't execute commands")
 // MustRun executes the given command and exits the host process for
 // any error.
 func MustRun(cmd *exec.Cmd) {
-	fmt.Println(">>>", strings.Join(cmd.Args, " "))
+	fmt.Println(">>>", printArgs(cmd.Args))
 	if !*DryRunFlag {
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
@@ -47,6 +47,20 @@ func MustRun(cmd *exec.Cmd) {
 			log.Fatal(err)
 		}
 	}
+}
+
+func printArgs(args []string) string {
+	var s strings.Builder
+	for i, arg := range args {
+		if i > 0 {
+			s.WriteByte(' ')
+		}
+		if strings.IndexByte(arg, ' ') >= 0 {
+			arg = strconv.QuoteToASCII(arg)
+		}
+		s.WriteString(arg)
+	}
+	return s.String()
 }
 
 func MustRunCommand(cmd string, args ...string) {
@@ -58,10 +72,17 @@ func MustRunCommand(cmd string, args ...string) {
 // when there is no output.
 func MustRunCommandWithOutput(cmd string, args ...string) {
 	interval := time.NewTicker(time.Minute)
+	done := make(chan struct{})
 	defer interval.Stop()
+	defer close(done)
 	go func() {
-		for range interval.C {
-			fmt.Printf("Waiting for command %q\n", cmd)
+		for {
+			select {
+			case <-interval.C:
+				fmt.Printf("Waiting for command %q\n", cmd)
+			case <-done:
+				return
+			}
 		}
 	}()
 	MustRun(exec.Command(cmd, args...))
@@ -98,18 +119,18 @@ func readGitFile(file string) string {
 }
 
 // Render renders the given template file into outputFile.
-func Render(templateFile, outputFile string, outputPerm os.FileMode, x any) {
+func Render(templateFile, outputFile string, outputPerm os.FileMode, x interface{}) {
 	tpl := template.Must(template.ParseFiles(templateFile))
 	render(tpl, outputFile, outputPerm, x)
 }
 
 // RenderString renders the given template string into outputFile.
-func RenderString(templateContent, outputFile string, outputPerm os.FileMode, x any) {
+func RenderString(templateContent, outputFile string, outputPerm os.FileMode, x interface{}) {
 	tpl := template.Must(template.New("").Parse(templateContent))
 	render(tpl, outputFile, outputPerm, x)
 }
 
-func render(tpl *template.Template, outputFile string, outputPerm os.FileMode, x any) {
+func render(tpl *template.Template, outputFile string, outputPerm os.FileMode, x interface{}) {
 	if err := os.MkdirAll(filepath.Dir(outputFile), 0755); err != nil {
 		log.Fatal(err)
 	}
@@ -135,7 +156,7 @@ func UploadSFTP(identityFile, host, dir string, files []string) error {
 		sftp.Args = append(sftp.Args, "-i", identityFile)
 	}
 	sftp.Args = append(sftp.Args, host)
-	fmt.Println(">>>", strings.Join(sftp.Args, " "))
+	fmt.Println(">>>", printArgs(sftp.Args))
 	if *DryRunFlag {
 		return nil
 	}
@@ -153,7 +174,7 @@ func UploadSFTP(identityFile, host, dir string, files []string) error {
 	}
 	in := io.MultiWriter(stdin, os.Stdout)
 	for _, f := range files {
-		fmt.Fprintln(in, "put", f, path.Join(dir, filepath.Base(f)))
+		fmt.Fprintln(in, "put", f, filepath.Join(dir, filepath.Base(f)))
 	}
 	fmt.Fprintln(in, "exit")
 	// Some issue with the PPA sftp server makes it so the server does not
@@ -196,6 +217,9 @@ func FindMainPackages(dir string) []string {
 	}
 	for _, cmd := range cmds {
 		pkgdir := filepath.Join(dir, cmd.Name())
+		if !cmd.IsDir() {
+			continue
+		}
 		pkgs, err := parser.ParseDir(token.NewFileSet(), pkgdir, nil, parser.PackageClauseOnly)
 		if err != nil {
 			log.Fatal(err)
