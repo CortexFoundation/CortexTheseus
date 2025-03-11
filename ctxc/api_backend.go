@@ -328,10 +328,6 @@ func (b *CortexAPIBackend) ChainDb() ctxcdb.Database {
 	return b.ctxc.ChainDb()
 }
 
-func (b *CortexAPIBackend) EventMux() *event.TypeMux {
-	return b.ctxc.EventMux()
-}
-
 func (b *CortexAPIBackend) AccountManager() *accounts.Manager {
 	return b.ctxc.AccountManager()
 }
