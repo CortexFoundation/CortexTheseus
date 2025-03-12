@@ -95,11 +95,11 @@ The dumpgenesis command dumps the genesis block configuration in JSON format to 
 		},
 		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
-The import command imports blocks from an RLP-encoded form. The form can be one file
-with several RLP-encoded blocks, or several files can be used.
-
-If only one file is used, import error will result in failure. If several files are used,
-processing will proceed even if an individual RLP-file import failure occurs.`,
+The import command allows the import of blocks from an RLP-encoded format. This format can be a single file
+containing multiple RLP-encoded blocks, or multiple files can be given.
+If only one file is used, an import error will result in the entire import process failing. If
+multiple files are processed, the import process will continue even if an individual RLP file fails
+to import successfully.`,
 	}
 	exportCommand = cli.Command{
 		Action:    utils.MigrateFlags(exportChain),
@@ -272,6 +272,9 @@ func importChain(ctx *cli.Context) error {
 			if err := utils.ImportChain(chain, arg); err != nil {
 				importErr = err
 				log.Error("Import error", "file", arg, "err", err)
+				if err == utils.ErrImportInterrupted {
+					break
+				}
 			}
 		}
 	}
