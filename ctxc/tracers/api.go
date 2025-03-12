@@ -842,7 +842,7 @@ func (api *API) TraceTransaction(ctx context.Context, hash common.Hash, config *
 	return api.traceTx(ctx, msg, txctx, vmctx, statedb, config)
 }
 
-// TraceCall lets you trace a given eth_call. It collects the structured logs
+// TraceCall lets you trace a given ctxc_call. It collects the structured logs
 // created during the execution of CVM if the given transaction was added on
 // top of the provided block and returns them as a JSON object.
 func (api *API) TraceCall(ctx context.Context, args ctxcapi.CallArgs, blockNrOrHash rpc.BlockNumberOrHash, config *TraceCallConfig) (any, error) {
