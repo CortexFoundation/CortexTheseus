@@ -25,7 +25,22 @@ import (
 // ReadPreimage retrieves a single preimage of the provided hash.
 func ReadPreimage(db ctxcdb.KeyValueReader, hash common.Hash) []byte {
 	data, _ := db.Get(preimageKey(hash))
+	if len(data) == 0 {
+		preimageMissCounter.Inc(1)
+	} else {
+		preimageHitsCounter.Inc(1)
+	}
 	return data
+}
+
+// WritePreimages writes the provided set of preimages to the database.
+func WritePreimages(db ctxcdb.KeyValueWriter, preimages map[common.Hash][]byte) {
+	for hash, preimage := range preimages {
+		if err := db.Put(preimageKey(hash), preimage); err != nil {
+			log.Crit("Failed to store trie preimage", "err", err)
+		}
+	}
+	preimageCounter.Inc(int64(len(preimages)))
 }
 
 // ReadCode retrieves the contract code of the provided code hash.
@@ -78,17 +93,6 @@ func HasCodeWithPrefix(db ctxcdb.KeyValueReader, hash common.Hash) bool {
 func HasTrieNode(db ctxcdb.KeyValueReader, hash common.Hash) bool {
 	ok, _ := db.Has(hash.Bytes())
 	return ok
-}
-
-// WritePreimages writes the provided set of preimages to the database.
-func WritePreimages(db ctxcdb.KeyValueWriter, preimages map[common.Hash][]byte) {
-	for hash, preimage := range preimages {
-		if err := db.Put(preimageKey(hash), preimage); err != nil {
-			log.Crit("Failed to store trie preimage", "err", err)
-		}
-	}
-	preimageCounter.Inc(int64(len(preimages)))
-	preimageHitCounter.Inc(int64(len(preimages)))
 }
 
 // WriteCode writes the provided contract code database.
