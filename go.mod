@@ -22,7 +22,7 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/deckarep/golang-set/v2 v2.7.0
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0
-	github.com/dop251/goja v0.0.0-20250307175808-203961f822d6
+	github.com/dop251/goja v0.0.0-20250309171923-bcd7cc6bf64c
 	github.com/ethereum/c-kzg-4844 v1.0.3
 	github.com/ethereum/go-ethereum v1.15.5
 	github.com/ethereum/go-verkle v0.2.2

@@ -512,7 +512,7 @@ github.com/dgraph-io/ristretto/v2/z/simd
 ## explicit; go 1.13
 github.com/dlclark/regexp2
 github.com/dlclark/regexp2/syntax
-# github.com/dop251/goja v0.0.0-20250307175808-203961f822d6
+# github.com/dop251/goja v0.0.0-20250309171923-bcd7cc6bf64c
 ## explicit; go 1.20
 github.com/dop251/goja
 github.com/dop251/goja/ast
