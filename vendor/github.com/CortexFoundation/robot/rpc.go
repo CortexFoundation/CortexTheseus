@@ -160,6 +160,17 @@ func (m *Monitor) getReceipt(tx string) (receipt types.Receipt, err error) {
 	return
 }
 
+func (m *Monitor) getBlockReceipts(hash string) (receipt []types.Receipt, err error) {
+	rpcReceiptMeter.Mark(1)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err = m.cl.CallContext(ctx, &receipt, "ctxc_getBlockReceipts", hash); err != nil {
+		log.Warn("R array is nil", "R", hash, "err", err)
+	}
+
+	return
+}
+
 func (m *Monitor) currentBlock() (uint64, bool, error) {
 	var (
 		currentNumber hexutil.Uint64
