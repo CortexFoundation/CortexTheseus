@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.0
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.69-0.20250223164311-777618afaf30
+	github.com/CortexFoundation/torrentfs v1.0.69-0.20250312155646-e666064eb3c2
 	github.com/VictoriaMetrics/fastcache v1.12.2
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.36.3
@@ -80,7 +80,7 @@ require (
 	github.com/CortexFoundation/compress v0.0.0-20240218153512-9074bdc2397c // indirect
 	github.com/CortexFoundation/cvm-runtime v0.0.0-20221117094012-b5a251885572 // indirect
 	github.com/CortexFoundation/merkletree v0.0.0-20240407093305-416581a62b5b // indirect
-	github.com/CortexFoundation/robot v1.0.7-0.20240728100700-258c7a048a1f // indirect
+	github.com/CortexFoundation/robot v1.0.7-0.20250226143617-b3819ddaddc6 // indirect
 	github.com/CortexFoundation/wormhole v0.0.2-0.20241128010855-a23c88842cfa // indirect
 	github.com/DataDog/zstd v1.5.6 // indirect
 	github.com/RoaringBitmap/roaring v1.9.4 // indirect
@@ -120,7 +120,7 @@ require (
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/benbjohnson/immutable v0.4.3 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bits-and-blooms/bitset v1.21.0 // indirect
+	github.com/bits-and-blooms/bitset v1.22.0 // indirect
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8 // indirect
 	github.com/bwmarrin/snowflake v0.3.0 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
@@ -137,7 +137,7 @@ require (
 	github.com/consensys/bavard v0.1.30 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/crate-crypto/go-ipa v0.0.0-20240724233137-53bbb0ceb27a // indirect
-	github.com/dgraph-io/badger/v4 v4.6.0 // indirect
+	github.com/dgraph-io/badger/v4 v4.6.1-0.20250307192050-12bc62196753 // indirect
 	github.com/dgraph-io/ristretto/v2 v2.1.0 // indirect
 	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
@@ -193,9 +193,9 @@ require (
 	github.com/pion/mdns/v2 v2.0.7 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/rtcp v1.2.15 // indirect
-	github.com/pion/rtp v1.8.12 // indirect
+	github.com/pion/rtp v1.8.13 // indirect
 	github.com/pion/sctp v1.8.37 // indirect
-	github.com/pion/sdp/v3 v3.0.10 // indirect
+	github.com/pion/sdp/v3 v3.0.11 // indirect
 	github.com/pion/srtp/v3 v3.0.4 // indirect
 	github.com/pion/stun/v3 v3.0.0 // indirect
 	github.com/pion/transport/v2 v2.2.10 // indirect
@@ -224,7 +224,7 @@ require (
 	github.com/tklauser/numcpus v0.10.0 // indirect
 	github.com/ucwong/filecache v1.0.6-0.20230405163841-810d53ced4bd // indirect
 	github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb // indirect
-	github.com/ucwong/golang-kv v1.0.24-0.20250223163943-e9c513728ab1 // indirect
+	github.com/ucwong/golang-kv v1.0.24-0.20250311205856-bf6be4c34641 // indirect
 	github.com/ucwong/shard v1.0.1-0.20240327124306-59a521744cae // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect

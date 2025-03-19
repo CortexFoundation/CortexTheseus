@@ -19,7 +19,6 @@ package backend
 import (
 	"errors"
 	"sort"
-	"strconv"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -133,7 +132,7 @@ func (fs *ChainDB) writeRoot(number uint64, root []byte) error {
 		if err != nil {
 			return err
 		}
-		e := buk.Put([]byte(strconv.FormatUint(number, 16)), root)
+		e := buk.Put([]byte(hexutil.EncodeUint64(number)), root)
 
 		if e == nil {
 			log.Debug("Root update", "number", number, "root", common.BytesToHash(root))
@@ -153,7 +152,7 @@ func (fs *ChainDB) GetRoot(number uint64) (root []byte) {
 			return errors.New("root bucket not exist")
 		}
 
-		v := buk.Get([]byte(strconv.FormatUint(number, 16)))
+		v := buk.Get([]byte(hexutil.EncodeUint64(number)))
 		if v == nil {
 			return errors.New("root value not exist")
 		}
