@@ -137,6 +137,8 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 
 	engine := CreateConsensusEngine(stack, chainConfig, &config.Cuckoo, config.Miner.Notify, config.Miner.Noverify, chainDb)
 
+	// TODO history
+
 	networkID := config.NetworkId
 	if networkID == 0 {
 		networkID = chainConfig.ChainID.Uint64()
