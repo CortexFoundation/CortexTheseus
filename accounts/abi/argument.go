@@ -127,7 +127,7 @@ func (arguments Arguments) Copy(v any, values []any) error {
 	return arguments.copyAtomic(v, values[0])
 }
 
-// unpackAtomic unpacks ( hexdata -> go ) a single value
+// copyAtomic copies ( hexdata -> go ) a single value
 func (arguments Arguments) copyAtomic(v any, marshalledValues any) error {
 	dst := reflect.ValueOf(v).Elem()
 	src := reflect.ValueOf(marshalledValues)
@@ -182,10 +182,16 @@ func (arguments Arguments) copyTuple(v any, marshalledValues []any) error {
 // without supplying a struct to unpack into. Instead, this method returns a list containing the
 // values. An atomic argument will be a list with one element.
 func (arguments Arguments) UnpackValues(data []byte) ([]any, error) {
-	nonIndexedArgs := arguments.NonIndexed()
-	retval := make([]any, 0, len(nonIndexedArgs))
-	virtualArgs := 0
-	for index, arg := range nonIndexedArgs {
+	var (
+		retval      = make([]any, 0)
+		virtualArgs = 0
+		index       = 0
+	)
+
+	for _, arg := range arguments {
+		if arg.Indexed {
+			continue
+		}
 		marshalledValue, err := toGoType((index+virtualArgs)*32, arg.Type, data)
 		if err != nil {
 			return nil, err
@@ -208,6 +214,7 @@ func (arguments Arguments) UnpackValues(data []byte) ([]any, error) {
 			virtualArgs += getTypeSize(arg.Type)/32 - 1
 		}
 		retval = append(retval, marshalledValue)
+		index++
 	}
 	return retval, nil
 }
