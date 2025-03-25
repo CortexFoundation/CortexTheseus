@@ -211,27 +211,27 @@ func TestAccountIteratorTraversalValues(t *testing.T) {
 		h = make(map[common.Hash][]byte)
 	)
 	for i := byte(2); i < 0xff; i++ {
-		a[common.Hash{i}] = []byte(fmt.Sprintf("layer-%d, key %d", 0, i))
+		a[common.Hash{i}] = fmt.Appendf(nil, "layer-%d, key %d", 0, i)
 		if i > 20 && i%2 == 0 {
-			b[common.Hash{i}] = []byte(fmt.Sprintf("layer-%d, key %d", 1, i))
+			b[common.Hash{i}] = fmt.Appendf(nil, "layer-%d, key %d", 1, i)
 		}
 		if i%4 == 0 {
-			c[common.Hash{i}] = []byte(fmt.Sprintf("layer-%d, key %d", 2, i))
+			c[common.Hash{i}] = fmt.Appendf(nil, "layer-%d, key %d", 2, i)
 		}
 		if i%7 == 0 {
-			d[common.Hash{i}] = []byte(fmt.Sprintf("layer-%d, key %d", 3, i))
+			d[common.Hash{i}] = fmt.Appendf(nil, "layer-%d, key %d", 3, i)
 		}
 		if i%8 == 0 {
-			e[common.Hash{i}] = []byte(fmt.Sprintf("layer-%d, key %d", 4, i))
+			e[common.Hash{i}] = fmt.Appendf(nil, "layer-%d, key %d", 4, i)
 		}
 		if i > 50 || i < 85 {
-			f[common.Hash{i}] = []byte(fmt.Sprintf("layer-%d, key %d", 5, i))
+			f[common.Hash{i}] = fmt.Appendf(nil, "layer-%d, key %d", 5, i)
 		}
 		if i%64 == 0 {
-			g[common.Hash{i}] = []byte(fmt.Sprintf("layer-%d, key %d", 6, i))
+			g[common.Hash{i}] = fmt.Appendf(nil, "layer-%d, key %d", 6, i)
 		}
 		if i%128 == 0 {
-			h[common.Hash{i}] = []byte(fmt.Sprintf("layer-%d, key %d", 7, i))
+			h[common.Hash{i}] = fmt.Appendf(nil, "layer-%d, key %d", 7, i)
 		}
 	}
 	// Assemble a stack of snapshots from the account layers
@@ -258,6 +258,106 @@ func TestAccountIteratorTraversalValues(t *testing.T) {
 			t.Fatalf("hash %x: account mismatch: have %x, want %x", hash, have, want)
 		}
 	}
+	it.Release()
+}
+
+func TestStorageIteratorTraversalValues(t *testing.T) {
+	// Create an empty base layer and a snapshot tree out of it
+	base := &diskLayer{
+		diskdb: rawdb.NewMemoryDatabase(),
+		root:   common.HexToHash("0x01"),
+		cache:  fastcache.New(1024 * 500),
+	}
+	snaps := &Tree{
+		layers: map[common.Hash]snapshot{
+			base.root: base,
+		},
+	}
+	wrapStorage := func(storage map[common.Hash][]byte) map[common.Hash]map[common.Hash][]byte {
+		return map[common.Hash]map[common.Hash][]byte{
+			common.HexToHash("0xaa"): storage,
+		}
+	}
+	// Create a batch of storage sets to seed subsequent layers with
+	var (
+		a = make(map[common.Hash][]byte)
+		b = make(map[common.Hash][]byte)
+		c = make(map[common.Hash][]byte)
+		d = make(map[common.Hash][]byte)
+		e = make(map[common.Hash][]byte)
+		f = make(map[common.Hash][]byte)
+		g = make(map[common.Hash][]byte)
+		h = make(map[common.Hash][]byte)
+	)
+	for i := byte(2); i < 0xff; i++ {
+		a[common.Hash{i}] = fmt.Appendf(nil, "layer-%d, key %d", 0, i)
+		if i > 20 && i%2 == 0 {
+			b[common.Hash{i}] = fmt.Appendf(nil, "layer-%d, key %d", 1, i)
+		}
+		if i%4 == 0 {
+			c[common.Hash{i}] = fmt.Appendf(nil, "layer-%d, key %d", 2, i)
+		}
+		if i%7 == 0 {
+			d[common.Hash{i}] = fmt.Appendf(nil, "layer-%d, key %d", 3, i)
+		}
+		if i%8 == 0 {
+			e[common.Hash{i}] = fmt.Appendf(nil, "layer-%d, key %d", 4, i)
+		}
+		if i > 50 || i < 85 {
+			f[common.Hash{i}] = fmt.Appendf(nil, "layer-%d, key %d", 5, i)
+		}
+		if i%64 == 0 {
+			g[common.Hash{i}] = fmt.Appendf(nil, "layer-%d, key %d", 6, i)
+		}
+		if i%128 == 0 {
+			h[common.Hash{i}] = fmt.Appendf(nil, "layer-%d, key %d", 7, i)
+		}
+	}
+	// Assemble a stack of snapshots from the account layers
+	snaps.Update(common.HexToHash("0x02"), common.HexToHash("0x01"), nil, randomAccountSet("0xaa"), wrapStorage(a))
+	snaps.Update(common.HexToHash("0x03"), common.HexToHash("0x02"), nil, randomAccountSet("0xaa"), wrapStorage(b))
+	snaps.Update(common.HexToHash("0x04"), common.HexToHash("0x03"), nil, randomAccountSet("0xaa"), wrapStorage(c))
+	snaps.Update(common.HexToHash("0x05"), common.HexToHash("0x04"), nil, randomAccountSet("0xaa"), wrapStorage(d))
+	snaps.Update(common.HexToHash("0x06"), common.HexToHash("0x05"), nil, randomAccountSet("0xaa"), wrapStorage(e))
+	snaps.Update(common.HexToHash("0x07"), common.HexToHash("0x06"), nil, randomAccountSet("0xaa"), wrapStorage(e))
+	snaps.Update(common.HexToHash("0x08"), common.HexToHash("0x07"), nil, randomAccountSet("0xaa"), wrapStorage(g))
+	snaps.Update(common.HexToHash("0x09"), common.HexToHash("0x08"), nil, randomAccountSet("0xaa"), wrapStorage(h))
+
+	it, _ := snaps.StorageIterator(common.HexToHash("0x09"), common.HexToHash("0xaa"), common.Hash{})
+	head := snaps.Snapshot(common.HexToHash("0x09"))
+	for it.Next() {
+		hash := it.Hash()
+		want, err := head.Storage(common.HexToHash("0xaa"), hash)
+		if err != nil {
+			t.Fatalf("failed to retrieve expected storage slot: %v", err)
+		}
+		if have := it.Slot(); !bytes.Equal(want, have) {
+			t.Fatalf("hash %x: slot mismatch: have %x, want %x", hash, have, want)
+		}
+	}
+	it.Release()
+
+	// Test after persist some bottom-most layers into the disk,
+	// the functionalities still work.
+	limit := aggregatorMemoryLimit
+	defer func() {
+		aggregatorMemoryLimit = limit
+	}()
+	aggregatorMemoryLimit = 0 // Force pushing the bottom-most layer into disk
+	snaps.Cap(common.HexToHash("0x09"), 2)
+
+	it, _ = snaps.StorageIterator(common.HexToHash("0x09"), common.HexToHash("0xaa"), common.Hash{})
+	for it.Next() {
+		hash := it.Hash()
+		want, err := head.Storage(common.HexToHash("0xaa"), hash)
+		if err != nil {
+			t.Fatalf("failed to retrieve expected slot: %v", err)
+		}
+		if have := it.Slot(); !bytes.Equal(want, have) {
+			t.Fatalf("hash %x: slot mismatch: have %x, want %x", hash, have, want)
+		}
+	}
+	it.Release()
 }
 
 // This testcase is notorious, all layers contain the exact same 200 accounts.
