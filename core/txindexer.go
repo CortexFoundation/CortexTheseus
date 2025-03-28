@@ -12,7 +12,7 @@
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package core
 
@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/log"
@@ -45,11 +46,11 @@ type txIndexer struct {
 	//  * N: means the latest N blocks [HEAD-N+1, HEAD] should be indexed
 	//       and all others shouldn't.
 	limit uint64
-	db    ctxcdb.Database
 
 	// cutoff denotes the block number before which the chain segment should
 	// be pruned and not available locally.
 	cutoff   uint64
+	db       ctxcdb.Database
 	progress chan chan TxIndexProgress
 	term     chan chan struct{}
 	closed   chan struct{}
@@ -186,7 +187,7 @@ func (indexer *txIndexer) repair(head uint64) {
 		// potentially leaving dangling indexes in the database.
 		// However, this is considered acceptable.
 		rawdb.WriteTxIndexTail(indexer.db, indexer.cutoff)
-		rawdb.DeleteAllTxLookupEntries(indexer.db, func(blob []byte) bool {
+		rawdb.DeleteAllTxLookupEntries(indexer.db, func(txhash common.Hash, blob []byte) bool {
 			n := rawdb.DecodeTxLookupEntry(blob, indexer.db)
 			return n != nil && *n < indexer.cutoff
 		})
