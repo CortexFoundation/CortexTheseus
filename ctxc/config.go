@@ -51,6 +51,9 @@ var DefaultConfig = Config{
 	SyncMode:                downloader.FullSync,
 	Cuckoo:                  cuckoo.Config{},
 	NetworkId:               0,
+	TransactionHistory:      2350000,
+	LogHistory:              2350000,
+	StateHistory:            params.FullImmutabilityThreshold,
 	DatabaseCache:           512,
 	TrieCleanCache:          154,
 	TrieCleanCacheJournal:   "triecache",
@@ -90,6 +93,12 @@ type Config struct {
 	NoPruning     bool
 	NoPrefetch    bool   // Whether to disable prefetching and only load state on demand
 	TxLookupLimit uint64 `toml:",omitempty"` // The maximum number of blocks from head whose tx indices are reserved.
+
+	TransactionHistory   uint64 `toml:",omitempty"` // The maximum number of blocks from head whose tx indices are reserved.
+	LogHistory           uint64 `toml:",omitempty"` // The maximum number of blocks from head where a log search index is maintained.
+	LogNoHistory         bool   `toml:",omitempty"` // No log search index is maintained.
+	LogExportCheckpoints string // export log index checkpoints to file
+	StateHistory         uint64 `toml:",omitempty"` // The maximum number of blocks from head whose state histories are reserved.
 
 	Whitelist map[uint64]common.Hash `toml:"-"`
 

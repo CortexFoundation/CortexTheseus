@@ -206,7 +206,7 @@ func (b *memoryBatch) commit(freezer *MemoryFreezer) (items uint64, writeSize in
 	return items, writeSize, nil
 }
 
-// MemoryFreezer is an ephemeral ancient store. It implements the ethdb.AncientStore
+// MemoryFreezer is an ephemeral ancient store. It implements the ctxcdb.AncientStore
 // interface and can be used along with ephemeral key-value store.
 type MemoryFreezer struct {
 	items      uint64                  // Number of items stored
