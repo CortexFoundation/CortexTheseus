@@ -273,6 +273,12 @@ func (t *StateTrie) NodeIterator(start []byte) NodeIterator {
 	return t.trie.NodeIterator(start)
 }
 
+// MustNodeIterator is a wrapper of NodeIterator and will omit any encountered
+// error but just print out an error message.
+func (t *StateTrie) MustNodeIterator(start []byte) NodeIterator {
+	return t.trie.MustNodeIterator(start)
+}
+
 // hashKey returns the hash of key as an ephemeral buffer.
 // The caller must not hold onto the return value because it will become
 // invalid on the next call to hashKey or secKey.

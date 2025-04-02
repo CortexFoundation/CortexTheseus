@@ -79,13 +79,17 @@ func (n *fullNode) EncodeRLP(w io.Writer) error {
 	return eb.Flush()
 }
 
-func (n *fullNode) copy() *fullNode   { copy := *n; return &copy }
-func (n *shortNode) copy() *shortNode { copy := *n; return &copy }
-
 // nodeFlag contains caching-related metadata about a node.
 type nodeFlag struct {
 	hash  hashNode // cached hash of the node (may be nil)
 	dirty bool     // whether the node has changes that must be written to the database
+}
+
+func (n nodeFlag) copy() nodeFlag {
+	return nodeFlag{
+		hash:  common.CopyBytes(n.hash),
+		dirty: n.dirty,
+	}
 }
 
 func (n *fullNode) cache() (hashNode, bool)  { return n.flags.hash, n.flags.dirty }
@@ -130,8 +134,41 @@ func mustDecodeNode(hash, buf []byte) node {
 	return n
 }
 
+// mustDecodeNodeUnsafe is a wrapper of decodeNodeUnsafe and panic if any error is
+// encountered.
+func mustDecodeNodeUnsafe(hash, buf []byte) node {
+	n, err := decodeNodeUnsafe(hash, buf)
+	if err != nil {
+		panic(fmt.Sprintf("node %x: %v", hash, err))
+	}
+	return n
+}
+
 // decodeNode parses the RLP encoding of a trie node.
 func decodeNode(hash, buf []byte) (node, error) {
+	if len(buf) == 0 {
+		return nil, io.ErrUnexpectedEOF
+	}
+	elems, _, err := rlp.SplitList(buf)
+	if err != nil {
+		return nil, fmt.Errorf("decode error: %v", err)
+	}
+	switch c, _ := rlp.CountValues(elems); c {
+	case 2:
+		n, err := decodeShort(hash, elems)
+		return n, wrapError(err, "short")
+	case 17:
+		n, err := decodeFull(hash, elems)
+		return n, wrapError(err, "full")
+	default:
+		return nil, fmt.Errorf("invalid number of list elements: %v", c)
+	}
+}
+
+// decodeNodeUnsafe parses the RLP encoding of a trie node. The passed byte slice
+// will be directly referenced by node without bytes deep copy, so the input MUST
+// not be changed after.
+func decodeNodeUnsafe(hash, buf []byte) (node, error) {
 	if len(buf) == 0 {
 		return nil, io.ErrUnexpectedEOF
 	}
@@ -207,7 +244,8 @@ func decodeRef(buf []byte) (node, []byte, error) {
 			err := fmt.Errorf("oversized embedded node (size is %d bytes, want size < %d)", size, hashLen)
 			return nil, buf, err
 		}
-		n, err := decodeNode(nil, buf)
+		//n, err := decodeNode(nil, buf)
+		n, err := decodeNodeUnsafe(nil, buf)
 		return n, rest, err
 	case kind == rlp.String && len(val) == 0:
 		// empty node

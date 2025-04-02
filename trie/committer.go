@@ -86,9 +86,6 @@ func (c *committer) commit(n node, db *Database) (node, error) {
 	// Commit children, then parent, and remove the dirty flag.
 	switch cn := n.(type) {
 	case *shortNode:
-		// Commit child
-		collapsed := cn.copy()
-
 		// If the child is fullnode, recursively commit.
 		// Otherwise it can only be hashNode or valueNode.
 		if _, ok := cn.Val.(*fullNode); ok {
@@ -96,28 +93,26 @@ func (c *committer) commit(n node, db *Database) (node, error) {
 			if err != nil {
 				return nil, err
 			}
-			collapsed.Val = childV
+			cn.Val = childV
 		}
 		// The key needs to be copied, since we're delivering it to database
-		collapsed.Key = hexToCompact(cn.Key)
-		hashedNode := c.store(collapsed, db)
+		cn.Key = hexToCompact(cn.Key)
+		hashedNode := c.store(cn, db)
 		if hn, ok := hashedNode.(hashNode); ok {
 			return hn, nil
 		}
-		return collapsed, nil
+		return cn, nil
 	case *fullNode:
 		hashedKids, err := c.commitChildren(cn, db)
 		if err != nil {
 			return nil, err
 		}
-		collapsed := cn.copy()
-		collapsed.Children = hashedKids
-
-		hashedNode := c.store(collapsed, db)
+		cn.Children = hashedKids
+		hashedNode := c.store(cn, db)
 		if hn, ok := hashedNode.(hashNode); ok {
 			return hn, nil
 		}
-		return collapsed, nil
+		return cn, nil
 	case hashNode:
 		return cn, nil
 	default:
