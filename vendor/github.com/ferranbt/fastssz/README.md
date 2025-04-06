@@ -1,5 +1,10 @@
 # FastSSZ
 
+[![Chat Badge]][chat link]
+
+[chat badge]: https://img.shields.io/badge/chat-discord-%237289da
+[chat link]: https://discord.gg/85U6593geJ
+
 The FastSSZ project in this reposity is a combination of two things: a high performant low level library to work with SSZ encodings (root of this project) and the ([sszgen](./sszgen)) code generator that generates the SSZ encodings for Go structs using the SSZ library. By combining both, this library achieves peak Go native performance and zero memory allocation. The repository uses as test the official Ethereum SSZ tests ([spectests](./spectests/)) for the Consensus Spec data structures.
 
 If you are only looking for the Consensus data structures and types with the SSZ support, it is recommended to use [go-eth-consensus](https://github.com/umbracle/go-eth-consensus) instead, since it is already integrated with other parts of the Consensus stack, like the Beacon http API.
@@ -72,6 +77,8 @@ BenchmarkHashTreeRoot_Fast
 BenchmarkHashTreeRoot_Fast-8        	   25863	     45932 ns/op	       0 B/op	       0 allocs/op
 BenchmarkHashTreeRoot_SuperFast
 BenchmarkHashTreeRoot_SuperFast-8   	   54078	     21999 ns/op	       0 B/op	       0 allocs/op
+BenchmarkProof_Tree
+BenchmarkProof_Tree-8               	    3649	    312761 ns/op	  118145 B/op	    1605 allocs/op
 PASS
 ok  	github.com/ferranbt/fastssz/spectests	5.501s
 ```
@@ -96,6 +103,6 @@ There are some caveats required to use this functionality.
 
 ## Fast HashTreeRoot
 
-`Fastssz` integrates with Prysm [gohashtree](https://github.com/prysmaticlabs/gohashtree) library to do high performance and concurrent Sha256 hashing. It achieves a 2x performance improvement with respect to the normal sequential hashing. As of now, this feature is not yet enabled by default since it does not use the `gohashtree` main branch. You can track the updates on [this](https://github.com/prysmaticlabs/gohashtree/issues/4) issue.
+`Fastssz` integrates with Prysm [gohashtree](github.com/prysmaticlabs/gohashtree) library to do high performance and concurrent Sha256 hashing. It achieves a 2x performance improvement with respect to the normal sequential hashing.
 
 In order to use this feature, enable manually the hash function in the Hasher like in the benchmark example.

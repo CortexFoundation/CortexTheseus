@@ -14,7 +14,7 @@ import (
 // efficient than VerifyMultiproof for proving one leaf.
 func VerifyProof(root []byte, proof *Proof) (bool, error) {
 	if len(proof.Hashes) != getPathLength(proof.Index) {
-		return false, errors.New("Invalid proof length")
+		return false, errors.New("invalid proof length")
 	}
 
 	node := proof.Leaf[:]
@@ -36,64 +36,103 @@ func VerifyProof(root []byte, proof *Proof) (bool, error) {
 
 // VerifyMultiproof verifies a proof for multiple leaves against the given root.
 func VerifyMultiproof(root []byte, proof [][]byte, leaves [][]byte, indices []int) (bool, error) {
+	if len(indices) == 0 {
+		return false, errors.New("indices length is zero")
+	}
+
 	if len(leaves) != len(indices) {
-		return false, errors.New("Number of leaves and indices mismatch")
+		return false, errors.New("number of leaves and indices mismatch")
 	}
 
 	reqIndices := getRequiredIndices(indices)
 	if len(reqIndices) != len(proof) {
-		return false, fmt.Errorf("Number of proof hashes %d and required indices %d mismatch", len(proof), len(reqIndices))
+		return false, fmt.Errorf("number of proof hashes %d and required indices %d mismatch", len(proof), len(reqIndices))
 	}
 
-	keys := make([]int, len(indices)+len(reqIndices))
-	nk := 0
-	// Create database of index -> value (hash)
-	// from inputs
+	// userGenIndices contains all generalised indices between leaves and proof hashes
+	// i.e., the indices retrieved from the user of this function
+	userGenIndices := make([]int, len(indices)+len(reqIndices))
+	pos := 0
+	// Create database of index -> value (hash) from inputs
 	db := make(map[int][]byte)
 	for i, leaf := range leaves {
 		db[indices[i]] = leaf
-		keys[nk] = indices[i]
-		nk++
+		userGenIndices[pos] = indices[i]
+		pos++
 	}
 	for i, h := range proof {
 		db[reqIndices[i]] = h
-		keys[nk] = reqIndices[i]
-		nk++
+		userGenIndices[pos] = reqIndices[i]
+		pos++
 	}
-	sort.Sort(sort.Reverse(sort.IntSlice(keys)))
 
-	pos := 0
+	// Make sure keys are sorted in reverse order since we start from the leaves
+	sort.Sort(sort.Reverse(sort.IntSlice(userGenIndices)))
+
+	// The depth of the tree up to the greatest index
+	cap := int(math.Log2(float64(userGenIndices[0])))
+
+	// Allocate space for auxiliary keys created when computing intermediate hashes
+	// Auxiliary indices are useful to avoid using store all indices to traverse
+	// in a single array and sort upon an insertion, which would be inefficient.
+	auxGenIndices := make([]int, 0, cap)
+
+	// To keep track the current position to inspect in both arrays
+	pos = 0
+	posAux := 0
+
 	tmp := make([]byte, 64)
-	for pos < len(keys) {
-		k := keys[pos]
+	var index int
+
+	// Iter over the tree, computing hashes and storing them
+	// in the in-memory database, until the root is reached.
+	//
+	// EXIT CONDITION: no more indices to use in both arrays
+	for posAux < len(auxGenIndices) || pos < len(userGenIndices) {
+		// We need to establish from which array we're going to take the next index
+		//
+		// 1. If we've no auxiliary indices yet, we're going to use the generalised ones
+		// 2. If we have no more client indices, we're going to use the auxiliary ones
+		// 3. If we both, then we're going to compare them and take the biggest one
+		if len(auxGenIndices) == 0 || (pos < len(userGenIndices) && auxGenIndices[posAux] < userGenIndices[pos]) {
+			index = userGenIndices[pos]
+			pos++
+		} else {
+			index = auxGenIndices[posAux]
+			posAux++
+		}
+
 		// Root has been reached
-		if k == 1 {
+		if index == 1 {
 			break
 		}
 
-		_, hasParent := db[getParent(k)]
+		// If the parent is already computed, we don't need to calculate the intermediate hash
+		_, hasParent := db[getParent(index)]
 		if hasParent {
-			pos++
 			continue
 		}
 
-		left, hasLeft := db[(k|1)^1]
-		right, hasRight := db[k|1]
+		left, hasLeft := db[(index|1)^1]
+		right, hasRight := db[index|1]
 		if !hasRight || !hasLeft {
-			return false, fmt.Errorf("Proof is missing required nodes, either %d or %d", (k|1)^1, k|1)
+			return false, fmt.Errorf("proof is missing required nodes, either %d or %d", (index|1)^1, index|1)
 		}
 
 		copy(tmp[:32], left[:])
 		copy(tmp[32:], right[:])
-		db[getParent(k)] = hashFn(tmp)
-		keys = append(keys, getParent(k))
+		parentIndex := getParent(index)
+		db[parentIndex] = hashFn(tmp)
 
-		pos++
+		// An intermediate hash has been computed, as such we need to store its index
+		// to remember to examine it later
+		auxGenIndices = append(auxGenIndices, parentIndex)
+
 	}
 
 	res, ok := db[1]
 	if !ok {
-		return false, fmt.Errorf("Root was not computed during proof verification")
+		return false, fmt.Errorf("root was not computed during proof verification")
 	}
 
 	return bytes.Equal(res, root), nil

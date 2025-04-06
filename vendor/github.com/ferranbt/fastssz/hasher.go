@@ -1,12 +1,11 @@
 package ssz
 
 import (
+	"encoding/binary"
 	"fmt"
 	"hash"
 	"math/bits"
 	"sync"
-
-	"encoding/binary"
 
 	"github.com/minio/sha256-simd"
 )
@@ -150,6 +149,10 @@ func (h *Hasher) AppendUint8(i uint8) {
 	h.buf = MarshalUint8(h.buf, i)
 }
 
+func (h *Hasher) AppendUint32(i uint32) {
+	h.buf = MarshalUint32(h.buf, i)
+}
+
 func (h *Hasher) AppendUint64(i uint64) {
 	h.buf = MarshalUint64(h.buf, i)
 }
@@ -259,6 +262,16 @@ func (h *Hasher) Index() int {
 
 // Merkleize is used to merkleize the last group of the hasher
 func (h *Hasher) Merkleize(indx int) {
+	// merkleizeImpl will expand the `input` by 32 bytes if some hashing depth
+	// hits an odd chunk length. But if we're at the end of `h.buf` already,
+	// appending to `input` will allocate a new buffer, *not* expand `h.buf`,
+	// so the next invocation will realloc, over and over and over. We can pre-
+	// emptively cater for that by ensuring that an extra 32 bytes is always
+	// available.
+	if len(h.buf) == cap(h.buf) {
+		h.buf = append(h.buf, zeroBytes...)
+		h.buf = h.buf[:len(h.buf)-len(zeroBytes)]
+	}
 	input := h.buf[indx:]
 
 	// merkleize the input
@@ -268,6 +281,7 @@ func (h *Hasher) Merkleize(indx int) {
 
 // MerkleizeWithMixin is used to merkleize the last group of the hasher
 func (h *Hasher) MerkleizeWithMixin(indx int, num, limit uint64) {
+	h.FillUpTo32()
 	input := h.buf[indx:]
 
 	// merkleize the input
@@ -340,7 +354,10 @@ func getDepth(d uint64) uint8 {
 }
 
 func (h *Hasher) merkleizeImpl(dst []byte, input []byte, limit uint64) []byte {
-	count := uint64(len(input) / 32)
+	// count is the number of 32 byte chunks from the input, after right-padding
+	// with zeroes to the next multiple of 32 bytes when the input is not aligned
+	// to a multiple of 32 bytes.
+	count := uint64((len(input) + 31) / 32)
 	if limit == 0 {
 		limit = count
 	} else if count > limit {

@@ -5,6 +5,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
+	"math"
+
+	"github.com/emicklei/dot"
 )
 
 // Proof represents a merkle proof against a general index.
@@ -78,10 +82,39 @@ func (c *CompressedMultiproof) Decompress() *Multiproof {
 // Node represents a node in the tree
 // backing of a SSZ object.
 type Node struct {
-	left  *Node
-	right *Node
+	left    *Node
+	right   *Node
+	isEmpty bool
 
 	value []byte
+}
+
+func (n *Node) Draw(w io.Writer) {
+	g := dot.NewGraph(dot.Directed)
+	n.draw(1, g)
+	g.Write(w)
+}
+
+func (n *Node) draw(levelOrder int, g *dot.Graph) dot.Node {
+	var h string
+	if n.left != nil || n.right != nil {
+		h = hex.EncodeToString(n.Hash())
+	}
+	if n.value != nil {
+		h = hex.EncodeToString(n.value)
+	}
+	dn := g.Node(fmt.Sprintf("n%d", levelOrder)).
+		Label(fmt.Sprintf("%d\n%s..%s", levelOrder, h[:3], h[len(h)-3:]))
+
+	if n.left != nil {
+		ln := n.left.draw(2*levelOrder, g)
+		g.Edge(dn, ln).Label("0")
+	}
+	if n.right != nil {
+		rn := n.right.draw(2*levelOrder+1, g)
+		g.Edge(dn, rn).Label("1")
+	}
+	return dn
 }
 
 func (n *Node) Show(maxDepth int) {
@@ -90,7 +123,6 @@ func (n *Node) Show(maxDepth int) {
 }
 
 func (n *Node) show(depth int, maxDepth int) {
-
 	space := ""
 	for i := 0; i < depth; i++ {
 		space += "\t"
@@ -131,6 +163,10 @@ func NewNodeWithValue(value []byte) *Node {
 	return &Node{left: nil, right: nil, value: value}
 }
 
+func NewEmptyNode(zeroOrderHash []byte) *Node {
+	return &Node{left: nil, right: nil, value: zeroOrderHash, isEmpty: true}
+}
+
 // NewNodeWithLR initializes a branch node.
 func NewNodeWithLR(left, right *Node) *Node {
 	return &Node{left: left, right: right, value: nil}
@@ -148,65 +184,103 @@ func TreeFromChunks(chunks [][]byte) (*Node, error) {
 	for i, c := range chunks {
 		leaves[i] = NewNodeWithValue(c)
 	}
-	return TreeFromNodes(leaves)
+	return TreeFromNodes(leaves, numLeaves)
 }
 
 // TreeFromNodes constructs a tree from leaf nodes.
 // This is useful for merging subtrees.
-// The number of leaves should be a power of 2.
-func TreeFromNodes(leaves []*Node) (*Node, error) {
+// The limit should be a power of 2.
+// Adjacent sibling nodes will be filled with zero order hashes that have been precomputed based on the tree depth.
+func TreeFromNodes(leaves []*Node, limit int) (*Node, error) {
 	numLeaves := len(leaves)
 
-	if numLeaves == 1 {
+	depth := floorLog2(limit)
+	zeroOrderHashes := getZeroOrderHashes(depth)
+
+	// there are no leaves, return a zero order hash node
+	if numLeaves == 0 {
+		return NewEmptyNode(zeroOrderHashes[0]), nil
+	}
+
+	// now we know numLeaves are at least 1.
+
+	// if the max leaf limit is 1, return the one leaf we have
+	if limit == 1 {
 		return leaves[0], nil
 	}
-	if numLeaves == 2 {
+	// if the max leaf limit is 2
+	if limit == 2 {
+		// but we only have 1 leaf, add a zero order hash as the right node
+		if numLeaves == 1 {
+			return NewNodeWithLR(leaves[0], NewEmptyNode(zeroOrderHashes[1])), nil
+		}
+		// otherwise return the two nodes we have
 		return NewNodeWithLR(leaves[0], leaves[1]), nil
 	}
 
-	if !isPowerOfTwo(numLeaves) {
-		return nil, errors.New("Number of leaves should be a power of 2")
+	if !isPowerOfTwo(limit) {
+		return nil, errors.New("number of leaves should be a power of 2")
 	}
 
-	numNodes := numLeaves*2 - 1
-	nodes := make([]*Node, numNodes)
-	for i := numNodes; i > 0; i-- {
-		// Is a leaf
-		if i > numNodes-numLeaves {
-			nodes[i-1] = leaves[i-numLeaves]
-		} else {
-			// Is a branch node
-			nodes[i-1] = NewNodeWithLR(nodes[(i*2)-1], nodes[(i*2+1)-1])
+	leavesStart := powerTwo(depth)
+	leafIndex := numLeaves - 1
+
+	nodes := make(map[int]*Node)
+
+	nodesStartIndex := leavesStart
+	nodesEndIndex := nodesStartIndex + numLeaves - 1
+
+	// for each tree level
+	for k := depth; k >= 0; k-- {
+		for i := nodesEndIndex; i >= nodesStartIndex; i-- {
+			// leaf node, add to map
+			if k == depth {
+				nodes[i] = leaves[leafIndex]
+				leafIndex--
+			} else { // branch node, compute
+				leftIndex := i * 2
+				rightIndex := i*2 + 1
+				// both nodes are empty, unexpected condition
+				if nodes[leftIndex] == nil && nodes[rightIndex] == nil {
+					return nil, errors.New("unexpected empty right and left nodes")
+				}
+				// node with empty right node, add zero order hash as right node and mark right node as empty
+				if nodes[leftIndex] != nil && nodes[rightIndex] == nil {
+					nodes[i] = NewNodeWithLR(nodes[leftIndex], NewEmptyNode(zeroOrderHashes[k+1]))
+				}
+				// node with left and right child
+				if nodes[leftIndex] != nil && nodes[rightIndex] != nil {
+					nodes[i] = NewNodeWithLR(nodes[leftIndex], nodes[rightIndex])
+				}
+			}
 		}
+		nodesStartIndex = nodesStartIndex / 2
+		nodesEndIndex = int(math.Floor(float64(nodesEndIndex)) / 2)
 	}
 
-	return nodes[0], nil
+	rootNode := nodes[1]
+
+	if rootNode == nil {
+		return nil, errors.New("tree root node could not be computed")
+	}
+
+	return nodes[1], nil
 }
 
 func TreeFromNodesWithMixin(leaves []*Node, num, limit int) (*Node, error) {
-	numLeaves := len(leaves)
 	if !isPowerOfTwo(limit) {
-		return nil, errors.New("Size of tree should be a power of 2")
+		return nil, errors.New("size of tree should be a power of 2")
 	}
 
-	allLeaves := make([]*Node, limit)
-	emptyLeaf := NewNodeWithValue(make([]byte, 32))
-	for i := 0; i < limit; i++ {
-		if i < numLeaves {
-			allLeaves[i] = leaves[i]
-		} else {
-			allLeaves[i] = emptyLeaf
-		}
-	}
-
-	mainTree, err := TreeFromNodes(allLeaves)
+	mainTree, err := TreeFromNodes(leaves, limit)
 	if err != nil {
 		return nil, err
 	}
 
 	// Mixin len
 	countLeaf := LeafFromUint64(uint64(num))
-	return NewNodeWithLR(mainTree, countLeaf), nil
+	node := NewNodeWithLR(mainTree, countLeaf)
+	return node, nil
 }
 
 // Get fetches a node with the given general index.
@@ -235,15 +309,43 @@ func (n *Node) Hash() []byte {
 }
 
 func hashNode(n *Node) []byte {
-	// Leaf
 	if n.left == nil && n.right == nil {
 		return n.value
 	}
-	// Only one child
-	if n.left == nil || n.right == nil {
+
+	if n.left == nil {
 		panic("Tree incomplete")
 	}
-	return hashFn(append(hashNode(n.left), hashNode(n.right)...))
+
+	if n.value != nil {
+		// This value has already been hashed, don't do the work again.
+		return n.value
+	}
+
+	if n.right.isEmpty {
+		result := hashFn(append(hashNode(n.left), n.right.value...))
+		n.value = result // Set the hash result on each node so that proofs can be generated for any level
+		return result
+	}
+
+	result := hashFn(append(hashNode(n.left), hashNode(n.right)...))
+	n.value = result
+	return result
+}
+
+// getZeroOrderHashes precomputes zero order hashes to create an easy map lookup
+// for zero leafs and their parent nodes.
+func getZeroOrderHashes(depth int) map[int][]byte {
+	zeroOrderHashes := make(map[int][]byte)
+
+	emptyValue := make([]byte, 32)
+	zeroOrderHashes[depth] = emptyValue
+
+	for i := depth - 1; i >= 0; i-- {
+		zeroOrderHashes[i] = hashFn(append(zeroOrderHashes[i+1], zeroOrderHashes[i+1]...))
+	}
+
+	return zeroOrderHashes
 }
 
 // Prove returns a list of sibling values and hashes needed
@@ -270,6 +372,10 @@ func (n *Node) Prove(index int) (*Proof, error) {
 	}
 
 	proof.Hashes = hashes
+	if cur.value == nil {
+		// This is an intermediate node without a value; add the hash to it so that we're providing a suitable leaf value.
+		cur.value = hashNode(cur)
+	}
 	proof.Leaf = cur.value
 
 	return proof, nil
@@ -370,4 +476,12 @@ func LeavesFromUint64(items []uint64) []*Node {
 
 func isPowerOfTwo(n int) bool {
 	return (n & (n - 1)) == 0
+}
+
+func floorLog2(n int) int {
+	return int(math.Floor(math.Log2(float64(n))))
+}
+
+func powerTwo(n int) int {
+	return int(math.Pow(2, float64(n)))
 }
