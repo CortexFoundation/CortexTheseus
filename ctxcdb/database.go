@@ -17,7 +17,10 @@
 // Package ctxcdb defines the interfaces for an Cortex data store.
 package ctxcdb
 
-import "io"
+import (
+	"errors"
+	"io"
+)
 
 // KeyValueReader wraps the Has and Get method of a backing data store.
 type KeyValueReader interface {
@@ -36,6 +39,8 @@ type KeyValueWriter interface {
 	// Delete removes the key from the key-value data store.
 	Delete(key []byte) error
 }
+
+var ErrTooManyKeys = errors.New("too many keys in deleted range")
 
 // KeyValueRangeDeleter wraps the DeleteRange method of a backing data store.
 type KeyValueRangeDeleter interface {

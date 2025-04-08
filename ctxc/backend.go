@@ -32,6 +32,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/bloombits"
+	"github.com/CortexFoundation/CortexTheseus/core/filtermaps"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/txpool"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
@@ -85,6 +86,9 @@ type Cortex struct {
 	bloomRequests     chan chan *bloombits.Retrieval // Channel receiving bloom data retrieval requests
 	bloomIndexer      *core.ChainIndexer             // Bloom indexer operating during block imports
 	closeBloomHandler chan struct{}
+
+	filterMaps      *filtermaps.FilterMaps
+	closeFilterMaps chan chan struct{}
 
 	APIBackend *CortexAPIBackend
 
@@ -208,6 +212,10 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 
 			SnapshotLimit: config.SnapshotCache,
 			Preimages:     config.Preimages,
+
+			//StateHistory:         config.StateHistory,
+			//StateScheme:          scheme,
+			//HistoryPruningCutoff: historyPruningCutoff,
 		}
 	)
 	ctxc.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, ctxc.chainConfig, ctxc.engine, vmConfig, ctxc.shouldPreserve, &config.TxLookupLimit)
@@ -216,6 +224,25 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	fmConfig := filtermaps.Config{
+		History:        config.LogHistory,
+		Disabled:       config.LogNoHistory,
+		ExportFileName: config.LogExportCheckpoints,
+	}
+
+	chainView := ctxc.newChainView(ctxc.blockchain.CurrentBlock().Header())
+	historyCutoff := ctxc.blockchain.HistoryPruningCutoff()
+	var finalBlock uint64
+	if fb := ctxc.blockchain.CurrentFinalizedBlock(); fb != nil {
+		finalBlock = fb.Header().Number.Uint64()
+	}
+
+	log.Info("History cutoff", "cut", historyCutoff, "final", finalBlock)
+
+	ctxc.filterMaps = filtermaps.NewFilterMaps(chainDb, chainView, historyCutoff, finalBlock, filtermaps.DefaultParams, fmConfig)
+	ctxc.closeFilterMaps = make(chan chan struct{})
+
 	// Rewind the chain in case of an incompatible config upgrade.
 	if compat, ok := genesisErr.(*params.ConfigCompatError); ok {
 		log.Warn("Rewinding chain to upgrade configuration", "err", compat)
@@ -598,7 +625,70 @@ func (s *Cortex) Start(srvr *p2p.Server) error {
 	maxPeers := srvr.MaxPeers
 	// Start the networking layer and the light server if requested
 	s.protocolManager.Start(maxPeers)
+
+	// start log indexer
+	// s.filterMaps.Start()
+	//  go s.updateFilterMapsHeads()
+
 	return nil
+}
+
+func (s *Cortex) newChainView(head *types.Header) *filtermaps.ChainView {
+	if head == nil {
+		return nil
+	}
+	return filtermaps.NewChainView(s.blockchain, head.Number.Uint64(), head.Hash())
+}
+
+func (s *Cortex) updateFilterMapsHeads() {
+	headEventCh := make(chan core.ChainEvent, 10)
+	blockProcCh := make(chan bool, 10)
+	sub := s.blockchain.SubscribeChainEvent(headEventCh)
+	sub2 := s.blockchain.SubscribeBlockProcessingEvent(blockProcCh)
+	defer func() {
+		sub.Unsubscribe()
+		sub2.Unsubscribe()
+		for {
+			select {
+			case <-headEventCh:
+			case <-blockProcCh:
+			default:
+				return
+			}
+		}
+	}()
+
+	var head *types.Header
+	setHead := func(newHead *types.Header) {
+		if newHead == nil {
+			return
+		}
+		if head == nil || newHead.Hash() != head.Hash() {
+			head = newHead
+			chainView := s.newChainView(head)
+			historyCutoff := s.blockchain.HistoryPruningCutoff()
+			var finalBlock uint64
+			if fb := s.blockchain.CurrentFinalizedBlock(); fb != nil {
+				finalBlock = fb.Header().Number.Uint64()
+			}
+			s.filterMaps.SetTarget(chainView, historyCutoff, finalBlock)
+		}
+	}
+	setHead(s.blockchain.CurrentBlock().Header())
+
+	for {
+		select {
+		case ev := <-headEventCh:
+			setHead(ev.Header)
+		case blockProc := <-blockProcCh:
+			s.filterMaps.SetBlockProcessing(blockProc)
+		case <-time.After(time.Second * 10):
+			setHead(s.blockchain.CurrentBlock().Header())
+		case ch := <-s.closeFilterMaps:
+			close(ch)
+			return
+		}
+	}
 }
 
 func (s *Cortex) setupDiscovery() error {
@@ -630,6 +720,12 @@ func (s *Cortex) Stop() error {
 	s.discmix.Close()
 	s.protocolManager.Stop()
 	// Then stop everything else.
+
+	// ch := make(chan struct{})
+	// s.closeFilterMaps <- ch
+	// <-ch
+	// s.filterMaps.Stop()
+
 	s.bloomIndexer.Close()
 	close(s.closeBloomHandler)
 	s.txPool.Stop()
