@@ -59,7 +59,7 @@ func TestIterator(t *testing.T) {
 		all[val.k] = val.v
 		trie.Update([]byte(val.k), []byte(val.v))
 	}
-	//trie.Commit(nil)
+	trie.Commit(nil)
 
 	found := make(map[string]string)
 	it := NewIterator(trie.NodeIterator(nil))
