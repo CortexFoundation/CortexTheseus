@@ -18,8 +18,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/anacrolix/torrent/webtorrent"
-
 	"github.com/anacrolix/chansync"
 	"github.com/anacrolix/chansync/events"
 	"github.com/anacrolix/dht/v2"
@@ -49,6 +47,7 @@ import (
 	"github.com/anacrolix/torrent/tracker"
 	"github.com/anacrolix/torrent/types/infohash"
 	infohash_v2 "github.com/anacrolix/torrent/types/infohash-v2"
+	"github.com/anacrolix/torrent/webtorrent"
 )
 
 // Clients contain zero or more Torrents. A Client manages a blocklist, the
@@ -57,6 +56,7 @@ type Client struct {
 	// An aggregate of stats over all connections. First in struct to ensure 64-bit alignment of
 	// fields. See #262.
 	connStats ConnStats
+	counters  TorrentStatCounters
 
 	_mu    lockWithDeferreds
 	event  sync.Cond
@@ -1378,7 +1378,7 @@ func (cl *Client) newTorrentOpt(opts AddTorrentOpts) (t *Torrent) {
 	}
 	t.smartBanCache.Init()
 	t.networkingEnabled.Set()
-	t.logger = cl.logger.WithDefaultLevel(log.Debug)
+	t.logger = cl.logger.WithDefaultLevel(log.Debug).WithNames(t.InfoHash().HexString())
 	t.sourcesLogger = t.logger.WithNames("sources")
 	if opts.ChunkSize == 0 {
 		opts.ChunkSize = defaultChunkSize

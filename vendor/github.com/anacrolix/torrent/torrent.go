@@ -52,12 +52,16 @@ import (
 	"github.com/anacrolix/torrent/webtorrent"
 )
 
+var errTorrentClosed = errors.New("torrent closed")
+
 // Maintains state of torrent within a Client. Many methods should not be called before the info is
 // available, see .Info and .GotInfo.
 type Torrent struct {
 	// Torrent-level aggregate statistics. First in struct to ensure 64-bit
 	// alignment. See #262.
-	stats  ConnStats
+	connStats ConnStats
+	counters  TorrentStatCounters
+
 	cl     *Client
 	logger log.Logger
 
@@ -1141,9 +1145,14 @@ func (t *Torrent) smartBanBlockCheckingWriter(piece pieceIndex) *blockCheckingWr
 	}
 }
 
+func (t *Torrent) countBytesHashed(n int64) {
+	t.counters.BytesHashed.Add(n)
+	t.cl.counters.BytesHashed.Add(n)
+}
+
 func (t *Torrent) hashPiece(piece pieceIndex) (
 	correct bool,
-	// These are peers that sent us blocks that differ from what we hash here.
+// These are peers that sent us blocks that differ from what we hash here.
 	differingPeers map[bannableAddr]struct{},
 	err error,
 ) {
@@ -1157,6 +1166,9 @@ func (t *Torrent) hashPiece(piece pieceIndex) (
 			var sum metainfo.Hash
 			// log.Printf("A piece decided to self-hash: %d", piece)
 			sum, err = i.SelfHash()
+			if err == nil {
+				t.countBytesHashed(int64(p.length()))
+			}
 			correct = sum == *p.hash
 			// Can't do smart banning without reading the piece. The smartBanCache is still cleared
 			// in pieceHasher regardless.
@@ -1178,6 +1190,7 @@ func (t *Torrent) hashPiece(piece pieceIndex) (
 					err,
 				))
 			}
+			t.countBytesHashed(written)
 		}
 		var sum [20]byte
 		sumExactly(sum[:], h.Sum)
@@ -1213,7 +1226,7 @@ func sumExactly(dst []byte, sum func(b []byte) []byte) {
 }
 
 func (t *Torrent) hashPieceWithSpecificHash(piece pieceIndex, h hash.Hash) (
-	// These are peers that sent us blocks that differ from what we hash here.
+// These are peers that sent us blocks that differ from what we hash here.
 	differingPeers map[bannableAddr]struct{},
 	err error,
 ) {
@@ -1231,6 +1244,7 @@ func (t *Torrent) hashPieceWithSpecificHash(piece pieceIndex, h hash.Hash) (
 			// ban peers for all recorded blocks that weren't just written.
 			return
 		}
+		t.countBytesHashed(written)
 	}
 	// Flush before writing padding, since we would not have recorded the padding blocks.
 	smartBanWriter.Flush()
@@ -1254,8 +1268,8 @@ func (t *Torrent) havePiece(index pieceIndex) bool {
 }
 
 func (t *Torrent) maybeDropMutuallyCompletePeer(
-	// I'm not sure about taking peer here, not all peer implementations actually drop. Maybe that's
-	// okay?
+// I'm not sure about taking peer here, not all peer implementations actually drop. Maybe that's
+// okay?
 	p *PeerConn,
 ) {
 	if !t.cl.config.DropMutuallyCompletePeers {
@@ -1367,7 +1381,7 @@ func (t *Torrent) publishPieceStateChange(piece pieceIndex) {
 		if cur != p.publicPieceState {
 			p.publicPieceState = cur
 			t.pieceStateChanges.Publish(PieceStateChange{
-				int(piece),
+				piece,
 				cur,
 			})
 		}
@@ -2046,9 +2060,9 @@ func (t *Torrent) announceRequest(
 		// The following are vaguely described in BEP 3.
 
 		Left:     t.bytesLeftAnnounce(),
-		Uploaded: t.stats.BytesWrittenData.Int64(),
+		Uploaded: t.connStats.BytesWrittenData.Int64(),
 		// There's no mention of wasted or unwanted download in the BEP.
-		Downloaded: t.stats.BytesReadUsefulData.Int64(),
+		Downloaded: t.connStats.BytesReadUsefulData.Int64(),
 	}
 }
 
@@ -2199,7 +2213,7 @@ func (t *Torrent) Stats() TorrentStats {
 	return t.statsLocked()
 }
 
-func (t *Torrent) statsLocked() (ret TorrentStats) {
+func (t *Torrent) gauges() (ret TorrentGauges) {
 	ret.ActivePeers = len(t.conns)
 	ret.HalfOpenPeers = len(t.halfOpen)
 	ret.PendingPeers = t.peers.Len()
@@ -2210,8 +2224,14 @@ func (t *Torrent) statsLocked() (ret TorrentStats) {
 			ret.ConnectedSeeders++
 		}
 	}
-	ret.ConnStats = t.stats.Copy()
 	ret.PiecesComplete = t.numPiecesCompleted()
+	return
+}
+
+func (t *Torrent) statsLocked() (ret TorrentStats) {
+	ret.ConnStats = copyCountFields(&t.connStats)
+	ret.TorrentStatCounters = copyCountFields(&t.counters)
+	ret.TorrentGauges = t.gauges()
 	return
 }
 
@@ -2260,7 +2280,7 @@ func (t *Torrent) addPeerConn(c *PeerConn) (err error) {
 		}
 	}()
 	if t.closed.IsSet() {
-		return errors.New("torrent closed")
+		return errTorrentClosed
 	}
 	for c0 := range t.conns {
 		if c.PeerID != c0.PeerID {
@@ -2382,6 +2402,7 @@ func (t *Torrent) pieceHashed(piece pieceIndex, passed bool, hashIoErr error) {
 	})
 	p := t.piece(piece)
 	p.numVerifies++
+	p.numVerifiesCond.Broadcast()
 	t.cl.event.Broadcast()
 	if t.closed.IsSet() {
 		return
@@ -2534,9 +2555,13 @@ func (t *Torrent) onIncompletePiece(piece pieceIndex) {
 	})
 }
 
-func (t *Torrent) tryCreateMorePieceHashers() {
-	for !t.closed.IsSet() && t.activePieceHashes < t.cl.config.PieceHashersPerTorrent && t.tryCreatePieceHasher() {
+func (t *Torrent) tryCreateMorePieceHashers() error {
+	if t.closed.IsSet() {
+		return errTorrentClosed
 	}
+	for t.activePieceHashes < t.cl.config.PieceHashersPerTorrent && t.tryCreatePieceHasher() {
+	}
+	return nil
 }
 
 func (t *Torrent) tryCreatePieceHasher() bool {
@@ -2647,10 +2672,15 @@ func (t *Torrent) queueInitialPieceCheck(i pieceIndex) {
 	}
 }
 
-func (t *Torrent) queuePieceCheck(pieceIndex pieceIndex) {
+func (t *Torrent) queuePieceCheck(pieceIndex pieceIndex) (targetVerifies pieceVerifyCount, err error) {
 	piece := t.piece(pieceIndex)
 	if !piece.haveHash() {
-		return
+		err = errors.New("piece hash unknown")
+	}
+	targetVerifies = piece.numVerifies + 1
+	if piece.hashing {
+		// The result of this queued piece check will be the one after the current one.
+		targetVerifies++
 	}
 	if piece.queuedForHash() {
 		return
@@ -2658,15 +2688,27 @@ func (t *Torrent) queuePieceCheck(pieceIndex pieceIndex) {
 	t.piecesQueuedForHash.Add(bitmap.BitIndex(pieceIndex))
 	t.publishPieceStateChange(pieceIndex)
 	t.updatePiecePriority(pieceIndex, "Torrent.queuePieceCheck")
-	t.tryCreateMorePieceHashers()
+	err = t.tryCreateMorePieceHashers()
+	return
 }
 
-// Forces all the pieces to be re-hashed. See also Piece.VerifyData. This should not be called
-// before the Info is available.
-func (t *Torrent) VerifyData() {
-	for i := pieceIndex(0); i < t.NumPieces(); i++ {
-		t.Piece(i).VerifyData()
+// Deprecated: Use Torrent.VerifyDataContext.
+func (t *Torrent) VerifyData() error {
+	return t.VerifyDataContext(context.Background())
+}
+
+// Forces all the pieces to be re-hashed. See also Piece.VerifyDataContext. This
+// should not be called before the Info is available. TODO: Make this operate
+// concurrently within the configured piece hashers limit.
+func (t *Torrent) VerifyDataContext(ctx context.Context) error {
+	for i := 0; i < t.NumPieces(); i++ {
+		err := t.Piece(i).VerifyDataContext(ctx)
+		if err != nil {
+			err = fmt.Errorf("verifying piece %v: %w", i, err)
+			return err
+		}
 	}
+	return nil
 }
 
 func (t *Torrent) connectingToPeerAddr(addrStr string) bool {
@@ -2749,7 +2791,7 @@ func (t *Torrent) AddClientPeer(cl *Client) int {
 // All stats that include this Torrent. Useful when we want to increment ConnStats but not for every
 // connection.
 func (t *Torrent) allStats(f func(*ConnStats)) {
-	f(&t.stats)
+	f(&t.connStats)
 	f(&t.cl.connStats)
 }
 
