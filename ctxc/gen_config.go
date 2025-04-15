@@ -8,6 +8,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
 	"github.com/CortexFoundation/CortexTheseus/core"
+	"github.com/CortexFoundation/CortexTheseus/core/history"
 	"github.com/CortexFoundation/CortexTheseus/core/txpool"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/gasprice"
@@ -21,10 +22,16 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		Genesis                 *core.Genesis `toml:",omitempty"`
 		NetworkId               uint64
 		SyncMode                downloader.SyncMode
+		HistoryMode             history.HistoryMode
 		DiscoveryURLs           []string
 		NoPruning               bool
 		NoPrefetch              bool
-		TxLookupLimit           uint64                 `toml:",omitempty"`
+		TxLookupLimit           uint64 `toml:",omitempty"`
+		TransactionHistory      uint64 `toml:",omitempty"`
+		LogHistory              uint64 `toml:",omitempty"`
+		LogNoHistory            bool   `toml:",omitempty"`
+		LogExportCheckpoints    string
+		StateHistory            uint64                 `toml:",omitempty"`
 		Whitelist               map[uint64]common.Hash `toml:"-"`
 		SkipBcVersionCheck      bool                   `toml:"-"`
 		DatabaseHandles         int                    `toml:"-"`
@@ -61,10 +68,16 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.Genesis = c.Genesis
 	enc.NetworkId = c.NetworkId
 	enc.SyncMode = c.SyncMode
+	enc.HistoryMode = c.HistoryMode
 	enc.DiscoveryURLs = c.DiscoveryURLs
 	enc.NoPruning = c.NoPruning
 	enc.NoPrefetch = c.NoPrefetch
 	enc.TxLookupLimit = c.TxLookupLimit
+	enc.TransactionHistory = c.TransactionHistory
+	enc.LogHistory = c.LogHistory
+	enc.LogNoHistory = c.LogNoHistory
+	enc.LogExportCheckpoints = c.LogExportCheckpoints
+	enc.StateHistory = c.StateHistory
 	enc.Whitelist = c.Whitelist
 	enc.SkipBcVersionCheck = c.SkipBcVersionCheck
 	enc.DatabaseHandles = c.DatabaseHandles
@@ -105,10 +118,16 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		Genesis                 *core.Genesis `toml:",omitempty"`
 		NetworkId               *uint64
 		SyncMode                *downloader.SyncMode
+		HistoryMode             *history.HistoryMode
 		DiscoveryURLs           []string
 		NoPruning               *bool
 		NoPrefetch              *bool
-		TxLookupLimit           *uint64                `toml:",omitempty"`
+		TxLookupLimit           *uint64 `toml:",omitempty"`
+		TransactionHistory      *uint64 `toml:",omitempty"`
+		LogHistory              *uint64 `toml:",omitempty"`
+		LogNoHistory            *bool   `toml:",omitempty"`
+		LogExportCheckpoints    *string
+		StateHistory            *uint64                `toml:",omitempty"`
 		Whitelist               map[uint64]common.Hash `toml:"-"`
 		SkipBcVersionCheck      *bool                  `toml:"-"`
 		DatabaseHandles         *int                   `toml:"-"`
@@ -154,6 +173,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	if dec.SyncMode != nil {
 		c.SyncMode = *dec.SyncMode
 	}
+	if dec.HistoryMode != nil {
+		c.HistoryMode = *dec.HistoryMode
+	}
 	if dec.DiscoveryURLs != nil {
 		c.DiscoveryURLs = dec.DiscoveryURLs
 	}
@@ -165,6 +187,21 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.TxLookupLimit != nil {
 		c.TxLookupLimit = *dec.TxLookupLimit
+	}
+	if dec.TransactionHistory != nil {
+		c.TransactionHistory = *dec.TransactionHistory
+	}
+	if dec.LogHistory != nil {
+		c.LogHistory = *dec.LogHistory
+	}
+	if dec.LogNoHistory != nil {
+		c.LogNoHistory = *dec.LogNoHistory
+	}
+	if dec.LogExportCheckpoints != nil {
+		c.LogExportCheckpoints = *dec.LogExportCheckpoints
+	}
+	if dec.StateHistory != nil {
+		c.StateHistory = *dec.StateHistory
 	}
 	if dec.Whitelist != nil {
 		c.Whitelist = dec.Whitelist

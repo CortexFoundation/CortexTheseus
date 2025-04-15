@@ -217,6 +217,7 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 			//StateHistory:         config.StateHistory,
 			//StateScheme:          scheme,
 			//HistoryPruningCutoff: historyPruningCutoff,
+			ChainHistoryMode: config.HistoryMode,
 		}
 	)
 	ctxc.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, ctxc.chainConfig, ctxc.engine, vmConfig, ctxc.shouldPreserve, &config.TxLookupLimit)
@@ -233,7 +234,7 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 	}
 
 	chainView := ctxc.newChainView(ctxc.blockchain.CurrentBlock().Header())
-	historyCutoff := ctxc.blockchain.HistoryPruningCutoff()
+	historyCutoff, _ := ctxc.blockchain.HistoryPruningCutoff()
 	var finalBlock uint64
 	if fb := ctxc.blockchain.CurrentFinalizedBlock(); fb != nil {
 		finalBlock = fb.Header().Number.Uint64()
@@ -667,7 +668,7 @@ func (s *Cortex) updateFilterMapsHeads() {
 		if head == nil || newHead.Hash() != head.Hash() {
 			head = newHead
 			chainView := s.newChainView(head)
-			historyCutoff := s.blockchain.HistoryPruningCutoff()
+			historyCutoff, _ := s.blockchain.HistoryPruningCutoff()
 			var finalBlock uint64
 			if fb := s.blockchain.CurrentFinalizedBlock(); fb != nil {
 				finalBlock = fb.Header().Number.Uint64()
