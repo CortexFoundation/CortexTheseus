@@ -454,7 +454,7 @@ func TestExpiry(t *testing.T) {
 	w := New(&DefaultConfig)
 	w.SetMinimumPowTest(0.0000001)
 	defer w.SetMinimumPowTest(DefaultMinimumPoW)
-	w.Start(nil)
+	w.Start()
 	defer w.Stop()
 
 	params, err := generateMessageParams()
@@ -520,7 +520,7 @@ func TestCustomization(t *testing.T) {
 	w := New(&DefaultConfig)
 	defer w.SetMinimumPowTest(DefaultMinimumPoW)
 	defer w.SetMaxMessageSize(DefaultMaxMessageSize)
-	w.Start(nil)
+	w.Start()
 	defer w.Stop()
 
 	const smallPoW = 0.00001
@@ -613,7 +613,7 @@ func TestSymmetricSendCycle(t *testing.T) {
 	w := New(&DefaultConfig)
 	defer w.SetMinimumPowTest(DefaultMinimumPoW)
 	defer w.SetMaxMessageSize(DefaultMaxMessageSize)
-	w.Start(nil)
+	w.Start()
 	defer w.Stop()
 
 	filter1, err := generateFilter(t, true)
@@ -704,7 +704,7 @@ func TestSymmetricSendWithoutAKey(t *testing.T) {
 	w := New(&DefaultConfig)
 	defer w.SetMinimumPowTest(DefaultMinimumPoW)
 	defer w.SetMaxMessageSize(DefaultMaxMessageSize)
-	w.Start(nil)
+	w.Start()
 	defer w.Stop()
 
 	filter, err := generateFilter(t, true)
@@ -774,7 +774,7 @@ func TestSymmetricSendKeyMismatch(t *testing.T) {
 	w := New(&DefaultConfig)
 	defer w.SetMinimumPowTest(DefaultMinimumPoW)
 	defer w.SetMaxMessageSize(DefaultMaxMessageSize)
-	w.Start(nil)
+	w.Start()
 	defer w.Stop()
 
 	filter, err := generateFilter(t, true)

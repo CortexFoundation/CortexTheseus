@@ -276,6 +276,7 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 
 	ctxc.miner = miner.New(ctxc, &config.Miner, ctxc.chainConfig, ctxc.eventMux, ctxc.engine, ctxc.isLocalBlock)
 	ctxc.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
+
 	ctxc.dropper = newDropper(ctxc.p2pServer.MaxDialedConns(), ctxc.p2pServer.MaxInboundConns())
 
 	ctxc.APIBackend = &CortexAPIBackend{stack.Config().AllowUnprotectedTxs, ctxc, nil}
@@ -287,9 +288,9 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 		gpoParams.Default = config.Miner.GasPrice
 	}
 	ctxc.APIBackend.gpo = gasprice.NewOracle(ctxc.APIBackend, gpoParams)
-	if err != nil {
-		return nil, err
-	}
+
+	// Start the RPC service
+	ctxc.netRPCService = ctxcapi.NewPublicNetAPI(ctxc.p2pServer, networkID)
 
 	//stack.RegisterProtocols(ctxc.Protocols())
 
@@ -609,8 +610,7 @@ func (s *Cortex) Protocols() []p2p.Protocol {
 
 // Start implements node.Service, starting all internal goroutines needed by the
 // Cortex protocol implementation.
-func (s *Cortex) Start(srvr *p2p.Server) error {
-	s.startCtxcEntryUpdate(srvr.LocalNode())
+func (s *Cortex) Start() error {
 	if err := s.setupDiscovery(); err != nil {
 		return err
 	}
@@ -620,13 +620,9 @@ func (s *Cortex) Start(srvr *p2p.Server) error {
 	// Regularly update shutdown marker
 	s.shutdownTracker.Start()
 
-	// Start the RPC service
-	s.netRPCService = ctxcapi.NewPublicNetAPI(srvr, s.NetVersion())
-
 	// Figure out a max peers count based on the server limits
-	maxPeers := srvr.MaxPeers
 	// Start the networking layer and the light server if requested
-	s.protocolManager.Start(maxPeers)
+	s.protocolManager.Start(s.p2pServer.MaxPeers)
 
 	// Start the connection manager
 	s.dropper.Start(s.p2pServer, func() bool { return !s.Synced() })
@@ -697,6 +693,8 @@ func (s *Cortex) updateFilterMapsHeads() {
 }
 
 func (s *Cortex) setupDiscovery() error {
+	s.startENRUpdater(s.p2pServer.LocalNode())
+
 	dnsclient := dnsdisc.NewClient(dnsdisc.Config{})
 	if len(s.config.DiscoveryURLs) > 0 {
 		iter, err := dnsclient.NewIterator(s.config.DiscoveryURLs...)

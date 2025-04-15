@@ -41,7 +41,6 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/CortexTheseus/p2p"
 )
 
 func homeDir() string {
@@ -202,7 +201,7 @@ func cvmServer(ctx *cli.Context) error {
 		return errors.New("fs start failed")
 	}
 
-	err = storagefs.Start(&p2p.Server{})
+	err = storagefs.Start()
 	if err != nil {
 		return err
 	}

@@ -447,7 +447,7 @@ func run() {
 		return
 	}
 	defer server.Stop()
-	shh.Start(&p2p.Server{})
+	shh.Start()
 	defer shh.Stop()
 
 	if !*forwarderMode {

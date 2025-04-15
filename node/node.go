@@ -273,7 +273,7 @@ func (n *Node) Start() error {
 	var started []reflect.Type
 	for kind, service := range services {
 		// Start the next service, stopping all previous upon failure
-		if err := service.Start(running); err != nil {
+		if err := service.Start(); err != nil {
 			for _, kind := range started {
 				services[kind].Stop()
 			}

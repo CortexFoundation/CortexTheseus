@@ -38,7 +38,7 @@ func (e ctxcEntry) ENRKey() string {
 }
 
 // startCtxcEntryUpdate starts the ENR updater loop.
-func (ctxc *Cortex) startCtxcEntryUpdate(ln *enode.LocalNode) {
+func (ctxc *Cortex) startENRUpdater(ln *enode.LocalNode) {
 	var newHead = make(chan core.ChainHeadEvent, 10)
 	sub := ctxc.blockchain.SubscribeChainHeadEvent(newHead)
 
