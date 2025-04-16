@@ -216,7 +216,6 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 
 			//StateHistory:         config.StateHistory,
 			//StateScheme:          scheme,
-			//HistoryPruningCutoff: historyPruningCutoff,
 			ChainHistoryMode: config.HistoryMode,
 		}
 	)

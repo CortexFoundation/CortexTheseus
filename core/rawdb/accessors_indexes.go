@@ -469,6 +469,7 @@ func DeleteBloombits(db ctxcdb.Database, bit uint, from uint64, to uint64) {
 // FilterMapsRange is a storage representation of the block range covered by the
 // filter maps structure and the corresponting log value index range.
 type FilterMapsRange struct {
+	Version                      uint32
 	HeadIndexed                  bool
 	HeadDelimiter                uint64
 	BlocksFirst, BlocksAfterLast uint64
