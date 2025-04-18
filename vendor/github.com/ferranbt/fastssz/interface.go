@@ -18,12 +18,18 @@ type HashRoot interface {
 	HashTreeRootWith(hh HashWalker) error
 }
 
+type HashRootProof interface {
+	HashTreeRootWith(hh HashWalker) error
+}
+
 type HashWalker interface {
 	// Intended for testing purposes to know the latest hash generated during merkleize
 	Hash() []byte
 	AppendUint8(i uint8)
+	AppendUint32(i uint32)
 	AppendUint64(i uint64)
 	AppendBytes32(b []byte)
+	PutUint64Array(b []uint64, maxCapacity ...uint64)
 	PutUint64(i uint64)
 	PutUint32(i uint32)
 	PutUint16(i uint16)

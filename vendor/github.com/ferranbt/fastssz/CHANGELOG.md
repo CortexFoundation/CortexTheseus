@@ -1,3 +1,15 @@
+# 0.1.4 (Unreleased)
+
+# 0.1.3 (8 Feb, 2023)
+
+- fix: Tree proof memory out of bounds [[GH-119](https://github.com/ferranbt/fastssz/issues/119)]
+- fix: Double merkleization of `BeaconState` bytes field [[GH-119](https://github.com/ferranbt/fastssz/issues/119)]
+- fix: Depth calculation for basic types merkleization (eip-4844) [[GH-111](https://github.com/ferranbt/fastssz/issues/111)]
+- fix: Deterministic hash digest for generated file [[GH-110](https://github.com/ferranbt/fastssz/issues/110)]
+- feat: Skip unit tests and `ssz` generate objects during parsing [[GH-114](https://github.com/ferranbt/fastssz/issues/114)]
+- fix: Add support for non-literal array lengths [[GH-108](https://github.com/ferranbt/fastssz/issues/108)]
+- feat: Add `--suffix` command line option [[GH-113](https://github.com/ferranbt/fastssz/issues/113)]
+
 # 0.1.2 (26 Aug, 2022)
 
 - feat: Add `HashFn` abstraction and introduce `gohashtree` hashing [[GH-95](https://github.com/ferranbt/fastssz/issues/95)]
