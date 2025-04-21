@@ -31,6 +31,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/bloombits"
+	"github.com/CortexFoundation/CortexTheseus/core/filtermaps"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
@@ -160,6 +161,8 @@ func (b *testBackend) ServiceFilter(ctx context.Context, session *bloombits.Matc
 		}
 	}()
 }
+
+func (b *testBackend) CurrentView() *filtermaps.ChainView { return nil }
 
 func newTestFilterSystem(t testing.TB, db ctxcdb.Database, cfg Config) (*testBackend, *FilterSystem) {
 	backend := &testBackend{db: db}
