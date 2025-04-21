@@ -56,6 +56,29 @@ func (b *testBackend) ChainDb() ctxcdb.Database {
 	return b.db
 }
 
+func (b *testBackend) CurrentHeader() *types.Header {
+	hdr, _ := b.HeaderByNumber(context.TODO(), rpc.LatestBlockNumber)
+	return hdr
+}
+
+func (b *testBackend) CurrentBlock() *types.Header {
+	return b.CurrentHeader()
+}
+
+func (b *testBackend) GetCanonicalHash(number uint64) common.Hash {
+	return rawdb.ReadCanonicalHash(b.db, number)
+}
+
+func (b *testBackend) GetHeader(hash common.Hash, number uint64) *types.Header {
+	hdr, _ := b.HeaderByHash(context.Background(), hash)
+	return hdr
+}
+
+func (b *testBackend) GetReceiptsByHash(hash common.Hash) types.Receipts {
+	r, _ := b.GetReceipts(context.Background(), hash)
+	return r
+}
+
 func (b *testBackend) HeaderByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*types.Header, error) {
 	var (
 		hash common.Hash
@@ -162,7 +185,10 @@ func (b *testBackend) ServiceFilter(ctx context.Context, session *bloombits.Matc
 	}()
 }
 
-func (b *testBackend) CurrentView() *filtermaps.ChainView { return nil }
+func (b *testBackend) CurrentView() *filtermaps.ChainView {
+	head := b.CurrentBlock()
+	return filtermaps.NewChainView(b, head.Number.Uint64(), head.Hash())
+}
 
 func newTestFilterSystem(t testing.TB, db ctxcdb.Database, cfg Config) (*testBackend, *FilterSystem) {
 	backend := &testBackend{db: db}
