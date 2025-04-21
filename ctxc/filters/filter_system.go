@@ -29,6 +29,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/bloombits"
+	"github.com/CortexFoundation/CortexTheseus/core/filtermaps"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
@@ -69,6 +70,8 @@ type Backend interface {
 
 	BloomStatus() (uint64, uint64)
 	ServiceFilter(ctx context.Context, session *bloombits.MatcherSession)
+
+	CurrentView() *filtermaps.ChainView
 }
 
 // FilterSystem holds resources shared by all filters.

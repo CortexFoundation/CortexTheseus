@@ -28,6 +28,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/consensus"
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/bloombits"
+	"github.com/CortexFoundation/CortexTheseus/core/filtermaps"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/txpool"
@@ -352,6 +353,17 @@ func (b *CortexAPIBackend) ServiceFilter(ctx context.Context, session *bloombits
 	for i := 0; i < bloomFilterThreads; i++ {
 		go session.Multiplex(bloomRetrievalBatch, bloomRetrievalWait, b.ctxc.bloomRequests)
 	}
+}
+func (b *CortexAPIBackend) CurrentView() *filtermaps.ChainView {
+	head := b.ctxc.blockchain.CurrentBlock()
+	if head == nil {
+		return nil
+	}
+	return filtermaps.NewChainView(b.ctxc.blockchain, head.Number().Uint64(), head.Hash())
+}
+
+func (b *CortexAPIBackend) NewMatcherBackend() filtermaps.MatcherBackend {
+	return b.ctxc.filterMaps.NewMatcherBackend()
 }
 
 func (b *CortexAPIBackend) Engine() consensus.Engine {

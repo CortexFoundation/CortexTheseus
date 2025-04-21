@@ -4,11 +4,9 @@
 
 //go:build !linux || mips64le
 
-//go.generate echo package libc > ccgo.go
-//go:generate go fmt ./...
-
-// Package libc provides run time support for ccgo generated programs and
-// implements selected parts of the C standard library.
+// go.generate echo package libc > ccgo.go
+//
+//go:generate go fmt -l -s -w ./...
 package libc // import "modernc.org/libc"
 
 //TODO use O_RDONLY etc. from fcntl header
