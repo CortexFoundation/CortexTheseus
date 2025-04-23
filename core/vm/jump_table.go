@@ -501,7 +501,7 @@ func newFrontierInstructionSet() JumpTable {
 			validateStack: makeStackFunc(0, 1),
 		},
 		PUSH2: {
-			execute:       makePush(2, 2),
+			execute:       opPush2,
 			gasCost:       gasPush,
 			validateStack: makeStackFunc(0, 1),
 		},
