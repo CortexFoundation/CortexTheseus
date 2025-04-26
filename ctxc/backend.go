@@ -75,6 +75,7 @@ type Cortex struct {
 	protocolManager *ProtocolManager
 
 	discmix *enode.FairMix
+	dropper *dropper
 
 	// DB interfaces
 	chainDb ctxcdb.Database // Block chain database
@@ -275,6 +276,7 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 
 	ctxc.miner = miner.New(ctxc, &config.Miner, ctxc.chainConfig, ctxc.eventMux, ctxc.engine, ctxc.isLocalBlock)
 	ctxc.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
+	ctxc.dropper = newDropper(ctxc.p2pServer.MaxDialedConns(), ctxc.p2pServer.MaxInboundConns())
 
 	ctxc.APIBackend = &CortexAPIBackend{stack.Config().AllowUnprotectedTxs, ctxc, nil}
 	if ctxc.APIBackend.allowUnprotectedTxs {
@@ -626,6 +628,9 @@ func (s *Cortex) Start(srvr *p2p.Server) error {
 	// Start the networking layer and the light server if requested
 	s.protocolManager.Start(maxPeers)
 
+	// Start the connection manager
+	s.dropper.Start(s.p2pServer, func() bool { return !s.Synced() })
+
 	// start log indexer
 	// s.filterMaps.Start()
 	//  go s.updateFilterMapsHeads()
@@ -718,6 +723,7 @@ func (s *Cortex) Stop() error {
 		s.synapse.Close()
 	}
 	s.discmix.Close()
+	s.dropper.Stop()
 	s.protocolManager.Stop()
 	// Then stop everything else.
 
