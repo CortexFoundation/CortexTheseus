@@ -1152,7 +1152,7 @@ func (t *Torrent) countBytesHashed(n int64) {
 
 func (t *Torrent) hashPiece(piece pieceIndex) (
 	correct bool,
-// These are peers that sent us blocks that differ from what we hash here.
+	// These are peers that sent us blocks that differ from what we hash here.
 	differingPeers map[bannableAddr]struct{},
 	err error,
 ) {
@@ -1226,7 +1226,7 @@ func sumExactly(dst []byte, sum func(b []byte) []byte) {
 }
 
 func (t *Torrent) hashPieceWithSpecificHash(piece pieceIndex, h hash.Hash) (
-// These are peers that sent us blocks that differ from what we hash here.
+	// These are peers that sent us blocks that differ from what we hash here.
 	differingPeers map[bannableAddr]struct{},
 	err error,
 ) {
@@ -1268,8 +1268,8 @@ func (t *Torrent) havePiece(index pieceIndex) bool {
 }
 
 func (t *Torrent) maybeDropMutuallyCompletePeer(
-// I'm not sure about taking peer here, not all peer implementations actually drop. Maybe that's
-// okay?
+	// I'm not sure about taking peer here, not all peer implementations actually drop. Maybe that's
+	// okay?
 	p *PeerConn,
 ) {
 	if !t.cl.config.DropMutuallyCompletePeers {
@@ -2888,6 +2888,13 @@ func (t *Torrent) callbacks() *Callbacks {
 
 type AddWebSeedsOpt func(*webseed.Client)
 
+// Max concurrent requests to a WebSeed for a given torrent.
+func WebSeedTorrentMaxRequests(maxRequests int) AddWebSeedsOpt {
+	return func(c *webseed.Client) {
+		c.MaxRequests = maxRequests
+	}
+}
+
 // Sets the WebSeed trailing path escaper for a webseed.Client.
 func WebSeedPathEscaper(custom webseed.PathEscaper) AddWebSeedsOpt {
 	return func(c *webseed.Client) {
@@ -2903,37 +2910,34 @@ func (t *Torrent) AddWebSeeds(urls []string, opts ...AddWebSeedsOpt) {
 	}
 }
 
-func (t *Torrent) addWebSeed(url string, opts ...AddWebSeedsOpt) {
+// Returns true if the WebSeed was newly added with the provided configuration.
+func (t *Torrent) addWebSeed(url string, opts ...AddWebSeedsOpt) bool {
 	if t.cl.config.DisableWebseeds {
-		return
+		return false
 	}
 	if _, ok := t.webSeeds[url]; ok {
-		return
+		return false
 	}
 	// I don't think Go http supports pipelining requests. However, we can have more ready to go
 	// right away. This value should be some multiple of the number of connections to a host. I
 	// would expect that double maxRequests plus a bit would be appropriate. This value is based on
 	// downloading Sintel (08ada5a7a6183aae1e09d831df6748d566095a10) from
 	// "https://webtorrent.io/torrents/".
-	const maxRequests = 16
+	const defaultMaxRequests = 16
 	ws := webseedPeer{
 		peer: Peer{
 			t:                        t,
 			outgoing:                 true,
 			Network:                  "http",
 			reconciledHandshakeStats: true,
-			// This should affect how often we have to recompute requests for this peer. Note that
-			// because we can request more than 1 thing at a time over HTTP, we will hit the low
-			// requests mark more often, so recomputation is probably sooner than with regular peer
-			// conns. ~4x maxRequests would be about right.
-			PeerMaxRequests: 128,
 			// TODO: Set ban prefix?
 			RemoteAddr: remoteAddrFromUrl(url),
 			callbacks:  t.callbacks(),
 		},
 		client: webseed.Client{
-			HttpClient: t.cl.httpClient,
-			Url:        url,
+			HttpClient:  t.cl.httpClient,
+			Url:         url,
+			MaxRequests: defaultMaxRequests,
 			ResponseBodyWrapper: func(r io.Reader) io.Reader {
 				return &rateLimitedReader{
 					l: t.cl.config.DownloadRateLimiter,
@@ -2941,27 +2945,35 @@ func (t *Torrent) addWebSeed(url string, opts ...AddWebSeedsOpt) {
 				}
 			},
 		},
-		activeRequests: make(map[Request]webseed.Request, maxRequests),
 	}
 	ws.peer.initRequestState()
 	for _, opt := range opts {
 		opt(&ws.client)
 	}
+	g.MakeMapWithCap(&ws.activeRequests, ws.client.MaxRequests)
+	// This should affect how often we have to recompute requests for this peer. Note that
+	// because we can request more than 1 thing at a time over HTTP, we will hit the low
+	// requests mark more often, so recomputation is probably sooner than with regular peer
+	// conns. ~4x maxRequests would be about right.
+	ws.peer.PeerMaxRequests = 4 * ws.client.MaxRequests
 	ws.peer.initUpdateRequestsTimer()
 	ws.requesterCond.L = t.cl.locker()
-	for i := 0; i < maxRequests; i += 1 {
+	for i := 0; i < ws.client.MaxRequests; i += 1 {
 		go ws.requester(i)
 	}
 	for _, f := range t.callbacks().NewPeer {
 		f(&ws.peer)
 	}
 	ws.peer.logger = t.logger.WithContextValue(&ws).WithNames("webseed")
+	// TODO: Abstract out a common struct initializer for this...
+	ws.peer.legacyPeerImpl = &ws
 	ws.peer.peerImpl = &ws
 	if t.haveInfo() {
 		ws.onGotInfo(t.info)
 	}
 	t.webSeeds[url] = &ws.peer
 	ws.peer.updateRequests("Torrent.addWebSeed")
+	return true
 }
 
 func (t *Torrent) peerIsActive(p *Peer) (active bool) {
@@ -2990,6 +3002,7 @@ func (t *Torrent) pieceRequestIndexOffset(piece pieceIndex) RequestIndex {
 }
 
 func (t *Torrent) updateComplete() {
+	// TODO: Announce complete to trackers?
 	t.complete.SetBool(t.haveAllPieces())
 }
 

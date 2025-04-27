@@ -12,7 +12,6 @@ import (
 
 	"github.com/RoaringBitmap/roaring"
 
-	"github.com/anacrolix/torrent/common"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/anacrolix/torrent/segments"
 )
@@ -39,8 +38,11 @@ func (r Request) Cancel() {
 type Client struct {
 	HttpClient *http.Client
 	Url        string
-	fileIndex  segments.Index
-	info       *metainfo.Info
+	// Max concurrent requests to a WebSeed for a given torrent.
+	MaxRequests int
+
+	fileIndex segments.Index
+	info      *metainfo.Info
 	// The pieces we can request with the Url. We're more likely to ban/block at the file-level
 	// given that's how requests are mapped to webseeds, but the torrent.Client works at the piece
 	// level. We can map our file-level adjustments to the pieces here. This probably need to be
@@ -58,7 +60,7 @@ func (me *Client) SetInfo(info *metainfo.Info) {
 		// http://ia600500.us.archive.org/1/items URLs in archive.org torrents.
 		return
 	}
-	me.fileIndex = segments.NewIndexFromSegments(common.TorrentOffsetFileSegments(info))
+	me.fileIndex = info.FileSegmentsIndex()
 	me.info = info
 	me.Pieces.AddRange(0, uint64(info.NumPieces()))
 }
