@@ -332,17 +332,11 @@ func (fs *TorrentFS) Version() uint {
 
 // Start starts the data collection thread and the listening server of the dashboard.
 // Implements the node.Service interface.
-func (fs *TorrentFS) Start(srvr *p2p.Server) (err error) {
+func (fs *TorrentFS) Start() (err error) {
 	log.Info("Fs server starting ... ...")
 	if fs == nil || fs.monitor == nil {
 		log.Warn("Storage fs init failed", "fs", fs)
 		return
-	}
-
-	// Figure out a max peers count based on the server limits
-	if srvr != nil {
-		log.Info("P2p net bounded")
-		fs.net = srvr
 	}
 
 	//log.Info("Started nas", "config", fs, "mode", fs.config.Mode, "version", params.ProtocolVersion, "queue", fs.tunnel.Len(), "peers", fs.Neighbors())
