@@ -25,6 +25,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus/cuckoo"
 	"github.com/CortexFoundation/CortexTheseus/core"
+	"github.com/CortexFoundation/CortexTheseus/core/history"
 	"github.com/CortexFoundation/CortexTheseus/core/txpool"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/gasprice"
@@ -48,6 +49,7 @@ var DefaultLightGPOConfig = gasprice.Config{
 
 // DefaultConfig contains default settings for use on the Cortex main net.
 var DefaultConfig = Config{
+	HistoryMode:             history.KeepAll,
 	SyncMode:                downloader.FullSync,
 	Cuckoo:                  cuckoo.Config{},
 	NetworkId:               0,
@@ -87,8 +89,10 @@ type Config struct {
 	Genesis *core.Genesis `toml:",omitempty"`
 
 	// Protocol options
-	NetworkId     uint64 // Network ID to use for selecting peers to connect to
-	SyncMode      downloader.SyncMode
+	NetworkId uint64 // Network ID to use for selecting peers to connect to
+	SyncMode  downloader.SyncMode
+	// HistoryMode configures chain history retention.
+	HistoryMode   history.HistoryMode
 	DiscoveryURLs []string
 	NoPruning     bool
 	NoPrefetch    bool   // Whether to disable prefetching and only load state on demand

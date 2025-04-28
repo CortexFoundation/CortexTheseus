@@ -458,3 +458,13 @@ func (bc *BlockChain) SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscript
 func (bc *BlockChain) SubscribeBlockProcessingEvent(ch chan<- bool) event.Subscription {
 	return bc.scope.Track(bc.blockProcFeed.Subscribe(ch))
 }
+
+// HistoryPruningCutoff returns the configured history pruning point.
+// Blocks before this might not be available in the database.
+func (bc *BlockChain) HistoryPruningCutoff() (uint64, common.Hash) {
+	pt := bc.historyPrunePoint.Load()
+	if pt == nil {
+		return 0, bc.genesisBlock.Hash()
+	}
+	return pt.BlockNumber, pt.BlockHash
+}

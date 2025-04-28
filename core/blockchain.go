@@ -34,6 +34,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/common/prque"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
+	"github.com/CortexFoundation/CortexTheseus/core/history"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/state/snapshot"
@@ -153,7 +154,7 @@ type CacheConfig struct {
 
 	// This defines the cutoff block for history expiry.
 	// Blocks before this number may be unavailable in the chain database.
-	HistoryPruningCutoff uint64
+	ChainHistoryMode history.HistoryMode
 }
 
 // defaultCacheConfig are the default caching values if none are specified by the
@@ -222,6 +223,7 @@ type BlockChain struct {
 	currentFastBlock      atomic.Value // Current head of the fast-sync chain (may be above the block chain!)
 	currentFinalizedBlock atomic.Value // Current finalized head
 	currentSafeBlock      atomic.Value // Current safe head
+	historyPrunePoint     atomic.Pointer[history.PrunePoint]
 
 	stateCache    *state.CachingDB // State database to reuse between imports (contains state cache)
 	txIndexer     *txIndexer
@@ -503,6 +505,12 @@ func (bc *BlockChain) loadLastState() error {
 	}
 	bc.hc.SetCurrentHeader(currentHeader)
 
+	// Initialize history pruning.
+	latest := max(currentBlock.NumberU64(), currentHeader.Number.Uint64())
+	if err := bc.initializeHistoryPruning(latest); err != nil {
+		return err
+	}
+
 	// Restore the last known head fast block
 	bc.currentFastBlock.Store(currentBlock)
 	headFastBlockGauge.Update(int64(currentBlock.NumberU64()))
@@ -541,7 +549,55 @@ func (bc *BlockChain) loadLastState() error {
 	if pivot := rawdb.ReadLastPivotNumber(bc.db); pivot != nil {
 		log.Info("Loaded last fast-sync pivot marker", "number", *pivot)
 	}
+	if pruning := bc.historyPrunePoint.Load(); pruning != nil {
+		log.Info("Chain history is pruned", "earliest", pruning.BlockNumber, "hash", pruning.BlockHash)
+	}
 	return nil
+}
+
+// initializeHistoryPruning sets bc.historyPrunePoint.
+func (bc *BlockChain) initializeHistoryPruning(latest uint64) error {
+	freezerTail, _ := bc.db.Tail()
+
+	switch bc.cacheConfig.ChainHistoryMode {
+	case history.KeepAll:
+		if freezerTail == 0 {
+			return nil
+		}
+		// The database was pruned somehow, so we need to figure out if it's a known
+		// configuration or an error.
+		predefinedPoint := history.PrunePoints[bc.genesisBlock.Hash()]
+		if predefinedPoint == nil || freezerTail != predefinedPoint.BlockNumber {
+			log.Error("Chain history database is pruned with unknown configuration", "tail", freezerTail)
+			return fmt.Errorf("unexpected database tail")
+		}
+		bc.historyPrunePoint.Store(predefinedPoint)
+		return nil
+
+	case history.KeepPostMerge:
+		if freezerTail == 0 && latest != 0 {
+			// This is the case where a user is trying to run with --history.chain
+			// postmerge directly on an existing DB. We could just trigger the pruning
+			// here, but it'd be a bit dangerous since they may not have intended this
+			// action to happen. So just tell them how to do it.
+			log.Error(fmt.Sprintf("Chain history mode is configured as %q, but database is not pruned.", bc.cacheConfig.ChainHistoryMode.String()))
+			log.Error(fmt.Sprintf("Run 'geth prune-history' to prune pre-merge history."))
+			return fmt.Errorf("history pruning requested via configuration")
+		}
+		predefinedPoint := history.PrunePoints[bc.genesisBlock.Hash()]
+		if predefinedPoint == nil {
+			log.Error("Chain history pruning is not supported for this network", "genesis", bc.genesisBlock.Hash())
+			return fmt.Errorf("history pruning requested for unknown network")
+		} else if freezerTail != predefinedPoint.BlockNumber {
+			log.Error("Chain history database is pruned to unknown block", "tail", freezerTail)
+			return fmt.Errorf("unexpected database tail")
+		}
+		bc.historyPrunePoint.Store(predefinedPoint)
+		return nil
+
+	default:
+		return fmt.Errorf("invalid history mode: %d", bc.cacheConfig.ChainHistoryMode)
+	}
 }
 
 // SetHead rewinds the local chain to a new head. Depending on whether the node
@@ -846,7 +902,9 @@ func (bc *BlockChain) ResetWithGenesisBlock(genesis *types.Block) error {
 	bc.hc.SetCurrentHeader(bc.genesisBlock.Header())
 	bc.currentFastBlock.Store(bc.genesisBlock)
 	headFastBlockGauge.Update(int64(bc.genesisBlock.NumberU64()))
-	return nil
+
+	// Reset history pruning status.
+	return bc.initializeHistoryPruning(0)
 }
 
 // Export writes the active chain to the given writer.
@@ -2324,10 +2382,4 @@ func (bc *BlockChain) InsertHeaderChain(chain []*types.Header, checkFreq int) (i
 	defer bc.chainmu.Unlock()
 	_, err := bc.hc.InsertHeaderChain(chain, start)
 	return 0, err
-}
-
-// HistoryPruningCutoff returns the configured history pruning point.
-// Blocks before this might not be available in the database.
-func (bc *BlockChain) HistoryPruningCutoff() uint64 {
-	return bc.cacheConfig.HistoryPruningCutoff
 }
