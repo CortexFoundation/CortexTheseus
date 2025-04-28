@@ -467,10 +467,18 @@ func VerifyRangeProof(rootHash common.Hash, firstKey []byte, lastKey []byte, key
 	if len(keys) != len(values) {
 		return nil, nil, nil, false, fmt.Errorf("inconsistent proof data, keys: %d, values: %d", len(keys), len(values))
 	}
-	// Ensure the received batch is monotonic increasing and contains no deletions
+	// Ensure the received batch is
+	// - monotonically increasing,
+	// - not expanding down prefix-paths
+	// - and contains no deletions
 	for i := 0; i < len(keys); i++ {
-		if i < len(keys)-1 && bytes.Compare(keys[i], keys[i+1]) >= 0 {
-			return nil, nil, nil, false, errors.New("range is not monotonically increasing")
+		if i < len(keys)-1 {
+			if bytes.Compare(keys[i], keys[i+1]) >= 0 {
+				return nil, nil, nil, false, errors.New("range is not monotonically increasing")
+			}
+			if bytes.HasPrefix(keys[i+1], keys[i]) {
+				return nil, nil, nil, false, errors.New("range contains path prefixes")
+			}
 		}
 		if len(values[i]) == 0 {
 			return nil, nil, nil, false, errors.New("range contains deletion")
