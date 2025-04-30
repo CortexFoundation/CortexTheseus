@@ -190,6 +190,13 @@ func (b *testBackend) CurrentView() *filtermaps.ChainView {
 	return filtermaps.NewChainView(b, head.Number.Uint64(), head.Hash())
 }
 
+func (b *testBackend) GetRawReceiptsByHash(hash common.Hash) types.Receipts {
+	if number := rawdb.ReadHeaderNumber(b.db, hash); number != nil {
+		return rawdb.ReadRawReceipts(b.db, hash, *number)
+	}
+	return nil
+}
+
 func newTestFilterSystem(t testing.TB, db ctxcdb.Database, cfg Config) (*testBackend, *FilterSystem) {
 	backend := &testBackend{db: db}
 	sys := NewFilterSystem(backend, cfg)
