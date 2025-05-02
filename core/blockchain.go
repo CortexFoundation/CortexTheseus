@@ -486,7 +486,23 @@ func (bc *BlockChain) loadLastState() error {
 		return bc.Reset()
 	}
 	// Make sure the entire head block is available
-	currentBlock := bc.GetBlockByHash(head)
+	currentHeader := bc.GetHeaderByHash(head)
+	if currentHeader == nil {
+		// Corrupt or empty database, init from scratch
+		log.Warn("Head header missing, resetting chain", "hash", head)
+		return bc.Reset()
+	}
+
+	var currentBlock *types.Block
+	if cmp := currentHeader.Number.Cmp(new(big.Int)); cmp == 1 {
+		// Make sure the entire head block is available.
+		currentBlock = bc.GetBlockByHash(head)
+	} else if cmp == 0 {
+		// On a pruned node the block body might not be available. But a pruned
+		// block should never be the head block. The only exception is when, as
+		// a last resort, chain is reset to genesis.
+		currentBlock = bc.genesisBlock
+	}
 	if currentBlock == nil {
 		// Corrupt or empty database, init from scratch
 		log.Warn("Head block missing, resetting chain", "hash", head)
@@ -497,7 +513,6 @@ func (bc *BlockChain) loadLastState() error {
 	headBlockGauge.Update(int64(currentBlock.NumberU64()))
 
 	// Restore the last known head header
-	currentHeader := currentBlock.Header()
 	if head := rawdb.ReadHeadHeaderHash(bc.db); head != (common.Hash{}) {
 		if header := bc.GetHeaderByHash(head); header != nil {
 			currentHeader = header
@@ -609,11 +624,13 @@ func (bc *BlockChain) SetHead(head uint64) error {
 	}
 	// Send chain head event to update the transaction pool
 	if block := bc.CurrentBlock(); block == nil {
-		// This should never happen. In practice, previously currentBlock
-		// contained the entire block whereas now only a "marker", so there
-		// is an ever so slight chance for a race we should handle.
-		log.Error("Current block not found in database", "block", block.Number(), "hash", block.Hash())
-		return fmt.Errorf("current block missing: #%d [%x..]", block.Number(), block.Hash().Bytes()[:4])
+		if block.Number().Uint64() > 0 {
+			// This should never happen. In practice, previously currentBlock
+			// contained the entire block whereas now only a "marker", so there
+			// is an ever so slight chance for a race we should handle.
+			log.Error("Current block not found in database", "block", block.Number(), "hash", block.Hash())
+			return fmt.Errorf("current block missing: #%d [%x..]", block.Number(), block.Hash().Bytes()[:4])
+		}
 	} else {
 		bc.chainHeadFeed.Send(ChainHeadEvent{Header: block.Header()})
 	}
@@ -630,11 +647,13 @@ func (bc *BlockChain) SetHeadWithTimestamp(timestamp uint64) error {
 	}
 	// Send chain head event to update the transaction pool
 	if block := bc.CurrentBlock(); block == nil {
-		// This should never happen. In practice, previously currentBlock
-		// contained the entire block whereas now only a "marker", so there
-		// is an ever so slight chance for a race we should handle.
-		log.Error("Current block not found in database", "block", block.Number(), "hash", block.Hash())
-		return fmt.Errorf("current block missing: #%d [%x..]", block.Number(), block.Hash().Bytes()[:4])
+		if block.Number().Uint64() > 0 {
+			// This should never happen. In practice, previously currentBlock
+			// contained the entire block whereas now only a "marker", so there
+			// is an ever so slight chance for a race we should handle.
+			log.Error("Current block not found in database", "block", block.Number(), "hash", block.Hash())
+			return fmt.Errorf("current block missing: #%d [%x..]", block.Number(), block.Hash().Bytes()[:4])
+		}
 	} else {
 		bc.chainHeadFeed.Send(ChainHeadEvent{Header: block.Header()})
 	}
