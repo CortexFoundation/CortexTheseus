@@ -17,10 +17,11 @@
 package filtermaps
 
 import (
+	"sync"
+
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"sync"
 )
 
 // blockchain represents the underlying blockchain of ChainView.
