@@ -50,6 +50,8 @@ const (
 	defaultGasPrice = params.GWei
 )
 
+var errTxNotFound = errors.New("transaction not found")
+
 // PublicCortexAPI provides an API to access Cortex related information.
 // It offers only methods that operate on public data that is freely available to anyone.
 type PublicCortexAPI struct {
@@ -79,8 +81,8 @@ func (s *PublicCortexAPI) ProtocolVersion() hexutil.Uint {
 // - highestBlock:  block number of the highest block header this node has received from peers
 // - pulledStates:  number of state entries processed until now
 // - knownStates:   number of known state entries that still need to be pulled
-func (s *PublicCortexAPI) Syncing() (any, error) {
-	progress := s.b.SyncProgress()
+func (s *PublicCortexAPI) Syncing(ctx context.Context) (any, error) {
+	progress := s.b.SyncProgress(ctx)
 
 	// Return not syncing if the synchronisation already completed
 	if progress.CurrentBlock >= progress.HighestBlock {
@@ -1328,9 +1330,18 @@ func (s *PublicTransactionPoolAPI) GetTransactionCount(ctx context.Context, addr
 // GetTransactionByHash returns the transaction for the given hash
 func (s *PublicTransactionPoolAPI) GetTransactionByHash(ctx context.Context, hash common.Hash) (*RPCTransaction, error) {
 	// Try to return an already finalized transaction
-	tx, blockHash, blockNumber, index, err := s.b.GetTransaction(ctx, hash)
-	if err != nil {
-		return nil, err
+	found, tx, blockHash, blockNumber, index := s.b.GetTransaction(hash)
+	if !found {
+		// No finalized transaction, try to retrieve it from the pool
+		if tx := s.b.GetPoolTransaction(hash); tx != nil {
+			return newRPCPendingTransaction(tx), nil
+		}
+		// If also not in the pool there is a chance the tx indexer is still in progress.
+		if !s.b.TxIndexDone() {
+			return nil, errTxNotFound
+		}
+		// If the transaction is not found in the pool and the indexer is done, return nil
+		return nil, nil
 	}
 	if tx != nil {
 		return newRPCTransaction(tx, blockHash, blockNumber, index), nil
@@ -1347,9 +1358,15 @@ func (s *PublicTransactionPoolAPI) GetTransactionByHash(ctx context.Context, has
 // GetRawTransactionByHash returns the bytes of the transaction for the given hash.
 func (s *PublicTransactionPoolAPI) GetRawTransactionByHash(ctx context.Context, hash common.Hash) (hexutil.Bytes, error) {
 	// Retrieve a finalized transaction, or a pooled otherwise
-	tx, _, _, _, err := s.b.GetTransaction(ctx, hash)
-	if err != nil {
-		return nil, err
+	found, tx, _, _, _ := s.b.GetTransaction(hash)
+	if !found {
+		if tx = s.b.GetPoolTransaction(hash); tx != nil {
+			return tx.MarshalBinary()
+		}
+		if !s.b.TxIndexDone() {
+			return nil, errTxNotFound
+		}
+		return nil, nil
 	}
 	if tx == nil {
 		if tx = s.b.GetPoolTransaction(hash); tx == nil {

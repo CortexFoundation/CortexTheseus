@@ -40,7 +40,7 @@ import (
 // both full and light clients) with access to necessary functions.
 type Backend interface {
 	// General Cortex API
-	SyncProgress() cortex.SyncProgress
+	SyncProgress(ctx context.Context) cortex.SyncProgress
 	ProtocolVersion() int
 	SuggestPrice(ctx context.Context) (*big.Int, error)
 	ChainDb() ctxcdb.Database
@@ -78,7 +78,8 @@ type Backend interface {
 	ChainConfig() *params.ChainConfig
 	CurrentBlock() *types.Block
 	CurrentHeader() *types.Header
-	GetTransaction(ctx context.Context, txHash common.Hash) (*types.Transaction, common.Hash, uint64, uint64, error)
+	GetTransaction(txHash common.Hash) (bool, *types.Transaction, common.Hash, uint64, uint64)
+	TxIndexDone() bool
 
 	Engine() consensus.Engine
 
