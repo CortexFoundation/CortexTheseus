@@ -26,6 +26,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/consensus"
 	"github.com/CortexFoundation/CortexTheseus/core"
+	"github.com/CortexFoundation/CortexTheseus/core/filtermaps"
 	"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
@@ -89,6 +90,8 @@ type Backend interface {
 	ListAllTorrents() map[string]map[string]int
 
 	Download(ih string) error
+
+	CurrentView() *filtermaps.ChainView
 }
 
 func GetAPIs(apiBackend Backend, vmConfig vm.Config) []rpc.API {

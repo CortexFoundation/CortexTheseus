@@ -15,7 +15,7 @@
 // have generated some Go code from C you should stick to the version of this
 // package that you used at that time and was tested with your payload. The
 // correct way to upgrade to a newer version of this package is to first
-// recompile (C to Go) your code with a newwer version if ccgo that depends on
+// recompile (C to Go) your code with a newer version of ccgo that depends on
 // the new libc version.
 //
 // If you use C to Go translated code provided by others, stick to the version
