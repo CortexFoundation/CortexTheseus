@@ -742,6 +742,7 @@ func (s *spongeDb) NewSnapshot() (ctxcdb.Snapshot, error)    { panic("implement 
 func (s *spongeDb) Stat(property string) (string, error)     { panic("implement me") }
 func (s *spongeDb) DeleteRange(start, end []byte) error      { panic("implement me") }
 func (s *spongeDb) Compact(start []byte, limit []byte) error { panic("implement me") }
+func (s *spongeDb) SyncKeyValue() error                      { return nil }
 func (s *spongeDb) Close() error                             { return nil }
 func (s *spongeDb) Put(key []byte, value []byte) error {
 	valbrief := value
