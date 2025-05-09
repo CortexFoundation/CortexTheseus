@@ -33,6 +33,7 @@ type mediaEngineHeaderExtension struct {
 type MediaEngine struct {
 	// If we have attempted to negotiate a codec type yet.
 	negotiatedVideo, negotiatedAudio bool
+	negotiateMultiCodecs             bool
 
 	videoCodecs, audioCodecs                     []RTPCodecParameters
 	negotiatedVideoCodecs, negotiatedAudioCodecs []RTPCodecParameters
@@ -41,6 +42,22 @@ type MediaEngine struct {
 	negotiatedHeaderExtensions map[int]mediaEngineHeaderExtension
 
 	mu sync.RWMutex
+}
+
+// setMultiCodecNegotiation enables or disables the negotiation of multiple codecs.
+func (m *MediaEngine) setMultiCodecNegotiation(negotiateMultiCodecs bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.negotiateMultiCodecs = negotiateMultiCodecs
+}
+
+// multiCodecNegotiation returns the current state of the negotiation of multiple codecs.
+func (m *MediaEngine) multiCodecNegotiation() bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	return m.negotiateMultiCodecs
 }
 
 // RegisterDefaultCodecs registers the default codecs supported by Pion WebRTC.
@@ -159,7 +176,18 @@ func (m *MediaEngine) RegisterDefaultCodecs() error {
 			RTPCodecCapability: RTPCodecCapability{MimeTypeRTX, 90000, 0, "apt=39", nil},
 			PayloadType:        40,
 		},
-
+		{
+			RTPCodecCapability: RTPCodecCapability{
+				MimeType:     MimeTypeH265,
+				ClockRate:    90000,
+				RTCPFeedback: videoRTCPFeedback,
+			},
+			PayloadType: 116,
+		},
+		{
+			RTPCodecCapability: RTPCodecCapability{MimeTypeRTX, 90000, 0, "apt=116", nil},
+			PayloadType:        117,
+		},
 		{
 			RTPCodecCapability: RTPCodecCapability{MimeTypeAV1, 90000, 0, "", videoRTCPFeedback},
 			PayloadType:        45,
@@ -564,7 +592,7 @@ func (m *MediaEngine) pushCodecs(codecs []RTPCodecParameters, typ RTPCodecType) 
 }
 
 // Update the MediaEngine from a remote description.
-func (m *MediaEngine) updateFromRemoteDescription(desc sdp.SessionDescription) error { //nolint:cyclop
+func (m *MediaEngine) updateFromRemoteDescription(desc sdp.SessionDescription) error { //nolint:cyclop,gocognit
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -592,7 +620,9 @@ func (m *MediaEngine) updateFromRemoteDescription(desc sdp.SessionDescription) e
 				return err
 			}
 
-			continue
+			if !m.negotiateMultiCodecs || (typ != RTPCodecTypeAudio && typ != RTPCodecTypeVideo) {
+				continue
+			}
 		}
 
 		codecs, err := codecsFromMediaDescription(media)

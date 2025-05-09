@@ -84,7 +84,7 @@ type Client struct {
 	// info has been obtained, there's no knowing if an infohash belongs to v1 or v2.
 	torrentsByShortHash map[InfoHash]*Torrent
 
-	pieceRequestOrder map[interface{}]*request_strategy.PieceRequestOrder
+	pieceRequestOrder map[clientPieceRequestOrderKeySumType]*request_strategy.PieceRequestOrder
 
 	acceptLimiter map[ipStr]int
 	numHalfOpen   int
@@ -160,7 +160,13 @@ func (cl *Client) WriteStatus(_w io.Writer) {
 	})
 	dumpStats(w, cl.statsLocked())
 	torrentsSlice := cl.torrentsAsSlice()
-	fmt.Fprintf(w, "# Torrents: %d\n", len(torrentsSlice))
+	incomplete := 0
+	for _, t := range torrentsSlice {
+		if !t.Complete().Bool() {
+			incomplete++
+		}
+	}
+	fmt.Fprintf(w, "# Torrents: %d (%v incomplete)\n", len(torrentsSlice), incomplete)
 	fmt.Fprintln(w)
 	sort.Slice(torrentsSlice, func(l, r int) bool {
 		return torrentsSlice[l].canonicalShortInfohash().AsString() < torrentsSlice[r].canonicalShortInfohash().AsString()
@@ -228,11 +234,14 @@ func (cl *Client) init(cfg *ClientConfig) {
 	cl.defaultLocalLtepProtocolMap = makeBuiltinLtepProtocols(!cfg.DisablePEX)
 }
 
+// Creates a new Client. Takes ownership of the ClientConfig. Create another one if you want another
+// Client.
 func NewClient(cfg *ClientConfig) (cl *Client, err error) {
 	if cfg == nil {
 		cfg = NewDefaultClientConfig()
 		cfg.ListenPort = 0
 	}
+	cfg.setRateLimiterBursts()
 	cl = &Client{}
 	cl.init(cfg)
 	go cl.acceptLimitClearer()
@@ -1378,7 +1387,8 @@ func (cl *Client) newTorrentOpt(opts AddTorrentOpts) (t *Torrent) {
 	}
 	t.smartBanCache.Init()
 	t.networkingEnabled.Set()
-	t.logger = cl.logger.WithDefaultLevel(log.Debug).WithNames(t.InfoHash().HexString())
+	ihHex := t.InfoHash().HexString()
+	t.logger = cl.logger.WithDefaultLevel(log.Debug).WithNames(ihHex).WithContextText(ihHex)
 	t.sourcesLogger = t.logger.WithNames("sources")
 	if opts.ChunkSize == 0 {
 		opts.ChunkSize = defaultChunkSize
@@ -1677,7 +1687,7 @@ func (cl *Client) newConnection(nc net.Conn, opts newConnectionOpts) (c *PeerCon
 		connString: opts.connString,
 		conn:       nc,
 	}
-	c.peerRequestDataAllocLimiter.Max = cl.config.MaxAllocPeerRequestDataPerConn
+	c.peerRequestDataAllocLimiter.Max = int64(cl.config.MaxAllocPeerRequestDataPerConn)
 	c.initRequestState()
 	// TODO: Need to be much more explicit about this, including allowing non-IP bannable addresses.
 	if opts.remoteAddr != nil {
@@ -1686,6 +1696,7 @@ func (cl *Client) newConnection(nc net.Conn, opts newConnectionOpts) (c *PeerCon
 			c.bannableAddr = Some(netipAddrPort.Addr())
 		}
 	}
+	c.legacyPeerImpl = c
 	c.peerImpl = c
 	c.logger = cl.logger.WithDefaultLevel(log.Warning).WithContextText(fmt.Sprintf("%T %p", c, c))
 	c.protocolLogger = c.logger.WithNames(protocolLoggingName)

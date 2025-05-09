@@ -188,6 +188,9 @@ func (m *Map[V]) Range(callback func(key string, value V) bool) {
 	}
 }
 
+// choose selects a shard index based on the given key.
+// It uses the xxh3 hash function to hash the key and then masks the result with
+// (m.shards-1) to ensure the index falls within the range of shard indices.
 func (m *Map[V]) choose(key string) int {
 	return int(xxh3.HashString(key) & uint64(m.shards-1))
 }
@@ -207,6 +210,8 @@ func (m *Map[V]) choose(key string) int {
 	})
 }*/
 
+// initDo initializes the Map with the appropriate number of shards and mutexes.
+// It ensures that this initialization is performed only once using sync.Once.
 func (m *Map[V]) initDo() {
 	var once sync.Once
 	once.Do(func() {

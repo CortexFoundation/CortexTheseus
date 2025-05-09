@@ -17,12 +17,12 @@
 package backend
 
 import (
-	"bytes"
+	//"bytes"
 	"context"
-	"crypto/sha1"
+	//"crypto/sha1"
 	"errors"
-	"fmt"
-	"io"
+	//"fmt"
+	//"io"
 	//"math"
 	"math/rand"
 	//"net"
@@ -48,10 +48,10 @@ import (
 	"github.com/anacrolix/torrent/bencode"
 	//"github.com/anacrolix/torrent/iplist"
 	"github.com/anacrolix/torrent/metainfo"
-	"github.com/anacrolix/torrent/mmap_span"
+	//"github.com/anacrolix/torrent/mmap_span"
 	//pp "github.com/anacrolix/torrent/peer_protocol"
 	"github.com/anacrolix/torrent/storage"
-	"github.com/bradfitz/iter"
+	//"github.com/bradfitz/iter"
 	"github.com/edsrzf/mmap-go"
 	"github.com/ucwong/filecache"
 	"github.com/ucwong/golang-kv"
@@ -305,7 +305,7 @@ func mmapFile(name string) (mm storage.FileMapping, err error) {
 	return storage.WrapFileMapping(reg, f), nil
 }
 
-func (tm *TorrentManager) verifyTorrent(info *metainfo.Info, root string) error {
+/*func (tm *TorrentManager) verifyTorrent(info *metainfo.Info, root string) error {
 	span := new(mmap_span.MMapSpan)
 	for _, file := range info.UpvertedFiles() {
 		filename := filepath.Join(append([]string{root, info.Name}, file.Path...)...)
@@ -334,7 +334,7 @@ func (tm *TorrentManager) verifyTorrent(info *metainfo.Info, root string) error 
 	return nil
 }
 
-/*func (tm *TorrentManager) verifyTorrent(info *metainfo.Info, root string) error {
+func (tm *TorrentManager) verifyTorrent(info *metainfo.Info, root string) error {
 	span := new(mmap_span.MMapSpan)
 	for _, file := range info.UpvertedFiles() {
 		filename := filepath.Join(append([]string{root, info.Name}, file.Path...)...)
@@ -409,15 +409,15 @@ func (tm *TorrentManager) loadSpec(ih string, filePath string) *torrent.TorrentS
 	)
 	if _, err := os.Stat(ExistDir); err == nil {
 		log.Debug("Seeding from existing file.", "ih", ih)
-		info, err := mi.UnmarshalInfo()
+		//info, err := mi.UnmarshalInfo()
 		if err != nil {
 			log.Error("error unmarshalling info: ", "info", err)
 			return nil
 		}
 
-		if err := tm.verifyTorrent(&info, ExistDir); err == nil {
-			useExistDir = true
-		}
+		//if err := tm.verifyTorrent(&info, ExistDir); err == nil {
+		//	useExistDir = true
+		//}
 	}
 
 	if useExistDir {
