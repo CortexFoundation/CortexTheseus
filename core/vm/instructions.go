@@ -24,7 +24,6 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
-	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
@@ -247,11 +246,7 @@ func opKeccak256(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) (
 	offset, size := scope.Stack.pop(), scope.Stack.peek()
 	data := scope.Memory.GetPtr(offset.Uint64(), size.Uint64())
 
-	if interpreter.hasher == nil {
-		interpreter.hasher = crypto.NewKeccakState()
-	} else {
-		interpreter.hasher.Reset()
-	}
+	interpreter.hasher.Reset()
 	interpreter.hasher.Write(data)
 	interpreter.hasher.Read(interpreter.hasherBuf[:])
 

@@ -28,6 +28,7 @@ import (
 	"io"
 	"math/big"
 	"os"
+	"sync"
 
 	"golang.org/x/crypto/sha3"
 
@@ -35,6 +36,12 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 )
+
+var hasherPool = sync.Pool{
+	New: func() any {
+		return sha3.NewLegacyKeccak256().(KeccakState)
+	},
+}
 
 // SignatureLength indicates the byte length required to carry a signature with recovery id.
 const SignatureLength = 64 + 1 // 64 bytes ECDSA signature + 1 byte recovery id
@@ -85,22 +92,26 @@ func HashData(kh KeccakState, data []byte) (h common.Hash) {
 // Keccak256 calculates and returns the Keccak256 hash of the input data.
 func Keccak256(data ...[]byte) []byte {
 	b := make([]byte, 32)
-	d := NewKeccakState()
+	d := hasherPool.Get().(KeccakState)
+	d.Reset()
 	for _, b := range data {
 		d.Write(b)
 	}
 	d.Read(b)
+	hasherPool.Put(d)
 	return b
 }
 
 // Keccak256Hash calculates and returns the Keccak256 hash of the input data,
 // converting it to an internal Hash data structure.
 func Keccak256Hash(data ...[]byte) (h common.Hash) {
-	d := NewKeccakState()
+	d := hasherPool.Get().(KeccakState)
+	d.Reset()
 	for _, b := range data {
 		d.Write(b)
 	}
 	d.Read(h[:])
+	hasherPool.Put(d)
 	return h
 }
 
