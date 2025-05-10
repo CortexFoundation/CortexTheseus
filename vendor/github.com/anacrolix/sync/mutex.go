@@ -4,15 +4,25 @@ import (
 	"runtime"
 	"sync"
 	"time"
+	"unique"
 )
 
 type Mutex struct {
-	mu      sync.Mutex
-	hold    *int        // Unique value for passing to pprof.
-	stack   [32]uintptr // The stack for the current holder.
-	start   time.Time   // When the lock was obtained.
-	entries int         // Number of entries returned from runtime.Callers.
+	hold *int // Unique value for passing to pprof.
+	// Values if lockTimes tracking is enabled.
+	*lockTimes
+	// Last for struct size reasons.
+	mu sync.Mutex
 }
+
+// Data for tracking lock time on a Mutex.
+type lockTimes struct {
+	stack   unique.Handle[callerArray] // The stack for the current holder.
+	start   time.Time                  // When the lock was obtained.
+	entries int                        // Number of entries returned from runtime.Callers.
+}
+
+type callerArray = [32]uintptr
 
 func (m *Mutex) Lock() {
 	if contentionOn {
@@ -26,7 +36,13 @@ func (m *Mutex) Lock() {
 		m.mu.Lock()
 	}
 	if lockTimesOn {
-		m.entries = runtime.Callers(2, m.stack[:])
+		// We're holding the lock here so it's safe to check.
+		if m.lockTimes == nil {
+			m.lockTimes = new(lockTimes)
+		}
+		var stack callerArray
+		m.entries = runtime.Callers(2, stack[:])
+		m.stack = unique.Make(stack)
 		m.start = time.Now()
 	}
 }
@@ -34,8 +50,7 @@ func (m *Mutex) Lock() {
 func (m *Mutex) Unlock() {
 	if lockTimesOn {
 		d := time.Since(m.start)
-		var key [32]uintptr
-		copy(key[:], m.stack[:m.entries])
+		key := m.stack.Value()
 		lockStatsMu.Lock()
 		v, ok := lockStatsByStack[key]
 		if !ok {

@@ -27,6 +27,11 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 )
 
+// hasherPool holds LegacyKeccak256 hashers for rlpHash.
+var hasherPool = sync.Pool{
+	New: func() interface{} { return crypto.NewKeccakState() },
+}
+
 // encodeBufferPool holds temporary encoder buffers for DeriveSha and TX encoding.
 var encodeBufferPool = sync.Pool{
 	New: func() interface{} { return new(bytes.Buffer) },
@@ -46,6 +51,16 @@ func getPooledBuffer(size uint64) ([]byte, *bytes.Buffer, error) {
 	buf.Grow(int(size))
 	b := buf.Bytes()[:int(size)]
 	return b, buf, nil
+}
+
+// rlpHash encodes x and hashes the encoded bytes.
+func rlpHash(x interface{}) (h common.Hash) {
+	sha := hasherPool.Get().(crypto.KeccakState)
+	defer hasherPool.Put(sha)
+	sha.Reset()
+	rlp.Encode(sha, x)
+	sha.Read(h[:])
+	return h
 }
 
 // prefixedRlpHash writes the prefix into the hasher before rlp-encoding x.

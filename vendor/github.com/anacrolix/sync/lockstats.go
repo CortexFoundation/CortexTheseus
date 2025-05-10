@@ -9,13 +9,14 @@ import (
 
 var (
 	// Stats on lock usage by call graph.
-	lockStatsMu      sync.Mutex
+	lockStatsMu sync.Mutex
+	// TODO: lockStats has a Mutex that we don't need.
 	lockStatsByStack map[lockStackKey]lockStats
 )
 
 type (
 	lockStats    = perf.Event
-	lockStackKey = [32]uintptr
+	lockStackKey = callerArray
 )
 
 type stackLockStats struct {

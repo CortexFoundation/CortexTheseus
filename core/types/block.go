@@ -25,13 +25,11 @@ import (
 	"math/big"
 	"reflect"
 	"slices"
-	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
-	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 )
 
@@ -165,20 +163,6 @@ func (h *Header) SanityCheck() error {
 		return fmt.Errorf("too large block extradata: size %d", eLen)
 	}
 	return nil
-}
-
-// hasherPool holds LegacyKeccak hashers.
-var hasherPool = sync.Pool{
-	New: func() interface{} { return crypto.NewKeccakState() },
-}
-
-func rlpHash(x any) (h common.Hash) {
-	sha := hasherPool.Get().(crypto.KeccakState)
-	defer hasherPool.Put(sha)
-	sha.Reset()
-	rlp.Encode(sha, x)
-	sha.Read(h[:])
-	return h
 }
 
 // EmptyBody returns true if there is no additional 'body' to complete the header

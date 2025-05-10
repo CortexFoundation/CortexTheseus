@@ -22,15 +22,12 @@ import (
 	"os"
 	"runtime/pprof"
 	"strings"
-	"sync"
 	"text/tabwriter"
 
 	"github.com/anacrolix/missinggo/v2"
 )
 
 var (
-	// Protects initialization and enabling of the package.
-	enableMu sync.Mutex
 	// Whether shared locks must be handled as exclusive locks.
 	noSharedLocking = false
 	contentionOn    = false
