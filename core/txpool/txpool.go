@@ -1407,22 +1407,20 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) []*types.Trans
 // equal number for all for accounts with many pending transactions.
 func (pool *TxPool) truncatePending() {
 	pending := uint64(0)
-	for _, list := range pool.pending {
-		pending += uint64(list.Len())
+	// Assemble a spam order to penalize large transactors first
+	spammers := prque.New[uint64, common.Address](nil)
+	for addr, list := range pool.pending {
+		// Only evict transactions from high rollers
+		length := uint64(list.Len())
+		pending += length
+		if length > pool.config.AccountSlots {
+			spammers.Push(addr, length)
+		}
 	}
 	if pending <= pool.config.GlobalSlots {
 		return
 	}
-
 	pendingBeforeCap := pending
-	// Assemble a spam order to penalize large transactors first
-	spammers := prque.New[int64, common.Address](nil)
-	for addr, list := range pool.pending {
-		// Only evict transactions from high rollers
-		if !pool.locals.contains(addr) && uint64(list.Len()) > pool.config.AccountSlots {
-			spammers.Push(addr, int64(list.Len()))
-		}
-	}
 	// Gradually drop transactions from offenders
 	offenders := []common.Address{}
 	for pending > pool.config.GlobalSlots && !spammers.Empty() {
