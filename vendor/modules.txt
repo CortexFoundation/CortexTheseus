@@ -472,6 +472,17 @@ github.com/consensys/gnark-crypto/utils/cpu
 # github.com/cpuguy83/go-md2man/v2 v2.0.7
 ## explicit; go 1.12
 github.com/cpuguy83/go-md2man/v2/md2man
+# github.com/crate-crypto/go-eth-kzg v1.3.0
+## explicit; go 1.22
+github.com/crate-crypto/go-eth-kzg
+github.com/crate-crypto/go-eth-kzg/internal/domain
+github.com/crate-crypto/go-eth-kzg/internal/erasure_code
+github.com/crate-crypto/go-eth-kzg/internal/kzg
+github.com/crate-crypto/go-eth-kzg/internal/kzg_multi
+github.com/crate-crypto/go-eth-kzg/internal/kzg_multi/fk20
+github.com/crate-crypto/go-eth-kzg/internal/multiexp
+github.com/crate-crypto/go-eth-kzg/internal/poly
+github.com/crate-crypto/go-eth-kzg/internal/utils
 # github.com/crate-crypto/go-ipa v0.0.0-20240724233137-53bbb0ceb27a
 ## explicit; go 1.18
 github.com/crate-crypto/go-ipa
