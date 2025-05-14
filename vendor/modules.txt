@@ -1349,7 +1349,7 @@ gopkg.in/yaml.v3
 lukechampine.com/blake3
 lukechampine.com/blake3/bao
 lukechampine.com/blake3/guts
-# modernc.org/libc v1.64.1
+# modernc.org/libc v1.65.0
 ## explicit; go 1.23.0
 modernc.org/libc
 modernc.org/libc/errno

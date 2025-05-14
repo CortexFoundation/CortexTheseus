@@ -300,6 +300,7 @@ func (t *TLS) Alloc(n int) (r uintptr) {
 		panic("OOM")
 	}
 
+	t.sp++
 	if memgrind {
 		atomic.AddInt32(&t.stackHeaderBalance, 1)
 	}
@@ -351,6 +352,7 @@ func (t *TLS) Free(n int) {
 				}
 			}
 			Xfree(t, nstack.page)
+			t.sp--
 			if nstack.next == 0 {
 				break
 			}

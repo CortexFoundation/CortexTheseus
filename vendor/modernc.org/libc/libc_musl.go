@@ -296,6 +296,11 @@ func NewTLS() (r *TLS) {
 	}
 }
 
+// StackSlots reports the number of tls stack slots currently in use.
+func (tls *TLS) StackSlots() int {
+	return tls.sp
+}
+
 // int *__errno_location(void)
 func X__errno_location(tls *TLS) (r uintptr) {
 	return tls.pthread + unsafe.Offsetof(t__pthread{}.Ferrno_val)
