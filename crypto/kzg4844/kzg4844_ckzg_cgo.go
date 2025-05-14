@@ -24,7 +24,7 @@ import (
 	"sync"
 
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
-	gokzg4844 "github.com/crate-crypto/go-kzg-4844"
+	gokzg4844 "github.com/crate-crypto/go-eth-kzg"
 	ckzg4844 "github.com/ethereum/c-kzg-4844/bindings/go"
 )
 

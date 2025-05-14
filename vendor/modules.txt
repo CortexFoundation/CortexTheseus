@@ -493,12 +493,6 @@ github.com/crate-crypto/go-ipa/banderwagon
 github.com/crate-crypto/go-ipa/common
 github.com/crate-crypto/go-ipa/common/parallel
 github.com/crate-crypto/go-ipa/ipa
-# github.com/crate-crypto/go-kzg-4844 v1.1.0
-## explicit; go 1.20
-github.com/crate-crypto/go-kzg-4844
-github.com/crate-crypto/go-kzg-4844/internal/kzg
-github.com/crate-crypto/go-kzg-4844/internal/multiexp
-github.com/crate-crypto/go-kzg-4844/internal/utils
 # github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 ## explicit
 github.com/davecgh/go-spew/spew
