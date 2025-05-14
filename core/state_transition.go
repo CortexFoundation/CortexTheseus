@@ -95,14 +95,14 @@ The state transitioning model does all the necessary work to work out a valid ne
 
 // StateTransition is the state of current tx in vm
 type StateTransition struct {
-	gp         *GasPool
-	qp         *QuotaPool
-	msg        *Message
-	gas        uint64
-	initialGas uint64
-	state      vm.StateDB
-	cvm        *vm.CVM
-	modelGas   map[common.Address]uint64
+	gp           *GasPool
+	qp           *QuotaPool
+	msg          *Message
+	gasRemaining uint64
+	initialGas   uint64
+	state        vm.StateDB
+	cvm          *vm.CVM
+	modelGas     map[common.Address]uint64
 }
 
 type Message struct {
@@ -203,10 +203,10 @@ func (st *StateTransition) to() common.Address {
 }
 
 //func (st *StateTransition) useGas(amount uint64) error {
-//	if st.gas < amount {
+//	if st.gasRemaining < amount {
 //		return vm.ErrOutOfGas
 //	}
-//	st.gas -= amount
+//	st.gasRemaining -= amount
 //
 //	return nil
 //}
@@ -219,7 +219,7 @@ func (st *StateTransition) buyGas() error {
 	if err := st.gp.SubGas(st.msg.GasLimit); err != nil {
 		return err
 	}
-	st.gas = st.msg.GasLimit
+	st.gasRemaining = st.msg.GasLimit
 
 	st.initialGas = st.msg.GasLimit
 	st.state.SubBalance(st.msg.From, mgval)
@@ -314,10 +314,10 @@ func (st *StateTransition) execute() (*ExecutionResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	if st.gas < gas {
-		return nil, fmt.Errorf("%w: have %d, want %d", vm.ErrOutOfGas, st.gas, gas)
+	if st.gasRemaining < gas {
+		return nil, fmt.Errorf("%w: have %d, want %d", vm.ErrOutOfGas, st.gasRemaining, gas)
 	}
-	st.gas -= gas
+	st.gasRemaining -= gas
 
 	if msg.Value.Sign() > 0 && !st.cvm.Context.CanTransfer(st.state, msg.From, msg.Value) {
 		return nil, fmt.Errorf("%w: address %v", ErrInsufficientFundsForTransfer, msg.From.Hex())
@@ -336,14 +336,14 @@ func (st *StateTransition) execute() (*ExecutionResult, error) {
 		vmerr error
 	)
 	if contractCreation {
-		ret, _, st.gas, st.modelGas, vmerr = st.cvm.Create(msg.From, msg.Data, st.gas, msg.Value)
+		ret, _, st.gasRemaining, st.modelGas, vmerr = st.cvm.Create(msg.From, msg.Data, st.gasRemaining, msg.Value)
 	} else {
 		// Increment the nonce for the next transaction
 		//if pool.config.NoInfers && asm.HasInferOp(tx.Data()) {
 		//	fmt.Println("Has INFER operation !!! continue ...")
 		//}
 		st.state.SetNonce(msg.From, st.state.GetNonce(msg.From)+1)
-		ret, st.gas, st.modelGas, vmerr = st.cvm.Call(msg.From, st.to(), msg.Data, st.gas, msg.Value)
+		ret, st.gasRemaining, st.modelGas, vmerr = st.cvm.Call(msg.From, st.to(), msg.Data, st.gasRemaining, msg.Value)
 	}
 
 	if vmerr != nil {
@@ -417,7 +417,7 @@ func (st *StateTransition) execute() (*ExecutionResult, error) {
 
 // vote to model
 func (st *StateTransition) uploading() bool {
-	return st.msg != nil && st.msg.To != nil && st.msg.Value.Sign() == 0 && st.state.Uploading(st.to()) // && st.gas >= params.UploadGas
+	return st.msg != nil && st.msg.To != nil && st.msg.Value.Sign() == 0 && st.state.Uploading(st.to()) // && st.gasRemaining >= params.UploadGas
 }
 
 func (st *StateTransition) refundGas() uint64 {
@@ -426,20 +426,20 @@ func (st *StateTransition) refundGas() uint64 {
 	if refund > st.state.GetRefund() {
 		refund = st.state.GetRefund()
 	}
-	st.gas += refund
+	st.gasRemaining += refund
 
 	// Return ETH for remaining gas, exchanged at the original rate.
-	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.msg.GasPrice)
+	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gasRemaining), st.msg.GasPrice)
 	st.state.AddBalance(st.msg.From, remaining)
 
 	// Also return remaining gas to the block gas counter so it is
 	// available for the next transaction.
-	st.gp.AddGas(st.gas)
+	st.gp.AddGas(st.gasRemaining)
 
 	return refund
 }
 
 // gasUsed returns the amount of gas used up by the state transition.
 func (st *StateTransition) gasUsed() uint64 {
-	return st.initialGas - st.gas
+	return st.initialGas - st.gasRemaining
 }
