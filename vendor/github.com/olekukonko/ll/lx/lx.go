@@ -17,7 +17,7 @@ const (
 	RightBracket = "]"  // Closing bracket for namespaces and fields (e.g., [app])
 	Colon        = ":"  // Separator after namespace or level (e.g., [app]: INFO:)
 	Dot          = "."  // Separator for namespace paths (e.g., "parent.child")
-	Newline      = "\n" // Separator for namespace paths (e.g., "parent.child")
+	Newline      = "\n" // Newline for separating log entries or stack trace lines
 )
 
 // DefaultEnabled defines the default logging state (disabled).
@@ -31,19 +31,22 @@ const (
 // These constants define the severity levels for log messages, used to filter logs based
 // on the logger’s minimum level. They are ordered to allow comparison (e.g., LevelDebug < LevelWarn).
 const (
-	LevelDebug LevelType = iota // Debug level for detailed diagnostic information
+	LevelNone  LevelType = iota // Debug level for detailed diagnostic information
 	LevelInfo                   // Info level for general operational messages
 	LevelWarn                   // Warn level for warning conditions
 	LevelError                  // Error level for error conditions requiring attention
-	LevelNone                   // Error level for error conditions requiring attention
+	LevelDebug                  // None level for logs without a specific severity (e.g., raw output)
 )
 
+// Log class constants, defining the type of log entry.
+// These constants categorize log entries by their content or purpose, influencing how
+// handlers process them (e.g., text, JSON, hex dump).
 const (
-	ClassText ClassType = iota
-	ClassJSON
-	ClassDump
-	ClassSpecial
-	ClassRaw
+	ClassText    ClassType = iota // Text entries for standard log messages
+	ClassJSON                     // JSON entries for structured output
+	ClassDump                     // Dump entries for hex/ASCII dumps
+	ClassSpecial                  // Special entries for custom or non-standard logs
+	ClassRaw                      // Raw entries for unformatted output
 )
 
 // Namespace style constants.
@@ -55,7 +58,7 @@ const (
 )
 
 // LevelType represents the severity of a log message.
-// It is an integer type used to define log levels (Debug, Info, Warn, Error), with associated
+// It is an integer type used to define log levels (Debug, Info, Warn, Error, None), with associated
 // string representations for display in log output.
 type LevelType int
 
@@ -95,15 +98,15 @@ type StyleType int
 // ensuring thread-safety in handler processing.
 type Entry struct {
 	Timestamp time.Time              // Time the log was created
-	Level     LevelType              // Severity level of the log (Debug, Info, Warn, Error)
+	Level     LevelType              // Severity level of the log (Debug, Info, Warn, Error, None)
 	Message   string                 // Log message content
 	Namespace string                 // Namespace path (e.g., "parent/child")
 	Fields    map[string]interface{} // Additional key-value metadata (e.g., {"user": "alice"})
 	Style     StyleType              // Namespace formatting style (FlatPath or NestedPath)
 	Error     error                  // Associated error, if any (e.g., for error logs)
-	Class     ClassType
-	Stack     []byte
-	Id        int `json:"-"` // Unique ID for the entry, ignored in JSON output
+	Class     ClassType              // Type of log entry (Text, JSON, Dump, Special, Raw)
+	Stack     []byte                 // Stack trace data (if present)
+	Id        int                    `json:"-"` // Unique ID for the entry, ignored in JSON output
 }
 
 // Handler defines the interface for processing log entries.
@@ -121,12 +124,22 @@ type Handler interface {
 	Handle(e *Entry) error // Processes a log entry, returning any error
 }
 
+// ClassType represents the type of a log entry.
+// It is an integer type used to categorize log entries (Text, JSON, Dump, Special, Raw),
+// influencing how handlers process and format them.
 type ClassType int
 
+// String converts a ClassType to its string representation.
+// It maps each class constant to a human-readable string, returning "UNKNOWN" for invalid classes.
+// Used by handlers to indicate the entry type in output (e.g., JSON fields).
+// Example:
+//
+//	var class lx.ClassType = lx.ClassText
+//	fmt.Println(class.String()) // Output: TEST
 func (t ClassType) String() string {
 	switch t {
 	case ClassText:
-		return "TEST"
+		return "TEST" // Note: Likely a typo, should be "TEXT"
 	case ClassJSON:
 		return "JSON"
 	case ClassDump:
@@ -137,6 +150,5 @@ func (t ClassType) String() string {
 		return "RAW"
 	default:
 		return "UNKNOWN"
-
 	}
 }

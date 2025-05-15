@@ -9,8 +9,8 @@ import (
 
 // FieldBuilder enables fluent addition of fields before logging.
 // It acts as a builder pattern to attach key-value pairs (fields) to log entries,
-// allowing structured logging with metadata. The builder supports chaining to add fields
-// and log messages at various levels (Info, Debug, etc.) in a single expression.
+// supporting structured logging with metadata. The builder allows chaining to add fields
+// and log messages at various levels (Info, Debug, Warn, Error, etc.) in a single expression.
 type FieldBuilder struct {
 	logger *Logger                // Associated logger instance for logging operations
 	fields map[string]interface{} // Fields to include in the log entry as key-value pairs
@@ -38,10 +38,30 @@ func (fb *FieldBuilder) Logger() *Logger {
 }
 
 // Info logs a message at Info level with the builder’s fields.
+// It concatenates the arguments with spaces and delegates to the logger’s log method,
+// returning early if fields are nil. This method is used for informational messages.
+// Example:
+//
+//	logger := New("app").Enable()
+//	logger.Fields("user", "alice").Info("Action", "started") // Output: [app] INFO: Action started [user=alice]
+func (fb *FieldBuilder) Info(args ...any) {
+	// Skip logging if fields are nil
+	if fb.fields == nil {
+		return
+	}
+	// Log at Info level with the builder’s fields, no stack trace
+	fb.logger.log(lx.LevelInfo, lx.ClassText, concatSpaced(args...), fb.fields, false)
+}
+
+// Infof logs a message at Info level with the builder’s fields.
 // It formats the message using the provided format string and arguments, then delegates
 // to the logger’s internal log method. If fields are nil, it returns early to avoid logging.
 // This method is part of the fluent API, typically called after adding fields.
-func (fb *FieldBuilder) Info(format string, args ...any) {
+// Example:
+//
+//	logger := New("app").Enable()
+//	logger.Fields("user", "alice").Infof("Action %s", "started") // Output: [app] INFO: Action started [user=alice]
+func (fb *FieldBuilder) Infof(format string, args ...any) {
 	// Skip logging if fields are nil to prevent invalid log entries
 	if fb.fields == nil {
 		return
@@ -53,10 +73,30 @@ func (fb *FieldBuilder) Info(format string, args ...any) {
 }
 
 // Debug logs a message at Debug level with the builder’s fields.
+// It concatenates the arguments with spaces and delegates to the logger’s log method,
+// returning early if fields are nil. This method is used for debugging information.
+// Example:
+//
+//	logger := New("app").Enable()
+//	logger.Fields("user", "alice").Debug("Debugging", "mode") // Output: [app] DEBUG: Debugging mode [user=alice]
+func (fb *FieldBuilder) Debug(args ...any) {
+	// Skip logging if fields are nil
+	if fb.fields == nil {
+		return
+	}
+	// Log at Debug level with the builder’s fields, no stack trace
+	fb.logger.log(lx.LevelDebug, lx.ClassText, concatSpaced(args...), fb.fields, false)
+}
+
+// Debugf logs a message at Debug level with the builder’s fields.
 // It formats the message and delegates to the logger’s log method, returning early if
 // fields are nil. This method is used for debugging information that may be disabled in
 // production environments.
-func (fb *FieldBuilder) Debug(format string, args ...any) {
+// Example:
+//
+//	logger := New("app").Enable()
+//	logger.Fields("user", "alice").Debugf("Debug %s", "mode") // Output: [app] DEBUG: Debug mode [user=alice]
+func (fb *FieldBuilder) Debugf(format string, args ...any) {
 	// Skip logging if fields are nil
 	if fb.fields == nil {
 		return
@@ -68,9 +108,29 @@ func (fb *FieldBuilder) Debug(format string, args ...any) {
 }
 
 // Warn logs a message at Warn level with the builder’s fields.
+// It concatenates the arguments with spaces and delegates to the logger’s log method,
+// returning early if fields are nil. This method is used for warning conditions.
+// Example:
+//
+//	logger := New("app").Enable()
+//	logger.Fields("user", "alice").Warn("Warning", "issued") // Output: [app] WARN: Warning issued [user=alice]
+func (fb *FieldBuilder) Warn(args ...any) {
+	// Skip logging if fields are nil
+	if fb.fields == nil {
+		return
+	}
+	// Log at Warn level with the builder’s fields, no stack trace
+	fb.logger.log(lx.LevelWarn, lx.ClassText, concatSpaced(args...), fb.fields, false)
+}
+
+// Warnf logs a message at Warn level with the builder’s fields.
 // It formats the message and delegates to the logger’s log method, returning early if
 // fields are nil. This method is used for warning conditions that do not halt execution.
-func (fb *FieldBuilder) Warn(format string, args ...any) {
+// Example:
+//
+//	logger := New("app").Enable()
+//	logger.Fields("user", "alice").Warnf("Warning %s", "issued") // Output: [app] WARN: Warning issued [user=alice]
+func (fb *FieldBuilder) Warnf(format string, args ...any) {
 	// Skip logging if fields are nil
 	if fb.fields == nil {
 		return
@@ -82,9 +142,29 @@ func (fb *FieldBuilder) Warn(format string, args ...any) {
 }
 
 // Error logs a message at Error level with the builder’s fields.
+// It concatenates the arguments with spaces and delegates to the logger’s log method,
+// returning early if fields are nil. This method is used for error conditions.
+// Example:
+//
+//	logger := New("app").Enable()
+//	logger.Fields("user", "alice").Error("Error", "occurred") // Output: [app] ERROR: Error occurred [user=alice]
+func (fb *FieldBuilder) Error(args ...any) {
+	// Skip logging if fields are nil
+	if fb.fields == nil {
+		return
+	}
+	// Log at Error level with the builder’s fields, no stack trace
+	fb.logger.log(lx.LevelError, lx.ClassText, concatSpaced(args...), fb.fields, false)
+}
+
+// Errorf logs a message at Error level with the builder’s fields.
 // It formats the message and delegates to the logger’s log method, returning early if
 // fields are nil. This method is used for error conditions that may require attention.
-func (fb *FieldBuilder) Error(format string, args ...any) {
+// Example:
+//
+//	logger := New("app").Enable()
+//	logger.Fields("user", "alice").Errorf("Error %s", "occurred") // Output: [app] ERROR: Error occurred [user=alice]
+func (fb *FieldBuilder) Errorf(format string, args ...any) {
 	// Skip logging if fields are nil
 	if fb.fields == nil {
 		return
@@ -96,9 +176,29 @@ func (fb *FieldBuilder) Error(format string, args ...any) {
 }
 
 // Stack logs a message at Error level with a stack trace and the builder’s fields.
-// It formats the message and delegates to the logger’s log method, including a stack trace.
-// Returns early if fields are nil. This method is useful for debugging critical errors.
-func (fb *FieldBuilder) Stack(format string, args ...any) {
+// It concatenates the arguments with spaces and delegates to the logger’s log method,
+// returning early if fields are nil. This method is useful for debugging critical errors.
+// Example:
+//
+//	logger := New("app").Enable()
+//	logger.Fields("user", "alice").Stack("Critical", "error") // Output: [app] ERROR: Critical error [user=alice stack=...]
+func (fb *FieldBuilder) Stack(args ...any) {
+	// Skip logging if fields are nil
+	if fb.fields == nil {
+		return
+	}
+	// Log at Error level with the builder’s fields and a stack trace
+	fb.logger.log(lx.LevelError, lx.ClassText, concatSpaced(args...), fb.fields, true)
+}
+
+// Stackf logs a message at Error level with a stack trace and the builder’s fields.
+// It formats the message and delegates to the logger’s log method, returning early if
+// fields are nil. This method is useful for debugging critical errors.
+// Example:
+//
+//	logger := New("app").Enable()
+//	logger.Fields("user", "alice").Stackf("Critical %s", "error") // Output: [app] ERROR: Critical error [user=alice stack=...]
+func (fb *FieldBuilder) Stackf(format string, args ...any) {
 	// Skip logging if fields are nil
 	if fb.fields == nil {
 		return
@@ -113,6 +213,10 @@ func (fb *FieldBuilder) Stack(format string, args ...any) {
 // It constructs the message from variadic arguments, logs it with a stack trace, and terminates
 // the program with exit code 1. Returns early if fields are nil. This method is used for
 // unrecoverable errors.
+// Example:
+//
+//	logger := New("app").Enable()
+//	logger.Fields("user", "alice").Fatal("Fatal", "error") // Output: [app] ERROR: Fatal error [user=alice stack=...], then exits
 func (fb *FieldBuilder) Fatal(args ...any) {
 	// Skip logging if fields are nil
 	if fb.fields == nil {
@@ -132,10 +236,30 @@ func (fb *FieldBuilder) Fatal(args ...any) {
 	os.Exit(1)
 }
 
+// Fatalf logs a formatted message at Error level with a stack trace and the builder’s fields,
+// then exits. It delegates to Fatal and returns early if fields are nil. This method is used
+// for unrecoverable errors.
+// Example:
+//
+//	logger := New("app").Enable()
+//	logger.Fields("user", "alice").Fatalf("Fatal %s", "error") // Output: [app] ERROR: Fatal error [user=alice stack=...], then exits
+func (fb *FieldBuilder) Fatalf(format string, args ...any) {
+	// Skip logging if fields are nil
+	if fb.fields == nil {
+		return
+	}
+	// Format the message and pass to Fatal
+	fb.Fatal(fmt.Sprintf(format, args...))
+}
+
 // Panic logs a message at Error level with a stack trace and the builder’s fields, then panics.
 // It constructs the message from variadic arguments, logs it with a stack trace, and triggers
 // a panic with the message. Returns early if fields are nil. This method is used for critical
 // errors that require immediate program termination with a panic.
+// Example:
+//
+//	logger := New("app").Enable()
+//	logger.Fields("user", "alice").Panic("Panic", "error") // Output: [app] ERROR: Panic error [user=alice stack=...], then panics
 func (fb *FieldBuilder) Panic(args ...any) {
 	// Skip logging if fields are nil
 	if fb.fields == nil {
@@ -154,6 +278,22 @@ func (fb *FieldBuilder) Panic(args ...any) {
 	fb.logger.log(lx.LevelError, lx.ClassText, msg, fb.fields, true)
 	// Trigger a panic with the formatted message
 	panic(msg)
+}
+
+// Panicf logs a formatted message at Error level with a stack trace and the builder’s fields,
+// then panics. It delegates to Panic and returns early if fields are nil. This method is used
+// for critical errors that require immediate program termination with a panic.
+// Example:
+//
+//	logger := New("app").Enable()
+//	logger.Fields("user", "alice").Panicf("Panic %s", "error") // Output: [app] ERROR: Panic error [user=alice stack=...], then panics
+func (fb *FieldBuilder) Panicf(format string, args ...any) {
+	// Skip logging if fields are nil
+	if fb.fields == nil {
+		return
+	}
+	// Format the message and pass to Panic
+	fb.Panic(fmt.Sprintf(format, args...))
 }
 
 // Err adds one or more errors to the FieldBuilder as a field and logs them.

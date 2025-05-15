@@ -29,7 +29,7 @@ func (l *Logger) If(condition bool) *Conditional {
 // Example:
 //
 //	logger := New("app").Enable()
-//	logger.IfOne(true, true).Info("Logged")  // Output: [app] INFO: Logged
+//	logger.IfOne(true, true).Info("Logged")   // Output: [app] INFO: Logged
 //	logger.IfOne(true, false).Info("Ignored") // No output
 func (cl *Conditional) IfOne(conditions ...bool) *Conditional {
 	result := true
@@ -50,7 +50,7 @@ func (cl *Conditional) IfOne(conditions ...bool) *Conditional {
 // Example:
 //
 //	logger := New("app").Enable()
-//	logger.IfAny(false, true).Info("Logged")  // Output: [app] INFO: Logged
+//	logger.IfAny(false, true).Info("Logged")   // Output: [app] INFO: Logged
 //	logger.IfAny(false, false).Info("Ignored") // No output
 func (cl *Conditional) IfAny(conditions ...bool) *Conditional {
 	result := false
@@ -98,88 +98,243 @@ func (cl *Conditional) Field(fields map[string]interface{}) *FieldBuilder {
 	return cl.logger.Field(fields)
 }
 
-// Info logs a message at Info level if the condition is true.
-// It formats the message using the provided format string and arguments, delegating to the
-// logger’s Info method if the condition is true. Skips processing if false, optimizing performance.
-// Thread-safe via the logger’s log method.
+// Info logs a message at Info level with variadic arguments if the condition is true.
+// It concatenates the arguments with spaces and delegates to the logger’s Info method if the
+// condition is true. Skips processing if false, optimizing performance. Thread-safe via the
+// logger’s log method.
 // Example:
 //
 //	logger := New("app").Enable()
-//	logger.If(true).Info("Logged")   // Output: [app] INFO: Logged
-//	logger.If(false).Info("Ignored") // No output
-func (cl *Conditional) Info(format string, args ...any) {
+//	logger.If(true).Info("Action", "started")   // Output: [app] INFO: Action started
+//	logger.If(false).Info("Action", "ignored") // No output
+func (cl *Conditional) Info(args ...any) {
 	// Skip logging if condition is false
 	if !cl.condition {
 		return
 	}
 	// Delegate to logger’s Info method
-	cl.logger.Info(format, args...)
+	cl.logger.Info(args...)
 }
 
-// Debug logs a message at Debug level if the condition is true.
-// It formats the message and delegates to the logger’s Debug method if the condition is true.
-// Skips processing if false. Thread-safe via the logger’s log method.
+// Infof logs a message at Info level with a format string if the condition is true.
+// It formats the message using the provided format string and arguments, delegating to the
+// logger’s Infof method if the condition is true. Skips processing if false, optimizing performance.
+// Thread-safe via the logger’s log method.
+// Example:
+//
+//	logger := New("app").Enable()
+//	logger.If(true).Infof("Action %s", "started")   // Output: [app] INFO: Action started
+//	logger.If(false).Infof("Action %s", "ignored") // No output
+func (cl *Conditional) Infof(format string, args ...any) {
+	// Skip logging if condition is false
+	if !cl.condition {
+		return
+	}
+	// Delegate to logger’s Infof method
+	cl.logger.Infof(format, args...)
+}
+
+// Debug logs a message at Debug level with variadic arguments if the condition is true.
+// It concatenates the arguments with spaces and delegates to the logger’s Debug method if the
+// condition is true. Skips processing if false. Thread-safe via the logger’s log method.
 // Example:
 //
 //	logger := New("app").Enable().Level(lx.LevelDebug)
-//	logger.If(true).Debug("Logged")   // Output: [app] DEBUG: Logged
-//	logger.If(false).Debug("Ignored") // No output
-func (cl *Conditional) Debug(format string, args ...any) {
+//	logger.If(true).Debug("Debugging", "mode")   // Output: [app] DEBUG: Debugging mode
+//	logger.If(false).Debug("Debugging", "ignored") // No output
+func (cl *Conditional) Debug(args ...any) {
 	// Skip logging if condition is false
 	if !cl.condition {
 		return
 	}
 	// Delegate to logger’s Debug method
-	cl.logger.Debug(format, args...)
+	cl.logger.Debug(args...)
 }
 
-// Warn logs a message at Warn level if the condition is true.
-// It formats the message and delegates to the logger’s Warn method if the condition is true.
+// Debugf logs a message at Debug level with a format string if the condition is true.
+// It formats the message and delegates to the logger’s Debugf method if the condition is true.
 // Skips processing if false. Thread-safe via the logger’s log method.
 // Example:
 //
+//	logger := New("app").Enable().Level(lx.LevelDebug)
+//	logger.If(true).Debugf("Debug %s", "mode")   // Output: [app] DEBUG: Debug mode
+//	logger.If(false).Debugf("Debug %s", "ignored") // No output
+func (cl *Conditional) Debugf(format string, args ...any) {
+	// Skip logging if condition is false
+	if !cl.condition {
+		return
+	}
+	// Delegate to logger’s Debugf method
+	cl.logger.Debugf(format, args...)
+}
+
+// Warn logs a message at Warn level with variadic arguments if the condition is true.
+// It concatenates the arguments with spaces and delegates to the logger’s Warn method if the
+// condition is true. Skips processing if false. Thread-safe via the logger’s log method.
+// Example:
+//
 //	logger := New("app").Enable()
-//	logger.If(true).Warn("Logged")   // Output: [app] WARN: Logged
-//	logger.If(false).Warn("Ignored") // No output
-func (cl *Conditional) Warn(format string, args ...any) {
+//	logger.If(true).Warn("Warning", "issued")   // Output: [app] WARN: Warning issued
+//	logger.If(false).Warn("Warning", "ignored") // No output
+func (cl *Conditional) Warn(args ...any) {
 	// Skip logging if condition is false
 	if !cl.condition {
 		return
 	}
 	// Delegate to logger’s Warn method
-	cl.logger.Warn(format, args...)
+	cl.logger.Warn(args...)
 }
 
-// Error logs a message at Error level if the condition is true.
-// It formats the message and delegates to the logger’s Error method if the condition is true.
+// Warnf logs a message at Warn level with a format string if the condition is true.
+// It formats the message and delegates to the logger’s Warnf method if the condition is true.
 // Skips processing if false. Thread-safe via the logger’s log method.
 // Example:
 //
 //	logger := New("app").Enable()
-//	logger.If(true).Error("Logged")   // Output: [app] ERROR: Logged
-//	logger.If(false).Error("Ignored") // No output
-func (cl *Conditional) Error(format string, args ...any) {
+//	logger.If(true).Warnf("Warning %s", "issued")   // Output: [app] WARN: Warning issued
+//	logger.If(false).Warnf("Warning %s", "ignored") // No output
+func (cl *Conditional) Warnf(format string, args ...any) {
+	// Skip logging if condition is false
+	if !cl.condition {
+		return
+	}
+	// Delegate to logger’s Warnf method
+	cl.logger.Warnf(format, args...)
+}
+
+// Error logs a message at Error level with variadic arguments if the condition is true.
+// It concatenates the arguments with spaces and delegates to the logger’s Error method if the
+// condition is true. Skips processing if false. Thread-safe via the logger’s log method.
+// Example:
+//
+//	logger := New("app").Enable()
+//	logger.If(true).Error("Error", "occurred")   // Output: [app] ERROR: Error occurred
+//	logger.If(false).Error("Error", "ignored") // No output
+func (cl *Conditional) Error(args ...any) {
 	// Skip logging if condition is false
 	if !cl.condition {
 		return
 	}
 	// Delegate to logger’s Error method
-	cl.logger.Error(format, args...)
+	cl.logger.Error(args...)
 }
 
-// Stack logs a message at Error level with a stack trace if the condition is true.
-// It formats the message and delegates to the logger’s Stack method with a stack trace if
-// the condition is true. Skips processing if false. Thread-safe via the logger’s log method.
+// Errorf logs a message at Error level with a format string if the condition is true.
+// It formats the message and delegates to the logger’s Errorf method if the condition is true.
+// Skips processing if false. Thread-safe via the logger’s log method.
 // Example:
 //
 //	logger := New("app").Enable()
-//	logger.If(true).Stack("Logged")   // Output: [app] ERROR: Logged [stack=...]
-//	logger.If(false).Stack("Ignored") // No output
-func (cl *Conditional) Stack(format string, args ...any) {
+//	logger.If(true).Errorf("Error %s", "occurred")   // Output: [app] ERROR: Error occurred
+//	logger.If(false).Errorf("Error %s", "ignored") // No output
+func (cl *Conditional) Errorf(format string, args ...any) {
+	// Skip logging if condition is false
+	if !cl.condition {
+		return
+	}
+	// Delegate to logger’s Errorf method
+	cl.logger.Errorf(format, args...)
+}
+
+// Stack logs a message at Error level with a stack trace and variadic arguments if the condition is true.
+// It concatenates the arguments with spaces and delegates to the logger’s Stack method if the
+// condition is true. Skips processing if false. Thread-safe via the logger’s log method.
+// Example:
+//
+//	logger := New("app").Enable()
+//	logger.If(true).Stack("Critical", "error")   // Output: [app] ERROR: Critical error [stack=...]
+//	logger.If(false).Stack("Critical", "ignored") // No output
+func (cl *Conditional) Stack(args ...any) {
 	// Skip logging if condition is false
 	if !cl.condition {
 		return
 	}
 	// Delegate to logger’s Stack method
-	cl.logger.Stack(format, args...)
+	cl.logger.Stack(args...)
+}
+
+// Stackf logs a message at Error level with a stack trace and a format string if the condition is true.
+// It formats the message and delegates to the logger’s Stackf method if the condition is true.
+// Skips processing if false. Thread-safe via the logger’s log method.
+// Example:
+//
+//	logger := New("app").Enable()
+//	logger.If(true).Stackf("Critical %s", "error")   // Output: [app] ERROR: Critical error [stack=...]
+//	logger.If(false).Stackf("Critical %s", "ignored") // No output
+func (cl *Conditional) Stackf(format string, args ...any) {
+	// Skip logging if condition is false
+	if !cl.condition {
+		return
+	}
+	// Delegate to logger’s Stackf method
+	cl.logger.Stackf(format, args...)
+}
+
+// Fatal logs a message at Error level with a stack trace and variadic arguments if the condition is true,
+// then exits. It concatenates the arguments with spaces and delegates to the logger’s Fatal method
+// if the condition is true, terminating the program with exit code 1. Skips processing if false.
+// Thread-safe via the logger’s log method.
+// Example:
+//
+//	logger := New("app").Enable()
+//	logger.If(true).Fatal("Fatal", "error")   // Output: [app] ERROR: Fatal error [stack=...], then exits
+//	logger.If(false).Fatal("Fatal", "ignored") // No output, no exit
+func (cl *Conditional) Fatal(args ...any) {
+	// Skip logging if condition is false
+	if !cl.condition {
+		return
+	}
+	// Delegate to logger’s Fatal method
+	cl.logger.Fatal(args...)
+}
+
+// Fatalf logs a formatted message at Error level with a stack trace if the condition is true, then exits.
+// It formats the message and delegates to the logger’s Fatalf method if the condition is true,
+// terminating the program with exit code 1. Skips processing if false. Thread-safe via the logger’s log method.
+// Example:
+//
+//	logger := New("app").Enable()
+//	logger.If(true).Fatalf("Fatal %s", "error")   // Output: [app] ERROR: Fatal error [stack=...], then exits
+//	logger.If(false).Fatalf("Fatal %s", "ignored") // No output, no exit
+func (cl *Conditional) Fatalf(format string, args ...any) {
+	// Skip logging if condition is false
+	if !cl.condition {
+		return
+	}
+	// Delegate to logger’s Fatalf method
+	cl.logger.Fatalf(format, args...)
+}
+
+// Panic logs a message at Error level with a stack trace and variadic arguments if the condition is true,
+// then panics. It concatenates the arguments with spaces and delegates to the logger’s Panic method
+// if the condition is true, triggering a panic. Skips processing if false. Thread-safe via the logger’s log method.
+// Example:
+//
+//	logger := New("app").Enable()
+//	logger.If(true).Panic("Panic", "error")   // Output: [app] ERROR: Panic error [stack=...], then panics
+//	logger.If(false).Panic("Panic", "ignored") // No output, no panic
+func (cl *Conditional) Panic(args ...any) {
+	// Skip logging if condition is false
+	if !cl.condition {
+		return
+	}
+	// Delegate to logger’s Panic method
+	cl.logger.Panic(args...)
+}
+
+// Panicf logs a formatted message at Error level with a stack trace if the condition is true, then panics.
+// It formats the message and delegates to the logger’s Panicf method if the condition is true,
+// triggering a panic. Skips processing if false. Thread-safe via the logger’s log method.
+// Example:
+//
+//	logger := New("app").Enable()
+//	logger.If(true).Panicf("Panic %s", "error")   // Output: [app] ERROR: Panic error [stack=...], then panics
+//	logger.If(false).Panicf("Panic %s", "ignored") // No output, no panic
+func (cl *Conditional) Panicf(format string, args ...any) {
+	// Skip logging if condition is false
+	if !cl.condition {
+		return
+	}
+	// Delegate to logger’s Panicf method
+	cl.logger.Panicf(format, args...)
 }

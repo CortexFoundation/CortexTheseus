@@ -72,8 +72,25 @@ func (m *Middleware) Logger() *Logger {
 //	    return nil
 //	}))
 //	mw.Error("Rejected low-level log")
-func (m *Middleware) Error(format string, args ...any) *Middleware {
-	m.logger.Error(format, args...)
+func (m *Middleware) Error(args ...any) *Middleware {
+	m.logger.Error(args...)
+	return m
+}
+
+// Errorf logs an error message at the Error level if the middleware blocks a log entry.
+// It uses the parent logger to emit the error and returns the middleware for chaining.
+// This is useful for debugging or auditing when middleware rejects a log.
+// Example:
+//
+//	mw := logger.Use(ll.Middle(func(e *lx.Entry) error {
+//	    if e.Level < lx.LevelWarn {
+//	        return fmt.Errorf("level too low")
+//	    }
+//	    return nil
+//	}))
+//	mw.Errorf("Rejected low-level log")
+func (m *Middleware) Errorf(format string, args ...any) *Middleware {
+	m.logger.Errorf(format, args...)
 	return m
 }
 
