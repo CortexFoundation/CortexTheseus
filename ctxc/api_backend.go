@@ -278,15 +278,17 @@ func (b *CortexAPIBackend) GetPoolTransaction(hash common.Hash) *types.Transacti
 	return b.ctxc.txPool.Get(hash)
 }
 
-func (b *CortexAPIBackend) GetTransaction(ctx context.Context, txHash common.Hash) (*types.Transaction, common.Hash, uint64, uint64, error) {
-	lookup, tx, err := b.ctxc.blockchain.GetTransactionLookup(txHash)
-	if err != nil {
-		return nil, common.Hash{}, 0, 0, err
-	}
+func (b *CortexAPIBackend) GetTransaction(txHash common.Hash) (bool, *types.Transaction, common.Hash, uint64, uint64) {
+	lookup, tx := b.ctxc.blockchain.GetTransactionLookup(txHash)
 	if lookup == nil || tx == nil {
-		return nil, common.Hash{}, 0, 0, nil
+		return false, nil, common.Hash{}, 0, 0
 	}
-	return tx, lookup.BlockHash, lookup.BlockIndex, lookup.Index, nil
+	return true, tx, lookup.BlockHash, lookup.BlockIndex, lookup.Index
+}
+
+// TxIndexDone returns true if the transaction indexer has finished indexing.
+func (b *CortexAPIBackend) TxIndexDone() bool {
+	return b.ctxc.blockchain.TxIndexDone()
 }
 
 func (b *CortexAPIBackend) GetPoolNonce(ctx context.Context, addr common.Address) (uint64, error) {
@@ -313,8 +315,13 @@ func (b *CortexAPIBackend) SubscribeNewTxsEvent(ch chan<- core.NewTxsEvent) even
 	return b.ctxc.TxPool().SubscribeNewTxsEvent(ch)
 }
 
-func (b *CortexAPIBackend) SyncProgress() cortex.SyncProgress {
-	return b.ctxc.Downloader().Progress()
+func (b *CortexAPIBackend) SyncProgress(ctx context.Context) cortex.SyncProgress {
+	prog := b.ctxc.Downloader().Progress()
+	if txProg, err := b.ctxc.blockchain.TxIndexProgress(); err == nil {
+		prog.TxIndexFinishedBlocks = txProg.Indexed
+		prog.TxIndexRemainingBlocks = txProg.Remaining
+	}
+	return prog
 }
 
 func (b *CortexAPIBackend) ProtocolVersion() int {

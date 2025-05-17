@@ -272,36 +272,18 @@ func (bc *BlockChain) GetAncestor(hash common.Hash, number, ancestor uint64, max
 // A null will be returned in the transaction is not found and background
 // transaction indexing is already finished. The transaction is not existent
 // from the node's perspective
-func (bc *BlockChain) GetTransactionLookup(hash common.Hash) (*rawdb.LegacyTxLookupEntry, *types.Transaction, error) {
+func (bc *BlockChain) GetTransactionLookup(hash common.Hash) (*rawdb.LegacyTxLookupEntry, *types.Transaction) {
 	bc.txLookupLock.RLock()
 	defer bc.txLookupLock.RUnlock()
 
 	// Short circuit if the txlookup already in the cache, retrieve otherwise
 	if item, exist := bc.txLookupCache.Get(hash); exist {
-		return item.lookup, item.transaction, nil
+		return item.lookup, item.transaction
 	}
 
 	tx, blockHash, blockNumber, txIndex := rawdb.ReadTransaction(bc.db, hash)
 	if tx == nil {
-		progress, err := bc.TxIndexProgress()
-		if err != nil {
-			// No error is returned if the transaction indexing progress is unreachable
-			// due to unexpected internal errors. In such cases, it is impossible to
-			// determine whether the transaction does not exist or has simply not been
-			// indexed yet without a progress marker.
-			//
-			// In such scenarios, the transaction is treated as unreachable, though
-			// this is clearly an unintended and unexpected situation.
-			return nil, nil, nil
-		}
-		// The transaction indexing is not finished yet, returning an
-		// error to explicitly indicate it.
-		if !progress.Done() {
-			return nil, nil, errors.New("transaction indexing still in progress")
-		}
-		// The transaction is already indexed, the transaction is either
-		// not existent or not in the range of index, returning null.
-		return nil, nil, nil
+		return nil, nil
 	}
 
 	lookup := &rawdb.LegacyTxLookupEntry{
@@ -313,7 +295,23 @@ func (bc *BlockChain) GetTransactionLookup(hash common.Hash) (*rawdb.LegacyTxLoo
 		lookup:      lookup,
 		transaction: tx,
 	})
-	return lookup, tx, nil
+	return lookup, tx
+}
+
+// TxIndexDone returns true if the transaction indexer has finished indexing.
+func (bc *BlockChain) TxIndexDone() bool {
+	progress, err := bc.TxIndexProgress()
+	if err != nil {
+		// No error is returned if the transaction indexing progress is unreachable
+		// due to unexpected internal errors. In such cases, it is impossible to
+		// determine whether the transaction does not exist or has simply not been
+		// indexed yet without a progress marker.
+		//
+		// In such scenarios, the transaction is treated as unreachable, though
+		// this is clearly an unintended and unexpected situation.
+		return true
+	}
+	return progress.Done()
 }
 
 // GetTd retrieves a block's total difficulty in the canonical chain from the
@@ -416,7 +414,7 @@ func (bc *BlockChain) TxIndexProgress() (TxIndexProgress, error) {
 	if bc.txIndexer == nil {
 		return TxIndexProgress{}, errors.New("tx indexer is not enabled")
 	}
-	return bc.txIndexer.txIndexProgress()
+	return bc.txIndexer.txIndexProgress(), nil
 }
 
 // GetVMConfig returns the block chain VM config.
