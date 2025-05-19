@@ -21,6 +21,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 )
@@ -53,8 +54,7 @@ func NewSecure(stateRoot common.Hash, owner common.Hash, root common.Hash, db *D
 type StateTrie struct {
 	trie             Trie
 	preimages        *preimageStore
-	hashKeyBuf       [common.HashLength]byte
-	secKeyCache      map[string][]byte
+	secKeyCache      map[common.Hash][]byte
 	secKeyCacheOwner *StateTrie // Pointer to self, replace the key cache on mismatch
 }
 
@@ -107,7 +107,7 @@ func (t *StateTrie) GetStorage(_ common.Address, key []byte) ([]byte, error) {
 // If the specified account is not in the trie, nil will be returned.
 // If a trie node is not found in the database, a MissingNodeError is returned.
 func (t *StateTrie) GetAccount(address common.Address) (*types.StateAccount, error) {
-	res, err := t.TryGet(t.hashKey(address.Bytes()))
+	res, err := t.TryGet(crypto.Keccak256(address.Bytes()))
 	if res == nil || err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func (t *StateTrie) GetAccount(address common.Address) (*types.StateAccount, err
 // The value bytes must not be modified by the caller.
 // If a node was not found in the database, a MissingNodeError is returned.
 func (t *StateTrie) TryGet(key []byte) ([]byte, error) {
-	return t.trie.TryGet(t.hashKey(key))
+	return t.trie.TryGet(crypto.Keccak256(key))
 }
 
 // TryGetNode attempts to retrieve a trie node by compact-encoded path. It is not
@@ -138,20 +138,20 @@ func (t *StateTrie) TryGetNode(path []byte) ([]byte, int, error) {
 //
 // If a node is not found in the database, a MissingNodeError is returned.
 func (t *StateTrie) UpdateStorage(_ common.Address, key, value []byte) error {
-	hk := t.hashKey(key)
+	hk := crypto.Keccak256(key)
 	v, _ := rlp.EncodeToBytes(value)
 	err := t.trie.TryUpdate(hk, v)
 	if err != nil {
 		return err
 	}
-	t.getSecKeyCache()[string(hk)] = common.CopyBytes(key)
+	t.getSecKeyCache()[common.Hash(hk)] = common.CopyBytes(key)
 	return nil
 }
 
 // TryUpdateAccount account will abstract the write of an account to the
 // secure trie.
 func (t *StateTrie) TryUpdateAccount(key []byte, acc *types.StateAccount) error {
-	hk := t.hashKey(key)
+	hk := crypto.Keccak256(key)
 	data, err := rlp.EncodeToBytes(acc)
 	if err != nil {
 		return err
@@ -159,7 +159,7 @@ func (t *StateTrie) TryUpdateAccount(key []byte, acc *types.StateAccount) error 
 	if err := t.trie.TryUpdate(hk, data); err != nil {
 		return err
 	}
-	t.getSecKeyCache()[string(hk)] = common.CopyBytes(key)
+	t.getSecKeyCache()[common.Hash(hk)] = common.CopyBytes(key)
 	return nil
 }
 
@@ -188,12 +188,12 @@ func (t *StateTrie) Update(key, value []byte) {
 //
 // If a node was not found in the database, a MissingNodeError is returned.
 func (t *StateTrie) TryUpdate(key, value []byte) error {
-	hk := t.hashKey(key)
+	hk := crypto.Keccak256(key)
 	err := t.trie.TryUpdate(hk, value)
 	if err != nil {
 		return err
 	}
-	t.getSecKeyCache()[string(hk)] = common.CopyBytes(key)
+	t.getSecKeyCache()[common.Hash(hk)] = common.CopyBytes(key)
 	return nil
 }
 
@@ -207,22 +207,22 @@ func (t *StateTrie) Delete(key []byte) {
 // TryDelete removes any existing value for key from the trie.
 // If a node was not found in the database, a MissingNodeError is returned.
 func (t *StateTrie) TryDelete(key []byte) error {
-	hk := t.hashKey(key)
-	delete(t.getSecKeyCache(), string(hk))
+	hk := crypto.Keccak256(key)
+	delete(t.getSecKeyCache(), common.Hash(hk))
 	return t.trie.TryDelete(hk)
 }
 
 // TryDeleteACcount abstracts an account deletion from the trie.
 func (t *StateTrie) TryDeleteAccount(key []byte) error {
-	hk := t.hashKey(key)
-	delete(t.getSecKeyCache(), string(hk))
+	hk := crypto.Keccak256(key)
+	delete(t.getSecKeyCache(), common.Hash(hk))
 	return t.trie.TryDelete(hk)
 }
 
 // GetKey returns the sha3 preimage of a hashed key that was
 // previously used to store a value.
 func (t *StateTrie) GetKey(shaKey []byte) []byte {
-	if key, ok := t.getSecKeyCache()[string(shaKey)]; ok {
+	if key, ok := t.getSecKeyCache()[common.Hash(shaKey)]; ok {
 		return key
 	}
 	if t.preimages == nil {
@@ -240,13 +240,9 @@ func (t *StateTrie) Commit(onleaf LeafCallback) (root common.Hash, err error) {
 	// Write all the pre-images to the actual disk database
 	if len(t.getSecKeyCache()) > 0 {
 		if t.preimages != nil {
-			preimages := make(map[common.Hash][]byte, len(t.secKeyCache))
-			for hk, key := range t.secKeyCache {
-				preimages[common.BytesToHash([]byte(hk))] = key
-			}
-			t.preimages.insertPreimage(preimages)
+			t.preimages.insertPreimage(t.secKeyCache)
 		}
-		t.secKeyCache = make(map[string][]byte)
+		t.secKeyCache = make(map[common.Hash][]byte)
 	}
 	// Commit the trie to its intermediate node database
 	return t.trie.Commit(onleaf)
@@ -279,25 +275,13 @@ func (t *StateTrie) MustNodeIterator(start []byte) NodeIterator {
 	return t.trie.MustNodeIterator(start)
 }
 
-// hashKey returns the hash of key as an ephemeral buffer.
-// The caller must not hold onto the return value because it will become
-// invalid on the next call to hashKey or secKey.
-func (t *StateTrie) hashKey(key []byte) []byte {
-	h := newHasher(false)
-	h.sha.Reset()
-	h.sha.Write(key)
-	h.sha.Read(t.hashKeyBuf[:])
-	returnHasherToPool(h)
-	return t.hashKeyBuf[:]
-}
-
 // getSecKeyCache returns the current secure key cache, creating a new one if
 // ownership changed (i.e. the current secure trie is a copy of another owning
 // the actual cache).
-func (t *StateTrie) getSecKeyCache() map[string][]byte {
+func (t *StateTrie) getSecKeyCache() map[common.Hash][]byte {
 	if t != t.secKeyCacheOwner {
 		t.secKeyCacheOwner = t
-		t.secKeyCache = make(map[string][]byte)
+		t.secKeyCache = make(map[common.Hash][]byte)
 	}
 	return t.secKeyCache
 }
