@@ -150,8 +150,8 @@ func (t *StateTrie) UpdateStorage(_ common.Address, key, value []byte) error {
 
 // TryUpdateAccount account will abstract the write of an account to the
 // secure trie.
-func (t *StateTrie) TryUpdateAccount(key []byte, acc *types.StateAccount) error {
-	hk := crypto.Keccak256(key)
+func (t *StateTrie) TryUpdateAccount(key common.Address, acc *types.StateAccount) error {
+	hk := crypto.Keccak256(key.Bytes())
 	data, err := rlp.EncodeToBytes(acc)
 	if err != nil {
 		return err
@@ -159,7 +159,7 @@ func (t *StateTrie) TryUpdateAccount(key []byte, acc *types.StateAccount) error 
 	if err := t.trie.TryUpdate(hk, data); err != nil {
 		return err
 	}
-	t.getSecKeyCache()[common.Hash(hk)] = common.CopyBytes(key)
+	t.getSecKeyCache()[common.Hash(hk)] = common.CopyBytes(key.Bytes())
 	return nil
 }
 

@@ -27,7 +27,7 @@ type HTMLConfig struct {
 // HTML renders tables in HTML format with customizable classes and content handling.
 type HTML struct {
 	config       HTMLConfig  // Renderer configuration
-	writer       io.Writer   // Output writer
+	w            io.Writer   // Output w
 	trace        []string    // Debug trace messages
 	debug        bool        // Enables debug logging
 	tableStarted bool        // Tracks if <table> tag is open
@@ -37,12 +37,10 @@ type HTML struct {
 	logger       *ll.Logger
 }
 
-// NewHTML initializes an HTML renderer with the given writer, debug setting, and optional configuration.
-// It panics if the writer is nil and applies defaults for unset config fields.
-func NewHTML(w io.Writer, debug bool, configs ...HTMLConfig) *HTML {
-	if w == nil {
-		panic("NewHTML requires a non-nil writer")
-	}
+// NewHTML initializes an HTML renderer with the given w, debug setting, and optional configuration.
+// It panics if the w is nil and applies defaults for unset config fields.
+// Update: see https://github.com/olekukonko/tablewriter/issues/258
+func NewHTML(configs ...HTMLConfig) *HTML {
 	cfg := HTMLConfig{
 		EscapeContent: true,
 		AddLinesTag:   false,
@@ -61,8 +59,6 @@ func NewHTML(w io.Writer, debug bool, configs ...HTMLConfig) *HTML {
 	}
 	return &HTML{
 		config:       cfg,
-		writer:       w,
-		debug:        debug,
 		vMergeTrack:  make(map[int]int),
 		tableStarted: false,
 		tbodyStarted: false,
@@ -85,12 +81,12 @@ func (h *HTML) Config() tw.Rendition {
 }
 
 // debugLog appends a formatted message to the debug trace if debugging is enabled.
-func (h *HTML) debugLog(format string, a ...interface{}) {
-	if h.debug {
-		msg := fmt.Sprintf(format, a...)
-		h.trace = append(h.trace, fmt.Sprintf("[HTML] %s", msg))
-	}
-}
+//func (h *HTML) debugLog(format string, a ...interface{}) {
+//	if h.debug {
+//		msg := fmt.Sprintf(format, a...)
+//		h.trace = append(h.trace, fmt.Sprintf("[HTML] %s", msg))
+//	}
+//}
 
 // Debug returns the accumulated debug trace messages.
 func (h *HTML) Debug() []string {
@@ -99,18 +95,16 @@ func (h *HTML) Debug() []string {
 
 // Start begins the HTML table rendering by opening the <table> tag.
 func (h *HTML) Start(w io.Writer) error {
-	if h.writer == nil {
-		return errors.New("HTML renderer writer not initialized")
-	}
+	h.w = w
 	h.Reset()
-	h.debugLog("HTML.Start() called.")
+	h.logger.Debug("HTML.Start() called.")
 
-	classAttr := ""
-	if h.config.TableClass != "" {
+	classAttr := tw.Empty
+	if h.config.TableClass != tw.Empty {
 		classAttr = fmt.Sprintf(` class="%s"`, h.config.TableClass)
 	}
-	h.debugLog("Writing opening <table%s> tag", classAttr)
-	_, err := fmt.Fprintf(h.writer, "<table%s>\n", classAttr)
+	h.logger.Debugf("Writing opening <table%s> tag", classAttr)
+	_, err := fmt.Fprintf(h.w, "<table%s>\n", classAttr)
 	if err != nil {
 		return err
 	}
@@ -121,34 +115,34 @@ func (h *HTML) Start(w io.Writer) error {
 // closePreviousSection closes any open <tbody> or <tfoot> sections.
 func (h *HTML) closePreviousSection() {
 	if h.tbodyStarted {
-		h.debugLog("Closing <tbody> tag")
-		fmt.Fprintln(h.writer, "</tbody>")
+		h.logger.Debug("Closing <tbody> tag")
+		fmt.Fprintln(h.w, "</tbody>")
 		h.tbodyStarted = false
 	}
 	if h.tfootStarted {
-		h.debugLog("Closing <tfoot> tag")
-		fmt.Fprintln(h.writer, "</tfoot>")
+		h.logger.Debug("Closing <tfoot> tag")
+		fmt.Fprintln(h.w, "</tfoot>")
 		h.tfootStarted = false
 	}
 }
 
 // Header renders the <thead> section with header rows, supporting horizontal merges.
-func (h *HTML) Header(w io.Writer, headers [][]string, ctx tw.Formatting) {
+func (h *HTML) Header(headers [][]string, ctx tw.Formatting) {
 	if !h.tableStarted {
-		h.debugLog("WARN: Header called before Start")
+		h.logger.Debug("WARN: Header called before Start")
 		return
 	}
 	if len(headers) == 0 || len(headers[0]) == 0 {
-		h.debugLog("Header: No headers")
+		h.logger.Debug("Header: No headers")
 		return
 	}
 
 	h.closePreviousSection()
-	classAttr := ""
-	if h.config.HeaderClass != "" {
+	classAttr := tw.Empty
+	if h.config.HeaderClass != tw.Empty {
 		classAttr = fmt.Sprintf(` class="%s"`, h.config.HeaderClass)
 	}
-	fmt.Fprintf(h.writer, "<thead%s>\n", classAttr)
+	fmt.Fprintf(h.w, "<thead%s>\n", classAttr)
 
 	headerRow := headers[0]
 	numCols := 0
@@ -165,17 +159,17 @@ func (h *HTML) Header(w io.Writer, headers [][]string, ctx tw.Formatting) {
 	}
 
 	indent := "  "
-	rowClassAttr := ""
-	if h.config.HeaderRowClass != "" {
+	rowClassAttr := tw.Empty
+	if h.config.HeaderRowClass != tw.Empty {
 		rowClassAttr = fmt.Sprintf(` class="%s"`, h.config.HeaderRowClass)
 	}
-	fmt.Fprintf(h.writer, "%s<tr%s>", indent, rowClassAttr)
+	fmt.Fprintf(h.w, "%s<tr%s>", indent, rowClassAttr)
 
 	renderedCols := 0
 	for colIdx := 0; renderedCols < numCols && colIdx < numCols; {
 		// Skip columns consumed by vertical merges
 		if remainingSpan, merging := h.vMergeTrack[colIdx]; merging && remainingSpan > 1 {
-			h.debugLog("Header: Skipping col %d due to vmerge", colIdx)
+			h.logger.Debugf("Header: Skipping col %d due to vmerge", colIdx)
 			h.vMergeTrack[colIdx]--
 			if h.vMergeTrack[colIdx] <= 1 {
 				delete(h.vMergeTrack, colIdx)
@@ -189,13 +183,13 @@ func (h *HTML) Header(w io.Writer, headers [][]string, ctx tw.Formatting) {
 		if !ok {
 			cellCtx = tw.CellContext{Align: tw.AlignCenter}
 		}
-		originalContent := ""
+		originalContent := tw.Empty
 		if colIdx < len(headerRow) {
 			originalContent = headerRow[colIdx]
 		}
 
 		tag, attributes, processedContent := h.renderRowCell(originalContent, cellCtx, true, colIdx)
-		fmt.Fprintf(h.writer, "<%s%s>%s</%s>", tag, attributes, processedContent, tag)
+		fmt.Fprintf(h.w, "<%s%s>%s</%s>", tag, attributes, processedContent, tag)
 		renderedCols++
 
 		// Handle horizontal merges
@@ -206,29 +200,29 @@ func (h *HTML) Header(w io.Writer, headers [][]string, ctx tw.Formatting) {
 		}
 		colIdx += hSpan
 	}
-	fmt.Fprintf(h.writer, "</tr>\n")
-	fmt.Fprintln(h.writer, "</thead>")
+	fmt.Fprintf(h.w, "</tr>\n")
+	fmt.Fprintln(h.w, "</thead>")
 }
 
 // Row renders a <tr> element within <tbody>, supporting horizontal and vertical merges.
-func (h *HTML) Row(w io.Writer, row []string, ctx tw.Formatting) {
+func (h *HTML) Row(row []string, ctx tw.Formatting) {
 	if !h.tableStarted {
-		h.debugLog("WARN: Row called before Start")
+		h.logger.Debug("WARN: Row called before Start")
 		return
 	}
 
 	if !h.tbodyStarted {
 		h.closePreviousSection()
-		classAttr := ""
-		if h.config.BodyClass != "" {
+		classAttr := tw.Empty
+		if h.config.BodyClass != tw.Empty {
 			classAttr = fmt.Sprintf(` class="%s"`, h.config.BodyClass)
 		}
-		h.debugLog("Writing opening <tbody%s> tag", classAttr)
-		fmt.Fprintf(h.writer, "<tbody%s>\n", classAttr)
+		h.logger.Debugf("Writing opening <tbody%s> tag", classAttr)
+		fmt.Fprintf(h.w, "<tbody%s>\n", classAttr)
 		h.tbodyStarted = true
 	}
 
-	h.debugLog("Rendering row data: %v", row)
+	h.logger.Debugf("Rendering row data: %v", row)
 	numCols := 0
 	if len(ctx.Row.Current) > 0 {
 		maxKey := -1
@@ -243,17 +237,17 @@ func (h *HTML) Row(w io.Writer, row []string, ctx tw.Formatting) {
 	}
 
 	indent := "  "
-	rowClassAttr := ""
-	if h.config.RowClass != "" {
+	rowClassAttr := tw.Empty
+	if h.config.RowClass != tw.Empty {
 		rowClassAttr = fmt.Sprintf(` class="%s"`, h.config.RowClass)
 	}
-	fmt.Fprintf(h.writer, "%s<tr%s>", indent, rowClassAttr)
+	fmt.Fprintf(h.w, "%s<tr%s>", indent, rowClassAttr)
 
 	renderedCols := 0
 	for colIdx := 0; renderedCols < numCols && colIdx < numCols; {
 		// Skip columns consumed by vertical merges
 		if remainingSpan, merging := h.vMergeTrack[colIdx]; merging && remainingSpan > 1 {
-			h.debugLog("Row: Skipping render for col %d due to vertical merge (remaining %d)", colIdx, remainingSpan-1)
+			h.logger.Debugf("Row: Skipping render for col %d due to vertical merge (remaining %d)", colIdx, remainingSpan-1)
 			h.vMergeTrack[colIdx]--
 			if h.vMergeTrack[colIdx] <= 1 {
 				delete(h.vMergeTrack, colIdx)
@@ -267,13 +261,13 @@ func (h *HTML) Row(w io.Writer, row []string, ctx tw.Formatting) {
 		if !ok {
 			cellCtx = tw.CellContext{Align: tw.AlignLeft}
 		}
-		originalContent := ""
+		originalContent := tw.Empty
 		if colIdx < len(row) {
 			originalContent = row[colIdx]
 		}
 
 		tag, attributes, processedContent := h.renderRowCell(originalContent, cellCtx, false, colIdx)
-		fmt.Fprintf(h.writer, "<%s%s>%s</%s>", tag, attributes, processedContent, tag)
+		fmt.Fprintf(h.w, "<%s%s>%s</%s>", tag, attributes, processedContent, tag)
 		renderedCols++
 
 		// Handle horizontal merges
@@ -284,26 +278,26 @@ func (h *HTML) Row(w io.Writer, row []string, ctx tw.Formatting) {
 		}
 		colIdx += hSpan
 	}
-	fmt.Fprintf(h.writer, "</tr>\n")
+	fmt.Fprintf(h.w, "</tr>\n")
 }
 
 // Footer renders the <tfoot> section with footer rows, supporting horizontal merges.
-func (h *HTML) Footer(w io.Writer, footers [][]string, ctx tw.Formatting) {
+func (h *HTML) Footer(footers [][]string, ctx tw.Formatting) {
 	if !h.tableStarted {
-		h.debugLog("WARN: Footer called before Start")
+		h.logger.Debug("WARN: Footer called before Start")
 		return
 	}
 	if len(footers) == 0 || len(footers[0]) == 0 {
-		h.debugLog("Footer: No footers")
+		h.logger.Debug("Footer: No footers")
 		return
 	}
 
 	h.closePreviousSection()
-	classAttr := ""
-	if h.config.FooterClass != "" {
+	classAttr := tw.Empty
+	if h.config.FooterClass != tw.Empty {
 		classAttr = fmt.Sprintf(` class="%s"`, h.config.FooterClass)
 	}
-	fmt.Fprintf(h.writer, "<tfoot%s>\n", classAttr)
+	fmt.Fprintf(h.w, "<tfoot%s>\n", classAttr)
 	h.tfootStarted = true
 
 	footerRow := footers[0]
@@ -321,11 +315,11 @@ func (h *HTML) Footer(w io.Writer, footers [][]string, ctx tw.Formatting) {
 	}
 
 	indent := "  "
-	rowClassAttr := ""
-	if h.config.FooterRowClass != "" {
+	rowClassAttr := tw.Empty
+	if h.config.FooterRowClass != tw.Empty {
 		rowClassAttr = fmt.Sprintf(` class="%s"`, h.config.FooterRowClass)
 	}
-	fmt.Fprintf(h.writer, "%s<tr%s>", indent, rowClassAttr)
+	fmt.Fprintf(h.w, "%s<tr%s>", indent, rowClassAttr)
 
 	renderedCols := 0
 	for colIdx := 0; renderedCols < numCols && colIdx < numCols; {
@@ -333,13 +327,13 @@ func (h *HTML) Footer(w io.Writer, footers [][]string, ctx tw.Formatting) {
 		if !ok {
 			cellCtx = tw.CellContext{Align: tw.AlignRight}
 		}
-		originalContent := ""
+		originalContent := tw.Empty
 		if colIdx < len(footerRow) {
 			originalContent = footerRow[colIdx]
 		}
 
 		tag, attributes, processedContent := h.renderRowCell(originalContent, cellCtx, false, colIdx)
-		fmt.Fprintf(h.writer, "<%s%s>%s</%s>", tag, attributes, processedContent, tag)
+		fmt.Fprintf(h.w, "<%s%s>%s</%s>", tag, attributes, processedContent, tag)
 		renderedCols++
 
 		hSpan := 1
@@ -349,8 +343,8 @@ func (h *HTML) Footer(w io.Writer, footers [][]string, ctx tw.Formatting) {
 		}
 		colIdx += hSpan
 	}
-	fmt.Fprintf(h.writer, "</tr>\n")
-	fmt.Fprintln(h.writer, "</tfoot>")
+	fmt.Fprintf(h.w, "</tr>\n")
+	fmt.Fprintln(h.w, "</tfoot>")
 	h.tfootStarted = false
 }
 
@@ -400,11 +394,11 @@ func (h *HTML) renderRowCell(originalContent string, cellCtx tw.CellContext, isH
 		if vSpan > 1 {
 			fmt.Fprintf(&attrBuilder, ` rowspan="%d"`, vSpan)
 			h.vMergeTrack[colIdx] = vSpan
-			h.debugLog("renderRowCell: Tracking rowspan=%d for col %d", vSpan, colIdx)
+			h.logger.Debugf("renderRowCell: Tracking rowspan=%d for col %d", vSpan, colIdx)
 		}
 	}
 
-	if style := getHTMLStyle(cellCtx.Align); style != "" {
+	if style := getHTMLStyle(cellCtx.Align); style != tw.Empty {
 		attrBuilder.WriteString(style)
 	}
 	attributes = attrBuilder.String()
@@ -412,11 +406,11 @@ func (h *HTML) renderRowCell(originalContent string, cellCtx tw.CellContext, isH
 }
 
 // Line is a no-op for HTML rendering, as structural lines are handled by tags.
-func (h *HTML) Line(w io.Writer, ctx tw.Formatting) {}
+func (h *HTML) Line(ctx tw.Formatting) {}
 
 // Reset clears the renderer's internal state, including debug traces and merge tracking.
 func (h *HTML) Reset() {
-	h.debugLog("HTML.Reset() called.")
+	h.logger.Debug("HTML.Reset() called.")
 	h.tableStarted = false
 	h.tbodyStarted = false
 	h.tfootStarted = false
@@ -425,22 +419,22 @@ func (h *HTML) Reset() {
 }
 
 // Close ensures all open HTML tags (<table>, <tbody>, <tfoot>) are properly closed.
-func (h *HTML) Close(w io.Writer) error {
-	if h.writer == nil {
-		return errors.New("HTML Renderer Close called on nil internal writer")
+func (h *HTML) Close() error {
+	if h.w == nil {
+		return errors.New("HTML Renderer Close called on nil internal w")
 	}
 
 	if h.tableStarted {
-		h.debugLog("HTML.Close() called.")
+		h.logger.Debug("HTML.Close() called.")
 		h.closePreviousSection()
-		h.debugLog("Closing <table> tag.")
-		_, err := fmt.Fprintln(h.writer, "</table>")
+		h.logger.Debug("Closing <table> tag.")
+		_, err := fmt.Fprintln(h.w, "</table>")
 		h.tableStarted = false
 		h.tbodyStarted = false
 		h.tfootStarted = false
 		h.vMergeTrack = make(map[int]int)
 		return err
 	}
-	h.debugLog("HTML.Close() called, but table was not started (no-op).")
+	h.logger.Debug("HTML.Close() called, but table was not started (no-op).")
 	return nil
 }

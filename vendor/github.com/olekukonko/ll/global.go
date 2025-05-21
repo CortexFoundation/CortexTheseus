@@ -431,6 +431,15 @@ func Print(args ...any) {
 	defaultLogger.Print(args...)
 }
 
+// Println logs a message at Info level without format specifiers, minimizing allocations
+// by concatenating arguments with spaces. It is thread-safe via the log method.
+// Example:
+//
+//	ll.Println("message", "value") // Output: [] INFO: message value [New Line]
+func Println(args ...any) {
+	defaultLogger.Println(args...)
+}
+
 // Printf logs a message at Info level with a format string using the default logger.
 // It formats the message and delegates to defaultLogger’s Printf method. Thread-safe via
 // the Logger’s log method.
@@ -573,7 +582,7 @@ func Disable() *Logger {
 //	x := 42
 //	ll.Dbg(x) // Output: [file.go:123] x = 42
 func Dbg(any ...interface{}) {
-	defaultLogger.Dbg(any...)
+	defaultLogger.dbg(2, any...)
 }
 
 // Dump displays a hex and ASCII representation of a value’s binary form using the default logger.
@@ -637,4 +646,14 @@ func Line(lines ...int) *Logger {
 //	ll.Info("Indented") // Output: [] INFO:     Indented
 func Indent(depth int) *Logger {
 	return defaultLogger.Indent(depth)
+}
+
+// Mark logs the current file and line number where it's called, without any additional debug information.
+// It's useful for tracing execution flow without the verbosity of Dbg.
+// Example:
+//
+//	logger.Mark() // *MARK*: [file.go:123]
+func Mark(names ...string) {
+	defaultLogger.mark(2, names...)
+
 }

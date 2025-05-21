@@ -3,16 +3,10 @@ package tablewriter
 
 import (
 	"github.com/olekukonko/ll"             // Logging library for debug output
-	"github.com/olekukonko/tablewriter/tw" // Tablewriter core types and utilities
+	"github.com/olekukonko/tablewriter/tw" // Table writer core types and utilities
 	"io"                                   // Input/output interfaces
 	"reflect"                              // Reflection for type handling
 )
-
-// Behavior defines table behavior settings that control features like auto-hiding columns and trimming spaces.
-type Behavior struct {
-	AutoHide  tw.State // Controls whether empty columns are automatically hidden (ignored in streaming mode)
-	TrimSpace tw.State // Controls whether leading/trailing spaces are trimmed from cell content
-}
 
 // ColumnConfigBuilder is used to configure settings for a specific column across all table sections (header, row, footer).
 type ColumnConfigBuilder struct {
@@ -138,7 +132,7 @@ func (b *ConfigBuilder) WithFooterAlignment(align tw.Align) *ConfigBuilder {
 }
 
 // WithFooterAutoFormat enables or disables automatic formatting (e.g., title case) for footer cells.
-func (b *ConfigBuilder) WithFooterAutoFormat(autoFormat bool) *ConfigBuilder {
+func (b *ConfigBuilder) WithFooterAutoFormat(autoFormat tw.State) *ConfigBuilder {
 	b.config.Footer.Formatting.AutoFormat = autoFormat
 	return b
 }
@@ -190,7 +184,7 @@ func (b *ConfigBuilder) WithHeaderAlignment(align tw.Align) *ConfigBuilder {
 }
 
 // WithHeaderAutoFormat enables or disables automatic formatting (e.g., title case) for header cells.
-func (b *ConfigBuilder) WithHeaderAutoFormat(autoFormat bool) *ConfigBuilder {
+func (b *ConfigBuilder) WithHeaderAutoFormat(autoFormat tw.State) *ConfigBuilder {
 	b.config.Header.Formatting.AutoFormat = autoFormat
 	return b
 }
@@ -253,7 +247,7 @@ func (b *ConfigBuilder) WithRowAlignment(align tw.Align) *ConfigBuilder {
 }
 
 // WithRowAutoFormat enables or disables automatic formatting for row cells.
-func (b *ConfigBuilder) WithRowAutoFormat(autoFormat bool) *ConfigBuilder {
+func (b *ConfigBuilder) WithRowAutoFormat(autoFormat tw.State) *ConfigBuilder {
 	b.config.Row.Formatting.AutoFormat = autoFormat
 	return b
 }
@@ -354,7 +348,7 @@ func (ff *FooterFormattingBuilder) WithAlignment(align tw.Align) *FooterFormatti
 }
 
 // WithAutoFormat enables or disables automatic formatting for footer cells.
-func (ff *FooterFormattingBuilder) WithAutoFormat(autoFormat bool) *FooterFormattingBuilder {
+func (ff *FooterFormattingBuilder) WithAutoFormat(autoFormat tw.State) *FooterFormattingBuilder {
 	ff.config.AutoFormat = autoFormat
 	return ff
 }
@@ -472,7 +466,7 @@ func (hf *HeaderFormattingBuilder) WithAlignment(align tw.Align) *HeaderFormatti
 }
 
 // WithAutoFormat enables or disables automatic formatting for header cells.
-func (hf *HeaderFormattingBuilder) WithAutoFormat(autoFormat bool) *HeaderFormattingBuilder {
+func (hf *HeaderFormattingBuilder) WithAutoFormat(autoFormat tw.State) *HeaderFormattingBuilder {
 	hf.config.AutoFormat = autoFormat
 	return hf
 }
@@ -593,7 +587,7 @@ func (rf *RowFormattingBuilder) WithAlignment(align tw.Align) *RowFormattingBuil
 }
 
 // WithAutoFormat enables or disables automatic formatting for row cells.
-func (rf *RowFormattingBuilder) WithAutoFormat(autoFormat bool) *RowFormattingBuilder {
+func (rf *RowFormattingBuilder) WithAutoFormat(autoFormat tw.State) *RowFormattingBuilder {
 	rf.config.AutoFormat = autoFormat
 	return rf
 }
@@ -607,16 +601,6 @@ func (rf *RowFormattingBuilder) WithAutoWrap(autoWrap int) *RowFormattingBuilder
 	rf.config.AutoWrap = autoWrap
 	return rf
 }
-
-// WithMaxWidth sets the maximum content width for row cells.
-// Negative values are ignored.
-//func (rf *RowFormattingBuilder) WithMaxWidth(maxWidth int) *RowFormattingBuilder {
-//	if maxWidth < 0 {
-//		return rf
-//	}
-//	rf.config.MaxWidth = maxWidth
-//	return rf
-//}
 
 // WithMergeMode sets the merge behavior for row cells.
 // Invalid merge modes are ignored.
@@ -681,21 +665,7 @@ func WithAutoHide(state tw.State) Option {
 	return func(target *Table) {
 		target.config.Behavior.AutoHide = state
 		if target.logger != nil {
-			target.logger.Debug("Option: WithAutoHide applied to Table: %v", state)
-		}
-	}
-}
-
-// WithBorders sets the border configuration for the table and updates the renderer's configuration.
-// Logs the change if debugging is enabled.
-func WithBorders(borders tw.Border) Option {
-	return func(target *Table) {
-		if target.renderer != nil {
-			cfg := target.renderer.Config()
-			cfg.Borders = borders
-			if target.logger != nil {
-				target.logger.Debug("Option: WithBorders applied to Table: %+v", borders)
-			}
+			target.logger.Debugf("Option: WithAutoHide applied to Table: %v", state)
 		}
 	}
 }
@@ -709,7 +679,21 @@ func WithColumnMax(width int) Option {
 		}
 		target.config.Stream.Widths.Global = width
 		if target.logger != nil {
-			target.logger.Debug("Option: WithColumnMax applied to Table: %v", width)
+			target.logger.Debugf("Option: WithColumnMax applied to Table: %v", width)
+		}
+	}
+}
+
+// WithTableMax sets a global maximum table width for the table
+// Negative values are ignored, and the change is logged if debugging is enabled.
+func WithTableMax(width int) Option {
+	return func(target *Table) {
+		if width < 0 {
+			return
+		}
+		target.config.MaxWidth = width
+		if target.logger != nil {
+			target.logger.Debugf("Option: WithTableMax applied to Table: %v", width)
 		}
 	}
 }
@@ -725,7 +709,7 @@ func WithColumnWidths(widths map[int]int) Option {
 		}
 		target.config.Stream.Widths.PerColumn = widths
 		if target.logger != nil {
-			target.logger.Debug("Option: WithColumnWidths applied to Table: %v", widths)
+			target.logger.Debugf("Option: WithColumnWidths applied to Table: %v", widths)
 		}
 	}
 }
@@ -772,7 +756,7 @@ func WithFooterMergeMode(mergeMode int) Option {
 		}
 		target.config.Footer.Formatting.MergeMode = mergeMode
 		if target.logger != nil {
-			target.logger.Debug("Option: WithFooterMergeMode applied to Table: %v", mergeMode)
+			target.logger.Debugf("Option: WithFooterMergeMode applied to Table: %v", mergeMode)
 		}
 	}
 }
@@ -793,7 +777,7 @@ func WithHeaderAlignment(align tw.Align) Option {
 		}
 		target.config.Header.Formatting.Alignment = align
 		if target.logger != nil {
-			target.logger.Debug("Option: WithHeaderAlignment applied to Table: %v", align)
+			target.logger.Debugf("Option: WithHeaderAlignment applied to Table: %v", align)
 		}
 	}
 }
@@ -829,22 +813,8 @@ func WithRenderer(f tw.Renderer) Option {
 	return func(target *Table) {
 		target.renderer = f
 		if target.logger != nil {
-			target.logger.Debug("Option: WithRenderer applied to Table: %T", f)
+			target.logger.Debugf("Option: WithRenderer applied to Table: %T", f)
 			f.Logger(target.logger)
-		}
-	}
-}
-
-// WithRendererSettings updates the renderer's settings (e.g., separators, lines).
-// Logs the change if debugging is enabled.
-func WithRendererSettings(settings tw.Settings) Option {
-	return func(target *Table) {
-		if target.renderer != nil {
-			cfg := target.renderer.Config()
-			cfg.Settings = settings
-			if target.logger != nil {
-				target.logger.Debug("Option: WithRendererSettings applied to Table: %+v", settings)
-			}
 		}
 	}
 }
@@ -869,7 +839,7 @@ func WithRowMaxWidth(maxWidth int) Option {
 		}
 		target.config.Row.ColMaxWidths.Global = maxWidth
 		if target.logger != nil {
-			target.logger.Debug("Option: WithRowMaxWidth applied to Table: %v", maxWidth)
+			target.logger.Debugf("Option: WithRowMaxWidth applied to Table: %v", maxWidth)
 		}
 	}
 }
@@ -918,23 +888,79 @@ func WithSymbols(symbols tw.Symbols) Option {
 	}
 }
 
-// WithTrimSpace enables or disables automatic trimming of leading/trailing spaces.
+// WithTrimSpace sets whether leading and trailing spaces are automatically trimmed.
 // Logs the change if debugging is enabled.
 func WithTrimSpace(state tw.State) Option {
 	return func(target *Table) {
 		target.config.Behavior.TrimSpace = state
 		if target.logger != nil {
-			target.logger.Debug("Option: WithAutoHide applied to Table: %v", state)
+			target.logger.Debugf("Option: WithTrimSpace applied to Table: %v", state)
 		}
 	}
 }
 
-// WithAlignment helps to set default alignments
+func WithHeaderAutoFormat(state tw.State) Option {
+	return func(target *Table) {
+		target.config.Header.Formatting.AutoFormat = state
+	}
+}
+
+// WithHeaderControl sets the control behavior for the table header.
+// Logs the change if debugging is enabled.
+func WithHeaderControl(control tw.Control) Option {
+	return func(target *Table) {
+		target.config.Behavior.Header = control
+		if target.logger != nil {
+			target.logger.Debugf("Option: WithHeaderControl applied to Table: %v", control) // Fixed 'state' to 'control'
+		}
+	}
+}
+
+// WithFooterControl sets the control behavior for the table footer.
+// Logs the change if debugging is enabled.
+func WithFooterControl(control tw.Control) Option {
+	return func(target *Table) {
+		target.config.Behavior.Footer = control
+		if target.logger != nil {
+			target.logger.Debugf("Option: WithFooterControl applied to Table: %v", control) // Fixed log message and 'state' to 'control'
+		}
+	}
+}
+
+// WithAlignment sets the default column alignment for the header, rows, and footer.
 func WithAlignment(alignment tw.Alignment) Option {
 	return func(target *Table) {
 		target.config.Header.ColumnAligns = alignment
 		target.config.Row.ColumnAligns = alignment
 		target.config.Footer.ColumnAligns = alignment
+	}
+}
+
+// WithPadding sets the global padding for the header, rows, and footer.
+func WithPadding(padding tw.Padding) Option {
+	return func(target *Table) {
+		target.config.Header.Padding.Global = padding
+		target.config.Row.Padding.Global = padding
+		target.config.Footer.Padding.Global = padding
+	}
+}
+
+// WithRendition allows updating the active renderer's rendition configuration
+// by merging the provided rendition.
+// If the renderer does not implement tw.Renditioning, a warning is logged.
+func WithRendition(rendition tw.Rendition) Option {
+	return func(target *Table) {
+		if target.renderer == nil {
+			target.logger.Warn("Option: WithRendition: No renderer set on table.")
+			return
+		}
+
+		if ru, ok := target.renderer.(tw.Renditioning); ok {
+			ru.Rendition(rendition)
+			target.logger.Debugf("Option: WithRendition: Applied to renderer via Renditioning.SetRendition(): %+v", rendition)
+		} else {
+			target.logger.Warnf("Option: WithRendition: Current renderer type %T does not implement tw.Renditioning. Rendition may not be applied as expected.", target.renderer)
+		}
 	}
 }
 
@@ -947,7 +973,7 @@ func defaultConfig() Config {
 			Formatting: tw.CellFormatting{
 				AutoWrap:   tw.WrapTruncate,
 				Alignment:  tw.AlignCenter,
-				AutoFormat: true,
+				AutoFormat: tw.On,
 				MergeMode:  tw.MergeNone,
 			},
 			Padding: tw.CellPadding{
@@ -958,7 +984,7 @@ func defaultConfig() Config {
 			Formatting: tw.CellFormatting{
 				AutoWrap:   tw.WrapNormal,
 				Alignment:  tw.AlignLeft,
-				AutoFormat: false,
+				AutoFormat: tw.Off,
 				MergeMode:  tw.MergeNone,
 			},
 			Padding: tw.CellPadding{
@@ -969,7 +995,7 @@ func defaultConfig() Config {
 			Formatting: tw.CellFormatting{
 				AutoWrap:   tw.WrapNormal,
 				Alignment:  tw.AlignRight,
-				AutoFormat: false,
+				AutoFormat: tw.Off,
 				MergeMode:  tw.MergeNone,
 			},
 			Padding: tw.CellPadding{
@@ -1000,7 +1026,9 @@ func mergeCellConfig(dst, src tw.CellConfig) tw.CellConfig {
 	if src.Formatting.MergeMode != 0 {
 		dst.Formatting.MergeMode = src.Formatting.MergeMode
 	}
-	dst.Formatting.AutoFormat = src.Formatting.AutoFormat || dst.Formatting.AutoFormat
+
+	dst.Formatting.AutoFormat = src.Formatting.AutoFormat
+
 	if src.Padding.Global != (tw.Padding{}) {
 		dst.Padding.Global = src.Padding.Global
 	}
@@ -1084,6 +1112,7 @@ func mergeConfig(dst, src Config) Config {
 	dst.Row = mergeCellConfig(dst.Row, src.Row)
 	dst.Footer = mergeCellConfig(dst.Footer, src.Footer)
 	dst.Stream = mergeStreamConfig(dst.Stream, src.Stream)
+
 	return dst
 }
 
