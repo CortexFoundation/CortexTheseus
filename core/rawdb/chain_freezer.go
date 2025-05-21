@@ -205,7 +205,7 @@ func (f *chainFreezer) freeze(db ctxcdb.KeyValueStore) {
 			continue
 		}
 		// Batch of blocks have been frozen, flush them before wiping from key-value store
-		if err := f.Sync(); err != nil {
+		if err := f.SyncAncient(); err != nil {
 			log.Crit("Failed to flush frozen tables", "err", err)
 		}
 		// Wipe out all data from the active database

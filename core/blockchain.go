@@ -197,6 +197,9 @@ type BlockChain struct {
 	triegc *prque.Prque[int64, common.Hash] // Priority queue mapping block numbers to tries to gc
 	gcproc time.Duration                    // Accumulates canonical block processing for trie dumping
 
+	lastWrite     uint64
+	flushInterval atomic.Int64
+
 	// txLookupLimit is the maximum number of blocks from head whose tx indices
 	// are reserved:
 	//  * 0:   means no limit and regenerate any missing indexes
@@ -806,17 +809,16 @@ func (bc *BlockChain) setHeadBeyondRoot(head uint64, time uint64, root common.Ha
 		// Ignore the error here since light client won't hit this path
 		frozen, _ := bc.db.Ancients()
 		if num+1 <= frozen {
-			// Truncate all relative data(header, total difficulty, body, receipt
-			// and canonical hash) from ancient store.
-			if _, err := bc.db.TruncateHead(num); err != nil {
-				log.Crit("Failed to truncate ancient data", "number", num, "err", err)
-			}
-			// Remove the hash <-> number mapping from the active store.
-			rawdb.DeleteHeaderNumber(db, hash)
+			// The chain segment, such as the block header, canonical hash,
+			// body, and receipt, will be removed from the ancient store
+			// in one go.
+			//
+			// The hash-to-number mapping in the key-value store will be
+			// removed by the hc.SetHead function.
 		} else {
-			// Remove relative body and receipts from the active store.
-			// The header, total difficulty and canonical hash will be
-			// removed in the hc.SetHead function.
+			// Remove the associated body and receipts from the key-value store.
+			// The header, hash-to-number mapping, and canonical hash will be
+			// removed by the hc.SetHead function.
 			rawdb.DeleteBody(db, hash, num)
 			rawdb.DeleteReceipts(db, hash, num)
 		}
@@ -1237,7 +1239,7 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 		size += writeSize
 
 		// Sync the ancient store explicitly to ensure all data has been flushed to disk.
-		if err := bc.db.Sync(); err != nil {
+		if err := bc.db.SyncAncient(); err != nil {
 			return 0, err
 		}
 		// Update the current fast block because all block data is now present in DB.
@@ -1366,8 +1368,6 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 	return 0, nil
 }
 
-var lastWrite uint64
-
 // writeBlockWithoutState writes only the block and its metadata to the database,
 // but does not write any state. This is used to construct competing side forks
 // up to the point where they exceed the canonical total difficulty.
@@ -1475,12 +1475,12 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 				} else {
 					// If we're exceeding limits but haven't reached a large enough memory gap,
 					// warn the user that the system is becoming unstable.
-					if chosen < lastWrite+state.TriesInMemory && bc.gcproc >= 2*bc.cacheConfig.TrieTimeLimit {
-						log.Info("State in memory for too long, committing", "time", bc.gcproc, "allowance", bc.cacheConfig.TrieTimeLimit, "optimum", float64(chosen-lastWrite)/state.TriesInMemory)
+					if chosen < bc.lastWrite+state.TriesInMemory && bc.gcproc >= 2*bc.cacheConfig.TrieTimeLimit {
+						log.Info("State in memory for too long, committing", "time", bc.gcproc, "allowance", bc.cacheConfig.TrieTimeLimit, "optimum", float64(chosen-bc.lastWrite)/state.TriesInMemory)
 					}
 					// Flush an entire trie and restart the counters
 					triedb.Commit(header.Root, true)
-					lastWrite = chosen
+					bc.lastWrite = chosen
 					bc.gcproc = 0
 				}
 			}
@@ -2401,4 +2401,93 @@ func (bc *BlockChain) InsertHeaderChain(chain []*types.Header, checkFreq int) (i
 	defer bc.chainmu.Unlock()
 	_, err := bc.hc.InsertHeaderChain(chain, start)
 	return 0, err
+}
+
+// InsertHeadersBeforeCutoff inserts the given headers into the ancient store
+// as they are claimed older than the configured chain cutoff point. All the
+// inserted headers are regarded as canonical and chain reorg is not supported.
+func (bc *BlockChain) InsertHeadersBeforeCutoff(headers []*types.Header) (int, error) {
+	if len(headers) == 0 {
+		return 0, nil
+	}
+	// TODO(rjl493456442): Headers before the configured cutoff have already
+	// been verified by the hash of cutoff header. Theoretically, header validation
+	// could be skipped here.
+	if n, err := bc.hc.ValidateHeaderChain(headers, 0); err != nil {
+		return n, err
+	}
+	if !bc.chainmu.TryLock() {
+		return 0, errChainStopped
+	}
+	defer bc.chainmu.Unlock()
+
+	// Initialize the ancient store with genesis block if it's empty.
+	var (
+		frozen, _ = bc.db.Ancients()
+		first     = headers[0].Number.Uint64()
+	)
+	if first == 1 && frozen == 0 {
+		_, err := rawdb.WriteAncientBlocks(bc.db, []*types.Block{bc.genesisBlock}, []types.Receipts{nil}, big.NewInt(0))
+		if err != nil {
+			log.Error("Error writing genesis to ancients", "err", err)
+			return 0, err
+		}
+		log.Info("Wrote genesis to ancient store")
+	} else if frozen != first {
+		return 0, fmt.Errorf("headers are gapped with the ancient store, first: %d, ancient: %d", first, frozen)
+	}
+
+	// Write headers to the ancient store, with block bodies and receipts set to nil
+	// to ensure consistency across tables in the freezer.
+	_, err := rawdb.WriteAncientHeaderChain(bc.db, headers)
+	if err != nil {
+		return 0, err
+	}
+	// Sync the ancient store explicitly to ensure all data has been flushed to disk.
+	if err := bc.db.SyncAncient(); err != nil {
+		return 0, err
+	}
+	// Write hash to number mappings
+	batch := bc.db.NewBatch()
+	for _, header := range headers {
+		rawdb.WriteHeaderNumber(batch, header.Hash(), header.Number.Uint64())
+	}
+	// Write head header and head snap block flags
+	last := headers[len(headers)-1]
+	rawdb.WriteHeadHeaderHash(batch, last.Hash())
+	rawdb.WriteHeadFastBlockHash(batch, last.Hash())
+	if err := batch.Write(); err != nil {
+		return 0, err
+	}
+	// Truncate the useless chain segment (zero bodies and receipts) in the
+	// ancient store.
+	if _, err := bc.db.TruncateTail(last.Number.Uint64() + 1); err != nil {
+		return 0, err
+	}
+	// Last step update all in-memory markers
+	bc.hc.currentHeader.Store(last)
+	bc.currentFastBlock.Store(last)
+	headHeaderGauge.Update(last.Number.Int64())
+	headFastBlockGauge.Update(last.Number.Int64())
+	return 0, nil
+}
+
+// SetBlockValidatorAndProcessorForTesting sets the current validator and processor.
+// This method can be used to force an invalid blockchain to be verified for tests.
+// This method is unsafe and should only be used before block import starts.
+func (bc *BlockChain) SetBlockValidatorAndProcessorForTesting(v Validator, p Processor) {
+	bc.validator = v
+	bc.processor = p
+}
+
+// SetTrieFlushInterval configures how often in-memory tries are persisted to disk.
+// The interval is in terms of block processing time, not wall clock.
+// It is thread-safe and can be called repeatedly without side effects.
+func (bc *BlockChain) SetTrieFlushInterval(interval time.Duration) {
+	bc.flushInterval.Store(int64(interval))
+}
+
+// GetTrieFlushInterval gets the in-memory tries flushAlloc interval
+func (bc *BlockChain) GetTrieFlushInterval() time.Duration {
+	return time.Duration(bc.flushInterval.Load())
 }

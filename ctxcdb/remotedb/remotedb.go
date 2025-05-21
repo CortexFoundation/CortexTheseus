@@ -110,7 +110,7 @@ func (db *Database) TruncateTail(n uint64) (uint64, error) {
 	panic("not supported")
 }
 
-func (db *Database) Sync() error {
+func (db *Database) SyncAncient() error {
 	return nil
 }
 
@@ -144,6 +144,9 @@ func (db *Database) Compact(start []byte, limit []byte) error {
 
 func (db *Database) NewSnapshot() (ctxcdb.Snapshot, error) {
 	panic("not supported")
+}
+func (db *Database) SyncKeyValue() error {
+	return nil
 }
 
 func (db *Database) Close() error {

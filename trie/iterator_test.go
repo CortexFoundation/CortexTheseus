@@ -518,6 +518,8 @@ func (l *loggingDb) Close() error {
 	return l.backend.Close()
 }
 
+func (l *loggingDb) SyncKeyValue() error { return nil }
+
 // makeLargeTestTrie create a sample test trie
 func makeLargeTestTrie() (*Database, *StateTrie, *loggingDb) {
 	// Create an empty trie

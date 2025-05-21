@@ -151,7 +151,7 @@ func benchInsertChain(b *testing.B, disk bool, gen func(int, *BlockGen)) {
 	if !disk {
 		db = rawdb.NewMemoryDatabase()
 	} else {
-		pdb, err := pebble.New(b.TempDir(), 128, 128, "", false, true)
+		pdb, err := pebble.New(b.TempDir(), 128, 128, "", false)
 		if err != nil {
 			b.Fatalf("cannot create temporary database: %v", err)
 		}
@@ -249,7 +249,7 @@ func benchWriteChain(b *testing.B, full bool, count uint64) {
 		if err != nil {
 			b.Fatalf("cannot create temporary directory: %v", err)
 		}
-		pdb, err := pebble.New(b.TempDir(), 1024, 128, "", false, true)
+		pdb, err := pebble.New(b.TempDir(), 1024, 128, "", false)
 		if err != nil {
 			b.Fatalf("error opening database: %v", err)
 		}
@@ -267,7 +267,7 @@ func benchReadChain(b *testing.B, full bool, count uint64) {
 	}
 	defer os.RemoveAll(dir)
 
-	pdb, err := pebble.New(dir, 1024, 128, "", false, true)
+	pdb, err := pebble.New(dir, 1024, 128, "", false)
 	if err != nil {
 		b.Fatalf("error opening database: %v", err)
 	}
@@ -280,7 +280,7 @@ func benchReadChain(b *testing.B, full bool, count uint64) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		pdb, err = pebble.New(dir, 1024, 128, "", false, true)
+		pdb, err = pebble.New(dir, 1024, 128, "", false)
 		if err != nil {
 			b.Fatalf("error opening database: %v", err)
 		}
