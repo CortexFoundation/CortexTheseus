@@ -124,6 +124,7 @@ func NewCVMInterpreter(cvm *CVM) *CVMInterpreter {
 		cvm:      cvm,
 		table:    table,
 		gasTable: cvm.ChainConfig().GasTable(cvm.Context.BlockNumber),
+		hasher:   crypto.NewKeccakState(),
 	}
 }
 

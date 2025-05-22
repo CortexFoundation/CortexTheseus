@@ -29,10 +29,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"golang.org/x/crypto/sha3"
-
-	//"unsafe"
-
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
@@ -173,9 +169,7 @@ func (h *Header) SanityCheck() error {
 
 // hasherPool holds LegacyKeccak hashers.
 var hasherPool = sync.Pool{
-	New: func() any {
-		return sha3.NewLegacyKeccak256()
-	},
+	New: func() interface{} { return crypto.NewKeccakState() },
 }
 
 func rlpHash(x any) (h common.Hash) {

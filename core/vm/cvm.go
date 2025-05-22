@@ -547,7 +547,9 @@ func (cvm *CVM) Create(caller common.Address, code []byte, gas uint64, value *bi
 func (cvm *CVM) Create2(caller common.Address, code []byte, gas uint64, endowment *big.Int, salt *uint256.Int) (ret []byte, contractAddr common.Address, leftOverGas uint64, modelGas map[common.Address]uint64, err error) {
 	//contractAddr = crypto.CreateAddress2(caller.Address(), common.BigToHash(salt), code)
 	//	return cvm.create(caller, code, gas, endowment, contractAddr)
-	contractAddr = crypto.CreateAddress2(caller, salt.Bytes32(), crypto.Keccak256(code))
+	//contractAddr = crypto.CreateAddress2(caller, salt.Bytes32(), crypto.Keccak256(code))
+	inithash := crypto.HashData(cvm.interpreter.hasher, code)
+	contractAddr = crypto.CreateAddress2(caller, salt.Bytes32(), inithash[:])
 	return cvm.create(caller, code, gas, endowment, contractAddr, CREATE2)
 }
 
