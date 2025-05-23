@@ -32,10 +32,10 @@ import (
 
 const (
 	// Number of codehash->size associations to keep.
-	codeSizeCacheSize = 100000
+	codeSizeCacheSize = 1_000_000 // 4 megabytes in total
 
 	// Cache size granted for caching clean code.
-	codeCacheSize = 64 * 1024 * 1024
+	codeCacheSize = 256 * 1024 * 1024
 )
 
 // Database wraps access to tries and contract code.
