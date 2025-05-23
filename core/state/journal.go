@@ -401,6 +401,7 @@ func (ch storageChange) copy() journalEntry {
 		account:   ch.account,
 		key:       ch.key,
 		prevvalue: ch.prevvalue,
+		origvalue: ch.origvalue,
 	}
 }
 
