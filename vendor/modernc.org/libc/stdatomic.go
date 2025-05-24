@@ -1045,3 +1045,100 @@ func X__c11_atomic_storeUint64(t *TLS, ptr uintptr, val uint64, memorder int32) 
 func X__atomic_storeUint64(t *TLS, ptr, val uintptr, memorder int32) {
 	X__atomic_storeInt64(t, ptr, val, memorder)
 }
+
+// type __sync_val_compare_and_swap (type *ptr, type oldval type newval, ...)
+func X__sync_val_compare_and_swapInt8(t *TLS, ptr uintptr, oldval, newval int8) (r int8) {
+	int8Mu.Lock()
+
+	defer int8Mu.Unlock()
+
+	if r = *(*int8)(unsafe.Pointer(ptr)); r == oldval {
+		*(*int8)(unsafe.Pointer(ptr)) = newval
+	}
+
+	return r
+}
+
+func X__sync_val_compare_and_swapUint8(t *TLS, ptr uintptr, oldval, newval uint8) (r uint8) {
+	int8Mu.Lock()
+
+	defer int8Mu.Unlock()
+
+	if r = *(*uint8)(unsafe.Pointer(ptr)); r == oldval {
+		*(*uint8)(unsafe.Pointer(ptr)) = newval
+	}
+
+	return r
+}
+
+func X__sync_val_compare_and_swapInt16(t *TLS, ptr uintptr, oldval, newval int16) (r int16) {
+	int16Mu.Lock()
+
+	defer int16Mu.Unlock()
+
+	if r = *(*int16)(unsafe.Pointer(ptr)); r == oldval {
+		*(*int16)(unsafe.Pointer(ptr)) = newval
+	}
+
+	return r
+}
+
+func X__sync_val_compare_and_swapUint16(t *TLS, ptr uintptr, oldval, newval uint16) (r uint16) {
+	int16Mu.Lock()
+
+	defer int16Mu.Unlock()
+
+	if r = *(*uint16)(unsafe.Pointer(ptr)); r == oldval {
+		*(*uint16)(unsafe.Pointer(ptr)) = newval
+	}
+
+	return r
+}
+
+func X__sync_val_compare_and_swapInt32(t *TLS, ptr uintptr, oldval, newval int32) (r int32) {
+	int32Mu.Lock()
+
+	defer int32Mu.Unlock()
+
+	if r = *(*int32)(unsafe.Pointer(ptr)); r == oldval {
+		*(*int32)(unsafe.Pointer(ptr)) = newval
+	}
+
+	return r
+}
+
+func X__sync_val_compare_and_swapUint32(t *TLS, ptr uintptr, oldval, newval uint32) (r uint32) {
+	int32Mu.Lock()
+
+	defer int32Mu.Unlock()
+
+	if r = *(*uint32)(unsafe.Pointer(ptr)); r == oldval {
+		*(*uint32)(unsafe.Pointer(ptr)) = newval
+	}
+
+	return r
+}
+
+func X__sync_val_compare_and_swapInt64(t *TLS, ptr uintptr, oldval, newval int64) (r int64) {
+	int64Mu.Lock()
+
+	defer int64Mu.Unlock()
+
+	if r = *(*int64)(unsafe.Pointer(ptr)); r == oldval {
+		*(*int64)(unsafe.Pointer(ptr)) = newval
+	}
+
+	return r
+}
+
+func X__sync_val_compare_and_swapUint64(t *TLS, ptr uintptr, oldval, newval uint64) (r uint64) {
+	int64Mu.Lock()
+
+	defer int64Mu.Unlock()
+
+	if r = *(*uint64)(unsafe.Pointer(ptr)); r == oldval {
+		*(*uint64)(unsafe.Pointer(ptr)) = newval
+	}
+
+	return r
+}

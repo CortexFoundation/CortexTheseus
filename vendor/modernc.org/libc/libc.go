@@ -1950,7 +1950,7 @@ func getLocalLocation() (loc *gotime.Location) {
 }
 
 // time_t mktime(struct tm *tm);
-func Xmktime(t *TLS, ptm uintptr) time.Time_t {
+func Xmktime(t *TLS, ptm uintptr) (r time.Time_t) {
 	if __ccgo_strace {
 		trc("t=%v ptm=%v, (%v:)", t, ptm, origin(2))
 	}
@@ -1967,7 +1967,8 @@ func Xmktime(t *TLS, ptm uintptr) time.Time_t {
 	)
 	(*time.Tm)(unsafe.Pointer(ptm)).Ftm_wday = int32(tt.Weekday())
 	(*time.Tm)(unsafe.Pointer(ptm)).Ftm_yday = int32(tt.YearDay() - 1)
-	return time.Time_t(tt.Unix())
+	r = time.Time_t(tt.Unix())
+	return r
 }
 
 // char *strpbrk(const char *s, const char *accept);
@@ -2308,14 +2309,6 @@ func Xtcsendbreak(t *TLS, fd, duration int32) int32 {
 func Xwcwidth(t *TLS, c wchar_t) int32 {
 	if __ccgo_strace {
 		trc("t=%v c=%v, (%v:)", t, c, origin(2))
-	}
-	panic(todo(""))
-}
-
-// int clock_gettime(clockid_t clk_id, struct timespec *tp);
-func Xclock_gettime(t *TLS, clk_id int32, tp uintptr) int32 {
-	if __ccgo_strace {
-		trc("t=%v clk_id=%v tp=%v, (%v:)", t, clk_id, tp, origin(2))
 	}
 	panic(todo(""))
 }

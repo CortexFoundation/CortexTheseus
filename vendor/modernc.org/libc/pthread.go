@@ -189,7 +189,7 @@ func Xpthread_attr_setstacksize(t *TLS, attr uintptr, stackSize types.Size_t) in
 	if __ccgo_strace {
 		trc("t=%v attr=%v stackSize=%v, (%v:)", t, attr, stackSize, origin(2))
 	}
-	panic(todo(""))
+	return 0
 }
 
 // Go side data of pthread_cond_t.
