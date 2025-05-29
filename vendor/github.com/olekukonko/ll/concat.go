@@ -169,6 +169,8 @@ func concatToString(arg any) string {
 		return *(*string)(unsafe.Pointer(&v))
 	case fmt.Stringer:
 		return v.String()
+	case error:
+		return v.Error()
 	default:
 		return fmt.Sprint(v)
 	}

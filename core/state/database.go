@@ -92,7 +92,7 @@ type Trie interface {
 	GetStorage(addr common.Address, key []byte) ([]byte, error)
 
 	// TryUpdateAccount abstract an account write in the trie.
-	TryUpdateAccount(key []byte, account *types.StateAccount) error
+	TryUpdateAccount(key common.Address, account *types.StateAccount) error
 
 	// UpdateContractCode abstracts code write to the trie. It is expected
 	// to be moved to the stateWriter interface when the latter is ready.

@@ -28,8 +28,8 @@ func defaultBlueprint() tw.Rendition {
 				ShowHeaderLine: tw.On,
 				ShowFooterLine: tw.On,
 			},
-
 			CompactMode: tw.Off,
+			// Cushion:     tw.On,
 		},
 		Symbols:   tw.NewSymbols(tw.StyleLight),
 		Streaming: true,
@@ -110,7 +110,7 @@ func defaultOceanRendererConfig() tw.Rendition {
 
 // getHTMLStyle remains the same
 func getHTMLStyle(align tw.Align) string {
-	styleContent := ""
+	styleContent := tw.Empty
 	switch align {
 	case tw.AlignRight:
 		styleContent = "text-align: right;"
@@ -119,10 +119,10 @@ func getHTMLStyle(align tw.Align) string {
 	case tw.AlignLeft:
 		styleContent = "text-align: left;"
 	}
-	if styleContent != "" {
+	if styleContent != tw.Empty {
 		return fmt.Sprintf(` style="%s"`, styleContent)
 	}
-	return ""
+	return tw.Empty
 }
 
 // mergeLines combines default and override line settings, preserving defaults for unset (zero) overrides.
@@ -161,33 +161,76 @@ func mergeSeparators(defaults, overrides tw.Separators) tw.Separators {
 
 // mergeSettings combines default and override settings, preserving defaults for unset (zero) overrides.
 func mergeSettings(defaults, overrides tw.Settings) tw.Settings {
-	if overrides.Separators.ShowHeader != 0 {
+	if overrides.Separators.ShowHeader != tw.Unknown {
 		defaults.Separators.ShowHeader = overrides.Separators.ShowHeader
 	}
-	if overrides.Separators.ShowFooter != 0 {
+	if overrides.Separators.ShowFooter != tw.Unknown {
 		defaults.Separators.ShowFooter = overrides.Separators.ShowFooter
 	}
-	if overrides.Separators.BetweenRows != 0 {
+	if overrides.Separators.BetweenRows != tw.Unknown {
 		defaults.Separators.BetweenRows = overrides.Separators.BetweenRows
 	}
-	if overrides.Separators.BetweenColumns != 0 {
+	if overrides.Separators.BetweenColumns != tw.Unknown {
 		defaults.Separators.BetweenColumns = overrides.Separators.BetweenColumns
 	}
-	if overrides.Lines.ShowTop != 0 {
+	if overrides.Lines.ShowTop != tw.Unknown {
 		defaults.Lines.ShowTop = overrides.Lines.ShowTop
 	}
-	if overrides.Lines.ShowBottom != 0 {
+	if overrides.Lines.ShowBottom != tw.Unknown {
 		defaults.Lines.ShowBottom = overrides.Lines.ShowBottom
 	}
-	if overrides.Lines.ShowHeaderLine != 0 {
+	if overrides.Lines.ShowHeaderLine != tw.Unknown {
 		defaults.Lines.ShowHeaderLine = overrides.Lines.ShowHeaderLine
 	}
-	if overrides.Lines.ShowFooterLine != 0 {
+	if overrides.Lines.ShowFooterLine != tw.Unknown {
 		defaults.Lines.ShowFooterLine = overrides.Lines.ShowFooterLine
 	}
 
-	if overrides.CompactMode != 0 {
+	if overrides.CompactMode != tw.Unknown {
 		defaults.CompactMode = overrides.CompactMode
 	}
+
+	//if overrides.Cushion != tw.Unknown {
+	//	defaults.Cushion = overrides.Cushion
+	//}
+
 	return defaults
+}
+
+// MergeRendition merges the 'override' rendition into the 'current' rendition.
+// It only updates fields in 'current' if they are explicitly set (non-zero/non-nil) in 'override'.
+// This allows for partial updates to a renderer's configuration.
+func mergeRendition(current, override tw.Rendition) tw.Rendition {
+	// Merge Borders: Only update if override border states are explicitly set (not 0).
+	// A tw.State's zero value is 0, which is distinct from tw.On (1) or tw.Off (-1).
+	// So, if override.Borders.Left is 0, it means "not specified", so we keep current.
+	if override.Borders.Left != 0 {
+		current.Borders.Left = override.Borders.Left
+	}
+	if override.Borders.Right != 0 {
+		current.Borders.Right = override.Borders.Right
+	}
+	if override.Borders.Top != 0 {
+		current.Borders.Top = override.Borders.Top
+	}
+	if override.Borders.Bottom != 0 {
+		current.Borders.Bottom = override.Borders.Bottom
+	}
+
+	// Merge Symbols: Only update if override.Symbols is not nil.
+	if override.Symbols != nil {
+		current.Symbols = override.Symbols
+	}
+
+	// Merge Settings: Use the existing mergeSettings for granular control.
+	// mergeSettings already handles preserving defaults for unset (zero) overrides.
+	current.Settings = mergeSettings(current.Settings, override.Settings)
+
+	// Streaming flag: typically set at renderer creation, but can be overridden if needed.
+	// For now, let's assume it's not commonly changed post-creation by a generic rendition merge.
+	// If override provides a different streaming capability, it might indicate a fundamental
+	// change that a simple merge shouldn't handle without more context.
+	// current.Streaming = override.Streaming // Or keep current.Streaming
+
+	return current
 }
