@@ -6,6 +6,7 @@ import (
 	"github.com/olekukonko/errors"
 	"github.com/olekukonko/tablewriter/tw"
 	"io"
+	"math"
 	"reflect"
 	"strconv"
 	"strings"
@@ -576,26 +577,23 @@ func (t *Table) buildPaddingLineContents(padChar string, widths tw.Mapper[int, i
 // Parameter ctx holds rendering state with width maps.
 // Returns an error if width calculation fails.
 func (t *Table) calculateAndNormalizeWidths(ctx *renderContext) error {
-	ctx.logger.Debugf("calculateAndNormalizeWidths: Computing and normalizing widths for %d columns", ctx.numCols)
+	ctx.logger.Debugf("calculateAndNormalizeWidths: Computing and normalizing widths for %d columns. Compact: %v",
+		ctx.numCols, t.config.Behavior.Compact.Merge.Enabled())
 
 	// Initialize width maps
-	t.headerWidths = tw.NewMapper[int, int]()
-	t.rowWidths = tw.NewMapper[int, int]()
-	t.footerWidths = tw.NewMapper[int, int]()
+	//t.headerWidths = tw.NewMapper[int, int]()
+	//t.rowWidths = tw.NewMapper[int, int]()
+	//t.footerWidths = tw.NewMapper[int, int]()
 
-	// Compute header widths
+	// Compute content-based widths for each section
 	for _, lines := range ctx.headerLines {
 		t.updateWidths(lines, t.headerWidths, t.config.Header.Padding)
 	}
-	ctx.logger.Debugf("Initial Header widths: %v", t.headerWidths)
-
-	// Cache row widths to avoid re-iteration
 	rowWidthCache := make([]tw.Mapper[int, int], len(ctx.rowLines))
 	for i, row := range ctx.rowLines {
 		rowWidthCache[i] = tw.NewMapper[int, int]()
 		for _, line := range row {
 			t.updateWidths(line, rowWidthCache[i], t.config.Row.Padding)
-			// Aggregate into t.rowWidths
 			for col, width := range rowWidthCache[i] {
 				currentMax, _ := t.rowWidths.OK(col)
 				if width > currentMax {
@@ -604,41 +602,348 @@ func (t *Table) calculateAndNormalizeWidths(ctx *renderContext) error {
 			}
 		}
 	}
-	ctx.logger.Debugf("Initial Row widths: %v", t.rowWidths)
-
-	// Compute footer widths
 	for _, lines := range ctx.footerLines {
 		t.updateWidths(lines, t.footerWidths, t.config.Footer.Padding)
 	}
-	ctx.logger.Debugf("Initial Footer widths: %v", t.footerWidths)
+	ctx.logger.Debugf("Content-based widths: header=%v, row=%v, footer=%v", t.headerWidths, t.rowWidths, t.footerWidths)
 
-	// Initialize width maps for normalization
-	ctx.widths[tw.Header] = tw.NewMapper[int, int]()
-	ctx.widths[tw.Row] = tw.NewMapper[int, int]()
-	ctx.widths[tw.Footer] = tw.NewMapper[int, int]()
-
-	// Normalize widths by taking the maximum across sections
-	for i := 0; i < ctx.numCols; i++ {
-		maxWidth := 0
-		for _, w := range []tw.Mapper[int, int]{t.headerWidths, t.rowWidths, t.footerWidths} {
-			if wd := w.Get(i); wd > maxWidth {
-				maxWidth = wd
+	// Analyze header merges for optimization
+	var headerMergeSpans map[int]int
+	if t.config.Header.Formatting.MergeMode&tw.MergeHorizontal != 0 && len(ctx.headerLines) > 0 {
+		headerMergeSpans = make(map[int]int)
+		visitedCols := make(map[int]bool)
+		firstHeaderLine := ctx.headerLines[0]
+		if len(firstHeaderLine) > 0 {
+			for i := 0; i < len(firstHeaderLine); {
+				if visitedCols[i] {
+					i++
+					continue
+				}
+				var currentLogicalCellContentBuilder strings.Builder
+				for _, hLine := range ctx.headerLines {
+					if i < len(hLine) {
+						currentLogicalCellContentBuilder.WriteString(hLine[i])
+					}
+				}
+				currentHeaderCellContent := t.Trimmer(currentLogicalCellContentBuilder.String())
+				span := 1
+				for j := i + 1; j < len(firstHeaderLine); j++ {
+					var nextLogicalCellContentBuilder strings.Builder
+					for _, hLine := range ctx.headerLines {
+						if j < len(hLine) {
+							nextLogicalCellContentBuilder.WriteString(hLine[j])
+						}
+					}
+					nextHeaderCellContent := t.Trimmer(nextLogicalCellContentBuilder.String())
+					if currentHeaderCellContent == nextHeaderCellContent && currentHeaderCellContent != "" && currentHeaderCellContent != "-" {
+						span++
+					} else {
+						break
+					}
+				}
+				if span > 1 {
+					headerMergeSpans[i] = span
+					for k := 0; k < span; k++ {
+						visitedCols[i+k] = true
+					}
+				}
+				i += span
 			}
 		}
-		ctx.widths[tw.Header].Set(i, maxWidth)
-		ctx.widths[tw.Row].Set(i, maxWidth)
-		ctx.widths[tw.Footer].Set(i, maxWidth)
+		if len(headerMergeSpans) > 0 {
+			ctx.logger.Debugf("Header merge spans: %v", headerMergeSpans)
+		}
 	}
-	ctx.logger.Debugf("Normalized widths: header=%v, row=%v, footer=%v", ctx.widths[tw.Header], ctx.widths[tw.Row], ctx.widths[tw.Footer])
+
+	// Determine natural column widths
+	naturalColumnWidths := tw.NewMapper[int, int]()
+	for i := 0; i < ctx.numCols; i++ {
+		width := 0
+		if colWidth, ok := t.config.Widths.PerColumn.OK(i); ok && colWidth >= 0 {
+			width = colWidth
+			ctx.logger.Debugf("Col %d width from Config.Widths.PerColumn: %d", i, width)
+		} else {
+			maxRowFooterWidth := tw.Max(t.rowWidths.Get(i), t.footerWidths.Get(i))
+			headerCellOriginalWidth := t.headerWidths.Get(i)
+			if t.config.Behavior.Compact.Merge.Enabled() &&
+				t.config.Header.Formatting.MergeMode&tw.MergeHorizontal != 0 &&
+				headerMergeSpans != nil {
+				isColInHeaderMerge := false
+				for startCol, span := range headerMergeSpans {
+					if i >= startCol && i < startCol+span {
+						isColInHeaderMerge = true
+						break
+					}
+				}
+				if isColInHeaderMerge {
+					width = maxRowFooterWidth
+					if width == 0 && headerCellOriginalWidth > 0 {
+						width = headerCellOriginalWidth
+					}
+					ctx.logger.Debugf("Col %d (in merge) width: %d (row/footer: %d, header: %d)", i, width, maxRowFooterWidth, headerCellOriginalWidth)
+				} else {
+					width = tw.Max(headerCellOriginalWidth, maxRowFooterWidth)
+					ctx.logger.Debugf("Col %d (not in merge) width: %d", i, width)
+				}
+			} else {
+				width = tw.Max(tw.Max(headerCellOriginalWidth, t.rowWidths.Get(i)), t.footerWidths.Get(i))
+				ctx.logger.Debugf("Col %d width (no merge): %d", i, width)
+			}
+			if width == 0 && (headerCellOriginalWidth > 0 || t.rowWidths.Get(i) > 0 || t.footerWidths.Get(i) > 0) {
+				width = tw.Max(tw.Max(headerCellOriginalWidth, t.rowWidths.Get(i)), t.footerWidths.Get(i))
+			}
+			if width == 0 {
+				width = 1
+			}
+		}
+		naturalColumnWidths.Set(i, width)
+	}
+	ctx.logger.Debugf("Natural column widths: %v", naturalColumnWidths)
+
+	// Expand columns for merged header content if needed
+	workingWidths := naturalColumnWidths.Clone()
+	if t.config.Header.Formatting.MergeMode&tw.MergeHorizontal != 0 && headerMergeSpans != nil {
+		if span, isOneBigMerge := headerMergeSpans[0]; isOneBigMerge && span == ctx.numCols && ctx.numCols > 0 {
+			var firstHeaderCellLogicalContentBuilder strings.Builder
+			for _, hLine := range ctx.headerLines {
+				if 0 < len(hLine) {
+					firstHeaderCellLogicalContentBuilder.WriteString(hLine[0])
+				}
+			}
+			mergedContentString := t.Trimmer(firstHeaderCellLogicalContentBuilder.String())
+			headerCellPadding := t.config.Header.Padding.Global
+			if 0 < len(t.config.Header.Padding.PerColumn) && t.config.Header.Padding.PerColumn[0].Paddable() {
+				headerCellPadding = t.config.Header.Padding.PerColumn[0]
+			}
+			actualMergedHeaderContentPhysicalWidth := tw.DisplayWidth(mergedContentString) +
+				tw.DisplayWidth(headerCellPadding.Left) +
+				tw.DisplayWidth(headerCellPadding.Right)
+			currentSumOfColumnWidths := 0
+			workingWidths.Each(func(_ int, w int) { currentSumOfColumnWidths += w })
+			numSeparatorsInFullSpan := 0
+			if ctx.numCols > 1 {
+				if t.renderer != nil && t.renderer.Config().Settings.Separators.BetweenColumns.Enabled() {
+					numSeparatorsInFullSpan = (ctx.numCols - 1) * tw.DisplayWidth(t.renderer.Config().Symbols.Column())
+				}
+			}
+			totalCurrentSpanPhysicalWidth := currentSumOfColumnWidths + numSeparatorsInFullSpan
+			if actualMergedHeaderContentPhysicalWidth > totalCurrentSpanPhysicalWidth {
+				ctx.logger.Debugf("Merged header content '%s' (width %d) exceeds total width %d. Expanding.",
+					mergedContentString, actualMergedHeaderContentPhysicalWidth, totalCurrentSpanPhysicalWidth)
+				shortfall := actualMergedHeaderContentPhysicalWidth - totalCurrentSpanPhysicalWidth
+				numNonZeroCols := 0
+				workingWidths.Each(func(_ int, w int) {
+					if w > 0 {
+						numNonZeroCols++
+					}
+				})
+				if numNonZeroCols == 0 && ctx.numCols > 0 {
+					numNonZeroCols = ctx.numCols
+				}
+				if numNonZeroCols > 0 && shortfall > 0 {
+					extraPerColumn := int(math.Ceil(float64(shortfall) / float64(numNonZeroCols)))
+					finalSumAfterExpansion := 0
+					workingWidths.Each(func(colIdx int, currentW int) {
+						if currentW > 0 || (numNonZeroCols == ctx.numCols && ctx.numCols > 0) {
+							newWidth := currentW + extraPerColumn
+							workingWidths.Set(colIdx, newWidth)
+							finalSumAfterExpansion += newWidth
+							ctx.logger.Debugf("Col %d expanded by %d to %d", colIdx, extraPerColumn, newWidth)
+						} else {
+							finalSumAfterExpansion += currentW
+						}
+					})
+					overDistributed := (finalSumAfterExpansion + numSeparatorsInFullSpan) - actualMergedHeaderContentPhysicalWidth
+					if overDistributed > 0 {
+						ctx.logger.Debugf("Correcting over-distribution of %d", overDistributed)
+						// Sort columns for deterministic reduction
+						sortedCols := workingWidths.SortedKeys()
+						for i := 0; i < overDistributed; i++ {
+							// Reduce from highest-indexed column
+							for j := len(sortedCols) - 1; j >= 0; j-- {
+								col := sortedCols[j]
+								if workingWidths.Get(col) > 1 && naturalColumnWidths.Get(col) < workingWidths.Get(col) {
+									workingWidths.Set(col, workingWidths.Get(col)-1)
+									ctx.logger.Debugf("Reduced col %d by 1 to %d", col, workingWidths.Get(col))
+									break
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	ctx.logger.Debugf("Widths after merged header expansion: %v", workingWidths)
+
+	// Apply global width constraint
+	finalWidths := workingWidths.Clone()
+	if t.config.Widths.Global > 0 {
+		ctx.logger.Debugf("Applying global width constraint: %d", t.config.Widths.Global)
+		currentSumOfFinalColWidths := 0
+		finalWidths.Each(func(_ int, w int) { currentSumOfFinalColWidths += w })
+		numSeparators := 0
+		if ctx.numCols > 1 && t.renderer != nil && t.renderer.Config().Settings.Separators.BetweenColumns.Enabled() {
+			numSeparators = (ctx.numCols - 1) * tw.DisplayWidth(t.renderer.Config().Symbols.Column())
+		}
+		totalCurrentTablePhysicalWidth := currentSumOfFinalColWidths + numSeparators
+		if totalCurrentTablePhysicalWidth > t.config.Widths.Global {
+			ctx.logger.Debugf("Table width %d exceeds global limit %d. Shrinking.", totalCurrentTablePhysicalWidth, t.config.Widths.Global)
+			targetTotalColumnContentWidth := t.config.Widths.Global - numSeparators
+			if targetTotalColumnContentWidth < 0 {
+				targetTotalColumnContentWidth = 0
+			}
+			if ctx.numCols > 0 && targetTotalColumnContentWidth < ctx.numCols {
+				targetTotalColumnContentWidth = ctx.numCols
+			}
+			hardMinimums := tw.NewMapper[int, int]()
+			sumOfHardMinimums := 0
+			isHeaderContentHardToWrap := !(t.config.Header.Formatting.AutoWrap == tw.WrapNormal || t.config.Header.Formatting.AutoWrap == tw.WrapBreak)
+			for i := 0; i < ctx.numCols; i++ {
+				minW := 1
+				if isHeaderContentHardToWrap && len(ctx.headerLines) > 0 {
+					headerColNaturalWidthWithPadding := t.headerWidths.Get(i)
+					if headerColNaturalWidthWithPadding > minW {
+						minW = headerColNaturalWidthWithPadding
+					}
+				}
+				hardMinimums.Set(i, minW)
+				sumOfHardMinimums += minW
+			}
+			ctx.logger.Debugf("Hard minimums: %v (sum: %d)", hardMinimums, sumOfHardMinimums)
+			if targetTotalColumnContentWidth < sumOfHardMinimums && sumOfHardMinimums > 0 {
+				ctx.logger.Warnf("Target width %d below minimums %d. Scaling.", targetTotalColumnContentWidth, sumOfHardMinimums)
+				scaleFactorMin := float64(targetTotalColumnContentWidth) / float64(sumOfHardMinimums)
+				if scaleFactorMin < 0 {
+					scaleFactorMin = 0
+				}
+				tempSum := 0
+				scaledHardMinimums := tw.NewMapper[int, int]()
+				hardMinimums.Each(func(colIdx int, currentMinW int) {
+					scaledMinW := int(math.Round(float64(currentMinW) * scaleFactorMin))
+					if scaledMinW < 1 && targetTotalColumnContentWidth > 0 {
+						scaledMinW = 1
+					} else if scaledMinW < 0 {
+						scaledMinW = 0
+					}
+					scaledHardMinimums.Set(colIdx, scaledMinW)
+					tempSum += scaledMinW
+				})
+				errorDiffMin := targetTotalColumnContentWidth - tempSum
+				if errorDiffMin != 0 && scaledHardMinimums.Len() > 0 {
+					sortedKeys := scaledHardMinimums.SortedKeys()
+					for i := 0; i < int(math.Abs(float64(errorDiffMin))); i++ {
+						keyToAdjust := sortedKeys[i%len(sortedKeys)]
+						val := scaledHardMinimums.Get(keyToAdjust)
+						adj := 1
+						if errorDiffMin < 0 {
+							adj = -1
+						}
+						if val+adj >= 1 || (val+adj == 0 && targetTotalColumnContentWidth == 0) {
+							scaledHardMinimums.Set(keyToAdjust, val+adj)
+						} else if adj > 0 {
+							scaledHardMinimums.Set(keyToAdjust, val+adj)
+						}
+					}
+				}
+				finalWidths = scaledHardMinimums.Clone()
+				ctx.logger.Debugf("Scaled minimums: %v", finalWidths)
+			} else {
+				finalWidths = hardMinimums.Clone()
+				widthAllocatedByMinimums := sumOfHardMinimums
+				remainingWidthToDistribute := targetTotalColumnContentWidth - widthAllocatedByMinimums
+				ctx.logger.Debugf("Target: %d, minimums: %d, remaining: %d", targetTotalColumnContentWidth, widthAllocatedByMinimums, remainingWidthToDistribute)
+				if remainingWidthToDistribute > 0 {
+					sumOfFlexiblePotentialBase := 0
+					flexibleColsOriginalWidths := tw.NewMapper[int, int]()
+					for i := 0; i < ctx.numCols; i++ {
+						naturalW := workingWidths.Get(i)
+						minW := hardMinimums.Get(i)
+						if naturalW > minW {
+							sumOfFlexiblePotentialBase += (naturalW - minW)
+							flexibleColsOriginalWidths.Set(i, naturalW)
+						}
+					}
+					ctx.logger.Debugf("Flexible potential: %d, flexible widths: %v", sumOfFlexiblePotentialBase, flexibleColsOriginalWidths)
+					if sumOfFlexiblePotentialBase > 0 {
+						distributedExtraSum := 0
+						sortedFlexKeys := flexibleColsOriginalWidths.SortedKeys()
+						for _, colIdx := range sortedFlexKeys {
+							naturalWOfCol := flexibleColsOriginalWidths.Get(colIdx)
+							hardMinOfCol := hardMinimums.Get(colIdx)
+							flexiblePartOfCol := naturalWOfCol - hardMinOfCol
+							proportion := 0.0
+							if sumOfFlexiblePotentialBase > 0 {
+								proportion = float64(flexiblePartOfCol) / float64(sumOfFlexiblePotentialBase)
+							} else if len(sortedFlexKeys) > 0 {
+								proportion = 1.0 / float64(len(sortedFlexKeys))
+							}
+							extraForThisCol := int(math.Round(float64(remainingWidthToDistribute) * proportion))
+							currentAssignedW := finalWidths.Get(colIdx)
+							finalWidths.Set(colIdx, currentAssignedW+extraForThisCol)
+							distributedExtraSum += extraForThisCol
+						}
+						errorInDist := remainingWidthToDistribute - distributedExtraSum
+						ctx.logger.Debugf("Distributed %d, error: %d", distributedExtraSum, errorInDist)
+						if errorInDist != 0 && len(sortedFlexKeys) > 0 {
+							for i := 0; i < int(math.Abs(float64(errorInDist))); i++ {
+								colToAdjust := sortedFlexKeys[i%len(sortedFlexKeys)]
+								w := finalWidths.Get(colToAdjust)
+								adj := 1
+								if errorInDist < 0 {
+									adj = -1
+								}
+								if !(adj < 0 && w+adj < hardMinimums.Get(colToAdjust)) {
+									finalWidths.Set(colToAdjust, w+adj)
+								} else if adj > 0 {
+									finalWidths.Set(colToAdjust, w+adj)
+								}
+							}
+						}
+					} else {
+						if ctx.numCols > 0 {
+							extraPerCol := remainingWidthToDistribute / ctx.numCols
+							rem := remainingWidthToDistribute % ctx.numCols
+							for i := 0; i < ctx.numCols; i++ {
+								currentW := finalWidths.Get(i)
+								add := extraPerCol
+								if i < rem {
+									add++
+								}
+								finalWidths.Set(i, currentW+add)
+							}
+						}
+					}
+				}
+			}
+			finalSumCheck := 0
+			finalWidths.Each(func(idx int, w int) {
+				if w < 1 && targetTotalColumnContentWidth > 0 {
+					finalWidths.Set(idx, 1)
+				} else if w < 0 {
+					finalWidths.Set(idx, 0)
+				}
+				finalSumCheck += finalWidths.Get(idx)
+			})
+			ctx.logger.Debugf("Final widths after scaling: %v (sum: %d, target: %d)", finalWidths, finalSumCheck, targetTotalColumnContentWidth)
+		}
+	}
+
+	// Assign final widths to context
+	ctx.widths[tw.Header] = finalWidths.Clone()
+	ctx.widths[tw.Row] = finalWidths.Clone()
+	ctx.widths[tw.Footer] = finalWidths.Clone()
+	ctx.logger.Debugf("Final normalized widths: header=%v, row=%v, footer=%v", ctx.widths[tw.Header], ctx.widths[tw.Row], ctx.widths[tw.Footer])
 	return nil
 }
 
 // calculateContentMaxWidth computes the maximum content width for a column, accounting for padding and mode-specific constraints.
 // Returns the effective content width (after subtracting padding) for the given column index.
 func (t *Table) calculateContentMaxWidth(colIdx int, config tw.CellConfig, padLeftWidth, padRightWidth int, isStreaming bool) int {
-
 	var effectiveContentMaxWidth int
+
 	if isStreaming {
+		// Existing streaming logic remains unchanged
 		totalColumnWidthFromStream := t.streamWidths.Get(colIdx)
 		if totalColumnWidthFromStream < 0 {
 			totalColumnWidthFromStream = 0
@@ -652,28 +957,57 @@ func (t *Table) calculateContentMaxWidth(colIdx int, config tw.CellConfig, padLe
 		if totalColumnWidthFromStream == 0 {
 			effectiveContentMaxWidth = 0
 		}
-		t.logger.Debugf("calculateContentMaxWidth: Streaming col %d, TotalColWd=%d, PadL=%d, PadR=%d -> ContentMaxWd=%d",
-			colIdx, totalColumnWidthFromStream, padLeftWidth, padRightWidth, effectiveContentMaxWidth)
+		t.logger.Debugf("calculateContentMaxWidth: Streaming col %d, TotalColWd=%d, PadL=%d, PadR=%d -> ContentMaxWd=%d", colIdx, totalColumnWidthFromStream, padLeftWidth, padRightWidth, effectiveContentMaxWidth)
 	} else {
-		hasConstraint := false
+		// New priority-based width constraint checking
 		constraintTotalCellWidth := 0
-		if config.ColMaxWidths.PerColumn != nil {
+		hasConstraint := false
+
+		// 1. Check new Widths.PerColumn (highest priority)
+		if t.config.Widths.Constrained() {
+
+			if colWidth, ok := t.config.Widths.PerColumn.OK(colIdx); ok && colWidth > 0 {
+				constraintTotalCellWidth = colWidth
+				hasConstraint = true
+				t.logger.Debugf("calculateContentMaxWidth: Using Widths.PerColumn[%d] = %d",
+					colIdx, constraintTotalCellWidth)
+			}
+
+			// 2. Check new Widths.Global
+			if !hasConstraint && t.config.Widths.Global > 0 {
+				constraintTotalCellWidth = t.config.Widths.Global
+				hasConstraint = true
+				t.logger.Debugf("calculateContentMaxWidth: Using Widths.Global = %d", constraintTotalCellWidth)
+			}
+		}
+
+		// 3. Fall back to legacy ColMaxWidths.PerColumn (backward compatibility)
+		if !hasConstraint && config.ColMaxWidths.PerColumn != nil {
 			if colMax, ok := config.ColMaxWidths.PerColumn.OK(colIdx); ok && colMax > 0 {
 				constraintTotalCellWidth = colMax
 				hasConstraint = true
-				t.logger.Debugf("calculateContentMaxWidth: Batch col %d using config.ColMaxWidths.PerColumn (as total cell width constraint): %d", colIdx, constraintTotalCellWidth)
+				t.logger.Debugf("calculateContentMaxWidth: Using legacy ColMaxWidths.PerColumn[%d] = %d",
+					colIdx, constraintTotalCellWidth)
 			}
 		}
+
+		// 4. Fall back to legacy ColMaxWidths.Global
 		if !hasConstraint && config.ColMaxWidths.Global > 0 {
 			constraintTotalCellWidth = config.ColMaxWidths.Global
 			hasConstraint = true
-			t.logger.Debugf("calculateContentMaxWidth: Batch col %d using config.Formatting.MaxWidth (as total cell width constraint): %d", colIdx, constraintTotalCellWidth)
+			t.logger.Debugf("calculateContentMaxWidth: Using legacy ColMaxWidths.Global = %d",
+				constraintTotalCellWidth)
 		}
+
+		// 5. Fall back to table MaxWidth if auto-wrapping
 		if !hasConstraint && t.config.MaxWidth > 0 && config.Formatting.AutoWrap != tw.WrapNone {
 			constraintTotalCellWidth = t.config.MaxWidth
 			hasConstraint = true
-			t.logger.Debugf("calculateContentMaxWidth: Batch col %d using t.config.MaxWidth (as total cell width constraint, due to AutoWrap != WrapNone): %d", colIdx, constraintTotalCellWidth)
+			t.logger.Debugf("calculateContentMaxWidth: Using table MaxWidth = %d (AutoWrap enabled)",
+				constraintTotalCellWidth)
 		}
+
+		// Calculate effective width based on found constraint
 		if hasConstraint {
 			effectiveContentMaxWidth = constraintTotalCellWidth - padLeftWidth - padRightWidth
 			if effectiveContentMaxWidth < 1 && constraintTotalCellWidth > (padLeftWidth+padRightWidth) {
@@ -681,13 +1015,14 @@ func (t *Table) calculateContentMaxWidth(colIdx int, config tw.CellConfig, padLe
 			} else if effectiveContentMaxWidth < 0 {
 				effectiveContentMaxWidth = 0
 			}
-			t.logger.Debugf("calculateContentMaxWidth: Batch col %d, ConstraintTotalCellWidth=%d, PadL=%d, PadR=%d -> EffectiveContentMaxWidth=%d",
-				colIdx, constraintTotalCellWidth, padLeftWidth, padRightWidth, effectiveContentMaxWidth)
+			t.logger.Debugf("calculateContentMaxWidth: ConstraintTotalCellWidth=%d, PadL=%d, PadR=%d -> EffectiveContentMaxWidth=%d",
+				constraintTotalCellWidth, padLeftWidth, padRightWidth, effectiveContentMaxWidth)
 		} else {
 			effectiveContentMaxWidth = 0
-			t.logger.Debugf("calculateContentMaxWidth: Batch col %d, No applicable MaxWidth constraint. EffectiveContentMaxWidth set to 0 (unlimited for this stage).", colIdx)
+			t.logger.Debugf("calculateContentMaxWidth: No width constraints found for column %d", colIdx)
 		}
 	}
+
 	return effectiveContentMaxWidth
 }
 
@@ -697,6 +1032,8 @@ func (t *Table) convertToStringer(input interface{}) ([]string, error) {
 	if t.stringer == nil {
 		return nil, errors.New("internal error: convertToStringer called with nil t.stringer")
 	}
+
+	t.logger.Debugf("convertToString attempt %v using %v", input, t.stringer)
 
 	inputType := reflect.TypeOf(input)
 	stringerFuncVal := reflect.ValueOf(t.stringer)
@@ -1310,7 +1647,8 @@ func (t *Table) updateWidths(row []string, widths tw.Mapper[int, int], padding t
 	t.logger.Debugf("Updating widths for row: %v", row)
 	for i, cell := range row {
 		colPad := padding.Global
-		if i < len(padding.PerColumn) && padding.PerColumn[i] != (tw.Padding{}) {
+
+		if i < len(padding.PerColumn) && padding.PerColumn[i].Paddable() {
 			colPad = padding.PerColumn[i]
 			t.logger.Debugf("  Col %d: Using per-column padding: L:'%s' R:'%s'", i, colPad.Left, colPad.Right)
 		} else {
