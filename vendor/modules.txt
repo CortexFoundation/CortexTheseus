@@ -78,8 +78,8 @@ github.com/DataDog/zstd
 ## explicit; go 1.14
 github.com/RoaringBitmap/roaring
 github.com/RoaringBitmap/roaring/internal
-# github.com/VictoriaMetrics/fastcache v1.12.2
-## explicit; go 1.13
+# github.com/VictoriaMetrics/fastcache v1.12.4
+## explicit; go 1.24.0
 github.com/VictoriaMetrics/fastcache
 # github.com/ajwerner/btree v0.0.0-20211221152037-f427b3e689c0
 ## explicit; go 1.18
@@ -595,7 +595,7 @@ github.com/go-llsqlite/adapter/sqlitex
 github.com/go-llsqlite/crawshaw
 github.com/go-llsqlite/crawshaw/c
 github.com/go-llsqlite/crawshaw/sqlitex
-# github.com/go-logr/logr v1.4.2
+# github.com/go-logr/logr v1.4.3
 ## explicit; go 1.18
 github.com/go-logr/logr
 github.com/go-logr/logr/funcr
@@ -848,7 +848,7 @@ github.com/olekukonko/errors
 github.com/olekukonko/ll
 github.com/olekukonko/ll/lh
 github.com/olekukonko/ll/lx
-# github.com/olekukonko/tablewriter v1.0.6
+# github.com/olekukonko/tablewriter v1.0.7
 ## explicit; go 1.21
 github.com/olekukonko/tablewriter
 github.com/olekukonko/tablewriter/pkg/twwarp
@@ -918,10 +918,11 @@ github.com/pion/ice/v4/internal/atomic
 github.com/pion/ice/v4/internal/fakenet
 github.com/pion/ice/v4/internal/stun
 github.com/pion/ice/v4/internal/taskloop
-# github.com/pion/interceptor v0.1.37
+# github.com/pion/interceptor v0.1.38
 ## explicit; go 1.20
 github.com/pion/interceptor
 github.com/pion/interceptor/internal/ntp
+github.com/pion/interceptor/internal/rtpbuffer
 github.com/pion/interceptor/internal/sequencenumber
 github.com/pion/interceptor/pkg/nack
 github.com/pion/interceptor/pkg/report
@@ -939,7 +940,7 @@ github.com/pion/randutil
 # github.com/pion/rtcp v1.2.15
 ## explicit; go 1.20
 github.com/pion/rtcp
-# github.com/pion/rtp v1.8.15
+# github.com/pion/rtp v1.8.16
 ## explicit; go 1.20
 github.com/pion/rtp
 github.com/pion/rtp/codecs
@@ -948,7 +949,7 @@ github.com/pion/rtp/codecs/vp9
 # github.com/pion/sctp v1.8.39
 ## explicit; go 1.20
 github.com/pion/sctp
-# github.com/pion/sdp/v3 v3.0.12
+# github.com/pion/sdp/v3 v3.0.13
 ## explicit; go 1.20
 github.com/pion/sdp/v3
 # github.com/pion/srtp/v3 v3.0.4
@@ -1197,7 +1198,7 @@ golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/exp v0.0.0-20250506013437-ce4c2cf36ca6
+# golang.org/x/exp v0.0.0-20250530174510-65e920069ea6
 ## explicit; go 1.23.0
 golang.org/x/exp/constraints
 golang.org/x/exp/rand
@@ -1357,7 +1358,7 @@ gopkg.in/yaml.v3
 lukechampine.com/blake3
 lukechampine.com/blake3/bao
 lukechampine.com/blake3/guts
-# modernc.org/libc v1.65.7
+# modernc.org/libc v1.65.8
 ## explicit; go 1.23.0
 modernc.org/libc
 modernc.org/libc/errno
@@ -1398,7 +1399,7 @@ modernc.org/sqlite/lib
 ## explicit; go 1.17
 rsc.io/tmplfunc
 rsc.io/tmplfunc/internal/parse
-# zombiezen.com/go/sqlite v1.4.0
-## explicit; go 1.20
+# zombiezen.com/go/sqlite v1.4.2
+## explicit; go 1.23.0
 zombiezen.com/go/sqlite
 zombiezen.com/go/sqlite/sqlitex

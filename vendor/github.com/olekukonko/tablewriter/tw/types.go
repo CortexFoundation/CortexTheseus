@@ -132,22 +132,68 @@ func (c Caption) WithWidth(width int) Caption {
 	return c
 }
 
-// Padding defines custom padding characters for a cell
+type Control struct {
+	Hide State
+}
+
+// Compact configures compact width optimization for merged cells.
+type Compact struct {
+	Merge State // Merge enables compact width calculation during cell merging, optimizing space allocation.
+}
+
+// Behavior defines settings that control table rendering behaviors, such as column visibility and content formatting.
+type Behavior struct {
+	AutoHide  State // AutoHide determines whether empty columns are hidden. Ignored in streaming mode.
+	TrimSpace State // TrimSpace enables trimming of leading and trailing spaces from cell content.
+
+	Header Control // Header specifies control settings for the table header.
+	Footer Control // Footer specifies control settings for the table footer.
+
+	// Compact enables optimized width calculation for merged cells, such as in horizontal merges,
+	// by systematically determining the most efficient width instead of scaling by the number of columns.
+	Compact Compact
+}
+
+// Padding defines the spacing characters around cell content in all four directions.
+// A zero-value Padding struct will use the table's default padding unless Overwrite is true.
 type Padding struct {
 	Left   string
 	Right  string
 	Top    string
 	Bottom string
+
+	// Overwrite forces tablewriter to use this padding configuration exactly as specified,
+	// even when empty. When false (default), empty Padding fields will inherit defaults.
+	//
+	// For explicit no-padding, use the PaddingNone constant instead of setting Overwrite.
+	Overwrite bool
 }
 
-type Control struct {
-	Hide State
+// Common padding configurations for convenience
+
+// Equals reports whether two Padding configurations are identical in all fields.
+// This includes comparing the Overwrite flag as part of the equality check.
+func (p Padding) Equals(padding Padding) bool {
+	return p.Left == padding.Left &&
+		p.Right == padding.Right &&
+		p.Top == padding.Top &&
+		p.Bottom == padding.Bottom &&
+		p.Overwrite == padding.Overwrite
 }
 
-// Behavior defines table behavior settings that control features like auto-hiding columns and trimming spaces.
-type Behavior struct {
-	AutoHide  State // Controls whether empty columns are automatically hidden (ignored in streaming mode)
-	TrimSpace State // Controls whether leading/trailing spaces are trimmed from cell content
-	Header    Control
-	Footer    Control
+// Empty reports whether all padding strings are empty (all fields == "").
+// Note that an Empty padding may still take effect if Overwrite is true.
+func (p Padding) Empty() bool {
+	return p.Left == "" && p.Right == "" && p.Top == "" && p.Bottom == ""
+}
+
+// Paddable reports whether this Padding configuration should override existing padding.
+// Returns true if either:
+//   - Any padding string is non-empty (!p.Empty())
+//   - Overwrite flag is true (even with all strings empty)
+//
+// This is used internally during configuration merging to determine whether to
+// apply the padding settings.
+func (p Padding) Paddable() bool {
+	return !p.Empty() || p.Overwrite
 }
