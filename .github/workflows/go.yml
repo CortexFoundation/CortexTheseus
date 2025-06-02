@@ -17,10 +17,10 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Set up Go 1.23
+    - name: Set up Go 1.24
       uses: actions/setup-go@v5.0.0
       with:
-        go-version: 1.23.x
+        go-version: 1.24.x
         cache: false
       id: go
 
