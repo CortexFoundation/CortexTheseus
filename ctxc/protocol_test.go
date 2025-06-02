@@ -80,7 +80,7 @@ func TestStatusMsgErrors64(t *testing.T) {
 		},
 		{
 			code: ctxc.StatusMsg, data: statusData{64, DefaultConfig.NetworkId, td, head.Hash(), genesis.Hash(), forkid.ID{Hash: [4]byte{0x00, 0x01, 0x02, 0x03}}},
-			wantError: errResp(ErrForkIDRejected, forkid.ErrLocalIncompatibleOrStale.Error()),
+			wantError: errResp(ErrForkIDRejected, "%s", forkid.ErrLocalIncompatibleOrStale.Error()),
 		},
 	}
 	for i, test := range tests {
