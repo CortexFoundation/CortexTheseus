@@ -66,6 +66,7 @@ var (
 		utils.BootnodesV4Flag,
 		// utils.BootnodesV5Flag,
 		utils.DataDirFlag,
+		utils.EraFlag,
 		utils.DBEngineFlag,
 		utils.AncientFlag,
 		utils.MinFreeDiskSpaceFlag,
@@ -219,7 +220,7 @@ func init() {
 	// Initialize the CLI app and start Ctxc
 	app.Action = cortex
 	app.HideVersion = true // we have a command to print the version
-	app.Copyright = "Copyright 2018-2019 The go-ethereum Authors"
+	app.Copyright = "Copyright 2018-2025 The cortex Authors"
 	app.Commands = []cli.Command{
 		// See chaincmd.go:
 		initCommand,
@@ -264,6 +265,8 @@ func init() {
 	app.Flags = append(app.Flags, cvmFlags...)
 	app.Flags = append(app.Flags, storageFlags...)
 	app.Flags = append(app.Flags, inferFlags...)
+	//app.Flags = append(app.Flags, utils.NetworkFlags...)
+	//app.Flags = append(app.Flags, utils.DatabaseFlags...)
 
 	//flags.AutoEnvVars(app.Flags, "CORTEX")
 	app.Before = func(ctx *cli.Context) error {

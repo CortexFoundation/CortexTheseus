@@ -36,19 +36,13 @@ type memoryTable struct {
 	data   [][]byte // List of rlp-encoded items, sort in order
 	size   uint64   // Total memory size occupied by the table
 	lock   sync.RWMutex
+
+	config freezerTableConfig
 }
 
 // newMemoryTable initializes the memory table.
-func newMemoryTable(name string) *memoryTable {
-	return &memoryTable{name: name}
-}
-
-// has returns an indicator whether the specified data exists.
-func (t *memoryTable) has(number uint64) bool {
-	t.lock.RLock()
-	defer t.lock.RUnlock()
-
-	return number >= t.offset && number < t.items
+func newMemoryTable(name string, config freezerTableConfig) *memoryTable {
+	return &memoryTable{name: name, config: config}
 }
 
 // retrieve retrieves multiple items in sequence, starting from the index 'start'.
@@ -218,27 +212,16 @@ type MemoryFreezer struct {
 }
 
 // NewMemoryFreezer initializes an in-memory freezer instance.
-func NewMemoryFreezer(readonly bool, tableName map[string]bool) *MemoryFreezer {
+func NewMemoryFreezer(readonly bool, tableName map[string]freezerTableConfig) *MemoryFreezer {
 	tables := make(map[string]*memoryTable)
-	for name := range tableName {
-		tables[name] = newMemoryTable(name)
+	for name, cfg := range tableName {
+		tables[name] = newMemoryTable(name, cfg)
 	}
 	return &MemoryFreezer{
 		writeBatch: newMemoryBatch(),
 		readonly:   readonly,
 		tables:     tables,
 	}
-}
-
-// HasAncient returns an indicator whether the specified data exists.
-func (f *MemoryFreezer) HasAncient(kind string, number uint64) (bool, error) {
-	f.lock.RLock()
-	defer f.lock.RUnlock()
-
-	if table := f.tables[kind]; table != nil {
-		return table.has(number), nil
-	}
-	return false, nil
 }
 
 // Ancient retrieves an ancient binary blob from the in-memory freezer.
@@ -412,8 +395,8 @@ func (f *MemoryFreezer) Reset() error {
 	defer f.lock.Unlock()
 
 	tables := make(map[string]*memoryTable)
-	for name := range f.tables {
-		tables[name] = newMemoryTable(name)
+	for name, table := range f.tables {
+		tables[name] = newMemoryTable(name, table.config)
 	}
 	f.tables = tables
 	f.items, f.tail = 0, 0

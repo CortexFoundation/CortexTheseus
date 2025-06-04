@@ -111,6 +111,7 @@ type Config struct {
 	DatabaseHandles         int  `toml:"-"`
 	DatabaseCache           int
 	DatabaseFreezer         string
+	DatabaseEra             string
 	TrieCleanCache          int
 	TrieCleanCacheJournal   string        `toml:",omitempty"` // Disk journal directory for trie cache to survive node restarts
 	TrieCleanCacheRejournal time.Duration `toml:",omitempty"` // Time interval to regenerate the journal for clean cache

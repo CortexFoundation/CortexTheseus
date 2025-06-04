@@ -130,8 +130,14 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 	}
 	log.Info("Allocated trie memory caches", "clean", common.StorageSize(config.TrieCleanCache)*1024*1024, "dirty", common.StorageSize(config.TrieDirtyCache)*1024*1024, "snapshot", common.StorageSize(config.SnapshotCache)*1024*1024, "NoPruning", config.NoPruning)
 
-	// Assemble the Cortex object
-	chainDb, err := stack.OpenDatabaseWithFreezer("chaindata", config.DatabaseCache, config.DatabaseHandles, config.DatabaseFreezer, "ctxc/db/chaindata/", false)
+	dbOptions := node.DatabaseOptions{
+		Cache:             config.DatabaseCache,
+		Handles:           config.DatabaseHandles,
+		AncientsDirectory: config.DatabaseFreezer,
+		EraDirectory:      config.DatabaseEra,
+		MetricsNamespace:  "ctxc/db/chaindata/",
+	}
+	chainDb, err := stack.OpenDatabaseWithOptions("chaindata", dbOptions)
 	if err != nil {
 		return nil, err
 	}

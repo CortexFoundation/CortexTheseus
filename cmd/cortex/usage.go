@@ -33,7 +33,7 @@ import (
 var AppHelpTemplate = `NAME:
    {{.App.Name}} - {{.App.Usage}}
 
-   Copyright 2018-2019 The go-ethereum Authors
+   Copyright 2018-2025 The cortex Authors
 
 USAGE:
    {{.App.HelpName}} [options]{{if .App.Commands}} command [command options]{{end}} {{if .App.ArgsUsage}}{{.App.ArgsUsage}}{{else}}[arguments...]{{end}}
@@ -71,6 +71,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.DataDirFlag,
 			utils.DBEngineFlag,
 			utils.AncientFlag,
+			utils.EraFlag,
 			utils.MinFreeDiskSpaceFlag,
 			utils.KeyStoreDirFlag,
 			// utils.NoUSBFlag,

@@ -145,6 +145,10 @@ var (
 		Usage: "Data directory for the databases and keystore",
 		Value: DirectoryString{node.DefaultDataDir()},
 	}
+	RemoteDBFlag = &cli.StringFlag{
+		Name:  "remotedb",
+		Usage: "URL for remote database",
+	}
 	DBEngineFlag = &cli.StringFlag{
 		Name:  "db.engine",
 		Usage: "Backing database implementation to use ('pebble' or 'leveldb')",
@@ -153,6 +157,10 @@ var (
 	AncientFlag = DirectoryFlag{
 		Name:  "datadir.ancient",
 		Usage: "Data directory for ancient chain segments (default = inside chaindata)",
+	}
+	EraFlag = DirectoryFlag{
+		Name:  "datadir.era",
+		Usage: "Root directory for era1 history (default = inside ancient/chain)",
 	}
 	MinFreeDiskSpaceFlag = DirectoryFlag{
 		Name:  "datadir.minfreedisk",
@@ -866,6 +874,8 @@ var (
 	DatabaseFlags = []cli.Flag{
 		DataDirFlag,
 		AncientFlag,
+		EraFlag,
+		RemoteDBFlag,
 		DBEngineFlag,
 	}
 )
@@ -1506,6 +1516,9 @@ func SetCortexConfig(ctx *cli.Context, stack *node.Node, cfg *ctxc.Config) {
 	if ctx.GlobalIsSet(AncientFlag.Name) {
 		cfg.DatabaseFreezer = ctx.GlobalString(AncientFlag.Name)
 	}
+	if ctx.IsSet(EraFlag.Name) {
+		cfg.DatabaseEra = ctx.String(EraFlag.Name)
+	}
 
 	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
@@ -1889,9 +1902,18 @@ func MakeChainDatabase(ctx *cli.Context, stack *node.Node, readonly bool) ctxcdb
 		cache   = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheDatabaseFlag.Name) / 100
 		handles = makeDatabaseHandles(ctx.GlobalInt(FDLimitFlag.Name))
 	)
-	name := "chaindata"
+	//name := "chaindata"
+	options := node.DatabaseOptions{
+		ReadOnly:          readonly,
+		Cache:             cache,
+		Handles:           handles,
+		AncientsDirectory: ctx.String(AncientFlag.Name),
+		MetricsNamespace:  "ctxc/db/chaindata/",
+		EraDirectory:      ctx.String(EraFlag.Name),
+	}
 	//chainDb, err := stack.OpenDatabase(name, cache, handles)
-	chainDb, err := stack.OpenDatabaseWithFreezer(name, cache, handles, ctx.GlobalString(AncientFlag.Name), "", readonly)
+	//chainDb, err := stack.OpenDatabaseWithFreezer(name, cache, handles, ctx.GlobalString(AncientFlag.Name), "", readonly)
+	chainDb, err := stack.OpenDatabaseWithOptions("chaindata", options)
 	if err != nil {
 		Fatalf("Could not open database: %v", err)
 	}
