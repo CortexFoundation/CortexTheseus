@@ -142,7 +142,7 @@ func (b *CortexAPIBackend) BlockByNumberOrHash(ctx context.Context, blockNrOrHas
 	if hash, ok := blockNrOrHash.Hash(); ok {
 		header := b.ctxc.blockchain.GetHeaderByHash(hash)
 		if header == nil {
-			return nil, errors.New("header for hash not found")
+			return nil, nil
 		}
 		if blockNrOrHash.RequireCanonical && b.ctxc.blockchain.GetCanonicalHash(header.Number.Uint64()) != hash {
 			return nil, errors.New("hash is not currently canonical")
