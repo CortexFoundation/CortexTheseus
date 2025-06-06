@@ -109,3 +109,7 @@ func (me Option[V]) ToPtr() *V {
 	}
 	return nil
 }
+
+func (me Option[V]) AsTuple() (V, bool) {
+	return me.Value, me.Ok
+}

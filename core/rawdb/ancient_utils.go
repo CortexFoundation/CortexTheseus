@@ -97,13 +97,13 @@ func inspectFreezers(db ctxcdb.Database) ([]freezerInfo, error) {
 func InspectFreezerTable(ancient string, freezerName string, tableName string, start, end int64) error {
 	var (
 		path   string
-		tables map[string]bool
+		tables map[string]freezerTableConfig
 	)
 	switch freezerName {
 	case ChainFreezerName:
-		path, tables = resolveChainFreezerDir(ancient), chainFreezerNoSnappy
+		path, tables = resolveChainFreezerDir(ancient), chainFreezerTableConfigs
 	case StateFreezerName:
-		path, tables = filepath.Join(ancient, freezerName), stateFreezerNoSnappy
+		path, tables = filepath.Join(ancient, freezerName), stateFreezerTableConfigs
 	default:
 		return fmt.Errorf("unknown freezer, supported ones: %v", freezers)
 	}

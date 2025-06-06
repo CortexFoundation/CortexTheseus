@@ -78,7 +78,7 @@ github.com/DataDog/zstd
 ## explicit; go 1.14
 github.com/RoaringBitmap/roaring
 github.com/RoaringBitmap/roaring/internal
-# github.com/VictoriaMetrics/fastcache v1.12.4
+# github.com/VictoriaMetrics/fastcache v1.12.5
 ## explicit; go 1.24.0
 github.com/VictoriaMetrics/fastcache
 # github.com/ajwerner/btree v0.0.0-20211221152037-f427b3e689c0
@@ -107,7 +107,7 @@ github.com/anacrolix/dht/v2/types
 # github.com/anacrolix/envpprof v1.4.0
 ## explicit; go 1.12
 github.com/anacrolix/envpprof
-# github.com/anacrolix/generics v0.0.3-0.20240902042256-7fb2702ef0ca
+# github.com/anacrolix/generics v0.0.3
 ## explicit; go 1.18
 github.com/anacrolix/generics
 github.com/anacrolix/generics/heap
@@ -940,7 +940,7 @@ github.com/pion/randutil
 # github.com/pion/rtcp v1.2.15
 ## explicit; go 1.20
 github.com/pion/rtcp
-# github.com/pion/rtp v1.8.16
+# github.com/pion/rtp v1.8.17
 ## explicit; go 1.20
 github.com/pion/rtp
 github.com/pion/rtp/codecs

@@ -21,7 +21,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"os"
 	"reflect"
 	"testing"
 
@@ -363,13 +362,8 @@ func checkReceiptsRLP(have, want types.Receipts) error {
 
 func TestAncientStorage(t *testing.T) {
 	// Freezer style fast import the chain.
-	frdir, err := os.MkdirTemp("", "")
-	if err != nil {
-		t.Fatalf("failed to create temp freezer dir: %v", err)
-	}
-	defer os.RemoveAll(frdir)
-
-	db, err := NewDatabaseWithFreezer(NewMemoryDatabase(), frdir, "", false)
+	frdir := t.TempDir()
+	db, err := Open(NewMemoryDatabase(), OpenOptions{Ancient: frdir})
 	if err != nil {
 		t.Fatalf("failed to create database with ancient backend")
 	}

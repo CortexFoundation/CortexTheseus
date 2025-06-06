@@ -58,6 +58,8 @@ func MapInsert[K comparable, V any, M ~map[K]V](m M, k K, v V) Option[V] {
 	}
 }
 
+// Deletes element with the key k. If there is no element with the specified key, panics. delete
+// only applies to maps, so for now Map is not mentioned in the function name.
 func MustDelete[K comparable, V any, M ~map[K]V](m M, k K) {
 	_, ok := m[k]
 	if !ok {

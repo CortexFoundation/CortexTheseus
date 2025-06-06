@@ -5,6 +5,12 @@ type Result[T any] struct {
 	Err error
 }
 
+func Err[T any](err error) Result[T] {
+	return Result[T]{
+		Err: err,
+	}
+}
+
 func ResultFromTuple[T any](t T, err error) Result[T] {
 	return Result[T]{
 		Ok:  t,
@@ -38,4 +44,8 @@ func (r *Result[T]) SetOk(ok T) {
 func (r *Result[T]) SetErr(err error) {
 	SetZero(&r.Ok)
 	r.Err = err
+}
+
+func (r *Result[T]) IsOk() bool {
+	return r.Err == nil
 }
