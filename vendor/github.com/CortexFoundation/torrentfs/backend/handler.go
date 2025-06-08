@@ -530,7 +530,7 @@ func (tm *TorrentManager) injectSpec(ih string, spec *torrent.TorrentSpec) (*tor
 	}
 }
 
-func (tm *TorrentManager) updateGlobalTrackers() error {
+func (tm *TorrentManager) updateGlobalTrackers() (uint64, float32, error) {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
 
@@ -540,6 +540,7 @@ func (tm *TorrentManager) updateGlobalTrackers() error {
 	}
 
 	var total uint64
+	var health float32
 
 	if global := tm.worm.BestTrackers(); len(global) > 0 {
 		/*if len(tm.trackers) > 1 {
@@ -555,15 +556,16 @@ func (tm *TorrentManager) updateGlobalTrackers() error {
 			log.Info("Tracker status", "url", url, "score", score)
 			total += score
 		}
-		log.Info("Global trackers update", "size", len(global), "cap", wormhole.CAP, "health", float32(len(global))/float32(wormhole.CAP), "total", total)
+		health = float32(len(global)) / float32(wormhole.CAP)
+		log.Info("Global trackers update", "size", len(global), "cap", wormhole.CAP, "health", health, "total", total)
 	} else {
 		// TODO
-		return errors.New("best trackers failed")
+		return total, health, errors.New("best trackers failed")
 	}
 
 	// TODO
 
-	return nil
+	return total, health, nil
 }
 
 func (tm *TorrentManager) wormScore(url string) (score uint64, err error) {
@@ -804,10 +806,10 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 	}
 
 	torrentManager.worm = wormhole.New()
-	torrentManager.updateGlobalTrackers()
+	score, health, _ := torrentManager.updateGlobalTrackers()
 	//torrentManager.updateColaList()
 
-	log.Debug("Fs client initialized", "config", config, "trackers", torrentManager.trackers)
+	log.Info("Fs client initialized", "config", config, "trackers", torrentManager.trackers, "score", score, "health", health)
 
 	return torrentManager, nil
 }
@@ -1016,10 +1018,10 @@ func (tm *TorrentManager) mainLoop() {
 			tm.wg.Add(1)
 			go func() {
 				defer tm.wg.Done()
-				if err := tm.updateGlobalTrackers(); err == nil {
+				if score, health, err := tm.updateGlobalTrackers(); err == nil && score > wormhole.CAP && health > 66 {
 					timer.Reset(time.Second * params.QueryTimeInterval * 3600 * 24)
 				} else {
-					log.Error("No global tracker found", "err", err)
+					log.Warn("Network weak, rescan one hour later", "score", score, "health", health, "err", err)
 					timer.Reset(time.Second * params.QueryTimeInterval * 3600)
 				}
 			}()
