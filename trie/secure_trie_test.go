@@ -28,7 +28,10 @@ import (
 )
 
 func newEmptySecure() *StateTrie {
-	trie, _ := NewStateTrie(TrieID(common.Hash{}), NewDatabase(memorydb.New()))
+	mdb := memorydb.New()
+	db := NewDatabase(mdb)
+	db.preimages = newPreimageStore(mdb)
+	trie, _ := NewStateTrie(TrieID(common.Hash{}), db)
 	return trie
 }
 
@@ -91,7 +94,7 @@ func TestSecureDelete(t *testing.T) {
 
 func TestSecureGetKey(t *testing.T) {
 	trie := newEmptySecure()
-	trie.Update([]byte("foo"), []byte("bar"))
+	trie.TryUpdate([]byte("foo"), []byte("bar"))
 
 	key := []byte("foo")
 	value := []byte("bar")

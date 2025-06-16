@@ -77,7 +77,12 @@ func NewStateTrie(id *ID, db *Database) (*StateTrie, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &StateTrie{trie: *trie, preimages: db.preimages}, nil
+
+	tr := &StateTrie{trie: *trie}
+	if db.PreimageEnabled() {
+		tr.preimages = db.preimages
+	}
+	return tr, nil
 }
 
 // Get returns the value for key stored in the trie.
@@ -144,7 +149,9 @@ func (t *StateTrie) UpdateStorage(_ common.Address, key, value []byte) error {
 	if err != nil {
 		return err
 	}
-	t.getSecKeyCache()[common.Hash(hk)] = common.CopyBytes(key)
+	if t.preimages != nil {
+		t.getSecKeyCache()[common.Hash(hk)] = common.CopyBytes(key)
+	}
 	return nil
 }
 
@@ -159,7 +166,9 @@ func (t *StateTrie) TryUpdateAccount(key common.Address, acc *types.StateAccount
 	if err := t.trie.TryUpdate(hk, data); err != nil {
 		return err
 	}
-	t.getSecKeyCache()[common.Hash(hk)] = common.CopyBytes(key.Bytes())
+	if t.preimages != nil {
+		t.getSecKeyCache()[common.Hash(hk)] = common.CopyBytes(key.Bytes())
+	}
 	return nil
 }
 
@@ -193,7 +202,9 @@ func (t *StateTrie) TryUpdate(key, value []byte) error {
 	if err != nil {
 		return err
 	}
-	t.getSecKeyCache()[common.Hash(hk)] = common.CopyBytes(key)
+	if t.preimages != nil {
+		t.getSecKeyCache()[common.Hash(hk)] = common.CopyBytes(key)
+	}
 	return nil
 }
 
@@ -208,25 +219,29 @@ func (t *StateTrie) Delete(key []byte) {
 // If a node was not found in the database, a MissingNodeError is returned.
 func (t *StateTrie) TryDelete(key []byte) error {
 	hk := crypto.Keccak256(key)
-	delete(t.getSecKeyCache(), common.Hash(hk))
+	if t.preimages != nil {
+		delete(t.getSecKeyCache(), common.Hash(hk))
+	}
 	return t.trie.TryDelete(hk)
 }
 
 // TryDeleteACcount abstracts an account deletion from the trie.
 func (t *StateTrie) TryDeleteAccount(key []byte) error {
 	hk := crypto.Keccak256(key)
-	delete(t.getSecKeyCache(), common.Hash(hk))
+	if t.preimages != nil {
+		delete(t.getSecKeyCache(), common.Hash(hk))
+	}
 	return t.trie.TryDelete(hk)
 }
 
 // GetKey returns the sha3 preimage of a hashed key that was
 // previously used to store a value.
 func (t *StateTrie) GetKey(shaKey []byte) []byte {
-	if key, ok := t.getSecKeyCache()[common.Hash(shaKey)]; ok {
-		return key
-	}
 	if t.preimages == nil {
 		return nil
+	}
+	if key, ok := t.getSecKeyCache()[common.Hash(shaKey)]; ok {
+		return key
 	}
 	return t.preimages.preimage(common.BytesToHash(shaKey))
 }
