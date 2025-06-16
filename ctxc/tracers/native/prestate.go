@@ -250,11 +250,12 @@ func (t *prestateTracer) CaptureTxEnd(restGas uint64) {
 			delete(t.pre, addr)
 		}
 	}
-	// the new created contracts' prestate were empty, so delete them
-	for a := range t.created {
-		// the created contract maybe exists in statedb before the creating tx
-		if s := t.pre[a]; s != nil && !s.exists() {
-			delete(t.pre, a)
+
+	// Remove accounts that were empty prior to execution. Unless
+	// user requested to include empty accounts.
+	for addr, s := range t.pre {
+		if s.empty {
+			delete(t.pre, addr)
 		}
 	}
 }
