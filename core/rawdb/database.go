@@ -607,7 +607,6 @@ func SafeDeleteRange(db ctxcdb.KeyValueStore, start, end []byte, hashScheme bool
 
 	var (
 		count, deleted, skipped int
-		buff                    = crypto.NewKeccakState()
 		startTime               = time.Now()
 	)
 
@@ -620,7 +619,7 @@ func SafeDeleteRange(db ctxcdb.KeyValueStore, start, end []byte, hashScheme bool
 
 	for it.Next() && bytes.Compare(end, it.Key()) > 0 {
 		// Prevent deletion for trie nodes in hash mode
-		if len(it.Key()) != 32 || crypto.HashData(buff, it.Value()) != common.BytesToHash(it.Key()) {
+		if len(it.Key()) != 32 || crypto.Keccak256Hash(it.Value()) != common.BytesToHash(it.Key()) {
 			if err := batch.Delete(it.Key()); err != nil {
 				return err
 			}

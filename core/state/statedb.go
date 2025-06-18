@@ -82,8 +82,8 @@ type StateDB struct {
 	db         Database
 	prefetcher *triePrefetcher
 	trie       Trie
-	hasher     crypto.KeccakState
-	snap       snapshot.Snapshot // Nil if snapshot is not available
+	//hasher     crypto.KeccakState
+	snap snapshot.Snapshot // Nil if snapshot is not available
 
 	// originalRoot is the pre-state root, before any changes were made.
 	// It will be updated when the Commit is called.
@@ -186,7 +186,7 @@ func New(root common.Hash, db Database) (*StateDB, error) {
 		journal:              newJournal(),
 		accessList:           newAccessList(),
 		transientStorage:     newTransientStorage(),
-		hasher:               crypto.NewKeccakState(),
+		//hasher:               crypto.NewKeccakState(),
 	}
 	if snaps := sdb.db.Snapshot(); snaps != nil {
 		sdb.snap = snaps.Snapshot(root)
@@ -645,7 +645,8 @@ func (s *StateDB) getStateObject(addr common.Address) *stateObject {
 	var data *types.StateAccount
 	if s.snap != nil {
 		start := time.Now()
-		acc, err := s.snap.Account(crypto.HashData(s.hasher, addr.Bytes()))
+		addrHash := crypto.Keccak256Hash(addr.Bytes())
+		acc, err := s.snap.Account(addrHash)
 		s.SnapshotAccountReads += time.Since(start)
 		if err == nil {
 			if acc == nil {
@@ -781,9 +782,9 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common
 func (s *StateDB) Copy() *StateDB {
 	// Copy all the basic fields, initialize the memory ones
 	state := &StateDB{
-		db:                   s.db,
-		trie:                 s.db.CopyTrie(s.trie),
-		hasher:               crypto.NewKeccakState(),
+		db:   s.db,
+		trie: s.db.CopyTrie(s.trie),
+		//hasher:               crypto.NewKeccakState(),
 		originalRoot:         s.originalRoot,
 		accounts:             copySet(s.accounts),
 		storages:             copy2DSet(s.storages),

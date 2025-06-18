@@ -22,7 +22,7 @@ import (
 	"io"
 	"maps"
 	"math/big"
-	"sync"
+	//"sync"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -35,11 +35,11 @@ import (
 
 // hasherPool holds a pool of hashers used by state objects during concurrent
 // trie updates.
-var hasherPool = sync.Pool{
-	New: func() interface{} {
-		return crypto.NewKeccakState()
-	},
-}
+//var hasherPool = sync.Pool{
+//	New: func() interface{} {
+//		return crypto.NewKeccakState()
+//	},
+//}
 
 type Storage map[common.Hash]common.Hash
 
@@ -344,8 +344,8 @@ func (s *stateObject) updateTrie() (Trie, error) {
 	)
 	// Insert all the pending storage updates into the trie
 
-	hasher := hasherPool.Get().(crypto.KeccakState)
-	defer hasherPool.Put(hasher)
+	//hasher := hasherPool.Get().(crypto.KeccakState)
+	//defer hasherPool.Put(hasher)
 
 	// Perform trie updates before deletions.  This prevents resolution of unnecessary trie nodes
 	//  in circumstances similar to the following:
@@ -390,7 +390,8 @@ func (s *stateObject) updateTrie() (Trie, error) {
 			}
 			s.db.storagesLock.Unlock()
 		}
-		khash := crypto.HashData(hasher, key[:])
+		//khash := crypto.HashData(hasher, key[:])
+		khash := crypto.Keccak256Hash(key[:])
 		storage[khash] = v // encoded will be nil if it's deleted
 
 		// Cache the original value of mutated storage slots
