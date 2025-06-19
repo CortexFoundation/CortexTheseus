@@ -147,7 +147,11 @@ func (s *StateDB) dump(c collector, excludeCode, excludeStorage, excludeMissingP
 					log.Error("Failed to decode the value returned by iterator", "error", err)
 					continue
 				}
-				account.Storage[common.BytesToHash(s.trie.GetKey(storageIt.Key))] = common.Bytes2Hex(content)
+				key := s.trie.GetKey(storageIt.Key)
+				if key == nil {
+					continue
+				}
+				account.Storage[common.BytesToHash(key)] = common.Bytes2Hex(content)
 			}
 		}
 		c.onAccount(addr, account)
