@@ -29,6 +29,7 @@ import (
 )
 
 /*
+// !!! Dedup these with what's in c/dummy.go. TODO: Work out how to do that nicely !!!
 // !!! UPDATE THE Makefile WITH THESE DEFINES !!!
 #cgo CFLAGS: -DSQLITE_THREADSAFE=2
 #cgo CFLAGS: -DSQLITE_DEFAULT_WAL_SYNCHRONOUS=1
@@ -57,6 +58,7 @@ import (
 // !!! UPDATE THE Makefile WITH THESE DEFINES !!!
 
 #include <blocking_step.h>
+// TODO: Note this should include the version that's local to this dir. It might be possible to hook the local version when statically linking it instead.
 #include <sqlite3.h>
 #include <stdlib.h>
 #include <string.h>
@@ -633,7 +635,6 @@ type Stmt struct {
 }
 
 func (stmt *Stmt) interrupted(loc string) error {
-	loc = "Stmt." + loc
 	if stmt.prepInterrupt {
 		return reserr(loc, stmt.query, "", C.SQLITE_INTERRUPT)
 	}
@@ -689,7 +690,7 @@ func (stmt *Stmt) Reset() error {
 // https://www.sqlite.org/c3ref/clear_bindings.html
 func (stmt *Stmt) ClearBindings() error {
 	stmt.conn.count++
-	if err := stmt.interrupted("ClearBindings"); err != nil {
+	if err := stmt.interrupted("Stmt.ClearBindings"); err != nil {
 		return err
 	}
 	res := C.sqlite3_clear_bindings(stmt.stmt)
@@ -758,7 +759,7 @@ func (stmt *Stmt) Step() (rowReturned bool, err error) {
 func (stmt *Stmt) step() (bool, error) {
 	for {
 		stmt.conn.count++
-		if err := stmt.interrupted("Step"); err != nil {
+		if err := stmt.interrupted("Stmt.Step"); err != nil {
 			return false, err
 		}
 		switch res := C.sqlite3_step(stmt.stmt); uint8(res) { // reduce to non-extended error code
