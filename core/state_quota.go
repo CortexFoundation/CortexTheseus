@@ -33,7 +33,7 @@ var (
 	big0 = big.NewInt(0)
 )
 
-func (st *StateTransition) preQuotaCheck() error {
+func (st *stateTransition) preQuotaCheck() error {
 	if st.uploading() {
 		// log.Debug("state_transition", "uploading", st.uploading(), "st.state.GetNum(st.to())", st.state.GetNum(st.to()))
 		if st.state.GetNum(st.to()).Cmp(big0) <= 0 {
@@ -73,7 +73,7 @@ func (st *StateTransition) preQuotaCheck() error {
 	return nil
 }
 
-func (st *StateTransition) quotaCalculate() (quota uint64, err error) {
+func (st *stateTransition) quotaCalculate() (quota uint64, err error) {
 	if st.uploading() {
 		cur := st.state.Upload(st.to()).Uint64()
 		if cur > 0 {
@@ -126,7 +126,7 @@ func (st *StateTransition) quotaCalculate() (quota uint64, err error) {
 	return
 }
 
-func (st *StateTransition) modelGasCalculate(gu uint64) (uint64, error) {
+func (st *stateTransition) modelGasCalculate(gu uint64) (uint64, error) {
 	for addr, mgas := range st.modelGas {
 		if mgas > params.MODEL_GAS_UP_LIMIT {
 			continue

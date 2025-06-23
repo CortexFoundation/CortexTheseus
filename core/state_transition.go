@@ -93,8 +93,8 @@ The state transitioning model does all the necessary work to work out a valid ne
 6) Derive new state root
 */
 
-// StateTransition is the state of current tx in vm
-type StateTransition struct {
+// stateTransition is the state of current tx in vm
+type stateTransition struct {
 	gp           *GasPool
 	qp           *QuotaPool
 	msg          *Message
@@ -106,27 +106,27 @@ type StateTransition struct {
 }
 
 type Message struct {
-	To                *common.Address
-	From              common.Address
-	Nonce             uint64
-	Value             *big.Int
-	GasLimit          uint64
-	GasPrice          *big.Int
-	Data              []byte
-	SkipAccountChecks bool
+	To              *common.Address
+	From            common.Address
+	Nonce           uint64
+	Value           *big.Int
+	GasLimit        uint64
+	GasPrice        *big.Int
+	Data            []byte
+	SkipNonceChecks bool
 }
 
 // XXX Rename message to something less arbitrary?
 // TransactionToMessage converts a transaction into a Message.
 func TransactionToMessage(tx *types.Transaction, s types.Signer) (*Message, error) {
 	msg := &Message{
-		Nonce:             tx.Nonce(),
-		GasLimit:          tx.Gas(),
-		GasPrice:          new(big.Int).Set(tx.GasPrice()),
-		To:                tx.To(),
-		Value:             tx.Value(),
-		Data:              tx.Data(),
-		SkipAccountChecks: false,
+		Nonce:           tx.Nonce(),
+		GasLimit:        tx.Gas(),
+		GasPrice:        new(big.Int).Set(tx.GasPrice()),
+		To:              tx.To(),
+		Value:           tx.Value(),
+		Data:            tx.Data(),
+		SkipNonceChecks: false,
 	}
 
 	var err error
@@ -171,9 +171,9 @@ func IntrinsicGas(data []byte, contractCreation, upload, isHomestead, isEIP2028 
 	return gas, nil
 }
 
-// NewStateTransition initialises and returns a new state transition object.
-func NewStateTransition(cvm *vm.CVM, msg *Message, gp *GasPool, qp *QuotaPool) *StateTransition {
-	return &StateTransition{
+// newStateTransition initialises and returns a new state transition object.
+func newStateTransition(cvm *vm.CVM, msg *Message, gp *GasPool, qp *QuotaPool) *stateTransition {
+	return &stateTransition{
 		gp:    gp,
 		qp:    qp,
 		cvm:   cvm,
@@ -191,18 +191,18 @@ func NewStateTransition(cvm *vm.CVM, msg *Message, gp *GasPool, qp *QuotaPool) *
 // state and would never be accepted within a block.
 func ApplyMessage(cvm *vm.CVM, msg *Message, gp *GasPool, qp *QuotaPool) (*ExecutionResult, error) {
 	cvm.SetTxContext(NewCVMTxContext(msg))
-	return NewStateTransition(cvm, msg, gp, qp).execute()
+	return newStateTransition(cvm, msg, gp, qp).execute()
 }
 
 // to returns the recipient of the message.
-func (st *StateTransition) to() common.Address {
+func (st *stateTransition) to() common.Address {
 	if st.msg == nil || st.msg.To == nil /* contract creation */ {
 		return common.Address{}
 	}
 	return *st.msg.To
 }
 
-//func (st *StateTransition) useGas(amount uint64) error {
+//func (st *stateTransition) useGas(amount uint64) error {
 //	if st.gasRemaining < amount {
 //		return vm.ErrOutOfGas
 //	}
@@ -211,7 +211,7 @@ func (st *StateTransition) to() common.Address {
 //	return nil
 //}
 
-func (st *StateTransition) buyGas() error {
+func (st *stateTransition) buyGas() error {
 	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.GasLimit), st.msg.GasPrice)
 	if have, want := st.state.GetBalance(st.msg.From), mgval; have.Cmp(want) < 0 {
 		return fmt.Errorf("%w: address %v have %v want %v gas %v price %v", errInsufficientBalanceForGas, st.msg.From.Hex(), have, want, st.msg.GasLimit, st.msg.GasPrice)
@@ -227,16 +227,17 @@ func (st *StateTransition) buyGas() error {
 }
 
 // var confirmTime = params.CONFIRM_TIME * time.Second //-3600 * 24 * 30 * time.Second
-func (st *StateTransition) preCheck() error {
+func (st *stateTransition) preCheck() error {
 	// Make sure this transaction's nonce is correct.
-	if !st.msg.SkipAccountChecks {
-		stNonce := st.state.GetNonce(st.msg.From)
-		if msgNonce := st.msg.Nonce; stNonce < msgNonce {
-			return fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooHigh, st.msg.From.Hex(), msgNonce, stNonce)
+	msg := st.msg
+	if !msg.SkipNonceChecks {
+		stNonce := st.state.GetNonce(msg.From)
+		if msgNonce := msg.Nonce; stNonce < msgNonce {
+			return fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooHigh, msg.From.Hex(), msgNonce, stNonce)
 		} else if stNonce > msgNonce {
-			return fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooLow, st.msg.From.Hex(), msgNonce, stNonce)
+			return fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooLow, msg.From.Hex(), msgNonce, stNonce)
 		} else if stNonce+1 < stNonce {
-			return fmt.Errorf("%w: address %v, nonce: %d", ErrNonceMax, st.msg.From.Hex(), stNonce)
+			return fmt.Errorf("%w: address %v, nonce: %d", ErrNonceMax, msg.From.Hex(), stNonce)
 		}
 	}
 
@@ -249,7 +250,7 @@ func (st *StateTransition) preCheck() error {
 
 /*const interv = 5
 
-func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh chan error) {
+func (st *stateTransition) TorrentSync(meta common.Address, dir string, errCh chan error) {
 	street := big.NewInt(0).Sub(st.cvm.PeekNumber, st.cvm.BlockNumber)
 	point := big.NewInt(time.Now().Add(confirmTime).Unix())
 	if point.Cmp(st.cvm.Context.Time) > 0 || street.Cmp(big.NewInt(params.CONFIRM_BLOCKS)) > 0 {
@@ -292,7 +293,7 @@ func (st *StateTransition) TorrentSync(meta common.Address, dir string, errCh ch
 // execute will transition the state by applying the current message and
 // returning the result including the used gas. It returns an error if failed.
 // An error indicates a consensus issue.
-func (st *StateTransition) execute() (*ExecutionResult, error) {
+func (st *stateTransition) execute() (*ExecutionResult, error) {
 	if err := st.preCheck(); err != nil {
 		return nil, err
 	}
@@ -416,11 +417,11 @@ func (st *StateTransition) execute() (*ExecutionResult, error) {
 }
 
 // vote to model
-func (st *StateTransition) uploading() bool {
+func (st *stateTransition) uploading() bool {
 	return st.msg != nil && st.msg.To != nil && st.msg.Value.Sign() == 0 && st.state.Uploading(st.to()) // && st.gasRemaining >= params.UploadGas
 }
 
-func (st *StateTransition) refundGas() uint64 {
+func (st *stateTransition) refundGas() uint64 {
 	// Apply refund counter, capped to half of the used gas.
 	refund := st.gasUsed() / 2
 	if refund > st.state.GetRefund() {
@@ -440,6 +441,6 @@ func (st *StateTransition) refundGas() uint64 {
 }
 
 // gasUsed returns the amount of gas used up by the state transition.
-func (st *StateTransition) gasUsed() uint64 {
+func (st *stateTransition) gasUsed() uint64 {
 	return st.initialGas - st.gasRemaining
 }
