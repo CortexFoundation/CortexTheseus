@@ -130,10 +130,11 @@ func (tm *TorrentManager) ListAllTorrents() map[string]map[string]int {
 		}
 		if tt.Status() < 5 {
 			tts[ih] = map[string]int{
-				"status": tt.Status(),
-				"type":   tType,
-				"period": int(tt.Cited()),
-				"size":   int(tt.BytesRequested()),
+				"status":  tt.Status(),
+				"type":    tType,
+				"period":  int(tt.Cited()),
+				"size":    int(tt.Length()),
+				"pending": int(tt.BytesRequested()),
 			}
 		}
 		return true
