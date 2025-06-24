@@ -16,6 +16,8 @@
 
 package caffe
 
+const TORRENT = "torrent"
+
 const (
 	TorrentPending = iota + 1
 	TorrentPaused

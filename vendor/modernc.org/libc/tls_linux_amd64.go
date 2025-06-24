@@ -11,6 +11,6 @@ func tlsAlloc(tls *TLS, n int) uintptr {
 	return tls.Alloc(n)
 }
 
-func tlsFre(tls *TLS, n int) {
+func tlsFree(tls *TLS, n int) {
 	tls.Free(n)
 }

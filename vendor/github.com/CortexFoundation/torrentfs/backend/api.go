@@ -128,9 +128,13 @@ func (tm *TorrentManager) ListAllTorrents() map[string]map[string]int {
 		if _, ok := tm.localSeedFiles[ih]; ok {
 			tType = torrentTypeLocal
 		}
-		tts[ih] = map[string]int{
-			"status": tt.Status(),
-			"type":   tType,
+		if tt.Status() < 5 {
+			tts[ih] = map[string]int{
+				"status": tt.Status(),
+				"type":   tType,
+				"period": int(tt.Cited()),
+				"size":   int(tt.BytesRequested()),
+			}
 		}
 		return true
 	})

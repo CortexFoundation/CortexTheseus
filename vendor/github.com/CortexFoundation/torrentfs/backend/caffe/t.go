@@ -341,8 +341,6 @@ func (t *Torrent) Close() {
 	t = nil
 }
 
-const TORRENT = "torrent"
-
 func (t *Torrent) WriteTorrent() error {
 	t.Lock()
 	defer t.Unlock()
