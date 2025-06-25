@@ -166,13 +166,8 @@ type StateDB struct {
 
 // Create a new state from a given trie.
 func New(root common.Hash, db Database) (*StateDB, error) {
-	tr, err := db.OpenTrie(root)
-	if err != nil {
-		return nil, err
-	}
 	sdb := &StateDB{
 		db:                   db,
-		trie:                 tr,
 		originalRoot:         root,
 		accounts:             make(map[common.Hash][]byte),
 		storages:             make(map[common.Hash]map[common.Hash][]byte),
@@ -671,6 +666,14 @@ func (s *StateDB) getStateObject(addr common.Address) *stateObject {
 	// If snapshot unavailable or reading from it failed, load from the database
 	if data == nil {
 		start := time.Now()
+		if s.trie == nil {
+			tr, err := s.db.OpenTrie(s.originalRoot)
+			if err != nil {
+				return nil
+			}
+			s.trie = tr
+
+		}
 		enc, err := s.trie.TryGet(addr.Bytes())
 		s.AccountReads += time.Since(start)
 		if err != nil {
@@ -782,8 +785,7 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common
 func (s *StateDB) Copy() *StateDB {
 	// Copy all the basic fields, initialize the memory ones
 	state := &StateDB{
-		db:   s.db,
-		trie: s.db.CopyTrie(s.trie),
+		db: s.db,
 		//hasher:               crypto.NewKeccakState(),
 		originalRoot:         s.originalRoot,
 		accounts:             copySet(s.accounts),
@@ -807,6 +809,9 @@ func (s *StateDB) Copy() *StateDB {
 		// block mined by ourselves will cause gaps in the tree, and force the
 		// miner to operate trie-backed only.
 		snap: s.snap,
+	}
+	if s.trie != nil {
+		state.trie = mustCopyTrie(s.trie)
 	}
 	// Deep copy cached state objects.
 	for addr, obj := range s.stateObjects {
@@ -913,6 +918,20 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 	// Finalise all the dirty storage states and write them into the tries
 	s.Finalise(deleteEmptyObjects)
+	// Initialize the trie if it's not constructed yet. If the prefetch
+	// is enabled, the trie constructed below will be replaced by the
+	// prefetched one.
+	//
+	// This operation must be done before state object storage hashing,
+	// as it assumes the main trie is already loaded.
+	if s.trie == nil {
+		tr, err := s.db.OpenTrie(s.originalRoot)
+		if err != nil {
+			s.setError(err)
+			return common.Hash{}
+		}
+		s.trie = tr
+	}
 
 	// If there was a trie prefetcher operating, terminate it async so that the
 	// individual storage tries can be updated as soon as the disk load finishes.
