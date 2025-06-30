@@ -765,16 +765,24 @@ func (b *spongeBatch) Put(key, value []byte) error {
 	b.db.Put(key, value)
 	return nil
 }
-func (b *spongeBatch) Delete(key []byte) error              { panic("implement me") }
-func (b *spongeBatch) ValueSize() int                       { return 100 }
-func (b *spongeBatch) Write() error                         { return nil }
-func (b *spongeBatch) Reset()                               {}
-func (b *spongeBatch) Replay(w ctxcdb.KeyValueWriter) error { return nil }
 
 // TestCommitSequence tests that the trie.Commit operation writes the elements of the trie
 // in the expected order, and calls the callbacks in the expected order.
 // The test data was based on the 'master' code, and is basically random. It can be used
 // to check whether changes to the trie modifies the write order or data in any way.
+func (b *spongeBatch) Delete(key []byte) error              { panic("implement me") }
+func (b *spongeBatch) DeleteRange(start, end []byte) error  { panic("implement me") }
+func (b *spongeBatch) ValueSize() int                       { return 100 }
+func (b *spongeBatch) Write() error                         { return nil }
+func (b *spongeBatch) Reset()                               {}
+func (b *spongeBatch) Replay(w ctxcdb.KeyValueWriter) error { return nil }
+
+// TestCommitSequence tests that the trie.Commit operation writes the elements
+// of the trie in the expected order.
+//
+// The test data was based on the 'master' code, and is basically random.
+// It can be used to check whether changes to the trie modifies the write order
+// or data in any way.
 func TestCommitSequence(t *testing.T) {
 	for i, tc := range []struct {
 		count           int

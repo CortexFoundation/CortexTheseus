@@ -18,7 +18,6 @@
 package pebble
 
 import (
-	"bytes"
 	"fmt"
 	"runtime"
 	"sync"
@@ -364,8 +363,15 @@ func (d *Database) Delete(key []byte) error {
 func (d *Database) DeleteRange(start, end []byte) error {
 	d.quitLock.RLock()
 	defer d.quitLock.RUnlock()
+
 	if d.closed {
 		return pebble.ErrClosed
+	}
+	// There is no special flag to represent the end of key range
+	// in pebble(nil in leveldb). Use an ugly hack to construct a
+	// large key to represent it.
+	if end == nil {
+		end = ctxcdb.MaximumKey
 	}
 	return d.db.DeleteRange(start, end, d.writeOptions)
 }
@@ -476,7 +482,7 @@ func (d *Database) Compact(start []byte, limit []byte) error {
 	// 0xff-s, so 32 ensures than only a hash collision could touch it.
 	// https://github.com/cockroachdb/pebble/issues/2359#issuecomment-1443995833
 	if limit == nil {
-		limit = bytes.Repeat([]byte{0xff}, 32)
+		limit = ctxcdb.MaximumKey
 	}
 	return d.db.Compact(start, limit, true) // Parallelization is preferred
 }
@@ -618,6 +624,23 @@ func (b *batch) Delete(key []byte) error {
 	return nil
 }
 
+// DeleteRange removes all keys in the range [start, end) from the batch for
+// later committing, inclusive on start, exclusive on end.
+func (b *batch) DeleteRange(start, end []byte) error {
+	// There is no special flag to represent the end of key range
+	// in pebble(nil in leveldb). Use an ugly hack to construct a
+	// large key to represent it.
+	if end == nil {
+		end = ctxcdb.MaximumKey
+	}
+	if err := b.b.DeleteRange(start, end, nil); err != nil {
+		return err
+	}
+	// Approximate size impact - just the keys
+	b.size += len(start) + len(end)
+	return nil
+}
+
 // ValueSize retrieves the amount of data queued up for writing.
 func (b *batch) ValueSize() int {
 	return b.size
@@ -657,6 +680,15 @@ func (b *batch) Replay(w ctxcdb.KeyValueWriter) error {
 		} else if kind == pebble.InternalKeyKindDelete {
 			if err = w.Delete(k); err != nil {
 				return err
+			}
+		} else if kind == pebble.InternalKeyKindRangeDelete {
+			// For range deletion, k is the start key and v is the end key
+			if rangeDeleter, ok := w.(ctxcdb.KeyValueRangeDeleter); ok {
+				if err = rangeDeleter.DeleteRange(k, v); err != nil {
+					return err
+				}
+			} else {
+				return fmt.Errorf("ctxcdb.KeyValueWriter does not implement DeleteRange")
 			}
 		} else {
 			return fmt.Errorf("unhandled operation, keytype: %v", kind)
