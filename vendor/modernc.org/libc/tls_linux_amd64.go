@@ -6,6 +6,7 @@ package libc // import "modernc.org/libc"
 
 //go:noescape
 func TLSAlloc(p0 *TLS, p1 int) uintptr
+
 //go:noescape
 func TLSFree(p0 *TLS, p1 int)
 

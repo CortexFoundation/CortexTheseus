@@ -110,15 +110,15 @@ func NewPublicTxPoolAPI(b Backend) *PublicTxPoolAPI {
 
 // Content returns the transactions contained within the transaction pool.
 func (s *PublicTxPoolAPI) Content() map[string]map[string]map[string]*RPCTransaction {
-	content := map[string]map[string]map[string]*RPCTransaction{
-		"pending": make(map[string]map[string]*RPCTransaction),
-		"queued":  make(map[string]map[string]*RPCTransaction),
-	}
 	pending, queue := s.b.TxPoolContent()
+	content := map[string]map[string]map[string]*RPCTransaction{
+		"pending": make(map[string]map[string]*RPCTransaction, len(pending)),
+		"queued":  make(map[string]map[string]*RPCTransaction, len(queue)),
+	}
 
 	// Flatten the pending transactions
 	for account, txs := range pending {
-		dump := make(map[string]*RPCTransaction)
+		dump := make(map[string]*RPCTransaction, len(txs))
 		for _, tx := range txs {
 			dump[fmt.Sprintf("%d", tx.Nonce())] = newRPCPendingTransaction(tx)
 		}
@@ -126,7 +126,7 @@ func (s *PublicTxPoolAPI) Content() map[string]map[string]map[string]*RPCTransac
 	}
 	// Flatten the queued transactions
 	for account, txs := range queue {
-		dump := make(map[string]*RPCTransaction)
+		dump := make(map[string]*RPCTransaction, len(txs))
 		for _, tx := range txs {
 			dump[fmt.Sprintf("%d", tx.Nonce())] = newRPCPendingTransaction(tx)
 		}
@@ -170,11 +170,11 @@ func (s *PublicTxPoolAPI) Status() map[string]hexutil.Uint {
 // Inspect retrieves the content of the transaction pool and flattens it into an
 // easily inspectable list.
 func (s *PublicTxPoolAPI) Inspect() map[string]map[string]map[string]string {
-	content := map[string]map[string]map[string]string{
-		"pending": make(map[string]map[string]string),
-		"queued":  make(map[string]map[string]string),
-	}
 	pending, queue := s.b.TxPoolContent()
+	content := map[string]map[string]map[string]string{
+		"pending": make(map[string]map[string]string, len(pending)),
+		"queued":  make(map[string]map[string]string, len(queue)),
+	}
 
 	// Define a formatter to flatten a transaction into a string
 	var format = func(tx *types.Transaction) string {
@@ -185,7 +185,7 @@ func (s *PublicTxPoolAPI) Inspect() map[string]map[string]map[string]string {
 	}
 	// Flatten the pending transactions
 	for account, txs := range pending {
-		dump := make(map[string]string)
+		dump := make(map[string]string, len(txs))
 		for _, tx := range txs {
 			dump[fmt.Sprintf("%d", tx.Nonce())] = format(tx)
 		}
@@ -193,7 +193,7 @@ func (s *PublicTxPoolAPI) Inspect() map[string]map[string]map[string]string {
 	}
 	// Flatten the queued transactions
 	for account, txs := range queue {
-		dump := make(map[string]string)
+		dump := make(map[string]string, len(txs))
 		for _, tx := range txs {
 			dump[fmt.Sprintf("%d", tx.Nonce())] = format(tx)
 		}
