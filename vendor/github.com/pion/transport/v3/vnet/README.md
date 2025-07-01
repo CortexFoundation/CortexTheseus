@@ -227,5 +227,6 @@ func (a *Agent) listenUDP(...) error {
   - Total number of connection failure (TCP)
 
 ## References
-* [Comparing Simulated Packet Loss and RealWorld Network Congestion](https://www.riverbed.com/document/fpo/WhitePaper-Riverbed-SimulatedPacketLoss.pdf)
+* [Comparing Simulated Packet Loss and RealWorld Network Congestion](https://www.riverbed.com/document-repository/)  
+  (Note: The original Riverbed SimulatedPacketLoss.pdf is no longer available. Please search the Riverbed resource library for similar white papers.)
 * [wireguard-go using GVisor's netstack](https://github.com/WireGuard/wireguard-go/tree/master/tun/netstack)
