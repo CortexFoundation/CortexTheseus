@@ -384,6 +384,9 @@ func (dl *downloadTester) SetHead(head uint64) error {
 func (dl *downloadTester) Rollback(hashes []common.Hash) {
 }
 
+func (bc *downloadTester) InterruptInsert(on bool) {
+}
+
 // newPeer registers a new block download source into the downloader.
 func (dl *downloadTester) newPeer(id string, version int, chain *testChain) error {
 	dl.lock.Lock()
