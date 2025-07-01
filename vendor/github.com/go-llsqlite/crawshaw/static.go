@@ -17,5 +17,4 @@
 
 package sqlite
 
-// #include "./c/sqlite3.c"
-import "C"
+import _ "github.com/go-llsqlite/crawshaw/c"

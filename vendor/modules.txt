@@ -586,7 +586,7 @@ github.com/getsentry/sentry-go/internal/ratelimit
 ## explicit; go 1.18
 github.com/go-llsqlite/adapter
 github.com/go-llsqlite/adapter/sqlitex
-# github.com/go-llsqlite/crawshaw v0.5.5
+# github.com/go-llsqlite/crawshaw v0.6.0
 ## explicit; go 1.18
 github.com/go-llsqlite/crawshaw
 github.com/go-llsqlite/crawshaw/c
@@ -902,7 +902,7 @@ github.com/pion/interceptor/pkg/nack
 github.com/pion/interceptor/pkg/report
 github.com/pion/interceptor/pkg/rfc8888
 github.com/pion/interceptor/pkg/twcc
-# github.com/pion/logging v0.2.3
+# github.com/pion/logging v0.2.4
 ## explicit; go 1.20
 github.com/pion/logging
 # github.com/pion/mdns/v2 v2.0.7
@@ -983,7 +983,7 @@ github.com/prometheus/client_golang/prometheus/internal
 # github.com/prometheus/client_model v0.6.2
 ## explicit; go 1.22.0
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.64.0
+# github.com/prometheus/common v0.65.0
 ## explicit; go 1.23.0
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/model
@@ -1172,7 +1172,7 @@ golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/exp v0.0.0-20250606033433-dcc06ee1d476
+# golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b
 ## explicit; go 1.23.0
 golang.org/x/exp/constraints
 golang.org/x/exp/rand
