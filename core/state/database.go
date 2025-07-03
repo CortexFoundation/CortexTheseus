@@ -248,3 +248,13 @@ func (db *CachingDB) Snapshot() *snapshot.Tree {
 func (db *CachingDB) SetSnapshot(snap *snapshot.Tree) {
 	db.snap = snap
 }
+
+// mustCopyTrie returns a deep-copied trie.
+func mustCopyTrie(t Trie) Trie {
+	switch t := t.(type) {
+	case *trie.StateTrie:
+		return t.Copy()
+	default:
+		panic(fmt.Errorf("unknown trie type %T", t))
+	}
+}

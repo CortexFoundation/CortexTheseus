@@ -32,6 +32,8 @@ import (
 type NodeIterator struct {
 	state *StateDB // State being iterated
 
+	tr Trie // Primary account trie for traversal
+
 	stateIt trie.NodeIterator // Primary iterator for the global state trie
 	dataIt  trie.NodeIterator // Secondary iterator for the data trie of a contract
 
@@ -74,9 +76,20 @@ func (it *NodeIterator) step() error {
 	if it.state == nil {
 		return nil
 	}
+	if it.tr == nil {
+		tr, err := it.state.db.OpenTrie(it.state.originalRoot)
+		if err != nil {
+			return err
+		}
+		it.tr = tr
+	}
 	// Initialize the iterator if we've just started
 	if it.stateIt == nil {
-		it.stateIt = it.state.trie.NodeIterator(nil)
+		stateIt := it.tr.NodeIterator(nil)
+		if stateIt == nil {
+			return errors.New("state iter is nil")
+		}
+		it.stateIt = stateIt
 	}
 	// If we had data nodes previously, we surely have at least state nodes
 	if it.dataIt != nil {
@@ -111,15 +124,14 @@ func (it *NodeIterator) step() error {
 		return err
 	}
 	// Lookup the preimage of account hash
-	preimage := it.state.trie.GetKey(it.stateIt.LeafKey())
+	preimage := it.tr.GetKey(it.stateIt.LeafKey())
 	if preimage == nil {
 		return errors.New("account address is not available")
 	}
 	address := common.BytesToAddress(preimage)
 
 	// Traverse the storage slots belong to the account
-	dataTrie, err := it.state.db.OpenStorageTrie(it.state.originalRoot, address, account.Root, it.state.trie)
-	//dataTrie, err := it.state.db.OpenStorageTrie(common.BytesToAddress(it.stateIt.LeafKey()), account.Root)
+	dataTrie, err := it.state.db.OpenStorageTrie(it.state.originalRoot, address, account.Root, it.tr)
 	if err != nil {
 		return err
 	}
