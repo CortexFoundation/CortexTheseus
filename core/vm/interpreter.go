@@ -201,10 +201,11 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	}
 
 	var (
-		op    OpCode        // current opcode
-		mem   = NewMemory() // bound memory
-		stack = newstack()  // local stack
-		scope = &ScopeContext{
+		op          OpCode     // current opcode
+		jumpTable   *JumpTable = in.table
+		mem                    = NewMemory() // bound memory
+		stack                  = newstack()  // local stack
+		callContext            = &ScopeContext{
 			Memory:   mem,
 			Stack:    stack,
 			Contract: contract,
@@ -235,9 +236,9 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		defer func() {
 			if err != nil {
 				if !logged {
-					in.cvm.Config().Tracer.CaptureState(pcCopy, op, gasCopy, cost, scope, in.returnData, in.cvm.depth, err)
+					in.cvm.Config().Tracer.CaptureState(pcCopy, op, gasCopy, cost, callContext, in.returnData, in.cvm.depth, err)
 				} else {
-					in.cvm.Config().Tracer.CaptureFault(pcCopy, op, gasCopy, cost, scope, in.cvm.depth, err)
+					in.cvm.Config().Tracer.CaptureFault(pcCopy, op, gasCopy, cost, callContext, in.cvm.depth, err)
 				}
 			}
 		}()
@@ -252,6 +253,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	}
 	cgas := uint64(0)
 	//for atomic.LoadInt32(&in.cvm.abort) == 0 {
+	_ = jumpTable[0] // nil-check the jumpTable out of the loop
 	for {
 		if debug {
 			// Capture pre-execution values for tracing.
@@ -261,7 +263,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		// Get the operation from the jump table and validate the stack to ensure there are
 		// enough stack items available to perform the operation.
 		op = contract.GetOp(pc)
-		operation := in.table[op]
+		operation := jumpTable[op]
 		//if operation == nil {
 		//	return nil, fmt.Errorf("invalid opcode 0x%x", int(op))
 		//}
@@ -329,7 +331,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 
 		if debug {
-			in.cvm.Config().Tracer.CaptureState(pc, op, gasCopy, cost, scope, in.returnData, in.cvm.depth, err)
+			in.cvm.Config().Tracer.CaptureState(pc, op, gasCopy, cost, callContext, in.returnData, in.cvm.depth, err)
 			logged = true
 		}
 
@@ -338,7 +340,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 
 		// execute the operation
-		ret, err = operation.execute(&pc, in, scope)
+		ret, err = operation.execute(&pc, in, callContext)
 		if in.cvm.Config().RPC_GetInternalTransaction {
 			if op == CALL {
 				res = append(res, ret...)
