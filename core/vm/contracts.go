@@ -36,6 +36,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/crypto/blake2b"
 	"github.com/CortexFoundation/CortexTheseus/crypto/bn256"
 	"github.com/CortexFoundation/CortexTheseus/crypto/kzg4844"
+	"github.com/CortexFoundation/CortexTheseus/crypto/secp256r1"
 	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
@@ -140,6 +141,38 @@ var PrecompiledContractsPrague = map[common.Address]PrecompiledContract{
 }
 
 var PrecompiledContractsBLS = PrecompiledContractsPrague
+
+var PrecompiledContractsVerkle = PrecompiledContractsBerlin
+
+// PrecompiledContractsOsaka contains the set of pre-compiled Ethereum
+// contracts used in the Osaka release.
+var PrecompiledContractsOsaka = PrecompiledContracts{
+	common.BytesToAddress([]byte{0x01}): &ecrecover{},
+	common.BytesToAddress([]byte{0x02}): &sha256hash{},
+	common.BytesToAddress([]byte{0x03}): &ripemd160hash{},
+	common.BytesToAddress([]byte{0x04}): &dataCopy{},
+	common.BytesToAddress([]byte{0x05}): &bigModExp{eip2565: true, eip7823: true, eip7883: true},
+	common.BytesToAddress([]byte{0x06}): &bn256AddIstanbul{},
+	common.BytesToAddress([]byte{0x07}): &bn256ScalarMulIstanbul{},
+	common.BytesToAddress([]byte{0x08}): &bn256PairingIstanbul{},
+	common.BytesToAddress([]byte{0x09}): &blake2F{},
+	common.BytesToAddress([]byte{0x0a}): &kzgPointEvaluation{},
+	common.BytesToAddress([]byte{0x0b}): &bls12381G1Add{},
+	common.BytesToAddress([]byte{0x0c}): &bls12381G1MultiExp{},
+	common.BytesToAddress([]byte{0x0d}): &bls12381G2Add{},
+	common.BytesToAddress([]byte{0x0e}): &bls12381G2MultiExp{},
+	common.BytesToAddress([]byte{0x0f}): &bls12381Pairing{},
+	common.BytesToAddress([]byte{0x10}): &bls12381MapG1{},
+	common.BytesToAddress([]byte{0x11}): &bls12381MapG2{},
+
+	common.BytesToAddress([]byte{0x1, 0x00}): &p256Verify{},
+}
+
+// PrecompiledContractsP256Verify contains the precompiled Ethereum
+// contract specified in EIP-7212. This is exported for testing purposes.
+var PrecompiledContractsP256Verify = PrecompiledContracts{
+	common.BytesToAddress([]byte{0x1, 0x00}): &p256Verify{},
+}
 
 var (
 	PrecompiledAddressesPrague    []common.Address
@@ -293,6 +326,8 @@ func (c *dataCopy) Run(in []byte) ([]byte, error) {
 // bigModExp implements a native big integer exponential modular operation.
 type bigModExp struct {
 	eip2565 bool
+	eip7823 bool
+	eip7883 bool
 }
 
 var (
@@ -1150,4 +1185,32 @@ func kZGToVersionedHash(kzg kzg4844.Commitment) common.Hash {
 	h[0] = blobCommitmentVersionKZG
 
 	return h
+}
+
+// P256VERIFY (secp256r1 signature verification)
+// implemented as a native contract
+type p256Verify struct{}
+
+// RequiredGas returns the gas required to execute the precompiled contract
+func (c *p256Verify) RequiredGas(input []byte) uint64 {
+	return params.P256VerifyGas
+}
+
+// Run executes the precompiled contract with given 160 bytes of param, returning the output and the used gas
+func (c *p256Verify) Run(input []byte) ([]byte, error) {
+	const p256VerifyInputLength = 160
+	if len(input) != p256VerifyInputLength {
+		return nil, nil
+	}
+
+	// Extract hash, r, s, x, y from the input.
+	hash := input[0:32]
+	r, s := new(big.Int).SetBytes(input[32:64]), new(big.Int).SetBytes(input[64:96])
+	x, y := new(big.Int).SetBytes(input[96:128]), new(big.Int).SetBytes(input[128:160])
+
+	// Verify the signature.
+	if secp256r1.Verify(hash, r, s, x, y) {
+		return true32Byte, nil
+	}
+	return nil, nil
 }
