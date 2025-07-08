@@ -30,6 +30,7 @@ var activators = map[int]func(*JumpTable){
 	2200: enable2200,
 	1884: enable1884,
 	1344: enable1344,
+	7939: enable7939,
 }
 
 // EnableEIP enables the given EIP on the config.
@@ -47,6 +48,21 @@ func EnableEIP(eipNum int, jt *JumpTable) error {
 		return fmt.Errorf("undefined eip %d", eipNum)
 	}
 	return nil
+}
+
+// opCLZ implements the CLZ opcode (count leading zero bytes)
+func opCLZ(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	x := scope.Stack.peek()
+	x.SetUint64(256 - uint64(x.BitLen()))
+	return nil, nil
+}
+
+func enable7939(jt *JumpTable) {
+	jt[CLZ] = &operation{
+		execute:       opCLZ,
+		gasCost:       constGasFunc(GasFastestStep),
+		validateStack: makeStackFunc(1, 1),
+	}
 }
 
 // enable5656 enables EIP-5656 (MCOPY opcode)

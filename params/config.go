@@ -131,6 +131,8 @@ var (
 		PetersburgBlock:               big.NewInt(0),
 		IstanbulBlock:                 big.NewInt(3_230_000),
 		NeoBlock:                      big.NewInt(4_650_000),
+		MergeBlock:                    nil,
+		OsakaTime:                     nil,
 		TerminalTotalDifficulty:       nil,
 		TerminalTotalDifficultyPassed: false,
 		Cuckoo:                        new(CuckooConfig),
@@ -151,6 +153,8 @@ var (
 		PetersburgBlock:               big.NewInt(0),
 		IstanbulBlock:                 big.NewInt(0),
 		NeoBlock:                      big.NewInt(5_000_000),
+		MergeBlock:                    nil,
+		OsakaTime:                     nil,
 		TerminalTotalDifficulty:       nil,
 		TerminalTotalDifficultyPassed: false,
 		Clique: &CliqueConfig{
@@ -174,6 +178,8 @@ var (
 		PetersburgBlock:               big.NewInt(0),
 		IstanbulBlock:                 big.NewInt(0),
 		NeoBlock:                      big.NewInt(0),
+		MergeBlock:                    nil,
+		OsakaTime:                     nil,
 		TerminalTotalDifficulty:       nil,
 		TerminalTotalDifficultyPassed: false,
 		Cuckoo:                        new(CuckooConfig),
@@ -194,6 +200,8 @@ var (
 		PetersburgBlock:               big.NewInt(0),
 		IstanbulBlock:                 big.NewInt(0),
 		NeoBlock:                      big.NewInt(0),
+		MergeBlock:                    nil,
+		OsakaTime:                     nil,
 		TerminalTotalDifficulty:       nil,
 		TerminalTotalDifficultyPassed: false,
 		Clique: &CliqueConfig{
@@ -221,6 +229,8 @@ var (
 		PetersburgBlock:               big.NewInt(0),
 		IstanbulBlock:                 nil,
 		NeoBlock:                      nil,
+		MergeBlock:                    nil,
+		OsakaTime:                     nil,
 		TerminalTotalDifficulty:       nil,
 		TerminalTotalDifficultyPassed: false,
 		Cuckoo:                        new(CuckooConfig),
@@ -231,9 +241,9 @@ var (
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllCliqueProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, nil, false, nil, &CliqueConfig{Period: 0, Epoch: 30000}}
+	AllCliqueProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, nil, nil, nil, false, nil, &CliqueConfig{Period: 0, Epoch: 30000}}
 
-	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, nil, false, new(CuckooConfig), nil}
+	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, nil, nil, nil, false, new(CuckooConfig), nil}
 	TestRules       = TestChainConfig.Rules(new(big.Int), false, 0)
 )
 
@@ -269,6 +279,8 @@ type ChainConfig struct {
 	PetersburgBlock     *big.Int `json:"petersburgBlock,omitempty"`     // Petersburg switch block (nil = same as Constantinople)
 	IstanbulBlock       *big.Int `json:"istanbulBlock,omitempty"`       // Istanbul switch block (nil = no fork, 0 = already on istanbul)
 	NeoBlock            *big.Int `json:"neoBlock,omitempty"`
+	MergeBlock          *big.Int `json:"mergeBlock,omitempty"`
+	OsakaTime           *uint64  `json:"osakaTime,omitempty"` // Osaka switch time (nil = no fork, 0 = already on osaka)
 	// TerminalTotalDifficulty is the amount of total difficulty reached by
 	// the network that triggers the consensus upgrade.
 	TerminalTotalDifficulty *big.Int `json:"terminalTotalDifficulty,omitempty"`
@@ -376,6 +388,10 @@ func (c *ChainConfig) IsIstanbul(num *big.Int) bool {
 
 func (c *ChainConfig) IsNeo(num *big.Int) bool {
 	return isForked(c.NeoBlock, num)
+}
+
+func (c *ChainConfig) IsMerge(num *big.Int) bool {
+	return isForked(c.MergeBlock, num)
 }
 
 // IsTerminalPoWBlock returns whether the given block is the last block of PoW stage.
@@ -625,7 +641,7 @@ type Rules struct {
 	ChainID                                                        *big.Int
 	IsHomestead, IsEIP150, IsEIP155, IsEIP158                      bool
 	IsByzantium, IsConstantinople, IsPetersburg, IsIstanbul, IsNeo bool
-	IsMerge                                                        bool
+	IsMerge, IsOsaka                                               bool
 }
 
 // Rules ensures c's ChainID is not nil.
@@ -634,7 +650,7 @@ func (c *ChainConfig) Rules(num *big.Int, isMerge bool, timestamp uint64) Rules 
 	if chainID == nil {
 		chainID = new(big.Int)
 	}
-	return Rules{ChainID: new(big.Int).Set(chainID), IsHomestead: c.IsHomestead(num), IsEIP150: c.IsEIP150(num), IsEIP155: c.IsEIP155(num), IsEIP158: c.IsEIP158(num), IsByzantium: c.IsByzantium(num), IsPetersburg: c.IsPetersburg(num), IsIstanbul: c.IsIstanbul(num), IsNeo: c.IsNeo(num), IsMerge: isMerge}
+	return Rules{ChainID: new(big.Int).Set(chainID), IsHomestead: c.IsHomestead(num), IsEIP150: c.IsEIP150(num), IsEIP155: c.IsEIP155(num), IsEIP158: c.IsEIP158(num), IsByzantium: c.IsByzantium(num), IsPetersburg: c.IsPetersburg(num), IsIstanbul: c.IsIstanbul(num), IsNeo: c.IsNeo(num), IsMerge: isMerge, IsOsaka: isMerge && c.IsOsaka(num, timestamp)}
 }
 
 // Get Mature Block
@@ -646,6 +662,11 @@ func (c *ChainConfig) GetMatureBlock() int64 {
 		return DoloresMatureBlks
 	}
 	return MatureBlks
+}
+
+// IsOsaka returns whether time is either equal to the Osaka fork time or greater.
+func (c *ChainConfig) IsOsaka(num *big.Int, time uint64) bool {
+	return c.IsMerge(num) && isTimestampForked(c.OsakaTime, time)
 }
 
 // Get Block uploading quota
