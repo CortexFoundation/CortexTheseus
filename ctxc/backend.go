@@ -268,7 +268,11 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 
 	log.Info("History cutoff", "cut", historyCutoff, "final", finalBlock)
 
-	ctxc.filterMaps = filtermaps.NewFilterMaps(chainDb, chainView, historyCutoff, finalBlock, filtermaps.DefaultParams, fmConfig)
+	filterMaps, err := filtermaps.NewFilterMaps(chainDb, chainView, historyCutoff, finalBlock, filtermaps.DefaultParams, fmConfig)
+	if err != nil {
+		return nil, err
+	}
+	ctxc.filterMaps = filterMaps
 	ctxc.closeFilterMaps = make(chan chan struct{})
 
 	// Rewind the chain in case of an incompatible config upgrade.
