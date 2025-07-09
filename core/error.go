@@ -70,4 +70,8 @@ var (
 	ErrInsufficientFundsForTransfer = errors.New("insufficient funds for transfer")
 
 	ErrGasLimitTooHigh = errors.New("transaction gas limit too high")
+
+	// ErrBlockOversized is returned if the size of the RLP-encoded block
+	// exceeds the cap established by EIP 7934
+	ErrBlockOversized = errors.New("block RLP-encoded size exceeds maximum")
 )
