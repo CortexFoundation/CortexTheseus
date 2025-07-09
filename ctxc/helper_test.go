@@ -32,6 +32,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/forkid"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
+	"github.com/CortexFoundation/CortexTheseus/core/txpool"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
@@ -142,7 +143,7 @@ func (p *testTxPool) AddRemotes(txs []*types.Transaction) []error {
 }
 
 // Pending returns all the transactions known to the pool
-func (p *testTxPool) Pending(b bool) map[common.Address]types.Transactions {
+func (p *testTxPool) Pending(b txpool.PendingFilter) map[common.Address]types.Transactions {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 

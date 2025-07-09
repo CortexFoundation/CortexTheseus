@@ -231,6 +231,10 @@ func (config *Config) sanitize() Config {
 	return conf
 }
 
+type PendingFilter struct {
+	GasLimitCap uint64 // Maximum gas can be used for a single transaction execution (0 means no limit)
+}
+
 // TxPool contains all currently known transactions. Transactions
 // enter the pool when they are received from the network or submitted
 // locally. They exit the pool when they are included in the blockchain.
@@ -524,13 +528,27 @@ func (pool *TxPool) ContentFrom(addr common.Address) (types.Transactions, types.
 // Pending retrieves all currently processable transactions, grouped by origin
 // account and sorted by nonce. The returned transaction set is a copy and can be
 // freely modified by calling code.
-func (pool *TxPool) Pending(enforceTips bool) map[common.Address]types.Transactions {
+func (pool *TxPool) Pending(filter PendingFilter) map[common.Address]types.Transactions {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
 	pending := make(map[common.Address]types.Transactions, len(pool.pending))
 	for addr, list := range pool.pending {
-		pending[addr] = list.Flatten()
+		//pending[addr] = list.Flatten()
+		txs := list.Flatten()
+		if filter.GasLimitCap != 0 {
+			for i, tx := range txs {
+				if filter.GasLimitCap != 0 {
+					if tx.Gas() > filter.GasLimitCap {
+						txs = txs[:i]
+						break
+					}
+				}
+			}
+		}
+		if len(txs) > 0 {
+			pending[addr] = txs
+		}
 	}
 	return pending
 }
@@ -568,6 +586,9 @@ func (pool *TxPool) validateTxBasics(tx *types.Transaction, local bool) error {
 	if tx.Size() > txMaxSize {
 		return ErrOversizedData
 	}
+	//if pool.chainconfig.IsOsaka && tx.Gas() > params.MaxTxGas {
+	//	return fmt.Errorf("%w (cap: %d, tx: %d)", core.ErrGasLimitTooHigh, params.MaxTxGas, tx.Gas())
+	//}
 	// Transactions can't be negative. This may never happen using RLP decoded
 	// transactions but may occur if you create a transaction using the RPC.
 	if tx.Value().Sign() < 0 {
@@ -1191,6 +1212,21 @@ func (pool *TxPool) runReorg(done chan struct{}, reset *txpoolResetRequest, dirt
 	}
 	pool.mu.Lock()
 	if reset != nil {
+		if reset.newHead != nil && reset.oldHead != nil {
+			// Discard the transactions with the gas limit higher than the cap.
+			if pool.chainconfig.IsOsaka(reset.newHead.Number, reset.newHead.Time) && !pool.chainconfig.IsOsaka(reset.oldHead.Number, reset.oldHead.Time) {
+				var hashes []common.Hash
+				pool.all.Range(func(hash common.Hash, tx *types.Transaction, local bool) bool {
+					if tx.Gas() > params.MaxTxGas {
+						hashes = append(hashes, hash)
+					}
+					return true
+				}, false, true)
+				for _, hash := range hashes {
+					pool.removeTx(hash, true)
+				}
+			}
+		}
 		// Reset from the old head to the new, rescheduling any reorged transactions
 		pool.reset(reset.oldHead, reset.newHead)
 
