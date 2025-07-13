@@ -18,6 +18,7 @@ package vm
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/holiman/uint256"
 
@@ -37,17 +38,25 @@ var activators = map[int]func(*JumpTable){
 // This operation writes in-place, and callers need to ensure that the globally
 // defined jump tables are not polluted.
 func EnableEIP(eipNum int, jt *JumpTable) error {
-	switch eipNum {
-	case 2200:
-		enable2200(jt)
-	case 1884:
-		enable1884(jt)
-	case 1344:
-		enable1344(jt)
-	default:
+	enablerFn, ok := activators[eipNum]
+	if !ok {
 		return fmt.Errorf("undefined eip %d", eipNum)
 	}
+	enablerFn(jt)
 	return nil
+}
+
+func ValidEip(eipNum int) bool {
+	_, ok := activators[eipNum]
+	return ok
+}
+func ActivateableEips() []string {
+	var nums []string
+	for k := range activators {
+		nums = append(nums, fmt.Sprintf("%d", k))
+	}
+	sort.Strings(nums)
+	return nums
 }
 
 // opCLZ implements the CLZ opcode (count leading zero bytes)
