@@ -89,7 +89,7 @@ const (
 
 // 0x40 range - block operations.
 const (
-	BLOCKHASH   OpCode = 0x40 + iota
+	BLOCKHASH   OpCode = 0x40
 	COINBASE    OpCode = 0x41
 	TIMESTAMP   OpCode = 0x42
 	NUMBER      OpCode = 0x43
