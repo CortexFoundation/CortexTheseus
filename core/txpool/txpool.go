@@ -18,6 +18,7 @@ package txpool
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"sort"
@@ -581,14 +582,16 @@ func (pool *TxPool) local() map[common.Address]types.Transactions {
 // rules, but does not check state-dependent validation such as sufficient balance.
 // This check is meant as an early check which only needs to be performed once,
 // and does not require the pool mutex to be held.
-func (pool *TxPool) validateTxBasics(tx *types.Transaction, local bool) error {
+func (pool *TxPool) validateTxBasics(tx *types.Transaction, head *types.Header, local bool) error {
 	// Reject transactions over defined size to prevent DOS attacks
 	if tx.Size() > txMaxSize {
 		return ErrOversizedData
 	}
-	//if pool.chainconfig.IsOsaka && tx.Gas() > params.MaxTxGas {
-	//	return fmt.Errorf("%w (cap: %d, tx: %d)", core.ErrGasLimitTooHigh, params.MaxTxGas, tx.Gas())
-	//}
+	rules := pool.chainconfig.Rules(head.Number, true, head.Time)
+	//if pool.chainconfig.IsOsaka(head.Number, head.Time) && tx.Gas() > params.MaxTxGas {
+	if rules.IsOsaka && tx.Gas() > params.MaxTxGas {
+		return fmt.Errorf("%w (cap: %d, tx: %d)", core.ErrGasLimitTooHigh, params.MaxTxGas, tx.Gas())
+	}
 	// Transactions can't be negative. This may never happen using RLP decoded
 	// transactions but may occur if you create a transaction using the RPC.
 	if tx.Value().Sign() < 0 {
@@ -961,7 +964,7 @@ func (pool *TxPool) addTxs(txs []*types.Transaction, local, sync bool) []error {
 		// insufficient intrinsic gas as soon as possible and cache senders
 		// in transactions before obtaining lock
 
-		if err := pool.validateTxBasics(tx, local); err != nil {
+		if err := pool.validateTxBasics(tx, pool.chain.CurrentBlock().Header(), local); err != nil {
 			errs[i] = err
 			invalidTxMeter.Mark(1)
 			continue
