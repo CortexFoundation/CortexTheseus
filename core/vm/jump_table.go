@@ -53,6 +53,7 @@ var (
 	neoInstructionSet              = newNeoInstructionSet()
 
 	mergeInstructionSet = newMergeInstructionSet()
+	osakaInstructionSet = newOsakaInstructionSet()
 )
 
 // JumpTable contains the CVM opcodes supported at a given fork.
@@ -65,6 +66,12 @@ func validate(jt JumpTable) JumpTable {
 		}
 	}
 	return jt
+}
+
+func newOsakaInstructionSet() JumpTable {
+	instructionSet := newMergeInstructionSet()
+	enable7939(&instructionSet) // EIP-7939 (CLZ opcode)
+	return validate(instructionSet)
 }
 
 func newMergeInstructionSet() JumpTable {
