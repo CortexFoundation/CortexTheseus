@@ -23,6 +23,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
+	"github.com/CortexFoundation/CortexTheseus/core/txpool"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
 	"github.com/CortexFoundation/CortexTheseus/log"
@@ -52,7 +53,7 @@ func (pm *ProtocolManager) syncTransactions(p *peer) {
 	//
 	// TODO(karalabe): Figure out if we could get away with random order somehow
 	var txs types.Transactions
-	pending := pm.txpool.Pending(false)
+	pending := pm.txpool.Pending(txpool.PendingFilter{})
 	for _, batch := range pending {
 		txs = append(txs, batch...)
 	}

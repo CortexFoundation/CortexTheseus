@@ -27,6 +27,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/consensus"
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/state"
+	"github.com/CortexFoundation/CortexTheseus/core/txpool"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/log"
@@ -998,9 +999,13 @@ func (w *worker) commitNewWork(interrupt *atomic.Int32, noempty bool, timestamp 
 // into the given sealing block. The transaction selection and ordering strategy can
 // be customized with the plugin in the future.
 func (w *worker) fillTransactions(interrupt *atomic.Int32, env *environment) error {
+	filter := txpool.PendingFilter{}
+	if w.chainConfig.IsOsaka(env.header.Number, env.header.Time) {
+		filter.GasLimitCap = params.MaxTxGas
+	}
 	// Split the pending transactions into locals and remotes
 	// Fill the block with all available pending transactions.
-	pending := w.ctxc.TxPool().Pending(true)
+	pending := w.ctxc.TxPool().Pending(filter)
 	localTxs, remoteTxs := make(map[common.Address]types.Transactions), pending
 	for _, account := range w.ctxc.TxPool().Locals() {
 		if txs := remoteTxs[account]; len(txs) > 0 {

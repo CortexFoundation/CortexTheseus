@@ -29,6 +29,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/forkid"
+	"github.com/CortexFoundation/CortexTheseus/core/txpool"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/ctxc/downloader"
@@ -95,7 +96,7 @@ type txPool interface {
 
 	// Pending should return pending transactions.
 	// The slice should be modifiable by the caller.
-	Pending(enforceTips bool) map[common.Address]types.Transactions
+	Pending(filter txpool.PendingFilter) map[common.Address]types.Transactions
 
 	// SubscribeNewTxsEvent should return an event subscription of
 	// NewTxsEvent and send events to the given channel.

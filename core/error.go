@@ -68,4 +68,6 @@ var (
 
 	//ErrMetaInfoNotMature     = errors.New("cvm: errMetaInfoNotMature")
 	ErrInsufficientFundsForTransfer = errors.New("insufficient funds for transfer")
+
+	ErrGasLimitTooHigh = errors.New("transaction gas limit too high")
 )
