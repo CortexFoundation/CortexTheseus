@@ -25,6 +25,8 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
+func newUint64(val uint64) *uint64 { return &val }
+
 // Genesis hashes to enforce below configs on.
 var (
 	MainnetGenesisHash = common.HexToHash("0x21d6ce908e2d1464bd74bbdbf7249845493cc1ba10460758169b978e187762c1")
