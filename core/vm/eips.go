@@ -60,7 +60,7 @@ func opCLZ(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte
 func enable7939(jt *JumpTable) {
 	jt[CLZ] = &operation{
 		execute:       opCLZ,
-		gasCost:       constGasFunc(GasFastestStep),
+		gasCost:       constGasFunc(GasFastStep),
 		validateStack: makeStackFunc(1, 1),
 	}
 }
