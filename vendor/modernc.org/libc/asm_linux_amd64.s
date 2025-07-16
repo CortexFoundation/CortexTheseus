@@ -3,6 +3,23 @@
 #include "funcdata.h"
 #include "textflag.h"
 
+// func Y__assert_fail(tls *TLS, expr uintptr, file uintptr, line int32, func1 uintptr)
+TEXT ·Y__assert_fail(SB),$40-40
+	GO_ARGS
+	NO_LOCAL_POINTERS
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ expr+8(FP), AX
+	MOVQ AX, 8(SP)
+	MOVQ file+16(FP), AX
+	MOVQ AX, 16(SP)
+	MOVL line+24(FP), AX
+	MOVL AX, 24(SP)
+	MOVQ func1+32(FP), AX
+	MOVQ AX, 32(SP)
+	CALL ·X__assert_fail(SB)
+	RET
+
 // func Y__builtin___memcpy_chk(t *TLS, dest, src uintptr, n, os Tsize_t) (r uintptr)
 TEXT ·Y__builtin___memcpy_chk(SB),$48-48
 	GO_ARGS

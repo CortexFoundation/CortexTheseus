@@ -3,6 +3,9 @@
 package libc
 
 //go:noescape
+func Y__assert_fail(tls *TLS, expr uintptr, file uintptr, line int32, func1 uintptr)
+
+//go:noescape
 func Y__builtin___memcpy_chk(t *TLS, dest, src uintptr, n, os Tsize_t) (r uintptr)
 
 //go:noescape
