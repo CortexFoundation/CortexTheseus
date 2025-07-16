@@ -54,8 +54,10 @@ func (st *insertStats) report(chain []*types.Block, index int, dirty common.Stor
 	if index == len(chain)-1 || elapsed >= statsReportLimit {
 		// Count the number of transactions in this segment
 		var txs int
+		var size uint64
 		for _, block := range chain[st.lastIndex : index+1] {
 			txs += len(block.Transactions())
+			size += block.Size()
 		}
 		end := chain[index]
 
@@ -65,7 +67,7 @@ func (st *insertStats) report(chain []*types.Block, index int, dirty common.Stor
 			"blocks", st.processed, "txs", txs, "mgas", float64(st.usedGas) / 1000000,
 			"elapsed", common.PrettyDuration(elapsed), "mgasps", float64(st.usedGas) * 1000 / float64(elapsed),
 			"hps", common.HashSize(float64(end.Difficulty().Int64()) / 13.5),
-			"mgasps", mgasps,
+			"mgasps", mgasps, "size", common.StorageSize(size),
 		}
 		timestamp := time.Unix(int64(end.Time()), 0)
 		context = append(context, []any{"age", common.PrettyAge(timestamp)}...)

@@ -70,7 +70,6 @@ func validate(jt JumpTable) JumpTable {
 
 func newOsakaInstructionSet() JumpTable {
 	instructionSet := newMergeInstructionSet()
-	//enable3860(&instructionSet) // Limit and meter initcode
 	//enable4844(&instructionSet) // EIP-4844 (BLOBHASH opcode)
 	//enable7516(&instructionSet) // EIP-7516 (BLOBBASEFEE opcode)
 	//enable1153(&instructionSet) // EIP-1153 "Transient Storage"
