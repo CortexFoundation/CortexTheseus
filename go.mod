@@ -62,13 +62,13 @@ require (
 	github.com/ucwong/color v1.10.1-0.20200624105241-fba1e010fe1e
 	github.com/urfave/cli/v2 v2.27.7
 	go.uber.org/automaxprocs v1.6.0
-	golang.org/x/crypto v0.39.0
+	golang.org/x/crypto v0.40.0
 	golang.org/x/mobile v0.0.0-20201217150744-e6ae53a27f4f
 	golang.org/x/sync v0.16.0
 	golang.org/x/sys v0.34.0
 	golang.org/x/text v0.27.0
 	golang.org/x/time v0.12.0
-	golang.org/x/tools v0.34.0
+	golang.org/x/tools v0.35.0
 	google.golang.org/protobuf v1.36.6
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
@@ -76,7 +76,7 @@ require (
 )
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.18.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.18.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.1 // indirect
 	github.com/CortexFoundation/compress v0.0.0-20240218153512-9074bdc2397c // indirect
 	github.com/CortexFoundation/cvm-runtime v0.0.0-20221117094012-b5a251885572 // indirect
@@ -244,9 +244,9 @@ require (
 	go.opentelemetry.io/otel v1.37.0 // indirect
 	go.opentelemetry.io/otel/metric v1.37.0 // indirect
 	go.opentelemetry.io/otel/trace v1.37.0 // indirect
-	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b // indirect
+	golang.org/x/exp v0.0.0-20250711185948-6ae5c78190dc // indirect
 	golang.org/x/mod v0.26.0 // indirect
-	golang.org/x/net v0.41.0 // indirect
+	golang.org/x/net v0.42.0 // indirect
 	golang.org/x/term v0.33.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
