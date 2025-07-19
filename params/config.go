@@ -650,7 +650,7 @@ func (c *ChainConfig) Rules(num *big.Int, isMerge bool, timestamp uint64) Rules 
 	if chainID == nil {
 		chainID = new(big.Int)
 	}
-	return Rules{ChainID: new(big.Int).Set(chainID), IsHomestead: c.IsHomestead(num), IsEIP150: c.IsEIP150(num), IsEIP155: c.IsEIP155(num), IsEIP158: c.IsEIP158(num), IsByzantium: c.IsByzantium(num), IsPetersburg: c.IsPetersburg(num), IsIstanbul: c.IsIstanbul(num), IsNeo: c.IsNeo(num), IsMerge: isMerge, IsOsaka: isMerge && c.IsOsaka(num, timestamp)}
+	return Rules{ChainID: new(big.Int).Set(chainID), IsHomestead: c.IsHomestead(num), IsEIP150: c.IsEIP150(num), IsEIP155: c.IsEIP155(num), IsEIP158: c.IsEIP158(num), IsByzantium: c.IsByzantium(num), IsPetersburg: c.IsPetersburg(num), IsIstanbul: c.IsIstanbul(num), IsNeo: c.IsNeo(num), IsMerge: c.IsMerge(num), IsOsaka: c.IsOsaka(num, timestamp)}
 }
 
 // Get Mature Block
