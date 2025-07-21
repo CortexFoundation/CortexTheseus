@@ -1,5 +1,5 @@
 // Copyright 2016 The go-ethereum Authors
-// This file is part of The go-ethereum library.
+// This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -12,7 +12,7 @@
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with The go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package rpc_test
 
@@ -28,10 +28,10 @@ import (
 // In this example, our client wishes to track the latest 'block number'
 // known to the server. The server supports two methods:
 //
-// ctxc_getBlockByNumber("latest", {})
+// eth_getBlockByNumber("latest", {})
 //    returns the latest block object.
 //
-// ctxc_subscribe("newHeads")
+// eth_subscribe("newHeads")
 //    creates a subscription which fires block objects when new blocks arrive.
 
 type Block struct {
@@ -75,7 +75,7 @@ func subscribeBlocks(client *rpc.Client, subch chan Block) {
 	// The connection is established now.
 	// Update the channel with the current block.
 	var lastBlock Block
-	err = client.CallContext(ctx, &lastBlock, "ctxc_getBlockByNumber", "latest", false)
+	err = client.CallContext(ctx, &lastBlock, "eth_getBlockByNumber", "latest", false)
 	if err != nil {
 		fmt.Println("can't get latest block:", err)
 		return

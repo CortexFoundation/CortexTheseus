@@ -1,5 +1,5 @@
 // Copyright 2018 The go-ethereum Authors
-// This file is part of The go-ethereum library.
+// This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -12,21 +12,17 @@
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with The go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package rpc
 
 import (
 	"context"
-	"io"
+	"errors"
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"net/http/httputil"
-	"net/url"
-	"reflect"
 	"strings"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -69,14 +65,14 @@ func TestWebsocketOriginCheck(t *testing.T) {
 		t.Fatal("no error for wrong origin")
 	}
 	wantErr := wsHandshakeError{websocket.ErrBadHandshake, "403 Forbidden"}
-	if !reflect.DeepEqual(err, wantErr) {
+	if !errors.Is(err, wantErr) {
 		t.Fatalf("wrong error for wrong origin: %q", err)
 	}
 
 	// Connections without origin header should work.
 	client, err = DialWebsocket(context.Background(), wsURL, "")
 	if err != nil {
-		t.Fatal("error for empty origin")
+		t.Fatalf("error for empty origin: %v", err)
 	}
 	client.Close()
 }
@@ -101,7 +97,7 @@ func TestWebsocketLargeCall(t *testing.T) {
 
 	// This call sends slightly less than the limit and should work.
 	var result echoResult
-	arg := strings.Repeat("x", maxRequestContentLength-200)
+	arg := strings.Repeat("x", defaultBodyLimit-200)
 	if err := client.Call(&result, "test_echo", arg, 1); err != nil {
 		t.Fatalf("valid call didn't work: %v", err)
 	}
@@ -110,10 +106,108 @@ func TestWebsocketLargeCall(t *testing.T) {
 	}
 
 	// This call sends twice the allowed size and shouldn't work.
-	arg = strings.Repeat("x", maxRequestContentLength*2)
+	arg = strings.Repeat("x", defaultBodyLimit*2)
 	err = client.Call(&result, "test_echo", arg)
 	if err == nil {
 		t.Fatal("no error for too large call")
+	}
+}
+
+// This test checks whether the wsMessageSizeLimit option is obeyed.
+func TestWebsocketLargeRead(t *testing.T) {
+	t.Parallel()
+
+	var (
+		srv     = newTestServer()
+		httpsrv = httptest.NewServer(srv.WebsocketHandler([]string{"*"}))
+		wsURL   = "ws:" + strings.TrimPrefix(httpsrv.URL, "http:")
+	)
+	defer srv.Stop()
+	defer httpsrv.Close()
+
+	testLimit := func(limit *int64) {
+		opts := []ClientOption{}
+		expLimit := int64(wsDefaultReadLimit)
+		if limit != nil && *limit >= 0 {
+			opts = append(opts, WithWebsocketMessageSizeLimit(*limit))
+			if *limit > 0 {
+				expLimit = *limit // 0 means infinite
+			}
+		}
+		client, err := DialOptions(context.Background(), wsURL, opts...)
+		if err != nil {
+			t.Fatalf("can't dial: %v", err)
+		}
+		defer client.Close()
+		// Remove some bytes for json encoding overhead.
+		underLimit := int(expLimit - 128)
+		overLimit := expLimit + 1
+		if expLimit == wsDefaultReadLimit {
+			// No point trying the full 32MB in tests. Just sanity-check that
+			// it's not obviously limited.
+			underLimit = 1024
+			overLimit = -1
+		}
+		var res string
+		// Check under limit
+		if err = client.Call(&res, "test_repeat", "A", underLimit); err != nil {
+			t.Fatalf("unexpected error with limit %d: %v", expLimit, err)
+		}
+		if len(res) != underLimit || strings.Count(res, "A") != underLimit {
+			t.Fatal("incorrect data")
+		}
+		// Check over limit
+		if overLimit > 0 {
+			err = client.Call(&res, "test_repeat", "A", expLimit+1)
+			if err == nil || err != websocket.ErrReadLimit {
+				t.Fatalf("wrong error with limit %d: %v expecting %v", expLimit, err, websocket.ErrReadLimit)
+			}
+		}
+	}
+	ptr := func(v int64) *int64 { return &v }
+
+	testLimit(ptr(-1)) // Should be ignored (use default)
+	testLimit(ptr(0))  // Should be ignored (use default)
+	testLimit(nil)     // Should be ignored (use default)
+	testLimit(ptr(200))
+	testLimit(ptr(wsDefaultReadLimit * 2))
+}
+
+func TestWebsocketPeerInfo(t *testing.T) {
+	t.Parallel()
+
+	var (
+		s     = newTestServer()
+		ts    = httptest.NewServer(s.WebsocketHandler([]string{"origin.example.com"}))
+		tsurl = "ws:" + strings.TrimPrefix(ts.URL, "http:")
+	)
+	defer s.Stop()
+	defer ts.Close()
+
+	ctx := context.Background()
+	c, err := DialWebsocket(ctx, tsurl, "origin.example.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+
+	// Request peer information.
+	var connInfo PeerInfo
+	if err := c.Call(&connInfo, "test_peerInfo"); err != nil {
+		t.Fatal(err)
+	}
+
+	if connInfo.RemoteAddr == "" {
+		t.Error("RemoteAddr not set")
+	}
+	if connInfo.Transport != "ws" {
+		t.Errorf("wrong Transport %q", connInfo.Transport)
+	}
+	if connInfo.HTTP.UserAgent != "Go-http-client/1.1" {
+		t.Errorf("wrong HTTP.UserAgent %q", connInfo.HTTP.UserAgent)
+	}
+	if connInfo.HTTP.Origin != "origin.example.com" {
+		t.Errorf("wrong HTTP.Origin %q", connInfo.HTTP.UserAgent)
 	}
 }
 
@@ -167,6 +261,8 @@ func TestClientWebsocketPing(t *testing.T) {
 
 // This checks that the websocket transport can deal with large messages.
 func TestClientWebsocketLargeMessage(t *testing.T) {
+	t.Parallel()
+
 	var (
 		srv     = NewServer()
 		httpsrv = httptest.NewServer(srv.WebsocketHandler(nil))
@@ -175,13 +271,14 @@ func TestClientWebsocketLargeMessage(t *testing.T) {
 	defer srv.Stop()
 	defer httpsrv.Close()
 
-	respLength := wsMessageSizeLimit - 50
+	respLength := wsDefaultReadLimit - 50
 	srv.RegisterName("test", largeRespService{respLength})
 
 	c, err := DialWebsocket(context.Background(), wsURL, "")
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer c.Close()
 
 	var r string
 	if err := c.Call(&r, "test_largeResp"); err != nil {
@@ -189,63 +286,6 @@ func TestClientWebsocketLargeMessage(t *testing.T) {
 	}
 	if len(r) != respLength {
 		t.Fatalf("response has wrong length %d, want %d", len(r), respLength)
-	}
-}
-
-func TestClientWebsocketSevered(t *testing.T) {
-	t.Parallel()
-
-	var (
-		server = wsPingTestServer(t, nil)
-		ctx    = context.Background()
-	)
-	defer server.Shutdown(ctx)
-
-	u, err := url.Parse("http://" + server.Addr)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rproxy := httputil.NewSingleHostReverseProxy(u)
-	var severable *severableReadWriteCloser
-	rproxy.ModifyResponse = func(response *http.Response) error {
-		severable = &severableReadWriteCloser{ReadWriteCloser: response.Body.(io.ReadWriteCloser)}
-		response.Body = severable
-		return nil
-	}
-	frontendProxy := httptest.NewServer(rproxy)
-	defer frontendProxy.Close()
-
-	wsURL := "ws:" + strings.TrimPrefix(frontendProxy.URL, "http:")
-	client, err := DialWebsocket(ctx, wsURL, "")
-	if err != nil {
-		t.Fatalf("client dial error: %v", err)
-	}
-	defer client.Close()
-
-	resultChan := make(chan int)
-	sub, err := client.CortexSubscribe(ctx, resultChan, "foo")
-	if err != nil {
-		t.Fatalf("client subscribe error: %v", err)
-	}
-
-	// sever the connection
-	severable.Sever()
-
-	// Wait for subscription error.
-	timeout := time.NewTimer(10 * wsPingInterval)
-	defer timeout.Stop()
-	for {
-		select {
-		case err := <-sub.Err():
-			t.Log("client subscription error:", err)
-			return
-		case result := <-resultChan:
-			t.Error("unexpected result:", result)
-			return
-		case <-timeout.C:
-			t.Error("didn't get any error within the test timeout")
-			return
-		}
 	}
 }
 
@@ -285,10 +325,10 @@ func wsPingTestServer(t *testing.T, sendPing <-chan struct{}) *http.Server {
 }
 
 func wsPingTestHandler(t *testing.T, conn *websocket.Conn, shutdown, sendPing <-chan struct{}) {
-	// Canned responses for the ctxc_subscribe call in TestClientWebsocketPing.
+	// Canned responses for the eth_subscribe call in TestClientWebsocketPing.
 	const (
 		subResp   = `{"jsonrpc":"2.0","id":1,"result":"0x00"}`
-		subNotify = `{"jsonrpc":"2.0","method":"ctxc_subscription","params":{"subscription":"0x00","result":1}}`
+		subNotify = `{"jsonrpc":"2.0","method":"eth_subscription","params":{"subscription":"0x00","result":1}}`
 	)
 
 	// Handle subscribe request.
@@ -352,30 +392,76 @@ func wsPingTestHandler(t *testing.T, conn *websocket.Conn, shutdown, sendPing <-
 	}
 }
 
-// severableReadWriteCloser wraps an io.ReadWriteCloser and provides a Sever() method to drop writes and read empty.
-type severableReadWriteCloser struct {
-	io.ReadWriteCloser
-	severed atomic.Int32 // atomic
-}
+func TestWebsocketMethodNameLengthLimit(t *testing.T) {
+	t.Parallel()
 
-func (s *severableReadWriteCloser) Sever() {
-	s.severed.Add(1)
-}
+	var (
+		srv     = newTestServer()
+		httpsrv = httptest.NewServer(srv.WebsocketHandler([]string{"*"}))
+		wsURL   = "ws:" + strings.TrimPrefix(httpsrv.URL, "http:")
+	)
+	defer srv.Stop()
+	defer httpsrv.Close()
 
-func (s *severableReadWriteCloser) Read(p []byte) (n int, err error) {
-	if s.severed.Load() > 0 {
-		return 0, nil
+	client, err := DialWebsocket(context.Background(), wsURL, "")
+	if err != nil {
+		t.Fatalf("can't dial: %v", err)
 	}
-	return s.ReadWriteCloser.Read(p)
-}
+	defer client.Close()
 
-func (s *severableReadWriteCloser) Write(p []byte) (n int, err error) {
-	if s.severed.Load() > 0 {
-		return len(p), nil
+	// Test cases
+	tests := []struct {
+		name           string
+		method         string
+		params         []interface{}
+		expectedError  string
+		isSubscription bool
+	}{
+		{
+			name:           "valid method name",
+			method:         "test_echo",
+			params:         []interface{}{"test", 1},
+			expectedError:  "",
+			isSubscription: false,
+		},
+		{
+			name:           "method name too long",
+			method:         "test_" + string(make([]byte, maxMethodNameLength+1)),
+			params:         []interface{}{"test", 1},
+			expectedError:  "method name too long",
+			isSubscription: false,
+		},
+		{
+			name:           "valid subscription",
+			method:         "nftest_subscribe",
+			params:         []interface{}{"someSubscription", 1, 2},
+			expectedError:  "",
+			isSubscription: true,
+		},
+		{
+			name:           "subscription name too long",
+			method:         string(make([]byte, maxMethodNameLength+1)) + "_subscribe",
+			params:         []interface{}{"newHeads"},
+			expectedError:  "subscription name too long",
+			isSubscription: true,
+		},
 	}
-	return s.ReadWriteCloser.Write(p)
-}
 
-func (s *severableReadWriteCloser) Close() error {
-	return s.ReadWriteCloser.Close()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var result interface{}
+			err := client.Call(&result, tt.method, tt.params...)
+			if tt.expectedError == "" {
+				if err != nil {
+					t.Errorf("unexpected error: %v", err)
+				}
+			} else {
+				if err == nil {
+					t.Error("expected error, got nil")
+				} else if !strings.Contains(err.Error(), tt.expectedError) {
+					t.Errorf("expected error containing %q, got %q", tt.expectedError, err.Error())
+				}
+			}
+		})
+	}
 }

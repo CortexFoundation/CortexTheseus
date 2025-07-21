@@ -246,7 +246,7 @@ func (api *API) TraceChain(ctx context.Context, start, end rpc.BlockNumber, conf
 	}
 	sub := notifier.CreateSubscription()
 
-	resCh := api.traceChain(from, to, config, notifier.Closed())
+	resCh := api.traceChain(from, to, config, sub.Err())
 	go func() {
 		for result := range resCh {
 			notifier.Notify(sub.ID, result)
@@ -284,7 +284,7 @@ func (r *releaser) call() {
 // the end block but excludes the start one. The return value will be one item per
 // transaction, dependent on the requested tracer.
 // The tracing procedure should be aborted in case the closed signal is received.
-func (api *API) traceChain(start, end *types.Block, config *TraceConfig, closed <-chan any) chan *blockTraceResult {
+func (api *API) traceChain(start, end *types.Block, config *TraceConfig, closed <-chan error) chan *blockTraceResult {
 	reexec := defaultTraceReexec
 	if config != nil && config.Reexec != nil {
 		reexec = *config.Reexec

@@ -1,5 +1,5 @@
 // Copyright 2015 The go-ethereum Authors
-// This file is part of The go-ethereum library.
+// This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -12,7 +12,7 @@
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with The go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package rpc
 
@@ -20,8 +20,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
-	"strconv"
 	"strings"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -30,18 +30,21 @@ import (
 
 // API describes the set of methods offered over the RPC interface
 type API struct {
-	Namespace string // namespace under which the rpc methods of Service are exposed
-	Version   string // api version for DApp's
-	Service   any    // receiver instance which holds the methods
-	Public    bool   // indication if the methods must be considered safe for public use
+	Namespace     string      // namespace under which the rpc methods of Service are exposed
+	Version       string      // deprecated - this field is no longer used, but retained for compatibility
+	Service       interface{} // receiver instance which holds the methods
+	Public        bool        // deprecated - this field is no longer used, but retained for compatibility
+	Authenticated bool        // whether the api should only be available behind authentication.
 }
 
 // ServerCodec implements reading, parsing and writing RPC messages for the server side of
-// a RPC session. Implementations must be go-routine safe since the codec can be called in
+// an RPC session. Implementations must be go-routine safe since the codec can be called in
 // multiple go-routines concurrently.
 type ServerCodec interface {
+	peerInfo() PeerInfo
 	readBatch() (msgs []*jsonrpcMessage, isBatch bool, err error)
 	close()
+
 	jsonWriter
 }
 
@@ -49,9 +52,10 @@ type ServerCodec interface {
 // Implementations must be safe for concurrent use.
 type jsonWriter interface {
 	// writeJSON writes a message to the connection.
-	writeJSON(ctx context.Context, msg any, isError bool) error
+	writeJSON(ctx context.Context, msg interface{}, isError bool) error
+
 	// Closed returns a channel which is closed when the connection is closed.
-	closed() <-chan any
+	closed() <-chan interface{}
 	// RemoteAddr returns the peer address of the connection.
 	remoteAddr() string
 }
@@ -59,15 +63,15 @@ type jsonWriter interface {
 type BlockNumber int64
 
 const (
+	EarliestBlockNumber  = BlockNumber(-5)
 	SafeBlockNumber      = BlockNumber(-4)
 	FinalizedBlockNumber = BlockNumber(-3)
-	PendingBlockNumber   = BlockNumber(-2)
-	LatestBlockNumber    = BlockNumber(-1)
-	EarliestBlockNumber  = BlockNumber(0)
+	LatestBlockNumber    = BlockNumber(-2)
+	PendingBlockNumber   = BlockNumber(-1)
 )
 
 // UnmarshalJSON parses the given JSON fragment into a BlockNumber. It supports:
-// - "latest", "earliest" or "pending" as string arguments
+// - "safe", "finalized", "latest", "earliest" or "pending" as string arguments
 // - the block number
 // Returned errors:
 // - an invalid block number error when the given argument isn't a known strings
@@ -107,28 +111,36 @@ func (bn *BlockNumber) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// MarshalText implements encoding.TextMarshaler. It marshals:
-// - "latest", "earliest" or "pending" as strings
-// - other numbers as hex
-func (bn BlockNumber) MarshalText() ([]byte, error) {
-	switch bn {
-	case EarliestBlockNumber:
-		return []byte("earliest"), nil
-	case LatestBlockNumber:
-		return []byte("latest"), nil
-	case PendingBlockNumber:
-		return []byte("pending"), nil
-	case FinalizedBlockNumber:
-		return []byte("finalized"), nil
-	case SafeBlockNumber:
-		return []byte("safe"), nil
-	default:
-		return hexutil.Uint64(bn).MarshalText()
-	}
-}
-
+// Int64 returns the block number as int64.
 func (bn BlockNumber) Int64() int64 {
 	return (int64)(bn)
+}
+
+// MarshalText implements encoding.TextMarshaler. It marshals:
+// - "safe", "finalized", "latest", "earliest" or "pending" as strings
+// - other numbers as hex
+func (bn BlockNumber) MarshalText() ([]byte, error) {
+	return []byte(bn.String()), nil
+}
+
+func (bn BlockNumber) String() string {
+	switch bn {
+	case EarliestBlockNumber:
+		return "earliest"
+	case LatestBlockNumber:
+		return "latest"
+	case PendingBlockNumber:
+		return "pending"
+	case FinalizedBlockNumber:
+		return "finalized"
+	case SafeBlockNumber:
+		return "safe"
+	default:
+		if bn < 0 {
+			return fmt.Sprintf("<invalid %d>", bn)
+		}
+		return hexutil.Uint64(bn).String()
+	}
 }
 
 type BlockNumberOrHash struct {
@@ -185,17 +197,18 @@ func (bnh *BlockNumberOrHash) UnmarshalJSON(data []byte) error {
 			}
 			bnh.BlockHash = &hash
 			return nil
+		} else {
+			blckNum, err := hexutil.DecodeUint64(input)
+			if err != nil {
+				return err
+			}
+			if blckNum > math.MaxInt64 {
+				return errors.New("blocknumber too high")
+			}
+			bn := BlockNumber(blckNum)
+			bnh.BlockNumber = &bn
+			return nil
 		}
-		blckNum, err := hexutil.DecodeUint64(input)
-		if err != nil {
-			return err
-		}
-		if blckNum > math.MaxInt64 {
-			return errors.New("blocknumber too high")
-		}
-		bn := BlockNumber(blckNum)
-		bnh.BlockNumber = &bn
-		return nil
 	}
 }
 
@@ -208,7 +221,7 @@ func (bnh *BlockNumberOrHash) Number() (BlockNumber, bool) {
 
 func (bnh *BlockNumberOrHash) String() string {
 	if bnh.BlockNumber != nil {
-		return strconv.Itoa(int(*bnh.BlockNumber))
+		return bnh.BlockNumber.String()
 	}
 	if bnh.BlockHash != nil {
 		return bnh.BlockHash.String()

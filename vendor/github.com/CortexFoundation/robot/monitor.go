@@ -579,7 +579,7 @@ func (m *Monitor) syncLastBlock() uint64 {
 		if maxNumber-i >= m.scope {
 			blocks, rpcErr := m.rpcBatchBlockByNumber(i, i+m.scope)
 			if rpcErr != nil {
-				log.Error("Sync old block failed", "number", i, "error", rpcErr)
+				log.Error("Batch sync old block failed", "current", maxNumber, "number", i, "batch", m.scope, "error", rpcErr)
 				m.lastNumber.Store(i - 1)
 				return 0
 			}

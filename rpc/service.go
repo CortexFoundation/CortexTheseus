@@ -1,5 +1,5 @@
 // Copyright 2019 The go-ethereum Authors
-// This file is part of The go-ethereum library.
+// This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -12,13 +12,12 @@
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with The go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package rpc
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"reflect"
 	"runtime"
@@ -58,7 +57,7 @@ type callback struct {
 	isSubscribe bool           // true if this is a subscription callback
 }
 
-func (r *serviceRegistry) registerName(name string, rcvr any) error {
+func (r *serviceRegistry) registerName(name string, rcvr interface{}) error {
 	rcvrVal := reflect.ValueOf(rcvr)
 	if name == "" {
 		return fmt.Errorf("no service name for type %s", rcvrVal.Type().String())
@@ -184,7 +183,7 @@ func (c *callback) makeArgTypes() {
 }
 
 // call invokes the callback.
-func (c *callback) call(ctx context.Context, method string, args []reflect.Value) (res any, errRes error) {
+func (c *callback) call(ctx context.Context, method string, args []reflect.Value) (res interface{}, errRes error) {
 	// Create the argument slice.
 	fullargs := make([]reflect.Value, 0, 2+len(args))
 	if c.rcvr.IsValid() {
@@ -202,7 +201,7 @@ func (c *callback) call(ctx context.Context, method string, args []reflect.Value
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
 			log.Error("RPC method " + method + " crashed: " + fmt.Sprintf("%v\n%s", err, buf))
-			errRes = errors.New("method handler crashed")
+			errRes = &internalServerError{errcodePanic, "method handler crashed"}
 		}
 	}()
 	// Run the callback.

@@ -1,5 +1,5 @@
 // Copyright 2016 The go-ethereum Authors
-// This file is part of The go-ethereum library.
+// This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -12,7 +12,7 @@
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with The go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package rpc
 
@@ -33,6 +33,8 @@ import (
 )
 
 func TestNewID(t *testing.T) {
+	t.Parallel()
+
 	hexchars := "0123456789ABCDEFabcdef"
 	for i := 0; i < 100; i++ {
 		id := string(NewID())
@@ -54,6 +56,8 @@ func TestNewID(t *testing.T) {
 }
 
 func TestSubscriptions(t *testing.T) {
+	t.Parallel()
+
 	var (
 		namespaces        = []string{"ctxc", "shh", "bzz"}
 		service           = &notificationTestService{}
@@ -83,11 +87,11 @@ func TestSubscriptions(t *testing.T) {
 
 	// create subscriptions one by one
 	for i, namespace := range namespaces {
-		request := map[string]any{
+		request := map[string]interface{}{
 			"id":      i,
 			"method":  fmt.Sprintf("%s_subscribe", namespace),
-			"version": "2.0",
-			"params":  []any{"someSubscription", notificationCount, i},
+			"jsonrpc": "2.0",
+			"params":  []interface{}{"someSubscription", notificationCount, i},
 		}
 		if err := out.Encode(&request); err != nil {
 			t.Fatalf("Could not create subscription: %v", err)
@@ -132,6 +136,8 @@ func TestSubscriptions(t *testing.T) {
 
 // This test checks that unsubscribing works.
 func TestServerUnsubscribe(t *testing.T) {
+	t.Parallel()
+
 	p1, p2 := net.Pipe()
 	defer p2.Close()
 
@@ -231,14 +237,14 @@ type mockConn struct {
 }
 
 // writeJSON writes a message to the connection.
-func (c *mockConn) writeJSON(ctx context.Context, msg any, isError bool) error {
+func (c *mockConn) writeJSON(ctx context.Context, msg interface{}, isError bool) error {
 	return c.enc.Encode(msg)
 }
 
-// Closed returns a channel which is closed when the connection is closed.
-func (c *mockConn) closed() <-chan any { return nil }
+// closed returns a channel which is closed when the connection is closed.
+func (c *mockConn) closed() <-chan interface{} { return nil }
 
-// RemoteAddr returns the peer address of the connection.
+// remoteAddr returns the peer address of the connection.
 func (c *mockConn) remoteAddr() string { return "" }
 
 // BenchmarkNotify benchmarks the performance of notifying a subscription.
@@ -260,6 +266,8 @@ func BenchmarkNotify(b *testing.B) {
 }
 
 func TestNotify(t *testing.T) {
+	t.Parallel()
+
 	out := new(bytes.Buffer)
 	id := ID("test")
 	notifier := &Notifier{
@@ -267,13 +275,9 @@ func TestNotify(t *testing.T) {
 		sub:       &Subscription{ID: id},
 		activated: true,
 	}
-	msg := &types.Header{
-		ParentHash: common.HexToHash("0x01"),
-		Number:     big.NewInt(100),
-	}
-	notifier.Notify(id, msg)
+	notifier.Notify(id, "hello")
 	have := strings.TrimSpace(out.String())
-	want := `{"jsonrpc":"2.0","method":"_subscription","params":{"subscription":"test","result":{"parentHash":"0x0000000000000000000000000000000000000000000000000000000000000001","sha3Uncles":"0x0000000000000000000000000000000000000000000000000000000000000000","miner":"0x0000000000000000000000000000000000000000","stateRoot":"0x0000000000000000000000000000000000000000000000000000000000000000","transactionsRoot":"0x0000000000000000000000000000000000000000000000000000000000000000","receiptsRoot":"0x0000000000000000000000000000000000000000000000000000000000000000","logsBloom":"0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000","difficulty":null,"number":"0x64","gasLimit":"0x0","gasUsed":"0x0","timestamp":"0x0","extraData":"0x","mixHash":"0x0000000000000000000000000000000000000000000000000000000000000000","nonce":"0x0000000000000000","solution":"\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000","quota":"0x0","quotaUsed":"0x0","supply":null,"hash":"0x4df4ee22e206405d75ee5021018141c51d7c5b0b29476ed51933d2e3b2a21c52"}}}`
+	want := `{"jsonrpc":"2.0","method":"_subscription","params":{"subscription":"test","result":"hello"}}`
 	if have != want {
 		t.Errorf("have:\n%v\nwant:\n%v\n", have, want)
 	}

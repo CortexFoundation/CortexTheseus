@@ -98,9 +98,9 @@ func (m *Monitor) rpcBatchBlockByNumber(from, to uint64) ([]*types.Block, error)
 		return nil, err
 	}
 
-	for i := range reqs {
-		if reqs[i].Error != nil {
-			return nil, reqs[i].Error
+	for i, req := range reqs {
+		if req.Error != nil {
+			return nil, req.Error
 		}
 		if result[i] == nil {
 			return nil, fmt.Errorf("got null block %d", i)
