@@ -425,7 +425,9 @@ func (c *bigModExp) RequiredGas(input []byte) uint64 {
 
 		gas.Mul(gas, math.BigMax(adjExpLen, big1))
 		// 2. Different divisor (`GQUADDIVISOR`) (3)
-		gas.Div(gas, big3)
+		if !c.eip7883 {
+			gas.Div(gas, big3)
+		}
 		if gas.BitLen() > 64 {
 			return gomath.MaxUint64
 		}
