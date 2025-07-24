@@ -74,13 +74,13 @@ func benchmarkBloomBits(b *testing.B, sectionSize uint64) {
 
 	clearBloomBits(db)
 	b.Log("Generating bloombits data...")
-	headNum := rawdb.ReadHeaderNumber(db, head)
-	if headNum == nil || *headNum < sectionSize+512 {
+	headNum, ok := rawdb.ReadHeaderNumber(db, head)
+	if !ok || headNum < sectionSize+512 {
 		b.Fatalf("not enough blocks for running a benchmark")
 	}
 
 	start := time.Now()
-	cnt := (*headNum - 512) / sectionSize
+	cnt := (headNum - 512) / sectionSize
 	var dataSize, compSize uint64
 	for sectionIdx := uint64(0); sectionIdx < cnt; sectionIdx++ {
 		bc, err := bloombits.NewGenerator(uint(sectionSize))
@@ -166,7 +166,10 @@ func BenchmarkNoBloomBits(b *testing.B) {
 	if head == (common.Hash{}) {
 		b.Fatalf("chain data not found at %v", benchDataDir)
 	}
-	headNum := rawdb.ReadHeaderNumber(db, head)
+	headNum, ok := rawdb.ReadHeaderNumber(db, head)
+	if !ok {
+		b.Fatalf("head number not found")
+	}
 
 	clearBloomBits(db)
 
@@ -174,10 +177,10 @@ func BenchmarkNoBloomBits(b *testing.B) {
 
 	b.Log("Running filter benchmarks...")
 	start := time.Now()
-	filter := sys.NewRangeFilter(0, int64(*headNum), []common.Address{{}}, nil)
+	filter := sys.NewRangeFilter(0, int64(headNum), []common.Address{{}}, nil)
 	filter.Logs(context.Background())
 	d := time.Since(start)
 	b.Log("Finished running filter benchmarks")
-	b.Log(" ", d, "total  ", d*time.Duration(1000000)/time.Duration(*headNum+1), "per million blocks")
+	b.Log(" ", d, "total  ", d*time.Duration(1000000)/time.Duration(headNum+1), "per million blocks")
 	db.Close()
 }
