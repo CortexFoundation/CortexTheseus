@@ -1,5 +1,5 @@
 // Copyright 2015 The go-ethereum Authors
-// This file is part of The go-ethereum library.
+// This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -12,7 +12,7 @@
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with The go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package rpc
 
@@ -32,11 +32,9 @@ import (
 	"time"
 )
 
-type httpContextKey string
-
 const (
-	maxRequestContentLength = 1024 * 1024 * 5
-	contentType             = "application/json"
+	defaultBodyLimit = 5 * 1024 * 1024
+	contentType      = "application/json"
 )
 
 // https://www.jsonrpc.org/historical/json-rpc-over-http.html#id13
@@ -46,14 +44,22 @@ type httpConn struct {
 	client    *http.Client
 	url       string
 	closeOnce sync.Once
-	closeCh   chan any
+	closeCh   chan interface{}
 	mu        sync.Mutex // protects headers
 	headers   http.Header
+	auth      HTTPAuth
 }
 
-// httpConn is treated specially by Client.
-func (hc *httpConn) writeJSON(context.Context, any, bool) error {
+// httpConn implements ServerCodec, but it is treated specially by Client
+// and some methods don't work. The panic() stubs here exist to ensure
+// this special treatment is correct.
+
+func (hc *httpConn) writeJSON(context.Context, interface{}, bool) error {
 	panic("writeJSON called on httpConn")
+}
+
+func (hc *httpConn) peerInfo() PeerInfo {
+	panic("peerInfo called on httpConn")
 }
 
 func (hc *httpConn) remoteAddr() string {
@@ -69,7 +75,7 @@ func (hc *httpConn) close() {
 	hc.closeOnce.Do(func() { close(hc.closeCh) })
 }
 
-func (hc *httpConn) closed() <-chan any {
+func (hc *httpConn) closed() <-chan interface{} {
 	return hc.closeCh
 }
 
@@ -114,8 +120,15 @@ var DefaultHTTPTimeouts = HTTPTimeouts{
 	IdleTimeout:       120 * time.Second,
 }
 
+// DialHTTP creates a new RPC client that connects to an RPC server over HTTP.
+func DialHTTP(endpoint string) (*Client, error) {
+	return DialHTTPWithClient(endpoint, new(http.Client))
+}
+
 // DialHTTPWithClient creates a new RPC client that connects to an RPC server over HTTP
 // using the provided HTTP Client.
+//
+// Deprecated: use DialOptions and the WithHTTPClient option.
 func DialHTTPWithClient(endpoint string, client *http.Client) (*Client, error) {
 	// Sanity check URL so we don't end up with a client that will fail every request.
 	_, err := url.Parse(endpoint)
@@ -123,27 +136,39 @@ func DialHTTPWithClient(endpoint string, client *http.Client) (*Client, error) {
 		return nil, err
 	}
 
-	initctx := context.Background()
-	headers := make(http.Header, 2)
+	var cfg clientConfig
+	cfg.httpClient = client
+	fn := newClientTransportHTTP(endpoint, &cfg)
+	return newClient(context.Background(), &cfg, fn)
+}
+
+func newClientTransportHTTP(endpoint string, cfg *clientConfig) reconnectFunc {
+	headers := make(http.Header, 2+len(cfg.httpHeaders))
 	headers.Set("accept", contentType)
 	headers.Set("content-type", contentType)
-	return newClient(initctx, func(context.Context) (ServerCodec, error) {
-		hc := &httpConn{
-			client:  client,
-			headers: headers,
-			url:     endpoint,
-			closeCh: make(chan any),
-		}
+	for key, values := range cfg.httpHeaders {
+		headers[key] = values
+	}
+
+	client := cfg.httpClient
+	if client == nil {
+		client = new(http.Client)
+	}
+
+	hc := &httpConn{
+		client:  client,
+		headers: headers,
+		url:     endpoint,
+		auth:    cfg.httpAuth,
+		closeCh: make(chan interface{}),
+	}
+
+	return func(ctx context.Context) (ServerCodec, error) {
 		return hc, nil
-	})
+	}
 }
 
-// DialHTTP creates a new RPC client that connects to an RPC server over HTTP.
-func DialHTTP(endpoint string) (*Client, error) {
-	return DialHTTPWithClient(endpoint, new(http.Client))
-}
-
-func (c *Client) sendHTTP(ctx context.Context, op *requestOp, msg any) error {
+func (c *Client) sendHTTP(ctx context.Context, op *requestOp, msg interface{}) error {
 	hc := c.writeConn.(*httpConn)
 	respBody, err := hc.doRequest(ctx, msg)
 	if err != nil {
@@ -151,11 +176,12 @@ func (c *Client) sendHTTP(ctx context.Context, op *requestOp, msg any) error {
 	}
 	defer respBody.Close()
 
-	var respmsg jsonrpcMessage
-	if err := json.NewDecoder(respBody).Decode(&respmsg); err != nil {
+	var resp jsonrpcMessage
+	batch := [1]*jsonrpcMessage{&resp}
+	if err := json.NewDecoder(respBody).Decode(&resp); err != nil {
 		return err
 	}
-	op.resp <- &respmsg
+	op.resp <- batch[:]
 	return nil
 }
 
@@ -166,17 +192,16 @@ func (c *Client) sendBatchHTTP(ctx context.Context, op *requestOp, msgs []*jsonr
 		return err
 	}
 	defer respBody.Close()
-	var respmsgs []jsonrpcMessage
+
+	var respmsgs []*jsonrpcMessage
 	if err := json.NewDecoder(respBody).Decode(&respmsgs); err != nil {
 		return err
 	}
-	for i := 0; i < len(respmsgs); i++ {
-		op.resp <- &respmsgs[i]
-	}
+	op.resp <- respmsgs
 	return nil
 }
 
-func (hc *httpConn) doRequest(ctx context.Context, msg any) (io.ReadCloser, error) {
+func (hc *httpConn) doRequest(ctx context.Context, msg interface{}) (io.ReadCloser, error) {
 	body, err := json.Marshal(msg)
 	if err != nil {
 		return nil, err
@@ -193,6 +218,12 @@ func (hc *httpConn) doRequest(ctx context.Context, msg any) (io.ReadCloser, erro
 	req.Header = hc.headers.Clone()
 	hc.mu.Unlock()
 	setHeaders(req.Header, headersFromContext(ctx))
+
+	if hc.auth != nil {
+		if err := hc.auth(req.Header); err != nil {
+			return nil, err
+		}
+	}
 
 	// do request
 	resp, err := hc.client.Do(req)
@@ -222,9 +253,10 @@ type httpServerConn struct {
 	r *http.Request
 }
 
-func newHTTPServerConn(r *http.Request, w http.ResponseWriter) ServerCodec {
-	body := io.LimitReader(r.Body, maxRequestContentLength)
+func (s *Server) newHTTPServerConn(r *http.Request, w http.ResponseWriter) ServerCodec {
+	body := io.LimitReader(r.Body, int64(s.httpBodyLimit))
 	conn := &httpServerConn{Reader: body, Writer: w, r: r}
+
 	encoder := func(v any, isErrorResponse bool) error {
 		if !isErrorResponse {
 			return json.NewEncoder(conn).Encode(v)
@@ -280,38 +312,37 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
-	if code, err := validateRequest(r); err != nil {
+	if code, err := s.validateRequest(r); err != nil {
 		http.Error(w, err.Error(), code)
 		return
 	}
+
+	// Create request-scoped context.
+	connInfo := PeerInfo{Transport: "http", RemoteAddr: r.RemoteAddr}
+	connInfo.HTTP.Version = r.Proto
+	connInfo.HTTP.Host = r.Host
+	connInfo.HTTP.Origin = r.Header.Get("Origin")
+	connInfo.HTTP.UserAgent = r.Header.Get("User-Agent")
+	ctx := r.Context()
+	ctx = context.WithValue(ctx, peerInfoContextKey{}, connInfo)
+
 	// All checks passed, create a codec that reads directly from the request body
 	// until EOF, writes the response to w, and orders the server to process a
 	// single request.
-	ctx := r.Context()
-	ctx = context.WithValue(ctx, httpContextKey("remote"), r.RemoteAddr)
-	ctx = context.WithValue(ctx, httpContextKey("scheme"), r.Proto)
-	ctx = context.WithValue(ctx, httpContextKey("local"), r.Host)
-	if ua := r.Header.Get("User-Agent"); ua != "" {
-		ctx = context.WithValue(ctx, httpContextKey("User-Agent"), ua)
-	}
-	if origin := r.Header.Get("Origin"); origin != "" {
-		ctx = context.WithValue(ctx, httpContextKey("Origin"), origin)
-	}
-
 	w.Header().Set("content-type", contentType)
-	codec := newHTTPServerConn(r, w)
+	codec := s.newHTTPServerConn(r, w)
 	defer codec.close()
 	s.serveSingleRequest(ctx, codec)
 }
 
 // validateRequest returns a non-zero response code and error message if the
 // request is invalid.
-func validateRequest(r *http.Request) (int, error) {
+func (s *Server) validateRequest(r *http.Request) (int, error) {
 	if r.Method == http.MethodPut || r.Method == http.MethodDelete {
 		return http.StatusMethodNotAllowed, errors.New("method not allowed")
 	}
-	if r.ContentLength > maxRequestContentLength {
-		err := fmt.Errorf("content length too large (%d>%d)", r.ContentLength, maxRequestContentLength)
+	if r.ContentLength > int64(s.httpBodyLimit) {
+		err := fmt.Errorf("content length too large (%d>%d)", r.ContentLength, s.httpBodyLimit)
 		return http.StatusRequestEntityTooLarge, err
 	}
 	// Allow OPTIONS (regardless of content-type)

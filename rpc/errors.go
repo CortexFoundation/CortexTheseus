@@ -1,5 +1,5 @@
 // Copyright 2015 The go-ethereum Authors
-// This file is part of The go-ethereum library.
+// This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -12,7 +12,7 @@
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with The go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package rpc
 
@@ -41,8 +41,8 @@ type Error interface {
 
 // A DataError contains some data in addition to the error message.
 type DataError interface {
-	Error() string  // returns the message
-	ErrorData() any // returns the error data
+	Error() string          // returns the message
+	ErrorData() interface{} // returns the error data
 }
 
 // Error types defined below are the built-in JSON-RPC errors.
@@ -54,6 +54,7 @@ var (
 	_ Error = new(invalidRequestError)
 	_ Error = new(invalidMessageError)
 	_ Error = new(invalidParamsError)
+	_ Error = new(internalServerError)
 )
 
 const (
@@ -67,7 +68,9 @@ const (
 )
 
 const (
-	errMsgTimeout = "request timed out"
+	errMsgTimeout          = "request timed out"
+	errMsgResponseTooLarge = "response too large"
+	errMsgBatchTooLarge    = "batch too large"
 )
 
 type methodNotFoundError struct{ method string }
@@ -121,6 +124,13 @@ func (e *parseError) ErrorCode() int { return -32700 }
 
 func (e *parseError) Error() string { return e.message }
 
+// received message isn't a valid request
+type invalidRequestError struct{ message string }
+
+func (e *invalidRequestError) ErrorCode() int { return -32600 }
+
+func (e *invalidRequestError) Error() string { return e.message }
+
 // received message is invalid
 type invalidMessageError struct{ message string }
 
@@ -130,15 +140,6 @@ func (e *invalidMessageError) Error() string { return e.message }
 
 // unable to decode supplied params, or an invalid number of parameters
 type invalidParamsError struct{ message string }
-
-// received message isn't a valid request
-type invalidRequestError struct{ message string }
-
-func (e *invalidRequestError) ErrorCode() int { return -32600 }
-
-func (e *invalidRequestError) Error() string { return e.message }
-
-// unable to decode supplied params, or an invalid number of parameters
 
 func (e *invalidParamsError) ErrorCode() int { return -32602 }
 

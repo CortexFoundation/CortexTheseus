@@ -1,5 +1,5 @@
 // Copyright 2019 The go-ethereum Authors
-// This file is part of The go-ethereum library.
+// This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -12,7 +12,7 @@
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with The go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package rpc
 
@@ -66,11 +66,21 @@ type echoResult struct {
 
 type testError struct{}
 
-func (testError) Error() string  { return "testError" }
-func (testError) ErrorCode() int { return 444 }
-func (testError) ErrorData() any { return "testError data" }
+func (testError) Error() string          { return "testError" }
+func (testError) ErrorCode() int         { return 444 }
+func (testError) ErrorData() interface{} { return "testError data" }
+
+type MarshalErrObj struct{}
+
+func (o *MarshalErrObj) MarshalText() ([]byte, error) {
+	return nil, errors.New("marshal error")
+}
 
 func (s *testService) NoArgsRets() {}
+
+func (s *testService) Null() any {
+	return nil
+}
 
 func (s *testService) Echo(str string, i int, args *echoArgs) echoResult {
 	return echoResult{str, i, args}
@@ -78,6 +88,14 @@ func (s *testService) Echo(str string, i int, args *echoArgs) echoResult {
 
 func (s *testService) EchoWithCtx(ctx context.Context, str string, i int, args *echoArgs) echoResult {
 	return echoResult{str, i, args}
+}
+
+func (s *testService) Repeat(msg string, i int) string {
+	return strings.Repeat(msg, i)
+}
+
+func (s *testService) PeerInfo(ctx context.Context) PeerInfo {
+	return PeerInfoFromContext(ctx)
 }
 
 func (s *testService) Sleep(ctx context.Context, duration time.Duration) {
@@ -110,24 +128,32 @@ func (s *testService) ReturnError() error {
 	return testError{}
 }
 
-func (s *testService) CallMeBack(ctx context.Context, method string, args []any) (any, error) {
+func (s *testService) MarshalError() *MarshalErrObj {
+	return &MarshalErrObj{}
+}
+
+func (s *testService) Panic() string {
+	panic("service panic")
+}
+
+func (s *testService) CallMeBack(ctx context.Context, method string, args []interface{}) (interface{}, error) {
 	c, ok := ClientFromContext(ctx)
 	if !ok {
 		return nil, errors.New("no client")
 	}
-	var result any
+	var result interface{}
 	err := c.Call(&result, method, args...)
 	return result, err
 }
 
-func (s *testService) CallMeBackLater(ctx context.Context, method string, args []any) error {
+func (s *testService) CallMeBackLater(ctx context.Context, method string, args []interface{}) error {
 	c, ok := ClientFromContext(ctx)
 	if !ok {
 		return errors.New("no client")
 	}
 	go func() {
 		<-ctx.Done()
-		var result any
+		var result interface{}
 		c.Call(&result, method, args...)
 	}()
 	return nil
@@ -169,10 +195,7 @@ func (s *notificationTestService) SomeSubscription(ctx context.Context, n, val i
 				return
 			}
 		}
-		select {
-		case <-notifier.Closed():
-		case <-subscription.Err():
-		}
+		<-subscription.Err()
 		if s.unsubscribed != nil {
 			s.unsubscribed <- string(subscription.ID)
 		}

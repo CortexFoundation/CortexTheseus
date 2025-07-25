@@ -1,5 +1,5 @@
 // Copyright 2016 The go-ethereum Authors
-// This file is part of The go-ethereum library.
+// This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -12,7 +12,7 @@
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with The go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package rpc
 
@@ -97,7 +97,7 @@ func NotifierFromContext(ctx context.Context) (*Notifier, bool) {
 	return n, ok
 }
 
-// Notifier is tied to a RPC connection that supports subscriptions.
+// Notifier is tied to an RPC connection that supports subscriptions.
 // Server callbacks use the notifier to send notifications.
 type Notifier struct {
 	h         *handler
@@ -143,12 +143,6 @@ func (n *Notifier) Notify(id ID, data any) error {
 	}
 	n.buffer = append(n.buffer, data)
 	return nil
-}
-
-// Closed returns a channel that is closed when the RPC connection is closed.
-// Deprecated: use subscription error channel
-func (n *Notifier) Closed() <-chan any {
-	return n.h.conn.closed()
 }
 
 // takeSubscription returns the subscription (if one has been created). No subscription can
@@ -369,7 +363,7 @@ func (sub *ClientSubscription) forward() (unsubscribeServer bool, err error) {
 	}
 }
 
-func (sub *ClientSubscription) unmarshal(result json.RawMessage) (any, error) {
+func (sub *ClientSubscription) unmarshal(result json.RawMessage) (interface{}, error) {
 	val := reflect.New(sub.etype)
 	err := json.Unmarshal(result, val.Interface())
 	return val.Elem().Interface(), err
