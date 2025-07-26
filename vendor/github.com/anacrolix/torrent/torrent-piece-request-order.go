@@ -3,8 +3,7 @@ package torrent
 import (
 	g "github.com/anacrolix/generics"
 
-	request_strategy "github.com/anacrolix/torrent/request-strategy"
-	"github.com/anacrolix/torrent/storage"
+	requestStrategy "github.com/anacrolix/torrent/internal/request-strategy"
 )
 
 // It's probably possible to track whether the piece moves around in the btree to be more efficient
@@ -19,23 +18,23 @@ func (t *Torrent) updatePieceRequestOrderPiece(pieceIndex int) (changed bool) {
 	}
 	key := t.pieceRequestOrderKey(pieceIndex)
 	if t.hasStorageCap() {
-		return pro.Update(key, t.requestStrategyPieceOrderState(pieceIndex))
+		return pro.pieces.Update(key, t.requestStrategyPieceOrderState(pieceIndex))
 	}
 	pending := !t.ignorePieceForRequests(pieceIndex)
 	if pending {
 		newState := t.requestStrategyPieceOrderState(pieceIndex)
-		old := pro.Add(key, newState)
+		old := pro.pieces.Add(key, newState)
 		return old.Ok && old.Value != newState
 	} else {
-		return pro.Delete(key)
+		return pro.pieces.Delete(key)
 	}
 }
 
 func (t *Torrent) clientPieceRequestOrderKey() clientPieceRequestOrderKeySumType {
 	if t.storage.Capacity == nil {
-		return clientPieceRequestOrderKey[*Torrent]{t}
+		return clientPieceRequestOrderRegularTorrentKey{t}
 	}
-	return clientPieceRequestOrderKey[storage.TorrentCapacity]{t.storage.Capacity}
+	return clientPieceRequestOrderSharedStorageTorrentKey{t.storage.Capacity}
 }
 
 func (t *Torrent) deletePieceRequestOrder() {
@@ -45,10 +44,11 @@ func (t *Torrent) deletePieceRequestOrder() {
 	cpro := t.cl.pieceRequestOrder
 	key := t.clientPieceRequestOrderKey()
 	pro := cpro[key]
-	for i := 0; i < t.numPieces(); i++ {
-		pro.Delete(t.pieceRequestOrderKey(i))
+	for i := range t.numPieces() {
+		pro.pieces.Delete(t.pieceRequestOrderKey(i))
 	}
-	if pro.Len() == 0 {
+	delete(pro.torrents, t)
+	if pro.pieces.Len() == 0 {
 		delete(cpro, key)
 	}
 }
@@ -60,9 +60,14 @@ func (t *Torrent) initPieceRequestOrder() {
 	g.MakeMapIfNil(&t.cl.pieceRequestOrder)
 	key := t.clientPieceRequestOrderKey()
 	cpro := t.cl.pieceRequestOrder
-	if cpro[key] == nil {
-		cpro[key] = request_strategy.NewPieceOrder(request_strategy.NewAjwernerBtree(), t.numPieces())
+	if _, ok := cpro[key]; !ok {
+		value := clientPieceRequestOrderValue{
+			pieces: requestStrategy.NewPieceOrder(requestStrategy.NewAjwernerBtree(), t.numPieces()),
+		}
+		g.MakeMap(&value.torrents)
+		cpro[key] = value
 	}
+	g.MapMustAssignNew(cpro[key].torrents, t, struct{}{})
 }
 
 func (t *Torrent) addRequestOrderPiece(i int) {
@@ -76,6 +81,9 @@ func (t *Torrent) addRequestOrderPiece(i int) {
 	}
 }
 
-func (t *Torrent) getPieceRequestOrder() *request_strategy.PieceRequestOrder {
-	return t.cl.pieceRequestOrder[t.clientPieceRequestOrderKey()]
+func (t *Torrent) getPieceRequestOrder() *requestStrategy.PieceRequestOrder {
+	if t.storage == nil {
+		return nil
+	}
+	return t.cl.pieceRequestOrder[t.clientPieceRequestOrderKey()].pieces
 }

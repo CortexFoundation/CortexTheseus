@@ -4,15 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"iter"
 	"sync"
 
 	"github.com/anacrolix/chansync"
 	g "github.com/anacrolix/generics"
 	"github.com/anacrolix/missinggo/v2/bitmap"
+	"github.com/anacrolix/missinggo/v2/panicif"
 
 	"github.com/anacrolix/torrent/merkle"
 	"github.com/anacrolix/torrent/metainfo"
 	pp "github.com/anacrolix/torrent/peer_protocol"
+	"github.com/anacrolix/torrent/segments"
 	"github.com/anacrolix/torrent/storage"
 )
 
@@ -22,23 +25,22 @@ type pieceVerifyCount = int64
 type Piece struct {
 	// The completed piece SHA1 hash, from the metainfo "pieces" field. Nil if the info is not V1
 	// compatible.
-	hash   *metainfo.Hash
+	hash *metainfo.Hash
+	// Not easy to use unique.Handle because we need this as a slice sometimes.
 	hashV2 g.Option[[32]byte]
 	t      *Torrent
 	index  pieceIndex
-	files  []*File
+	// First and one after the last file indexes.
+	beginFile, endFile int
 
 	readerCond chansync.BroadcastCond
 
 	numVerifies     pieceVerifyCount
 	numVerifiesCond chansync.BroadcastCond
-	hashing         bool
-	// The piece state may have changed, and is being synchronized with storage.
-	marking             bool
-	storageCompletionOk bool
 
 	publicPieceState PieceState
-	priority         PiecePriority
+	// Piece-specific priority. There are other priorities like File and Reader.
+	priority PiecePriority
 	// Availability adjustment for this piece relative to len(Torrent.connsWithAllPieces). This is
 	// incremented for any piece a peer has when a peer has a piece, Torrent.haveInfo is true, and
 	// the Peer isn't recorded in Torrent.connsWithAllPieces.
@@ -52,6 +54,15 @@ type Piece struct {
 	// Connections that have written data to this piece since its last check.
 	// This can include connections that have closed.
 	dirtiers map[*Peer]struct{}
+
+	// Value to twiddle to detect races.
+	race byte
+	// Currently being hashed.
+	hashing bool
+	// The piece state may have changed, and is being synchronized with storage.
+	marking bool
+	// The Completion.Ok field from the storage layer.
+	storageCompletionOk bool
 }
 
 func (p *Piece) String() string {
@@ -95,18 +106,18 @@ func (p *Piece) hasDirtyChunks() bool {
 func (p *Piece) numDirtyChunks() chunkIndexType {
 	return chunkIndexType(roaringBitmapRangeCardinality[RequestIndex](
 		&p.t.dirtyChunks,
-		p.requestIndexOffset(),
-		p.t.pieceRequestIndexOffset(p.index+1)))
+		p.requestIndexBegin(),
+		p.requestIndexMaxEnd()))
 }
 
 func (p *Piece) unpendChunkIndex(i chunkIndexType) {
-	p.t.dirtyChunks.Add(p.requestIndexOffset() + i)
+	p.t.dirtyChunks.Add(p.requestIndexBegin() + i)
 	p.t.updatePieceRequestOrderPiece(p.index)
 	p.readerCond.Broadcast()
 }
 
 func (p *Piece) pendChunkIndex(i RequestIndex) {
-	p.t.dirtyChunks.Remove(p.requestIndexOffset() + i)
+	p.t.dirtyChunks.Remove(p.requestIndexBegin() + i)
 	p.t.updatePieceRequestOrderPiece(p.index)
 }
 
@@ -141,7 +152,31 @@ func (p *Piece) waitNoPendingWrites() {
 }
 
 func (p *Piece) chunkIndexDirty(chunk chunkIndexType) bool {
-	return p.t.dirtyChunks.Contains(p.requestIndexOffset() + chunk)
+	return p.t.dirtyChunks.Contains(p.requestIndexBegin() + chunk)
+}
+
+func (p *Piece) iterCleanChunks() iter.Seq[chunkIndexType] {
+	return func(yield func(chunkIndexType) bool) {
+		it := p.t.dirtyChunks.Iterator()
+		begin := uint32(p.requestIndexBegin())
+		end := uint32(p.requestIndexMaxEnd())
+		it.AdvanceIfNeeded(begin)
+		for next := begin; next < end; next++ {
+			if !it.HasNext() || it.Next() != next {
+				if !yield(chunkIndexType(next - begin)) {
+					return
+				}
+			}
+		}
+		return
+	}
+}
+
+func (p *Piece) firstCleanChunk() (_ g.Option[chunkIndexType]) {
+	for some := range p.iterCleanChunks() {
+		return g.Some(some)
+	}
+	return
 }
 
 func (p *Piece) chunkIndexSpec(chunk chunkIndexType) ChunkSpec {
@@ -220,7 +255,7 @@ func (p *Piece) VerifyDataContext(ctx context.Context) error {
 }
 
 func (p *Piece) queuedForHash() bool {
-	return p.t.piecesQueuedForHash.Get(bitmap.BitIndex(p.index))
+	return p.t.piecesQueuedForHash.Contains(p.index)
 }
 
 func (p *Piece) torrentBeginOffset() int64 {
@@ -240,7 +275,7 @@ func (p *Piece) SetPriority(prio PiecePriority) {
 
 // This is priority based only on piece, file and reader priorities.
 func (p *Piece) purePriority() (ret PiecePriority) {
-	for _, f := range p.files {
+	for _, f := range p.files() {
 		ret.Raise(f.prio)
 	}
 	if p.t.readerNowPieces().Contains(bitmap.BitIndex(p.index)) {
@@ -279,8 +314,10 @@ func (p *Piece) UpdateCompletion() {
 }
 
 func (p *Piece) completion() (ret storage.Completion) {
-	ret.Complete = p.t.pieceComplete(p.index)
 	ret.Ok = p.storageCompletionOk
+	if ret.Ok {
+		ret.Complete = p.t.pieceComplete(p.index)
+	}
 	return
 }
 
@@ -292,10 +329,18 @@ func (p *Piece) State() PieceState {
 	return p.t.PieceState(p.index)
 }
 
-func (p *Piece) requestIndexOffset() RequestIndex {
-	return p.t.pieceRequestIndexOffset(p.index)
+// The first possible request index for the piece.
+func (p *Piece) requestIndexBegin() RequestIndex {
+	return p.t.pieceRequestIndexBegin(p.index)
 }
 
+// The maximum end request index for the piece. Some of the requests might not be valid, it's for
+// cleaning up arrays and bitmaps in broad strokes.
+func (p *Piece) requestIndexMaxEnd() RequestIndex {
+	return p.t.pieceRequestIndexBegin(p.index + 1)
+}
+
+// TODO: Make this peer-only?
 func (p *Piece) availability() int {
 	return len(p.t.connsWithAllPieces) + p.relativeAvailability
 }
@@ -303,10 +348,8 @@ func (p *Piece) availability() int {
 // For v2 torrents, files are aligned to pieces so there should always only be a single file for a
 // given piece.
 func (p *Piece) mustGetOnlyFile() *File {
-	if len(p.files) != 1 {
-		panic(len(p.files))
-	}
-	return p.files[0]
+	panicif.NotEq(p.numFiles(), 1)
+	return (*p.t.files)[p.beginFile]
 }
 
 // Sets the v2 piece hash, queuing initial piece checks if appropriate.
@@ -334,9 +377,11 @@ func (p *Piece) haveHash() bool {
 }
 
 func (p *Piece) hasPieceLayer() bool {
-	return len(p.files) == 1 && p.files[0].length > p.t.info.PieceLength
+	return p.numFiles() == 1 && p.mustGetOnlyFile().length > p.t.info.PieceLength
 }
 
+// TODO: This looks inefficient. It will rehash everytime it is called. The hashes should be
+// generated once.
 func (p *Piece) obtainHashV2() (hash [32]byte, err error) {
 	if p.hashV2.Ok {
 		hash = p.hashV2.Value
@@ -347,7 +392,7 @@ func (p *Piece) obtainHashV2() (hash [32]byte, err error) {
 		return
 	}
 	storage := p.Storage()
-	if !storage.Completion().Complete {
+	if c := storage.Completion(); c.Ok && !c.Complete {
 		err = errors.New("piece incomplete")
 		return
 	}
@@ -358,4 +403,56 @@ func (p *Piece) obtainHashV2() (hash [32]byte, err error) {
 	}
 	h.SumMinLength(hash[:0], int(p.t.info.PieceLength))
 	return
+}
+
+func (p *Piece) files() iter.Seq2[int, *File] {
+	return func(yield func(int, *File) bool) {
+		for i := p.beginFile; i < p.endFile; i++ {
+			if !yield(i, (*p.t.files)[i]) {
+				return
+			}
+		}
+	}
+}
+
+func (p *Piece) numFiles() int {
+	return p.endFile - p.beginFile
+}
+
+func (p *Piece) hasActivePeerConnRequests() (ret bool) {
+	for ri := p.requestIndexBegin(); ri < p.requestIndexMaxEnd(); ri++ {
+		_, ok := p.t.requestState[ri]
+		ret = ret || ok
+	}
+	return
+}
+
+// The value of numVerifies after the next hashing operation that hasn't yet begun.
+func (p *Piece) nextNovelHashCount() (ret pieceVerifyCount) {
+	ret = p.numVerifies + 1
+	if p.hashing {
+		// The next novel hash will be the one after the current one.
+		ret++
+	}
+	return
+}
+
+// Here so it's zero-arity and we can use it in DeferOnce.
+func (p *Piece) publishStateChange() {
+	t := p.t
+	cur := t.pieceState(p.index)
+	if cur != p.publicPieceState {
+		p.publicPieceState = cur
+		t.pieceStateChanges.Publish(PieceStateChange{
+			p.index,
+			cur,
+		})
+	}
+}
+
+func (p *Piece) fileExtents(offsetIntoPiece int64) iter.Seq2[int, segments.Extent] {
+	return p.t.fileSegmentsIndex.Unwrap().LocateIter(segments.Extent{
+		p.torrentBeginOffset() + offsetIntoPiece,
+		int64(p.length()) - offsetIntoPiece,
+	})
 }

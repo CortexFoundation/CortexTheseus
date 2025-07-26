@@ -22,16 +22,23 @@ var Wormholes = []string{
 
 const (
 	CAP = 20
+
+	HTTP = 0
+	UDP  = 1
 )
 
 var (
-	BestTrackerUrl = []string{"https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt",
+	BestTrackerUrl = []string{
+		"https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt",
 		"https://cdn.jsdelivr.net/gh/ngosang/trackerslist@master/trackers_best.txt",
 		"https://ngosang.github.io/trackerslist/trackers_best.txt",
 		// ip addr trackers
 		"https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best_ip.txt",
 		"https://ngosang.github.io/trackerslist/trackers_best_ip.txt",
 		"https://cdn.jsdelivr.net/gh/ngosang/trackerslist@master/trackers_best_ip.txt",
+
+		"https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all.txt",
+		"https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_ip.txt",
 	}
 
 	ColaUrl = []string{"https://github.com/CortexFoundation/cola/releases/download/1.0.0/cola.txt"}

@@ -75,3 +75,10 @@ func (l *Level) UnmarshalText(text []byte) error {
 	}
 	return nil
 }
+
+func (l Level) Or(r Level) Level {
+	if l.isNotSet() {
+		return r
+	}
+	return l
+}

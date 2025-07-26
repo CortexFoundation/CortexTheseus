@@ -62,6 +62,8 @@ import (
 	"github.com/CortexFoundation/torrentfs/params"
 	"github.com/CortexFoundation/torrentfs/types"
 
+	xlog "github.com/anacrolix/log"
+
 	"golang.org/x/sync/errgroup"
 )
 
@@ -482,10 +484,13 @@ func (tm *TorrentManager) addInfoHash(ih string, bytesRequested int64) *caffe.To
 			}
 		}
 
-		spec = &torrent.TorrentSpec{
+		opts := torrent.AddTorrentOpts{
 			InfoHash:  metainfo.NewHashFromHex(ih),
 			Storage:   storage.NewMMap(tmpDataPath),
 			InfoBytes: v,
+		}
+		spec = &torrent.TorrentSpec{
+			AddTorrentOpts: opts,
 		}
 	}
 
@@ -677,6 +682,7 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 
 		//cfg.Debug=true
 	}
+	cfg.Logger.SetHandlers(xlog.DiscardHandler)
 	//cfg.DropDuplicatePeerIds = true
 	cfg.Bep20 = params.ClientVersion //"-COLA01-"
 	//id := strconv.FormatUint(fsid, 16)[0:14]
@@ -692,7 +698,6 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 			}
 		}
 	}*/
-
 	cl, err := torrent.NewClient(cfg)
 	if err != nil {
 		log.Error("Error while create nas client", "err", err)
@@ -1018,7 +1023,7 @@ func (tm *TorrentManager) mainLoop() {
 			tm.wg.Add(1)
 			go func() {
 				defer tm.wg.Done()
-				if score, health, err := tm.updateGlobalTrackers(); err == nil && score > wormhole.CAP && health > 66 {
+				if score, health, err := tm.updateGlobalTrackers(); err == nil && score > wormhole.CAP && health > 0.66 {
 					timer.Reset(time.Second * params.QueryTimeInterval * 3600 * 24)
 				} else {
 					log.Warn("Network weak, rescan one hour later", "score", score, "health", health, "err", err)

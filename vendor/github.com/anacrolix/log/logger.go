@@ -88,6 +88,14 @@ func (l Logger) Println(a ...interface{}) {
 	})
 }
 
+// Well this allocates every time. And slog.Logger is just a dumb wrapper for slog.Handler. So you
+// probably want to use SlogHandler and set something up yourself or this function should store the
+// slog.Logger it makes for you.
 func (l Logger) Slogger() *slog.Logger {
-	return slog.New(slogHandler{l})
+	return slog.New(slogHandler{l: l})
+}
+
+// Logger and slog.Handler are very similar. Logger has attrs much like slog.Handler.
+func (l Logger) SlogHandler() slog.Handler {
+	return slogHandler{l: l}
 }
