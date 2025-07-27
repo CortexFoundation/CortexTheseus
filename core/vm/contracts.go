@@ -175,6 +175,7 @@ var PrecompiledContractsP256Verify = PrecompiledContracts{
 }
 
 var (
+	PrecompiledAddressesOsaka     []common.Address
 	PrecompiledAddressesPrague    []common.Address
 	PrecompiledAddressesCancun    []common.Address
 	PrecompiledAddressesBerlin    []common.Address
@@ -202,10 +203,15 @@ func init() {
 	for k := range PrecompiledContractsPrague {
 		PrecompiledAddressesPrague = append(PrecompiledAddressesPrague, k)
 	}
+	for k := range PrecompiledContractsOsaka {
+		PrecompiledAddressesOsaka = append(PrecompiledAddressesOsaka, k)
+	}
 }
 
 func activePrecompiledContracts(rules params.Rules) PrecompiledContracts {
 	switch {
+	case rules.IsOsaka:
+		return PrecompiledContractsOsaka
 	case rules.IsIstanbul:
 		return PrecompiledContractsIstanbul
 	case rules.IsByzantium:
