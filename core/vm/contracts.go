@@ -21,7 +21,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	gomath "math"
+	"math"
 	"math/big"
 
 	"github.com/consensys/gnark-crypto/ecc"
@@ -31,7 +31,6 @@ import (
 	"golang.org/x/crypto/ripemd160"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/crypto/blake2b"
 	"github.com/CortexFoundation/CortexTheseus/crypto/bn256"
@@ -411,11 +410,22 @@ func (c *bigModExp) RequiredGas(input []byte) uint64 {
 	adjExpLen := new(big.Int)
 	if expLen.Cmp(big32) > 0 {
 		adjExpLen.Sub(expLen, big32)
-		adjExpLen.Lsh(adjExpLen, 3)
+		if c.eip7883 {
+			adjExpLen.Lsh(adjExpLen, 4)
+		} else {
+			adjExpLen.Lsh(adjExpLen, 3)
+		}
 	}
 	adjExpLen.Add(adjExpLen, big.NewInt(int64(msb)))
 	// Calculate the gas cost of the operation
-	gas := new(big.Int).Set(math.BigMax(modLen, baseLen))
+	gas := new(big.Int)
+	if modLen.Cmp(baseLen) < 0 {
+		gas.Set(baseLen)
+	} else {
+		gas.Set(modLen)
+	}
+
+	maxLenOver32 := gas.Cmp(big32) > 0
 	if c.eip2565 {
 		// EIP-2565 has three changes
 		// 1. Different multComplexity (inlined here)
@@ -429,26 +439,35 @@ func (c *bigModExp) RequiredGas(input []byte) uint64 {
 		gas.Rsh(gas, 3)
 		gas.Mul(gas, gas)
 
-		gas.Mul(gas, math.BigMax(adjExpLen, big1))
+		var minPrice uint64 = 200
+		if c.eip7883 {
+			minPrice = 500
+			if maxLenOver32 {
+				gas.Add(gas, gas)
+			} else {
+				gas = big.NewInt(16)
+			}
+		}
+
+		if adjExpLen.Cmp(big1) > 0 {
+			gas.Mul(gas, adjExpLen)
+		}
 		// 2. Different divisor (`GQUADDIVISOR`) (3)
 		if !c.eip7883 {
 			gas.Div(gas, big3)
 		}
 		if gas.BitLen() > 64 {
-			return gomath.MaxUint64
+			return math.MaxUint64
 		}
-		// 3. Minimum price of 200 gas
-		if gas.Uint64() < 200 {
-			return 200
-		}
-		return gas.Uint64()
+		return max(minPrice, gas.Uint64())
 	}
 	gas = modexpMultComplexity(gas)
-	gas.Mul(gas, math.BigMax(adjExpLen, big1))
+	if adjExpLen.Cmp(big1) > 0 {
+		gas.Mul(gas, adjExpLen)
+	}
 	gas.Div(gas, big20)
-
 	if gas.BitLen() > 64 {
-		return gomath.MaxUint64
+		return math.MaxUint64
 	}
 	return gas.Uint64()
 }
@@ -467,6 +486,10 @@ func (c *bigModExp) Run(input []byte) ([]byte, error) {
 	// Handle a special case when both the base and mod length is zero
 	if baseLen == 0 && modLen == 0 {
 		return []byte{}, nil
+	}
+	// enforce size cap for inputs
+	if c.eip7823 && max(baseLen, expLen, modLen) > 1024 {
+		return nil, errors.New("one or more of base/exponent/modulus length exceeded 1024 bytes")
 	}
 	// Retrieve the operands and execute the exponentiation
 	var (
