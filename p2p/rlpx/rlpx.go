@@ -33,6 +33,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/CortexFoundation/CortexTheseus/common/bitutil"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/crypto/ecies"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
@@ -676,8 +677,6 @@ func exportPubkey(pub *ecies.PublicKey) []byte {
 
 func xor(one, other []byte) (xor []byte) {
 	xor = make([]byte, len(one))
-	for i := 0; i < len(one); i++ {
-		xor[i] = one[i] ^ other[i]
-	}
+	bitutil.XORBytes(xor, one, other)
 	return xor
 }
