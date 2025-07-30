@@ -558,7 +558,7 @@ func (tm *TorrentManager) updateGlobalTrackers() (uint64, float32, error) {
 
 		for _, url := range global {
 			score, _ := tm.wormScore(url)
-			log.Info("Tracker status", "url", url, "score", score)
+			log.Debug("Tracker status", "url", url, "score", score)
 			total += score
 		}
 		health = float32(len(global)) / float32(wormhole.CAP)

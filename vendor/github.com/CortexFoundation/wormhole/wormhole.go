@@ -17,8 +17,9 @@
 package wormhole
 
 import (
+	"slices"
 	"strings"
-	"sync/atomic"
+	//"sync/atomic"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -54,11 +55,8 @@ func (wh *Wormhole) BestTrackers() (ret []string) {
 
 	log.Info("Global trackers loading ... ...")
 
-	var hc, uc atomic.Int32
-
 	for _, ur := range BestTrackerUrl {
 		log.Debug("Fetch trackers", "url", ur)
-		//fmt.Println(ur)
 		resp, err := wh.cl.R().Get(ur)
 
 		if err != nil || resp == nil || len(resp.String()) == 0 {
@@ -66,67 +64,34 @@ func (wh *Wormhole) BestTrackers() (ret []string) {
 			continue
 		}
 
-		// 0.5s for health check
 		wh.cl.SetTimeout(time.Millisecond * 2000)
 
-		//var wg sync.WaitGroup
 		var (
 			str      = strings.Split(resp.String(), "\n\n")
 			retCh    = make(chan string, len(str))
 			failedCh = make(chan string, len(str))
 			start    = mclock.Now()
+			count    = 0
 		)
 		for _, s := range str {
-			//if len(ret) < CAP {
-			//	wg.Add(1)
+			if slices.Contains(ret, s) {
+				continue
+			}
+			count++
 			go func(ss string) {
-				//		defer wg.Done()
-				if t, err := wh.healthCheck(ss); err == nil {
-					//ret = append(ret, s)
-					switch t {
-					case HTTP:
-						hc.Add(1)
-					case UDP:
-						uc.Add(1)
-					}
+				if err := wh.healthCheck(ss); err == nil {
 					retCh <- ss
 				} else {
-					//retCh <- ""
 					failedCh <- ss
 				}
 			}(s)
-			/*switch {
-			case strings.HasPrefix(s, "http"), strings.HasPrefix(s, "https"):
-				if _, err := wh.cl.R().Post(s); err != nil {
-					log.Warn("tracker failed", "err", err)
-				} else {
-					ret = append(ret, s)
-				}
-			case strings.HasPrefix(s, "udp"):
-				if u, err := url.Parse(s); err == nil {
-					if host, port, err := net.SplitHostPort(u.Host); err == nil {
-						if err := ping(host, port); err == nil {
-							ret = append(ret, s)
-						} else {
-							log.Warn("UDP ping err", "s", s, "err", err)
-						}
-					}
-				}
-			default:
-				log.Warn("Other protocols trackers", "s", s)
-			}*/
-			//} else {
-			//	break
-			//}
 		}
 
-		for i := 0; i < len(str); i++ {
+		for i := 0; i < count; i++ {
 			select {
 			case x := <-retCh:
-				//if len(x) > 0 {
 				log.Debug("Healthy tracker", "url", x, "latency", common.PrettyDuration(time.Duration(mclock.Now())-time.Duration(start)))
 				ret = append(ret, x)
-				//}
 			case x := <-failedCh:
 				// TODO
 				log.Debug("Unhealthy tracker", "url", x, "latency", common.PrettyDuration(time.Duration(mclock.Now())-time.Duration(start)))
@@ -134,9 +99,7 @@ func (wh *Wormhole) BestTrackers() (ret []string) {
 			}
 		}
 
-		//wg.Wait()
-		//fmt.Println(hc.Load())
-		//fmt.Println(uc.Load())
+		log.Info("Current global trackers found", "size", len(ret))
 
 		if len(ret) > CAP {
 			return
