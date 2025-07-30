@@ -1038,7 +1038,7 @@ func (s *PublicBlockChainAPI) EstimateGas(ctx context.Context, args CallArgs) (h
 
 	// Execute the binary search and hone in on an executable gas limit
 	for lo+1 < hi {
-		mid := (hi + lo) / 2
+		mid := lo + (hi-lo)/2
 		if !executable(mid) {
 			lo = mid
 		} else {
