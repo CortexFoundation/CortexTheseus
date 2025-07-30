@@ -15,7 +15,8 @@ import (
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/multiless"
 
-	requestStrategy "github.com/anacrolix/torrent/request-strategy"
+	requestStrategy "github.com/anacrolix/torrent/internal/request-strategy"
+	"github.com/anacrolix/torrent/metainfo"
 	typedRoaring "github.com/anacrolix/torrent/typed-roaring"
 )
 
@@ -73,13 +74,16 @@ func (p *peerId) GobDecode(b []byte) error {
 }
 
 type (
-	RequestIndex   = requestStrategy.RequestIndex
+	// A request index is a chunk indexed across the entire torrent. It's a single integer and can
+	// be converted to a protocol request. TODO: This should be private.
+	RequestIndex = requestStrategy.RequestIndex
+	// This is request index but per-piece.
 	chunkIndexType = requestStrategy.ChunkIndex
 )
 
 type desiredPeerRequests struct {
 	requestIndexes []RequestIndex
-	peer           *Peer
+	peer           *PeerConn
 	pieceStates    []g.Option[requestStrategy.PieceRequestOrderState]
 }
 
@@ -168,7 +172,20 @@ type desiredRequestState struct {
 	Interested bool
 }
 
-func (p *Peer) getDesiredRequestState() (desired desiredRequestState) {
+func (cl *Client) getRequestablePieces(key clientPieceRequestOrderKeySumType, f requestStrategy.RequestPieceFunc) {
+	input := key.getRequestStrategyInput(cl)
+	order := cl.pieceRequestOrder[key].pieces
+	requestStrategy.GetRequestablePieces(input, order, f)
+}
+
+func (t *Torrent) getRequestablePieces(f requestStrategy.RequestPieceFunc) {
+	t.cl.getRequestablePieces(t.clientPieceRequestOrderKey(), f)
+}
+
+// This gets the best-case request state. That means handling pieces limited by capacity, preferring
+// earlier pieces, low availability etc. It pays no attention to existing requests on the peer or
+// other peers. Those are handled later.
+func (p *PeerConn) getDesiredRequestState() (desired desiredRequestState) {
 	t := p.t
 	if !t.haveInfo() {
 		return
@@ -179,7 +196,6 @@ func (p *Peer) getDesiredRequestState() (desired desiredRequestState) {
 	if t.dataDownloadDisallowed.Bool() {
 		return
 	}
-	input := t.getRequestStrategyInput()
 	requestHeap := desiredPeerRequests{
 		peer:           p,
 		pieceStates:    t.requestPieceStates,
@@ -189,10 +205,8 @@ func (p *Peer) getDesiredRequestState() (desired desiredRequestState) {
 	t.logPieceRequestOrder()
 	// Caller-provided allocation for roaring bitmap iteration.
 	var it typedRoaring.Iterator[RequestIndex]
-	requestStrategy.GetRequestablePieces(
-		input,
-		t.getPieceRequestOrder(),
-		func(ih InfoHash, pieceIndex int, pieceExtra requestStrategy.PieceRequestOrderState) bool {
+	t.getRequestablePieces(
+		func(ih metainfo.Hash, pieceIndex int, pieceExtra requestStrategy.PieceRequestOrderState) bool {
 			if ih != *t.canonicalShortInfohash() {
 				return false
 			}
@@ -231,29 +245,49 @@ func (p *Peer) getDesiredRequestState() (desired desiredRequestState) {
 	return
 }
 
-func (p *Peer) maybeUpdateActualRequestState() {
-	if p.closed.IsSet() {
-		return
-	}
+// Update requests if there's a reason assigned.
+func (p *PeerConn) maybeUpdateActualRequestState() {
 	if p.needRequestUpdate == "" {
 		return
 	}
-	if p.needRequestUpdate == peerUpdateRequestsTimerReason {
+	p.updateRequestsWithReason(p.needRequestUpdate)
+}
+
+// Updates requests right now with the given reason. Clobbers any deferred reason if there was one.
+// Does all the necessary checks and includes profiler tags to assign the overhead.
+func (p *PeerConn) updateRequestsWithReason(reason updateRequestReason) {
+	if p.closed.IsSet() {
+		return
+	}
+	if reason == peerUpdateRequestsTimerReason {
 		since := time.Since(p.lastRequestUpdate)
 		if since < updateRequestsTimerDuration {
 			panic(since)
 		}
 	}
-	p.logger.Slogger().Debug("updating requests", "reason", p.needRequestUpdate)
+	if p.t.cl.config.Debug {
+		p.logger.Slogger().Debug("updating requests", "reason", p.needRequestUpdate)
+	}
 	pprof.Do(
 		context.Background(),
-		pprof.Labels("update request", string(p.needRequestUpdate)),
+		pprof.Labels("update request", string(reason)),
 		func(_ context.Context) {
-			next := p.getDesiredRequestState()
-			p.applyRequestState(next)
-			p.t.cacheNextRequestIndexesForReuse(next.Requests.requestIndexes)
+			p.updateRequests()
 		},
 	)
+	// Is there any chance we should leave this to run again, and have the caller clear it if they
+	// called with this reason?
+	p.needRequestUpdate = ""
+	p.lastRequestUpdate = time.Now()
+	if enableUpdateRequestsTimer {
+		p.updateRequestsTimer.Reset(updateRequestsTimerDuration)
+	}
+}
+
+func (p *PeerConn) updateRequests() {
+	next := p.getDesiredRequestState()
+	p.applyRequestState(next)
+	p.t.cacheNextRequestIndexesForReuse(next.Requests.requestIndexes)
 }
 
 func (t *Torrent) cacheNextRequestIndexesForReuse(slice []RequestIndex) {
@@ -280,8 +314,10 @@ func (p *Peer) allowSendNotInterested() bool {
 	return roaring.AndNot(p.peerPieces(), &p.t._completedPieces).IsEmpty()
 }
 
-// Transmit/action the request state to the peer.
-func (p *Peer) applyRequestState(next desiredRequestState) {
+// Transmit/action the request state to the peer. This includes work-stealing from other peers and
+// some piece order randomization within the preferred state calculated earlier in next. Cancels are
+// not done here, those are handled synchronously. We only track pending cancel acknowledgements.
+func (p *PeerConn) applyRequestState(next desiredRequestState) {
 	current := &p.requestState
 	// Make interest sticky
 	if !next.Interested && p.requestState.Interested {
@@ -315,8 +351,8 @@ func (p *Peer) applyRequestState(next desiredRequestState) {
 			panic("changed")
 		}
 
-		// don't add requests on reciept of a reject - because this causes request back
-		// to potentially permanently unresponive peers - which just adds network noise.  If
+		// don't add requests on receipt of a reject - because this causes request back
+		// to potentially permanently unresponsive peers - which just adds network noise.  If
 		// the peer can handle more requests it will send an "unchoked" message - which
 		// will cause it to get added back to the request queue
 		if p.needRequestUpdate == peerUpdateRequestsRemoteRejectReason {
@@ -359,11 +395,6 @@ func (p *Peer) applyRequestState(next desiredRequestState) {
 	// 	"requests %v->%v (peak %v->%v) reason %q (peer %v)",
 	// 	originalRequestCount, current.Requests.GetCardinality(), p.peakRequests, newPeakRequests, p.needRequestUpdate, p)
 	p.peakRequests = newPeakRequests
-	p.needRequestUpdate = ""
-	p.lastRequestUpdate = time.Now()
-	if enableUpdateRequestsTimer {
-		p.updateRequestsTimer.Reset(updateRequestsTimerDuration)
-	}
 }
 
 // This could be set to 10s to match the unchoke/request update interval recommended by some

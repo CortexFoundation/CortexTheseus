@@ -17,10 +17,8 @@
 package wormhole
 
 import (
-	"errors"
-	"net"
-	"net/url"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -28,7 +26,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	mapset "github.com/deckarep/golang-set/v2"
 	resty "github.com/go-resty/resty/v2"
-	//"sync"
 )
 
 type Wormhole struct {
@@ -55,8 +52,13 @@ func (wh *Wormhole) Tunnel(hash string) error {
 func (wh *Wormhole) BestTrackers() (ret []string) {
 	defer wh.cl.SetTimeout(time.Second * 10)
 
+	log.Info("Global trackers loading ... ...")
+
+	var hc, uc atomic.Int32
+
 	for _, ur := range BestTrackerUrl {
 		log.Debug("Fetch trackers", "url", ur)
+		//fmt.Println(ur)
 		resp, err := wh.cl.R().Get(ur)
 
 		if err != nil || resp == nil || len(resp.String()) == 0 {
@@ -79,8 +81,14 @@ func (wh *Wormhole) BestTrackers() (ret []string) {
 			//	wg.Add(1)
 			go func(ss string) {
 				//		defer wg.Done()
-				if err := wh.healthCheck(ss); err == nil {
+				if t, err := wh.healthCheck(ss); err == nil {
 					//ret = append(ret, s)
+					switch t {
+					case HTTP:
+						hc.Add(1)
+					case UDP:
+						uc.Add(1)
+					}
 					retCh <- ss
 				} else {
 					//retCh <- ""
@@ -112,7 +120,6 @@ func (wh *Wormhole) BestTrackers() (ret []string) {
 			//}
 		}
 
-		ret = make([]string, 0, len(str))
 		for i := 0; i < len(str); i++ {
 			select {
 			case x := <-retCh:
@@ -128,49 +135,16 @@ func (wh *Wormhole) BestTrackers() (ret []string) {
 		}
 
 		//wg.Wait()
+		//fmt.Println(hc.Load())
+		//fmt.Println(uc.Load())
 
-		if len(ret) > 0 {
+		if len(ret) > CAP {
 			return
 		}
 		wh.cl.SetTimeout(time.Second * 10)
 	}
 
 	return
-}
-
-func (wh *Wormhole) healthCheck(s string) error {
-	log.Debug("Global best trackers", "url", s)
-	switch {
-	case strings.HasPrefix(s, "http"), strings.HasPrefix(s, "https"):
-		if _, err := wh.cl.R().Post(s); err != nil {
-			log.Warn("tracker failed", "err", err)
-			// TODO
-			return err
-		} else {
-			//ret = append(ret, s)
-			return nil
-		}
-	case strings.HasPrefix(s, "udp"):
-		if u, err := url.Parse(s); err == nil {
-			if host, port, err := net.SplitHostPort(u.Host); err == nil {
-				if err := ping(host, port); err == nil {
-					//ret = append(ret, s)
-					return nil
-				} else {
-					log.Warn("UDP ping err", "s", s, "err", err)
-					// TODO
-					return err
-				}
-			}
-		} else {
-			return err
-		}
-	default:
-		log.Warn("Other protocols trackers", "s", s)
-		return errors.New("invalid url protocol")
-	}
-
-	return errors.New("unhealthy tracker url")
 }
 
 func (wh *Wormhole) ColaList() mapset.Set[string] {
@@ -191,13 +165,4 @@ func (wh *Wormhole) ColaList() mapset.Set[string] {
 	}
 
 	return m
-}
-
-func ping(host string, port string) error {
-	address := net.JoinHostPort(host, port)
-	conn, err := net.DialTimeout("udp", address, 1*time.Second)
-	if conn != nil {
-		defer conn.Close()
-	}
-	return err
 }

@@ -1,9 +1,11 @@
 package segments
 
 import (
+	"iter"
 	"sort"
 
 	g "github.com/anacrolix/generics"
+	"github.com/anacrolix/missinggo/v2/panicif"
 )
 
 func NewIndex(segments LengthIter) (ret Index) {
@@ -60,4 +62,51 @@ func (me Index) Locate(e Extent, output Callback) bool {
 	return ScanConsecutive(me.iterSegments(), e, func(i int, e Extent) bool {
 		return output(i+first, e)
 	})
+}
+
+func (me Index) LocateIter(e Extent) iter.Seq2[int, Extent] {
+	return func(yield func(int, Extent) bool) {
+		first := sort.Search(len(me.segments), func(i int) bool {
+			_e := me.segments[i]
+			return _e.End() > e.Start
+		})
+		if first == len(me.segments) {
+			return
+		}
+		e.Start -= me.segments[first].Start
+		// The extent is before the first segment.
+		if e.Start < 0 {
+			e.Length += e.Start
+			e.Start = 0
+		}
+		me.segments = me.segments[first:]
+		ScanConsecutive(me.iterSegments(), e, func(i int, e Extent) bool {
+			return yield(i+first, e)
+		})
+	}
+}
+
+type IndexAndOffset struct {
+	Index  int
+	Offset int64
+}
+
+// Returns the Extent that contains the given extent, if it exists. Panics if Extents overlap on the
+// offset.
+func (me Index) LocateOffset(off int64) (ret g.Option[IndexAndOffset]) {
+	// I think an Extent needs to have a non-zero to match against it? That's what this method is
+	// defining.
+	for i, e := range me.LocateIter(Extent{off, 1}) {
+		panicif.True(ret.Ok)
+		panicif.NotEq(e.Length, 1)
+		ret.Set(IndexAndOffset{
+			Index:  i,
+			Offset: e.Start,
+		})
+	}
+	return
+}
+
+func (me Index) Index(i int) Extent {
+	return me.segments[i]
 }

@@ -35,6 +35,18 @@ func twoLineFormatter(msg Record) []byte {
 	}
 	b = append(b, "]\n  "...)
 
+	b = appendRecordTextAndValues(b, msg)
+	return ensureTrailingNewline(b)
+}
+
+func ensureTrailingNewline(b []byte) []byte {
+	if b[len(b)-1] != '\n' {
+		b = append(b, '\n')
+	}
+	return b
+}
+
+func appendRecordTextAndValues(b []byte, msg Record) []byte {
 	slogRecord := msg.SlogRecord()
 	if slogRecord.Ok {
 		gstbhLocker.Lock()
@@ -52,9 +64,6 @@ func twoLineFormatter(msg Record) []byte {
 		}
 		return true
 	})
-	if b[len(b)-1] != '\n' {
-		b = append(b, '\n')
-	}
 	return b
 }
 
@@ -68,7 +77,7 @@ func LineFormatter(msg Record) []byte {
 	}
 	b = append(b, msg.Level.LogString()...)
 	b = append(b, "] "...)
-	b = append(b, msg.Text()...)
+	b = appendRecordTextAndValues(b, msg)
 	b = append(b, " ["...)
 	b = append(b, msg.Names[0]...)
 	for _, name := range msg.Names[1:] {
@@ -76,8 +85,5 @@ func LineFormatter(msg Record) []byte {
 		b = append(b, name...)
 	}
 	b = append(b, ']')
-	if b[len(b)-1] != '\n' {
-		b = append(b, '\n')
-	}
-	return b
+	return ensureTrailingNewline(b)
 }

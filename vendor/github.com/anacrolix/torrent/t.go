@@ -205,7 +205,8 @@ func (t *Torrent) CancelPieces(begin, end pieceIndex) {
 
 func (t *Torrent) cancelPiecesLocked(begin, end pieceIndex, reason updateRequestReason) {
 	for i := begin; i < end; i++ {
-		p := &t.pieces[i]
+		p := t.piece(i)
+		// Intentionally cancelling only the piece-specific priority here.
 		if p.priority == PiecePriorityNone {
 			continue
 		}
@@ -295,7 +296,7 @@ func (t *Torrent) WebseedPeerConns() []*Peer {
 	defer t.cl.rUnlock()
 	ret := make([]*Peer, 0, len(t.conns))
 	for _, c := range t.webSeeds {
-		ret = append(ret, c)
+		ret = append(ret, &c.peer)
 	}
 	return ret
 }

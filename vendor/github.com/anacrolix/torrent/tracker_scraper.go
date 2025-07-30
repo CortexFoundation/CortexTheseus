@@ -5,13 +5,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/url"
 	"sync"
 	"time"
 
 	"github.com/anacrolix/dht/v2/krpc"
-	"github.com/anacrolix/log"
 
 	"github.com/anacrolix/torrent/tracker"
 )
@@ -24,6 +24,7 @@ type trackerScraper struct {
 	t               *Torrent
 	lastAnnounce    trackerAnnounceResult
 	lookupTrackerIp func(*url.URL) ([]net.IP, error)
+	logger          *slog.Logger
 
 	// TODO: chansync
 	stopOnce sync.Once
@@ -165,7 +166,6 @@ func (me *trackerScraper) announce(
 	// closed.
 	ctx, cancel := context.WithTimeout(ctx, tracker.DefaultTrackerAnnounceTimeout)
 	defer cancel()
-	me.t.logger.WithDefaultLevel(log.Debug).Printf("announcing to %q: %#v", me.u.String(), req)
 	res, err := tracker.Announce{
 		Context:             ctx,
 		HttpProxy:           me.t.cl.config.HTTPProxy,
@@ -182,10 +182,17 @@ func (me *trackerScraper) announce(
 		ClientIp6:           krpc.NodeAddr{IP: me.t.cl.config.PublicIp6},
 		Logger:              me.t.logger,
 	}.Do()
-	me.t.logger.WithDefaultLevel(log.Debug).Printf("announce to %q returned %#v: %v", me.u.String(), res, err)
 	if err != nil {
+		level := slog.LevelWarn
+		if ctx.Err() != nil {
+			level = slog.LevelDebug
+		}
+		// We log here because the caller only stores the error for tracking state.
+		me.logger.Log(ctx, level, "announce failed", "err", err)
 		ret.Err = fmt.Errorf("announcing: %w", err)
 		return
+	} else {
+		me.logger.Debug("announce returned", "numPeers", len(res.Peers))
 	}
 	me.t.AddPeers(peerInfos(nil).AppendFromTracker(res.Peers))
 	ret.NumPeers = len(res.Peers)
@@ -218,22 +225,11 @@ func (me *trackerScraper) Stop() {
 func (me *trackerScraper) Run() {
 	defer me.announceStopped()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	// TODO: Get rid of the need for this.
-	go func() {
-		defer cancel()
-		select {
-		case <-ctx.Done():
-		case <-me.t.Closed():
-		}
-	}()
-
 	// make sure first announce is a "started"
 	e := tracker.Started
 
 	for {
-		ar := me.announce(ctx, e)
+		ar := me.announce(me.t.closedCtx, e)
 		// after first announce, get back to regular "none"
 		e = tracker.None
 		me.t.cl.lock()

@@ -2,8 +2,9 @@ package panicif
 
 import (
 	"fmt"
-	"golang.org/x/exp/constraints"
 	"reflect"
+
+	"golang.org/x/exp/constraints"
 )
 
 func isNil(x any) (ret bool) {
@@ -86,5 +87,19 @@ func GreaterThan[T constraints.Ordered](a, b T) {
 func LessThan[T constraints.Ordered](a, b T) {
 	if a < b {
 		panic(fmt.Sprintf("%v < %v", a, b))
+	}
+}
+
+func Zero[T comparable](x T) {
+	var zero T
+	if x == zero {
+		panic("is zero")
+	}
+}
+
+func NotZero[T comparable](x T) {
+	var zero T
+	if x != zero {
+		panic("is not zero")
 	}
 }

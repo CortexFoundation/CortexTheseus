@@ -2,6 +2,7 @@ package torrent
 
 import (
 	"context"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
@@ -104,8 +105,9 @@ type ClientConfig struct {
 	DisableIPv4      bool
 	DisableIPv4Peers bool
 	// Perform logging and any other behaviour that will help debug.
-	Debug  bool `help:"enable debugging"`
-	Logger log.Logger
+	Debug   bool `help:"enable debugging"`
+	Logger  log.Logger
+	Slogger *slog.Logger
 
 	// Used for torrent sources and webseeding if set.
 	WebTransport http.RoundTripper
@@ -150,7 +152,8 @@ type ClientConfig struct {
 	// How long between writes before sending a keep alive message on a peer connection that we want
 	// to maintain.
 	KeepAliveTimeout time.Duration
-	// Maximum bytes to buffer per peer connection for peer request data before it is sent.
+	// Maximum bytes to buffer per peer connection for peer request data before it is sent. This
+	// must be >= the request chunk size from peers.
 	MaxAllocPeerRequestDataPerConn int
 
 	// The IP addresses as our peers should see them. May differ from the
@@ -168,6 +171,8 @@ type ClientConfig struct {
 	// bit of a special case, since a peer could also be useless if they're just not interested, or
 	// we don't intend to obtain all of a torrent's data.
 	DropMutuallyCompletePeers bool
+	// Use dialers to obtain connections to regular peers.
+	DialForPeerConns bool
 	// Whether to accept peer connections at all.
 	AcceptPeerConnections bool
 	// Whether a Client should want conns without delegating to any attached Torrents. This is
@@ -236,6 +241,7 @@ func NewDefaultClientConfig() *ClientConfig {
 		CryptoProvides:         mse.AllSupportedCrypto,
 		ListenPort:             42069,
 		Extensions:             defaultPeerExtensionBytes(),
+		DialForPeerConns:       true,
 		AcceptPeerConnections:  true,
 		MaxUnverifiedBytes:     64 << 20,
 		DialRateLimiter:        rate.NewLimiter(10, 10),
@@ -254,15 +260,11 @@ type HeaderObfuscationPolicy struct {
 }
 
 func (cfg *ClientConfig) setRateLimiterBursts() {
-	// Create a helper for rate limiters to avoid mistakes? What if the limit is greater than what
-	// can be represented by int?
-	if cfg.UploadRateLimiter.Limit() != rate.Inf && cfg.UploadRateLimiter.Burst() == 0 {
-		// What about chunk size?
-		cfg.UploadRateLimiter.SetBurst(cfg.MaxAllocPeerRequestDataPerConn)
-	}
-	if cfg.DownloadRateLimiter.Limit() != rate.Inf && cfg.DownloadRateLimiter.Burst() == 0 {
-		// 64 KiB used to be a rough default buffer for sockets on Windows. I'm sure it's bigger
-		// these days. What about the read buffer size mentioned elsewhere?
-		cfg.DownloadRateLimiter.SetBurst(min(int(cfg.DownloadRateLimiter.Limit()), 1<<16))
-	}
+	// What about chunk size?
+	setRateLimiterBurstIfZero(cfg.UploadRateLimiter, cfg.MaxAllocPeerRequestDataPerConn)
+	setRateLimiterBurstIfZero(
+		cfg.DownloadRateLimiter,
+		min(
+			int(cfg.DownloadRateLimiter.Limit()),
+			defaultDownloadRateLimiterBurst))
 }

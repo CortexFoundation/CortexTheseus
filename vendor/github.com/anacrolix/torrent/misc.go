@@ -15,6 +15,7 @@ import (
 )
 
 type (
+	// TODO: Make this private. Use types.Request in the (one?) place it's exposed here.
 	Request       = types.Request
 	ChunkSpec     = types.ChunkSpec
 	PiecePriority = types.PiecePriority
@@ -104,7 +105,7 @@ func validateInfo(info *metainfo.Info) error {
 }
 
 func chunkIndexSpec(index, pieceLength, chunkSize pp.Integer) ChunkSpec {
-	ret := ChunkSpec{pp.Integer(index) * chunkSize, chunkSize}
+	ret := ChunkSpec{index * chunkSize, chunkSize}
 	if ret.Begin+ret.Length > pieceLength {
 		ret.Length = pieceLength - ret.Begin
 	}
@@ -122,26 +123,6 @@ func connIsIpv6(nc interface {
 	ra := nc.LocalAddr()
 	rip := addrIpOrNil(ra)
 	return rip.To4() == nil && rip.To16() != nil
-}
-
-func maxInt(as ...int) int {
-	ret := as[0]
-	for _, a := range as[1:] {
-		if a > ret {
-			ret = a
-		}
-	}
-	return ret
-}
-
-func minInt(as ...int) int {
-	ret := as[0]
-	for _, a := range as[1:] {
-		if a < ret {
-			ret = a
-		}
-	}
-	return ret
 }
 
 var unlimited = rate.NewLimiter(rate.Inf, 0)
