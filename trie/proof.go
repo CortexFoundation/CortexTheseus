@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb/memorydb"
 	"github.com/CortexFoundation/CortexTheseus/log"
@@ -69,20 +70,9 @@ func (t *Trie) Prove(key []byte, fromLevel uint, proofDb ctxcdb.KeyValueWriter) 
 	defer returnHasherToPool(hasher)
 
 	for i, n := range nodes {
-		if fromLevel > 0 {
-			fromLevel--
-			continue
-		}
-		var hn node
-		n, hn = hasher.proofHash(n)
-		if hash, ok := hn.(hashNode); ok || i == 0 {
-			// If the node's database encoding is a hash (or is the
-			// root node), it becomes a proof element.
-			enc := nodeToBytes(n)
-			if !ok {
-				hash = hasher.hashData(enc)
-			}
-			proofDb.Put(hash, enc)
+		enc := hasher.proofHash(n)
+		if len(enc) >= 32 || i == 0 {
+			proofDb.Put(crypto.Keccak256(enc), enc)
 		}
 	}
 	return nil
