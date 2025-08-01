@@ -129,7 +129,7 @@ type CVM struct {
 
 	// jumpDests is the aggregated result of JUMPDEST analysis made through
 	// the life cycle of EVM.
-	jumpDests map[common.Hash]bitvec
+	jumpDests JumpDestCache
 }
 
 // NewCVM returns a new CVM. The returned CVM is not thread safe and should
@@ -143,13 +143,18 @@ func NewCVM(blockCtx BlockContext, statedb StateDB, chainConfig *params.ChainCon
 		chainConfig: chainConfig,
 		category:    Category{},
 		chainRules:  chainConfig.Rules(blockCtx.BlockNumber, blockCtx.Random != nil, blockCtx.Time),
-		jumpDests:   make(map[common.Hash]bitvec),
+		jumpDests:   newMapJumpDests(),
 	}
 
 	cvm.precompiles = activePrecompiledContracts(cvm.chainRules)
 	cvm.interpreter = NewCVMInterpreter(cvm)
 
 	return cvm
+}
+
+// SetJumpDestCache configures the analysis cache.
+func (cvm *CVM) SetJumpDestCache(jumpDests JumpDestCache) {
+	cvm.jumpDests = jumpDests
 }
 
 // SetPrecompiles sets the precompiled contracts for the EVM.
