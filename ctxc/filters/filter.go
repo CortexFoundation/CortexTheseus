@@ -103,7 +103,7 @@ func (f *Filter) Logs(ctx context.Context) ([]*types.Log, error) {
 			return nil, err
 		}
 		if header == nil {
-			return nil, errors.New("unknown block")
+			return nil, errUnknownBlock
 		}
 		return f.blockLogs(ctx, header)
 	}
