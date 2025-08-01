@@ -17,8 +17,9 @@
 package wormhole
 
 import (
-	"slices"
+	"context"
 	"strings"
+	"sync"
 	//"sync/atomic"
 	"time"
 
@@ -35,7 +36,7 @@ type Wormhole struct {
 
 func New() *Wormhole {
 	return &Wormhole{
-		cl: resty.New().SetTimeout(time.Second * 10),
+		cl: resty.New().SetTimeout(time.Second * 5),
 	}
 }
 
@@ -50,64 +51,84 @@ func (wh *Wormhole) Tunnel(hash string) error {
 	return nil
 }
 
-func (wh *Wormhole) BestTrackers() (ret []string) {
-	defer wh.cl.SetTimeout(time.Second * 10)
+func (wh *Wormhole) healthCheckWithContext(ctx context.Context, tracker string) error {
+	done := make(chan error, 1)
 
+	go func() {
+		done <- wh.healthCheck(tracker)
+	}()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case err := <-done:
+		return err
+	}
+}
+
+func (wh *Wormhole) BestTrackers() (ret []string) {
 	log.Info("Global trackers loading ... ...")
+
+	seen := make(map[string]struct{})
 
 	for _, ur := range BestTrackerUrl {
 		log.Debug("Fetch trackers", "url", ur)
-		resp, err := wh.cl.R().Get(ur)
 
+		resp, err := wh.cl.R().Get(ur)
 		if err != nil || resp == nil || len(resp.String()) == 0 {
 			log.Warn("Global tracker lost", "err", err)
 			continue
 		}
 
-		wh.cl.SetTimeout(time.Millisecond * 2000)
+		lines := strings.Split(resp.String(), "\n")
+		retCh := make(chan string, len(lines))
+		start := mclock.Now()
 
-		var (
-			str      = strings.Split(resp.String(), "\n\n")
-			retCh    = make(chan string, len(str))
-			failedCh = make(chan string, len(str))
-			start    = mclock.Now()
-			count    = 0
-		)
-		for _, s := range str {
-			if slices.Contains(ret, s) {
+		var wg sync.WaitGroup
+		for _, line := range lines {
+			tracker := strings.TrimSpace(line)
+			if tracker == "" {
 				continue
 			}
-			count++
-			go func(ss string) {
-				if err := wh.healthCheck(ss); err == nil {
-					retCh <- ss
-				} else {
-					failedCh <- ss
+			if _, exists := seen[tracker]; exists {
+				continue
+			}
+			seen[tracker] = struct{}{}
+			wg.Add(1)
+
+			go func(t string) {
+				defer wg.Done()
+
+				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+				defer cancel()
+
+				if err := wh.healthCheckWithContext(ctx, t); err == nil {
+					retCh <- t
 				}
-			}(s)
+			}(tracker)
 		}
 
-		for i := 0; i < count; i++ {
-			select {
-			case x := <-retCh:
-				log.Debug("Healthy tracker", "url", x, "latency", common.PrettyDuration(time.Duration(mclock.Now())-time.Duration(start)))
-				ret = append(ret, x)
-			case x := <-failedCh:
-				// TODO
-				log.Debug("Unhealthy tracker", "url", x, "latency", common.PrettyDuration(time.Duration(mclock.Now())-time.Duration(start)))
+		// close retCh when all health checks are done
+		go func() {
+			wg.Wait()
+			close(retCh)
+		}()
 
+		for t := range retCh {
+			log.Info("Healthy tracker", "url", t, "latency", common.PrettyDuration(time.Duration(mclock.Now())-time.Duration(start)))
+			ret = append(ret, t)
+			if len(ret) >= CAP {
+				//return ret
 			}
 		}
 
 		log.Info("Current global trackers found", "size", len(ret))
-
-		if len(ret) > CAP {
-			return
+		if len(ret) >= CAP {
+			break
 		}
-		wh.cl.SetTimeout(time.Second * 10)
 	}
 
-	return
+	return ret
 }
 
 func (wh *Wormhole) ColaList() mapset.Set[string] {
