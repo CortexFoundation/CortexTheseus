@@ -28,14 +28,18 @@ func isNil(x any) (ret bool) {
 	return reflect.ValueOf(x).IsNil()
 }
 
-func NotNil(x any) {
-	if !isNil(x) {
-		panic(x)
+func NotNil[T any](a T) {
+	// We take a in its original type (T), then call isNil knowing that we only forced it into an
+	// interface for purposes of that function.
+	if !isNil(a) {
+		panic(a)
 	}
 }
 
-func Nil(a any) {
-	if a == nil {
+func Nil[T any](a T) {
+	// We take a in its original type (T), then call isNil knowing that we only forced it into an
+	// interface for purposes of that function.
+	if isNil(a) {
 		panic(a)
 	}
 }
@@ -84,9 +88,21 @@ func GreaterThan[T constraints.Ordered](a, b T) {
 	}
 }
 
+func GreaterThanOrEqual[T constraints.Ordered](a, b T) {
+	if a >= b {
+		panic(fmt.Sprintf("%v >= %v", a, b))
+	}
+}
+
 func LessThan[T constraints.Ordered](a, b T) {
 	if a < b {
 		panic(fmt.Sprintf("%v < %v", a, b))
+	}
+}
+
+func LessThanOrEqual[T constraints.Ordered](a, b T) {
+	if a <= b {
+		panic(fmt.Sprintf("%v <= %v", a, b))
 	}
 }
 

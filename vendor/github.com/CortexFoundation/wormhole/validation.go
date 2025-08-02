@@ -33,7 +33,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
-func (wh *Wormhole) healthCheck(s string) (int, error) {
+func (wh *Wormhole) healthCheck(s string) error {
 	log.Debug("Global best trackers", "url", s)
 	switch {
 	case strings.HasPrefix(s, "http"), strings.HasPrefix(s, "https"):
@@ -41,32 +41,32 @@ func (wh *Wormhole) healthCheck(s string) (int, error) {
 		if err := checkHTTPTracker(s); err != nil {
 			log.Debug("tracker failed", "err", err)
 			// TODO
-			return 0, err
+			return err
 		} else {
 			//ret = append(ret, s)
-			return 0, nil
+			return nil
 		}
 	case strings.HasPrefix(s, "udp"):
 		if u, err := url.Parse(s); err == nil {
 			if host, port, err := net.SplitHostPort(u.Host); err == nil {
 				if err := ping(host, port); err == nil {
 					//ret = append(ret, s)
-					return 1, nil
+					return nil
 				} else {
 					log.Debug("UDP ping err", "s", s, "err", err)
 					// TODO
-					return 1, err
+					return err
 				}
 			}
 		} else {
-			return 1, err
+			return err
 		}
 	default:
 		log.Warn("Other protocols trackers", "s", s)
-		return -1, errors.New("invalid url protocol")
+		return errors.New("invalid url protocol")
 	}
 
-	return -1, errors.New("unhealthy tracker url")
+	return errors.New("unhealthy tracker url")
 }
 
 func random20Bytes() []byte {
@@ -105,7 +105,7 @@ func checkHTTPTracker(base string) error {
 	}
 
 	client := http.Client{
-		Timeout: 10 * time.Second,
+		Timeout: 5 * time.Second,
 	}
 
 	resp, err := client.Get(fullURL)
