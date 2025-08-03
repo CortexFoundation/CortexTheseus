@@ -35,38 +35,34 @@ import (
 
 func (wh *Wormhole) healthCheck(s string) error {
 	log.Debug("Global best trackers", "url", s)
+
 	switch {
 	case strings.HasPrefix(s, "http"), strings.HasPrefix(s, "https"):
-		//if _, err := wh.cl.R().Post(s); err != nil {
 		if err := checkHTTPTracker(s); err != nil {
 			log.Debug("tracker failed", "err", err)
-			// TODO
 			return err
-		} else {
-			//ret = append(ret, s)
-			return nil
 		}
+		return nil
+
 	case strings.HasPrefix(s, "udp"):
-		if u, err := url.Parse(s); err == nil {
-			if host, port, err := net.SplitHostPort(u.Host); err == nil {
-				if err := ping(host, port); err == nil {
-					//ret = append(ret, s)
-					return nil
-				} else {
-					log.Debug("UDP ping err", "s", s, "err", err)
-					// TODO
-					return err
-				}
-			}
-		} else {
+		u, err := url.Parse(s)
+		if err != nil {
 			return err
 		}
+		host, port, err := net.SplitHostPort(u.Host)
+		if err != nil {
+			return err
+		}
+		if err := checkUDPTracker(net.JoinHostPort(host, port)); err != nil {
+			log.Debug("UDP ping err", "s", s, "err", err)
+			return err
+		}
+		return nil
+
 	default:
 		log.Warn("Other protocols trackers", "s", s)
 		return errors.New("invalid url protocol")
 	}
-
-	return errors.New("unhealthy tracker url")
 }
 
 func random20Bytes() []byte {
@@ -127,57 +123,17 @@ func checkHTTPTracker(base string) error {
 		return fmt.Errorf("tracker responded with failure")
 	}
 
-	//fmt.Printf("Tracker responded (%d bytes)\n", len(body))
 	return nil
 }
 
-func ping(host, port string) error {
-	address := net.JoinHostPort(host, port)
-
-	return checkUDPTracker(address)
-
-	/*raddr, err := net.ResolveUDPAddr("udp", address)
-	if err != nil {
-		return fmt.Errorf("failed to resolve address: %w", err)
-	}
-
-	conn, err := net.DialUDP("udp", nil, raddr)
-	if err != nil {
-		return fmt.Errorf("failed to dial UDP: %w", err)
-	}
-	defer conn.Close()
-
-	_, err = conn.Write([]byte{})
-	if err != nil {
-		return fmt.Errorf("failed to send UDP packet: %w", err)
-	}
-
-	return nil*/
-}
-
-/*
-	func ping(host string, port string) error {
-		address := net.JoinHostPort(host, port)
-		raddr, err1 := net.ResolveUDPAddr("udp", address)
-		if err1 != nil {
-			return err1
-		}
-		conn, err := net.DialUDP("udp", nil, raddr)
-		if conn != nil {
-			defer conn.Close()
-		}
-		return err
-	}
-*/
 const (
-	udpTimeout     = 5 * time.Second
-	actionConnect  = 0
-	actionAnnounce = 1
-	protocolID     = 0x41727101980
+	udpTimeout    = 5 * time.Second
+	actionConnect = 0
+	protocolID    = 0x41727101980
 )
 
-func checkUDPTracker(trackerURL string) error {
-	host, port, err := net.SplitHostPort(trackerURL[6:])
+func checkUDPTracker(trackerHostPort string) error {
+	host, port, err := net.SplitHostPort(trackerHostPort)
 	if err != nil {
 		return fmt.Errorf("invalid tracker URL: %w", err)
 	}
@@ -198,28 +154,22 @@ func checkUDPTracker(trackerURL string) error {
 	rand.Read(transactionID)
 
 	var buf bytes.Buffer
-	binary.Write(&buf, binary.BigEndian, uint64(protocolID))    // protocol ID
-	binary.Write(&buf, binary.BigEndian, uint32(actionConnect)) // action = connect
-	buf.Write(transactionID)                                    // transaction ID
+	binary.Write(&buf, binary.BigEndian, uint64(protocolID))
+	binary.Write(&buf, binary.BigEndian, uint32(actionConnect))
+	buf.Write(transactionID)
 
-	_, err = conn.Write(buf.Bytes())
-	if err != nil {
+	if _, err = conn.Write(buf.Bytes()); err != nil {
 		return fmt.Errorf("send connect request failed: %w", err)
 	}
 
 	resp := make([]byte, 16)
-	_, err = conn.Read(resp)
-	if err != nil {
+	if _, err = conn.Read(resp); err != nil {
 		return fmt.Errorf("connect response failed: %w", err)
 	}
 
-	if len(resp) < 16 || resp[0] != 0 || !bytes.Equal(resp[4:8], transactionID) {
+	if len(resp) < 16 || binary.BigEndian.Uint32(resp[:4]) != actionConnect || !bytes.Equal(resp[4:8], transactionID) {
 		return fmt.Errorf("invalid connect response")
 	}
 
-	//connectionID := resp[8:16]
-
-	//fmt.Println("Tracker responded to connect request.")
-	//fmt.Printf("Connection ID: %x\n", connectionID)
 	return nil
 }
