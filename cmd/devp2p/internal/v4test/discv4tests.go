@@ -27,6 +27,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/internal/utesting"
 	"github.com/CortexFoundation/CortexTheseus/p2p/discover/v4wire"
+	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 )
 
 const (
@@ -449,6 +450,36 @@ func FindnodeAmplificationWrongIP(t *utesting.T) {
 	}
 }
 
+func ENRRequest(t *utesting.T) {
+	t.Log(`This test sends an ENRRequest packet and expects a response containing a valid ENR.`)
+
+	te := newTestEnv(Remote, Listen1, Listen2)
+	defer te.close()
+	bond(t, te)
+
+	req := &v4wire.ENRRequest{Expiration: futureExpiration()}
+	hash := te.send(te.l1, req)
+
+	response, _, err := te.read(te.l1)
+	if err != nil {
+		t.Fatal("read error:", err)
+	}
+	enrResp, ok := response.(*v4wire.ENRResponse)
+	if !ok {
+		t.Fatalf("expected ENRResponse packet, got %T", response)
+	}
+	if !bytes.Equal(enrResp.ReplyTok, hash) {
+		t.Errorf("wrong hash in response packet: got %x, want %x", enrResp.ReplyTok, hash)
+	}
+	node, err := enode.New(enode.ValidSchemes, &enrResp.Record)
+	if err != nil {
+		t.Errorf("invalid record in response: %v", err)
+	}
+	if node.ID() != te.remote.ID() {
+		t.Errorf("wrong node ID in response: got %v, want %v", node.ID(), te.remote.ID())
+	}
+}
+
 var AllTests = []utesting.Test{
 	{Name: "Ping/Basic", Fn: BasicPing},
 	{Name: "Ping/WrongTo", Fn: PingWrongTo},
@@ -458,6 +489,7 @@ var AllTests = []utesting.Test{
 	{Name: "Ping/PastExpiration", Fn: PingPastExpiration},
 	{Name: "Ping/WrongPacketType", Fn: WrongPacketType},
 	{Name: "Ping/BondThenPingWithWrongFrom", Fn: BondThenPingWithWrongFrom},
+	{Name: "ENRRequest", Fn: ENRRequest},
 	{Name: "Findnode/WithoutEndpointProof", Fn: FindnodeWithoutEndpointProof},
 	{Name: "Findnode/BasicFindnode", Fn: BasicFindnode},
 	{Name: "Findnode/UnsolicitedNeighbors", Fn: UnsolicitedNeighbors},
