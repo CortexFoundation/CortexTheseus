@@ -615,7 +615,7 @@ func (t *Trie) resolveBlob(n hashNode, prefix []byte) ([]byte, error) {
 // Hash returns the root hash of the trie. It does not write to the
 // database and can be used even if the trie doesn't have one.
 func (t *Trie) Hash() common.Hash {
-	return common.BytesToHash(t.hashRoot().(hashNode))
+	return common.BytesToHash(t.hashRoot())
 }
 
 // Commit writes all nodes to the trie's memory database, tracking the internal
@@ -674,9 +674,9 @@ func (t *Trie) Commit(onleaf LeafCallback) (root common.Hash, err error) {
 }
 
 // hashRoot calculates the root hash of the given trie
-func (t *Trie) hashRoot() node {
+func (t *Trie) hashRoot() []byte {
 	if t.root == nil {
-		return hashNode(types.EmptyRootHash.Bytes())
+		return types.EmptyRootHash.Bytes()
 	}
 	// If the number of changes is below 100, we let one thread handle it
 	h := newHasher(t.unhashed >= 100)
