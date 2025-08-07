@@ -33,74 +33,98 @@ import (
 func (tm *TorrentManager) ExistsOrActive(ctx context.Context, ih string, rawSize uint64) (bool, uint64, mclock.AbsTime, error) {
 	availableMeter.Mark(1)
 
+	// Validate infohash format early to prevent unnecessary processing.
 	if !common.IsHexAddress(ih) {
 		return false, 0, 0, errors.New("invalid infohash format")
 	}
 
 	ih = strings.TrimPrefix(strings.ToLower(ih), common.Prefix)
 
-	if t := tm.getTorrent(ih); t == nil {
+	// Check if the torrent is active in the manager.
+	t := tm.getTorrent(ih)
+	if t == nil {
+		// If not active, check if the torrent directory exists on disk.
 		dir := filepath.Join(tm.DataDir, ih)
 		if _, err := os.Stat(dir); err == nil {
+			// Torrent files exist but are not managed.
 			return true, 0, 0, ErrInactiveTorrent
 		}
+		// Torrent is neither active nor on disk.
 		return false, 0, 0, ErrInactiveTorrent
-	} else {
-		if !t.Ready() {
-			if t.Torrent.Info() == nil {
-				return false, 0, 0, ErrTorrentNotFound
-			}
-			return false, uint64(t.Torrent.BytesCompleted()), mclock.Now() - t.Birth(), ErrUnfinished
-		}
-
-		// TODO
-		ok := t.Torrent.BytesCompleted() <= int64(rawSize)
-
-		return ok, uint64(t.Torrent.BytesCompleted()), mclock.Now() - t.Birth(), nil
 	}
+
+	// The torrent is active. Now check its status.
+	if !t.Ready() {
+		// If the torrent is not ready, check if it has info.
+		if t.Torrent.Info() == nil {
+			return false, 0, 0, ErrTorrentNotFound
+		}
+		// The torrent is active but still in progress.
+		bytesCompleted := uint64(t.Torrent.BytesCompleted())
+		age := mclock.Now() - t.Birth()
+		return false, bytesCompleted, age, ErrUnfinished
+	}
+
+	// The torrent is ready and active.
+	bytesCompleted := uint64(t.Torrent.BytesCompleted())
+	ok := bytesCompleted <= rawSize
+	age := mclock.Now() - t.Birth()
+
+	return ok, bytesCompleted, age, nil
 }
 
-func (tm *TorrentManager) GetFile(ctx context.Context, infohash, subpath string) (data []byte, mu *event.TypeMux, err error) {
+func (tm *TorrentManager) GetFile(ctx context.Context, infohash, subpath string) ([]byte, *event.TypeMux, error) {
 	getfileMeter.Mark(1)
 	if tm.metrics {
+		// Use a defer statement to ensure the timer is always stopped.
 		defer func(start time.Time) { tm.Updates += time.Since(start) }(time.Now())
 	}
 
+	// Early validation and normalization to reduce nested logic.
 	if !common.IsHexAddress(infohash) {
 		return nil, nil, errors.New("invalid infohash format")
 	}
 
-	infohash = strings.TrimPrefix(strings.ToLower(infohash), common.Prefix)
-	subpath = strings.TrimPrefix(subpath, "/")
-	subpath = strings.TrimSuffix(subpath, "/")
+	ih := strings.TrimPrefix(strings.ToLower(infohash), common.Prefix)
+	sp := strings.Trim(subpath, "/")
 
-	var key = filepath.Join(infohash, subpath)
+	log.Debug("Get File", "dir", tm.DataDir, "infohash", ih, "subpath", sp)
 
-	log.Debug("Get File", "dir", tm.DataDir, "key", key)
+	var (
+		mu   *event.TypeMux
+		err  error
+		data []byte
+	)
 
-	if t := tm.getTorrent(infohash); t != nil {
+	// Check if the torrent is active and ready.
+	if t := tm.getTorrent(ih); t != nil {
 		if !t.Ready() {
 			return nil, t.Mux(), ErrUnfinished
 		}
 
-		// Data protection when torrent is active
+		// Lock the torrent for reading to ensure data integrity during file access.
 		t.RLock()
 		defer t.RUnlock()
-
 		mu = t.Mux()
 	}
 
+	// Construct the full file path.
+	filePath := filepath.Join(tm.DataDir, ih, sp)
+
 	diskReadMeter.Mark(1)
-	dir := filepath.Join(tm.DataDir, key)
+
+	// Use file cache if active, otherwise fall back to local read.
 	if tm.fc != nil && tm.fc.Active() {
 		start := mclock.Now()
-		if data, err = tm.fc.ReadFile(dir); err == nil {
-			log.Debug("Load data from file cache", "ih", infohash, "dir", dir, "elapsed", common.PrettyDuration(time.Duration(mclock.Now()-start)))
+		data, err = tm.fc.ReadFile(filePath)
+		if err == nil {
+			elapsed := time.Duration(mclock.Now() - start)
+			log.Debug("Loaded data from file cache", "infohash", ih, "file", filePath, "elapsed", common.PrettyDuration(elapsed))
 		}
 	} else {
-		// local read
-		data, err = os.ReadFile(dir)
+		data, err = os.ReadFile(filePath)
 	}
 
-	return
+	// The named return values 'data' and 'mu' are handled automatically.
+	return data, mu, err
 }
