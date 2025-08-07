@@ -33,8 +33,8 @@ type Contract struct {
 	caller  common.Address
 	address common.Address
 
-	jumpdests map[common.Hash]bitvec // Aggregated result of JUMPDEST analysis.
-	analysis  bitvec                 // Locally cached result of JUMPDEST analysis
+	jumpDests JumpDestCache // Aggregated result of JUMPDEST analysis.
+	analysis  BitVec        // Locally cached result of JUMPDEST analysis
 
 	Code     []byte
 	CodeHash common.Hash
@@ -51,15 +51,15 @@ type Contract struct {
 }
 
 // NewContract returns a new contract environment for the execution of CVM.
-func NewContract(caller common.Address, address common.Address, value *big.Int, gas uint64, jumpDests map[common.Hash]bitvec) *Contract {
+func NewContract(caller common.Address, address common.Address, value *big.Int, gas uint64, jumpDests JumpDestCache) *Contract {
 	// Initialize the jump analysis map if it's nil, mostly for tests
 	if jumpDests == nil {
-		jumpDests = make(map[common.Hash]bitvec)
+		jumpDests = newMapJumpDests()
 	}
 	return &Contract{
 		caller:    caller,
 		address:   address,
-		jumpdests: jumpDests,
+		jumpDests: jumpDests,
 		Gas:       gas,
 		value:     value,
 		ModelGas:  make(map[common.Address]uint64),
@@ -92,12 +92,12 @@ func (c *Contract) isCode(udest uint64) bool {
 	// contracts ( not temporary initcode), we store the analysis in a map
 	if c.CodeHash != (common.Hash{}) {
 		// Does parent context have the analysis?
-		analysis, exist := c.jumpdests[c.CodeHash]
+		analysis, exist := c.jumpDests.Load(c.CodeHash)
 		if !exist {
 			// Do the analysis and save in parent context
 			// We do not need to store it in c.analysis
 			analysis = codeBitmap(c.Code)
-			c.jumpdests[c.CodeHash] = analysis
+			c.jumpDests.Store(c.CodeHash, analysis)
 		}
 		// Also stash it in current contract for faster access
 		c.analysis = analysis
