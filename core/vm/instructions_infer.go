@@ -28,179 +28,143 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
-func opInfer(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
-	_modelAddr, _inputAddr, _outputOffset := scope.Stack.pop(), scope.Stack.pop(), scope.Stack.pop()
-	modelAddr := common.Address(_modelAddr.Bytes20())
-	inputAddr := common.Address(_inputAddr.Bytes20())
-	var (
-		modelMeta *torrentfs.ModelMeta
-		inputMeta *torrentfs.InputMeta
-	)
-	modelMeta, modelErr := checkModel(interpreter.cvm, scope.Stack, modelAddr)
-	if modelErr != nil {
-		scope.Stack.push(new(uint256.Int).Clear())
-		return nil, modelErr
-	}
-
-	inputMeta, inputErr := checkInputMeta(interpreter.cvm, scope.Stack, inputAddr)
-	if inputErr != nil {
-		scope.Stack.push(new(uint256.Int).Clear())
-		return nil, inputErr
-	}
-
-	log.Debug("interpreter check shape 1", "modelMeta", modelMeta, "inputMeta", inputMeta)
-	// Model&Input shape should match
-	if len(modelMeta.InputShape) != len(inputMeta.Shape) {
-		scope.Stack.push(new(uint256.Int).Clear())
-		if interpreter.cvm.vmConfig.DebugInferVM {
-			fmt.Println("modelmeta: ", modelMeta.InputShape, " inputmeta: ", inputMeta.Shape)
-		}
-		return nil, errMetaShapeNotMatch
-	}
-	log.Debug("interpreter check shape 2", "modelMeta", modelMeta, "inputMeta", inputMeta)
-	for idx, modelShape := range modelMeta.InputShape {
-		if modelShape != inputMeta.Shape[idx] || modelShape == 0 || inputMeta.Shape[idx] == 0 {
-			scope.Stack.push(new(uint256.Int).Clear())
-			if interpreter.cvm.vmConfig.DebugInferVM {
-				fmt.Println("modelmeta: ", modelMeta.InputShape, " inputmeta: ", inputMeta.Shape)
-			}
-			return nil, errMetaShapeNotMatch
-		}
-	}
-
-	//todo model & input tfs validation
-	output, err := interpreter.cvm.Infer(modelMeta.Hash.Hex(), inputMeta.Hash.Hex(), modelMeta.RawSize, inputMeta.RawSize)
-	if interpreter.cvm.vmConfig.DebugInferVM {
-		fmt.Println("DebugInferVM ", "output: ", output, " err: ", err, "model = ", modelMeta.Hash.Hex(), "input = ", inputMeta.Hash.Hex())
-	}
-	if err != nil {
-		scope.Stack.push(new(uint256.Int).Clear())
-		return nil, err
-	}
-	if err := scope.Memory.WriteSolidityUint256Array(int64(_outputOffset.Uint64()), output); err != nil {
-		scope.Stack.push(new(uint256.Int).Clear())
-		return nil, err
-	}
-	scope.Stack.push(new(uint256.Int).SetOne())
-
-	return nil, nil
+func handleInferError(stack *Stack, err error) error {
+	stack.push(new(uint256.Int).Clear())
+	return err
 }
 
-func checkModel(cvm *CVM, stack *Stack, modelAddr common.Address) (*torrentfs.ModelMeta, error) {
-	var (
-		modelMeta *torrentfs.ModelMeta
-		err       error
-	)
-	if modelMeta, err = cvm.GetModelMeta(modelAddr); err != nil {
+func checkModel(cvm *CVM, modelAddr common.Address) (*torrentfs.ModelMeta, error) {
+	modelMeta, err := cvm.GetModelMeta(modelAddr)
+	if err != nil {
 		return nil, err
 	}
-	// Model Meta is validation
 	if cvm.StateDB.Uploading(modelAddr) {
 		return nil, errors.New("MODEL IS NOT UPLOADED ERROR")
 	}
 
-	matureBlockNumber := cvm.ChainConfig().GetMatureBlock()
-	log.Debug("checkModel", "modelAddr blocknum", cvm.StateDB.GetNum(modelAddr), "modelMeta", modelMeta)
-	if cvm.StateDB.GetNum(modelAddr).Int64() <= 0 {
+	blockNum := cvm.StateDB.GetNum(modelAddr)
+	if blockNum.Int64() <= 0 {
 		return nil, errMetaInfoBlockNum
 	}
-	if cvm.StateDB.GetNum(modelAddr).Int64() > cvm.Context.BlockNumber.Int64()-matureBlockNumber {
-		log.Debug("instructions", "modelAddr", modelAddr, "modelAddrBlkNum", cvm.StateDB.GetNum(modelAddr), "Current", cvm.Context.BlockNumber, "MB", matureBlockNumber)
+
+	matureBlockNumber := cvm.ChainConfig().GetMatureBlock()
+	if blockNum.Int64() > cvm.Context.BlockNumber.Int64()-matureBlockNumber {
+		log.Debug("instructions", "modelAddr", modelAddr, "modelAddrBlkNum", blockNum, "Current", cvm.Context.BlockNumber, "MB", matureBlockNumber)
 		return nil, ErrMetaInfoNotMature
 	}
 
-	if cvm.StateDB.GetNum(modelAddr).Int64() < cvm.Context.BlockNumber.Int64()-params.ExpiredBlks {
+	if blockNum.Int64() < cvm.Context.BlockNumber.Int64()-params.ExpiredBlks {
 		return nil, errMetaInfoExpired
 	}
 
 	if modelMeta.Gas > params.MODEL_GAS_LIMIT {
-		//return nil, errExecutionReverted
 		return nil, errors.New("INVALID MODEL GAS LIMIT ERROR")
 	}
 	return modelMeta, nil
 }
 
-func checkInputMeta(cvm *CVM, stack *Stack, inputAddr common.Address) (*torrentfs.InputMeta, error) {
-	var (
-		inputMeta *torrentfs.InputMeta
-		err       error
-	)
-	if inputMeta, err = cvm.GetInputMeta(inputAddr); err != nil {
+func checkInputMeta(cvm *CVM, inputAddr common.Address) (*torrentfs.InputMeta, error) {
+	inputMeta, err := cvm.GetInputMeta(inputAddr)
+	if err != nil {
 		return nil, err
 	}
-	// Model Meta is validation
 	if cvm.StateDB.Uploading(inputAddr) {
 		return nil, errors.New("MODEL IS NOT UPLOADED ERROR")
 	}
 
-	log.Debug("checkInput", "modelAddr blocknum", cvm.StateDB.GetNum(inputAddr), "inputMeta", inputMeta)
-	if cvm.StateDB.GetNum(inputAddr).Int64() <= 0 {
+	blockNum := cvm.StateDB.GetNum(inputAddr)
+	if blockNum.Int64() <= 0 {
 		return nil, errMetaInfoBlockNum
 	}
 
 	matureBlockNumber := cvm.ChainConfig().GetMatureBlock()
-	if cvm.StateDB.GetNum(inputAddr).Int64() > cvm.Context.BlockNumber.Int64()-matureBlockNumber {
-		log.Debug("instructions", "inputAddr", inputAddr, "inputAddrBlkNum", cvm.StateDB.GetNum(inputAddr), "Current", cvm.Context.BlockNumber, "Uploading", cvm.StateDB.Uploading(inputAddr), "MB", matureBlockNumber)
+	if blockNum.Int64() > cvm.Context.BlockNumber.Int64()-matureBlockNumber {
+		log.Debug("instructions", "inputAddr", inputAddr, "inputAddrBlkNum", blockNum, "Current", cvm.Context.BlockNumber, "Uploading", cvm.StateDB.Uploading(inputAddr), "MB", matureBlockNumber)
 		return nil, ErrMetaInfoNotMature
 	}
 
-	if cvm.StateDB.GetNum(inputAddr).Int64() < cvm.Context.BlockNumber.Int64()-params.ExpiredBlks {
+	if blockNum.Int64() < cvm.Context.BlockNumber.Int64()-params.ExpiredBlks {
 		return nil, errMetaInfoExpired
 	}
-
 	return inputMeta, nil
+}
+
+func opInfer(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	_modelAddr, _inputAddr, _outputOffset := scope.Stack.pop(), scope.Stack.pop(), scope.Stack.pop()
+	modelAddr := common.Address(_modelAddr.Bytes20())
+	inputAddr := common.Address(_inputAddr.Bytes20())
+
+	modelMeta, err := checkModel(interpreter.cvm, modelAddr)
+	if err != nil {
+		return nil, handleInferError(scope.Stack, err)
+	}
+
+	inputMeta, err := checkInputMeta(interpreter.cvm, inputAddr)
+	if err != nil {
+		return nil, handleInferError(scope.Stack, err)
+	}
+
+	if len(modelMeta.InputShape) != len(inputMeta.Shape) {
+		if interpreter.cvm.vmConfig.DebugInferVM {
+			fmt.Println("modelmeta: ", modelMeta.InputShape, " inputmeta: ", inputMeta.Shape)
+		}
+		return nil, handleInferError(scope.Stack, errMetaShapeNotMatch)
+	}
+
+	for idx, modelShape := range modelMeta.InputShape {
+		if modelShape != inputMeta.Shape[idx] || modelShape == 0 || inputMeta.Shape[idx] == 0 {
+			if interpreter.cvm.vmConfig.DebugInferVM {
+				fmt.Println("modelmeta: ", modelMeta.InputShape, " inputmeta: ", inputMeta.Shape)
+			}
+			return nil, handleInferError(scope.Stack, errMetaShapeNotMatch)
+		}
+	}
+
+	output, err := interpreter.cvm.Infer(modelMeta.Hash.Hex(), inputMeta.Hash.Hex(), modelMeta.RawSize, inputMeta.RawSize)
+	if err != nil {
+		return nil, handleInferError(scope.Stack, err)
+	}
+
+	if err := scope.Memory.WriteSolidityUint256Array(int64(_outputOffset.Uint64()), output); err != nil {
+		return nil, handleInferError(scope.Stack, err)
+	}
+
+	scope.Stack.push(new(uint256.Int).SetOne())
+	return nil, nil
 }
 
 func opInferArray(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
 	_modelAddr, _inputHeaderOffset, _outputOffset := scope.Stack.pop(), scope.Stack.pop(), scope.Stack.pop()
-	// fmt.Println(fmt.Sprintf("%d, %d, %d", _modelAddr, _inputHeaderOffset, _outputOffset))
+	modelAddr := common.Address(_modelAddr.Bytes20())
+
 	inputBuff, inputError := interpreter.cvm.StateDB.GetSolidityBytes(scope.Contract.Address(), common.Hash(_inputHeaderOffset.Bytes32()))
 	if inputError != nil {
 		return nil, inputError
 	}
-	inputSize := uint256.NewInt(uint64(len(inputBuff)))
-	modelAddr := common.Address(_modelAddr.Bytes20())
-	// log.Debug(fmt.Sprintf("_input = %v, payload = %v ", inputSize, inputBuff))
 
-	modelMeta, modelErr := checkModel(interpreter.cvm, scope.Stack, modelAddr)
-	if modelErr != nil {
-		scope.Stack.push(new(uint256.Int).Clear())
-		return nil, modelErr
-	}
-
-	if false {
-		//TODO(tian) omit input shape for infer array
-		var dataSize uint64 = 1
-		for _, modelShape := range modelMeta.InputShape {
-			dataSize *= modelShape
-		}
-		if dataSize != inputSize.Uint64() {
-			scope.Stack.push(new(uint256.Int).Clear())
-			if interpreter.cvm.vmConfig.DebugInferVM {
-				fmt.Println("modelmeta: ", modelMeta.InputShape, "datasize: ", dataSize, "inputSize: ", inputSize)
-			}
-			return nil, errMetaShapeNotMatch
-		}
-	}
-	var (
-		output []byte
-		err    error
-	)
-	output, err = interpreter.cvm.InferArray(modelMeta.Hash.Hex(),
-		inputBuff, modelMeta.RawSize)
+	modelMeta, err := checkModel(interpreter.cvm, modelAddr)
 	if err != nil {
-		scope.Stack.push(new(uint256.Int).Clear())
-		return nil, err
+		return nil, handleInferError(scope.Stack, err)
 	}
-	if interpreter.cvm.vmConfig.DebugInferVM {
-		fmt.Println("output", output)
-	}
-	if err := scope.Memory.WriteSolidityUint256Array(int64(_outputOffset.Uint64()), output); err != nil {
-		scope.Stack.push(new(uint256.Int).Clear())
-		return nil, err
-	}
-	// interpreter.intPool.get().SetUint64
-	scope.Stack.push(new(uint256.Int).SetOne())
 
+	//TODO(tian) enable input shape check for infer array
+	// var dataSize uint64 = 1
+	// for _, modelShape := range modelMeta.InputShape {
+	// 	dataSize *= modelShape
+	// }
+	// if dataSize != uint64(len(inputBuff)) {
+	// 	return nil, handleInferError(scope.Stack, errMetaShapeNotMatch)
+	// }
+
+	output, err := interpreter.cvm.InferArray(modelMeta.Hash.Hex(), inputBuff, modelMeta.RawSize)
+	if err != nil {
+		return nil, handleInferError(scope.Stack, err)
+	}
+
+	if err := scope.Memory.WriteSolidityUint256Array(int64(_outputOffset.Uint64()), output); err != nil {
+		return nil, handleInferError(scope.Stack, err)
+	}
+
+	scope.Stack.push(new(uint256.Int).SetOne())
 	return nil, nil
 }

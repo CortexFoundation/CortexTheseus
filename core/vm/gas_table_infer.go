@@ -17,8 +17,6 @@
 package vm
 
 import (
-	_ "fmt"
-
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"github.com/CortexFoundation/CortexTheseus/params"
@@ -27,11 +25,11 @@ import (
 func gasInfer(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
 	modelAddr := common.Address(stack.Back(0).Bytes20())
 	inputAddr := common.Address(stack.Back(1).Bytes20())
-	_, modelErr := checkModel(cvm, stack, modelAddr)
+	_, modelErr := checkModel(cvm, modelAddr)
 	if modelErr != nil {
 		return 0, modelErr
 	}
-	_, inputErr := checkInputMeta(cvm, stack, inputAddr)
+	_, inputErr := checkInputMeta(cvm, inputAddr)
 	if inputErr != nil {
 		return 0, inputErr
 	}
@@ -54,7 +52,7 @@ func gasInfer(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, me
 
 func gasInferArray(gt params.GasTable, cvm *CVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
 	modelAddr := common.Address(stack.Back(0).Bytes20())
-	_, modelErr := checkModel(cvm, stack, modelAddr)
+	_, modelErr := checkModel(cvm, modelAddr)
 	if modelErr != nil {
 		return 0, modelErr
 	}

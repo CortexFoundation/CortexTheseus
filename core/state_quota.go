@@ -35,7 +35,6 @@ var (
 
 func (st *stateTransition) preQuotaCheck() error {
 	if st.uploading() {
-		// log.Debug("state_transition", "uploading", st.uploading(), "st.state.GetNum(st.to())", st.state.GetNum(st.to()))
 		if st.state.GetNum(st.to()).Cmp(big0) <= 0 {
 			log.Warn("Uploading block number is zero", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.Context.BlockNumber)
 			return ErrUnhandleTx
@@ -46,28 +45,10 @@ func (st *stateTransition) preQuotaCheck() error {
 			return ErrUnhandleTx
 		}
 		cost := math2.Uint64Min(params.PER_UPLOAD_BYTES, st.state.Upload(st.to()).Uint64())
-		// log.Debug("state_transition",
-		//                                "new(big.Int).SetUint64(params.PER_UPLOAD_BYTES)", new(big.Int).SetUint64(params.PER_UPLOAD_BYTES),
-		//                                      "st.state.Upload(st.to())", st.state.Upload(st.to()), "cost", cost, "st.qp", st.qp)
 		if err := st.qp.SubQuota(cost); err != nil {
 			log.Warn("Quota waiting ... ...", "quotapool", st.qp.String(), "cost", st.state.Upload(st.to()), "current", st.cvm.Context.BlockNumber)
 			return ErrQuotaLimitReached
 		}
-
-		//meta, err := st.cvm.GetMetaHash(st.to())
-		//if err != nil {
-		//      log.Warn("Uploading meta is not exist", "address", st.to(), "number", st.state.GetNum(st.to()), "current", st.cvm.BlockNumber)
-		//      return ErrUnhandleTx
-		//}
-
-		//errCh := make(chan error)
-		//go st.TorrentSync(meta, st.cvm.Config().StorageDir, errCh)
-		//select {
-		//case err := <-errCh:
-		//      if err != nil {
-		//              return err
-		//      }
-		//}
 	}
 
 	return nil
