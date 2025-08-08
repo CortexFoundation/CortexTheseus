@@ -36,6 +36,8 @@ var (
 	errInvalidTopic           = errors.New("invalid topic(s)")
 	errFilterNotFound         = errors.New("filter not found")
 	errInvalidBlockRange      = errors.New("invalid block range params")
+	errUnknownBlock           = errors.New("unknown block")
+	errBlockHashWithRange     = errors.New("can't specify fromBlock/toBlock with blockHash")
 	errExceedMaxTopics        = errors.New("exceed max topics")
 	errPendingLogsUnsupported = errors.New("pending logs are not supported")
 )
@@ -331,6 +333,9 @@ func (api *FilterAPI) GetLogs(ctx context.Context, crit FilterCriteria) ([]*type
 	}
 	var filter *Filter
 	if crit.BlockHash != nil {
+		if crit.FromBlock != nil || crit.ToBlock != nil {
+			return nil, errBlockHashWithRange
+		}
 		// Block filter requested, construct a single-shot filter
 		filter = api.sys.NewBlockFilter(*crit.BlockHash, crit.Addresses, crit.Topics)
 	} else {
