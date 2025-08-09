@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.2
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.71-0.20250731172407-f519d6985bc1
+	github.com/CortexFoundation/torrentfs v1.0.71-0.20250804142201-960901c0a5b3
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/VictoriaMetrics/fastcache v1.12.5
 	github.com/arsham/figurine v1.3.0
@@ -76,13 +76,13 @@ require (
 )
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.18.1 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.18.2 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.2 // indirect
 	github.com/CortexFoundation/compress v0.0.0-20240218153512-9074bdc2397c // indirect
 	github.com/CortexFoundation/cvm-runtime v0.0.0-20221117094012-b5a251885572 // indirect
 	github.com/CortexFoundation/merkletree v0.0.0-20240407093305-416581a62b5b // indirect
 	github.com/CortexFoundation/robot v1.0.7-0.20250720133840-49217aa96f7e // indirect
-	github.com/CortexFoundation/wormhole v0.0.2-0.20250731171719-074311e734ef // indirect
+	github.com/CortexFoundation/wormhole v0.0.2-0.20250803013348-3576f8802690 // indirect
 	github.com/DataDog/zstd v1.5.7 // indirect
 	github.com/RoaringBitmap/roaring v1.9.4 // indirect
 	github.com/ajwerner/btree v0.0.0-20211221152037-f427b3e689c0 // indirect
@@ -145,11 +145,11 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/edsrzf/mmap-go v1.2.0 // indirect
 	github.com/elliotchance/orderedmap v1.8.0 // indirect
-	github.com/emicklei/dot v1.8.0 // indirect
+	github.com/emicklei/dot v1.9.0 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/garslo/gogen v0.0.0-20170306192744-1d203ffc1f61 // indirect
-	github.com/getsentry/sentry-go v0.34.1 // indirect
+	github.com/getsentry/sentry-go v0.35.0 // indirect
 	github.com/go-llsqlite/adapter v0.2.0 // indirect
 	github.com/go-llsqlite/crawshaw v0.6.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect

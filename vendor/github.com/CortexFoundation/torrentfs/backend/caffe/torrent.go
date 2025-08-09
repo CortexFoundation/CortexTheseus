@@ -19,6 +19,7 @@ package caffe
 import (
 	//"context"
 	//"errors"
+	"slices"
 	"sync"
 	"sync/atomic"
 	//"time"
@@ -155,18 +156,23 @@ func (t *Torrent) run() bool {
 	return true
 }
 
-/*func (t *Torrent) listen() {
-	defer t.wg.Done()
+/*
+	func (t *Torrent) listen() {
+		defer t.wg.Done()
 
-	log.Debug("Task listener started", "ih", t.InfoHash())
+		log.Debug("Task listener started", "ih", t.InfoHash())
 
-	for {
-		select {
-		case task := <-t.taskCh:
-			t.Torrent.DownloadPieces(task.start, task.end)
-		case <-t.closeAll:
-			log.Debug("Task listener stopped", "ih", t.InfoHash())
-			return
+		for {
+			select {
+			case task := <-t.taskCh:
+				t.Torrent.DownloadPieces(task.start, task.end)
+			case <-t.closeAll:
+				log.Debug("Task listener stopped", "ih", t.InfoHash())
+				return
+			}
 		}
 	}
-}*/
+*/
+func (t *Torrent) AddTrackersOnce(trackers [][]string) {
+	t.AddTrackers(slices.Clone(trackers))
+}

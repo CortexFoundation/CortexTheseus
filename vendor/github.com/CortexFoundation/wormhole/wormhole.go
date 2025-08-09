@@ -26,7 +26,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	mapset "github.com/deckarep/golang-set/v2"
 	resty "github.com/go-resty/resty/v2"
 )
 
@@ -104,6 +103,8 @@ func (wh *Wormhole) BestTrackers() (ret []string) {
 
 				if err := wh.healthCheckWithContext(ctx, t); err == nil {
 					retCh <- t
+				} else {
+					log.Warn("Invalid tracker", "tracker", t, "err", err)
 				}
 			}(tracker)
 		}
@@ -118,7 +119,7 @@ func (wh *Wormhole) BestTrackers() (ret []string) {
 			log.Info("Healthy tracker", "url", t, "latency", common.PrettyDuration(time.Duration(mclock.Now())-time.Duration(start)))
 			ret = append(ret, t)
 			if len(ret) >= CAP {
-				//return ret
+				return ret
 			}
 		}
 
@@ -129,24 +130,4 @@ func (wh *Wormhole) BestTrackers() (ret []string) {
 	}
 
 	return ret
-}
-
-func (wh *Wormhole) ColaList() mapset.Set[string] {
-	m := mapset.NewSet[string]()
-	for _, url := range ColaUrl {
-		resp, err := wh.cl.R().Get(url)
-
-		if err != nil {
-			log.Warn("Cola lost", "err", err)
-			continue
-		}
-
-		str := strings.Split(resp.String(), "\n\n")
-		for _, s := range str {
-			log.Info("Cola", "ih", s)
-			m.Add(s)
-		}
-	}
-
-	return m
 }

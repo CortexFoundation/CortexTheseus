@@ -35,8 +35,8 @@ filippo.io/edwards25519 v1.0.0-rc.1/go.mod h1:N1IkdkCkiLB6tki+MYJoSx2JTY9NUlxZE7
 git.apache.org/thrift.git v0.0.0-20180902110319-2566ecd5d999/go.mod h1:fPE2ZNJGynbRyZ4dJvy6G277gSllfV2HJqblrnkyeyg=
 github.com/Azure/azure-pipeline-go v0.2.1/go.mod h1:UGSo8XybXnIGZ3epmeBw7Jdz+HiUVpqIlpz/HKHylF4=
 github.com/Azure/azure-pipeline-go v0.2.2/go.mod h1:4rQ/NZncSvGqNkkOsNpOU1tgoNuIlp9AfUH5G1tvCHc=
-github.com/Azure/azure-sdk-for-go/sdk/azcore v1.18.1 h1:Wc1ml6QlJs2BHQ/9Bqu1jiyggbsSjramq2oUmp5WeIo=
-github.com/Azure/azure-sdk-for-go/sdk/azcore v1.18.1/go.mod h1:Ot/6aikWnKWi4l9QB7qVSwa8iMphQNqkWALMoNT3rzM=
+github.com/Azure/azure-sdk-for-go/sdk/azcore v1.18.2 h1:Hr5FTipp7SL07o2FvoVOX9HRiRH3CR3Mj8pxqCcdD5A=
+github.com/Azure/azure-sdk-for-go/sdk/azcore v1.18.2/go.mod h1:QyVsSSN64v5TGltphKLQ2sQxe4OBQg0J1eKRcVBnfgE=
 github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.10.1 h1:B+blDbyVIG3WaikNxPnhPiJ1MThR03b3vKGtER95TP4=
 github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.10.1/go.mod h1:JdM5psgjfBf5fo2uWOZhflPWyDBZ/O/CNAH9CtsuZE4=
 github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.2 h1:9iefClla7iYpfYWdzPCRDozdmndjTm8DXdpCzPajMgA=
@@ -70,10 +70,10 @@ github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66/go.mod h1:
 github.com/CortexFoundation/torrentfs v1.0.13-0.20200623060705-ce027f43f2f8/go.mod h1:Ma+tGhPPvz4CEZHaqEJQMOEGOfHeQBiAoNd1zyc/w3Q=
 github.com/CortexFoundation/torrentfs v1.0.14-0.20200703071639-3fcabcabf274/go.mod h1:qnb3YlIJmuetVBtC6Lsejr0Xru+1DNmDCdTqnwy7lhk=
 github.com/CortexFoundation/torrentfs v1.0.20-0.20200810031954-d36d26f82fcc/go.mod h1:N5BsicP5ynjXIi/Npl/SRzlJ630n1PJV2sRj0Z0t2HA=
-github.com/CortexFoundation/torrentfs v1.0.71-0.20250731172407-f519d6985bc1 h1:2bv6OboJIXtsDtdW2V0c73q14GABGajcAj4mJAvph3o=
-github.com/CortexFoundation/torrentfs v1.0.71-0.20250731172407-f519d6985bc1/go.mod h1:vJNBZSdb9TCxdNbxi4obzhiv93njV+dsRljJveOUN8k=
-github.com/CortexFoundation/wormhole v0.0.2-0.20250731171719-074311e734ef h1:H1jnuL0Od6416K1k9RUMSD7pQtsrCDGqVWVFzTbRdgI=
-github.com/CortexFoundation/wormhole v0.0.2-0.20250731171719-074311e734ef/go.mod h1:R/2T+BS27RdmRWWhoDdgSlordZpUBjVTh8hi4fHoioE=
+github.com/CortexFoundation/torrentfs v1.0.71-0.20250804142201-960901c0a5b3 h1:HgY582XwRbRHgU/DSLGXqUjqwbwzkLoyJ0QP3PGH1kg=
+github.com/CortexFoundation/torrentfs v1.0.71-0.20250804142201-960901c0a5b3/go.mod h1:XaUVipqc9+CdHvxZFrNhkmBdAehM8oj80kJfFbbhI70=
+github.com/CortexFoundation/wormhole v0.0.2-0.20250803013348-3576f8802690 h1:f4TNCLua5Sq+C9G2sbSHy+OoM/kixZyHd5URwEdzOJM=
+github.com/CortexFoundation/wormhole v0.0.2-0.20250803013348-3576f8802690/go.mod h1:R/2T+BS27RdmRWWhoDdgSlordZpUBjVTh8hi4fHoioE=
 github.com/DATA-DOG/go-sqlmock v1.3.3/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
 github.com/DataDog/zstd v1.5.7 h1:ybO8RBeh29qrxIhCA9E8gKY6xfONU9T6G6aP9DTKfLE=
 github.com/DataDog/zstd v1.5.7/go.mod h1:g4AWEaM3yOg3HYfnJ3YIawPnVdXJh9QME85blwSAmyw=
@@ -449,8 +449,8 @@ github.com/elliotchance/orderedmap v1.2.0/go.mod h1:8hdSl6jmveQw8ScByd3AaNHNk51R
 github.com/elliotchance/orderedmap v1.2.2/go.mod h1:8hdSl6jmveQw8ScByd3AaNHNk51RhbTazdqtTty+NFw=
 github.com/elliotchance/orderedmap v1.8.0 h1:TrOREecvh3JbS+NCgwposXG5ZTFHtEsQiCGOhPElnMw=
 github.com/elliotchance/orderedmap v1.8.0/go.mod h1:wsDwEaX5jEoyhbs7x93zk2H/qv0zwuhg4inXhDkYqys=
-github.com/emicklei/dot v1.8.0 h1:HnD60yAKFAevNeT+TPYr9pb8VB9bqdeSo0nzwIW6IOI=
-github.com/emicklei/dot v1.8.0/go.mod h1:DeV7GvQtIw4h2u73RKBkkFdvVAz0D9fzeJrgPW6gy/s=
+github.com/emicklei/dot v1.9.0 h1:FyaJNctdMfaEIbTQ1FkKZ1UCZyJJSkyvkrXOVoNZPKU=
+github.com/emicklei/dot v1.9.0/go.mod h1:DeV7GvQtIw4h2u73RKBkkFdvVAz0D9fzeJrgPW6gy/s=
 github.com/envoyproxy/go-control-plane v0.6.9/go.mod h1:SBwIajubJHhxtWwsL9s8ss4safvEdbitLhGGK48rN6g=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7+kN2VEUnK/pcBlmesArF7c=
@@ -494,8 +494,8 @@ github.com/garslo/gogen v0.0.0-20170306192744-1d203ffc1f61/go.mod h1:Q0X6pkwTILD
 github.com/garyburd/redigo v1.6.0/go.mod h1:NR3MbYisc3/PwhQ00EMzDiPmrwpPxAn5GI05/YaO1SY=
 github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08 h1:f6D9Hr8xV8uYKlyuj8XIruxlh9WjVjdh1gIicAS7ays=
 github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08/go.mod h1:x7DCsMOv1taUwEWCzT4cmDeAkigA5/QCwUodaVOe8Ww=
-github.com/getsentry/sentry-go v0.34.1 h1:HSjc1C/OsnZttohEPrrqKH42Iud0HuLCXpv8cU1pWcw=
-github.com/getsentry/sentry-go v0.34.1/go.mod h1:C55omcY9ChRQIUcVcGcs+Zdy4ZpQGvNJ7JYHIoSWOtE=
+github.com/getsentry/sentry-go v0.35.0 h1:+FJNlnjJsZMG3g0/rmmP7GiKjQoUF5EXfEtBwtPtkzY=
+github.com/getsentry/sentry-go v0.35.0/go.mod h1:C55omcY9ChRQIUcVcGcs+Zdy4ZpQGvNJ7JYHIoSWOtE=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/gliderlabs/ssh v0.1.1/go.mod h1:U7qILu1NlMHj9FlMhZLlkCdDnU1DBEAqr0aevW3Awn0=
 github.com/glycerine/go-unsnap-stream v0.0.0-20180323001048-9f0cb55181dd/go.mod h1:/20jfyN9Y5QPEAprSgKAUr+glWDY39ZiUEAYOEv5dsE=
