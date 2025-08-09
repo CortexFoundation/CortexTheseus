@@ -89,23 +89,23 @@ func checkInputMeta(cvm *CVM, inputAddr common.Address) (*torrentfs.InputMeta, e
 	return inputMeta, nil
 }
 
-func opInfer(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+func opInfer(pc *uint64, cvm *CVM, scope *ScopeContext) ([]byte, error) {
 	_modelAddr, _inputAddr, _outputOffset := scope.Stack.pop(), scope.Stack.pop(), scope.Stack.pop()
 	modelAddr := common.Address(_modelAddr.Bytes20())
 	inputAddr := common.Address(_inputAddr.Bytes20())
 
-	modelMeta, err := checkModel(interpreter.cvm, modelAddr)
+	modelMeta, err := checkModel(cvm, modelAddr)
 	if err != nil {
 		return nil, handleInferError(scope.Stack, err)
 	}
 
-	inputMeta, err := checkInputMeta(interpreter.cvm, inputAddr)
+	inputMeta, err := checkInputMeta(cvm, inputAddr)
 	if err != nil {
 		return nil, handleInferError(scope.Stack, err)
 	}
 
 	if len(modelMeta.InputShape) != len(inputMeta.Shape) {
-		if interpreter.cvm.vmConfig.DebugInferVM {
+		if cvm.vmConfig.DebugInferVM {
 			fmt.Println("modelmeta: ", modelMeta.InputShape, " inputmeta: ", inputMeta.Shape)
 		}
 		return nil, handleInferError(scope.Stack, errMetaShapeNotMatch)
@@ -113,14 +113,14 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]by
 
 	for idx, modelShape := range modelMeta.InputShape {
 		if modelShape != inputMeta.Shape[idx] || modelShape == 0 || inputMeta.Shape[idx] == 0 {
-			if interpreter.cvm.vmConfig.DebugInferVM {
+			if cvm.vmConfig.DebugInferVM {
 				fmt.Println("modelmeta: ", modelMeta.InputShape, " inputmeta: ", inputMeta.Shape)
 			}
 			return nil, handleInferError(scope.Stack, errMetaShapeNotMatch)
 		}
 	}
 
-	output, err := interpreter.cvm.Infer(modelMeta.Hash.Hex(), inputMeta.Hash.Hex(), modelMeta.RawSize, inputMeta.RawSize)
+	output, err := cvm.Infer(modelMeta.Hash.Hex(), inputMeta.Hash.Hex(), modelMeta.RawSize, inputMeta.RawSize)
 	if err != nil {
 		return nil, handleInferError(scope.Stack, err)
 	}
@@ -133,16 +133,16 @@ func opInfer(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]by
 	return nil, nil
 }
 
-func opInferArray(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+func opInferArray(pc *uint64, cvm *CVM, scope *ScopeContext) ([]byte, error) {
 	_modelAddr, _inputHeaderOffset, _outputOffset := scope.Stack.pop(), scope.Stack.pop(), scope.Stack.pop()
 	modelAddr := common.Address(_modelAddr.Bytes20())
 
-	inputBuff, inputError := interpreter.cvm.StateDB.GetSolidityBytes(scope.Contract.Address(), common.Hash(_inputHeaderOffset.Bytes32()))
+	inputBuff, inputError := cvm.StateDB.GetSolidityBytes(scope.Contract.Address(), common.Hash(_inputHeaderOffset.Bytes32()))
 	if inputError != nil {
 		return nil, inputError
 	}
 
-	modelMeta, err := checkModel(interpreter.cvm, modelAddr)
+	modelMeta, err := checkModel(cvm, modelAddr)
 	if err != nil {
 		return nil, handleInferError(scope.Stack, err)
 	}
@@ -156,7 +156,7 @@ func opInferArray(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) 
 	// 	return nil, handleInferError(scope.Stack, errMetaShapeNotMatch)
 	// }
 
-	output, err := interpreter.cvm.InferArray(modelMeta.Hash.Hex(), inputBuff, modelMeta.RawSize)
+	output, err := cvm.InferArray(modelMeta.Hash.Hex(), inputBuff, modelMeta.RawSize)
 	if err != nil {
 		return nil, handleInferError(scope.Stack, err)
 	}

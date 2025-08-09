@@ -60,7 +60,7 @@ func ActivateableEips() []string {
 }
 
 // opCLZ implements the CLZ opcode (count leading zero bytes)
-func opCLZ(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+func opCLZ(pc *uint64, cvm *CVM, scope *ScopeContext) ([]byte, error) {
 	x := scope.Stack.peek()
 	x.SetUint64(256 - uint64(x.BitLen()))
 	return nil, nil
@@ -87,7 +87,7 @@ func enable5656(jt *JumpTable) {
 }
 
 // opMcopy implements the MCOPY opcode (https://eips.cortex.org/EIPS/eip-5656)
-func opMcopy(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+func opMcopy(pc *uint64, cvm *CVM, scope *ScopeContext) ([]byte, error) {
 	var (
 		dst    = scope.Stack.pop()
 		src    = scope.Stack.pop()
@@ -117,8 +117,8 @@ func enable1884(jt *JumpTable) {
 	}
 }
 
-func opSelfBalance(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
-	balance, _ := uint256.FromBig(interpreter.cvm.StateDB.GetBalance(scope.Contract.Address()))
+func opSelfBalance(pc *uint64, cvm *CVM, scope *ScopeContext) ([]byte, error) {
+	balance, _ := uint256.FromBig(cvm.StateDB.GetBalance(scope.Contract.Address()))
 	scope.Stack.push(balance)
 	return nil, nil
 }
@@ -137,8 +137,8 @@ func enable1344(jt *JumpTable) {
 }
 
 // opChainID implements CHAINID opcode
-func opChainID(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
-	chainId, _ := uint256.FromBig(interpreter.cvm.chainConfig.ChainID)
+func opChainID(pc *uint64, cvm *CVM, scope *ScopeContext) ([]byte, error) {
+	chainId, _ := uint256.FromBig(cvm.chainConfig.ChainID)
 	scope.Stack.push(chainId)
 	return nil, nil
 }
@@ -160,7 +160,7 @@ func enable3855(jt *JumpTable) {
 }
 
 // opPush0 implements the PUSH0 opcode
-func opPush0(pc *uint64, interpreter *CVMInterpreter, scope *ScopeContext) ([]byte, error) {
+func opPush0(pc *uint64, cvm *CVM, scope *ScopeContext) ([]byte, error) {
 	scope.Stack.push(new(uint256.Int))
 	return nil, nil
 }
