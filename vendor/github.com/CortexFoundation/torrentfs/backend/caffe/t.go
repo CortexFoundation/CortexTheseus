@@ -344,21 +344,28 @@ func (t *Torrent) Close() {
 func (t *Torrent) WriteTorrent() error {
 	t.Lock()
 	defer t.Unlock()
-	if _, err := os.Stat(filepath.Join(t.filepath, TORRENT)); err == nil {
-		//t.Pause()
+
+	torrentPath := filepath.Join(t.filepath, TORRENT)
+
+	// Check if the file already exists; if so, no action is needed.
+	if _, err := os.Stat(torrentPath); err == nil {
 		return nil
 	}
 
-	if f, err := os.OpenFile(filepath.Join(t.filepath, TORRENT), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0777); err == nil {
-		defer f.Close()
-		log.Debug("Write seed file", "path", t.filepath)
-		mi := t.Metainfo()
-		if err := (&mi).Write(f); err != nil {
-			log.Warn("Write seed error", "err", err)
-			return err
-		}
-	} else {
+	// Create and open the file, handling potential errors immediately.
+	f, err := os.OpenFile(torrentPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0777)
+	if err != nil {
 		log.Warn("Create Path error", "err", err)
+		return err
+	}
+	defer f.Close()
+
+	log.Debug("Write seed file", "path", t.filepath)
+
+	// Get the metainfo and write it to the file.
+	mi := t.Metainfo()
+	if err := (&mi).Write(f); err != nil {
+		log.Warn("Write seed error", "err", err)
 		return err
 	}
 
