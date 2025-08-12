@@ -28,12 +28,7 @@ import (
 )
 
 func (in *CVMInterpreter) prepareData(contract *Contract, input []byte) ([]byte, error) {
-	if in.cvm.vmConfig.RPC_GetInternalTransaction {
-		return nil, nil
-	}
-
-	if input != nil {
-		log.Debug("Readonly for input meta")
+	if in.cvm.vmConfig.RPC_GetInternalTransaction || input != nil {
 		return nil, nil
 	}
 
@@ -42,89 +37,81 @@ func (in *CVMInterpreter) prepareData(contract *Contract, input []byte) ([]byte,
 		if err := modelMeta.DecodeRLP(contract.Code); err != nil {
 			log.Error("Failed decode model meta", "code", contract.Code, "err", err)
 			return nil, err
-		} else {
-			log.Debug("Model meta",
-				"meta", modelMeta,
-				"modelMeta.RawSize", modelMeta.RawSize,
-				"Upload", in.cvm.StateDB.Upload(contract.Address()),
-				"params.MODEL_MIN_UPLOAD_BYTES", params.MODEL_MIN_UPLOAD_BYTES)
-			if modelMeta.BlockNum.Sign() == 0 {
-				if modelMeta.RawSize > params.MODEL_MIN_UPLOAD_BYTES && modelMeta.RawSize <= params.MODEL_MAX_UPLOAD_BYTES { // 1Byte ~ 1TB
-					if modelMeta.RawSize > params.DEFAULT_UPLOAD_BYTES {
-						in.cvm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize-params.DEFAULT_UPLOAD_BYTES))
-					}
-				} else {
-					return nil, ErrInvalidMetaRawSize
-				}
+		}
 
-				if !common.IsHexAddress(modelMeta.AuthorAddress.String()) {
-					return nil, ErrInvalidMetaAuthor
+		if modelMeta.BlockNum.Sign() == 0 {
+			if modelMeta.RawSize > params.MODEL_MIN_UPLOAD_BYTES && modelMeta.RawSize <= params.MODEL_MAX_UPLOAD_BYTES {
+				if modelMeta.RawSize > params.DEFAULT_UPLOAD_BYTES {
+					in.cvm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize-params.DEFAULT_UPLOAD_BYTES))
 				}
-
-				if modelMeta.Gas == uint64(0) {
-					//modelMeta.SetGas(params.MODEL_GAS_LIMIT)
-					modelMeta.SetGas(0)
-				} else if modelMeta.Gas > params.MODEL_GAS_UP_LIMIT {
-					modelMeta.SetGas(params.MODEL_GAS_LIMIT)
-				} else if int64(modelMeta.Gas) < 0 {
-					modelMeta.SetGas(0)
-				}
-
-				in.cvm.StateDB.SetNum(contract.Address(), in.cvm.Context.BlockNumber)
-				modelMeta.SetBlockNum(*in.cvm.Context.BlockNumber)
-				if tmpCode, err := modelMeta.ToBytes(); err != nil {
-					return nil, err
-				} else {
-					contract.Code = append([]byte{0, 1}, tmpCode...)
-				}
-				log.Debug("Model created", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "birth", modelMeta.BlockNum.Uint64())
 			} else {
-				log.Debug("Invalid model meta", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "birth", modelMeta.BlockNum.Uint64())
+				return nil, ErrInvalidMetaRawSize
 			}
-			info := common.StorageEntry{
-				Hash: modelMeta.Hash.Hex(),
-				Size: 0,
+
+			if !common.IsHexAddress(modelMeta.AuthorAddress.String()) {
+				return nil, ErrInvalidMetaAuthor
 			}
-			if err := synapse.Engine().Download(info); err != nil {
+
+			if modelMeta.Gas == uint64(0) {
+				modelMeta.SetGas(0)
+			} else if modelMeta.Gas > params.MODEL_GAS_UP_LIMIT {
+				modelMeta.SetGas(params.MODEL_GAS_LIMIT)
+			} else if int64(modelMeta.Gas) < 0 {
+				modelMeta.SetGas(0)
+			}
+
+			in.cvm.StateDB.SetNum(contract.Address(), in.cvm.Context.BlockNumber)
+			modelMeta.SetBlockNum(*in.cvm.Context.BlockNumber)
+
+			tmpCode, err := modelMeta.ToBytes()
+			if err != nil {
 				return nil, err
 			}
-			return contract.Code, nil
+			contract.Code = append([]byte{0, 1}, tmpCode...)
+			log.Debug("Model created", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "birth", modelMeta.BlockNum.Uint64())
+		} else {
+			log.Debug("Invalid model meta", "size", modelMeta.RawSize, "hash", modelMeta.Hash.Hex(), "author", modelMeta.AuthorAddress.Hex(), "gas", modelMeta.Gas, "birth", modelMeta.BlockNum.Uint64())
 		}
-	} else if in.cvm.category.IsInput {
+
+		info := common.StorageEntry{Hash: modelMeta.Hash.Hex(), Size: 0}
+		if err := synapse.Engine().Download(info); err != nil {
+			return nil, err
+		}
+		return contract.Code, nil
+	}
+
+	if in.cvm.category.IsInput {
 		var inputMeta torrentfs.InputMeta
 		if err := inputMeta.DecodeRLP(contract.Code); err != nil {
 			log.Error("Failed decode input meta", "code", contract.Code, "err", err)
 			return nil, err
-		} else {
-			if inputMeta.BlockNum.Sign() == 0 {
-				if inputMeta.RawSize > 0 {
-					if inputMeta.RawSize > params.DEFAULT_UPLOAD_BYTES {
-						in.cvm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize-params.DEFAULT_UPLOAD_BYTES))
-					}
-				} else {
-					return nil, ErrInvalidMetaRawSize
-				}
+		}
 
-				inputMeta.SetBlockNum(*in.cvm.Context.BlockNumber)
-				in.cvm.StateDB.SetNum(contract.Address(), in.cvm.Context.BlockNumber)
-				if tmpCode, err := inputMeta.ToBytes(); err != nil {
-					return nil, err
-				} else {
-					contract.Code = append([]byte{0, 2}, tmpCode...)
-				}
-				//log.Info("Input meta created", "size", inputMeta.RawSize, "author", inputMeta.AuthorAddress)
-			} else {
-				log.Warn("Invalid input meta", "size", inputMeta.RawSize, "hash", inputMeta.Hash.Hex(), "birth", inputMeta.BlockNum.Uint64())
+		if inputMeta.BlockNum.Sign() == 0 {
+			if inputMeta.RawSize == 0 {
+				return nil, ErrInvalidMetaRawSize
 			}
-			info := common.StorageEntry{
-				Hash: inputMeta.Hash.Hex(),
-				Size: 0,
+			if inputMeta.RawSize > params.DEFAULT_UPLOAD_BYTES {
+				in.cvm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize-params.DEFAULT_UPLOAD_BYTES))
 			}
-			if err := synapse.Engine().Download(info); err != nil {
+
+			inputMeta.SetBlockNum(*in.cvm.Context.BlockNumber)
+			in.cvm.StateDB.SetNum(contract.Address(), in.cvm.Context.BlockNumber)
+
+			tmpCode, err := inputMeta.ToBytes()
+			if err != nil {
 				return nil, err
 			}
-			return contract.Code, nil
+			contract.Code = append([]byte{0, 2}, tmpCode...)
+		} else {
+			log.Warn("Invalid input meta", "size", inputMeta.RawSize, "hash", inputMeta.Hash.Hex(), "birth", inputMeta.BlockNum.Uint64())
 		}
+
+		info := common.StorageEntry{Hash: inputMeta.Hash.Hex(), Size: 0}
+		if err := synapse.Engine().Download(info); err != nil {
+			return nil, err
+		}
+		return contract.Code, nil
 	}
 
 	return nil, nil
