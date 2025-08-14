@@ -138,41 +138,58 @@ func (m *Monitor) forRecordService(block *types.Block) error {
 }
 
 func (m *Monitor) forModelService(block *types.Block) error {
-	i := block.Number
-	if i%65536 == 0 {
-		defer func() {
-			//elapsedA := time.Duration(mclock.Now()) - time.Duration(m.start)
-			//log.Info("Nas monitor", "start", m.startNumber.Load(), "max", uint64(m.CurrentNumber()), "last", m.lastNumber.Load(), "cur", i, "bps", math.Abs(float64(i)-float64(m.startNumber.Load()))*1000*1000*1000/float64(elapsedA), "elapsed", common.PrettyDuration(elapsedA), "scope", m.scope, "db", common.PrettyDuration(m.fs.Metrics()), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "root", m.fs.Root())
-			m.fs.SkipPrint()
-		}()
+	blockNumber := block.Number
+
+	// Step 1: Handle periodic operations (e.g., every 65536 blocks)
+	if blockNumber%65536 == 0 {
+		defer m.fs.SkipPrint()
 	}
 
-	if hash, suc := m.blockCache.Get(i); !suc || hash != block.Hash.Hex() {
-		if record, parseErr := m.parseBlockTorrentInfo(block); parseErr != nil {
-			log.Error("Parse new block", "number", block.Number, "block", block, "error", parseErr)
-			return parseErr
-		} else if record {
-			elapsed := time.Duration(mclock.Now()) - time.Duration(m.start)
+	// Step 2: Check if block is already processed in cache
+	hashInCache, found := m.blockCache.Get(blockNumber)
+	if found && hashInCache == block.Hash.Hex() {
+		return nil // Block already processed, do nothing
+	}
 
-			if m.ckp != nil && m.ckp.TfsCheckPoint > 0 && i == m.ckp.TfsCheckPoint {
-				if common.BytesToHash(m.fs.GetRoot(i)) == m.ckp.TfsRoot {
-					log.Warn("FIRST MILESTONE PASS", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "elapsed", common.PrettyDuration(elapsed))
-				} else {
-					log.Error("Fs checkpoint failed", "number", i, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs(), "elapsed", common.PrettyDuration(elapsed), "exp", m.ckp.TfsRoot, "leaves", len(m.fs.Leaves()))
-					panic("FIRST MILESTONE ERROR, run './cortex removedb' command to solve this problem")
-				}
-			}
+	// Step 3: Parse transactions in the block
+	record, parseErr := m.parseBlockTorrentInfo(block)
+	if parseErr != nil {
+		log.Error("Failed to parse block transactions", "number", blockNumber, "error", parseErr)
+		return parseErr
+	}
 
-			log.Debug("Seal fs record", "number", i, "record", record, "root", m.fs.Root().Hex(), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "ckp", m.fs.CheckPoint())
-		} else {
-			if m.fs.LastListenBlockNumber() < i {
-				m.fs.Anchor(i)
-			}
+	// Step 4: Handle checkpoint logic if this is a record-carrying block
+	if record {
+		m.handleMilestoneCheckpoint(block)
+	}
 
-			log.Trace("Confirm to seal the fs record", "number", i)
+	// Step 5: Seal the record or anchor the filesystem
+	if record {
+		log.Debug("Sealing fs record", "number", blockNumber, "root", m.fs.Root().Hex(), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "ckp", m.fs.CheckPoint())
+	} else {
+		if m.fs.LastListenBlockNumber() < blockNumber {
+			m.fs.Anchor(blockNumber)
 		}
-		m.blockCache.Add(i, block.Hash.Hex())
+		log.Trace("Confirmed to seal fs record", "number", blockNumber)
 	}
 
+	// Step 6: Add the new block to the cache
+	m.blockCache.Add(blockNumber, block.Hash.Hex())
 	return nil
+}
+
+// handleMilestoneCheckpoint encapsulates the logic for the TFS checkpoint.
+func (m *Monitor) handleMilestoneCheckpoint(block *types.Block) {
+	if m.ckp == nil || m.ckp.TfsCheckPoint == 0 || block.Number != m.ckp.TfsCheckPoint {
+		return // Not at a checkpoint
+	}
+
+	elapsed := time.Duration(mclock.Now()) - time.Duration(m.start)
+
+	if common.BytesToHash(m.fs.GetRoot(block.Number)) == m.ckp.TfsRoot {
+		log.Warn("FIRST MILESTONE PASSED successfully", "number", block.Number, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "txs", m.fs.Txs(), "files", len(m.fs.Files()), "elapsed", common.PrettyDuration(elapsed))
+	} else {
+		log.Error("Filesystem checkpoint failed", "number", block.Number, "root", m.fs.Root(), "blocks", len(m.fs.Blocks()), "files", len(m.fs.Files()), "txs", m.fs.Txs(), "elapsed", common.PrettyDuration(elapsed), "expected", m.ckp.TfsRoot, "leaves", len(m.fs.Leaves()))
+		panic("FIRST MILESTONE ERROR, run './cortex removedb' command to solve this problem")
+	}
 }

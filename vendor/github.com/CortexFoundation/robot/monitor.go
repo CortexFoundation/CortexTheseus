@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	//"sort"
 	"path/filepath"
 	"runtime"
 	"sync"
@@ -444,52 +445,59 @@ func (m *Monitor) syncLatestBlock() {
 	defer m.wg.Done()
 	timer := time.NewTimer(time.Second * params.QueryTimeInterval)
 	defer timer.Stop()
-	progress, counter, end := uint64(0), 0, false
+
+	counter := 0
+
+	// Helper function to determine the next delay based on sync progress
+	getNextDelay := func(progress uint64) time.Duration {
+		if progress >= delay {
+			return 0 // Trigger immediately
+		}
+		if progress > 1 {
+			return time.Millisecond * 2000
+		}
+		if progress == 1 {
+			return time.Millisecond * 6750
+		}
+
+		// If progress is 0, check for listener and checkpoint status
+		if !m.listen && ((m.ckp != nil && m.currentNumber.Load() >= m.ckp.TfsCheckPoint) || (m.ckp == nil && m.currentNumber.Load() > 0)) {
+			// This part seems to have a specific termination or pause logic
+			// The original code has some commented-out `return`, so I'm assuming it's a "steady state" delay.
+			return time.Millisecond * 6750
+		}
+
+		return time.Millisecond * 6750 // Default case for other conditions
+	}
+
 	for {
 		select {
 		case sv := <-m.srvCh:
 			if err := m.doSwitch(sv); err != nil {
 				log.Error("Service switch failed", "srv", sv, "err", err)
 			}
+
 		case <-timer.C:
-			progress = m.syncLastBlock()
-			// Avoid sync in full mode, fresh interval may be less.
-			if progress >= delay {
-				end = false
-				timer.Reset(time.Millisecond * 0)
-			} else if progress > 1 {
-				end = false
-				timer.Reset(time.Millisecond * 2000)
-			} else if progress == 1 {
-				end = true
-				timer.Reset(time.Millisecond * 6750)
-			} else {
-				if !m.listen {
-					if (m.ckp != nil && m.currentNumber.Load() >= m.ckp.TfsCheckPoint) || (m.ckp == nil && m.currentNumber.Load() > 0) {
-						if !end {
-							end = true
-							timer.Reset(time.Millisecond * 6750)
-							continue
-						}
-						m.fs.Flush()
-						//elapsed := time.Duration(mclock.Now()) - time.Duration(m.start)
-						//log.Debug("Finish sync, listener will be paused", "current", m.currentNumber.Load(), "elapsed", common.PrettyDuration(elapsed), "progress", progress, "end", end, "last", m.lastNumber.Load())
-						//return
-						timer.Reset(time.Millisecond * 6750)
-						end = false
-						continue
-					}
-				}
-				timer.Reset(time.Millisecond * 6750)
-			}
-			counter++
-			if counter%100 == 0 {
-				log.Info("Monitor status", "blocks", progress, "current", m.CurrentNumber(), "latest", m.lastNumber.Load(), "end", end, "txs", m.fs.Txs(), "ckp", m.fs.CheckPoint(), "last", m.fs.LastListenBlockNumber())
+			progress := m.syncLastBlock()
+
+			// Determine the next delay and reset the timer
+			nextDelay := getNextDelay(progress)
+			timer.Reset(nextDelay)
+
+			// Log status periodically
+			counter += int(progress)
+			if counter > 65536 {
+				log.Info("Monitor status", "blocks", progress, "current", m.CurrentNumber(), "latest", m.lastNumber.Load(), "txs", m.fs.Txs(), "ckp", m.fs.CheckPoint(), "last", m.fs.LastListenBlockNumber(), "progress", progress, "root", m.fs.Root())
 				counter = 0
 			}
+
+			// Always flush at the end of a timer cycle
 			m.fs.Flush()
+
 		case <-m.exitCh:
 			log.Info("Block syncer stopped")
+			// Flush one last time before returning
+			m.fs.Flush()
 			return
 		}
 	}
@@ -512,6 +520,33 @@ func (m *Monitor) skip(i uint64) bool {
 	}
 	return false
 }
+
+/*func (m *Monitor) skip(i uint64) bool {
+	if m.srv.Load() != SRV_MODEL {
+                return false
+        }
+
+	if len(m.ckp.Skips) == 0 || i > m.ckp.Skips[len(m.ckp.Skips)-1].To || i < m.ckp.Skips[0].From {
+                return false
+        }
+
+	// Use sort.Search to find the index of the first skip interval
+	// whose 'From' field is greater than or equal to i.
+	idx := sort.Search(len(m.ckp.Skips), func(j int) bool {
+		return m.ckp.Skips[j].From > i
+	})
+
+	// Adjust the index to check the interval that might contain i.
+	// If idx is 0, no interval starts at or before i.
+	if idx > 0 {
+		interval := m.ckp.Skips[idx-1]
+		if i >= interval.From && i < interval.To {
+			return true
+		}
+	}
+
+	return false
+}*/
 
 func (m *Monitor) syncLastBlock() uint64 {
 	/*currentNumber, err := m.currentBlock()
