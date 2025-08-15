@@ -54,14 +54,14 @@ github.com/CortexFoundation/inference/synapse
 # github.com/CortexFoundation/merkletree v0.0.0-20250807103550-396f9f0ba0f1
 ## explicit; go 1.22
 github.com/CortexFoundation/merkletree
-# github.com/CortexFoundation/robot v1.0.7-0.20250720133840-49217aa96f7e
+# github.com/CortexFoundation/robot v1.0.7-0.20250814144140-4a02e0869dd1
 ## explicit; go 1.22
 github.com/CortexFoundation/robot
 github.com/CortexFoundation/robot/backend
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit; go 1.16
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.71-0.20250808144455-7dbe570f37b1
+# github.com/CortexFoundation/torrentfs v1.0.71-0.20250814144934-44f5e7777038
 ## explicit; go 1.24.4
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/backend
@@ -215,7 +215,7 @@ github.com/arsham/figurine/figurine
 # github.com/arsham/rainbow v1.2.1
 ## explicit; go 1.18
 github.com/arsham/rainbow/rainbow
-# github.com/aws/aws-sdk-go-v2 v1.37.2
+# github.com/aws/aws-sdk-go-v2 v1.38.0
 ## explicit; go 1.22
 github.com/aws/aws-sdk-go-v2/aws
 github.com/aws/aws-sdk-go-v2/aws/defaults
@@ -241,10 +241,10 @@ github.com/aws/aws-sdk-go-v2/internal/shareddefaults
 github.com/aws/aws-sdk-go-v2/internal/strings
 github.com/aws/aws-sdk-go-v2/internal/sync/singleflight
 github.com/aws/aws-sdk-go-v2/internal/timeconv
-# github.com/aws/aws-sdk-go-v2/config v1.30.3
+# github.com/aws/aws-sdk-go-v2/config v1.31.0
 ## explicit; go 1.22
 github.com/aws/aws-sdk-go-v2/config
-# github.com/aws/aws-sdk-go-v2/credentials v1.18.3
+# github.com/aws/aws-sdk-go-v2/credentials v1.18.4
 ## explicit; go 1.22
 github.com/aws/aws-sdk-go-v2/credentials
 github.com/aws/aws-sdk-go-v2/credentials/ec2rolecreds
@@ -253,14 +253,14 @@ github.com/aws/aws-sdk-go-v2/credentials/endpointcreds/internal/client
 github.com/aws/aws-sdk-go-v2/credentials/processcreds
 github.com/aws/aws-sdk-go-v2/credentials/ssocreds
 github.com/aws/aws-sdk-go-v2/credentials/stscreds
-# github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.2
+# github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.3
 ## explicit; go 1.22
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds/internal/config
-# github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.2
+# github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.3
 ## explicit; go 1.22
 github.com/aws/aws-sdk-go-v2/internal/configsources
-# github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.2
+# github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.3
 ## explicit; go 1.22
 github.com/aws/aws-sdk-go-v2/internal/endpoints/v2
 # github.com/aws/aws-sdk-go-v2/internal/ini v1.8.3
@@ -269,26 +269,26 @@ github.com/aws/aws-sdk-go-v2/internal/ini
 # github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.0
 ## explicit; go 1.22
 github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding
-# github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.2
+# github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.3
 ## explicit; go 1.22
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url
-# github.com/aws/aws-sdk-go-v2/service/route53 v1.55.0
+# github.com/aws/aws-sdk-go-v2/service/route53 v1.56.0
 ## explicit; go 1.22
 github.com/aws/aws-sdk-go-v2/service/route53
 github.com/aws/aws-sdk-go-v2/service/route53/internal/customizations
 github.com/aws/aws-sdk-go-v2/service/route53/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/route53/types
-# github.com/aws/aws-sdk-go-v2/service/sso v1.27.0
+# github.com/aws/aws-sdk-go-v2/service/sso v1.28.0
 ## explicit; go 1.22
 github.com/aws/aws-sdk-go-v2/service/sso
 github.com/aws/aws-sdk-go-v2/service/sso/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/sso/types
-# github.com/aws/aws-sdk-go-v2/service/ssooidc v1.32.0
+# github.com/aws/aws-sdk-go-v2/service/ssooidc v1.33.0
 ## explicit; go 1.22
 github.com/aws/aws-sdk-go-v2/service/ssooidc
 github.com/aws/aws-sdk-go-v2/service/ssooidc/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/ssooidc/types
-# github.com/aws/aws-sdk-go-v2/service/sts v1.36.0
+# github.com/aws/aws-sdk-go-v2/service/sts v1.37.0
 ## explicit; go 1.22
 github.com/aws/aws-sdk-go-v2/service/sts
 github.com/aws/aws-sdk-go-v2/service/sts/internal/endpoints
@@ -351,7 +351,7 @@ github.com/cespare/xxhash/v2
 # github.com/charmbracelet/bubbletea v1.3.6
 ## explicit; go 1.23.0
 github.com/charmbracelet/bubbletea
-# github.com/charmbracelet/colorprofile v0.3.1
+# github.com/charmbracelet/colorprofile v0.3.2
 ## explicit; go 1.23.0
 github.com/charmbracelet/colorprofile
 # github.com/charmbracelet/lipgloss v1.1.0
@@ -504,7 +504,7 @@ github.com/deckarep/golang-set/v2
 ## explicit; go 1.17
 github.com/decred/dcrd/dcrec/secp256k1/v4
 github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa
-# github.com/dgraph-io/badger/v4 v4.8.1-0.20250802090453-7a4b511fb568
+# github.com/dgraph-io/badger/v4 v4.8.1-0.20250813063812-ba57eda11382
 ## explicit; go 1.23.0
 github.com/dgraph-io/badger/v4
 github.com/dgraph-io/badger/v4/fb
@@ -579,7 +579,7 @@ github.com/garslo/gogen
 # github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
 ## explicit
 github.com/gballet/go-libpcsclite
-# github.com/getsentry/sentry-go v0.35.0
+# github.com/getsentry/sentry-go v0.35.1
 ## explicit; go 1.21
 github.com/getsentry/sentry-go
 github.com/getsentry/sentry-go/attribute
@@ -932,7 +932,7 @@ github.com/pion/sctp
 # github.com/pion/sdp/v3 v3.0.15
 ## explicit; go 1.20
 github.com/pion/sdp/v3
-# github.com/pion/srtp/v3 v3.0.6
+# github.com/pion/srtp/v3 v3.0.7
 ## explicit; go 1.20
 github.com/pion/srtp/v3
 # github.com/pion/stun/v2 v2.0.0
@@ -1083,7 +1083,7 @@ github.com/ucwong/filecache
 # github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb
 ## explicit; go 1.19
 github.com/ucwong/go-ttlmap
-# github.com/ucwong/golang-kv v1.0.24-0.20250804095150-ac15440c344d
+# github.com/ucwong/golang-kv v1.0.24-0.20250813143538-d7c3af16d0ff
 ## explicit; go 1.23.0
 github.com/ucwong/golang-kv
 github.com/ucwong/golang-kv/badger
@@ -1179,8 +1179,8 @@ golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/exp v0.0.0-20250718183923-645b1fa84792
-## explicit; go 1.23.0
+# golang.org/x/exp v0.0.0-20250813145105-42675adae3e6
+## explicit; go 1.24.0
 golang.org/x/exp/constraints
 golang.org/x/exp/rand
 # golang.org/x/mobile v0.0.0-20201217150744-e6ae53a27f4f
@@ -1336,7 +1336,7 @@ gopkg.in/yaml.v3
 lukechampine.com/blake3
 lukechampine.com/blake3/bao
 lukechampine.com/blake3/guts
-# modernc.org/libc v1.66.6
+# modernc.org/libc v1.66.7
 ## explicit; go 1.23.0
 modernc.org/libc
 modernc.org/libc/errno

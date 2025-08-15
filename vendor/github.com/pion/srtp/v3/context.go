@@ -58,6 +58,21 @@ const (
 	RCCMode3
 )
 
+// CryptexMode is the mode of Cryptex support for SRTP packets from RFC 9335.
+type CryptexMode int
+
+const (
+	// CryptexModeDisabled (default) disables Cryptex support. Received Cryptex SRTP packets with encrypted
+	// CSRCs and header extensions will be rejected with an error.
+	CryptexModeDisabled CryptexMode = 0
+	// CryptexModeEnabled enables Cryptex support when SRTP packets are encrypted. Received SRTP packets
+	// with unencrypted CSRCs and header extensions will be accepted and decrypted.
+	CryptexModeEnabled CryptexMode = 1
+	// CryptexModeRequired enables Cryptex support when SRTP packets are encrypted. Received SRTP packets
+	// with unencrypted CSRCs and header extensions will be rejected with an error.
+	CryptexModeRequired CryptexMode = 2
+)
+
 // Context represents a SRTP cryptographic context.
 // Context can only be used for one-way operations.
 // it must either used ONLY for encryption or ONLY for decryption.
@@ -87,6 +102,8 @@ type Context struct {
 	rocTransmitRate uint16
 
 	authTagRTPLen *int
+
+	cryptexMode CryptexMode
 }
 
 // CreateContext creates a new SRTP Context.
@@ -194,16 +211,17 @@ func (c *Context) createCipher(mki, masterKey, masterSalt []byte, encryptSRTP, e
 		authTagRTPLen:     c.authTagRTPLen,
 	}
 
+	useCryptex := c.cryptexMode != CryptexModeDisabled && encryptSRTP
 	switch c.profile {
 	case ProtectionProfileAeadAes128Gcm, ProtectionProfileAeadAes256Gcm:
-		return newSrtpCipherAeadAesGcm(profileWithArgs, masterKey, masterSalt, mki, encryptSRTP, encryptSRTCP)
+		return newSrtpCipherAeadAesGcm(profileWithArgs, masterKey, masterSalt, mki, encryptSRTP, encryptSRTCP, useCryptex)
 	case ProtectionProfileAes128CmHmacSha1_32,
 		ProtectionProfileAes128CmHmacSha1_80,
 		ProtectionProfileAes256CmHmacSha1_32,
 		ProtectionProfileAes256CmHmacSha1_80:
-		return newSrtpCipherAesCmHmacSha1(profileWithArgs, masterKey, masterSalt, mki, encryptSRTP, encryptSRTCP)
+		return newSrtpCipherAesCmHmacSha1(profileWithArgs, masterKey, masterSalt, mki, encryptSRTP, encryptSRTCP, useCryptex)
 	case ProtectionProfileNullHmacSha1_32, ProtectionProfileNullHmacSha1_80:
-		return newSrtpCipherAesCmHmacSha1(profileWithArgs, masterKey, masterSalt, mki, false, false)
+		return newSrtpCipherAesCmHmacSha1(profileWithArgs, masterKey, masterSalt, mki, false, false, false)
 	default:
 		return nil, fmt.Errorf("%w: %#v", errNoSuchSRTPProfile, c.profile)
 	}

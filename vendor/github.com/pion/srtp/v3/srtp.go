@@ -62,6 +62,11 @@ func (c *Context) decryptRTP(dst, ciphertext []byte, header *rtp.Header, headerL
 		}
 	}
 
+	err = c.checkCryptex(header)
+	if err != nil {
+		return nil, err
+	}
+
 	cipher := c.cipher
 	if len(c.mkis) > 0 {
 		// Find cipher for MKI
@@ -72,7 +77,7 @@ func (c *Context) decryptRTP(dst, ciphertext []byte, header *rtp.Header, headerL
 		}
 	}
 
-	dst = growBufferSize(dst, len(ciphertext)-authTagLen-len(c.sendMKI))
+	dst = growBufferSize(dst, len(ciphertext)-authTagLen-mkiLen)
 
 	dst, err = cipher.decryptRTP(dst, ciphertext, header, headerLen, roc, hasRocInPacket)
 	if err != nil {
@@ -121,6 +126,14 @@ func (c *Context) EncryptRTP(dst []byte, plaintext []byte, header *rtp.Header) (
 // Similar to above but faster because it can avoid unmarshaling the header and marshaling the payload.
 func (c *Context) encryptRTP(dst []byte, header *rtp.Header, headerLen int, plaintext []byte,
 ) (ciphertext []byte, err error) {
+	// RFC 9335, section 5.1: This mechanism [Cryptex] MUST NOT be used with header extensions other than
+	// the variety described in [RFC8285].
+	if c.cryptexMode != CryptexModeDisabled && header.Extension &&
+		header.ExtensionProfile != rtp.ExtensionProfileOneByte &&
+		header.ExtensionProfile != rtp.ExtensionProfileTwoByte {
+		return nil, errUnsupportedHeaderExtension
+	}
+
 	s := c.getSRTPSSRCState(header.SSRC)
 	roc, diff, ovf := s.nextRolloverCount(header.SequenceNumber)
 	if ovf {
@@ -156,4 +169,20 @@ func (c *Context) hasROCInPacket(header *rtp.Header, authTagLen int) (bool, int)
 	}
 
 	return hasRocInPacket, authTagLen
+}
+
+func (c *Context) checkCryptex(header *rtp.Header) error {
+	switch c.cryptexMode {
+	case CryptexModeDisabled:
+		if isCryptexPacket(header) {
+			return errCryptexDisabled
+		}
+	case CryptexModeRequired:
+		if (header.Extension || len(header.CSRC) > 0) && !isCryptexPacket(header) {
+			return errUnencryptedHeaderExtAndCSRCs
+		}
+	default:
+	}
+
+	return nil
 }

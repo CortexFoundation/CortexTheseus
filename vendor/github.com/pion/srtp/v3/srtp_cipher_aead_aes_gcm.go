@@ -22,17 +22,20 @@ type srtpCipherAeadAesGcm struct {
 	mki []byte
 
 	srtpEncrypted, srtcpEncrypted bool
+
+	useCryptex bool
 }
 
 func newSrtpCipherAeadAesGcm(
 	profile protectionProfileWithArgs,
 	masterKey, masterSalt, mki []byte,
-	encryptSRTP, encryptSRTCP bool,
+	encryptSRTP, encryptSRTCP, useCryptex bool,
 ) (*srtpCipherAeadAesGcm, error) {
 	srtpCipher := &srtpCipherAeadAesGcm{
 		protectionProfileWithArgs: profile,
 		srtpEncrypted:             encryptSRTP,
 		srtcpEncrypted:            encryptSRTCP,
+		useCryptex:                useCryptex,
 	}
 
 	srtpSessionKey, err := aesCmKeyDerivation(labelSRTPEncryption, masterKey, masterSalt, 0, len(masterKey))
@@ -92,34 +95,66 @@ func (s *srtpCipherAeadAesGcm) encryptRTP(
 	roc uint32,
 	rocInAuthTag bool,
 ) (ciphertext []byte, err error) {
-	payload := plaintext[headerLen:]
-	payloadLen := len(payload)
-
 	// Grow the given buffer to fit the output.
 	authTagLen, err := s.AEADAuthTagLen()
 	if err != nil {
 		return nil, err
 	}
-	authPartLen := header.MarshalSize() + len(payload) + authTagLen
+	payloadLen := len(plaintext) - headerLen
+	authPartLen := header.MarshalSize() + payloadLen + authTagLen
 	dstLen := authPartLen + len(s.mki)
 	if rocInAuthTag {
 		dstLen += 4
 	}
+
+	insertEmptyExtHdr := needsEmptyExtensionHeader(s.useCryptex, header)
+	if insertEmptyExtHdr {
+		dstLen += extensionHeaderSize
+	}
+
 	dst = growBufferSize(dst, dstLen)
 	sameBuffer := isSameBuffer(dst, plaintext)
 
-	// Copy the header unencrypted.
-	if !sameBuffer {
-		copy(dst, plaintext[:headerLen])
+	if insertEmptyExtHdr {
+		plaintext = insertEmptyExtensionHeader(dst, plaintext, sameBuffer, header)
+		sameBuffer = true
+		headerLen += extensionHeaderSize
 	}
 
+	err = s.doEncryptRTP(dst, header, headerLen, plaintext, roc, rocInAuthTag, sameBuffer, payloadLen, authPartLen)
+	if err != nil {
+		return nil, err
+	}
+
+	return dst, nil
+}
+
+func (s *srtpCipherAeadAesGcm) doEncryptRTP(dst []byte, header *rtp.Header, headerLen int, plaintext []byte, roc uint32,
+	rocInAuthTag bool, sameBuffer bool, payloadLen int, authPartLen int,
+) error {
 	iv := s.rtpInitializationVector(header, roc)
-	if s.srtpEncrypted {
-		s.srtpCipher.Seal(dst[headerLen:headerLen], iv[:], payload, dst[:headerLen])
-	} else {
+	encrypt := func(dst, plaintext []byte, headerLen int) error {
+		s.srtpCipher.Seal(dst[headerLen:headerLen], iv[:], plaintext[headerLen:], plaintext[:headerLen])
+
+		return nil
+	}
+
+	switch {
+	case s.useCryptex && header.Extension:
+		err := encryptCryptexRTP(dst, plaintext, sameBuffer, header, encrypt)
+		if err != nil {
+			return err
+		}
+	case s.srtpEncrypted:
+		// Copy the header unencrypted.
+		if !sameBuffer {
+			copy(dst, plaintext[:headerLen])
+		}
+		s.srtpCipher.Seal(dst[headerLen:headerLen], iv[:], plaintext[headerLen:], dst[:headerLen])
+	default:
 		clearLen := headerLen + payloadLen
 		if !sameBuffer {
-			copy(dst[headerLen:], payload)
+			copy(dst, plaintext)
 		}
 		s.srtpCipher.Seal(dst[clearLen:clearLen], iv[:], nil, dst[:clearLen])
 	}
@@ -133,7 +168,7 @@ func (s *srtpCipherAeadAesGcm) encryptRTP(
 		binary.BigEndian.PutUint32(dst[len(dst)-4:], roc)
 	}
 
-	return dst, nil
+	return nil
 }
 
 func (s *srtpCipherAeadAesGcm) decryptRTP(
@@ -160,33 +195,54 @@ func (s *srtpCipherAeadAesGcm) decryptRTP(
 	dst = growBufferSize(dst, nDst)
 	sameBuffer := isSameBuffer(dst, ciphertext)
 
-	iv := s.rtpInitializationVector(header, roc)
-
 	nEnd := len(ciphertext) - len(s.mki) - rocLen
-	if s.srtpEncrypted {
-		if _, err := s.srtpCipher.Open(
-			dst[headerLen:headerLen], iv[:], ciphertext[headerLen:nEnd], ciphertext[:headerLen],
-		); err != nil {
-			return nil, fmt.Errorf("%w: %w", ErrFailedToVerifyAuthTag, err)
+
+	err = s.doDecryptRTP(dst, ciphertext, header, headerLen, roc, sameBuffer, nEnd, authTagLen)
+	if err != nil {
+		return nil, err
+	}
+
+	return dst, nil
+}
+
+func (s *srtpCipherAeadAesGcm) doDecryptRTP(dst, ciphertext []byte, header *rtp.Header, headerLen int, roc uint32,
+	sameBuffer bool, nEnd int, authTagLen int,
+) error {
+	iv := s.rtpInitializationVector(header, roc)
+	decrypt := func(dst, ciphertext []byte, headerLen int) error {
+		_, err := s.srtpCipher.Open(dst[headerLen:headerLen], iv[:], ciphertext[headerLen:nEnd], ciphertext[:headerLen])
+
+		return err
+	}
+
+	switch {
+	case isCryptexPacket(header):
+		err := decryptCryptexRTP(dst, ciphertext, sameBuffer, header, headerLen, decrypt)
+		if err != nil {
+			return fmt.Errorf("%w: %w", ErrFailedToVerifyAuthTag, err)
 		}
-	} else {
+	case s.srtpEncrypted:
+		if err := decrypt(dst, ciphertext[:nEnd], headerLen); err != nil {
+			return fmt.Errorf("%w: %w", ErrFailedToVerifyAuthTag, err)
+		}
+		// Copy the header unencrypted.
+		if !sameBuffer {
+			copy(dst[:headerLen], ciphertext[:headerLen])
+		}
+	default:
 		nDataEnd := nEnd - authTagLen
 		if _, err := s.srtpCipher.Open(
 			nil, iv[:], ciphertext[nDataEnd:nEnd], ciphertext[:nDataEnd],
 		); err != nil {
-			return nil, fmt.Errorf("%w: %w", ErrFailedToVerifyAuthTag, err)
+			return fmt.Errorf("%w: %w", ErrFailedToVerifyAuthTag, err)
 		}
+		// Copy the header and payload unencrypted.
 		if !sameBuffer {
-			copy(dst[headerLen:], ciphertext[headerLen:nDataEnd])
+			copy(dst, ciphertext[:nDataEnd])
 		}
 	}
 
-	// Copy the header unencrypted.
-	if !sameBuffer {
-		copy(dst[:headerLen], ciphertext[:headerLen])
-	}
-
-	return dst, nil
+	return nil
 }
 
 func (s *srtpCipherAeadAesGcm) encryptRTCP(dst, decrypted []byte, srtcpIndex uint32, ssrc uint32) ([]byte, error) {

@@ -21,7 +21,7 @@ func incrementCTR(ctr []byte) {
 }
 
 var xorBufferPool = sync.Pool{ // nolint:gochecknoglobals
-	New: func() interface{} {
+	New: func() any {
 		return make([]byte, 1500)
 	},
 }
