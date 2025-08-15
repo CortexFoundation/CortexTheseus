@@ -3,6 +3,7 @@ package bn256
 import (
 	"errors"
 
+	"github.com/CortexFoundation/CortexTheseus/common/bitutil"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
 )
 
@@ -31,7 +32,7 @@ func (g *G2) Unmarshal(buf []byte) (int, error) {
 		return 0, errors.New("invalid G2 point size")
 	}
 
-	if allZeroes(buf[:128]) {
+	if !bitutil.TestBytes(buf[:128]) {
 		// point at infinity
 		g.inner.X.A0.SetZero()
 		g.inner.X.A1.SetZero()
