@@ -1110,7 +1110,7 @@ func (tm *TorrentManager) handlePendingTorrent(t *caffe.Torrent) {
 	for {
 		select {
 		case <-t.Torrent.GotInfo():
-			log.Info("Searching", "ih", t.InfoHash(), "elapsed", common.PrettyDuration(time.Duration(mclock.Now())-time.Duration(t.Birth())), "wait", tm.pends.Load())
+			log.Debug("Searching", "ih", t.InfoHash(), "elapsed", common.PrettyDuration(time.Duration(mclock.Now())-time.Duration(t.Birth())), "wait", tm.pends.Load())
 			tm.activeTor(t)
 			return
 
@@ -1126,7 +1126,7 @@ func (tm *TorrentManager) handlePendingTorrent(t *caffe.Torrent) {
 
 		case <-timer.C:
 			if !addedTrackers {
-				log.Info("Adding global trackers to pending torrent",
+				log.Debug("Adding global trackers to pending torrent",
 					"infoHash", t.InfoHash(),
 					"pending", tm.pends.Load(),
 				)

@@ -103,8 +103,6 @@ func (wh *Wormhole) BestTrackers() (ret []string) {
 
 				if err := wh.healthCheckWithContext(ctx, t); err == nil {
 					retCh <- t
-				} else {
-					log.Warn("Invalid tracker", "tracker", t, "err", err)
 				}
 			}(tracker)
 		}
@@ -116,7 +114,7 @@ func (wh *Wormhole) BestTrackers() (ret []string) {
 		}()
 
 		for t := range retCh {
-			log.Info("Healthy tracker", "url", t, "latency", common.PrettyDuration(time.Duration(mclock.Now())-time.Duration(start)))
+			log.Debug("Healthy tracker", "url", t, "latency", common.PrettyDuration(time.Duration(mclock.Now())-time.Duration(start)))
 			ret = append(ret, t)
 			if len(ret) >= CAP {
 				return ret

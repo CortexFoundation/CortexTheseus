@@ -24,9 +24,11 @@ const (
 type Server struct {
 	log                logging.LeveledLogger
 	authHandler        AuthHandler
+	quotaHandler       QuotaHandler
 	realm              string
 	channelBindTimeout time.Duration
 	nonceHash          *server.NonceHash
+	eventHandler       EventHandler
 
 	packetConnConfigs  []PacketConnConfig
 	listenerConfigs    []ListenerConfig
@@ -58,12 +60,14 @@ func NewServer(config ServerConfig) (*Server, error) { //nolint:gocognit,cyclop
 	server := &Server{
 		log:                loggerFactory.NewLogger("turn"),
 		authHandler:        config.AuthHandler,
+		quotaHandler:       config.QuotaHandler,
 		realm:              config.Realm,
 		channelBindTimeout: config.ChannelBindTimeout,
 		packetConnConfigs:  config.PacketConnConfigs,
 		listenerConfigs:    config.ListenerConfigs,
 		nonceHash:          nonceHash,
 		inboundMTU:         mtu,
+		eventHandler:       config.EventHandler,
 	}
 
 	if server.channelBindTimeout == 0 {
@@ -196,6 +200,7 @@ func (s *Server) createAllocationManager(
 		AllocatePacketConn: addrGenerator.AllocatePacketConn,
 		AllocateConn:       addrGenerator.AllocateConn,
 		PermissionHandler:  handler,
+		EventHandler:       s.eventHandler,
 		LeveledLogger:      s.log,
 	})
 	if err != nil {
@@ -228,11 +233,15 @@ func (s *Server) readLoop(conn net.PacketConn, allocationManager *allocation.Man
 			Buff:               buf[:n],
 			Log:                s.log,
 			AuthHandler:        s.authHandler,
+			QuotaHandler:       s.quotaHandler,
 			Realm:              s.realm,
 			AllocationManager:  allocationManager,
 			ChannelBindTimeout: s.channelBindTimeout,
 			NonceHash:          s.nonceHash,
 		}); err != nil {
+			if s.eventHandler.OnAllocationError != nil {
+				s.eventHandler.OnAllocationError(addr, conn.LocalAddr(), allocation.UDP.String(), err.Error())
+			}
 			s.log.Debugf("Failed to handle datagram: %v", err)
 		}
 	}

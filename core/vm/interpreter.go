@@ -21,9 +21,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/math"
-	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
 // Config are the configuration options for the Interpreter
@@ -63,77 +61,10 @@ type ScopeContext struct {
 	Contract *Contract
 }
 
-// CVMInterpreter represents an CVM interpreter
-type CVMInterpreter struct {
-	cvm      *CVM
-	table    *JumpTable
-	gasTable params.GasTable
-
-	hasher    crypto.KeccakState // Keccak256 hasher instance shared across opcodes
-	hasherBuf common.Hash        // Keccak256 hasher result array shared aross opcodes
-
-	readOnly   bool   // Whether to throw on stateful modifications
-	returnData []byte // Last CALL's return data for subsequent reuse
-
-	//Code bool
-	//ModelMeta bool
-	//InputMeta bool
-}
-
-// NewCVMInterpreter returns a new instance of the Interpreter.
-func NewCVMInterpreter(cvm *CVM) *CVMInterpreter {
-	// If jump table was not initialised we set the default one.
-	var table *JumpTable
-	switch {
-	case cvm.chainRules.IsOsaka:
-		table = &osakaInstructionSet
-	case cvm.chainRules.IsMerge:
-		table = &mergeInstructionSet
-	case cvm.chainRules.IsNeo:
-		table = &neoInstructionSet
-	case cvm.chainRules.IsIstanbul:
-		table = &istanbulInstructionSet
-	case cvm.chainRules.IsConstantinople:
-		table = &constantinopleInstructionSet
-	case cvm.chainRules.IsByzantium:
-		table = &byzantiumInstructionSet
-	case cvm.chainRules.IsEIP158:
-		table = &spuriousDragonInstructionSet
-	case cvm.chainRules.IsEIP150:
-		table = &tangerineWhistleInstructionSet
-	case cvm.chainRules.IsHomestead:
-		table = &homesteadInstructionSet
-	default:
-		table = &frontierInstructionSet
-	}
-	var extraEips []int
-	if len(cvm.Config().ExtraEips) > 0 {
-		// Deep-copy jumptable to prevent modification of opcodes in other tables
-		table = copyJumpTable(table)
-	}
-	for _, eip := range cvm.Config().ExtraEips {
-		if err := EnableEIP(eip, table); err != nil {
-			// Disable it, so caller can check if it's activated or not
-			log.Error("EIP activation failed", "eip", eip, "error", err)
-		} else {
-			extraEips = append(extraEips, eip)
-		}
-	}
-	//cvm.Config().ExtraEips = extraEips
-	cvm.SetExtraEips(extraEips)
-
-	return &CVMInterpreter{
-		cvm:      cvm,
-		table:    table,
-		gasTable: cvm.ChainConfig().GasTable(cvm.Context.BlockNumber),
-		hasher:   crypto.NewKeccakState(),
-	}
-}
-
-func (in *CVMInterpreter) enforceRestrictions(op OpCode, operation *operation, stack *Stack) error {
-	/*if in.cvm.chainRules.IsByzantium {
+func (in *CVM) enforceRestrictions(op OpCode, operation *operation, stack *Stack) error {
+	/*if in.chainRules.IsByzantium {
 		if in.readOnly {
-			// If the interpreter is operating in readonly mode, make sure no
+			// If the cvm is operating in readonly mode, make sure no
 			// state-modifying operation is performed. The 3rd stack item
 			// for a call operation is the value. Transferring value from one
 			// account to the others means the state is modified and should also
@@ -147,20 +78,20 @@ func (in *CVMInterpreter) enforceRestrictions(op OpCode, operation *operation, s
 	return nil
 }
 
-/*func (in *CVMInterpreter) IsCode(code []byte) bool {
+/*func (in *CVM) IsCode(code []byte) bool {
 	if len(code) >= 2 && code[0] == 0 && code[1] == 0 {
 		return true
 	}
 	return false
 }
-func (in *CVMInterpreter) IsModelMeta(code []byte) bool {
+func (in *CVM) IsModelMeta(code []byte) bool {
 	if len(code) >= 2 && code[0] == 0 && code[1] == 1 {
 		return true
 	}
 	return false
 }
 
-func (in *CVMInterpreter) IsInputMeta(code []byte) bool {
+func (in *CVM) IsInputMeta(code []byte) bool {
 	if len(code) >= 2 && code[0] == 0 && code[1] == 2 {
 		return true
 	}
@@ -170,16 +101,16 @@ func (in *CVMInterpreter) IsInputMeta(code []byte) bool {
 // Run loops and evaluates the contract's code with the given input data and returns
 // the return byte-slice and an error if one occurred.
 //
-// It's important to note that any errors returned by the interpreter should be
+// It's important to note that any errors returned by the cvm should be
 // considered a revert-and-consume-all-gas operation except for
 // errExecutionReverted which means revert-and-keep-gas-left.
-func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
+func (in *CVM) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
 	// Cortex code category solved
-	in.cvm.category.IsCode, in.cvm.category.IsModel, in.cvm.category.IsInput = in.cvm.IsCode(contract.Code), in.cvm.IsModel(contract.Code), in.cvm.IsInput(contract.Code)
+	in.category.IsCode, in.category.IsModel, in.category.IsInput = in.IsCode(contract.Code), in.IsModel(contract.Code), in.IsInput(contract.Code)
 
 	// Increment the call depth which is restricted to 1024
-	in.cvm.depth++
-	defer func() { in.cvm.depth-- }()
+	in.depth++
+	defer func() { in.depth-- }()
 
 	// Make sure the readOnly is only set if we aren't in readOnly yet.
 	// This makes also sure that the readOnly flag isn't removed for child calls.
@@ -198,7 +129,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	}
 
 	// Inference data prepare
-	if in.cvm.category.IsModel || in.cvm.category.IsInput {
+	if in.category.IsModel || in.category.IsInput {
 		return in.prepareData(contract, input)
 	}
 
@@ -222,7 +153,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		gasCopy uint64 // for Tracer to log gas remaining before execution
 		logged  bool   // deferred Tracer should ignore already logged steps
 		res     []byte
-		debug   = in.cvm.Config().Tracer != nil
+		debug   = in.Config().Tracer != nil
 	)
 	// Don't move this deferrred function, it's placed before the capturestate-deferred method,
 	// so that it get's executed _after_: the capturestate needs the stacks before
@@ -238,9 +169,9 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		defer func() {
 			if err != nil {
 				if !logged {
-					in.cvm.Config().Tracer.CaptureState(pcCopy, op, gasCopy, cost, callContext, in.returnData, in.cvm.depth, err)
+					in.Config().Tracer.CaptureState(pcCopy, op, gasCopy, cost, callContext, in.returnData, in.depth, err)
 				} else {
-					in.cvm.Config().Tracer.CaptureFault(pcCopy, op, gasCopy, cost, callContext, in.cvm.depth, err)
+					in.Config().Tracer.CaptureFault(pcCopy, op, gasCopy, cost, callContext, in.depth, err)
 				}
 			}
 		}()
@@ -250,11 +181,11 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	// the execution of one of the operations or until the done flag is set by the
 	// parent context.
 	//if in.IsCode(contract.Code) {
-	if in.cvm.category.IsCode {
+	if in.category.IsCode {
 		contract.Code = contract.Code[2:]
 	}
 	cgas := uint64(0)
-	//for atomic.LoadInt32(&in.cvm.abort) == 0 {
+	//for atomic.LoadInt32(&in.abort) == 0 {
 	_ = jumpTable[0] // nil-check the jumpTable out of the loop
 	for {
 		if debug {
@@ -292,10 +223,10 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			}
 		}
 
-		cost, err = operation.gasCost(in.gasTable, in.cvm, contract, stack, mem, memorySize)
+		cost, err = operation.gasCost(in.gasTable, in, contract, stack, mem, memorySize)
 		cgas += cost
 
-		if in.cvm.Config().DebugInferVM {
+		if in.Config().DebugInferVM {
 			fmt.Println("gasCost: ", cost, "err: ", err, " op: ", op, "cgas: ", cgas)
 		}
 
@@ -305,7 +236,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 
 		if op.IsInfer() {
-			modelMeta, err := in.cvm.GetModelMeta(common.Address(stack.Back(0).Bytes20()))
+			modelMeta, err := in.GetModelMeta(common.Address(stack.Back(0).Bytes20()))
 			if err != nil {
 				return nil, err
 			}
@@ -333,7 +264,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 
 		if debug {
-			in.cvm.Config().Tracer.CaptureState(pc, op, gasCopy, cost, callContext, in.returnData, in.cvm.depth, err)
+			in.Config().Tracer.CaptureState(pc, op, gasCopy, cost, callContext, in.returnData, in.depth, err)
 			logged = true
 		}
 
@@ -343,7 +274,7 @@ func (in *CVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 
 		// execute the operation
 		ret, err = operation.execute(&pc, in, callContext)
-		if in.cvm.Config().RPC_GetInternalTransaction {
+		if in.Config().RPC_GetInternalTransaction {
 			if op == CALL {
 				res = append(res, ret...)
 			}
