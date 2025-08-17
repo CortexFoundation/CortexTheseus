@@ -71,63 +71,83 @@ func (fs *TorrentFS) runMessageLoop(p *Peer) error {
 func (fs *TorrentFS) handleMsg(p *Peer) error {
 	packet, err := p.ws.ReadMsg()
 	if err != nil {
-		log.Debug("message loop", "peer", p.peer.ID(), "err", err)
+		// Log the error and return immediately on read failure.
+		log.Debug("Failed to read message", "peer", p.ID(), "err", err)
 		return err
 	}
 
+	// Ensure the packet is discarded after processing. This handles all exit paths.
+	defer packet.Discard()
+
+	// Check for oversized messages immediately after a successful read.
 	if packet.Size > fs.MaxMessageSize() {
-		log.Warn("oversized message received", "peer", p.peer.ID())
+		log.Warn("Received oversized message", "peer", p.ID(), "size", packet.Size)
 		return errors.New("oversized message received")
 	}
 
-	defer packet.Discard()
+	log.Debug("Handling Nas package", "protocol", params.ProtocolVersionStr, "size", packet.Size, "code", packet.Code, "peer", p.ID())
 
-	log.Debug("Nas "+params.ProtocolVersionStr+" package", "size", packet.Size, "code", packet.Code, "peer", p.peer.ID())
+	// Use a helper function for consistent error handling.
+	handleDecodeError := func(err error) error {
+		log.Warn("Failed to decode package", "peer", p.ID(), "code", packet.Code, "err", err)
+		return errors.New("invalid package format")
+	}
 
-	switch {
-	case packet.Code == params.StatusCode:
+	switch packet.Code {
+	case params.StatusCode:
 		var info *PeerInfo
 		if err := packet.Decode(&info); err != nil {
-			log.Warn("failed to decode peer state, peer will be disconnected", "peer", p.peer.ID(), "err", err)
-			return errors.New("invalid peer state")
+			return handleDecodeError(err)
 		}
 		p.peerInfo = info
-	case packet.Code == params.QueryCode && params.ProtocolVersion >= 4:
-		var info *Query
-		if err := packet.Decode(&info); err != nil {
-			log.Warn("failed to decode msg, peer will be disconnected", "peer", p.peer.ID(), "err", err)
-			return errors.New("invalid msg")
+		log.Debug("Peer status received", "peer", p.ID(), "root", info.Root)
+
+	case params.QueryCode:
+		if params.ProtocolVersion < 4 {
+			log.Warn("Protocol version too low for query", "peer", p.ID(), "version", params.ProtocolVersion)
+			return errors.New("protocol version not supported")
+		}
+		var queryInfo *Query
+		if err := packet.Decode(&queryInfo); err != nil {
+			return handleDecodeError(err)
 		}
 
-		if !common.IsHexAddress(info.Hash) {
-			return errors.New("invalid address")
+		if !common.IsHexAddress(queryInfo.Hash) {
+			log.Warn("Received invalid hash address", "peer", p.ID(), "hash", queryInfo.Hash)
+			return errors.New("invalid hash address")
 		}
 
-		// already in
-		if ok := fs.collapse(info.Hash, info.Size); ok {
+		// If the file is already being handled, return.
+		if fs.collapse(queryInfo.Hash, queryInfo.Size) {
+			log.Debug("Query for file already in progress", "peer", p.ID(), "hash", queryInfo.Hash)
 			return nil
 		}
 
-		// wake up service
-		if err := fs.wakeup(context.Background(), info.Hash); err == nil {
-			if err := fs.traverse(info.Hash, info.Size); err == nil {
+		// Handle the new query.
+		if err := fs.wakeup(context.Background(), queryInfo.Hash); err == nil {
+			if err := fs.traverse(queryInfo.Hash, queryInfo.Size); err == nil {
 				fs.received.Add(1)
+				log.Debug("Query processed successfully", "peer", p.ID(), "hash", queryInfo.Hash)
 			}
 		}
-	case packet.Code == params.MsgCode && params.ProtocolVersion > 5:
-		var info *MsgInfo
-		if err := packet.Decode(&info); err != nil {
-			log.Warn("failed to decode msg, peer will be disconnected", "peer", p.peer.ID(), "err", err)
-			return errors.New("invalid msg")
+
+	case params.MsgCode:
+		if params.ProtocolVersion <= 5 {
+			log.Warn("Protocol version too low for message", "peer", p.ID(), "version", params.ProtocolVersion)
+			return errors.New("protocol version not supported")
 		}
-		log.Warn("Nas msg testing", "code", params.MsgCode, "desc", info.Desc)
+		var msgInfo *MsgInfo
+		if err := packet.Decode(&msgInfo); err != nil {
+			return handleDecodeError(err)
+		}
+		log.Warn("Nas message received", "code", params.MsgCode, "desc", msgInfo.Desc, "peer", p.ID())
+
 	default:
-		log.Warn("Encounter package code", "code", packet.Code)
-		return errors.New("invalid code")
+		log.Warn("Encountered unknown package code", "peer", p.ID(), "code", packet.Code)
+		return errors.New("invalid package code")
 	}
 
-	// TODO
-
+	// If the message was handled successfully, return nil.
 	return nil
 }
 

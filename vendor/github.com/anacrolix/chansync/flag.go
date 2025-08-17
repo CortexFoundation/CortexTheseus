@@ -69,30 +69,38 @@ func (me *Flag) SetBool(b bool) {
 	}
 }
 
-func (me *Flag) Set() {
+// Is Swap or CompareAndSwap faster for Bool?
+
+// Returns true if the flag value was changed.
+func (me *Flag) Set() bool {
 	if me.state.Load() {
-		return
+		return false
 	}
 	me.mu.Lock()
 	defer me.mu.Unlock()
+	// TODO: Can this be optimized to not need to allocate channels based on the new value?
 	me.init()
 	if !me.state.CompareAndSwap(false, true) {
-		return
+		return false
 	}
 	close(me.on)
 	me.off = make(chan struct{})
+	return true
 }
 
-func (me *Flag) Clear() {
+// Returns true if the flag value was changed.
+func (me *Flag) Clear() bool {
 	if !me.state.Load() {
-		return
+		return false
 	}
 	me.mu.Lock()
 	defer me.mu.Unlock()
+	// TODO: Can this be optimized to not need to allocate channels based on the new value?
 	me.init()
 	if !me.state.CompareAndSwap(true, false) {
-		return
+		return false
 	}
 	close(me.off)
 	me.on = make(chan struct{})
+	return true
 }

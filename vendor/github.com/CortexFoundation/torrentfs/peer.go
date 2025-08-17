@@ -18,6 +18,7 @@ package torrentfs
 
 import (
 	"fmt"
+	"reflect"
 	"sync"
 	"time"
 
@@ -87,46 +88,61 @@ func (peer *Peer) start() error {
 }
 
 func (peer *Peer) expire() {
-	unmark := make(map[string]struct{})
-	peer.known.Each(func(k string) bool {
-		if _, ok := peer.host.Envelopes().Get(k); ok != nil {
-			unmark[k] = struct{}{}
+	// Use a slice to store keys to be removed, which is safer if the map's Each method
+	// doesn't guarantee safe concurrent modification.
+	var toRemove []string
+
+	// Iterate over all known keys.
+	peer.known.Each(func(key string) bool {
+		if _, err := peer.host.Envelopes().Get(key); err != nil {
+			toRemove = append(toRemove, key)
 		}
-		return true
+		return true // Continue the iteration.
 	})
-	// Dump all known but no longer cached
-	for hash := range unmark {
-		peer.known.Remove(hash)
+
+	// Remove all keys collected in the first step.
+	for _, key := range toRemove {
+		peer.known.Remove(key)
 	}
 }
 
 func (peer *Peer) update() {
+	// Defer statements to ensure resources are cleaned up on function exit.
 	defer peer.wg.Done()
 	stateTicker := time.NewTicker(params.PeerStateCycle)
 	defer stateTicker.Stop()
+	transmitTicker := time.NewTicker(params.TransmissionCycle)
+	defer transmitTicker.Stop()
+	expireTicker := time.NewTicker(params.ExpirationCycle)
+	defer expireTicker.Stop()
 
-	transmit := time.NewTicker(params.TransmissionCycle)
-	defer transmit.Stop()
-
-	expire := time.NewTicker(params.ExpirationCycle)
-	defer expire.Stop()
-
-	// Loop and transmit until termination is requested
+	// The main event loop for peer operations.
 	for {
 		select {
-		case <-expire.C:
+		case <-expireTicker.C:
 			peer.expire()
-		case <-transmit.C:
+
+		case <-transmitTicker.C:
+			// Check for neighbors before attempting to broadcast to avoid unnecessary logs.
+			if peer.host.Neighbors() == 0 {
+				log.Warn("No neighbors found, skipping transmission", "peer", peer.ID())
+				continue
+			}
+
 			if err := peer.broadcast(); err != nil {
-				log.Trace("transmit broadcast failed", "reason", err, "peer", peer.ID())
+				// Use Trace for expected, non-critical failures.
+				log.Trace("Transmit broadcast failed", "reason", err, "peer", peer.ID())
+				// Return here as the failure might be critical.
 				return
 			}
+
 		case <-stateTicker.C:
 			if err := peer.state(); err != nil {
-				log.Trace("state broadcast failed", "reason", err, "peer", peer.ID())
+				log.Trace("State broadcast failed", "reason", err, "peer", peer.ID())
 				return
 			}
 		case <-peer.quit:
+			log.Debug("Peer update loop terminated", "peer", peer.ID())
 			return
 		}
 	}
@@ -165,20 +181,44 @@ func (peer *Peer) marked(hash string) bool {
 }
 
 func (peer *Peer) broadcast() error {
-	for _, k := range peer.host.Envelopes().Keys() {
-		if v, err := peer.host.Envelopes().Get(k.Interface().(string)); err == nil {
-			if !peer.marked(k.Interface().(string)) {
-				query := Query{
-					Hash: k.Interface().(string),
-					Size: v.Value().(uint64),
-				}
-				if err := p2p.Send(peer.ws, params.QueryCode, &query); err != nil {
-					return err
-				}
-				peer.host.sent.Add(1)
-				peer.mark(k.Interface().(string))
-			}
+	keys := peer.host.Envelopes().Keys()
+
+	for _, k := range keys {
+		// Ensure the key is a string and handle potential type assertion failures.
+		keyStr, ok := k.Interface().(string)
+		if !ok {
+			// Log a warning if the key is not the expected type.
+			log.Warn("Envelopes key is not a string, skipping", "keyType", reflect.TypeOf(k.Interface()).String())
+			continue
 		}
+
+		// Check if the peer has already processed this key.
+		if peer.marked(keyStr) {
+			continue
+		}
+
+		// Get the value and handle potential errors.
+		v, err := peer.host.Envelopes().Get(keyStr)
+		if err != nil {
+			log.Warn("Failed to get envelope value, skipping", "key", keyStr, "err", err)
+			continue
+		}
+
+		// Construct the query object.
+		query := Query{
+			Hash: keyStr,
+			Size: v.Value().(uint64), // Assuming the value's type assertion is safe.
+		}
+
+		// Send the query and handle any transmission errors.
+		if err := p2p.Send(peer.ws, params.QueryCode, &query); err != nil {
+			// Return immediately on a send failure.
+			return err
+		}
+
+		// Update metrics and mark the key as sent.
+		peer.host.sent.Add(1)
+		peer.mark(keyStr)
 	}
 
 	return nil
@@ -294,7 +334,7 @@ func (peer *Peer) stop() error {
 	return nil
 }
 
-func (peer *Peer) ID() []byte {
+func (peer *Peer) ID() string {
 	id := peer.peer.ID()
-	return id[:]
+	return id.String()
 }

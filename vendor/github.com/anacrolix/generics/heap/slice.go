@@ -42,7 +42,8 @@ func (me sliceInterface[T]) Len() int {
 // Creates an Interface that operates on a slice in place. The Interface should be used with the
 // heap package's global functions just like you would with a manual implementation of Interface for
 // a slice. i.e. don't call Interface.{Push,Pop}, call heap.{Push,Pop} and pass the return value
-// from this function.
+// from this function. TODO: Shouldn't this return a value type rather than interface to give more
+// opportunity for escape analysis in the caller?
 func InterfaceForSlice[T any](sl *[]T, less func(l T, r T) bool) Interface[T] {
 	return sliceInterface[T]{
 		slice: sl,
