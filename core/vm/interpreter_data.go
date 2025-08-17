@@ -27,12 +27,12 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
-func (in *CVMInterpreter) prepareData(contract *Contract, input []byte) ([]byte, error) {
-	if in.cvm.vmConfig.RPC_GetInternalTransaction || input != nil {
+func (in *CVM) prepareData(contract *Contract, input []byte) ([]byte, error) {
+	if in.vmConfig.RPC_GetInternalTransaction || input != nil {
 		return nil, nil
 	}
 
-	if in.cvm.category.IsModel {
+	if in.category.IsModel {
 		var modelMeta torrentfs.ModelMeta
 		if err := modelMeta.DecodeRLP(contract.Code); err != nil {
 			log.Error("Failed decode model meta", "code", contract.Code, "err", err)
@@ -42,7 +42,7 @@ func (in *CVMInterpreter) prepareData(contract *Contract, input []byte) ([]byte,
 		if modelMeta.BlockNum.Sign() == 0 {
 			if modelMeta.RawSize > params.MODEL_MIN_UPLOAD_BYTES && modelMeta.RawSize <= params.MODEL_MAX_UPLOAD_BYTES {
 				if modelMeta.RawSize > params.DEFAULT_UPLOAD_BYTES {
-					in.cvm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize-params.DEFAULT_UPLOAD_BYTES))
+					in.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(modelMeta.RawSize-params.DEFAULT_UPLOAD_BYTES))
 				}
 			} else {
 				return nil, ErrInvalidMetaRawSize
@@ -60,8 +60,8 @@ func (in *CVMInterpreter) prepareData(contract *Contract, input []byte) ([]byte,
 				modelMeta.SetGas(0)
 			}
 
-			in.cvm.StateDB.SetNum(contract.Address(), in.cvm.Context.BlockNumber)
-			modelMeta.SetBlockNum(*in.cvm.Context.BlockNumber)
+			in.StateDB.SetNum(contract.Address(), in.Context.BlockNumber)
+			modelMeta.SetBlockNum(*in.Context.BlockNumber)
 
 			tmpCode, err := modelMeta.ToBytes()
 			if err != nil {
@@ -80,7 +80,7 @@ func (in *CVMInterpreter) prepareData(contract *Contract, input []byte) ([]byte,
 		return contract.Code, nil
 	}
 
-	if in.cvm.category.IsInput {
+	if in.category.IsInput {
 		var inputMeta torrentfs.InputMeta
 		if err := inputMeta.DecodeRLP(contract.Code); err != nil {
 			log.Error("Failed decode input meta", "code", contract.Code, "err", err)
@@ -92,11 +92,11 @@ func (in *CVMInterpreter) prepareData(contract *Contract, input []byte) ([]byte,
 				return nil, ErrInvalidMetaRawSize
 			}
 			if inputMeta.RawSize > params.DEFAULT_UPLOAD_BYTES {
-				in.cvm.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize-params.DEFAULT_UPLOAD_BYTES))
+				in.StateDB.SetUpload(contract.Address(), new(big.Int).SetUint64(inputMeta.RawSize-params.DEFAULT_UPLOAD_BYTES))
 			}
 
-			inputMeta.SetBlockNum(*in.cvm.Context.BlockNumber)
-			in.cvm.StateDB.SetNum(contract.Address(), in.cvm.Context.BlockNumber)
+			inputMeta.SetBlockNum(*in.Context.BlockNumber)
+			in.StateDB.SetNum(contract.Address(), in.Context.BlockNumber)
 
 			tmpCode, err := inputMeta.ToBytes()
 			if err != nil {

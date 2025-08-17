@@ -26,6 +26,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
+	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 )
 
@@ -39,7 +40,7 @@ type (
 	GetHashFunc func(uint64) common.Hash
 )
 
-// run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
+// run runs the given contract and takes care of running precompiles with a fallback to the byte code cvm.
 func (cvm *CVM) precompile(addr common.Address) (PrecompiledContract, bool) {
 	var precompiles map[common.Address]PrecompiledContract
 	switch {
@@ -90,7 +91,7 @@ type TxContext struct {
 // the provided context. It should be noted that any error
 // generated through any of the calls should be considered a
 // revert-state-and-consume-all-gas operation, no checks on
-// specific errors should ever be performed. The interpreter makes
+// specific errors should ever be performed. The cvm makes
 // sure that any errors generated are to be considered faulty code.
 //
 // The CVM should never be reused and is not thread safe.
@@ -100,6 +101,9 @@ type CVM struct {
 	TxContext
 	// StateDB gives access to the underlying state
 	StateDB StateDB
+	// table holds the opcode specific handlers
+	table    *JumpTable
+	gasTable params.GasTable
 	// Depth is the current call stack
 	depth int
 
@@ -112,9 +116,6 @@ type CVM struct {
 	// virtual machine configuration options used to initialise the
 	// cvm.
 	vmConfig Config
-	// global (to this context) cortex virtual machine
-	// used throughout the execution of the tx.
-	interpreter *CVMInterpreter
 	// abort is used to abort the CVM calling operations
 	// NOTE: must be set atomically
 	abort atomic.Bool
@@ -130,6 +131,12 @@ type CVM struct {
 	// jumpDests is the aggregated result of JUMPDEST analysis made through
 	// the life cycle of EVM.
 	jumpDests JumpDestCache
+
+	hasher    crypto.KeccakState // Keccak256 hasher instance shared across opcodes
+	hasherBuf common.Hash        // Keccak256 hasher result array shared across opcodes
+
+	readOnly   bool   // Whether to throw on stateful modifications
+	returnData []byte // Last CALL's return data for subsequent reuse
 }
 
 // NewCVM returns a new CVM. The returned CVM is not thread safe and should
@@ -144,10 +151,48 @@ func NewCVM(blockCtx BlockContext, statedb StateDB, chainConfig *params.ChainCon
 		category:    Category{},
 		chainRules:  chainConfig.Rules(blockCtx.BlockNumber, blockCtx.Random != nil, blockCtx.Time),
 		jumpDests:   newMapJumpDests(),
+		hasher:      crypto.NewKeccakState(),
+		gasTable:    chainConfig.GasTable(blockCtx.BlockNumber),
 	}
 
 	cvm.precompiles = activePrecompiledContracts(cvm.chainRules)
-	cvm.interpreter = NewCVMInterpreter(cvm)
+	switch {
+	case cvm.chainRules.IsOsaka:
+		cvm.table = &osakaInstructionSet
+	case cvm.chainRules.IsMerge:
+		cvm.table = &mergeInstructionSet
+	case cvm.chainRules.IsNeo:
+		cvm.table = &neoInstructionSet
+	case cvm.chainRules.IsIstanbul:
+		cvm.table = &istanbulInstructionSet
+	case cvm.chainRules.IsConstantinople:
+		cvm.table = &constantinopleInstructionSet
+	case cvm.chainRules.IsByzantium:
+		cvm.table = &byzantiumInstructionSet
+	case cvm.chainRules.IsEIP158:
+		cvm.table = &spuriousDragonInstructionSet
+	case cvm.chainRules.IsEIP150:
+		cvm.table = &tangerineWhistleInstructionSet
+	case cvm.chainRules.IsHomestead:
+		cvm.table = &homesteadInstructionSet
+	default:
+		cvm.table = &frontierInstructionSet
+	}
+	var extraEips []int
+	if len(cvm.Config().ExtraEips) > 0 {
+		// Deep-copy jumptable to prevent modification of opcodes in other tables
+		cvm.table = copyJumpTable(cvm.table)
+	}
+	for _, eip := range cvm.Config().ExtraEips {
+		if err := EnableEIP(eip, cvm.table); err != nil {
+			// Disable it, so caller can check if it's activated or not
+			log.Error("EIP activation failed", "eip", eip, "error", err)
+		} else {
+			extraEips = append(extraEips, eip)
+		}
+	}
+	//cvm.Config().ExtraEips = extraEips
+	cvm.SetExtraEips(extraEips)
 
 	return cvm
 }
@@ -183,11 +228,6 @@ func (cvm *CVM) Cancel() {
 
 func (cvm *CVM) Cancelled() bool {
 	return cvm.abort.Load()
-}
-
-// Interpreter returns the current interpreter
-func (cvm *CVM) Interpreter() *CVMInterpreter {
-	return cvm.interpreter
 }
 
 func isSystemCall(caller common.Address) bool {
@@ -277,7 +317,7 @@ func (cvm *CVM) Call(caller common.Address, addr common.Address, input []byte, g
 			contract := NewContract(caller, addr, value, gas, cvm.jumpDests)
 			contract.IsSystemCall = isSystemCall(caller)
 			contract.SetCallCode(cvm.resolveCodeHash(addr), code)
-			ret, err = cvm.interpreter.Run(contract, input, false)
+			ret, err = cvm.Run(contract, input, false)
 			gas = contract.Gas
 			modelGas = contract.ModelGas
 			if cvm.vmConfig.RPC_GetInternalTransaction {
@@ -328,7 +368,7 @@ func (cvm *CVM) CallCode(caller common.Address, addr common.Address, input []byt
 	} else {
 		contract := NewContract(caller, caller, value, gas, cvm.jumpDests)
 		contract.SetCallCode(cvm.resolveCodeHash(addr), cvm.resolveCode(addr))
-		ret, err = cvm.interpreter.Run(contract, input, false)
+		ret, err = cvm.Run(contract, input, false)
 		gas = contract.Gas
 		modelGas = contract.ModelGas
 	}
@@ -365,7 +405,7 @@ func (cvm *CVM) DelegateCall(originCaller common.Address, caller common.Address,
 		// Note: The value refers to the original value from the parent call.
 		contract := NewContract(originCaller, caller, value, gas, cvm.jumpDests)
 		contract.SetCallCode(cvm.resolveCodeHash(addr), cvm.resolveCode(addr))
-		ret, err = cvm.interpreter.Run(contract, input, false)
+		ret, err = cvm.Run(contract, input, false)
 		gas = contract.Gas
 		modelGas = contract.ModelGas
 	}
@@ -414,7 +454,7 @@ func (cvm *CVM) StaticCall(caller common.Address, addr common.Address, input []b
 		// When an error was returned by the CVM or when setting the creation code
 		// above we revert to the snapshot and consume any gas remaining. Additionally
 		// when we're in Homestead this also counts for code storage gas errors.
-		ret, err = cvm.interpreter.Run(contract, input, true)
+		ret, err = cvm.Run(contract, input, true)
 		gas = contract.Gas
 		modelGas = contract.ModelGas
 	}
@@ -512,7 +552,7 @@ func (cvm *CVM) create(caller common.Address, code []byte, gas uint64, value *bi
 // initNewContract runs a new contract's creation code, performs checks on the
 // resulting code that is to be deployed, and consumes necessary gas.
 func (cvm *CVM) initNewContract(contract *Contract, address common.Address) ([]byte, error) {
-	ret, err := cvm.interpreter.Run(contract, nil, false)
+	ret, err := cvm.Run(contract, nil, false)
 	if err != nil {
 		return ret, err
 	}
@@ -553,7 +593,7 @@ func (cvm *CVM) Create2(caller common.Address, code []byte, gas uint64, endowmen
 	//contractAddr = crypto.CreateAddress2(caller.Address(), common.BigToHash(salt), code)
 	//	return cvm.create(caller, code, gas, endowment, contractAddr)
 	//contractAddr = crypto.CreateAddress2(caller, salt.Bytes32(), crypto.Keccak256(code))
-	inithash := crypto.HashData(cvm.interpreter.hasher, code)
+	inithash := crypto.HashData(cvm.hasher, code)
 	contractAddr = crypto.CreateAddress2(caller, salt.Bytes32(), inithash[:])
 	return cvm.create(caller, code, gas, endowment, contractAddr, CREATE2)
 }

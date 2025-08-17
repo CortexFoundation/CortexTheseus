@@ -95,7 +95,7 @@ func testTwoOperandOp(t *testing.T, tests []TwoOperandTestcase, opFn executionFu
 		env            = NewCVM(BlockContext{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
 		pc             = uint64(0)
-		cvmInterpreter = env.interpreter
+		cvmInterpreter = env
 	)
 
 	for i, test := range tests {
@@ -193,7 +193,7 @@ func TestAddMod(t *testing.T) {
 	var (
 		env            = NewCVM(BlockContext{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
-		cvmInterpreter = NewCVMInterpreter(env)
+		cvmInterpreter = env
 		pc             = uint64(0)
 	)
 	tests := []struct {
@@ -230,10 +230,10 @@ func TestAddMod(t *testing.T) {
 // getResult is a convenience function to generate the expected values
 func getResult(args []*twoOperandParams, opFn executionFunc) []TwoOperandTestcase {
 	var (
-		env         = NewCVM(BlockContext{}, nil, params.TestChainConfig, Config{})
-		stack       = newstack()
-		pc          = uint64(0)
-		interpreter = env.interpreter
+		env   = NewCVM(BlockContext{}, nil, params.TestChainConfig, Config{})
+		stack = newstack()
+		pc    = uint64(0)
+		cvm   = env
 	)
 	result := make([]TwoOperandTestcase, len(args))
 	for i, param := range args {
@@ -241,7 +241,7 @@ func getResult(args []*twoOperandParams, opFn executionFunc) []TwoOperandTestcas
 		y := new(uint256.Int).SetBytes(common.Hex2Bytes(param.y))
 		stack.push(x)
 		stack.push(y)
-		opFn(&pc, interpreter, &ScopeContext{nil, stack, nil})
+		opFn(&pc, cvm, &ScopeContext{nil, stack, nil})
 		actual := stack.pop()
 		result[i] = TwoOperandTestcase{param.x, param.y, fmt.Sprintf("%064x", actual)}
 	}
@@ -282,10 +282,10 @@ func opBenchmark(bench *testing.B, op executionFunc, args ...string) {
 	var (
 		env            = NewCVM(BlockContext{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
-		cvmInterpreter = NewCVMInterpreter(env)
+		cvmInterpreter = env
 	)
 
-	env.interpreter = cvmInterpreter
+	env = cvmInterpreter
 	// convert args
 	byteArgs := make([][]byte, len(args))
 	for i, arg := range args {
@@ -517,10 +517,9 @@ func TestOpMstore(t *testing.T) {
 		env            = NewCVM(BlockContext{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
 		mem            = NewMemory()
-		cvmInterpreter = NewCVMInterpreter(env)
+		cvmInterpreter = env
 	)
 
-	env.interpreter = cvmInterpreter
 	mem.Resize(64)
 	pc := uint64(0)
 	v := "abcdef00000000000000abba000000000deaf000000c0de00100000000133700"
@@ -541,10 +540,9 @@ func BenchmarkOpMstore(bench *testing.B) {
 		env            = NewCVM(BlockContext{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
 		mem            = NewMemory()
-		cvmInterpreter = NewCVMInterpreter(env)
+		cvmInterpreter = env
 	)
 
-	env.interpreter = cvmInterpreter
 	mem.Resize(64)
 	pc := uint64(0)
 	memStart := new(uint256.Int)
@@ -562,9 +560,8 @@ func BenchmarkOpSHA3(bench *testing.B) {
 		env            = NewCVM(BlockContext{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
 		mem            = NewMemory()
-		cvmInterpreter = NewCVMInterpreter(env)
+		cvmInterpreter = env
 	)
-	env.interpreter = cvmInterpreter
 	mem.Resize(32)
 	pc := uint64(0)
 	start := new(uint256.Int)
@@ -723,7 +720,7 @@ func TestPush(t *testing.T) {
 }
 
 func TestOpCLZ(t *testing.T) {
-	evm := NewCVM(BlockContext{}, nil, params.TestChainConfig, Config{})
+	cvm := NewCVM(BlockContext{}, nil, params.TestChainConfig, Config{})
 
 	tests := []struct {
 		inputHex string
@@ -750,7 +747,7 @@ func TestOpCLZ(t *testing.T) {
 		}
 
 		stack.push(val)
-		opCLZ(&pc, evm.interpreter, &ScopeContext{Stack: stack})
+		opCLZ(&pc, cvm, &ScopeContext{Stack: stack})
 
 		if gotLen := stack.len(); gotLen != 1 {
 			t.Fatalf("stack length = %d; want 1", gotLen)

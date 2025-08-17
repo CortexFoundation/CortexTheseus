@@ -27,7 +27,11 @@ type Request struct {
 	NonceHash         *NonceHash
 
 	// User Configuration
-	AuthHandler        func(username string, realm string, srcAddr net.Addr) (key []byte, ok bool)
+	AuthHandler func(username string, realm string, srcAddr net.Addr) (key []byte, ok bool)
+
+	// Quota Handler
+	QuotaHandler func(username string, realm string, srcAddr net.Addr) (ok bool)
+
 	Log                logging.LeveledLogger
 	Realm              string
 	ChannelBindTimeout time.Duration

@@ -36,7 +36,7 @@ var (
 	ErrContractAddressCollision = errors.New("contract address collision")
 
 	ErrInvalidMetaRawSize      = errors.New("invalid meta raw size")
-	ErrNoCompatibleInterpreter = errors.New("no compatible interpreter")
+	ErrNoCompatibleInterpreter = errors.New("no compatible cvm")
 	ErrInvalidMetaAuthor       = errors.New("invalid meta author")
 
 	ErrMaxCodeSizeExceeded     = errors.New("max code size exceeded")
@@ -62,7 +62,7 @@ var (
 	errStopToken = errors.New("stop token")
 )
 
-// ErrStackUnderflow wraps an evm error when the items on the stack less
+// ErrStackUnderflow wraps an cvm error when the items on the stack less
 // than the minimal requirement.
 type ErrStackUnderflow struct {
 	stackLen int
@@ -73,7 +73,7 @@ func (e *ErrStackUnderflow) Error() string {
 	return fmt.Sprintf("stack underflow (%d <=> %d)", e.stackLen, e.required)
 }
 
-// ErrStackOverflow wraps an evm error when the items on the stack exceeds
+// ErrStackOverflow wraps an cvm error when the items on the stack exceeds
 // the maximum allowance.
 type ErrStackOverflow struct {
 	stackLen int
@@ -84,7 +84,7 @@ func (e *ErrStackOverflow) Error() string {
 	return fmt.Sprintf("stack limit reached %d (%d)", e.stackLen, e.limit)
 }
 
-// ErrInvalidOpCode wraps an evm error when an invalid opcode is encountered.
+// ErrInvalidOpCode wraps an cvm error when an invalid opcode is encountered.
 type ErrInvalidOpCode struct {
 	opcode OpCode
 }
