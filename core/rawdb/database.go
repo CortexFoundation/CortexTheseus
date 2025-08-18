@@ -26,8 +26,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/olekukonko/tablewriter"
-
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
@@ -542,7 +540,7 @@ func InspectDatabase(db ctxcdb.Database, keyPrefix, keyStart []byte) error {
 		}
 		total += ancient.size()
 	}
-	table := tablewriter.NewWriter(os.Stdout)
+	table := newTableWriter(os.Stdout)
 	table.Header([]string{"Database", "Category", "Size", "Items"})
 	table.Footer([]string{"", "Total", total.String(), " "})
 	table.Append(stats)
