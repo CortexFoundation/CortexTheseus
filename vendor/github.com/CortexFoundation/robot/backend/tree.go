@@ -18,6 +18,7 @@ package backend
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 	"time"
 
@@ -61,7 +62,51 @@ func (fs *ChainDB) Metrics() time.Duration {
 	return fs.treeUpdates
 }
 
-// Make sure the block group is increasing by number
+// handleNormalAdd handles the standard adding of a new leaf to the Merkle tree.
+func (fs *ChainDB) handleNormalAdd(leaf *merkletree.BlockContent, number uint64) error {
+	// Add the new node to the tree.
+	if err := fs.tree.AddNode(leaf); err != nil {
+		return fmt.Errorf("failed to add node to Merkle tree: %w", err)
+	}
+
+	// Update the checkpoint if the current block number is higher.
+	if number > fs.checkPoint.Load() {
+		fs.checkPoint.Store(number)
+	}
+
+	return nil
+}
+
+// handleMessing handles the special "messing" logic by rebuilding the tree from a sorted leaf list.
+func (fs *ChainDB) handleMessing(leaf *merkletree.BlockContent, number uint64, dup bool) error {
+	log.Debug("Messing mode activated, preparing to rebuild tree", "number", number)
+
+	// Add the leaf if it's not a duplicate. This logic is moved here.
+	if !dup {
+		fs.leaves = append(fs.leaves, leaf)
+	}
+
+	// Sort the leaves by block number.
+	sort.Slice(fs.leaves, func(i, j int) bool {
+		return fs.leaves[i].(*merkletree.BlockContent).N() < fs.leaves[j].(*merkletree.BlockContent).N()
+	})
+
+	// Find the insertion point for the current block number.
+	i := sort.Search(len(fs.leaves), func(i int) bool { return fs.leaves[i].(*merkletree.BlockContent).N() >= number })
+	if i >= len(fs.leaves) {
+		i = len(fs.leaves)
+	}
+
+	log.Warn("Messing solved, rebuilding tree", "number", number, "leaves_count", len(fs.leaves), "rebuild_until_index", i)
+
+	// Rebuild the tree with the sorted and filtered leaves.
+	if err := fs.tree.RebuildTreeWith(fs.leaves[0:i]); err != nil {
+		return fmt.Errorf("failed to rebuild Merkle tree: %w", err)
+	}
+
+	return nil
+}
+
 func (fs *ChainDB) addLeaf(block *types.Block, mes bool, dup bool) error {
 	if fs.tree == nil {
 		return errors.New("mkt is nil")
@@ -70,51 +115,40 @@ func (fs *ChainDB) addLeaf(block *types.Block, mes bool, dup bool) error {
 	number := block.Number
 	leaf := merkletree.NewContent(block.Hash.String(), number)
 
-	l, e := fs.tree.VerifyContent(leaf)
-	if !l {
+	// Verify if the content already exists in the tree.
+	inTree, verifyErr := fs.tree.VerifyContent(leaf)
+	if inTree {
+		log.Debug("Node is already in the tree", "num", number, "mes", mes, "dup", dup, "err", verifyErr)
+		if !mes {
+			// If not in messing mode, we can simply return if the node is a duplicate.
+			return nil
+		}
+	} else {
+		// If the node is not in the tree, we need to add it to the leaves list for the `mes` logic.
+		// The `dup` parameter seems to control this, but the logic is a bit confusing.
+		// Assuming `!dup` means it's a new leaf that needs to be appended.
 		if !dup {
 			fs.leaves = append(fs.leaves, leaf)
 		}
-	} else {
-		log.Debug("Node is already in the tree", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.checkPoint.Load(), "mes", mes, "dup", dup, "err", e)
-		if !mes {
-			return nil
-		}
 	}
 
+	// Choose the appropriate handler based on the `mes` flag.
+	var err error
 	if mes {
-		log.Debug("Messing", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.checkPoint.Load(), "mes", mes, "dup", dup)
-		sort.Slice(fs.leaves, func(i, j int) bool {
-			return fs.leaves[i].(*merkletree.BlockContent).N() < fs.leaves[j].(*merkletree.BlockContent).N()
-		})
-
-		i := sort.Search(len(fs.leaves), func(i int) bool { return fs.leaves[i].(*merkletree.BlockContent).N() > number })
-
-		if i > len(fs.leaves) {
-			i = len(fs.leaves)
-		}
-
-		log.Warn("Messing solved", "num", number, "len", len(fs.blocks), "leaf", len(fs.leaves), "ckp", fs.checkPoint.Load(), "mes", mes, "dup", dup, "i", i)
-
-		if err := fs.tree.RebuildTreeWith(fs.leaves[0:i]); err != nil {
-			return err
-		}
-
+		err = fs.handleMessing(leaf, number, dup)
 	} else {
-		if err := fs.tree.AddNode(leaf); err != nil {
-			return err
-		}
-
-		// TODO
-
-		if number > fs.checkPoint.Load() {
-			fs.checkPoint.Store(number)
-		}
+		err = fs.handleNormalAdd(leaf, number)
 	}
 
-	if err := fs.writeRoot(number, fs.tree.MerkleRoot()); err != nil {
+	if err != nil {
 		return err
 	}
+
+	// Write the root after all operations.
+	if err := fs.writeRoot(number, fs.tree.MerkleRoot()); err != nil {
+		return fmt.Errorf("failed to write root: %w", err)
+	}
+
 	return nil
 }
 

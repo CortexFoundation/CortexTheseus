@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	batch   = 4096 * 2 //params.SyncBatch
-	delay   = 12       //params.Delay
+	batch   = 4096 * 16 //params.SyncBatch
+	delay   = 12        //params.Delay
 	timeout = 30 * time.Second
 )
