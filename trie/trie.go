@@ -21,8 +21,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"sync"
 	"slices"
+	"sync"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
