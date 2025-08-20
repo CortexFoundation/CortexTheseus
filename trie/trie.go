@@ -28,6 +28,8 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/log"
+
+	"golang.org/x/sync/errgroup"
 )
 
 // LeafCallback is a callback type invoked when a trie operation reaches a leaf
@@ -193,6 +195,51 @@ func (t *Trie) tryGet(origNode node, key []byte, pos int) (value []byte, newnode
 	default:
 		panic(fmt.Sprintf("%T: invalid node: %v", origNode, origNode))
 	}
+}
+
+// Prefetch attempts to resolve the leaves and intermediate trie nodes
+// specified by the key list in parallel. The results are silently
+// discarded to simplify the function.
+func (t *Trie) Prefetch(keylist [][]byte) error {
+	// Short circuit if the trie is already committed and not usable.
+	if t.committed {
+		return ErrCommitted
+	}
+	// Resolve the trie nodes sequentially if there are not too many
+	// trie nodes in the trie.
+	fn, ok := t.root.(*fullNode)
+	if !ok || len(keylist) < 16 {
+		for _, key := range keylist {
+			_, err := t.TryGet(key)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	var (
+		keys = make(map[byte][][]byte)
+		eg   errgroup.Group
+	)
+	for _, key := range keylist {
+		hkey := keybytesToHex(key)
+		keys[hkey[0]] = append(keys[hkey[0]], hkey)
+	}
+	for pos, ks := range keys {
+		eg.Go(func() error {
+			for _, k := range ks {
+				_, newnode, didResolve, err := t.tryGet(fn.Children[pos], k, 1)
+				if err == nil && didResolve {
+					fn.Children[pos] = newnode
+				}
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+	}
+	return eg.Wait()
 }
 
 // TryGetNode attempts to retrieve a trie node by compact-encoded path. It is not
