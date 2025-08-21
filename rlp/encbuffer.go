@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/CortexFoundation/CortexTheseus/common/math"
 	"github.com/holiman/uint256"
 )
 
@@ -129,31 +130,21 @@ func (buf *encBuffer) writeString(b string) {
 	buf.writeBytes([]byte(b))
 }
 
-// wordBytes is the number of bytes in a big.Word
-const wordBytes = (32 << (uint64(^big.Word(0)) >> 63)) / 8
-
 // writeBigInt writes i as an integer.
-func (w *encBuffer) writeBigInt(i *big.Int) {
+func (buf *encBuffer) writeBigInt(i *big.Int) {
 	bitlen := i.BitLen()
 	if bitlen <= 64 {
-		w.writeUint64(i.Uint64())
+		buf.writeUint64(i.Uint64())
 		return
 	}
 	// Integer is larger than 64 bits, encode from i.Bits().
 	// The minimal byte length is bitlen rounded up to the next
 	// multiple of 8, divided by 8.
 	length := ((bitlen + 7) & -8) >> 3
-	w.encodeStringHeader(length)
-	w.str = append(w.str, make([]byte, length)...)
-	index := length
-	buf := w.str[len(w.str)-length:]
-	for _, d := range i.Bits() {
-		for j := 0; j < wordBytes && index > 0; j++ {
-			index--
-			buf[index] = byte(d)
-			d >>= 8
-		}
-	}
+	buf.encodeStringHeader(length)
+	buf.str = append(buf.str, make([]byte, length)...)
+	bytesBuf := buf.str[len(buf.str)-length:]
+	math.ReadBits(i, bytesBuf)
 }
 
 // writeUint256 writes z as an integer.
