@@ -6,14 +6,14 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.2
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.71-0.20250808144455-7dbe570f37b1
+	github.com/CortexFoundation/torrentfs v1.0.71-0.20250814144934-44f5e7777038
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/VictoriaMetrics/fastcache v1.13.0
 	github.com/arsham/figurine v1.3.0
-	github.com/aws/aws-sdk-go-v2 v1.37.2
-	github.com/aws/aws-sdk-go-v2/config v1.30.3
-	github.com/aws/aws-sdk-go-v2/credentials v1.18.3
-	github.com/aws/aws-sdk-go-v2/service/route53 v1.55.0
+	github.com/aws/aws-sdk-go-v2 v1.38.0
+	github.com/aws/aws-sdk-go-v2/config v1.31.0
+	github.com/aws/aws-sdk-go-v2/credentials v1.18.4
+	github.com/aws/aws-sdk-go-v2/service/route53 v1.56.0
 	github.com/cespare/cp v1.1.1
 	github.com/charmbracelet/bubbletea v1.3.6
 	github.com/cloudflare/cloudflare-go v0.115.0
@@ -81,7 +81,7 @@ require (
 	github.com/CortexFoundation/compress v0.0.0-20240218153512-9074bdc2397c // indirect
 	github.com/CortexFoundation/cvm-runtime v0.0.0-20221117094012-b5a251885572 // indirect
 	github.com/CortexFoundation/merkletree v0.0.0-20250807103550-396f9f0ba0f1 // indirect
-	github.com/CortexFoundation/robot v1.0.7-0.20250720133840-49217aa96f7e // indirect
+	github.com/CortexFoundation/robot v1.0.7-0.20250814144140-4a02e0869dd1 // indirect
 	github.com/CortexFoundation/wormhole v0.0.2-0.20250807143819-52807b74f358 // indirect
 	github.com/DataDog/zstd v1.5.7 // indirect
 	github.com/RoaringBitmap/roaring v1.9.4 // indirect
@@ -107,15 +107,15 @@ require (
 	github.com/antlabs/timer v0.1.4 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/arsham/rainbow v1.2.1 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.2 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.2 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.2 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.3 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.3 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.3 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.27.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.32.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.36.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.28.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.33.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.37.0 // indirect
 	github.com/aws/smithy-go v1.22.5 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
@@ -126,7 +126,7 @@ require (
 	github.com/bwmarrin/snowflake v0.3.0 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/charmbracelet/colorprofile v0.3.1 // indirect
+	github.com/charmbracelet/colorprofile v0.3.2 // indirect
 	github.com/charmbracelet/lipgloss v1.1.0 // indirect
 	github.com/charmbracelet/x/ansi v0.10.1 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.13 // indirect
@@ -139,7 +139,7 @@ require (
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/crate-crypto/go-ipa v0.0.0-20240724233137-53bbb0ceb27a // indirect
-	github.com/dgraph-io/badger/v4 v4.8.1-0.20250802090453-7a4b511fb568 // indirect
+	github.com/dgraph-io/badger/v4 v4.8.1-0.20250813063812-ba57eda11382 // indirect
 	github.com/dgraph-io/ristretto/v2 v2.2.0 // indirect
 	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
@@ -149,7 +149,7 @@ require (
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/garslo/gogen v0.0.0-20170306192744-1d203ffc1f61 // indirect
-	github.com/getsentry/sentry-go v0.35.0 // indirect
+	github.com/getsentry/sentry-go v0.35.1 // indirect
 	github.com/go-llsqlite/adapter v0.2.0 // indirect
 	github.com/go-llsqlite/crawshaw v0.6.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
@@ -202,7 +202,7 @@ require (
 	github.com/pion/rtp v1.8.21 // indirect
 	github.com/pion/sctp v1.8.39 // indirect
 	github.com/pion/sdp/v3 v3.0.15 // indirect
-	github.com/pion/srtp/v3 v3.0.6 // indirect
+	github.com/pion/srtp/v3 v3.0.7 // indirect
 	github.com/pion/stun/v3 v3.0.0 // indirect
 	github.com/pion/transport/v2 v2.2.10 // indirect
 	github.com/pion/transport/v3 v3.0.7 // indirect
@@ -230,7 +230,7 @@ require (
 	github.com/tklauser/numcpus v0.10.0 // indirect
 	github.com/ucwong/filecache v1.0.6-0.20230405163841-810d53ced4bd // indirect
 	github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb // indirect
-	github.com/ucwong/golang-kv v1.0.24-0.20250804095150-ac15440c344d // indirect
+	github.com/ucwong/golang-kv v1.0.24-0.20250813143538-d7c3af16d0ff // indirect
 	github.com/ucwong/shard v1.0.1-0.20250426172507-f1db2901f62c // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
@@ -244,14 +244,14 @@ require (
 	go.opentelemetry.io/otel v1.37.0 // indirect
 	go.opentelemetry.io/otel/metric v1.37.0 // indirect
 	go.opentelemetry.io/otel/trace v1.37.0 // indirect
-	golang.org/x/exp v0.0.0-20250718183923-645b1fa84792 // indirect
+	golang.org/x/exp v0.0.0-20250813145105-42675adae3e6 // indirect
 	golang.org/x/mod v0.27.0 // indirect
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/term v0.34.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect
-	modernc.org/libc v1.66.6 // indirect
+	modernc.org/libc v1.66.7 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 	modernc.org/sqlite v1.38.2 // indirect

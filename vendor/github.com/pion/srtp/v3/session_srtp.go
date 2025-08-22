@@ -56,8 +56,8 @@ func NewSessionSRTP(conn net.Conn, config *Config) (*SessionSRTP, error) { //nol
 			readStreams:         map[uint32]readStream{},
 			newStream:           make(chan readStream),
 			acceptStreamTimeout: config.AcceptStreamTimeout,
-			started:             make(chan interface{}),
-			closed:              make(chan interface{}),
+			started:             make(chan any),
+			closed:              make(chan any),
 			bufferFactory:       config.BufferFactory,
 			log:                 loggerFactory.NewLogger("srtp"),
 		},
@@ -133,7 +133,7 @@ func (s *SessionSRTP) write(b []byte) (int, error) {
 // either CTR or GCM.  If the buffer is too small, no harm, it will just
 // get expanded by growBuffer.
 var bufferpool = sync.Pool{ // nolint:gochecknoglobals
-	New: func() interface{} {
+	New: func() any {
 		return make([]byte, 1492)
 	},
 }

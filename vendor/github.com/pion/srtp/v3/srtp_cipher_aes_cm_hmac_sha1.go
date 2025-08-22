@@ -29,13 +29,15 @@ type srtpCipherAesCmHmacSha1 struct {
 	srtcpEncrypted   bool
 
 	mki []byte
+
+	useCryptex bool
 }
 
 //nolint:cyclop
 func newSrtpCipherAesCmHmacSha1(
 	profile protectionProfileWithArgs,
 	masterKey, masterSalt, mki []byte,
-	encryptSRTP, encryptSRTCP bool,
+	encryptSRTP, encryptSRTCP, useCryptex bool,
 ) (*srtpCipherAesCmHmacSha1, error) {
 	switch profile.ProtectionProfile {
 	case ProtectionProfileNullHmacSha1_80, ProtectionProfileNullHmacSha1_32:
@@ -48,6 +50,7 @@ func newSrtpCipherAesCmHmacSha1(
 		protectionProfileWithArgs: profile,
 		srtpEncrypted:             encryptSRTP,
 		srtcpEncrypted:            encryptSRTCP,
+		useCryptex:                useCryptex,
 	}
 
 	srtpSessionKey, err := aesCmKeyDerivation(labelSRTPEncryption, masterKey, masterSalt, 0, len(masterKey))
@@ -109,37 +112,71 @@ func (s *srtpCipherAesCmHmacSha1) encryptRTP(
 	roc uint32,
 	rocInAuthTag bool,
 ) (ciphertext []byte, err error) {
-	payload := plaintext[headerLen:]
-	payloadLen := len(payload)
-
 	// Grow the given buffer to fit the output.
 	authTagLen, err := s.AuthTagRTPLen()
 	if err != nil {
 		return nil, err
 	}
-	dst = growBufferSize(dst, headerLen+payloadLen+len(s.mki)+authTagLen)
-	sameBuffer := isSameBuffer(dst, plaintext)
+	payloadLen := len(plaintext) - headerLen
+	dstLen := headerLen + payloadLen + len(s.mki) + authTagLen
 
-	// Copy the header unencrypted.
-	if !sameBuffer {
-		copy(dst, plaintext[:headerLen])
+	insertEmptyExtHdr := needsEmptyExtensionHeader(s.useCryptex, header)
+	if insertEmptyExtHdr {
+		dstLen += extensionHeaderSize
 	}
 
-	// Encrypt the payload
-	if s.srtpEncrypted {
+	dst = growBufferSize(dst, dstLen)
+	sameBuffer := isSameBuffer(dst, plaintext)
+
+	if insertEmptyExtHdr {
+		// Insert an empty extension header to plaintext using dst buffer. After this operation dst is used as the
+		// plaintext buffer for next operations.
+		plaintext = insertEmptyExtensionHeader(dst, plaintext, sameBuffer, header)
+		sameBuffer = true
+		headerLen += extensionHeaderSize
+	}
+
+	err = s.doEncryptRTP(dst, header, headerLen, plaintext, roc, rocInAuthTag, sameBuffer, payloadLen)
+	if err != nil {
+		return nil, err
+	}
+
+	return dst, nil
+}
+
+func (s *srtpCipherAesCmHmacSha1) doEncryptRTP(dst []byte, header *rtp.Header, headerLen int, plaintext []byte,
+	roc uint32, rocInAuthTag bool, sameBuffer bool, payloadLen int,
+) error {
+	encrypt := func(dst, plaintext []byte, headerLen int) error {
 		counter := generateCounter(header.SequenceNumber, roc, header.SSRC, s.srtpSessionSalt)
-		if err = xorBytesCTR(s.srtpBlock, counter[:], dst[headerLen:], payload); err != nil {
-			return nil, err
+
+		return xorBytesCTR(s.srtpBlock, counter[:], dst[headerLen:], plaintext[headerLen:])
+	}
+
+	var err error
+	switch {
+	case s.useCryptex && header.Extension:
+		err = encryptCryptexRTP(dst, plaintext, sameBuffer, header, encrypt)
+	case s.srtpEncrypted:
+		// Copy the header unencrypted.
+		if !sameBuffer {
+			copy(dst, plaintext[:headerLen])
 		}
-	} else if !sameBuffer {
-		copy(dst[headerLen:], payload)
+		// Encrypt the payload
+		err = encrypt(dst, plaintext, headerLen)
+	case !sameBuffer:
+		copy(dst, plaintext)
+	default:
+	}
+	if err != nil {
+		return err
 	}
 	n := headerLen + payloadLen
 
 	// Generate the auth tag.
 	authTag, err := s.generateSrtpAuthTag(dst[:n], roc, rocInAuthTag)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Append the MKI (if used)
@@ -151,7 +188,7 @@ func (s *srtpCipherAesCmHmacSha1) encryptRTP(
 	// Write the auth tag to the dest.
 	copy(dst[n:], authTag)
 
-	return dst, nil
+	return nil
 }
 
 func (s *srtpCipherAesCmHmacSha1) decryptRTP(
@@ -185,25 +222,46 @@ func (s *srtpCipherAesCmHmacSha1) decryptRTP(
 
 	sameBuffer := isSameBuffer(dst, ciphertext)
 
-	// Write the plaintext header to the destination buffer.
-	if !sameBuffer {
-		copy(dst, ciphertext[:headerLen])
-	}
-
-	// Decrypt the ciphertext for the payload.
-	if s.srtpEncrypted {
-		counter := generateCounter(header.SequenceNumber, roc, header.SSRC, s.srtpSessionSalt)
-		err = xorBytesCTR(
-			s.srtpBlock, counter[:], dst[headerLen:], ciphertext[headerLen:],
-		)
-		if err != nil {
-			return nil, err
-		}
-	} else if !sameBuffer {
-		copy(dst[headerLen:], ciphertext[headerLen:])
+	err = s.doDecryptRTP(dst, ciphertext, header, headerLen, roc, sameBuffer)
+	if err != nil {
+		return nil, err
 	}
 
 	return dst, nil
+}
+
+func (s *srtpCipherAesCmHmacSha1) doDecryptRTP(dst, ciphertext []byte, header *rtp.Header, headerLen int, roc uint32,
+	sameBuffer bool,
+) error {
+	decrypt := func(dst, ciphertext []byte, headerLen int) error {
+		counter := generateCounter(header.SequenceNumber, roc, header.SSRC, s.srtpSessionSalt)
+
+		return xorBytesCTR(s.srtpBlock, counter[:], dst[headerLen:], ciphertext[headerLen:])
+	}
+
+	switch {
+	case isCryptexPacket(header):
+		err := decryptCryptexRTP(dst, ciphertext, sameBuffer, header, headerLen, decrypt)
+		if err != nil {
+			return err
+		}
+	case s.srtpEncrypted:
+		// Write the plaintext header to the destination buffer.
+		if !sameBuffer {
+			copy(dst, ciphertext[:headerLen])
+		}
+
+		// Decrypt the ciphertext for the payload.
+		err := decrypt(dst, ciphertext, headerLen)
+		if err != nil {
+			return err
+		}
+	case !sameBuffer:
+		copy(dst, ciphertext)
+	default:
+	}
+
+	return nil
 }
 
 func (s *srtpCipherAesCmHmacSha1) encryptRTCP(dst, decrypted []byte, srtcpIndex uint32, ssrc uint32) ([]byte, error) {

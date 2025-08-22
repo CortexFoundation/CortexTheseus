@@ -173,3 +173,13 @@ func SRTPAuthenticationTagLength(authTagRTPLen int) ContextOption { // nolint:re
 		return nil
 	}
 }
+
+// Cryptex allows to enable Cryptex mechanism to completely encrypt RTP Header Extensions and Contributing
+// Sources, as defined in RFC 9335.
+func Cryptex(cryptexMode CryptexMode) ContextOption {
+	return func(c *Context) error {
+		c.cryptexMode = cryptexMode
+
+		return nil
+	}
+}

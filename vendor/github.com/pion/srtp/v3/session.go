@@ -28,8 +28,8 @@ type session struct {
 	newStream           chan readStream
 	acceptStreamTimeout time.Time
 
-	started chan interface{}
-	closed  chan interface{}
+	started chan any
+	closed  chan any
 
 	readStreamsClosed bool
 	readStreams       map[uint32]readStream
