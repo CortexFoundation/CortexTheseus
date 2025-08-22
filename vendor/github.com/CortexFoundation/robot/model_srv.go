@@ -29,107 +29,141 @@ import (
 )
 
 func (m *Monitor) parseFileMeta(tx *types.Transaction, meta *types.FileMeta, b *types.Block) error {
-	log.Debug("Monitor", "FileMeta", meta)
+	log.Debug("Parsing FileMeta", "infoHash", meta.InfoHash)
 
+	// Step 1: Get transaction receipt
 	receipt, err := m.getReceipt(tx.Hash.String())
 	if err != nil {
+		log.Error("Failed to get receipt", "txHash", tx.Hash.String(), "err", err)
 		return err
 	}
 
+	// Step 2: Validate receipt
 	if receipt.ContractAddr == nil {
-		log.Warn("contract address is nil, waiting for indexing", "tx.Hash.String()", tx.Hash.String())
-		return errors.New("contract address is nil")
+		// More descriptive error message is better
+		err = errors.New("contract address is nil")
+		log.Warn("Contract address is nil, unable to proceed", "txHash", tx.Hash.String())
+		return err
 	}
-
-	log.Debug("Transaction Receipt", "address", receipt.ContractAddr.String(), "gas", receipt.GasUsed, "status", receipt.Status) //, "tx", receipt.TxHash.String())
 
 	if receipt.Status != 1 {
-		log.Warn("receipt.Status is wrong", "receipt.Status", receipt.Status)
-		return nil
+		log.Warn("Transaction receipt status is not successful", "txHash", tx.Hash.String(), "status", receipt.Status)
+		return nil // Return nil for unsuccessful transactions as it's a valid state
 	}
 
-	log.Debug("Meta data", "meta", meta)
+	log.Debug("Transaction receipt OK", "address", receipt.ContractAddr.String(), "gas", receipt.GasUsed)
 
+	// Step 3: Create and add file information
 	info := m.fs.NewFileInfo(meta)
-
 	info.LeftSize = meta.RawSize
 	info.ContractAddr = receipt.ContractAddr
 	info.Relate = append(info.Relate, *info.ContractAddr)
+
 	op, update, err := m.fs.AddFile(info)
 	if err != nil {
-		log.Warn("Create file failed", "err", err)
+		log.Warn("Failed to add file to filesystem", "infoHash", meta.InfoHash, "err", err)
 		return err
 	}
+
+	// Step 4: Handle file download if it's a new file
 	if update && op == 1 {
-		log.Debug("Create new file", "ih", meta.InfoHash, "op", op)
+		log.Debug("New file created, initiating download", "infoHash", meta.InfoHash)
+
+		sizeLimit := uint64(0)
+		if m.mode == params.FULL {
+			sizeLimit = 512 * 1024 // Set a specific size limit for full mode
+		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
-		if m.mode == params.FULL {
-			return m.download(ctx, meta.InfoHash, 512*1024)
-		} else {
-			return m.download(ctx, meta.InfoHash, 0)
-		}
+
+		return m.download(ctx, meta.InfoHash, sizeLimit)
 	}
+
 	return nil
 }
 
 func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
+	start := mclock.Now()
 	var (
 		record bool
-		start  = mclock.Now()
 		final  []types.Transaction
 	)
 
 	for _, tx := range b.Txs {
+		// Attempt to parse transaction for file metadata
 		if meta := tx.Parse(); meta != nil {
-			log.Debug("Data encounter", "ih", meta.InfoHash, "number", b.Number, "meta", meta)
+			log.Debug("Data encounter", "infoHash", meta.InfoHash, "blockNumber", b.Number)
 			if err := m.parseFileMeta(&tx, meta, b); err != nil {
-				log.Error("Parse file meta error", "err", err, "number", b.Number)
+				log.Error("Parse file meta failed", "error", err, "blockNumber", b.Number, "txHash", tx.Hash)
 				return false, err
 			}
 			record = true
 			final = append(final, tx)
-		} else if tx.IsFlowControl() {
+			continue
+		}
+
+		// Handle flow control transactions
+		if tx.IsFlowControl() {
+			// Use guard clauses to reduce nesting
 			if tx.Recipient == nil {
 				continue
 			}
+
 			file := m.fs.GetFileByAddr(*tx.Recipient)
 			if file == nil {
 				continue
 			}
+
 			receipt, err := m.getReceipt(tx.Hash.String())
 			if err != nil {
+				log.Error("Failed to get receipt for flow control tx", "error", err, "txHash", tx.Hash)
 				return false, err
 			}
+
 			if receipt.Status != 1 || receipt.GasUsed != params.UploadGas {
 				continue
 			}
+
+			// All checks passed, process the flow control transaction
 			remainingSize, err := m.getRemainingSize((*tx.Recipient).String())
 			if err != nil {
-				log.Error("Get remain failed", "err", err, "addr", (*tx.Recipient).String())
+				log.Error("Get remaining size failed", "error", err, "addr", (*tx.Recipient).String())
 				return false, err
 			}
+
 			if file.LeftSize > remainingSize {
 				file.LeftSize = remainingSize
-				if _, progress, err := m.fs.AddFile(file); err != nil {
+				_, progress, err := m.fs.AddFile(file)
+				if err != nil {
 					return false, err
-				} else if progress {
-					log.Debug("Update storage success", "ih", file.Meta.InfoHash, "left", file.LeftSize)
-					var bytesRequested uint64
+				}
+
+				if progress {
+					bytesRequested := uint64(0)
 					if file.Meta.RawSize > file.LeftSize {
 						bytesRequested = file.Meta.RawSize - file.LeftSize
 					}
+
+					logMsg := "Data processing..."
 					if file.LeftSize == 0 {
-						log.Debug("Data processing completed !!!", "ih", file.Meta.InfoHash, "addr", (*tx.Recipient).String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
-					} else {
-						log.Debug("Data processing ...", "ih", file.Meta.InfoHash, "addr", (*tx.Recipient).String(), "remain", common.StorageSize(remainingSize), "request", common.StorageSize(bytesRequested), "raw", common.StorageSize(file.Meta.RawSize), "number", b.Number)
+						logMsg = "Data processing completed!"
 					}
+
+					log.Debug(logMsg,
+						"infoHash", file.Meta.InfoHash,
+						"addr", (*tx.Recipient).String(),
+						"remain", common.StorageSize(remainingSize),
+						"request", common.StorageSize(bytesRequested),
+						"raw", common.StorageSize(file.Meta.RawSize),
+						"blockNumber", b.Number)
+
 					ctx, cancel := context.WithTimeout(context.Background(), timeout)
-					defer cancel()
 					if err := m.download(ctx, file.Meta.InfoHash, bytesRequested); err != nil {
+						cancel() // Ensure cancel is called on error
 						return false, err
 					}
+					cancel() // Call cancel when download is successful
 				}
 			}
 			record = true
@@ -137,22 +171,25 @@ func (m *Monitor) parseBlockTorrentInfo(b *types.Block) (bool, error) {
 		}
 	}
 
+	// Update block transactions if necessary
 	if len(final) > 0 && len(final) < len(b.Txs) {
-		log.Debug("Final txs layout", "total", len(b.Txs), "final", len(final), "num", b.Number, "txs", m.fs.Txs())
+		log.Debug("Txs filtered", "total", len(b.Txs), "final", len(final), "blockNumber", b.Number)
 		b.Txs = final
 	}
 
+	// Add block to filesystem if any relevant transactions were found
 	if record {
-		if err := m.fs.AddBlock(b); err == nil {
-			log.Debug("Root has been changed", "number", b.Number, "hash", b.Hash, "root", m.fs.Root())
-		} else {
-			log.Warn("Block added failed", "number", b.Number, "hash", b.Hash, "root", m.fs.Root(), "err", err)
+		if err := m.fs.AddBlock(b); err != nil {
+			log.Warn("Block added failed", "blockNumber", b.Number, "blockHash", b.Hash, "root", m.fs.Root(), "error", err)
+			return false, err // Return the error if adding the block fails
 		}
+		log.Debug("Block added to filesystem", "blockNumber", b.Number, "blockHash", b.Hash, "root", m.fs.Root())
 	}
 
+	// Log transaction scanning time
 	if len(b.Txs) > 0 {
 		elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-		log.Trace("Transactions scanning", "count", len(b.Txs), "number", b.Number, "elapsed", common.PrettyDuration(elapsed))
+		log.Trace("Transaction scanning complete", "count", len(b.Txs), "blockNumber", b.Number, "elapsed", common.PrettyDuration(elapsed))
 	}
 
 	return record, nil
