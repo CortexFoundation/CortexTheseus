@@ -346,7 +346,9 @@ func (m *Monitor) Stop() error {
 	// TODO dirty statics deal with
 	if m.engine != nil {
 		log.Info("Golang-kv engine close", "engine", m.engine.Name())
-		return m.engine.Close()
+		if err := m.engine.Close(); err != nil {
+			return err
+		}
 	}
 
 	if err := m.fs.Close(); err != nil {
@@ -490,14 +492,11 @@ func (m *Monitor) syncLatestBlock() {
 				log.Info("Monitor status", "blocks", progress, "current", m.CurrentNumber(), "latest", m.lastNumber.Load(), "txs", m.fs.Txs(), "ckp", m.fs.CheckPoint(), "last", m.fs.LastListenBlockNumber(), "progress", progress, "root", m.fs.Root())
 				counter = 0
 			}
-
 			// Always flush at the end of a timer cycle
-			m.fs.Flush()
+			m.fs.Anchor(m.lastNumber.Load())
+			//m.fs.Flush()
 
 		case <-m.exitCh:
-			log.Info("Block syncer stopped")
-			// Flush one last time before returning
-			m.fs.Flush()
 			return
 		}
 	}

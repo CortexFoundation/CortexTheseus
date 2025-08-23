@@ -65,14 +65,14 @@ type Conn struct {
 	nextConn       netctx.PacketConn // Embedded Conn, typically a udpconn we read/write from
 	fragmentBuffer *fragmentBuffer   // out-of-order and missing fragment handling
 	handshakeCache *handshakeCache   // caching of handshake messages for verifyData generation
-	decrypted      chan interface{}  // Decrypted Application Data or error, pull by calling `Read`
+	decrypted      chan any          // Decrypted Application Data or error, pull by calling `Read`
 	rAddr          net.Addr
 	state          State // Internal state
 
 	maximumTransmissionUnit int
 	paddingLengthGenerator  func(uint) uint
 
-	handshakeCompletedSuccessfully atomic.Value
+	handshakeCompletedSuccessfully atomic.Bool
 	handshakeMutex                 sync.Mutex
 	handshakeDone                  chan struct{}
 
@@ -214,7 +214,7 @@ func createConn(
 		maximumTransmissionUnit: mtu,
 		paddingLengthGenerator:  paddingLengthGenerator,
 
-		decrypted: make(chan interface{}, 1),
+		decrypted: make(chan any, 1),
 		log:       logger,
 
 		readDeadline:  deadline.New(),
@@ -725,7 +725,7 @@ func (c *Conn) fragmentHandshake(dtlsHandshake *handshake.Handshake) ([][]byte, 
 }
 
 var poolReadBuffer = sync.Pool{ //nolint:gochecknoglobals
-	New: func() interface{} {
+	New: func() any {
 		b := make([]byte, inboundBufferSize)
 
 		return &b
@@ -1077,14 +1077,12 @@ func (c *Conn) notify(ctx context.Context, level alert.Level, desc alert.Descrip
 	})
 }
 
-func (c *Conn) setHandshakeCompletedSuccessfully() {
-	c.handshakeCompletedSuccessfully.Store(struct{ bool }{true})
+func (c *Conn) setHandshakeCompletedSuccessfully() bool {
+	return c.handshakeCompletedSuccessfully.CompareAndSwap(false, true)
 }
 
 func (c *Conn) isHandshakeCompletedSuccessfully() bool {
-	boolean, _ := c.handshakeCompletedSuccessfully.Load().(struct{ bool })
-
-	return boolean.bool
+	return c.handshakeCompletedSuccessfully.Load()
 }
 
 //nolint:cyclop,gocognit,contextcheck
@@ -1099,8 +1097,7 @@ func (c *Conn) handshake(
 	done := make(chan struct{})
 	ctxRead, cancelRead := context.WithCancel(context.Background())
 	cfg.onFlightState = func(_ flightVal, s handshakeState) {
-		if s == handshakeFinished && !c.isHandshakeCompletedSuccessfully() {
-			c.setHandshakeCompletedSuccessfully()
+		if s == handshakeFinished && c.setHandshakeCompletedSuccessfully() {
 			close(done)
 		}
 	}

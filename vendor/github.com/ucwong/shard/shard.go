@@ -167,24 +167,30 @@ func (m *Map[V]) Len() (length int) {
 // Range calls the provided callback function for each key-value pair in the map until the
 // callback returns false or all pairs have been processed.
 func (m *Map[V]) Range(callback func(key string, value V) bool) {
-	var done bool
-
+	// Loop through all shards sequentially
 	for i := 0; i < m.shards; i++ {
+		// Lock and defer unlock for the current shard within its own scope
 		m.mus[i].RLock()
-		defer m.mus[i].RUnlock()
 
-		if done {
-			break
-		}
-
+		// The callback function returns false to stop the iteration.
+		// If the inner Scan loop is terminated, we also need to stop the outer loop.
+		// Therefore, we use a simple check and an early exit.
+		// The `done` flag is no longer necessary.
+		keepIterating := true
 		m.maps[i].Scan(func(key string, value V) bool {
 			if !callback(key, value) {
-				done = true
+				keepIterating = false
 				return false
 			}
-
 			return true
 		})
+
+		m.mus[i].RUnlock()
+
+		// If the inner scan was terminated, we stop the outer loop.
+		if !keepIterating {
+			break
+		}
 	}
 }
 
@@ -213,29 +219,28 @@ func (m *Map[V]) choose(key string) int {
 // initDo initializes the Map with the appropriate number of shards and mutexes.
 // It ensures that this initialization is performed only once using sync.Once.
 func (m *Map[V]) initDo() {
+	// once.Do ensures the initialization block runs only once, even with concurrent calls.
 	var once sync.Once
 	once.Do(func() {
+		// Step 1: Calculate the optimal number of shards.
+		// The number of shards is chosen to be a power of 2 for efficient bitwise operations.
 		numShards := runtime.NumCPU() * 16
 		m.shards = 1
 		for m.shards < numShards {
 			m.shards *= 2
 		}
 
-		scap := m.capcity / m.shards
+		// Step 2: Initialize the mutexes and hash maps sequentially.
 		m.mus = make([]sync.RWMutex, m.shards)
 		m.maps = make([]*hashmap.Map[string, V], m.shards)
 
-		var wg sync.WaitGroup
-		wg.Add(m.shards)
+		// Calculate the capacity for each shard based on the total capacity.
+		scap := m.capcity / m.shards
 
+		// Loop through each shard and initialize it directly, which is simpler and avoids Goroutine overhead.
 		for i := 0; i < m.shards; i++ {
-			go func(i int) {
-				defer wg.Done()
-				m.maps[i] = hashmap.New[string, V](scap)
-				m.mus[i] = sync.RWMutex{}
-			}(i)
+			// A sync.RWMutex's zero value is the unlocked state, so explicit initialization is not needed.
+			m.maps[i] = hashmap.New[string, V](scap)
 		}
-
-		wg.Wait()
 	})
 }
