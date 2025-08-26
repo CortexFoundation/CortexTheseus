@@ -493,7 +493,7 @@ func (m *Monitor) syncLatestBlock() {
 				counter = 0
 			}
 			// Always flush at the end of a timer cycle
-			m.fs.Anchor(m.lastNumber.Load())
+			//m.fs.Anchor(m.lastNumber.Load())
 			//m.fs.Flush()
 
 		case <-m.exitCh:
@@ -502,50 +502,22 @@ func (m *Monitor) syncLatestBlock() {
 	}
 }
 
-func (m *Monitor) skip(i uint64) bool {
+func (m *Monitor) skip(num uint64) (bool, uint64) {
 	if m.srv.Load() != SRV_MODEL {
-		return false
+		return false, 0
 	}
 
-	if len(m.ckp.Skips) == 0 || i > m.ckp.Skips[len(m.ckp.Skips)-1].To || i < m.ckp.Skips[0].From {
-		return false
+	if len(m.ckp.Skips) == 0 || num > m.ckp.Skips[len(m.ckp.Skips)-1].To || num < m.ckp.Skips[0].From {
+		return false, 0
 	}
 
 	for _, skip := range m.ckp.Skips {
-		if i > skip.From && i < skip.To {
-			//m.lastNumber = i - 1
-			return true
+		if num > skip.From && num < skip.To {
+			return true, skip.To
 		}
 	}
-	return false
+	return false, 0
 }
-
-/*func (m *Monitor) skip(i uint64) bool {
-	if m.srv.Load() != SRV_MODEL {
-                return false
-        }
-
-	if len(m.ckp.Skips) == 0 || i > m.ckp.Skips[len(m.ckp.Skips)-1].To || i < m.ckp.Skips[0].From {
-                return false
-        }
-
-	// Use sort.Search to find the index of the first skip interval
-	// whose 'From' field is greater than or equal to i.
-	idx := sort.Search(len(m.ckp.Skips), func(j int) bool {
-		return m.ckp.Skips[j].From > i
-	})
-
-	// Adjust the index to check the interval that might contain i.
-	// If idx is 0, no interval starts at or before i.
-	if idx > 0 {
-		interval := m.ckp.Skips[idx-1]
-		if i >= interval.From && i < interval.To {
-			return true
-		}
-	}
-
-	return false
-}*/
 
 func (m *Monitor) syncLastBlock() uint64 {
 	currentNumber := m.currentNumber.Load()
@@ -597,9 +569,11 @@ func (m *Monitor) syncLastBlock() uint64 {
 			return 0
 		}
 
-		if m.ckp != nil && m.skip(i) {
-			i++
-			continue
+		if m.ckp != nil {
+			if skip, to := m.skip(i); skip {
+				i = to
+				continue
+			}
 		}
 
 		// Step 3: Fetch blocks in a batch or individually based on remaining scope.

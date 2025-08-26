@@ -93,8 +93,6 @@ func (p *statePrefetcher) Prefetch(block *types.Block, statedb *state.StateDB, c
 				fails.Add(1)
 				return nil // Ugh, something went horribly wrong, bail out
 			}
-			// If we're pre-byzantium, pre-load trie nodes for the intermediate root
-			stateCpy.IntermediateRoot(true)
 
 			return nil
 		})

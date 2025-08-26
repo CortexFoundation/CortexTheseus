@@ -80,7 +80,7 @@ func (m *Monitor) rpcBlockByNumber(blockNumber uint64) (*types.Block, error) {
 	return nil, err //errors.New("[ Internal IPC Error ] try to get block out of times")
 }
 
-func (m *Monitor) rpcBatchBlockByNumber(from, to uint64) ([]*types.Block, error) {
+/*func (m *Monitor) rpcBatchBlockByNumber(from, to uint64) ([]*types.Block, error) {
 	batch := to - from
 	result := make([]*types.Block, batch)
 	reqs := make([]rpc.BatchElem, batch)
@@ -104,6 +104,43 @@ func (m *Monitor) rpcBatchBlockByNumber(from, to uint64) ([]*types.Block, error)
 		}
 		if result[i] == nil {
 			return nil, fmt.Errorf("got null block %d", i)
+		}
+	}
+
+	return result, nil
+}*/
+
+func (m *Monitor) rpcBatchBlockByNumber(from, to uint64) ([]*types.Block, error) {
+	if from >= to {
+		return nil, nil
+	}
+
+	batch := to - from
+	result := make([]*types.Block, batch)
+	reqs := make([]rpc.BatchElem, batch)
+
+	for i := uint64(0); i < batch; i++ {
+		blockNum := from + i
+		reqs[i] = rpc.BatchElem{
+			Method: "ctxc_getBlockByNumber",
+			Args:   []any{hexutil.EncodeUint64(blockNum), true},
+			Result: &result[i],
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := m.cl.BatchCallContext(ctx, reqs); err != nil {
+		return nil, fmt.Errorf("failed to make batch RPC call: %w", err)
+	}
+
+	for i, req := range reqs {
+		if req.Error != nil {
+			return nil, fmt.Errorf("batch RPC call for block %d failed: %w", from+uint64(i), req.Error)
+		}
+		if result[i] == nil {
+			return nil, fmt.Errorf("batch RPC call returned nil for block %d", from+uint64(i))
 		}
 	}
 
