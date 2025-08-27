@@ -1719,10 +1719,12 @@ func (pc *PeerConnection) handleIncomingSSRC(rtpStream io.Reader, ssrc SSRC) err
 	// (urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id and urn:ietf:params:rtp-hdrext:sdes:mid)
 	// and even if the RTP stream contains an incorrect MID or RID.
 	// while this can be incorrect, this is done to maintain compatibility with older behavior.
-	if len(remoteDescription.parsed.MediaDescriptions) == 1 {
-		mediaSection := remoteDescription.parsed.MediaDescriptions[0]
-		if handled, err := pc.handleUndeclaredSSRC(ssrc, mediaSection); handled || err != nil {
-			return err
+	if remoteDescription.Type != SDPTypeAnswer || pc.api.settingEngine.handleUndeclaredSSRCWithoutAnswer {
+		if len(remoteDescription.parsed.MediaDescriptions) == 1 {
+			mediaSection := remoteDescription.parsed.MediaDescriptions[0]
+			if handled, err := pc.handleUndeclaredSSRC(ssrc, mediaSection); handled || err != nil {
+				return err
+			}
 		}
 	}
 
@@ -1748,6 +1750,11 @@ func (pc *PeerConnection) handleIncomingSSRC(rtpStream io.Reader, ssrc SSRC) err
 		RTPHeaderExtensionCapability{sdp.SDESMidURI},
 	)
 	if !audioSupported && !videoSupported {
+		if remoteDescription.Type == SDPTypeAnswer && !pc.api.settingEngine.handleUndeclaredSSRCWithoutAnswer {
+			// if we are offerer, wait for answer with media setion to process this SSRC
+			return errPeerConnEarlyMediaWithoutAnswer
+		}
+
 		// try to find media section by payload type as a last resort for legacy clients.
 		mediaSection, ok := pc.findMediaSectionByPayloadType(payloadType, remoteDescription)
 		if ok {
@@ -2089,7 +2096,7 @@ func (pc *PeerConnection) AddTrack(track TrackLocal) (*RTPSender, error) {
 		// But that will cause sdp inflate. So we only check currentDirection's current value,
 		// that's worked for all browsers.
 		if transceiver.kind == track.Kind() && transceiver.Sender() == nil &&
-			!(currentDirection == RTPTransceiverDirectionSendrecv || currentDirection == RTPTransceiverDirectionSendonly) {
+			currentDirection != RTPTransceiverDirectionSendrecv && currentDirection != RTPTransceiverDirectionSendonly {
 			sender, err := pc.api.NewRTPSender(track, pc.dtlsTransport)
 			if err == nil {
 				err = transceiver.SetSender(sender, track)

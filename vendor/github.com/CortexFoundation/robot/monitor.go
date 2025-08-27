@@ -21,6 +21,7 @@ import (
 	"errors"
 	"math"
 	//"sort"
+	"fmt"
 	"path/filepath"
 	"runtime"
 	"sync"
@@ -314,7 +315,7 @@ func (m *Monitor) taskLoop() {
 	}
 }
 
-func (m *Monitor) exit() {
+/*func (m *Monitor) exit() {
 	m.closeOnce.Do(func() {
 		if m.exitCh != nil {
 			close(m.exitCh)
@@ -356,6 +357,52 @@ func (m *Monitor) Stop() error {
 		return err
 	}
 	log.Info("Fs listener synchronizing closed")
+	return nil
+}*/
+
+func (m *Monitor) exit() {
+	m.closeOnce.Do(func() {
+		if m.exitCh != nil {
+			close(m.exitCh)
+			m.wg.Wait()
+		} else {
+			log.Debug("Listener exit channel already closed")
+		}
+	})
+}
+
+func (m *Monitor) Stop() error {
+	m.lock.Lock()
+	if m.terminated.Swap(true) {
+		m.lock.Unlock()
+		return nil
+	}
+	m.lock.Unlock()
+
+	m.exit()
+	log.Info("Monitor is waiting to be closed")
+
+	var errs []error
+
+	m.blockCache.Purge()
+	m.sizeCache.Purge()
+
+	if m.engine != nil {
+		log.Info("Closing Golang-kv engine", "engine", m.engine.Name())
+		if err := m.engine.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("engine close: %w", err))
+		}
+	}
+
+	if err := m.fs.Close(); err != nil {
+		errs = append(errs, fmt.Errorf("fs close: %w", err))
+	}
+
+	log.Info("Fs listener synchronizing closed")
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
 	return nil
 }
 

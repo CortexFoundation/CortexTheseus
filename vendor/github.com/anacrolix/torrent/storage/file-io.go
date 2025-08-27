@@ -10,10 +10,9 @@ type fileWriter interface {
 }
 
 type fileReader interface {
-	// Seeks to the next data in the file. If hole-seeking/sparse-files are not supported, should
-	// seek to the offset.
-	seekData(offset int64) (ret int64, err error)
-	io.WriterTo
+	// Seeks to the next data in the file. If there is no more data, seeks to the end of the file.
+	seekDataOrEof(offset int64) (ret int64, err error)
+	writeToN(w io.Writer, n int64) (written int64, err error)
 	io.ReadCloser
 }
 

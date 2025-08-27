@@ -232,15 +232,15 @@ func (tm *TorrentManager) Close() error {
 
 	tm.closeOnce.Do(func() {
 		log.Info("Current running torrents", "size", tm.torrents.Len())
-		//tm.torrents.Range(func(_ string, t *Torrent) bool {
-		//	t.Close()
-		//	return true
-		//})
 
-		tm.client.Close()
-		tm.client.WaitAll()
+		if tm.client != nil {
+			tm.client.Close()
+			tm.client.WaitAll()
+		}
 
-		close(tm.closeAll)
+		if tm.closeAll != nil {
+			close(tm.closeAll)
+		}
 		tm.wg.Wait()
 
 		if tm.kvdb != nil {
@@ -252,7 +252,9 @@ func (tm *TorrentManager) Close() error {
 			tm.fc.Stop()
 		}
 
-		tm.taskEvent.Stop()
+		if tm.taskEvent != nil {
+			tm.taskEvent.Stop()
+		}
 		log.Info("Fs Download Manager Closed")
 	})
 
@@ -820,7 +822,7 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 	return torrentManager, nil
 }
 
-func (tm *TorrentManager) Start() (err error) {
+/*func (tm *TorrentManager) Start() (err error) {
 	tm.startOnce.Do(func() {
 		if tm.fc != nil {
 			if err := tm.fc.Start(); err != nil {
@@ -845,6 +847,43 @@ func (tm *TorrentManager) Start() (err error) {
 	})
 
 	return
+}*/
+
+func (tm *TorrentManager) Start() error {
+	var startErr error
+
+	tm.startOnce.Do(func() {
+		if tm.fc != nil {
+			if err := tm.fc.Start(); err != nil {
+				log.Error("File cache start failed", "err", err)
+				startErr = err
+				return
+			}
+		}
+
+		if err := tm.init(); err != nil {
+			log.Error("TorrentManager init failed", "err", err)
+			startErr = err
+			return
+		}
+
+		tm.runLoop("seedingLoop", tm.seedingLoop)
+		tm.runLoop("activeLoop", tm.activeLoop)
+		tm.runLoop("pendingLoop", tm.pendingLoop)
+		tm.runLoop("mainLoop", tm.mainLoop)
+	})
+
+	return startErr
+}
+
+func (tm *TorrentManager) runLoop(name string, fn func()) {
+	tm.wg.Add(1)
+	go func() {
+		defer tm.wg.Done()
+		log.Debug("Loop started", "loop", name)
+		fn()
+		log.Debug("Loop exited", "loop", name)
+	}()
 }
 
 func (tm *TorrentManager) prepare() bool {
@@ -967,7 +1006,7 @@ type mainEvent struct {
 }
 
 func (tm *TorrentManager) mainLoop() {
-	defer tm.wg.Done()
+	//defer tm.wg.Done()
 
 	// Use a more readable timer duration.
 	const twelveHours = time.Hour * 12
@@ -1055,7 +1094,7 @@ func (tm *TorrentManager) handleTrackerUpdate(timer *time.Timer) {
 }
 
 func (tm *TorrentManager) pendingLoop() {
-	defer tm.wg.Done()
+	//defer tm.wg.Done()
 
 	sub := tm.taskEvent.Subscribe(pendingEvent{})
 	defer sub.Unsubscribe()
@@ -1206,7 +1245,7 @@ func (tm *TorrentManager) activeLoop() {
 	defer func() {
 		ticker.Stop()
 		statusTicker.Stop()
-		tm.wg.Done()
+		//tm.wg.Done()
 	}()
 
 	sub := tm.taskEvent.Subscribe(runningEvent{})
@@ -1364,7 +1403,7 @@ func (tm *TorrentManager) monitorActiveTorrent(ih string, intervalSec int64) {
 }
 
 func (tm *TorrentManager) seedingLoop() {
-	defer tm.wg.Done()
+	//defer tm.wg.Done()
 
 	sub := tm.taskEvent.Subscribe(seedingEvent{}, droppingEvent{})
 	defer sub.Unsubscribe()

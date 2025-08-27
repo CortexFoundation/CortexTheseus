@@ -468,13 +468,7 @@ func Len() int64 {
 //	duration := ll.Measure(func() { time.Sleep(time.Millisecond) })
 //	// Output: [] INFO: function executed [duration=~1ms]
 func Measure(fns ...func()) time.Duration {
-	start := time.Now()
-	for _, fn := range fns {
-		fn()
-	}
-	duration := time.Since(start)
-	defaultLogger.Fields("duration", duration).Infof("function executed")
-	return duration
+	return defaultLogger.Measure(fns...)
 }
 
 // Benchmark logs the duration since a start time at Info level using the default logger.
@@ -486,7 +480,7 @@ func Measure(fns ...func()) time.Duration {
 //	time.Sleep(time.Millisecond)
 //	ll.Benchmark(start) // Output: [] INFO: benchmark [start=... end=... duration=...]
 func Benchmark(start time.Time) {
-	defaultLogger.Fields("start", start, "end", time.Now(), "duration", time.Now().Sub(start)).Infof("benchmark")
+	defaultLogger.Benchmark(start)
 }
 
 // Clone returns a new logger with the same configuration as the default logger.
