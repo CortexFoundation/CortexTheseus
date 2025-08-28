@@ -20,8 +20,25 @@ import (
 	"math/big"
 	"sync"
 
+	"errors"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
+	"maps"
+	"slices"
+)
+
+var (
+	// errPeerSetClosed is returned if a peer is attempted to be added or removed
+	// from the peer set after it has been terminated.
+	errPeerSetClosed = errors.New("peerset closed")
+
+	// errPeerAlreadyRegistered is returned if a peer is attempted to be added
+	// to the peer set, but one with the same id already exists.
+	errPeerAlreadyRegistered = errors.New("peer already registered")
+
+	// errPeerNotRegistered is returned if a peer is attempted to be removed from
+	// a peer set, but no peer with the given id exists.
+	errPeerNotRegistered = errors.New("peer not registered")
 )
 
 // peerSet represents the collection of active peers currently participating in
@@ -102,6 +119,14 @@ func (ps *peerSet) PeersWithoutBlock(hash common.Hash) []*peer {
 		}
 	}
 	return list
+}
+
+// all returns all current peers.
+func (ps *peerSet) all() []*peer {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	return slices.Collect(maps.Values(ps.peers))
 }
 
 // PeersWithoutTx retrieves a list of peers that do not have a given transaction
