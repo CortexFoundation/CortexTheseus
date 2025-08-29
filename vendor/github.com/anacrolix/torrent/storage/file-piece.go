@@ -354,17 +354,20 @@ func (me *filePieceImpl) writeFileTo(w io.Writer, fileIndex int, extent segments
 	panicif.GreaterThan(extent.End(), file.FileInfo.Length)
 	extentRemaining := extent.Length
 	var dataOffset int64
-	dataOffset, err = f.seekData(extent.Start)
-	if err == io.EOF {
+	dataOffset, err = f.seekDataOrEof(extent.Start)
+	if err != nil {
+		err = fmt.Errorf("seeking to start of extent: %w", err)
 		return
 	}
-	panicif.Err(err)
-	panicif.LessThan(dataOffset, extent.Start)
+	if dataOffset < extent.Start {
+		// File is too short.
+		return
+	}
 	if dataOffset > extent.Start {
 		// Write zeroes until the end of the hole we're in.
 		var n1 int64
 		n := min(dataOffset-extent.Start, extent.Length)
-		n1, err = io.CopyN(w, zeroReader{}, n)
+		n1, err = writeZeroes(w, n)
 		packageExpvarMap.Add("bytesReadSkippedHole", n1)
 		written += n1
 		if err != nil {
@@ -373,19 +376,7 @@ func (me *filePieceImpl) writeFileTo(w io.Writer, fileIndex int, extent segments
 		panicif.NotEq(n1, n)
 		extentRemaining -= n1
 	}
-	var n1 int64
-	if true {
-		n1, err = f.WriteTo(&limitWriter{
-			rem: extentRemaining,
-			w:   w,
-		})
-		// limitWriter will block f from writing too much.
-		if n1 == extentRemaining {
-			err = nil
-		}
-	} else {
-		n1, err = io.CopyN(w, f, extentRemaining)
-	}
+	n1, err := f.writeToN(w, extentRemaining)
 	packageExpvarMap.Add("bytesReadNotSkipped", n1)
 	written += n1
 	return

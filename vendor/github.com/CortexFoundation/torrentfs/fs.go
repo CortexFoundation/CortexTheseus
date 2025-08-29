@@ -19,6 +19,7 @@ package torrentfs
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"sync/atomic"
 
@@ -332,33 +333,35 @@ func (fs *TorrentFS) Version() uint {
 
 // Start starts the data collection thread and the listening server of the dashboard.
 // Implements the node.Service interface.
-func (fs *TorrentFS) Start() (err error) {
-	log.Info("Fs server starting ... ...")
-	if fs == nil || fs.monitor == nil {
-		log.Warn("Storage fs init failed", "fs", fs)
-		return
+func (fs *TorrentFS) Start() error {
+	if fs == nil {
+		return errors.New("TorrentFS is nil")
 	}
 
-	//log.Info("Started nas", "config", fs, "mode", fs.config.Mode, "version", params.ProtocolVersion, "queue", fs.tunnel.Len(), "peers", fs.Neighbors())
+	log.Info("Starting FS server...")
 
-	/*err = fs.db.Init()
-	if err != nil {
-		return
-	}*/
-
-	err = fs.handler.Start()
-	if err != nil {
-		return
+	if fs.monitor == nil {
+		return errors.New("storage monitor is not initialized")
 	}
 
-	err = fs.monitor.Start()
-	if err != nil {
-		return
+	if fs.handler == nil {
+		return errors.New("handler is not initialized")
+	}
+
+	if err := fs.handler.Start(); err != nil {
+		log.Error("Failed to start handler", "err", err)
+		return fmt.Errorf("start handler: %w", err)
+	}
+
+	if err := fs.monitor.Start(); err != nil {
+		log.Error("Failed to start monitor", "err", err)
+		return fmt.Errorf("start monitor: %w", err)
 	}
 
 	fs.init()
 
-	return
+	log.Info("FS server started successfully")
+	return nil
 }
 
 func (fs *TorrentFS) init() {
@@ -382,24 +385,25 @@ func (fs *TorrentFS) init() {
 	})
 }
 
-// download and pub
 func (fs *TorrentFS) bitsflow(ctx context.Context, ih string, size uint64) error {
 	select {
 	case fs.callback <- types.NewBitsFlow(ih, size):
-		// TODO
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-fs.closeAll:
-		log.Info("bitsflow out")
 		return nil
-	}
 
-	return nil
+	case <-ctx.Done():
+		err := ctx.Err()
+		log.Warn("bitsflow canceled by context", "ih", ih, "err", err)
+		return err
+
+	case <-fs.closeAll:
+		log.Info("bitsflow aborted: fs is closing", "ih", ih)
+		return errors.New("fs closed")
+	}
 }
 
 // Stop stops the data collection thread and the connection listener of the dashboard.
 // Implements the node.Service interface.
-func (fs *TorrentFS) Stop() error {
+/*func (fs *TorrentFS) Stop() error {
 	if fs == nil {
 		log.Info("Cortex fs engine is already stopped")
 		return errors.New("fs has been stopped")
@@ -415,11 +419,6 @@ func (fs *TorrentFS) Stop() error {
 			log.Info("Monior stopping ... ...")
 			fs.monitor.Stop()
 		}
-
-		/*if fs.db != nil {
-			log.Info("Chain DB closing ... ...")
-			fs.db.Close()
-		}*/
 
 		close(fs.closeAll)
 		fs.wg.Wait()
@@ -441,12 +440,58 @@ func (fs *TorrentFS) Stop() error {
 		log.Info("Cortex fs engine stopped")
 	})
 
-	/*for _, p := range fs.peers {
-		p.stop()
+	return nil
+}*/
+
+var ErrAlreadyStopped = errors.New("torrent fs already stopped")
+
+func (fs *TorrentFS) Stop() error {
+	if fs == nil {
+		return ErrAlreadyStopped
 	}
 
-	if fs.tunnel != nil {
-		fs.tunnel.Drain()
-	}*/
-	return nil
+	var stopErr error
+	fs.stopOnce.Do(func() {
+		log.Info("Stopping Cortex FS engine...")
+
+		if fs.monitor != nil {
+			log.Info("Stopping monitor...")
+			if err := fs.monitor.Stop(); err != nil {
+				log.Warn("Monitor stop error", "err", err)
+			}
+		}
+
+		if fs.net != nil {
+			log.Info("Stopping network...")
+			fs.net.Stop()
+		}
+
+		if fs.tunnel != nil {
+			log.Info("Draining tunnel...")
+			fs.tunnel.Drain()
+		}
+
+		if len(fs.peers) > 0 {
+			log.Info("Stopping peers...", "count", len(fs.peers))
+			for _, p := range fs.peers {
+				if err := p.stop(); err != nil {
+					log.Warn("Peer stop error", "peer", p.ID(), "err", err)
+				}
+			}
+		}
+
+		if fs.handler != nil {
+			log.Info("Closing handler...")
+			if err := fs.handler.Close(); err != nil {
+				log.Warn("Handler close error", "err", err)
+			}
+		}
+
+		close(fs.closeAll)
+		fs.wg.Wait()
+
+		log.Info("Cortex FS engine stopped")
+	})
+
+	return stopErr
 }
