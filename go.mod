@@ -21,6 +21,7 @@ require (
 	github.com/consensys/gnark-crypto v0.19.0
 	github.com/crate-crypto/go-eth-kzg v1.3.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
+	github.com/dchest/siphash v1.2.3
 	github.com/deckarep/golang-set/v2 v2.8.0
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0
 	github.com/dop251/goja v0.0.0-20250630131328-58d95d85e994
