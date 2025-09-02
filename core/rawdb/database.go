@@ -18,12 +18,18 @@ package rawdb
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
+	"slices"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -31,6 +37,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb/memorydb"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"golang.org/x/sync/errgroup"
 )
 
 var ErrDeleteRangeInterrupted = errors.New("safe delete range operation interrupted")
@@ -368,36 +375,36 @@ func (c counter) Percentage(current uint64) string {
 	return fmt.Sprintf("%d", current*100/uint64(c))
 }
 
-// stat stores sizes and count for a parameter
+// stat provides lock-free statistics aggregation using atomic operations
 type stat struct {
-	size  common.StorageSize
-	count counter
+	size  uint64
+	count uint64
 }
 
-// Add size to the stat and increase the counter by 1
-func (s *stat) Add(size common.StorageSize) {
-	s.size += size
-	s.count++
+func (s *stat) empty() bool {
+	return atomic.LoadUint64(&s.count) == 0
 }
 
-func (s *stat) Size() string {
-	return s.size.String()
+func (s *stat) add(size common.StorageSize) {
+	atomic.AddUint64(&s.size, uint64(size))
+	atomic.AddUint64(&s.count, 1)
 }
 
-func (s *stat) Count() string {
-	return s.count.String()
+func (s *stat) sizeString() string {
+	return common.StorageSize(atomic.LoadUint64(&s.size)).String()
+}
+
+func (s *stat) countString() string {
+	return counter(atomic.LoadUint64(&s.count)).String()
 }
 
 // InspectDatabase traverses the entire database and checks the size
 // of all different categories of data.
 func InspectDatabase(db ctxcdb.Database, keyPrefix, keyStart []byte) error {
-	it := db.NewIterator(keyPrefix, keyStart)
-	defer it.Release()
-
 	var (
-		count  int64
-		start  = time.Now()
-		logged = time.Now()
+		start = time.Now()
+		count atomic.Int64
+		total atomic.Uint64
 
 		// Key-value store statistics
 		headers         stat
@@ -424,106 +431,161 @@ func InspectDatabase(db ctxcdb.Database, keyPrefix, keyStart []byte) error {
 		metadata    stat
 		unaccounted stat
 
-		// Totals
-		total common.StorageSize
+		// This map tracks example keys for unaccounted data.
+		// For each unique two-byte prefix, the first unaccounted key encountered
+		// by the iterator will be stored.
+		unaccountedKeys = make(map[[2]byte][]byte)
+		unaccountedMu   sync.Mutex
 	)
-	// Inspect key-value database first.
-	for it.Next() {
-		var (
-			key  = it.Key()
-			size = common.StorageSize(len(key) + len(it.Value()))
-		)
-		total += size
-		switch {
-		case bytes.HasPrefix(key, headerPrefix) && len(key) == (len(headerPrefix)+8+common.HashLength):
-			headers.Add(size)
-		case bytes.HasPrefix(key, blockBodyPrefix) && len(key) == (len(blockBodyPrefix)+8+common.HashLength):
-			bodies.Add(size)
-		case bytes.HasPrefix(key, blockReceiptsPrefix) && len(key) == (len(blockReceiptsPrefix)+8+common.HashLength):
-			receipts.Add(size)
-		case bytes.HasPrefix(key, headerPrefix) && bytes.HasSuffix(key, headerTDSuffix):
-			tds.Add(size)
-		case bytes.HasPrefix(key, headerPrefix) && bytes.HasSuffix(key, headerHashSuffix):
-			numHashPairings.Add(size)
-		case bytes.HasPrefix(key, headerNumberPrefix) && len(key) == (len(headerNumberPrefix)+common.HashLength):
-			hashNumPairings.Add(size)
-		case len(key) == common.HashLength:
-			tries.Add(size)
-		case bytes.HasPrefix(key, CodePrefix) && len(key) == len(CodePrefix)+common.HashLength:
-			codes.Add(size)
-		case bytes.HasPrefix(key, txLookupPrefix) && len(key) == (len(txLookupPrefix)+common.HashLength):
-			txLookups.Add(size)
-		case bytes.HasPrefix(key, SnapshotAccountPrefix) && len(key) == (len(SnapshotAccountPrefix)+common.HashLength):
-			accountSnaps.Add(size)
-		case bytes.HasPrefix(key, SnapshotStoragePrefix) && len(key) == (len(SnapshotStoragePrefix)+2*common.HashLength):
-			storageSnaps.Add(size)
-		case bytes.HasPrefix(key, PreimagePrefix) && len(key) == (len(PreimagePrefix)+common.HashLength):
-			preimages.Add(size)
-		case bytes.HasPrefix(key, configPrefix) && len(key) == (len(configPrefix)+common.HashLength):
-			metadata.Add(size)
-		case bytes.HasPrefix(key, genesisPrefix) && len(key) == (len(genesisPrefix)+common.HashLength):
-			metadata.Add(size)
-		case bytes.HasPrefix(key, bloomBitsPrefix) && len(key) == (len(bloomBitsPrefix)+10+common.HashLength):
-			bloomBits.Add(size)
-		case bytes.HasPrefix(key, BloomBitsIndexPrefix):
-			bloomBits.Add(size)
-		case bytes.HasPrefix(key, skeletonHeaderPrefix) && len(key) == (len(skeletonHeaderPrefix)+8):
-			beaconHeaders.Add(size)
-		case bytes.HasPrefix(key, CliqueSnapshotPrefix) && len(key) == 7+common.HashLength:
-			cliqueSnaps.Add(size)
-		case bytes.HasPrefix(key, ChtTablePrefix) ||
-			bytes.HasPrefix(key, ChtIndexTablePrefix) ||
-			bytes.HasPrefix(key, ChtPrefix): // Canonical hash trie
-			chtTrieNodes.Add(size)
-		case bytes.HasPrefix(key, BloomTrieTablePrefix) ||
-			bytes.HasPrefix(key, BloomTrieIndexPrefix) ||
-			bytes.HasPrefix(key, BloomTriePrefix): // Bloomtrie sub
-			bloomTrieNodes.Add(size)
-		default:
-			var accounted bool
-			for _, meta := range [][]byte{
-				databaseVersionKey, headHeaderKey, headBlockKey, headFastBlockKey, headFinalizedBlockKey,
-				lastPivotKey, fastTrieProgressKey, snapshotDisabledKey, SnapshotRootKey, snapshotJournalKey,
-				snapshotGeneratorKey, snapshotRecoveryKey, txIndexTailKey, fastTxLookupLimitKey,
-				uncleanShutdownKey, badBlockKey, transitionStatusKey, skeletonSyncStatusKey,
-			} {
-				if bytes.Equal(key, meta) {
-					metadata.Add(size)
-					accounted = true
-					break
+
+	inspectRange := func(ctx context.Context, r byte) error {
+		var s []byte
+		if len(keyStart) > 0 {
+			switch {
+			case r < keyStart[0]:
+				return nil
+			case r == keyStart[0]:
+				s = keyStart[1:]
+			default:
+				// entire key range is included for inspection
+			}
+		}
+		it := db.NewIterator(append(keyPrefix, r), s)
+		defer it.Release()
+
+		for it.Next() {
+			var (
+				key  = it.Key()
+				size = common.StorageSize(len(key) + len(it.Value()))
+			)
+			total.Add(uint64(size))
+			count.Add(1)
+
+			switch {
+			case bytes.HasPrefix(key, headerPrefix) && len(key) == (len(headerPrefix)+8+common.HashLength):
+				headers.add(size)
+			case bytes.HasPrefix(key, blockBodyPrefix) && len(key) == (len(blockBodyPrefix)+8+common.HashLength):
+				bodies.add(size)
+			case bytes.HasPrefix(key, blockReceiptsPrefix) && len(key) == (len(blockReceiptsPrefix)+8+common.HashLength):
+				receipts.add(size)
+			case bytes.HasPrefix(key, headerPrefix) && bytes.HasSuffix(key, headerTDSuffix):
+				tds.add(size)
+			case bytes.HasPrefix(key, headerPrefix) && bytes.HasSuffix(key, headerHashSuffix):
+				numHashPairings.add(size)
+			case bytes.HasPrefix(key, headerNumberPrefix) && len(key) == (len(headerNumberPrefix)+common.HashLength):
+				hashNumPairings.add(size)
+			case len(key) == common.HashLength:
+				tries.add(size)
+			case bytes.HasPrefix(key, CodePrefix) && len(key) == len(CodePrefix)+common.HashLength:
+				codes.add(size)
+			case bytes.HasPrefix(key, txLookupPrefix) && len(key) == (len(txLookupPrefix)+common.HashLength):
+				txLookups.add(size)
+			case bytes.HasPrefix(key, SnapshotAccountPrefix) && len(key) == (len(SnapshotAccountPrefix)+common.HashLength):
+				accountSnaps.add(size)
+			case bytes.HasPrefix(key, SnapshotStoragePrefix) && len(key) == (len(SnapshotStoragePrefix)+2*common.HashLength):
+				storageSnaps.add(size)
+			case bytes.HasPrefix(key, PreimagePrefix) && len(key) == (len(PreimagePrefix)+common.HashLength):
+				preimages.add(size)
+			case bytes.HasPrefix(key, configPrefix) && len(key) == (len(configPrefix)+common.HashLength):
+				metadata.add(size)
+			case bytes.HasPrefix(key, genesisPrefix) && len(key) == (len(genesisPrefix)+common.HashLength):
+				metadata.add(size)
+			case bytes.HasPrefix(key, skeletonHeaderPrefix) && len(key) == (len(skeletonHeaderPrefix)+8):
+				beaconHeaders.add(size)
+			case bytes.HasPrefix(key, CliqueSnapshotPrefix) && len(key) == 7+common.HashLength:
+				cliqueSnaps.add(size)
+
+			// old log index (deprecated)
+			case bytes.HasPrefix(key, bloomBitsPrefix) && len(key) == (len(bloomBitsPrefix)+10+common.HashLength):
+				bloomBits.add(size)
+			case bytes.HasPrefix(key, bloomBitsMetaPrefix) && len(key) < len(bloomBitsMetaPrefix)+8:
+				bloomBits.add(size)
+			case bytes.HasPrefix(key, ChtTablePrefix) ||
+				bytes.HasPrefix(key, ChtIndexTablePrefix) ||
+				bytes.HasPrefix(key, ChtPrefix): // Canonical hash trie
+				chtTrieNodes.add(size)
+			case bytes.HasPrefix(key, BloomTrieTablePrefix) ||
+				bytes.HasPrefix(key, BloomTrieIndexPrefix) ||
+				bytes.HasPrefix(key, BloomTriePrefix): // Bloomtrie sub
+				bloomTrieNodes.add(size)
+
+			default:
+				unaccounted.add(size)
+				if len(key) >= 2 {
+					prefix := [2]byte(key[:2])
+					unaccountedMu.Lock()
+					if _, ok := unaccountedKeys[prefix]; !ok {
+						unaccountedKeys[prefix] = bytes.Clone(key)
+					}
+					unaccountedMu.Unlock()
 				}
 			}
-			if !accounted {
-				unaccounted.Add(size)
+
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
 			}
 		}
-		count++
-		if count%1000 == 0 && time.Since(logged) > 8*time.Second {
-			log.Info("Inspecting database", "count", count, "elapsed", common.PrettyDuration(time.Since(start)))
-			logged = time.Now()
-		}
+
+		return it.Error()
 	}
+
+	var (
+		eg, ctx = errgroup.WithContext(context.Background())
+		workers = runtime.NumCPU()
+	)
+	eg.SetLimit(workers)
+
+	// Progress reporter
+	done := make(chan struct{})
+	go func() {
+		ticker := time.NewTicker(8 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				log.Info("Inspecting database", "count", count.Load(), "size", common.StorageSize(total.Load()), "elapsed", common.PrettyDuration(time.Since(start)))
+			case <-done:
+				return
+			}
+		}
+	}()
+
+	// Inspect key-value database in parallel.
+	for i := 0; i < 256; i++ {
+		eg.Go(func() error { return inspectRange(ctx, byte(i)) })
+	}
+
+	if err := eg.Wait(); err != nil {
+		close(done)
+		return err
+	}
+	close(done)
+
 	// Display the database statistic of key-value store.
 	stats := [][]string{
-		{"Key-Value store", "Headers", headers.Size(), headers.Count()},
-		{"Key-Value store", "Bodies", bodies.Size(), bodies.Count()},
-		{"Key-Value store", "Receipt lists", receipts.Size(), receipts.Count()},
-		{"Key-Value store", "Difficulties", tds.Size(), tds.Count()},
-		{"Key-Value store", "Block number->hash", numHashPairings.Size(), numHashPairings.Count()},
-		{"Key-Value store", "Block hash->number", hashNumPairings.Size(), hashNumPairings.Count()},
-		{"Key-Value store", "Transaction index", txLookups.Size(), txLookups.Count()},
-		{"Key-Value store", "Bloombit index", bloomBits.Size(), bloomBits.Count()},
-		{"Key-Value store", "Contract codes", codes.Size(), codes.Count()},
-		{"Key-Value store", "Trie nodes", tries.Size(), tries.Count()},
-		{"Key-Value store", "Trie preimages", preimages.Size(), preimages.Count()},
-		{"Key-Value store", "Account snapshot", accountSnaps.Size(), accountSnaps.Count()},
-		{"Key-Value store", "Storage snapshot", storageSnaps.Size(), storageSnaps.Count()},
-		{"Key-Value store", "Beacon sync headers", beaconHeaders.Size(), beaconHeaders.Count()},
-		{"Key-Value store", "Clique snapshots", cliqueSnaps.Size(), cliqueSnaps.Count()},
-		{"Key-Value store", "Singleton metadata", metadata.Size(), metadata.Count()},
-		{"Light client", "CHT trie nodes", chtTrieNodes.Size(), chtTrieNodes.Count()},
-		{"Light client", "Bloom trie nodes", bloomTrieNodes.Size(), bloomTrieNodes.Count()},
+		{"Key-Value store", "Headers", headers.sizeString(), headers.countString()},
+		{"Key-Value store", "Bodies", bodies.sizeString(), bodies.countString()},
+		{"Key-Value store", "Receipt lists", receipts.sizeString(), receipts.countString()},
+		{"Key-Value store", "Difficulties (deprecated)", tds.sizeString(), tds.countString()},
+		{"Key-Value store", "Block number->hash", numHashPairings.sizeString(), numHashPairings.countString()},
+		{"Key-Value store", "Block hash->number", hashNumPairings.sizeString(), hashNumPairings.countString()},
+		{"Key-Value store", "Transaction index", txLookups.sizeString(), txLookups.countString()},
+		{"Key-Value store", "Log bloombits (deprecated)", bloomBits.sizeString(), bloomBits.countString()},
+		{"Key-Value store", "Contract codes", codes.sizeString(), codes.countString()},
+		{"Key-Value store", "Trie nodes", tries.sizeString(), tries.countString()},
+		{"Key-Value store", "Trie preimages", preimages.sizeString(), preimages.countString()},
+		{"Key-Value store", "Account snapshot", accountSnaps.sizeString(), accountSnaps.countString()},
+		{"Key-Value store", "Storage snapshot", storageSnaps.sizeString(), storageSnaps.countString()},
+		{"Key-Value store", "Beacon sync headers", beaconHeaders.sizeString(), beaconHeaders.countString()},
+		{"Key-Value store", "Clique snapshots", cliqueSnaps.sizeString(), cliqueSnaps.countString()},
+		{"Key-Value store", "Singleton metadata", metadata.sizeString(), metadata.countString()},
+		{"Light client", "CHT trie nodes", chtTrieNodes.sizeString(), chtTrieNodes.countString()},
+		{"Light client", "Bloom trie nodes", bloomTrieNodes.sizeString(), bloomTrieNodes.countString()},
 	}
+
 	// Inspect all registered append-only file store then.
 	ancients, err := inspectFreezers(db)
 	if err != nil {
@@ -538,16 +600,20 @@ func InspectDatabase(db ctxcdb.Database, keyPrefix, keyStart []byte) error {
 				fmt.Sprintf("%d", ancient.count()),
 			})
 		}
-		total += ancient.size()
+		total.Add(uint64(ancient.size()))
 	}
+
 	table := newTableWriter(os.Stdout)
 	table.Header([]string{"Database", "Category", "Size", "Items"})
-	table.Footer([]string{"", "Total", total.String(), " "})
+	table.Footer([]string{"", "Total", common.StorageSize(total.Load()).String(), " "})
 	table.Append(stats)
 	table.Render()
 
-	if unaccounted.size > 0 {
-		log.Error("Database contains unaccounted data", "size", unaccounted.size, "count", unaccounted.count)
+	if !unaccounted.empty() {
+		log.Error("Database contains unaccounted data", "size", unaccounted.sizeString(), "count", unaccounted.countString())
+		for _, e := range slices.SortedFunc(maps.Values(unaccountedKeys), bytes.Compare) {
+			log.Error(fmt.Sprintf("   example key: %x", e))
+		}
 	}
 	return nil
 }
