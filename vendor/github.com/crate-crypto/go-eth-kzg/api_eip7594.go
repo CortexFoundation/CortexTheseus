@@ -89,9 +89,9 @@ func (ctx *Context) RecoverCellsAndComputeKZGProofs(cellIDs []uint64, cells []*C
 		return [CellsPerExtBlob]*Cell{}, [CellsPerExtBlob]KZGProof{}, ErrNumCellIDsNotEqualNumCells
 	}
 
-	// Check that the cell Ids are unique
-	if !isUniqueUint64(cellIDs) {
-		return [CellsPerExtBlob]*Cell{}, [CellsPerExtBlob]KZGProof{}, ErrCellIDsNotUnique
+	// Check that the cell Ids are ordered (ascending)
+	if !isAscending(cellIDs) {
+		return [CellsPerExtBlob]*Cell{}, [CellsPerExtBlob]KZGProof{}, ErrCellIDsNotOrdered
 	}
 
 	// Check that each CellId is less than CellsPerExtBlob
@@ -194,20 +194,14 @@ func (ctx *Context) VerifyCellKZGProofBatch(commitments []KZGCommitment, cellInd
 	return kzgmulti.VerifyMultiPointKZGProofBatch(commitmentsG1, rowIndices, cellIndices, proofsG1, cosetsEvals, ctx.openKey7594)
 }
 
-// isUniqueUint64 returns true if the slices contains no duplicate elements
-func isUniqueUint64(slice []uint64) bool {
-	elementMap := make(map[uint64]bool)
-
-	for _, element := range slice {
-		if elementMap[element] {
-			// Element already seen
+// isAscending checks if a uint64 slice is in ascending order
+// Returns true for empty slices
+func isAscending(slice []uint64) bool {
+	for i := 1; i < len(slice); i++ {
+		if slice[i] <= slice[i-1] {
 			return false
 		}
-		// Mark the element as seen
-		elementMap[element] = true
 	}
-
-	// All elements are unique
 	return true
 }
 

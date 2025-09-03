@@ -3,13 +3,14 @@ package goethkzg
 import "errors"
 
 var (
-	ErrBatchLengthCheck   = errors.New("all designated elements in the batch should have the same size")
-	ErrNonCanonicalScalar = errors.New("scalar is not canonical when interpreted as a big integer in big-endian")
-	ErrInvalidCellID      = errors.New("cell ID should be less than CellsPerExtBlob")
-	ErrInvalidRowIndex    = errors.New("row index should be less than the number of row commitments")
+	ErrBatchLengthCheck    = errors.New("all designated elements in the batch should have the same size")
+	ErrNonCanonicalScalar  = errors.New("scalar is not canonical when interpreted as a big integer in big-endian")
+	ErrInvalidCellID       = errors.New("cell ID should be less than CellsPerExtBlob")
+	ErrInvalidRowIndex     = errors.New("row index should be less than the number of row commitments")
+	ErrDeserializeNilInput = errors.New("cannot not deserialize nil input")
 
 	ErrNumCellIDsNotEqualNumCells      = errors.New("number of cell IDs should be equal to the number of cells")
-	ErrCellIDsNotUnique                = errors.New("cell IDs are not unique")
+	ErrCellIDsNotOrdered               = errors.New("cell IDs are not ordered (ascending)")
 	ErrFoundInvalidCellID              = errors.New("cell ID should be less than CellsPerExtBlob")
 	ErrNotEnoughCellsForReconstruction = errors.New("not enough cells to perform reconstruction")
 

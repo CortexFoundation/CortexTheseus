@@ -38,7 +38,6 @@ editor:
 	# gofmt -l -s -w *.go
 	go test -c -o /dev/null
 	go build -o /dev/null -v generator*.go
-	go build -o /dev/null -v genasm.go
 	go vet 2>&1 | grep -n 'asm_' || true
 
 generate: download

@@ -139,7 +139,7 @@ func takeEveryNth[T any](list []T, n int) [][]T {
 	return result
 }
 
-// nextPowerOfTwo returns the next power of two greater than or equal to n
+// nextPowerOfTwo returns the next power of two greater than n
 func nextPowerOfTwo(n int) int {
 	if n == 0 {
 		return 1

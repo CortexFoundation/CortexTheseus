@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"math/rand"
+	"net"
 	"runtime/pprof"
 	"strings"
 	"sync"
@@ -150,7 +151,10 @@ func (ws *webseedPeer) spawnRequest(begin, end RequestIndex, logger *slog.Logger
 	}
 	if ws.hasOverlappingRequests(begin, end) {
 		if webseed.PrintDebug {
-			logger.Warn("webseedPeer.spawnRequest: request overlaps existing")
+			logger.Warn(
+				"webseedPeer.spawnRequest: request overlaps existing",
+				"new", &wsReq,
+				"torrent", ws.peer.t)
 		}
 		ws.peer.t.cl.dumpCurrentWebseedRequests()
 	}
@@ -185,7 +189,7 @@ func (me *webseedPeer) hasOverlappingRequests(begin, end RequestIndex) bool {
 		if req.cancelled.Load() {
 			continue
 		}
-		if begin < req.end && end >= req.begin {
+		if begin < req.end && end > req.begin {
 			return true
 		}
 	}
@@ -205,6 +209,10 @@ func (ws *webseedPeer) readChunksErrorLevel(err error, req *webseedRequest) slog
 			// It's fine, we'll sleep for a bit. But it's still interesting.
 			return slog.LevelInfo
 		}
+	}
+	var ne net.Error
+	if errors.As(err, &ne) && ne.Timeout() {
+		return slog.LevelInfo
 	}
 	// Error if we aren't also using and/or have peers...?
 	return slog.LevelWarn
@@ -288,6 +296,8 @@ func (ws *webseedPeer) maxChunkDiscard() RequestIndex {
 func (ws *webseedPeer) wantedChunksInDiscardWindow(wr *webseedRequest) bool {
 	// Shouldn't call this if request is at the end already.
 	panicif.GreaterThanOrEqual(wr.next, wr.end)
+	windowEnd := wr.next + ws.maxChunkDiscard()
+	panicif.LessThan(windowEnd, wr.next)
 	for ri := wr.next; ri < wr.end && ri <= wr.next+ws.maxChunkDiscard(); ri++ {
 		if ws.wantChunk(ri) {
 			return true

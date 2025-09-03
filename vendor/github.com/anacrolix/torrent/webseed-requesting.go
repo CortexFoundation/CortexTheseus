@@ -64,6 +64,9 @@ func (cl *Client) updateWebseedRequests() {
 	aprioriMap := cl.aprioriMap
 	clear(aprioriMap)
 	for uniqueKey, value := range cl.iterPossibleWebseedRequests() {
+		//if len(aprioriMap) >= webseedHostRequestConcurrency {
+		//	break
+		//}
 		if g.MapContains(existingRequests, uniqueKey) {
 			continue
 		}
@@ -89,8 +92,6 @@ func (cl *Client) updateWebseedRequests() {
 		aprioriMap[uniqueKey] = value
 	}
 
-	// Build the request heap, merging existing requests if they match.
-
 	heapSlice := cl.heapSlice[:0]
 	requiredCap := len(aprioriMap) + len(existingRequests)
 	if cap(heapSlice) < requiredCap {
@@ -111,10 +112,11 @@ func (cl *Client) updateWebseedRequests() {
 			},
 			key.t.filesInRequestRangeMightBePartial(
 				value.startRequest,
-				key.t.endRequestForAlignedWebseedResponse(value.startRequest),
+				key.t.endRequestForAlignedWebseedResponse(key.sliceIndex),
 			),
 		})
 	}
+
 	// Add remaining existing requests.
 	for key, value := range existingRequests {
 		// Don't reconsider existing requests that aren't wanted anymore.
@@ -124,10 +126,11 @@ func (cl *Client) updateWebseedRequests() {
 		wr := value.existingWebseedRequest
 		heapSlice = append(heapSlice, webseedRequestHeapElem{
 			key,
-			existingRequests[key],
+			value,
 			key.t.filesInRequestRangeMightBePartial(wr.next, wr.end),
 		})
 	}
+
 	aprioriHeap := heap.InterfaceForSlice(
 		&heapSlice,
 		func(l webseedRequestHeapElem, r webseedRequestHeapElem) bool {
@@ -138,7 +141,7 @@ func (cl *Client) updateWebseedRequests() {
 				// Then existing requests
 				compareBool(l.existingWebseedRequest == nil, r.existingWebseedRequest == nil),
 				// Prefer not competing with active peer connections.
-				compareBool(len(l.t.conns) > 0, len(r.t.conns) > 0),
+				cmp.Compare(len(l.t.conns), len(r.t.conns)),
 				// Try to complete partial slices first.
 				-compareBool(l.mightHavePartialFiles, r.mightHavePartialFiles),
 				// No need to prefer longer files anymore now that we're using slices?
@@ -147,8 +150,6 @@ func (cl *Client) updateWebseedRequests() {
 				// Easier to debug than infohashes...
 				cmp.Compare(l.t.info.Name, r.t.info.Name),
 				bytes.Compare(l.t.canonicalShortInfohash()[:], r.t.canonicalShortInfohash()[:]),
-				// It's possible for 2 heap elements to have the same slice index from the same
-				// torrent, but they'll differ in existingWebseedRequest and be sorted before this.
 				// Doing earlier chunks first means more compact files for partial file hashing.
 				cmp.Compare(l.sliceIndex, r.sliceIndex),
 			)
@@ -189,6 +190,7 @@ func (cl *Client) updateWebseedRequests() {
 			url:        elem.url,
 			t:          elem.t,
 			startIndex: elem.startRequest,
+			sliceIndex: elem.sliceIndex,
 		})
 		delete(unwantedExistingRequests, requestKey)
 	}
@@ -236,7 +238,7 @@ func (cl *Client) updateWebseedRequests() {
 				"webseedChunkIndex", request.sliceIndex)
 
 			begin := request.startIndex
-			end := t.getWebseedRequestEnd(begin, debugLogger)
+			end := t.getWebseedRequestEnd(begin, request.sliceIndex, debugLogger)
 			panicif.LessThanOrEqual(end, begin)
 
 			peer.spawnRequest(begin, end, debugLogger)
@@ -244,25 +246,28 @@ func (cl *Client) updateWebseedRequests() {
 	}
 }
 
-func (t *Torrent) getWebseedRequestEnd(begin RequestIndex, debugLogger *slog.Logger) RequestIndex {
-	chunkEnd := t.endRequestForAlignedWebseedResponse(begin)
-	if true {
+var shortenWebseedRequests = true
+
+func init() {
+	s, ok := os.LookupEnv("TORRENT_SHORTEN_WEBSEED_REQUESTS")
+	if !ok {
+		return
+	}
+	shortenWebseedRequests = s != ""
+}
+
+func (t *Torrent) getWebseedRequestEnd(begin RequestIndex, slice webseedSliceIndex, debugLogger *slog.Logger) RequestIndex {
+	chunkEnd := t.endRequestForAlignedWebseedResponse(slice)
+	if !shortenWebseedRequests {
 		// Pending fix to pendingPieces matching piece request order due to missing initial pieces
 		// checks?
 		return chunkEnd
 	}
+	// Shorten webseed requests to avoid being penalized by webseeds for cancelling requests.
 	panicif.False(t.wantReceiveChunk(begin))
-	last := begin
-	for {
-		if !t.wantReceiveChunk(last) {
-			break
-		}
-		if last >= chunkEnd-1 {
-			break
-		}
-		last++
+	var end = begin + 1
+	for ; end < chunkEnd && t.wantReceiveChunk(end); end++ {
 	}
-	end := last + 1
 	panicif.GreaterThan(end, chunkEnd)
 	if webseed.PrintDebug && end != chunkEnd {
 		debugLogger.Debug(
@@ -278,8 +283,10 @@ func (t *Torrent) getWebseedRequestEnd(begin RequestIndex, debugLogger *slog.Log
 var webseedRequestChunkSize = initUIntFromEnv[uint64]("TORRENT_WEBSEED_REQUEST_CHUNK_SIZE", 64<<20, 64)
 
 // Can return the same as start if the request is at the end of the torrent.
-func (t *Torrent) endRequestForAlignedWebseedResponse(start RequestIndex) RequestIndex {
-	end := min(t.maxEndRequest(), nextMultiple(start, t.chunksPerAlignedWebseedResponse()))
+func (t *Torrent) endRequestForAlignedWebseedResponse(slice webseedSliceIndex) RequestIndex {
+	end := min(
+		t.maxEndRequest(),
+		RequestIndex(slice+1)*t.chunksPerAlignedWebseedResponse())
 	return end
 }
 
@@ -309,18 +316,15 @@ type webseedRequestPlan struct {
 type plannedWebseedRequest struct {
 	url        webseedUrlKey
 	t          *Torrent
+	sliceIndex webseedSliceIndex
 	startIndex RequestIndex
-}
-
-func (me *plannedWebseedRequest) sliceIndex() webseedSliceIndex {
-	return me.t.requestIndexToWebseedSliceIndex(me.startIndex)
 }
 
 func (me *plannedWebseedRequest) toChunkedWebseedRequestKey() webseedUniqueRequestKey {
 	return webseedUniqueRequestKey{
 		url:        me.url,
 		t:          me.t,
-		sliceIndex: me.sliceIndex(),
+		sliceIndex: me.sliceIndex,
 	}
 }
 
@@ -348,8 +352,8 @@ type aprioriMapValue struct {
 	startRequest RequestIndex
 }
 
-func (me *webseedUniqueRequestKey) String() string {
-	return fmt.Sprintf("slice %v from %v", me.sliceIndex, me.url)
+func (me webseedUniqueRequestKey) String() string {
+	return fmt.Sprintf("torrent %v: webseed %v: slice %v", me.t, me.url, me.sliceIndex)
 }
 
 // Non-distinct proposed webseed request data.
@@ -369,7 +373,7 @@ func (cl *Client) iterPossibleWebseedRequests() iter.Seq2[webseedUniqueRequestKe
 	return func(yield func(webseedUniqueRequestKey, aprioriMapValue) bool) {
 		for key, value := range cl.pieceRequestOrder {
 			input := key.getRequestStrategyInput(cl)
-			requestStrategy.GetRequestablePieces(
+			if !requestStrategy.GetRequestablePieces(
 				input,
 				value.pieces,
 				func(ih metainfo.Hash, pieceIndex int, orderState requestStrategy.PieceRequestOrderState) bool {
@@ -412,10 +416,11 @@ func (cl *Client) iterPossibleWebseedRequests() iter.Seq2[webseedUniqueRequestKe
 					}
 					return true
 				},
-			)
+			) {
+				break
+			}
 		}
 	}
-
 }
 
 func (cl *Client) updateWebseedRequestsWithReason(reason updateRequestReason) {
@@ -432,10 +437,6 @@ func (cl *Client) yieldKeyAndValue(
 	t := key.t
 	url := key.url
 	hostKey := t.webSeeds[url].hostKey
-	if ar.next >= ar.end {
-		// This request is done, so don't yield it.
-		return true
-	}
 	// Don't spawn requests before old requests are cancelled.
 	if false {
 		if ar.cancelled.Load() {
@@ -449,7 +450,7 @@ func (cl *Client) yieldKeyAndValue(
 	return yield(
 		webseedUniqueRequestKey{
 			t:          t,
-			sliceIndex: t.requestIndexToWebseedSliceIndex(ar.next),
+			sliceIndex: t.requestIndexToWebseedSliceIndex(ar.begin),
 			url:        url,
 		},
 		webseedRequestOrderValue{
@@ -481,7 +482,7 @@ func (cl *Client) iterCurrentWebseedRequests() iter.Seq2[webseedUniqueRequestKey
 				for ar := range ws.activeRequests {
 					key := webseedUniqueRequestKey{
 						t:          t,
-						sliceIndex: t.requestIndexToWebseedSliceIndex(ar.next),
+						sliceIndex: t.requestIndexToWebseedSliceIndex(ar.begin),
 						url:        url,
 					}
 					if !cl.yieldKeyAndValue(yield, key, ar) {

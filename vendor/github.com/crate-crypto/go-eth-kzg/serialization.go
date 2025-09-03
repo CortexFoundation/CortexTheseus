@@ -1,6 +1,8 @@
 package goethkzg
 
 import (
+	"fmt"
+
 	bls12381 "github.com/consensys/gnark-crypto/ecc/bls12-381"
 	"github.com/consensys/gnark-crypto/ecc/bls12-381/fr"
 	"github.com/crate-crypto/go-eth-kzg/internal/kzg"
@@ -130,6 +132,9 @@ func DeserializeKZGProof(proof KZGProof) (bls12381.G1Affine, error) {
 //
 // [blob_to_polynomial]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#blob_to_polynomial
 func DeserializeBlob(blob *Blob) (kzg.Polynomial, error) {
+	if blob == nil {
+		return nil, ErrDeserializeNilInput
+	}
 	poly := make(kzg.Polynomial, ScalarsPerBlob)
 	for i := 0; i < ScalarsPerBlob; i++ {
 		chunk := blob[i*SerializedScalarSize : (i+1)*SerializedScalarSize]
@@ -163,6 +168,9 @@ func SerializeScalar(element fr.Element) Scalar {
 // Note: This method is never used in the API because we always expect a byte array and will never receive deserialized
 // field elements. We include it so that upstream fuzzers do not need to reimplement it.
 func SerializePoly(poly kzg.Polynomial) *Blob {
+	if len(poly) != ScalarsPerBlob {
+		panic(fmt.Sprintf("expected polynomial to have size %d but it has size %d", ScalarsPerBlob, len(poly)))
+	}
 	var blob Blob
 	for i := 0; i < ScalarsPerBlob; i++ {
 		chunk := blob[i*SerializedScalarSize : (i+1)*SerializedScalarSize]
@@ -186,6 +194,9 @@ func serializeEvaluations(evals *[scalarsPerCell]fr.Element) *Cell {
 }
 
 func deserializeCell(cell *Cell) ([]fr.Element, error) {
+	if cell == nil {
+		return nil, ErrDeserializeNilInput
+	}
 	evals := make([]fr.Element, scalarsPerCell)
 
 	for i := 0; i < scalarsPerCell; i++ {

@@ -1,3 +1,5 @@
+//go:build !wasm
+
 package storage
 
 import (
@@ -13,6 +15,28 @@ import (
 	"github.com/anacrolix/missinggo/v2/panicif"
 	"github.com/edsrzf/mmap-go"
 )
+
+func init() {
+	s, ok := os.LookupEnv("TORRENT_STORAGE_DEFAULT_FILE_IO")
+	if !ok {
+		defaultFileIo = func() fileIo {
+			return &mmapFileIo{}
+		}
+		return
+	}
+	switch s {
+	case "mmap":
+		defaultFileIo = func() fileIo {
+			return &mmapFileIo{}
+		}
+	case "classic":
+		defaultFileIo = func() fileIo {
+			return classicFileIo{}
+		}
+	default:
+		panic(s)
+	}
+}
 
 type mmapFileIo struct {
 	mu    sync.RWMutex
@@ -31,6 +55,7 @@ func (me *mmapFileIo) flush(name string, offset, nbytes int64) error {
 	if !v.writable {
 		return nil
 	}
+	// Darwin doesn't have sync for file-offsets?!
 	return msync(v.m, int(offset), int(nbytes))
 }
 
