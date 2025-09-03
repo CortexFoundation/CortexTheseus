@@ -1119,10 +1119,14 @@ func (tm *TorrentManager) pendingLoop() {
 				continue
 			}
 
-			tm.wg.Add(1)
 			tm.pends.Add(1)
+			tm.wg.Add(1)
+			go func() {
+				defer tm.pends.Add(-1)
+				defer tm.wg.Done()
 
-			go tm.handlePendingTorrent(t)
+				tm.handlePendingTorrent(t)
+			}()
 
 		case <-tm.closeAll:
 			log.Info("Pending seed loop closed")
@@ -1132,10 +1136,10 @@ func (tm *TorrentManager) pendingLoop() {
 }
 
 func (tm *TorrentManager) handlePendingTorrent(t *caffe.Torrent) {
-	defer func() {
-		tm.wg.Done()
-		tm.pends.Add(-1)
-	}()
+	//defer func() {
+	//tm.wg.Done()
+	//tm.pends.Add(-1)
+	//}()
 
 	timeout := (10 + time.Duration(tm.slot&9)) * time.Minute
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -1280,7 +1284,10 @@ func (tm *TorrentManager) activeLoop() {
 
 			tm.actives.Add(1)
 			tm.wg.Add(1)
-			go tm.monitorActiveTorrent(t.InfoHash(), n)
+			go func() {
+				defer tm.wg.Done()
+				tm.monitorActiveTorrent(t.InfoHash(), n)
+			}()
 
 		case <-statusTicker.C:
 			log.Info("Fs status",
@@ -1327,7 +1334,7 @@ func (tm *TorrentManager) activeLoop() {
 }
 
 func (tm *TorrentManager) monitorActiveTorrent(ih string, intervalSec int64) {
-	defer tm.wg.Done()
+	//defer tm.wg.Done()
 
 	t := tm.getTorrent(ih)
 	if t == nil {

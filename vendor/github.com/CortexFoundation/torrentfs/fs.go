@@ -366,7 +366,7 @@ func (fs *TorrentFS) Start() error {
 
 func (fs *TorrentFS) init() {
 	fs.initOnce.Do(func() {
-		inst.wg.Add(1)
+		fs.wg.Add(1)
 		go inst.listen()
 
 		if fs.config.Mode != params.LAZY {

@@ -22,7 +22,7 @@ func (tm *toeplitzMatrix) embedCirculant() circulantMatrix {
 	copy(row, tm.col)
 
 	// Append rotated and reversed tm.Row
-	for i := 0; i < n; i++ {
+	for i := 1; i < n; i++ {
 		row[len(tm.col)+i] = tm.row[(n-i)%n]
 	}
 	return circulantMatrix{row: row}

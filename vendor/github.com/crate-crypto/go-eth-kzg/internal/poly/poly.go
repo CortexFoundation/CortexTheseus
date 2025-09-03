@@ -43,12 +43,21 @@ func PolyAdd(a, b PolynomialCoeff) PolynomialCoeff {
 // PolyMul multiplies two polynomials in coefficient form and returns the result.
 // The degree of the resulting polynomial is the sum of the degrees of the input polynomials.
 func PolyMul(a, b PolynomialCoeff) PolynomialCoeff {
+	a = removeTrailingZeros(a)
+	b = removeTrailingZeros(b)
+	numCoeffsA := numCoeffs(a)
+	numCoeffsB := numCoeffs(b)
+
+	if numCoeffsA == 0 || numCoeffsB == 0 {
+		return []fr.Element{}
+	}
+
 	// The degree of result will be degree(a) + degree(b) = numCoeffs(a) + numCoeffs(b) - 1
-	productDegree := numCoeffs(a) + numCoeffs(b)
+	productDegree := numCoeffsA + numCoeffsB
 	result := make([]fr.Element, productDegree-1)
 
-	for i := uint64(0); i < numCoeffs(a); i++ {
-		for j := uint64(0); j < numCoeffs(b); j++ {
+	for i := uint64(0); i < numCoeffsA; i++ {
+		for j := uint64(0); j < numCoeffsB; j++ {
 			mulRes := fr.Element{}
 			mulRes.Mul(&a[i], &b[j])
 			result[i+j].Add(&result[i+j], &mulRes)

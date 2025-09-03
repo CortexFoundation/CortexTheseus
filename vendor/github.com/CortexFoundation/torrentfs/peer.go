@@ -81,9 +81,15 @@ func (peer *Peer) Info() *PeerInfo {
 
 func (peer *Peer) start() error {
 	peer.wg.Add(1)
-	go peer.update()
-	peer.wg.Add(1)
-	go peer.calling()
+	go func() {
+		defer peer.wg.Done()
+		peer.update()
+	}()
+	/*peer.wg.Add(1)
+	go func() {
+		defer peer.wg.Done()
+		peer.calling()
+	}()*/
 	return nil
 }
 
@@ -108,7 +114,6 @@ func (peer *Peer) expire() {
 
 func (peer *Peer) update() {
 	// Defer statements to ensure resources are cleaned up on function exit.
-	defer peer.wg.Done()
 	stateTicker := time.NewTicker(params.PeerStateCycle)
 	defer stateTicker.Stop()
 	transmitTicker := time.NewTicker(params.TransmissionCycle)
@@ -229,7 +234,6 @@ func (peer *Peer) call(msg any) {
 }
 
 func (peer *Peer) calling() {
-	defer peer.wg.Done()
 	for {
 		select {
 		case msg := <-peer.msgChan:

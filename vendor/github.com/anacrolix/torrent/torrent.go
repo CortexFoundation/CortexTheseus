@@ -2563,16 +2563,7 @@ func (t *Torrent) pieceHashed(piece pieceIndex, passed bool, hashIoErr error) {
 	if passed {
 		t.incrementPiecesDirtiedStats(p, (*ConnStats).incrementPiecesDirtiedGood)
 		t.clearPieceTouchers(piece)
-		hasDirty := p.hasDirtyChunks()
 		t.cl.unlock()
-		if hasDirty {
-			// This could return fs.ErrNotExist, and that would be unexpected since we haven't
-			// marked it complete yet, and nobody should have moved it.
-			err := p.Flush() // You can be synchronous here!
-			if err != nil {
-				t.slogger().Warn("error flushing piece storage", "piece", piece, "err", err)
-			}
-		}
 		p.race++
 		err := p.Storage().MarkComplete()
 		if err != nil {
@@ -3179,7 +3170,7 @@ func (t *Torrent) requestIndexToRequest(ri RequestIndex) Request {
 	index := t.pieceIndexOfRequestIndex(ri)
 	return Request{
 		pp.Integer(index),
-		t.piece(index).chunkIndexSpec(ri % t.chunksPerRegularPiece()),
+		t.chunkIndexSpec(index, ri%t.chunksPerRegularPiece()),
 	}
 }
 
@@ -3302,7 +3293,7 @@ type requestState struct {
 	when time.Time
 }
 
-// Returns an error if a received chunk is out of bounds in someway.
+// Returns an error if a received chunk is out of bounds in some way.
 func (t *Torrent) checkValidReceiveChunk(r Request) error {
 	if !t.haveInfo() {
 		return errors.New("torrent missing info")
@@ -3595,6 +3586,9 @@ func (t *Torrent) endRequestIndexForFileIndex(fileIndex int) RequestIndex {
 }
 
 func (t *Torrent) wantReceiveChunk(reqIndex RequestIndex) bool {
+	if t.checkValidReceiveChunk(t.requestIndexToRequest(reqIndex)) != nil {
+		return false
+	}
 	pi := t.pieceIndexOfRequestIndex(reqIndex)
 	if t.ignorePieceForRequests(pi) {
 		return false
@@ -3637,8 +3631,11 @@ func (t *Torrent) fileMightBePartial(fileIndex int) bool {
 	return t.piecesMightBePartial(f.BeginPieceIndex(), f.EndPieceIndex())
 }
 
+// Expand the piece range to include all pieces of the files in the original range.
 func (t *Torrent) expandPieceRangeToFullFiles(beginPieceIndex, endPieceIndex pieceIndex) (expandedBegin, expandedEnd pieceIndex) {
-	// Expand the piece range to include all pieces of the files in the original range.
+	if beginPieceIndex == endPieceIndex {
+		return beginPieceIndex, endPieceIndex
+	}
 	firstFile := t.getFile(t.piece(beginPieceIndex).beginFile)
 	lastFile := t.getFile(t.piece(endPieceIndex-1).endFile - 1)
 	expandedBegin = firstFile.BeginPieceIndex()
@@ -3654,7 +3651,7 @@ func (t *Torrent) filesInPieceRangeMightBePartial(begin, end pieceIndex) bool {
 
 // Pieces in the range [begin, end) may have partially complete files. Note we only check for dirty chunks and either all or no pieces being complete.
 func (t *Torrent) filesInRequestRangeMightBePartial(beginRequest, endRequest RequestIndex) bool {
-	if beginRequest == endRequest {
+	if beginRequest >= endRequest {
 		return false
 	}
 	beginPiece := t.pieceIndexOfRequestIndex(beginRequest)
@@ -3727,4 +3724,9 @@ func (t *Torrent) incrementPiecesDirtiedStats(p *Piece, inc func(stats *ConnStat
 // don't make sense if padding files and v2 are in use.
 func (t *Torrent) maxEndRequest() RequestIndex {
 	return RequestIndex(intCeilDiv(uint64(t.length()), t.chunkSize.Uint64()))
+}
+
+// Avoids needing or indexing the pieces slice.
+func (p *Torrent) chunkIndexSpec(piece pieceIndex, chunk chunkIndexType) ChunkSpec {
+	return chunkIndexSpec(pp.Integer(chunk), p.pieceLength(piece), p.chunkSize)
 }
