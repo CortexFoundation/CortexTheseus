@@ -1,3 +1,11 @@
+## 0.117.0 (Unreleased)
+
+## 0.116.0 (September 5th, 2025)
+
+ENHANCEMENTS:
+
+* access_service_tokens: Added graceful rotation support for client secrets ([#4189](https://github.com/cloudflare/cloudflare-go/issues/4189))
+
 ## 0.115.0 (January 29th, 2025)
 
 ENHANCEMENTS:
