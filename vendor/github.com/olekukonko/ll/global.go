@@ -1,11 +1,12 @@
 package ll
 
 import (
-	"github.com/olekukonko/ll/lh"
-	"github.com/olekukonko/ll/lx"
 	"os"
 	"sync/atomic"
 	"time"
+
+	"github.com/olekukonko/ll/lh"
+	"github.com/olekukonko/ll/lx"
 )
 
 // defaultLogger is the global logger instance for package-level logging functions.
@@ -650,4 +651,12 @@ func Indent(depth int) *Logger {
 func Mark(names ...string) {
 	defaultLogger.mark(2, names...)
 
+}
+
+// Output logs data in a human-readable JSON format at Info level, including caller file and line information.
+// It is similar to Dbg but formats the output as JSON for better readability. It is thread-safe and respects
+// the logger’s configuration (e.g., enabled, level, suspend, handler, middleware).
+func Output(values ...interface{}) {
+	o := NewInspector(defaultLogger)
+	o.Log(2, values...)
 }
