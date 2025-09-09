@@ -385,6 +385,10 @@ func Reflect(r reflect.Value) string {
 // Convenience for With using " " as separator.
 func Space(args ...any) string { return With(space, args...) }
 
+// Dot concatenates arguments with dot separators.
+// Convenience for With using " " as separator.
+func Dot(args ...any) string { return With(dot, args...) }
+
 // Suffix concatenates with a suffix (no separator).
 // Equivalent to SuffixWith with empty sep.
 func Suffix(s any, args ...any) string {
@@ -541,4 +545,31 @@ func WrapWith(sep, before, after string, args ...any) string {
 	b.Add(after)
 
 	return b.Output()
+}
+
+// Pad surrounds a string with spaces on both sides.
+// Ensures proper spacing for SQL operators like "=", "AND", etc.
+// Example: Pad("=") returns " = " for cleaner formatting.
+func Pad(s string) string {
+	return Concat(space, s, space)
+}
+
+// PadWith adds a separator before the string and a space after it.
+// Useful for formatting SQL parts with custom leading separators.
+// Example: PadWith(",", "column") returns ",column ".
+func PadWith(sep, s string) string {
+	return Concat(sep, s, space)
+}
+
+// Parens wraps content in parentheses
+// Useful for grouping SQL conditions or expressions
+// Example: Parens("a = b AND c = d") → "(a = b AND c = d)"
+func Parens(content string) string {
+	return Concat(parenOpen, content, parenClose)
+}
+
+// ParensWith wraps multiple arguments in parentheses with a separator
+// Example: ParensWith(" AND ", "a = b", "c = d") → "(a = b AND c = d)"
+func ParensWith(sep string, args ...any) string {
+	return Concat(parenOpen, With(sep, args...), parenClose)
 }

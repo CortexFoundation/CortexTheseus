@@ -269,7 +269,6 @@ func create(config *params.Config, cache, compress, listen bool) (*TorrentFS, er
 
 func (fs *TorrentFS) listen() {
 	log.Info("Bitsflow listener starting ...")
-	defer fs.wg.Done()
 	//ttl := time.NewTimer(3 * time.Second)
 	//ticker := time.NewTimer(300 * time.Second)
 	//defer ttl.Stop()
@@ -367,7 +366,10 @@ func (fs *TorrentFS) Start() error {
 func (fs *TorrentFS) init() {
 	fs.initOnce.Do(func() {
 		fs.wg.Add(1)
-		go inst.listen()
+		go func() {
+			defer fs.wg.Done()
+			inst.listen()
+		}()
 
 		if fs.config.Mode != params.LAZY {
 			checkpoint := fs.monitor.DB().GetRoot(395964)

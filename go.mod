@@ -6,16 +6,16 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.2
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
-	github.com/CortexFoundation/torrentfs v1.0.71-0.20250904080936-b499b1fca34b
+	github.com/CortexFoundation/torrentfs v1.0.71-0.20250908133205-41532fb989cf
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/VictoriaMetrics/fastcache v1.13.0
 	github.com/arsham/figurine v1.3.0
-	github.com/aws/aws-sdk-go-v2 v1.38.3
-	github.com/aws/aws-sdk-go-v2/config v1.31.6
-	github.com/aws/aws-sdk-go-v2/credentials v1.18.10
-	github.com/aws/aws-sdk-go-v2/service/route53 v1.58.0
+	github.com/aws/aws-sdk-go-v2 v1.39.0
+	github.com/aws/aws-sdk-go-v2/config v1.31.7
+	github.com/aws/aws-sdk-go-v2/credentials v1.18.11
+	github.com/aws/aws-sdk-go-v2/service/route53 v1.58.1
 	github.com/cespare/cp v1.1.1
-	github.com/charmbracelet/bubbletea v1.3.7
+	github.com/charmbracelet/bubbletea v1.3.8
 	github.com/cloudflare/cloudflare-go v0.116.0
 	github.com/cockroachdb/pebble v1.1.5
 	github.com/consensys/gnark-crypto v0.19.0
@@ -45,7 +45,7 @@ require (
 	github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c
 	github.com/jackpal/go-nat-pmp v1.0.2
 	github.com/jedisct1/go-minisign v0.0.0-20241212093149-d2f9f49435c7
-	github.com/lucasb-eyer/go-colorful v1.2.0
+	github.com/lucasb-eyer/go-colorful v1.3.0
 	github.com/mattn/go-colorable v0.1.14
 	github.com/mattn/go-isatty v0.0.20
 	github.com/muesli/reflow v0.3.0
@@ -63,11 +63,11 @@ require (
 	github.com/ucwong/color v1.10.1-0.20200624105241-fba1e010fe1e
 	github.com/urfave/cli/v2 v2.27.7
 	go.uber.org/automaxprocs v1.6.0
-	golang.org/x/crypto v0.41.0
+	golang.org/x/crypto v0.42.0
 	golang.org/x/mobile v0.0.0-20201217150744-e6ae53a27f4f
 	golang.org/x/sync v0.17.0
 	golang.org/x/sys v0.36.0
-	golang.org/x/text v0.28.0
+	golang.org/x/text v0.29.0
 	golang.org/x/time v0.13.0
 	golang.org/x/tools v0.36.0
 	google.golang.org/protobuf v1.36.8
@@ -81,7 +81,7 @@ require (
 	github.com/CortexFoundation/compress v0.0.0-20240218153512-9074bdc2397c // indirect
 	github.com/CortexFoundation/cvm-runtime v0.0.0-20221117094012-b5a251885572 // indirect
 	github.com/CortexFoundation/merkletree v0.0.0-20250807103550-396f9f0ba0f1 // indirect
-	github.com/CortexFoundation/robot v1.0.7-0.20250903144910-6874970e0675 // indirect
+	github.com/CortexFoundation/robot v1.0.7-0.20250905130629-dff2b3e3cd40 // indirect
 	github.com/CortexFoundation/wormhole v0.0.2-0.20250807143819-52807b74f358 // indirect
 	github.com/DataDog/zstd v1.5.7 // indirect
 	github.com/RoaringBitmap/roaring v1.9.4 // indirect
@@ -107,15 +107,15 @@ require (
 	github.com/antlabs/timer v0.1.4 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/arsham/rainbow v1.2.1 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.6 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.6 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.6 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.7 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.7 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.7 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.6 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.29.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.34.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.38.2 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.7 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.29.2 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.34.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.38.3 // indirect
 	github.com/aws/smithy-go v1.23.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
@@ -139,7 +139,7 @@ require (
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/crate-crypto/go-ipa v0.0.0-20240724233137-53bbb0ceb27a // indirect
-	github.com/dgraph-io/badger/v4 v4.8.1-0.20250820042824-07a8095e4330 // indirect
+	github.com/dgraph-io/badger/v4 v4.8.1-0.20250905144248-6cbc8fde682c // indirect
 	github.com/dgraph-io/ristretto/v2 v2.3.0 // indirect
 	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
@@ -186,9 +186,9 @@ require (
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/nutsdb/nutsdb v1.0.4 // indirect
 	github.com/oapi-codegen/runtime v1.1.2 // indirect
-	github.com/olekukonko/cat v0.0.0-20250817074551-3280053e4e00 // indirect
+	github.com/olekukonko/cat v0.0.0-20250908003013-b0de306c343b // indirect
 	github.com/olekukonko/errors v1.1.0 // indirect
-	github.com/olekukonko/ll v0.1.0 // indirect
+	github.com/olekukonko/ll v0.1.1 // indirect
 	github.com/otiai10/copy v1.14.1 // indirect
 	github.com/otiai10/mint v1.6.3 // indirect
 	github.com/pion/datachannel v1.5.10 // indirect
@@ -231,7 +231,7 @@ require (
 	github.com/tklauser/numcpus v0.10.0 // indirect
 	github.com/ucwong/filecache v1.0.6-0.20230405163841-810d53ced4bd // indirect
 	github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb // indirect
-	github.com/ucwong/golang-kv v1.0.24-0.20250823215121-393e06ca2c88 // indirect
+	github.com/ucwong/golang-kv v1.0.24-0.20250908132445-513b3b176f06 // indirect
 	github.com/ucwong/shard v1.0.1-0.20250814204722-892131bad5ef // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
@@ -247,9 +247,9 @@ require (
 	go.opentelemetry.io/otel/trace v1.38.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b // indirect
-	golang.org/x/mod v0.27.0 // indirect
+	golang.org/x/mod v0.28.0 // indirect
 	golang.org/x/net v0.43.0 // indirect
-	golang.org/x/term v0.34.0 // indirect
+	golang.org/x/term v0.35.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect
