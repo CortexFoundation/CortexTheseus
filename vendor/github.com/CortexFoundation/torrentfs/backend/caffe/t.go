@@ -238,21 +238,24 @@ func (t *Torrent) Leech() error {
 		return nil
 	}
 
-	limitPieces := int((t.bytesRequested.Load()*int64(t.Torrent.NumPieces()) + t.Length() - 1) / t.Length())
-	if limitPieces > t.Torrent.NumPieces() {
-		limitPieces = t.Torrent.NumPieces()
+	//limitPieces := int((t.bytesRequested.Load()*int64(t.Torrent.NumPieces()) + t.Length() - 1) / t.Length())
+	//if limitPieces > t.Torrent.NumPieces() {
+	//	limitPieces = t.Torrent.NumPieces()
+	//}
+
+	totalPieces := t.Torrent.NumPieces()
+	reqPieces := (t.bytesRequested.Load()*int64(totalPieces) + t.Length() - 1) / t.Length()
+	if reqPieces > int64(totalPieces) {
+		reqPieces = int64(totalPieces)
 	}
 
-	//t.Lock()
-	//defer t.Unlock()
+	limitPieces := int(reqPieces)
 
 	if limitPieces > int(t.maxPieces.Load()) {
-		if err := t.download(limitPieces); err == nil {
-			//t.maxPieces = limitPieces
-			t.maxPieces.Store(int32(limitPieces))
-		} else {
+		if err := t.download(limitPieces); err != nil {
 			return err
 		}
+		t.maxPieces.Store(int32(limitPieces))
 	}
 
 	return nil

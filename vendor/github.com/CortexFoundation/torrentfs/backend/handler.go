@@ -547,8 +547,10 @@ func (tm *TorrentManager) updateGlobalTrackers() (uint64, float32, error) {
 		//return nil
 	}
 
-	var total uint64
-	var health float32
+	var (
+		total  uint64
+		health float32
+	)
 
 	if global := tm.worm.BestTrackers(); len(global) > 0 {
 		/*if len(tm.trackers) > 1 {
