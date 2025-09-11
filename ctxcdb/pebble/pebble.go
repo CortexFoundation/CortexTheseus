@@ -55,8 +55,9 @@ const (
 // Apart from basic data storage functionality it also supports batch writes and
 // iterating over the keyspace in binary-alphabetical order.
 type Database struct {
-	fn string     // filename for reporting
-	db *pebble.DB // Underlying pebble storage engine
+	fn        string     // filename for reporting
+	db        *pebble.DB // Underlying pebble storage engine
+	namespace string     // Namespace for metrics
 
 	compTimeMeter       metrics.Meter   // Meter for measuring the total time spent in database compaction
 	compReadMeter       metrics.Meter   // Meter for measuring the data read during compaction
@@ -174,9 +175,10 @@ func New(file string, cache int, handles int, namespace string, readonly bool) (
 		memTableSize = maxMemTableSize - 1
 	}
 	db := &Database{
-		fn:       file,
-		log:      logger,
-		quitChan: make(chan chan error),
+		fn:        file,
+		log:       logger,
+		quitChan:  make(chan chan error),
+		namespace: namespace,
 
 		// Use asynchronous write mode by default. Otherwise, the overhead of frequent fsync
 		// operations can be significant, especially on platforms with slow fsync performance
