@@ -61,18 +61,21 @@ type MsgInfo struct {
 }
 
 func newPeer(id string, host *TorrentFS, remote *p2p.Peer, rw p2p.MsgReadWriter) *Peer {
-	p := &Peer{
+	const (
+		msgChanBufSize = 1
+		defaultSetSize = 25
+	)
+
+	return &Peer{
 		id:      id,
 		host:    host,
 		peer:    remote,
 		ws:      rw,
-		known:   mapset.NewSet[string](),
-		trusted: false,
+		known:   mapset.NewSetWithSize[string](defaultSetSize),
 		quit:    make(chan any),
-		msgChan: make(chan any, 1),
-		seeding: mapset.NewSet[string](),
+		msgChan: make(chan any, msgChanBufSize),
+		seeding: mapset.NewSetWithSize[string](defaultSetSize),
 	}
-	return p
 }
 
 func (peer *Peer) Info() *PeerInfo {

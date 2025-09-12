@@ -430,6 +430,21 @@ func SuffixEach(s any, sep string, args ...any) string {
 	return b.Output()
 }
 
+// Sprint concatenates any values (no separators).
+// Usage: Sprint("a", 1, true) → "a1true"
+// Equivalent to Concat or With with an empty separator.
+func Sprint(args ...any) string {
+	if len(args) == 0 {
+		return empty
+	}
+	if len(args) == 1 {
+		return valueToString(args[0])
+	}
+
+	// For multiple args, use the existing Concat functionality
+	return Concat(args...)
+}
+
 // Trio joins exactly three values (no separator).
 // Equivalent to TrioWith with empty sep
 func Trio(a, b, c any) string {
