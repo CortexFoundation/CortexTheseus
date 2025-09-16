@@ -87,7 +87,7 @@ func (t *TorrentFS) storage() *backend.TorrentManager {
 }
 
 var (
-	inst    *TorrentFS = nil
+	inst    *TorrentFS
 	mut     sync.RWMutex
 	newOnce sync.Once
 )
@@ -104,18 +104,23 @@ func GetStorage() CortexStorage {
 }
 
 // New creates a new torrentfs instance with the given configuration.
-func New(config *params.Config, cache, compress, listen bool) (t *TorrentFS, err error) {
+func New(config *params.Config, cache, compress, listen bool) (*TorrentFS, error) {
+	var err error
 	newOnce.Do(func() {
+		t, e := create(config, cache, compress, listen)
+		if e != nil {
+			err = e
+			return
+		}
+
 		mut.Lock()
-		defer mut.Unlock()
-		t, err = create(config, cache, compress, listen)
+		inst = t
+		mut.Unlock()
 	})
 
-	if t == nil {
-		t = inst
-	}
-
-	return
+	mut.RLock()
+	defer mut.RUnlock()
+	return inst, err
 }
 
 func create(config *params.Config, cache, compress, listen bool) (*TorrentFS, error) {

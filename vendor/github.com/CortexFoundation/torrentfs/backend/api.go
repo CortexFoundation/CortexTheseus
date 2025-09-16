@@ -144,7 +144,7 @@ func (tm *TorrentManager) ListAllTorrents() map[string]map[string]int {
 }
 
 func (tm *TorrentManager) Metrics() time.Duration {
-	return tm.Updates
+	return tm.updates
 }
 
 func (tm *TorrentManager) LocalPort() int {

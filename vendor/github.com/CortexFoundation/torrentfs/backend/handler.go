@@ -82,8 +82,8 @@ type TorrentManager struct {
 	trackers       [][]string
 	globalTrackers [][]string
 	//boostFetcher        *BoostDataFetcher
-	DataDir    string
-	TmpDataDir string
+	dataDir    string
+	tmpDataDir string
 	closeAll   chan struct{}
 	//taskChan   chan any
 	lock sync.RWMutex
@@ -109,7 +109,7 @@ type TorrentManager struct {
 	compress bool
 
 	metrics bool
-	Updates time.Duration
+	updates time.Duration
 
 	//hotCache *lru.Cache
 
@@ -154,7 +154,7 @@ func (tm *TorrentManager) blockCaculate(value int64) int64 {
 }
 
 func (tm *TorrentManager) register(t *torrent.Torrent, requested int64, ih string, spec *torrent.TorrentSpec) *caffe.Torrent {
-	tt := caffe.NewTorrent(t, requested, ih, filepath.Join(tm.TmpDataDir, ih), tm.slot, spec)
+	tt := caffe.NewTorrent(t, requested, ih, filepath.Join(tm.tmpDataDir, ih), tm.slot, spec)
 	tm.setTorrent(tt)
 
 	if err := tm.Pending(tt); err != nil {
@@ -406,8 +406,8 @@ func (tm *TorrentManager) loadSpec(ih string, filePath string) *torrent.TorrentS
 	}
 
 	var (
-		TmpDir   = filepath.Join(tm.TmpDataDir, ih)
-		ExistDir = filepath.Join(tm.DataDir, ih)
+		TmpDir   = filepath.Join(tm.tmpDataDir, ih)
+		ExistDir = filepath.Join(tm.dataDir, ih)
 
 		useExistDir bool
 	)
@@ -465,13 +465,13 @@ func (tm *TorrentManager) addInfoHash(ih string, bytesRequested int64) *caffe.To
 
 	// If not found in KVDB, check local files
 	if infoBytes == nil {
-		seedTorrentPath := filepath.Join(tm.DataDir, ih, TORRENT)
+		seedTorrentPath := filepath.Join(tm.dataDir, ih, TORRENT)
 		if _, err := os.Stat(seedTorrentPath); err == nil {
 			spec = tm.loadSpec(ih, seedTorrentPath)
 		}
 
 		if spec == nil {
-			tmpTorrentPath := filepath.Join(tm.TmpDataDir, ih, TORRENT)
+			tmpTorrentPath := filepath.Join(tm.tmpDataDir, ih, TORRENT)
 			if _, err := os.Stat(tmpTorrentPath); err == nil {
 				spec = tm.loadSpec(ih, tmpTorrentPath)
 			}
@@ -480,7 +480,7 @@ func (tm *TorrentManager) addInfoHash(ih string, bytesRequested int64) *caffe.To
 
 	// If spec is still not found, create a new one
 	if spec == nil {
-		tmpDataPath := filepath.Join(tm.TmpDataDir, ih)
+		tmpDataPath := filepath.Join(tm.tmpDataDir, ih)
 		if err := os.MkdirAll(tmpDataPath, 0777); err != nil {
 			log.Warn("nas path create failed", "err", err)
 			return nil
@@ -734,8 +734,8 @@ func NewTorrentManager(config *params.Config, fsid uint64, cache, compress bool)
 		//bytes:               make(map[metainfo.Hash]int64),
 		//maxSeedTask:         config.MaxSeedingNum,
 		//maxEstablishedConns: cfg.EstablishedConnsPerTorrent,
-		DataDir:    config.DataDir,
-		TmpDataDir: tmpFilePath,
+		dataDir:    config.DataDir,
+		tmpDataDir: tmpFilePath,
 		//boostFetcher:        NewBoostDataFetcher(config.BoostNodes),
 		closeAll: make(chan struct{}),
 		//initCh:              make(chan struct{}),
@@ -1218,12 +1218,12 @@ func (tm *TorrentManager) finish(t *caffe.Torrent) error {
 	t.Lock()
 	defer t.Unlock()
 
-	if _, err := os.Stat(filepath.Join(tm.DataDir, t.InfoHash())); err == nil {
+	if _, err := os.Stat(filepath.Join(tm.dataDir, t.InfoHash())); err == nil {
 		return tm.Seeding(t)
 	} else {
 		if err := os.Symlink(
 			filepath.Join(params.DefaultTmpPath, t.InfoHash()),
-			filepath.Join(tm.DataDir, t.InfoHash()),
+			filepath.Join(tm.dataDir, t.InfoHash()),
 		); err == nil {
 			return tm.Seeding(t)
 		}
@@ -1299,7 +1299,7 @@ func (tm *TorrentManager) activeLoop() {
 				"stopping", tm.stops.Load(),
 				"all", tm.torrents.Len(),
 				"recovery", tm.recovery.Load(),
-				"metrics", common.PrettyDuration(tm.Updates),
+				"metrics", common.PrettyDuration(tm.updates),
 			)
 
 		case <-ticker.C:
@@ -1497,7 +1497,7 @@ func (tm *TorrentManager) Exists(ih string, rawSize uint64) (bool, uint64, mcloc
 	ih = strings.TrimPrefix(strings.ToLower(ih), common.Prefix)
 
 	if t := tm.getTorrent(ih); t == nil {
-		dir := filepath.Join(tm.DataDir, ih)
+		dir := filepath.Join(tm.dataDir, ih)
 		if _, err := os.Stat(dir); err == nil {
 			return true, 0, 0, ErrInactiveTorrent
 		}
@@ -1533,7 +1533,7 @@ func (tm *TorrentManager) GetFile(ctx context.Context, infohash, subpath string)
 
 	var key = filepath.Join(infohash, subpath)
 
-	log.Debug("Get File", "dir", tm.DataDir, "key", key)
+	log.Debug("Get File", "dir", tm.dataDir, "key", key)
 
 	if t := tm.getTorrent(infohash); t != nil {
 		if !t.Ready() {
@@ -1547,7 +1547,7 @@ func (tm *TorrentManager) GetFile(ctx context.Context, infohash, subpath string)
 	}
 
 	diskReadMeter.Mark(1)
-	dir := filepath.Join(tm.DataDir, key)
+	dir := filepath.Join(tm.dataDir, key)
 	if tm.fc != nil && tm.fc.Active() {
 		start := mclock.Now()
 		if data, err = tm.fc.ReadFile(dir); err == nil {
@@ -1574,3 +1574,7 @@ func (tm *TorrentManager) zip(data []byte) ([]byte, error) {
 	}
 	return data, nil
 }*/
+
+func (tm *TorrentManager) TmpDataDir() string {
+	return tm.tmpDataDir
+}
