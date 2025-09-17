@@ -1,5 +1,5 @@
 // Copyright 2020 The go-ethereum Authors
-// This file is part of The go-ethereum library.
+// This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -12,7 +12,7 @@
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with The go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 // Package v4wire implements the Discovery v4 Wire Protocol.
 package v4wire
@@ -37,7 +37,7 @@ import (
 
 // RPC packet types
 const (
-	PingPacket = iota + 100 // zero is 'reserved'
+	PingPacket = iota + 1 // zero is 'reserved'
 	PongPacket
 	FindnodePacket
 	NeighborsPacket

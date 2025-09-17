@@ -1,5 +1,5 @@
 // Copyright 2019 The go-ethereum Authors
-// This file is part of The go-ethereum library.
+// This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -12,7 +12,7 @@
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with The go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package discover
 
@@ -383,7 +383,7 @@ func (t *UDPv4) RequestENR(n *enode.Node) (*enode.Node, error) {
 		return nil, err
 	}
 	if respN.ID() != n.ID() {
-		return nil, fmt.Errorf("invalid ID in response record")
+		return nil, errors.New("invalid ID in response record")
 	}
 	if respN.Seq() < n.Seq() {
 		return n, nil // response record is older

@@ -37,7 +37,7 @@ func GetOrRegisterMeter(name string, r Registry) Meter {
 // NewMeter constructs a new StandardMeter and launches a goroutine.
 // Be sure to call Stop() once the meter is of no use to allow for garbage collection.
 func NewMeter() Meter {
-	if !Enabled {
+	if !Enabled() {
 		return NilMeter{}
 	}
 	m := newStandardMeter()
@@ -54,7 +54,7 @@ func NewMeter() Meter {
 // NewInactiveMeter returns a meter but does not start any goroutines. This
 // method is mainly intended for testing.
 func NewInactiveMeter() Meter {
-	if !Enabled {
+	if !Enabled() {
 		return NilMeter{}
 	}
 	m := newStandardMeter()

@@ -1,5 +1,5 @@
 // Copyright 2020 The go-ethereum Authors
-// This file is part of The go-ethereum library.
+// This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -12,7 +12,7 @@
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with The go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package v5wire
 
@@ -29,11 +29,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
+
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
-	"github.com/davecgh/go-spew/spew"
 )
 
 // To regenerate discv5 test vectors, run
@@ -248,20 +249,20 @@ func TestHandshake_BadHandshakeAttack(t *testing.T) {
 	net.nodeA.expectDecode(t, WhoareyouPacket, whoareyou)
 
 	// A -> B   FINDNODE
-	incorrect_challenge := &Whoareyou{
+	incorrectChallenge := &Whoareyou{
 		IDNonce:   [16]byte{5, 6, 7, 8, 9, 6, 11, 12},
 		RecordSeq: challenge.RecordSeq,
 		Node:      challenge.Node,
 		sent:      challenge.sent,
 	}
-	incorrect_findnode, _ := net.nodeA.encodeWithChallenge(t, net.nodeB, incorrect_challenge, &Findnode{})
-	incorrect_findnode2 := make([]byte, len(incorrect_findnode))
-	copy(incorrect_findnode2, incorrect_findnode)
+	incorrectFindNode, _ := net.nodeA.encodeWithChallenge(t, net.nodeB, incorrectChallenge, &Findnode{})
+	incorrectFindNode2 := make([]byte, len(incorrectFindNode))
+	copy(incorrectFindNode2, incorrectFindNode)
 
-	net.nodeB.expectDecodeErr(t, errInvalidNonceSig, incorrect_findnode)
+	net.nodeB.expectDecodeErr(t, errInvalidNonceSig, incorrectFindNode)
 
 	// Reject new findnode as previous handshake is now deleted.
-	net.nodeB.expectDecodeErr(t, errUnexpectedHandshake, incorrect_findnode2)
+	net.nodeB.expectDecodeErr(t, errUnexpectedHandshake, incorrectFindNode2)
 
 	// The findnode packet is again rejected even with a valid challenge this time.
 	findnode, _ := net.nodeA.encodeWithChallenge(t, net.nodeB, challenge, &Findnode{})
@@ -394,7 +395,6 @@ func TestTestVectorsV5(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test := test
 		t.Run(test.name, func(t *testing.T) {
 			net := newHandshakeTest()
 			defer net.close()

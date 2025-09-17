@@ -1,5 +1,5 @@
 // Copyright 2015 The go-ethereum Authors
-// This file is part of The go-ethereum library.
+// This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -12,7 +12,7 @@
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with The go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package discover
 
@@ -24,10 +24,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"math/rand"
 	"net"
 	"net/netip"
 	"reflect"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -509,18 +511,26 @@ func TestUDPv4_smallNetConvergence(t *testing.T) {
 	// they have all found each other.
 	status := make(chan error, len(nodes))
 	for i := range nodes {
-		node := nodes[i]
+		self := nodes[i]
 		go func() {
-			found := make(map[enode.ID]bool, len(nodes))
-			it := node.RandomNodes()
+			missing := make(map[enode.ID]bool, len(nodes))
+			for _, n := range nodes {
+				if n.Self().ID() == self.Self().ID() {
+					continue // skip self
+				}
+				missing[n.Self().ID()] = true
+			}
+
+			it := self.RandomNodes()
 			for it.Next() {
-				found[it.Node().ID()] = true
-				if len(found) == len(nodes) {
+				delete(missing, it.Node().ID())
+				if len(missing) == 0 {
 					status <- nil
 					return
 				}
 			}
-			status <- fmt.Errorf("node %s didn't find all nodes", node.Self().ID().TerminalString())
+			missingIDs := slices.Collect(maps.Keys(missing))
+			status <- fmt.Errorf("node %s didn't find all nodes, missing %v", self.Self().ID().TerminalString(), missingIDs)
 		}()
 	}
 
@@ -537,7 +547,6 @@ func TestUDPv4_smallNetConvergence(t *testing.T) {
 			received++
 			if err != nil {
 				t.Error("ERROR:", err)
-				return
 			}
 		}
 	}

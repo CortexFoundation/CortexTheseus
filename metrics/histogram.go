@@ -31,7 +31,7 @@ func GetOrRegisterHistogramLazy(name string, r Registry, s func() Sample) Histog
 
 // NewHistogram constructs a new StandardHistogram from a Sample.
 func NewHistogram(s Sample) Histogram {
-	if !Enabled {
+	if !Enabled() {
 		return NilHistogram{}
 	}
 	return &StandardHistogram{sample: s}

@@ -1,5 +1,5 @@
 // Copyright 2015 The go-ethereum Authors
-// This file is part of The go-ethereum library.
+// This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -12,7 +12,7 @@
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with The go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 // Package discover implements the Node Discovery Protocol.
 //
@@ -32,6 +32,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
+	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
@@ -84,6 +85,7 @@ type Table struct {
 	closeReq        chan struct{}
 	closed          chan struct{}
 
+	nodeFeed        event.FeedOf[*enode.Node]
 	nodeAddedHook   func(*bucket, *tableNode)
 	nodeRemovedHook func(*bucket, *tableNode)
 }
@@ -567,10 +569,12 @@ func (tab *Table) nodeAdded(b *bucket, n *tableNode) {
 	}
 	n.addedToBucket = time.Now()
 	tab.revalidation.nodeAdded(tab, n)
+
+	tab.nodeFeed.Send(n.Node)
 	if tab.nodeAddedHook != nil {
 		tab.nodeAddedHook(b, n)
 	}
-	if metrics.Enabled {
+	if metrics.Enabled() {
 		bucketsCounter[b.index].Inc(1)
 	}
 }
@@ -580,7 +584,7 @@ func (tab *Table) nodeRemoved(b *bucket, n *tableNode) {
 	if tab.nodeRemovedHook != nil {
 		tab.nodeRemovedHook(b, n)
 	}
-	if metrics.Enabled {
+	if metrics.Enabled() {
 		bucketsCounter[b.index].Dec(1)
 	}
 }
@@ -701,4 +705,39 @@ func (tab *Table) deleteNode(n *enode.Node) {
 	defer tab.mutex.Unlock()
 	b := tab.bucket(n.ID())
 	tab.deleteInBucket(b, n.ID())
+}
+
+// waitForNodes blocks until the table contains at least n nodes.
+func (tab *Table) waitForNodes(ctx context.Context, n int) error {
+	getlength := func() (count int) {
+		for _, b := range &tab.buckets {
+			count += len(b.entries)
+		}
+		return count
+	}
+
+	var ch chan *enode.Node
+	for {
+		tab.mutex.Lock()
+		if getlength() >= n {
+			tab.mutex.Unlock()
+			return nil
+		}
+		if ch == nil {
+			// Init subscription.
+			ch = make(chan *enode.Node)
+			sub := tab.nodeFeed.Subscribe(ch)
+			defer sub.Unsubscribe()
+		}
+		tab.mutex.Unlock()
+
+		// Wait for a node add event.
+		select {
+		case <-ch:
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-tab.closeReq:
+			return errClosed
+		}
+	}
 }

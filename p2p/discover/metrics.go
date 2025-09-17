@@ -1,5 +1,5 @@
 // Copyright 2023 The go-ethereum Authors
-// This file is part of The go-ethereum library.
+// This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -12,7 +12,7 @@
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with The go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package discover
 
@@ -45,7 +45,7 @@ func init() {
 	}
 }
 
-// meteredConn is a wrapper around a net.UDPConn that meters both the
+// meteredUdpConn is a wrapper around a net.UDPConn that meters both the
 // inbound and outbound network traffic.
 type meteredUdpConn struct {
 	udpConn UDPConn
@@ -53,7 +53,7 @@ type meteredUdpConn struct {
 
 func newMeteredConn(conn UDPConn) UDPConn {
 	// Short circuit if metrics are disabled
-	if !metrics.Enabled {
+	if !metrics.Enabled() {
 		return conn
 	}
 	return &meteredUdpConn{udpConn: conn}

@@ -52,7 +52,7 @@ func GetOrRegisterGaugeInfo(name string, r Registry) GaugeInfo {
 
 // NewGaugeInfo constructs a new StandardGaugeInfo.
 func NewGaugeInfo() GaugeInfo {
-	if !Enabled {
+	if !Enabled() {
 		return NilGaugeInfo{}
 	}
 	return &StandardGaugeInfo{

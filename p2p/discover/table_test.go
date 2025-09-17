@@ -1,5 +1,5 @@
 // Copyright 2015 The go-ethereum Authors
-// This file is part of The go-ethereum library.
+// This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -12,7 +12,7 @@
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with The go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package discover
 
@@ -475,7 +475,7 @@ func nodeIDEqual[N nodeType](n1, n2 N) bool {
 
 // gen wraps quick.Value so it's easier to use.
 // it generates a random value of the given value's type.
-func gen(typ any, rand *rand.Rand) any {
+func gen(typ interface{}, rand *rand.Rand) interface{} {
 	v, ok := quick.Value(reflect.TypeOf(typ), rand)
 	if !ok {
 		panic(fmt.Sprintf("couldn't generate random value of type %T", typ))

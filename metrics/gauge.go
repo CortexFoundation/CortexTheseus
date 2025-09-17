@@ -27,7 +27,7 @@ func GetOrRegisterGauge(name string, r Registry) Gauge {
 
 // NewGauge constructs a new StandardGauge.
 func NewGauge() Gauge {
-	if !Enabled {
+	if !Enabled() {
 		return NilGauge{}
 	}
 	return &StandardGauge{}
