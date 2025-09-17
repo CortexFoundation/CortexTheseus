@@ -26,6 +26,7 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0
 	github.com/dop251/goja v0.0.0-20250630131328-58d95d85e994
 	github.com/ethereum/c-kzg-4844 v1.0.3
+	github.com/ethereum/go-bigmodexpfix v0.0.0-20250911101455-f9e208c548ab
 	github.com/ethereum/go-verkle v0.2.2
 	github.com/ferranbt/fastssz v1.0.0
 	github.com/fjl/gencodec v0.1.0
