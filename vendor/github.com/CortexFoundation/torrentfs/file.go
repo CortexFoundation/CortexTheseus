@@ -200,7 +200,7 @@ func (fs *TorrentFS) SeedingLocal(ctx context.Context, filePath string, isLinkMo
 	// 4. copy or link, will not cover if dst exist!
 	ih := common.Address(mi.HashInfoBytes())
 	infoHash = strings.TrimPrefix(strings.ToLower(ih.Hex()), common.Prefix)
-	linkDst := filepath.Join(fs.storage().TmpDataDir, infoHash)
+	linkDst := filepath.Join(fs.storage().TmpDataDir(), infoHash)
 
 	log.Info("Local file Seeding", "ih", infoHash, "path", dataPath, "len", info.Length)
 	if !isLinkMode {

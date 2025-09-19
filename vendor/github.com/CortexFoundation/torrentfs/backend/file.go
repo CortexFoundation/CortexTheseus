@@ -44,7 +44,7 @@ func (tm *TorrentManager) ExistsOrActive(ctx context.Context, ih string, rawSize
 	t := tm.getTorrent(ih)
 	if t == nil {
 		// If not active, check if the torrent directory exists on disk.
-		dir := filepath.Join(tm.DataDir, ih)
+		dir := filepath.Join(tm.dataDir, ih)
 		if _, err := os.Stat(dir); err == nil {
 			// Torrent files exist but are not managed.
 			return true, 0, 0, ErrInactiveTorrent
@@ -77,7 +77,7 @@ func (tm *TorrentManager) GetFile(ctx context.Context, infohash, subpath string)
 	getfileMeter.Mark(1)
 	if tm.metrics {
 		// Use a defer statement to ensure the timer is always stopped.
-		defer func(start time.Time) { tm.Updates += time.Since(start) }(time.Now())
+		defer func(start time.Time) { tm.updates += time.Since(start) }(time.Now())
 	}
 
 	// Early validation and normalization to reduce nested logic.
@@ -88,7 +88,7 @@ func (tm *TorrentManager) GetFile(ctx context.Context, infohash, subpath string)
 	ih := strings.TrimPrefix(strings.ToLower(infohash), common.Prefix)
 	sp := strings.Trim(subpath, "/")
 
-	log.Debug("Get File", "dir", tm.DataDir, "infohash", ih, "subpath", sp)
+	log.Debug("Get File", "dir", tm.dataDir, "infohash", ih, "subpath", sp)
 
 	var (
 		mu   *event.TypeMux
@@ -109,7 +109,7 @@ func (tm *TorrentManager) GetFile(ctx context.Context, infohash, subpath string)
 	}
 
 	// Construct the full file path.
-	filePath := filepath.Join(tm.DataDir, ih, sp)
+	filePath := filepath.Join(tm.dataDir, ih, sp)
 
 	diskReadMeter.Mark(1)
 
