@@ -38,7 +38,7 @@ func GetOrRegisterCounterForced(name string, r Registry) Counter {
 
 // NewCounter constructs a new StandardCounter.
 func NewCounter() Counter {
-	if !Enabled {
+	if !Enabled() {
 		return NilCounter{}
 	}
 	return new(StandardCounter)

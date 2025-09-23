@@ -17,12 +17,25 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 )
 
-// Enabled is checked by the constructor functions for all of the
-// standard metrics. If it is true, the metric returned is a stub.
+var (
+	metricsEnabled = false
+)
+
+// Enabled is checked by functions that are deemed 'expensive', e.g. if a
+// meter-type does locking and/or non-trivial math operations during update.
+func Enabled() bool {
+	return metricsEnabled
+}
+
+// Enable enables the metrics system.
+// The Enabled-flag is expected to be set, once, during startup, but toggling off and on
+// is not supported.
 //
-// This global kill-switch helps quantify the observer effect and makes
-// for less cluttered pprof profiles.
-var Enabled = false
+// Enable is not safe to call concurrently. You need to call this as early as possible in
+// the program, before any metrics collection will happen.
+func Enable() {
+	metricsEnabled = true
+}
 
 // EnabledExpensive is a soft-flag meant for external packages to check if costly
 // metrics gathering is allowed or not. The goal is to separate standard metrics
@@ -46,10 +59,10 @@ var expensiveEnablerEnvVars = []string{"GETH_METRICS_EXPENSIVE"}
 // and peek into the command line args for the metrics flag.
 func init() {
 	for _, enabler := range enablerEnvVars {
-		if val, found := syscall.Getenv(enabler); found && !Enabled {
+		if val, found := syscall.Getenv(enabler); found && !Enabled() {
 			if enable, _ := strconv.ParseBool(val); enable { // ignore error, flag parser will choke on it later
 				log.Info("Enabling metrics collection")
-				Enabled = true
+				metricsEnabled = true
 			}
 		}
 	}
@@ -65,9 +78,9 @@ func init() {
 		flag := strings.TrimLeft(arg, "-")
 
 		for _, enabler := range enablerFlags {
-			if !Enabled && flag == enabler {
+			if !Enabled() && flag == enabler {
 				log.Info("Enabling metrics collection")
-				Enabled = true
+				metricsEnabled = true
 			}
 		}
 		for _, enabler := range expensiveEnablerFlags {
@@ -153,7 +166,7 @@ func readRuntimeStats(v *runtimeStats) {
 // CollectProcessMetrics periodically collects various metrics about the running process.
 func CollectProcessMetrics(refresh time.Duration) {
 	// Short circuit if the metrics system is disabled
-	if !Enabled {
+	if !Enabled() {
 		return
 	}
 

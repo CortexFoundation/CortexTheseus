@@ -50,7 +50,7 @@ type ExpDecaySample struct {
 // NewExpDecaySample constructs a new exponentially-decaying sample with the
 // given reservoir size and alpha.
 func NewExpDecaySample(reservoirSize int, alpha float64) Sample {
-	if !Enabled {
+	if !Enabled() {
 		return NilSample{}
 	}
 	s := &ExpDecaySample{
@@ -317,7 +317,7 @@ type UniformSample struct {
 // NewUniformSample constructs a new uniform sample with the given reservoir
 // size.
 func NewUniformSample(reservoirSize int) Sample {
-	if !Enabled {
+	if !Enabled() {
 		return NilSample{}
 	}
 	return &UniformSample{

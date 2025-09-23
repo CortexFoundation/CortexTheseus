@@ -1,5 +1,5 @@
 // Copyright 2020 The go-ethereum Authors
-// This file is part of The go-ethereum library.
+// This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -12,7 +12,7 @@
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with The go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package discover
 
@@ -25,6 +25,7 @@ import (
 	"net"
 	"net/netip"
 	"reflect"
+	"slices"
 	"testing"
 	"time"
 
@@ -36,7 +37,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p/enr"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/stretchr/testify/require"
-	"slices"
 )
 
 // Real sockets, real crypto: this test checks end-to-end connectivity for UDPv5.
@@ -984,7 +984,7 @@ func (test *udpV5Test) getNode(key *ecdsa.PrivateKey, addr netip.AddrPort) *enod
 // waitPacketOut waits for the next output packet and handles it using the given 'validate'
 // function. The function must be of type func (X, netip.AddrPort, v5wire.Nonce) where X is
 // assignable to packetV5.
-func (test *udpV5Test) waitPacketOut(validate any) (closed bool) {
+func (test *udpV5Test) waitPacketOut(validate interface{}) (closed bool) {
 	test.t.Helper()
 
 	fn := reflect.ValueOf(validate)

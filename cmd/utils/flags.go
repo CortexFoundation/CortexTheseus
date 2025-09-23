@@ -1855,7 +1855,7 @@ func RegisterStorageService(stack *node.Node, cfg *params1.Config) {
 // }
 
 func SetupMetrics(ctx *cli.Context) {
-	if metrics.Enabled {
+	if metrics.Enabled() {
 		log.Info("Enabling metrics collection")
 		var (
 			enableExport = ctx.GlobalBool(MetricsEnableInfluxDBFlag.Name)

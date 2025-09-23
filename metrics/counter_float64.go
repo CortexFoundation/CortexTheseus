@@ -39,7 +39,7 @@ func GetOrRegisterCounterFloat64Forced(name string, r Registry) CounterFloat64 {
 
 // NewCounterFloat64 constructs a new StandardCounterFloat64.
 func NewCounterFloat64() CounterFloat64 {
-	if !Enabled {
+	if !Enabled() {
 		return NilCounterFloat64{}
 	}
 	return &StandardCounterFloat64{}

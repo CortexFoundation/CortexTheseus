@@ -26,7 +26,7 @@ func GetOrRegisterGaugeFloat64(name string, r Registry) GaugeFloat64 {
 
 // NewGaugeFloat64 constructs a new StandardGaugeFloat64.
 func NewGaugeFloat64() GaugeFloat64 {
-	if !Enabled {
+	if !Enabled() {
 		return NilGaugeFloat64{}
 	}
 	return &StandardGaugeFloat64{}
