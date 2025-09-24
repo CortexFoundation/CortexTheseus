@@ -34,6 +34,10 @@ func main() {
 }
 ```
 
+## Compatibility
+
+This is only tested on Linux. MacOS used to cause problems with [geth](https://github.com/ethereum/go-ethereum) and Windows support could be added, but it's not a priority. The minimum supported version is go 1.19 as it is still supported.
+
 ## TODO
 
   - [x] Finish this README
