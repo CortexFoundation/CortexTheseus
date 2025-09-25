@@ -408,27 +408,14 @@ func (tm *TorrentManager) loadSpec(ih string, filePath string) *torrent.TorrentS
 	var (
 		TmpDir   = filepath.Join(tm.tmpDataDir, ih)
 		ExistDir = filepath.Join(tm.dataDir, ih)
-
-		useExistDir bool
 	)
 	if _, err := os.Stat(ExistDir); err == nil {
 		log.Debug("Seeding from existing file.", "ih", ih)
-		//info, err := mi.UnmarshalInfo()
-		if err != nil {
-			log.Error("error unmarshalling info: ", "info", err)
-			return nil
-		}
-
-		//if err := tm.verifyTorrent(&info, ExistDir); err == nil {
-		//	useExistDir = true
-		//}
-	}
-
-	if useExistDir {
 		spec.Storage = storage.NewMMap(ExistDir) //storage.NewFile(ExistDir)
 	} else {
 		spec.Storage = storage.NewMMap(TmpDir)
 	}
+
 	spec.Trackers = nil
 
 	return spec
@@ -1218,17 +1205,21 @@ func (tm *TorrentManager) finish(t *caffe.Torrent) error {
 	t.Lock()
 	defer t.Unlock()
 
-	if _, err := os.Stat(filepath.Join(tm.dataDir, t.InfoHash())); err == nil {
+	dataPath := filepath.Join(tm.dataDir, t.InfoHash())
+	tmpPath := filepath.Join(params.DefaultTmpPath, t.InfoHash())
+
+	// If data already exists, seed directly
+	if _, err := os.Stat(dataPath); err == nil {
 		return tm.Seeding(t)
-	} else {
-		if err := os.Symlink(
-			filepath.Join(params.DefaultTmpPath, t.InfoHash()),
-			filepath.Join(tm.dataDir, t.InfoHash()),
-		); err == nil {
-			return tm.Seeding(t)
-		}
 	}
-	return nil
+
+	// Try creating a symlink
+	if err := os.Symlink(tmpPath, dataPath); err != nil {
+		log.Warn("Symbolic link creation failed", "ih", t.InfoHash(), "tmpPath", tmpPath, "err", err)
+		return err
+	}
+
+	return tm.Seeding(t)
 }
 
 /*

@@ -145,10 +145,7 @@ func (c *Context) encryptRTP(dst []byte, header *rtp.Header, headerLen int, plai
 	}
 	s.updateRolloverCount(header.SequenceNumber, diff, false, 0)
 
-	rocInPacket := false
-	if c.rccMode != RCCModeNone && header.SequenceNumber%c.rocTransmitRate == 0 {
-		rocInPacket = true
-	}
+	rocInPacket := c.rccMode != RCCModeNone && header.SequenceNumber%c.rocTransmitRate == 0
 
 	return c.cipher.encryptRTP(dst, header, headerLen, plaintext, roc, rocInPacket)
 }
