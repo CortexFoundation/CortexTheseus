@@ -24,7 +24,7 @@ func cacheFile(path string, maxSize int64, c []byte) (itm *cacheItem, err error)
 			name:       path,
 			content:    c,
 			Size:       fi.Size(),
-			Modified:   fi.ModTime(),
+			ModTime:    fi.ModTime(),
 			Lastaccess: time.Now(),
 		}
 		return
@@ -38,7 +38,7 @@ func cacheFile(path string, maxSize int64, c []byte) (itm *cacheItem, err error)
 		name:       path,
 		content:    content,
 		Size:       fi.Size(),
-		Modified:   fi.ModTime(),
+		ModTime:    fi.ModTime(),
 		Lastaccess: time.Now(),
 	}
 	return

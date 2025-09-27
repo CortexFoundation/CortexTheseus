@@ -107,7 +107,7 @@ TEXT ·Y___errno_location(SB),$16-16
 	MOVQ AX, r+8(FP)
 	RET
 
-// func Y__aio_close(tls *TLS, fd int32) int32
+// func Y__aio_close(tls *TLS, fd int32) (_2 int32)
 TEXT ·Y__aio_close(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -117,7 +117,7 @@ TEXT ·Y__aio_close(SB),$24-20
 	MOVL AX, 8(SP)
 	CALL ·X__aio_close(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
 // func Y__asctime_r(tls *TLS, tm uintptr, buf uintptr) (r uintptr)
@@ -152,7 +152,7 @@ TEXT ·Y__assert_fail(SB),$40-40
 	CALL ·X__assert_fail(SB)
 	RET
 
-// func Y__atomic_compare_exchangeInt16(t *TLS, ptr, expected, desired uintptr, weak, success, failure int32) int32
+// func Y__atomic_compare_exchangeInt16(t *TLS, ptr, expected, desired uintptr, weak, success, failure int32) (_3 int32)
 TEXT ·Y__atomic_compare_exchangeInt16(SB),$56-52
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -172,10 +172,10 @@ TEXT ·Y__atomic_compare_exchangeInt16(SB),$56-52
 	MOVL AX, 40(SP)
 	CALL ·X__atomic_compare_exchangeInt16(SB)
 	MOVL 48(SP), AX
-	MOVL AX, ret+48(FP)
+	MOVL AX, _3+48(FP)
 	RET
 
-// func Y__atomic_compare_exchangeInt32(t *TLS, ptr, expected, desired uintptr, weak, success, failure int32) int32
+// func Y__atomic_compare_exchangeInt32(t *TLS, ptr, expected, desired uintptr, weak, success, failure int32) (_3 int32)
 TEXT ·Y__atomic_compare_exchangeInt32(SB),$56-52
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -195,10 +195,10 @@ TEXT ·Y__atomic_compare_exchangeInt32(SB),$56-52
 	MOVL AX, 40(SP)
 	CALL ·X__atomic_compare_exchangeInt32(SB)
 	MOVL 48(SP), AX
-	MOVL AX, ret+48(FP)
+	MOVL AX, _3+48(FP)
 	RET
 
-// func Y__atomic_compare_exchangeInt64(t *TLS, ptr, expected, desired uintptr, weak, success, failure int32) int32
+// func Y__atomic_compare_exchangeInt64(t *TLS, ptr, expected, desired uintptr, weak, success, failure int32) (_3 int32)
 TEXT ·Y__atomic_compare_exchangeInt64(SB),$56-52
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -218,10 +218,10 @@ TEXT ·Y__atomic_compare_exchangeInt64(SB),$56-52
 	MOVL AX, 40(SP)
 	CALL ·X__atomic_compare_exchangeInt64(SB)
 	MOVL 48(SP), AX
-	MOVL AX, ret+48(FP)
+	MOVL AX, _3+48(FP)
 	RET
 
-// func Y__atomic_compare_exchangeInt8(t *TLS, ptr, expected, desired uintptr, weak, success, failure int32) int32
+// func Y__atomic_compare_exchangeInt8(t *TLS, ptr, expected, desired uintptr, weak, success, failure int32) (_3 int32)
 TEXT ·Y__atomic_compare_exchangeInt8(SB),$56-52
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -241,10 +241,10 @@ TEXT ·Y__atomic_compare_exchangeInt8(SB),$56-52
 	MOVL AX, 40(SP)
 	CALL ·X__atomic_compare_exchangeInt8(SB)
 	MOVL 48(SP), AX
-	MOVL AX, ret+48(FP)
+	MOVL AX, _3+48(FP)
 	RET
 
-// func Y__atomic_compare_exchangeUint16(t *TLS, ptr, expected, desired uintptr, weak, success, failure int32) int32
+// func Y__atomic_compare_exchangeUint16(t *TLS, ptr, expected, desired uintptr, weak, success, failure int32) (_3 int32)
 TEXT ·Y__atomic_compare_exchangeUint16(SB),$56-52
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -264,10 +264,10 @@ TEXT ·Y__atomic_compare_exchangeUint16(SB),$56-52
 	MOVL AX, 40(SP)
 	CALL ·X__atomic_compare_exchangeUint16(SB)
 	MOVL 48(SP), AX
-	MOVL AX, ret+48(FP)
+	MOVL AX, _3+48(FP)
 	RET
 
-// func Y__atomic_compare_exchangeUint32(t *TLS, ptr, expected, desired uintptr, weak, success, failure int32) int32
+// func Y__atomic_compare_exchangeUint32(t *TLS, ptr, expected, desired uintptr, weak, success, failure int32) (_3 int32)
 TEXT ·Y__atomic_compare_exchangeUint32(SB),$56-52
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -287,10 +287,10 @@ TEXT ·Y__atomic_compare_exchangeUint32(SB),$56-52
 	MOVL AX, 40(SP)
 	CALL ·X__atomic_compare_exchangeUint32(SB)
 	MOVL 48(SP), AX
-	MOVL AX, ret+48(FP)
+	MOVL AX, _3+48(FP)
 	RET
 
-// func Y__atomic_compare_exchangeUint64(t *TLS, ptr, expected, desired uintptr, weak, success, failure int32) int32
+// func Y__atomic_compare_exchangeUint64(t *TLS, ptr, expected, desired uintptr, weak, success, failure int32) (_3 int32)
 TEXT ·Y__atomic_compare_exchangeUint64(SB),$56-52
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -310,10 +310,10 @@ TEXT ·Y__atomic_compare_exchangeUint64(SB),$56-52
 	MOVL AX, 40(SP)
 	CALL ·X__atomic_compare_exchangeUint64(SB)
 	MOVL 48(SP), AX
-	MOVL AX, ret+48(FP)
+	MOVL AX, _3+48(FP)
 	RET
 
-// func Y__atomic_compare_exchangeUint8(t *TLS, ptr, expected, desired uintptr, weak, success, failure int32) int32
+// func Y__atomic_compare_exchangeUint8(t *TLS, ptr, expected, desired uintptr, weak, success, failure int32) (_3 int32)
 TEXT ·Y__atomic_compare_exchangeUint8(SB),$56-52
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -333,7 +333,7 @@ TEXT ·Y__atomic_compare_exchangeUint8(SB),$56-52
 	MOVL AX, 40(SP)
 	CALL ·X__atomic_compare_exchangeUint8(SB)
 	MOVL 48(SP), AX
-	MOVL AX, ret+48(FP)
+	MOVL AX, _3+48(FP)
 	RET
 
 // func Y__atomic_exchangeInt16(t *TLS, ptr, val, ret uintptr, _ int32)
@@ -1433,7 +1433,7 @@ TEXT ·Y__builtin___memcpy_chk(SB),$48-48
 	MOVQ AX, r+40(FP)
 	RET
 
-// func Y__builtin___memmove_chk(t *TLS, dest, src uintptr, n, os Tsize_t) uintptr
+// func Y__builtin___memmove_chk(t *TLS, dest, src uintptr, n, os Tsize_t) (_3 uintptr)
 TEXT ·Y__builtin___memmove_chk(SB),$48-48
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -1449,10 +1449,10 @@ TEXT ·Y__builtin___memmove_chk(SB),$48-48
 	MOVQ AX, 32(SP)
 	CALL ·X__builtin___memmove_chk(SB)
 	MOVQ 40(SP), AX
-	MOVQ AX, ret+40(FP)
+	MOVQ AX, _3+40(FP)
 	RET
 
-// func Y__builtin___memset_chk(t *TLS, s uintptr, c int32, n, os Tsize_t) uintptr
+// func Y__builtin___memset_chk(t *TLS, s uintptr, c int32, n, os Tsize_t) (_4 uintptr)
 TEXT ·Y__builtin___memset_chk(SB),$48-48
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -1468,7 +1468,7 @@ TEXT ·Y__builtin___memset_chk(SB),$48-48
 	MOVQ AX, 32(SP)
 	CALL ·X__builtin___memset_chk(SB)
 	MOVQ 40(SP), AX
-	MOVQ AX, ret+40(FP)
+	MOVQ AX, _4+40(FP)
 	RET
 
 // func Y__builtin___snprintf_chk(t *TLS, str uintptr, maxlen Tsize_t, flag int32, os Tsize_t, format, args uintptr) (r int32)
@@ -1532,7 +1532,7 @@ TEXT ·Y__builtin___strcat_chk(SB),$40-40
 	MOVQ AX, r+32(FP)
 	RET
 
-// func Y__builtin___strcpy_chk(t *TLS, dest, src uintptr, os Tsize_t) uintptr
+// func Y__builtin___strcpy_chk(t *TLS, dest, src uintptr, os Tsize_t) (_3 uintptr)
 TEXT ·Y__builtin___strcpy_chk(SB),$40-40
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -1546,7 +1546,7 @@ TEXT ·Y__builtin___strcpy_chk(SB),$40-40
 	MOVQ AX, 24(SP)
 	CALL ·X__builtin___strcpy_chk(SB)
 	MOVQ 32(SP), AX
-	MOVQ AX, ret+32(FP)
+	MOVQ AX, _3+32(FP)
 	RET
 
 // func Y__builtin___strncpy_chk(t *TLS, dest, src uintptr, n, os Tsize_t) (r uintptr)
@@ -1600,7 +1600,7 @@ TEXT ·Y__builtin_abort(SB),$8-8
 	CALL ·X__builtin_abort(SB)
 	RET
 
-// func Y__builtin_abs(t *TLS, j int32) int32
+// func Y__builtin_abs(t *TLS, j int32) (_2 int32)
 TEXT ·Y__builtin_abs(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -1610,10 +1610,10 @@ TEXT ·Y__builtin_abs(SB),$24-20
 	MOVL AX, 8(SP)
 	CALL ·X__builtin_abs(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Y__builtin_add_overflowInt64(t *TLS, a, b int64, res uintptr) int32
+// func Y__builtin_add_overflowInt64(t *TLS, a, b int64, res uintptr) (_3 int32)
 TEXT ·Y__builtin_add_overflowInt64(SB),$40-36
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -1627,10 +1627,10 @@ TEXT ·Y__builtin_add_overflowInt64(SB),$40-36
 	MOVQ AX, 24(SP)
 	CALL ·X__builtin_add_overflowInt64(SB)
 	MOVL 32(SP), AX
-	MOVL AX, ret+32(FP)
+	MOVL AX, _3+32(FP)
 	RET
 
-// func Y__builtin_add_overflowUint32(t *TLS, a, b uint32, res uintptr) int32
+// func Y__builtin_add_overflowUint32(t *TLS, a, b uint32, res uintptr) (_3 int32)
 TEXT ·Y__builtin_add_overflowUint32(SB),$32-28
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -1644,10 +1644,10 @@ TEXT ·Y__builtin_add_overflowUint32(SB),$32-28
 	MOVQ AX, 16(SP)
 	CALL ·X__builtin_add_overflowUint32(SB)
 	MOVL 24(SP), AX
-	MOVL AX, ret+24(FP)
+	MOVL AX, _3+24(FP)
 	RET
 
-// func Y__builtin_add_overflowUint64(t *TLS, a, b uint64, res uintptr) int32
+// func Y__builtin_add_overflowUint64(t *TLS, a, b uint64, res uintptr) (_3 int32)
 TEXT ·Y__builtin_add_overflowUint64(SB),$40-36
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -1661,10 +1661,10 @@ TEXT ·Y__builtin_add_overflowUint64(SB),$40-36
 	MOVQ AX, 24(SP)
 	CALL ·X__builtin_add_overflowUint64(SB)
 	MOVL 32(SP), AX
-	MOVL AX, ret+32(FP)
+	MOVL AX, _3+32(FP)
 	RET
 
-// func Y__builtin_alloca(tls *TLS, size Tsize_t) uintptr
+// func Y__builtin_alloca(tls *TLS, size Tsize_t) (_2 uintptr)
 TEXT ·Y__builtin_alloca(SB),$24-24
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -1674,10 +1674,10 @@ TEXT ·Y__builtin_alloca(SB),$24-24
 	MOVQ AX, 8(SP)
 	CALL ·X__builtin_alloca(SB)
 	MOVQ 16(SP), AX
-	MOVQ AX, ret+16(FP)
+	MOVQ AX, _2+16(FP)
 	RET
 
-// func Y__builtin_bswap16(t *TLS, x uint16) uint16
+// func Y__builtin_bswap16(t *TLS, x uint16) (_2 uint16)
 TEXT ·Y__builtin_bswap16(SB),$24-18
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -1687,10 +1687,10 @@ TEXT ·Y__builtin_bswap16(SB),$24-18
 	MOVW AX, 8(SP)
 	CALL ·X__builtin_bswap16(SB)
 	MOVW 16(SP), AX
-	MOVW AX, ret+16(FP)
+	MOVW AX, _2+16(FP)
 	RET
 
-// func Y__builtin_bswap32(t *TLS, x uint32) uint32
+// func Y__builtin_bswap32(t *TLS, x uint32) (_2 uint32)
 TEXT ·Y__builtin_bswap32(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -1700,10 +1700,10 @@ TEXT ·Y__builtin_bswap32(SB),$24-20
 	MOVL AX, 8(SP)
 	CALL ·X__builtin_bswap32(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Y__builtin_bswap64(t *TLS, x uint64) uint64
+// func Y__builtin_bswap64(t *TLS, x uint64) (_2 uint64)
 TEXT ·Y__builtin_bswap64(SB),$24-24
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -1713,7 +1713,7 @@ TEXT ·Y__builtin_bswap64(SB),$24-24
 	MOVQ AX, 8(SP)
 	CALL ·X__builtin_bswap64(SB)
 	MOVQ 16(SP), AX
-	MOVQ AX, ret+16(FP)
+	MOVQ AX, _2+16(FP)
 	RET
 
 // func Y__builtin_bzero(t *TLS, s uintptr, n Tsize_t)
@@ -1729,7 +1729,7 @@ TEXT ·Y__builtin_bzero(SB),$24-24
 	CALL ·X__builtin_bzero(SB)
 	RET
 
-// func Y__builtin_clz(t *TLS, n uint32) int32
+// func Y__builtin_clz(t *TLS, n uint32) (_2 int32)
 TEXT ·Y__builtin_clz(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -1739,10 +1739,10 @@ TEXT ·Y__builtin_clz(SB),$24-20
 	MOVL AX, 8(SP)
 	CALL ·X__builtin_clz(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Y__builtin_clzl(t *TLS, n ulong) int32
+// func Y__builtin_clzl(t *TLS, n ulong) (_2 int32)
 TEXT ·Y__builtin_clzl(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -1752,10 +1752,10 @@ TEXT ·Y__builtin_clzl(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·X__builtin_clzl(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Y__builtin_clzll(t *TLS, n uint64) int32
+// func Y__builtin_clzll(t *TLS, n uint64) (_2 int32)
 TEXT ·Y__builtin_clzll(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -1765,10 +1765,10 @@ TEXT ·Y__builtin_clzll(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·X__builtin_clzll(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Y__builtin_copysign(t *TLS, x, y float64) float64
+// func Y__builtin_copysign(t *TLS, x, y float64) (_2 float64)
 TEXT ·Y__builtin_copysign(SB),$32-32
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -1780,10 +1780,10 @@ TEXT ·Y__builtin_copysign(SB),$32-32
 	MOVQ AX, 16(SP)
 	CALL ·X__builtin_copysign(SB)
 	MOVQ 24(SP), AX
-	MOVQ AX, ret+24(FP)
+	MOVQ AX, _2+24(FP)
 	RET
 
-// func Y__builtin_copysignf(t *TLS, x, y float32) float32
+// func Y__builtin_copysignf(t *TLS, x, y float32) (_2 float32)
 TEXT ·Y__builtin_copysignf(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -1795,10 +1795,10 @@ TEXT ·Y__builtin_copysignf(SB),$24-20
 	MOVL AX, 12(SP)
 	CALL ·X__builtin_copysignf(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Y__builtin_copysignl(t *TLS, x, y float64) float64
+// func Y__builtin_copysignl(t *TLS, x, y float64) (_2 float64)
 TEXT ·Y__builtin_copysignl(SB),$32-32
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -1810,10 +1810,10 @@ TEXT ·Y__builtin_copysignl(SB),$32-32
 	MOVQ AX, 16(SP)
 	CALL ·X__builtin_copysignl(SB)
 	MOVQ 24(SP), AX
-	MOVQ AX, ret+24(FP)
+	MOVQ AX, _2+24(FP)
 	RET
 
-// func Y__builtin_ctz(t *TLS, n uint32) int32
+// func Y__builtin_ctz(t *TLS, n uint32) (_2 int32)
 TEXT ·Y__builtin_ctz(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -1823,10 +1823,10 @@ TEXT ·Y__builtin_ctz(SB),$24-20
 	MOVL AX, 8(SP)
 	CALL ·X__builtin_ctz(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Y__builtin_ctzl(tls *TLS, x ulong) int32
+// func Y__builtin_ctzl(tls *TLS, x ulong) (_2 int32)
 TEXT ·Y__builtin_ctzl(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -1836,7 +1836,7 @@ TEXT ·Y__builtin_ctzl(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·X__builtin_ctzl(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
 // func Y__builtin_exit(t *TLS, status int32)
@@ -1850,7 +1850,7 @@ TEXT ·Y__builtin_exit(SB),$16-12
 	CALL ·X__builtin_exit(SB)
 	RET
 
-// func Y__builtin_expect(t *TLS, exp, c long) long
+// func Y__builtin_expect(t *TLS, exp, c long) (_2 long)
 TEXT ·Y__builtin_expect(SB),$32-32
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -1862,10 +1862,10 @@ TEXT ·Y__builtin_expect(SB),$32-32
 	MOVQ AX, 16(SP)
 	CALL ·X__builtin_expect(SB)
 	MOVQ 24(SP), AX
-	MOVQ AX, ret+24(FP)
+	MOVQ AX, _2+24(FP)
 	RET
 
-// func Y__builtin_fabs(t *TLS, x float64) float64
+// func Y__builtin_fabs(t *TLS, x float64) (_2 float64)
 TEXT ·Y__builtin_fabs(SB),$24-24
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -1875,10 +1875,10 @@ TEXT ·Y__builtin_fabs(SB),$24-24
 	MOVQ AX, 8(SP)
 	CALL ·X__builtin_fabs(SB)
 	MOVQ 16(SP), AX
-	MOVQ AX, ret+16(FP)
+	MOVQ AX, _2+16(FP)
 	RET
 
-// func Y__builtin_fabsf(t *TLS, x float32) float32
+// func Y__builtin_fabsf(t *TLS, x float32) (_2 float32)
 TEXT ·Y__builtin_fabsf(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -1888,10 +1888,10 @@ TEXT ·Y__builtin_fabsf(SB),$24-20
 	MOVL AX, 8(SP)
 	CALL ·X__builtin_fabsf(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Y__builtin_fabsl(t *TLS, x float64) float64
+// func Y__builtin_fabsl(t *TLS, x float64) (_2 float64)
 TEXT ·Y__builtin_fabsl(SB),$24-24
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -1901,7 +1901,7 @@ TEXT ·Y__builtin_fabsl(SB),$24-24
 	MOVQ AX, 8(SP)
 	CALL ·X__builtin_fabsl(SB)
 	MOVQ 16(SP), AX
-	MOVQ AX, ret+16(FP)
+	MOVQ AX, _2+16(FP)
 	RET
 
 // func Y__builtin_ffs(tls *TLS, i int32) (r int32)
@@ -1975,7 +1975,7 @@ TEXT ·Y__builtin_free(SB),$16-16
 	CALL ·X__builtin_free(SB)
 	RET
 
-// func Y__builtin_getentropy(t *TLS, buf uintptr, n Tsize_t) int32
+// func Y__builtin_getentropy(t *TLS, buf uintptr, n Tsize_t) (_3 int32)
 TEXT ·Y__builtin_getentropy(SB),$32-28
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -1987,10 +1987,10 @@ TEXT ·Y__builtin_getentropy(SB),$32-28
 	MOVQ AX, 16(SP)
 	CALL ·X__builtin_getentropy(SB)
 	MOVL 24(SP), AX
-	MOVL AX, ret+24(FP)
+	MOVL AX, _3+24(FP)
 	RET
 
-// func Y__builtin_huge_val(t *TLS) float64
+// func Y__builtin_huge_val(t *TLS) (_1 float64)
 TEXT ·Y__builtin_huge_val(SB),$16-16
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -1998,10 +1998,10 @@ TEXT ·Y__builtin_huge_val(SB),$16-16
 	MOVQ AX, 0(SP)
 	CALL ·X__builtin_huge_val(SB)
 	MOVQ 8(SP), AX
-	MOVQ AX, ret+8(FP)
+	MOVQ AX, _1+8(FP)
 	RET
 
-// func Y__builtin_huge_valf(t *TLS) float32
+// func Y__builtin_huge_valf(t *TLS) (_1 float32)
 TEXT ·Y__builtin_huge_valf(SB),$16-12
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2009,7 +2009,7 @@ TEXT ·Y__builtin_huge_valf(SB),$16-12
 	MOVQ AX, 0(SP)
 	CALL ·X__builtin_huge_valf(SB)
 	MOVL 8(SP), AX
-	MOVL AX, ret+8(FP)
+	MOVL AX, _1+8(FP)
 	RET
 
 // func Y__builtin_hypot(tls *TLS, x float64, y float64) (r float64)
@@ -2027,7 +2027,7 @@ TEXT ·Y__builtin_hypot(SB),$32-32
 	MOVQ AX, r+24(FP)
 	RET
 
-// func Y__builtin_inf(t *TLS) float64
+// func Y__builtin_inf(t *TLS) (_1 float64)
 TEXT ·Y__builtin_inf(SB),$16-16
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2035,10 +2035,10 @@ TEXT ·Y__builtin_inf(SB),$16-16
 	MOVQ AX, 0(SP)
 	CALL ·X__builtin_inf(SB)
 	MOVQ 8(SP), AX
-	MOVQ AX, ret+8(FP)
+	MOVQ AX, _1+8(FP)
 	RET
 
-// func Y__builtin_inff(tls *TLS) float32
+// func Y__builtin_inff(tls *TLS) (_1 float32)
 TEXT ·Y__builtin_inff(SB),$16-12
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2046,10 +2046,10 @@ TEXT ·Y__builtin_inff(SB),$16-12
 	MOVQ AX, 0(SP)
 	CALL ·X__builtin_inff(SB)
 	MOVL 8(SP), AX
-	MOVL AX, ret+8(FP)
+	MOVL AX, _1+8(FP)
 	RET
 
-// func Y__builtin_infl(t *TLS) float64
+// func Y__builtin_infl(t *TLS) (_1 float64)
 TEXT ·Y__builtin_infl(SB),$16-16
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2057,7 +2057,7 @@ TEXT ·Y__builtin_infl(SB),$16-16
 	MOVQ AX, 0(SP)
 	CALL ·X__builtin_infl(SB)
 	MOVQ 8(SP), AX
-	MOVQ AX, ret+8(FP)
+	MOVQ AX, _1+8(FP)
 	RET
 
 // func Y__builtin_isblank(tls *TLS, c int32) (r int32)
@@ -2073,7 +2073,7 @@ TEXT ·Y__builtin_isblank(SB),$24-20
 	MOVL AX, r+16(FP)
 	RET
 
-// func Y__builtin_isnan(t *TLS, x float64) int32
+// func Y__builtin_isnan(t *TLS, x float64) (_2 int32)
 TEXT ·Y__builtin_isnan(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2083,10 +2083,10 @@ TEXT ·Y__builtin_isnan(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·X__builtin_isnan(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Y__builtin_isnanf(t *TLS, x float32) int32
+// func Y__builtin_isnanf(t *TLS, x float32) (_2 int32)
 TEXT ·Y__builtin_isnanf(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2096,10 +2096,10 @@ TEXT ·Y__builtin_isnanf(SB),$24-20
 	MOVL AX, 8(SP)
 	CALL ·X__builtin_isnanf(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Y__builtin_isnanl(t *TLS, x float64) int32
+// func Y__builtin_isnanl(t *TLS, x float64) (_2 int32)
 TEXT ·Y__builtin_isnanl(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2109,7 +2109,7 @@ TEXT ·Y__builtin_isnanl(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·X__builtin_isnanl(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
 // func Y__builtin_isprint(tls *TLS, c int32) (r int32)
@@ -2125,7 +2125,7 @@ TEXT ·Y__builtin_isprint(SB),$24-20
 	MOVL AX, r+16(FP)
 	RET
 
-// func Y__builtin_isunordered(t *TLS, a, b float64) int32
+// func Y__builtin_isunordered(t *TLS, a, b float64) (_2 int32)
 TEXT ·Y__builtin_isunordered(SB),$32-28
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2137,10 +2137,10 @@ TEXT ·Y__builtin_isunordered(SB),$32-28
 	MOVQ AX, 16(SP)
 	CALL ·X__builtin_isunordered(SB)
 	MOVL 24(SP), AX
-	MOVL AX, ret+24(FP)
+	MOVL AX, _2+24(FP)
 	RET
 
-// func Y__builtin_llabs(tls *TLS, a int64) int64
+// func Y__builtin_llabs(tls *TLS, a int64) (_2 int64)
 TEXT ·Y__builtin_llabs(SB),$24-24
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2150,10 +2150,10 @@ TEXT ·Y__builtin_llabs(SB),$24-24
 	MOVQ AX, 8(SP)
 	CALL ·X__builtin_llabs(SB)
 	MOVQ 16(SP), AX
-	MOVQ AX, ret+16(FP)
+	MOVQ AX, _2+16(FP)
 	RET
 
-// func Y__builtin_log2(t *TLS, x float64) float64
+// func Y__builtin_log2(t *TLS, x float64) (_2 float64)
 TEXT ·Y__builtin_log2(SB),$24-24
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2163,7 +2163,7 @@ TEXT ·Y__builtin_log2(SB),$24-24
 	MOVQ AX, 8(SP)
 	CALL ·X__builtin_log2(SB)
 	MOVQ 16(SP), AX
-	MOVQ AX, ret+16(FP)
+	MOVQ AX, _2+16(FP)
 	RET
 
 // func Y__builtin_lrint(tls *TLS, x float64) (r long)
@@ -2205,7 +2205,7 @@ TEXT ·Y__builtin_lround(SB),$24-24
 	MOVQ AX, r+16(FP)
 	RET
 
-// func Y__builtin_malloc(t *TLS, size Tsize_t) uintptr
+// func Y__builtin_malloc(t *TLS, size Tsize_t) (_2 uintptr)
 TEXT ·Y__builtin_malloc(SB),$24-24
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2215,10 +2215,10 @@ TEXT ·Y__builtin_malloc(SB),$24-24
 	MOVQ AX, 8(SP)
 	CALL ·X__builtin_malloc(SB)
 	MOVQ 16(SP), AX
-	MOVQ AX, ret+16(FP)
+	MOVQ AX, _2+16(FP)
 	RET
 
-// func Y__builtin_memcmp(t *TLS, s1, s2 uintptr, n Tsize_t) int32
+// func Y__builtin_memcmp(t *TLS, s1, s2 uintptr, n Tsize_t) (_3 int32)
 TEXT ·Y__builtin_memcmp(SB),$40-36
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2232,7 +2232,7 @@ TEXT ·Y__builtin_memcmp(SB),$40-36
 	MOVQ AX, 24(SP)
 	CALL ·X__builtin_memcmp(SB)
 	MOVL 32(SP), AX
-	MOVL AX, ret+32(FP)
+	MOVL AX, _3+32(FP)
 	RET
 
 // func Y__builtin_memcpy(t *TLS, dest, src uintptr, n Tsize_t) (r uintptr)
@@ -2252,7 +2252,7 @@ TEXT ·Y__builtin_memcpy(SB),$40-40
 	MOVQ AX, r+32(FP)
 	RET
 
-// func Y__builtin_memset(t *TLS, s uintptr, c int32, n Tsize_t) uintptr
+// func Y__builtin_memset(t *TLS, s uintptr, c int32, n Tsize_t) (_4 uintptr)
 TEXT ·Y__builtin_memset(SB),$40-40
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2266,10 +2266,10 @@ TEXT ·Y__builtin_memset(SB),$40-40
 	MOVQ AX, 24(SP)
 	CALL ·X__builtin_memset(SB)
 	MOVQ 32(SP), AX
-	MOVQ AX, ret+32(FP)
+	MOVQ AX, _4+32(FP)
 	RET
 
-// func Y__builtin_mmap(t *TLS, addr uintptr, length Tsize_t, prot, flags, fd int32, offset Toff_t) uintptr
+// func Y__builtin_mmap(t *TLS, addr uintptr, length Tsize_t, prot, flags, fd int32, offset Toff_t) (_5 uintptr)
 TEXT ·Y__builtin_mmap(SB),$56-56
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2289,10 +2289,10 @@ TEXT ·Y__builtin_mmap(SB),$56-56
 	MOVQ AX, 40(SP)
 	CALL ·X__builtin_mmap(SB)
 	MOVQ 48(SP), AX
-	MOVQ AX, ret+48(FP)
+	MOVQ AX, _5+48(FP)
 	RET
 
-// func Y__builtin_mul_overflowInt64(t *TLS, a, b int64, res uintptr) int32
+// func Y__builtin_mul_overflowInt64(t *TLS, a, b int64, res uintptr) (_3 int32)
 TEXT ·Y__builtin_mul_overflowInt64(SB),$40-36
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2306,10 +2306,10 @@ TEXT ·Y__builtin_mul_overflowInt64(SB),$40-36
 	MOVQ AX, 24(SP)
 	CALL ·X__builtin_mul_overflowInt64(SB)
 	MOVL 32(SP), AX
-	MOVL AX, ret+32(FP)
+	MOVL AX, _3+32(FP)
 	RET
 
-// func Y__builtin_mul_overflowUint128(t *TLS, a, b Uint128, res uintptr) int32
+// func Y__builtin_mul_overflowUint128(t *TLS, a, b Uint128, res uintptr) (_3 int32)
 TEXT ·Y__builtin_mul_overflowUint128(SB),$56-52
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2327,10 +2327,10 @@ TEXT ·Y__builtin_mul_overflowUint128(SB),$56-52
 	MOVQ AX, 40(SP)
 	CALL ·X__builtin_mul_overflowUint128(SB)
 	MOVL 48(SP), AX
-	MOVL AX, ret+48(FP)
+	MOVL AX, _3+48(FP)
 	RET
 
-// func Y__builtin_mul_overflowUint64(t *TLS, a, b uint64, res uintptr) int32
+// func Y__builtin_mul_overflowUint64(t *TLS, a, b uint64, res uintptr) (_3 int32)
 TEXT ·Y__builtin_mul_overflowUint64(SB),$40-36
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2344,10 +2344,10 @@ TEXT ·Y__builtin_mul_overflowUint64(SB),$40-36
 	MOVQ AX, 24(SP)
 	CALL ·X__builtin_mul_overflowUint64(SB)
 	MOVL 32(SP), AX
-	MOVL AX, ret+32(FP)
+	MOVL AX, _3+32(FP)
 	RET
 
-// func Y__builtin_nan(t *TLS, s uintptr) float64
+// func Y__builtin_nan(t *TLS, s uintptr) (_2 float64)
 TEXT ·Y__builtin_nan(SB),$24-24
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2357,10 +2357,10 @@ TEXT ·Y__builtin_nan(SB),$24-24
 	MOVQ AX, 8(SP)
 	CALL ·X__builtin_nan(SB)
 	MOVQ 16(SP), AX
-	MOVQ AX, ret+16(FP)
+	MOVQ AX, _2+16(FP)
 	RET
 
-// func Y__builtin_nanf(tls *TLS, s uintptr) float32
+// func Y__builtin_nanf(tls *TLS, s uintptr) (_2 float32)
 TEXT ·Y__builtin_nanf(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2370,10 +2370,10 @@ TEXT ·Y__builtin_nanf(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·X__builtin_nanf(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Y__builtin_nanl(t *TLS, s uintptr) float64
+// func Y__builtin_nanl(t *TLS, s uintptr) (_2 float64)
 TEXT ·Y__builtin_nanl(SB),$24-24
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2383,10 +2383,10 @@ TEXT ·Y__builtin_nanl(SB),$24-24
 	MOVQ AX, 8(SP)
 	CALL ·X__builtin_nanl(SB)
 	MOVQ 16(SP), AX
-	MOVQ AX, ret+16(FP)
+	MOVQ AX, _2+16(FP)
 	RET
 
-// func Y__builtin_object_size(t *TLS, p uintptr, typ int32) Tsize_t
+// func Y__builtin_object_size(t *TLS, p uintptr, typ int32) (_3 Tsize_t)
 TEXT ·Y__builtin_object_size(SB),$32-32
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2398,10 +2398,10 @@ TEXT ·Y__builtin_object_size(SB),$32-32
 	MOVL AX, 16(SP)
 	CALL ·X__builtin_object_size(SB)
 	MOVQ 24(SP), AX
-	MOVQ AX, ret+24(FP)
+	MOVQ AX, _3+24(FP)
 	RET
 
-// func Y__builtin_popcount(t *TLS, x uint32) int32
+// func Y__builtin_popcount(t *TLS, x uint32) (_2 int32)
 TEXT ·Y__builtin_popcount(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2411,10 +2411,10 @@ TEXT ·Y__builtin_popcount(SB),$24-20
 	MOVL AX, 8(SP)
 	CALL ·X__builtin_popcount(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Y__builtin_popcountl(t *TLS, x ulong) int32
+// func Y__builtin_popcountl(t *TLS, x ulong) (_2 int32)
 TEXT ·Y__builtin_popcountl(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2424,7 +2424,7 @@ TEXT ·Y__builtin_popcountl(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·X__builtin_popcountl(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
 // func Y__builtin_prefetch(t *TLS, addr, args uintptr)
@@ -2494,7 +2494,7 @@ TEXT ·Y__builtin_roundf(SB),$24-20
 	MOVL AX, r+16(FP)
 	RET
 
-// func Y__builtin_snprintf(t *TLS, str uintptr, size Tsize_t, format, args uintptr) int32
+// func Y__builtin_snprintf(t *TLS, str uintptr, size Tsize_t, format, args uintptr) (_4 int32)
 TEXT ·Y__builtin_snprintf(SB),$48-44
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2510,7 +2510,7 @@ TEXT ·Y__builtin_snprintf(SB),$48-44
 	MOVQ AX, 32(SP)
 	CALL ·X__builtin_snprintf(SB)
 	MOVL 40(SP), AX
-	MOVL AX, ret+40(FP)
+	MOVL AX, _4+40(FP)
 	RET
 
 // func Y__builtin_sprintf(t *TLS, str, format, args uintptr) (r int32)
@@ -2530,7 +2530,7 @@ TEXT ·Y__builtin_sprintf(SB),$40-36
 	MOVL AX, r+32(FP)
 	RET
 
-// func Y__builtin_strchr(t *TLS, s uintptr, c int32) uintptr
+// func Y__builtin_strchr(t *TLS, s uintptr, c int32) (_3 uintptr)
 TEXT ·Y__builtin_strchr(SB),$32-32
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2542,10 +2542,10 @@ TEXT ·Y__builtin_strchr(SB),$32-32
 	MOVL AX, 16(SP)
 	CALL ·X__builtin_strchr(SB)
 	MOVQ 24(SP), AX
-	MOVQ AX, ret+24(FP)
+	MOVQ AX, _3+24(FP)
 	RET
 
-// func Y__builtin_strcmp(t *TLS, s1, s2 uintptr) int32
+// func Y__builtin_strcmp(t *TLS, s1, s2 uintptr) (_2 int32)
 TEXT ·Y__builtin_strcmp(SB),$32-28
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2557,10 +2557,10 @@ TEXT ·Y__builtin_strcmp(SB),$32-28
 	MOVQ AX, 16(SP)
 	CALL ·X__builtin_strcmp(SB)
 	MOVL 24(SP), AX
-	MOVL AX, ret+24(FP)
+	MOVL AX, _2+24(FP)
 	RET
 
-// func Y__builtin_strcpy(t *TLS, dest, src uintptr) uintptr
+// func Y__builtin_strcpy(t *TLS, dest, src uintptr) (_2 uintptr)
 TEXT ·Y__builtin_strcpy(SB),$32-32
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2572,10 +2572,10 @@ TEXT ·Y__builtin_strcpy(SB),$32-32
 	MOVQ AX, 16(SP)
 	CALL ·X__builtin_strcpy(SB)
 	MOVQ 24(SP), AX
-	MOVQ AX, ret+24(FP)
+	MOVQ AX, _2+24(FP)
 	RET
 
-// func Y__builtin_strlen(t *TLS, s uintptr) Tsize_t
+// func Y__builtin_strlen(t *TLS, s uintptr) (_2 Tsize_t)
 TEXT ·Y__builtin_strlen(SB),$24-24
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2585,10 +2585,10 @@ TEXT ·Y__builtin_strlen(SB),$24-24
 	MOVQ AX, 8(SP)
 	CALL ·X__builtin_strlen(SB)
 	MOVQ 16(SP), AX
-	MOVQ AX, ret+16(FP)
+	MOVQ AX, _2+16(FP)
 	RET
 
-// func Y__builtin_sub_overflowInt64(t *TLS, a, b int64, res uintptr) int32
+// func Y__builtin_sub_overflowInt64(t *TLS, a, b int64, res uintptr) (_3 int32)
 TEXT ·Y__builtin_sub_overflowInt64(SB),$40-36
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2602,7 +2602,7 @@ TEXT ·Y__builtin_sub_overflowInt64(SB),$40-36
 	MOVQ AX, 24(SP)
 	CALL ·X__builtin_sub_overflowInt64(SB)
 	MOVL 32(SP), AX
-	MOVL AX, ret+32(FP)
+	MOVL AX, _3+32(FP)
 	RET
 
 // func Y__builtin_trap(t *TLS)
@@ -2636,7 +2636,7 @@ TEXT ·Y__builtin_unreachable(SB),$8-8
 	CALL ·X__builtin_unreachable(SB)
 	RET
 
-// func Y__builtin_vsnprintf(t *TLS, str uintptr, size Tsize_t, format, va uintptr) int32
+// func Y__builtin_vsnprintf(t *TLS, str uintptr, size Tsize_t, format, va uintptr) (_4 int32)
 TEXT ·Y__builtin_vsnprintf(SB),$48-44
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2652,10 +2652,10 @@ TEXT ·Y__builtin_vsnprintf(SB),$48-44
 	MOVQ AX, 32(SP)
 	CALL ·X__builtin_vsnprintf(SB)
 	MOVL 40(SP), AX
-	MOVL AX, ret+40(FP)
+	MOVL AX, _4+40(FP)
 	RET
 
-// func Y__c11_atomic_compare_exchange_strongInt16(t *TLS, ptr, expected uintptr, desired int16, success, failure int32) int32
+// func Y__c11_atomic_compare_exchange_strongInt16(t *TLS, ptr, expected uintptr, desired int16, success, failure int32) (_4 int32)
 TEXT ·Y__c11_atomic_compare_exchange_strongInt16(SB),$48-44
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2673,10 +2673,10 @@ TEXT ·Y__c11_atomic_compare_exchange_strongInt16(SB),$48-44
 	MOVL AX, 32(SP)
 	CALL ·X__c11_atomic_compare_exchange_strongInt16(SB)
 	MOVL 40(SP), AX
-	MOVL AX, ret+40(FP)
+	MOVL AX, _4+40(FP)
 	RET
 
-// func Y__c11_atomic_compare_exchange_strongInt32(t *TLS, ptr, expected uintptr, desired, success, failure int32) int32
+// func Y__c11_atomic_compare_exchange_strongInt32(t *TLS, ptr, expected uintptr, desired, success, failure int32) (_3 int32)
 TEXT ·Y__c11_atomic_compare_exchange_strongInt32(SB),$48-44
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2694,10 +2694,10 @@ TEXT ·Y__c11_atomic_compare_exchange_strongInt32(SB),$48-44
 	MOVL AX, 32(SP)
 	CALL ·X__c11_atomic_compare_exchange_strongInt32(SB)
 	MOVL 40(SP), AX
-	MOVL AX, ret+40(FP)
+	MOVL AX, _3+40(FP)
 	RET
 
-// func Y__c11_atomic_compare_exchange_strongInt64(t *TLS, ptr, expected uintptr, desired int64, success, failure int32) int32
+// func Y__c11_atomic_compare_exchange_strongInt64(t *TLS, ptr, expected uintptr, desired int64, success, failure int32) (_4 int32)
 TEXT ·Y__c11_atomic_compare_exchange_strongInt64(SB),$48-44
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2715,10 +2715,10 @@ TEXT ·Y__c11_atomic_compare_exchange_strongInt64(SB),$48-44
 	MOVL AX, 36(SP)
 	CALL ·X__c11_atomic_compare_exchange_strongInt64(SB)
 	MOVL 40(SP), AX
-	MOVL AX, ret+40(FP)
+	MOVL AX, _4+40(FP)
 	RET
 
-// func Y__c11_atomic_compare_exchange_strongInt8(t *TLS, ptr, expected uintptr, desired int8, success, failure int32) int32
+// func Y__c11_atomic_compare_exchange_strongInt8(t *TLS, ptr, expected uintptr, desired int8, success, failure int32) (_4 int32)
 TEXT ·Y__c11_atomic_compare_exchange_strongInt8(SB),$48-44
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2736,10 +2736,10 @@ TEXT ·Y__c11_atomic_compare_exchange_strongInt8(SB),$48-44
 	MOVL AX, 32(SP)
 	CALL ·X__c11_atomic_compare_exchange_strongInt8(SB)
 	MOVL 40(SP), AX
-	MOVL AX, ret+40(FP)
+	MOVL AX, _4+40(FP)
 	RET
 
-// func Y__c11_atomic_compare_exchange_strongUint16(t *TLS, ptr, expected uintptr, desired uint16, success, failure int32) int32
+// func Y__c11_atomic_compare_exchange_strongUint16(t *TLS, ptr, expected uintptr, desired uint16, success, failure int32) (_4 int32)
 TEXT ·Y__c11_atomic_compare_exchange_strongUint16(SB),$48-44
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2757,10 +2757,10 @@ TEXT ·Y__c11_atomic_compare_exchange_strongUint16(SB),$48-44
 	MOVL AX, 32(SP)
 	CALL ·X__c11_atomic_compare_exchange_strongUint16(SB)
 	MOVL 40(SP), AX
-	MOVL AX, ret+40(FP)
+	MOVL AX, _4+40(FP)
 	RET
 
-// func Y__c11_atomic_compare_exchange_strongUint32(t *TLS, ptr, expected uintptr, desired uint32, success, failure int32) int32
+// func Y__c11_atomic_compare_exchange_strongUint32(t *TLS, ptr, expected uintptr, desired uint32, success, failure int32) (_4 int32)
 TEXT ·Y__c11_atomic_compare_exchange_strongUint32(SB),$48-44
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2778,10 +2778,10 @@ TEXT ·Y__c11_atomic_compare_exchange_strongUint32(SB),$48-44
 	MOVL AX, 32(SP)
 	CALL ·X__c11_atomic_compare_exchange_strongUint32(SB)
 	MOVL 40(SP), AX
-	MOVL AX, ret+40(FP)
+	MOVL AX, _4+40(FP)
 	RET
 
-// func Y__c11_atomic_compare_exchange_strongUint64(t *TLS, ptr, expected uintptr, desired uint64, success, failure int32) int32
+// func Y__c11_atomic_compare_exchange_strongUint64(t *TLS, ptr, expected uintptr, desired uint64, success, failure int32) (_4 int32)
 TEXT ·Y__c11_atomic_compare_exchange_strongUint64(SB),$48-44
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2799,10 +2799,10 @@ TEXT ·Y__c11_atomic_compare_exchange_strongUint64(SB),$48-44
 	MOVL AX, 36(SP)
 	CALL ·X__c11_atomic_compare_exchange_strongUint64(SB)
 	MOVL 40(SP), AX
-	MOVL AX, ret+40(FP)
+	MOVL AX, _4+40(FP)
 	RET
 
-// func Y__c11_atomic_compare_exchange_strongUint8(t *TLS, ptr, expected uintptr, desired uint8, success, failure int32) int32
+// func Y__c11_atomic_compare_exchange_strongUint8(t *TLS, ptr, expected uintptr, desired uint8, success, failure int32) (_4 int32)
 TEXT ·Y__c11_atomic_compare_exchange_strongUint8(SB),$48-44
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -2820,7 +2820,7 @@ TEXT ·Y__c11_atomic_compare_exchange_strongUint8(SB),$48-44
 	MOVL AX, 32(SP)
 	CALL ·X__c11_atomic_compare_exchange_strongUint8(SB)
 	MOVL 40(SP), AX
-	MOVL AX, ret+40(FP)
+	MOVL AX, _4+40(FP)
 	RET
 
 // func Y__c11_atomic_exchangeInt16(t *TLS, ptr uintptr, val int16, _ int32) (r int16)
@@ -3892,7 +3892,7 @@ TEXT ·Y__ccgo_dmesg(SB),$24-24
 	CALL ·X__ccgo_dmesg(SB)
 	RET
 
-// func Y__ccgo_getMutexType(tls *TLS, m uintptr) int32
+// func Y__ccgo_getMutexType(tls *TLS, m uintptr) (_2 int32)
 TEXT ·Y__ccgo_getMutexType(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -3902,10 +3902,10 @@ TEXT ·Y__ccgo_getMutexType(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·X__ccgo_getMutexType(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Y__ccgo_in6addr_anyp(t *TLS) uintptr
+// func Y__ccgo_in6addr_anyp(t *TLS) (_1 uintptr)
 TEXT ·Y__ccgo_in6addr_anyp(SB),$16-16
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -3913,10 +3913,10 @@ TEXT ·Y__ccgo_in6addr_anyp(SB),$16-16
 	MOVQ AX, 0(SP)
 	CALL ·X__ccgo_in6addr_anyp(SB)
 	MOVQ 8(SP), AX
-	MOVQ AX, ret+8(FP)
+	MOVQ AX, _1+8(FP)
 	RET
 
-// func Y__ccgo_pthreadAttrGetDetachState(tls *TLS, a uintptr) int32
+// func Y__ccgo_pthreadAttrGetDetachState(tls *TLS, a uintptr) (_2 int32)
 TEXT ·Y__ccgo_pthreadAttrGetDetachState(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -3926,10 +3926,10 @@ TEXT ·Y__ccgo_pthreadAttrGetDetachState(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·X__ccgo_pthreadAttrGetDetachState(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Y__ccgo_pthreadMutexattrGettype(tls *TLS, a uintptr) int32
+// func Y__ccgo_pthreadMutexattrGettype(tls *TLS, a uintptr) (_2 int32)
 TEXT ·Y__ccgo_pthreadMutexattrGettype(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -3939,7 +3939,7 @@ TEXT ·Y__ccgo_pthreadMutexattrGettype(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·X__ccgo_pthreadMutexattrGettype(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
 // func Y__ccgo_sqlite3_log(t *TLS, iErrCode int32, zFormat uintptr, args uintptr)
@@ -3991,7 +3991,7 @@ TEXT ·Y__clock_nanosleep(SB),$40-36
 	MOVL AX, r+32(FP)
 	RET
 
-// func Y__cmsg_nxthdr(t *TLS, msgh, cmsg uintptr) uintptr
+// func Y__cmsg_nxthdr(t *TLS, msgh, cmsg uintptr) (_2 uintptr)
 TEXT ·Y__cmsg_nxthdr(SB),$32-32
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -4003,7 +4003,7 @@ TEXT ·Y__cmsg_nxthdr(SB),$32-32
 	MOVQ AX, 16(SP)
 	CALL ·X__cmsg_nxthdr(SB)
 	MOVQ 24(SP), AX
-	MOVQ AX, ret+24(FP)
+	MOVQ AX, _2+24(FP)
 	RET
 
 // func Y__convert_scm_timestamps(tls *TLS, msg uintptr, csize Tsocklen_t)
@@ -4228,22 +4228,64 @@ TEXT ·Y__dn_expand(SB),$56-52
 	RET
 
 // func Y__dns_parse(tls *TLS, r uintptr, rlen int32, __ccgo_fp_callback uintptr, ctx uintptr) (r1 int32)
-TEXT ·Y__dns_parse(SB),$48-44
+TEXT ·Y__dns_parse(SB),$56-44
 	GO_ARGS
 	NO_LOCAL_POINTERS
+	MOVQ tls+0(FP), AX	// alloc all ABI trampolines
+	MOVQ AX, 0(SP)
+	MOVQ $16, 8(SP)	// 16*(number of func ptrs in signature)
+	CALL modernc·org∕libc·TLSAlloc(SB)
+	MOVQ 16(SP), AX
+	MOVQ AX, -8(BP) // Trampolines[0]
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ -8(BP), AX
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
+	MOVQ AX, 8(SP)
+	MOVQ __ccgo_fp_callback+24(FP), AX	// ABI0 code ptr
+	MOVQ AX, 16(SP)
+	CALL ·__ccgo_abiInternal___dns_parse_2(SB)	// Create the closure for calling __ccgo_fp_callback
 	MOVQ tls+0(FP), AX
 	MOVQ AX, 0(SP)
 	MOVQ r+8(FP), AX
 	MOVQ AX, 8(SP)
 	MOVL rlen+16(FP), AX
 	MOVL AX, 16(SP)
-	MOVQ __ccgo_fp_callback+24(FP), AX
+	MOVQ -8(BP), AX // Trampolines[0]
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
 	MOVQ AX, 24(SP)
 	MOVQ ctx+32(FP), AX
 	MOVQ AX, 32(SP)
 	CALL ·X__dns_parse(SB)
 	MOVL 40(SP), AX
 	MOVL AX, r1+40(FP)
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ $0, 8(SP)
+	CALL modernc·org∕libc·TLSFree(SB)
+	RET
+
+TEXT ·__ccgo_abi0___dns_parse_2(SB),$72-68
+	GO_ARGS
+	NO_LOCAL_POINTERS
+	MOVQ _0+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ _1+8(FP), AX
+	MOVQ AX, 8(SP)
+	MOVL _2+16(FP), AX
+	MOVL AX, 16(SP)
+	MOVQ _3+24(FP), AX
+	MOVQ AX, 24(SP)
+	MOVL _4+32(FP), AX
+	MOVL AX, 32(SP)
+	MOVQ _5+40(FP), AX
+	MOVQ AX, 40(SP)
+	MOVL _6+48(FP), AX
+	MOVL AX, 48(SP)
+	MOVQ __ccgo_fp+56(FP), AX
+	CALL *AX	// Call the ABI0 code ptr
+	MOVL 56(SP), AX
+	MOVL AX, _7+64(FP)
 	RET
 
 // func Y__do_des(tls *TLS, l_in Tuint32_t, r_in Tuint32_t, l_out uintptr, r_out uintptr, count Tuint32_t, saltbits Tuint32_t, ekey uintptr)
@@ -5238,7 +5280,7 @@ TEXT ·Y__isdigit_l(SB),$32-28
 	MOVL AX, r+24(FP)
 	RET
 
-// func Y__isfinite(tls *TLS, d float64) int32
+// func Y__isfinite(tls *TLS, d float64) (_2 int32)
 TEXT ·Y__isfinite(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -5248,10 +5290,10 @@ TEXT ·Y__isfinite(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·X__isfinite(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Y__isfinitef(tls *TLS, f float32) int32
+// func Y__isfinitef(tls *TLS, f float32) (_2 int32)
 TEXT ·Y__isfinitef(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -5261,10 +5303,10 @@ TEXT ·Y__isfinitef(SB),$24-20
 	MOVL AX, 8(SP)
 	CALL ·X__isfinitef(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Y__isfinitel(tls *TLS, d float64) int32
+// func Y__isfinitel(tls *TLS, d float64) (_2 int32)
 TEXT ·Y__isfinitel(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -5274,7 +5316,7 @@ TEXT ·Y__isfinitel(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·X__isfinitel(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
 // func Y__isgraph_l(tls *TLS, c int32, l Tlocale_t) (r int32)
@@ -5307,7 +5349,7 @@ TEXT ·Y__islower_l(SB),$32-28
 	MOVL AX, r+24(FP)
 	RET
 
-// func Y__isnan(t *TLS, x float64) int32
+// func Y__isnan(t *TLS, x float64) (_2 int32)
 TEXT ·Y__isnan(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -5317,10 +5359,10 @@ TEXT ·Y__isnan(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·X__isnan(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Y__isnanf(t *TLS, arg float32) int32
+// func Y__isnanf(t *TLS, arg float32) (_2 int32)
 TEXT ·Y__isnanf(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -5330,10 +5372,10 @@ TEXT ·Y__isnanf(SB),$24-20
 	MOVL AX, 8(SP)
 	CALL ·X__isnanf(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Y__isnanl(t *TLS, arg float64) int32
+// func Y__isnanl(t *TLS, arg float64) (_2 int32)
 TEXT ·Y__isnanl(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -5343,7 +5385,7 @@ TEXT ·Y__isnanl(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·X__isnanl(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
 // func Y__isoc99_fscanf(tls *TLS, f uintptr, fmt uintptr, va uintptr) (r int32)
@@ -6007,7 +6049,7 @@ TEXT ·Y__localtime_r(SB),$32-32
 	MOVQ AX, r+24(FP)
 	RET
 
-// func Y__lockfile(tls *TLS, file uintptr) int32
+// func Y__lockfile(tls *TLS, file uintptr) (_2 int32)
 TEXT ·Y__lockfile(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -6017,7 +6059,7 @@ TEXT ·Y__lockfile(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·X__lockfile(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
 // func Y__lookup_ipliteral(tls *TLS, buf uintptr, name uintptr, family int32) (r int32)
@@ -6628,9 +6670,23 @@ TEXT ·Y__putenv(SB),$40-36
 	RET
 
 // func Y__qsort_r(tls *TLS, base uintptr, nel Tsize_t, width Tsize_t, __ccgo_fp_cmp Tcmpfun, arg uintptr)
-TEXT ·Y__qsort_r(SB),$48-48
+TEXT ·Y__qsort_r(SB),$56-48
 	GO_ARGS
 	NO_LOCAL_POINTERS
+	MOVQ tls+0(FP), AX	// alloc all ABI trampolines
+	MOVQ AX, 0(SP)
+	MOVQ $16, 8(SP)	// 16*(number of func ptrs in signature)
+	CALL modernc·org∕libc·TLSAlloc(SB)
+	MOVQ 16(SP), AX
+	MOVQ AX, -8(BP) // Trampolines[0]
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ -8(BP), AX
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
+	MOVQ AX, 8(SP)
+	MOVQ __ccgo_fp_cmp+32(FP), AX	// ABI0 code ptr
+	MOVQ AX, 16(SP)
+	CALL ·__ccgo_abiInternal___qsort_r_3(SB)	// Create the closure for calling __ccgo_fp_cmp
 	MOVQ tls+0(FP), AX
 	MOVQ AX, 0(SP)
 	MOVQ base+8(FP), AX
@@ -6639,11 +6695,33 @@ TEXT ·Y__qsort_r(SB),$48-48
 	MOVQ AX, 16(SP)
 	MOVQ width+24(FP), AX
 	MOVQ AX, 24(SP)
-	MOVQ __ccgo_fp_cmp+32(FP), AX
+	MOVQ -8(BP), AX // Trampolines[0]
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
 	MOVQ AX, 32(SP)
 	MOVQ arg+40(FP), AX
 	MOVQ AX, 40(SP)
 	CALL ·X__qsort_r(SB)
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ $0, 8(SP)
+	CALL modernc·org∕libc·TLSFree(SB)
+	RET
+
+TEXT ·__ccgo_abi0___qsort_r_3(SB),$48-44
+	GO_ARGS
+	NO_LOCAL_POINTERS
+	MOVQ _0+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ _1+8(FP), AX
+	MOVQ AX, 8(SP)
+	MOVQ _2+16(FP), AX
+	MOVQ AX, 16(SP)
+	MOVQ _3+24(FP), AX
+	MOVQ AX, 24(SP)
+	MOVQ __ccgo_fp+32(FP), AX
+	CALL *AX	// Call the ABI0 code ptr
+	MOVL 32(SP), AX
+	MOVL AX, _4+40(FP)
 	RET
 
 // func Y__rand48_step(tls *TLS, xi uintptr, lc uintptr) (r Tuint64_t)
@@ -6871,22 +6949,56 @@ TEXT ·Y__restore_sigs(SB),$16-16
 	RET
 
 // func Y__rtnetlink_enumerate(tls *TLS, link_af int32, addr_af int32, __ccgo_fp_cb uintptr, ctx uintptr) (r1 int32)
-TEXT ·Y__rtnetlink_enumerate(SB),$40-36
+TEXT ·Y__rtnetlink_enumerate(SB),$48-36
 	GO_ARGS
 	NO_LOCAL_POINTERS
+	MOVQ tls+0(FP), AX	// alloc all ABI trampolines
+	MOVQ AX, 0(SP)
+	MOVQ $16, 8(SP)	// 16*(number of func ptrs in signature)
+	CALL modernc·org∕libc·TLSAlloc(SB)
+	MOVQ 16(SP), AX
+	MOVQ AX, -8(BP) // Trampolines[0]
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ -8(BP), AX
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
+	MOVQ AX, 8(SP)
+	MOVQ __ccgo_fp_cb+16(FP), AX	// ABI0 code ptr
+	MOVQ AX, 16(SP)
+	CALL ·__ccgo_abiInternal___rtnetlink_enumerate_2(SB)	// Create the closure for calling __ccgo_fp_cb
 	MOVQ tls+0(FP), AX
 	MOVQ AX, 0(SP)
 	MOVL link_af+8(FP), AX
 	MOVL AX, 8(SP)
 	MOVL addr_af+12(FP), AX
 	MOVL AX, 12(SP)
-	MOVQ __ccgo_fp_cb+16(FP), AX
-	MOVQ AX, 16(SP)
+	MOVQ -8(BP), AX // Trampolines[0]
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
+	MOVQ AX, 24(SP)
 	MOVQ ctx+24(FP), AX
 	MOVQ AX, 24(SP)
 	CALL ·X__rtnetlink_enumerate(SB)
 	MOVL 32(SP), AX
 	MOVL AX, r1+32(FP)
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ $0, 8(SP)
+	CALL modernc·org∕libc·TLSFree(SB)
+	RET
+
+TEXT ·__ccgo_abi0___rtnetlink_enumerate_2(SB),$40-36
+	GO_ARGS
+	NO_LOCAL_POINTERS
+	MOVQ _0+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ _1+8(FP), AX
+	MOVQ AX, 8(SP)
+	MOVQ _2+16(FP), AX
+	MOVQ AX, 16(SP)
+	MOVQ __ccgo_fp+24(FP), AX
+	CALL *AX	// Call the ABI0 code ptr
+	MOVL 24(SP), AX
+	MOVL AX, _3+32(FP)
 	RET
 
 // func Y__secs_to_tm(tls *TLS, t int64, tm uintptr) (r int32)
@@ -7679,7 +7791,7 @@ TEXT ·Y__sync_val_compare_and_swapUint8(SB),$32-25
 	MOVB AX, r+24(FP)
 	RET
 
-// func Y__syscall0(tls *TLS, n long) long
+// func Y__syscall0(tls *TLS, n long) (_2 long)
 TEXT ·Y__syscall0(SB),$24-24
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -7689,10 +7801,10 @@ TEXT ·Y__syscall0(SB),$24-24
 	MOVQ AX, 8(SP)
 	CALL ·X__syscall0(SB)
 	MOVQ 16(SP), AX
-	MOVQ AX, ret+16(FP)
+	MOVQ AX, _2+16(FP)
 	RET
 
-// func Y__syscall1(tls *TLS, n, a1 long) long
+// func Y__syscall1(tls *TLS, n, a1 long) (_2 long)
 TEXT ·Y__syscall1(SB),$32-32
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -7704,10 +7816,10 @@ TEXT ·Y__syscall1(SB),$32-32
 	MOVQ AX, 16(SP)
 	CALL ·X__syscall1(SB)
 	MOVQ 24(SP), AX
-	MOVQ AX, ret+24(FP)
+	MOVQ AX, _2+24(FP)
 	RET
 
-// func Y__syscall2(tls *TLS, n, a1, a2 long) long
+// func Y__syscall2(tls *TLS, n, a1, a2 long) (_2 long)
 TEXT ·Y__syscall2(SB),$40-40
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -7721,10 +7833,10 @@ TEXT ·Y__syscall2(SB),$40-40
 	MOVQ AX, 24(SP)
 	CALL ·X__syscall2(SB)
 	MOVQ 32(SP), AX
-	MOVQ AX, ret+32(FP)
+	MOVQ AX, _2+32(FP)
 	RET
 
-// func Y__syscall3(tls *TLS, n, a1, a2, a3 long) long
+// func Y__syscall3(tls *TLS, n, a1, a2, a3 long) (_2 long)
 TEXT ·Y__syscall3(SB),$48-48
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -7740,10 +7852,10 @@ TEXT ·Y__syscall3(SB),$48-48
 	MOVQ AX, 32(SP)
 	CALL ·X__syscall3(SB)
 	MOVQ 40(SP), AX
-	MOVQ AX, ret+40(FP)
+	MOVQ AX, _2+40(FP)
 	RET
 
-// func Y__syscall4(tls *TLS, n, a1, a2, a3, a4 long) long
+// func Y__syscall4(tls *TLS, n, a1, a2, a3, a4 long) (_2 long)
 TEXT ·Y__syscall4(SB),$56-56
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -7761,10 +7873,10 @@ TEXT ·Y__syscall4(SB),$56-56
 	MOVQ AX, 40(SP)
 	CALL ·X__syscall4(SB)
 	MOVQ 48(SP), AX
-	MOVQ AX, ret+48(FP)
+	MOVQ AX, _2+48(FP)
 	RET
 
-// func Y__syscall5(tls *TLS, n, a1, a2, a3, a4, a5 long) long
+// func Y__syscall5(tls *TLS, n, a1, a2, a3, a4, a5 long) (_2 long)
 TEXT ·Y__syscall5(SB),$64-64
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -7784,10 +7896,10 @@ TEXT ·Y__syscall5(SB),$64-64
 	MOVQ AX, 48(SP)
 	CALL ·X__syscall5(SB)
 	MOVQ 56(SP), AX
-	MOVQ AX, ret+56(FP)
+	MOVQ AX, _2+56(FP)
 	RET
 
-// func Y__syscall6(tls *TLS, n, a1, a2, a3, a4, a5, a6 long) long
+// func Y__syscall6(tls *TLS, n, a1, a2, a3, a4, a5, a6 long) (_2 long)
 TEXT ·Y__syscall6(SB),$72-72
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -7809,7 +7921,7 @@ TEXT ·Y__syscall6(SB),$72-72
 	MOVQ AX, 56(SP)
 	CALL ·X__syscall6(SB)
 	MOVQ 64(SP), AX
-	MOVQ AX, ret+64(FP)
+	MOVQ AX, _2+64(FP)
 	RET
 
 // func Y__syscall_ret(tls *TLS, r uint64) (r1 int64)
@@ -8343,7 +8455,7 @@ TEXT ·Y_longjmp(SB),$24-20
 	CALL ·X_longjmp(SB)
 	RET
 
-// func Y_obstack_begin(t *TLS, obstack uintptr, size, alignment int32, chunkfun, freefun uintptr) int32
+// func Y_obstack_begin(t *TLS, obstack uintptr, size, alignment int32, chunkfun, freefun uintptr) (_4 int32)
 TEXT ·Y_obstack_begin(SB),$48-44
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -8361,10 +8473,10 @@ TEXT ·Y_obstack_begin(SB),$48-44
 	MOVQ AX, 32(SP)
 	CALL ·X_obstack_begin(SB)
 	MOVL 40(SP), AX
-	MOVL AX, ret+40(FP)
+	MOVL AX, _4+40(FP)
 	RET
 
-// func Y_obstack_newchunk(t *TLS, obstack uintptr, length int32) int32
+// func Y_obstack_newchunk(t *TLS, obstack uintptr, length int32) (_3 int32)
 TEXT ·Y_obstack_newchunk(SB),$32-28
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -8376,7 +8488,7 @@ TEXT ·Y_obstack_newchunk(SB),$32-28
 	MOVL AX, 16(SP)
 	CALL ·X_obstack_newchunk(SB)
 	MOVL 24(SP), AX
-	MOVL AX, ret+24(FP)
+	MOVL AX, _3+24(FP)
 	RET
 
 // func Y_pthread_cleanup_pop(tls *TLS, _ uintptr, run int32)
@@ -8407,7 +8519,7 @@ TEXT ·Y_pthread_cleanup_push(SB),$32-32
 	CALL ·X_pthread_cleanup_push(SB)
 	RET
 
-// func Y_setjmp(t *TLS, env uintptr) int32
+// func Y_setjmp(t *TLS, env uintptr) (_2 int32)
 TEXT ·Y_setjmp(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -8417,7 +8529,7 @@ TEXT ·Y_setjmp(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·X_setjmp(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
 // func Ya64l(tls *TLS, s uintptr) (r int64)
@@ -8653,7 +8765,7 @@ TEXT ·Yalarm(SB),$24-20
 	MOVL AX, r+16(FP)
 	RET
 
-// func Yalloca(tls *TLS, size Tsize_t) uintptr
+// func Yalloca(tls *TLS, size Tsize_t) (_2 uintptr)
 TEXT ·Yalloca(SB),$24-24
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -8663,7 +8775,7 @@ TEXT ·Yalloca(SB),$24-24
 	MOVQ AX, 8(SP)
 	CALL ·Xalloca(SB)
 	MOVQ 16(SP), AX
-	MOVQ AX, ret+16(FP)
+	MOVQ AX, _2+16(FP)
 	RET
 
 // func Yalphasort(tls *TLS, a uintptr, b uintptr) (r int32)
@@ -8820,16 +8932,44 @@ TEXT ·Yasprintf(SB),$40-36
 	RET
 
 // func Yat_quick_exit(tls *TLS, __ccgo_fp_func uintptr) (r1 int32)
-TEXT ·Yat_quick_exit(SB),$24-20
+TEXT ·Yat_quick_exit(SB),$32-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
+	MOVQ tls+0(FP), AX	// alloc all ABI trampolines
+	MOVQ AX, 0(SP)
+	MOVQ $16, 8(SP)	// 16*(number of func ptrs in signature)
+	CALL modernc·org∕libc·TLSAlloc(SB)
+	MOVQ 16(SP), AX
+	MOVQ AX, -8(BP) // Trampolines[0]
 	MOVQ tls+0(FP), AX
 	MOVQ AX, 0(SP)
-	MOVQ __ccgo_fp_func+8(FP), AX
+	MOVQ -8(BP), AX
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
+	MOVQ AX, 8(SP)
+	MOVQ __ccgo_fp_func+8(FP), AX	// ABI0 code ptr
+	MOVQ AX, 16(SP)
+	CALL ·__ccgo_abiInternal_at_quick_exit_0(SB)	// Create the closure for calling __ccgo_fp_func
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ -8(BP), AX // Trampolines[0]
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
 	MOVQ AX, 8(SP)
 	CALL ·Xat_quick_exit(SB)
 	MOVL 16(SP), AX
 	MOVL AX, r1+16(FP)
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ $0, 8(SP)
+	CALL modernc·org∕libc·TLSFree(SB)
+	RET
+
+TEXT ·__ccgo_abi0_at_quick_exit_0(SB),$16-16
+	GO_ARGS
+	NO_LOCAL_POINTERS
+	MOVQ _0+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ __ccgo_fp+8(FP), AX
+	CALL *AX	// Call the ABI0 code ptr
 	RET
 
 // func Yatan(tls *TLS, x3 float64) (r float64)
@@ -9020,7 +9160,7 @@ TEXT ·Yatoll(SB),$24-24
 	MOVQ AX, r+16(FP)
 	RET
 
-// func Ybacktrace(t *TLS, buf uintptr, size int32) int32
+// func Ybacktrace(t *TLS, buf uintptr, size int32) (_3 int32)
 TEXT ·Ybacktrace(SB),$32-28
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -9032,7 +9172,7 @@ TEXT ·Ybacktrace(SB),$32-28
 	MOVL AX, 16(SP)
 	CALL ·Xbacktrace(SB)
 	MOVL 24(SP), AX
-	MOVL AX, ret+24(FP)
+	MOVL AX, _3+24(FP)
 	RET
 
 // func Ybacktrace_symbols_fd(t *TLS, buffer uintptr, size, fd int32)
@@ -9156,9 +9296,23 @@ TEXT ·Ybrk(SB),$24-20
 	RET
 
 // func Ybsearch(tls *TLS, key uintptr, base uintptr, nel Tsize_t, width Tsize_t, __ccgo_fp_cmp uintptr) (r uintptr)
-TEXT ·Ybsearch(SB),$56-56
+TEXT ·Ybsearch(SB),$64-56
 	GO_ARGS
 	NO_LOCAL_POINTERS
+	MOVQ tls+0(FP), AX	// alloc all ABI trampolines
+	MOVQ AX, 0(SP)
+	MOVQ $16, 8(SP)	// 16*(number of func ptrs in signature)
+	CALL modernc·org∕libc·TLSAlloc(SB)
+	MOVQ 16(SP), AX
+	MOVQ AX, -8(BP) // Trampolines[0]
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ -8(BP), AX
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
+	MOVQ AX, 8(SP)
+	MOVQ __ccgo_fp_cmp+40(FP), AX	// ABI0 code ptr
+	MOVQ AX, 16(SP)
+	CALL ·__ccgo_abiInternal_bsearch_4(SB)	// Create the closure for calling __ccgo_fp_cmp
 	MOVQ tls+0(FP), AX
 	MOVQ AX, 0(SP)
 	MOVQ key+8(FP), AX
@@ -9169,11 +9323,31 @@ TEXT ·Ybsearch(SB),$56-56
 	MOVQ AX, 24(SP)
 	MOVQ width+32(FP), AX
 	MOVQ AX, 32(SP)
-	MOVQ __ccgo_fp_cmp+40(FP), AX
+	MOVQ -8(BP), AX // Trampolines[0]
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
 	MOVQ AX, 40(SP)
 	CALL ·Xbsearch(SB)
 	MOVQ 48(SP), AX
 	MOVQ AX, r+48(FP)
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ $0, 8(SP)
+	CALL modernc·org∕libc·TLSFree(SB)
+	RET
+
+TEXT ·__ccgo_abi0_bsearch_4(SB),$40-36
+	GO_ARGS
+	NO_LOCAL_POINTERS
+	MOVQ _0+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ _1+8(FP), AX
+	MOVQ AX, 8(SP)
+	MOVQ _2+16(FP), AX
+	MOVQ AX, 16(SP)
+	MOVQ __ccgo_fp+24(FP), AX
+	CALL *AX	// Call the ABI0 code ptr
+	MOVL 24(SP), AX
+	MOVL AX, _3+32(FP)
 	RET
 
 // func Ybtowc(tls *TLS, c int32) (r Twint_t)
@@ -11236,7 +11410,7 @@ TEXT ·Ydiv(SB),$24-24
 	MOVL AX, r_Frem+20(FP)
 	RET
 
-// func Ydlclose(t *TLS, handle uintptr) int32
+// func Ydlclose(t *TLS, handle uintptr) (_2 int32)
 TEXT ·Ydlclose(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -11246,10 +11420,10 @@ TEXT ·Ydlclose(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·Xdlclose(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Ydlerror(t *TLS) uintptr
+// func Ydlerror(t *TLS) (_1 uintptr)
 TEXT ·Ydlerror(SB),$16-16
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -11257,10 +11431,10 @@ TEXT ·Ydlerror(SB),$16-16
 	MOVQ AX, 0(SP)
 	CALL ·Xdlerror(SB)
 	MOVQ 8(SP), AX
-	MOVQ AX, ret+8(FP)
+	MOVQ AX, _1+8(FP)
 	RET
 
-// func Ydlopen(t *TLS, filename uintptr, flags int32) uintptr
+// func Ydlopen(t *TLS, filename uintptr, flags int32) (_3 uintptr)
 TEXT ·Ydlopen(SB),$32-32
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -11272,10 +11446,10 @@ TEXT ·Ydlopen(SB),$32-32
 	MOVL AX, 16(SP)
 	CALL ·Xdlopen(SB)
 	MOVQ 24(SP), AX
-	MOVQ AX, ret+24(FP)
+	MOVQ AX, _3+24(FP)
 	RET
 
-// func Ydlsym(t *TLS, handle, symbol uintptr) uintptr
+// func Ydlsym(t *TLS, handle, symbol uintptr) (_2 uintptr)
 TEXT ·Ydlsym(SB),$32-32
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -11287,7 +11461,7 @@ TEXT ·Ydlsym(SB),$32-32
 	MOVQ AX, 16(SP)
 	CALL ·Xdlsym(SB)
 	MOVQ 24(SP), AX
-	MOVQ AX, ret+24(FP)
+	MOVQ AX, _2+24(FP)
 	RET
 
 // func Ydn_comp(tls *TLS, src uintptr, dst uintptr, space int32, dnptrs uintptr, lastdnptr uintptr) (r int32)
@@ -13464,7 +13638,7 @@ TEXT ·Yfopencookie(SB),$64-64
 	MOVQ AX, r+56(FP)
 	RET
 
-// func Yfork(t *TLS) int32
+// func Yfork(t *TLS) (_1 int32)
 TEXT ·Yfork(SB),$16-12
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -13472,7 +13646,7 @@ TEXT ·Yfork(SB),$16-12
 	MOVQ AX, 0(SP)
 	CALL ·Xfork(SB)
 	MOVL 8(SP), AX
-	MOVL AX, ret+8(FP)
+	MOVL AX, _1+8(FP)
 	RET
 
 // func Yfpathconf(tls *TLS, fd int32, name int32) (r int64)
@@ -14075,7 +14249,7 @@ TEXT ·Yftrylockfile(SB),$24-20
 	MOVL AX, r+16(FP)
 	RET
 
-// func Yfts64_close(t *TLS, ftsp uintptr) int32
+// func Yfts64_close(t *TLS, ftsp uintptr) (_2 int32)
 TEXT ·Yfts64_close(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -14085,10 +14259,10 @@ TEXT ·Yfts64_close(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·Xfts64_close(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Yfts64_open(t *TLS, path_argv uintptr, options int32, compar uintptr) uintptr
+// func Yfts64_open(t *TLS, path_argv uintptr, options int32, compar uintptr) (_4 uintptr)
 TEXT ·Yfts64_open(SB),$40-40
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -14102,10 +14276,10 @@ TEXT ·Yfts64_open(SB),$40-40
 	MOVQ AX, 24(SP)
 	CALL ·Xfts64_open(SB)
 	MOVQ 32(SP), AX
-	MOVQ AX, ret+32(FP)
+	MOVQ AX, _4+32(FP)
 	RET
 
-// func Yfts64_read(t *TLS, ftsp uintptr) uintptr
+// func Yfts64_read(t *TLS, ftsp uintptr) (_2 uintptr)
 TEXT ·Yfts64_read(SB),$24-24
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -14115,10 +14289,10 @@ TEXT ·Yfts64_read(SB),$24-24
 	MOVQ AX, 8(SP)
 	CALL ·Xfts64_read(SB)
 	MOVQ 16(SP), AX
-	MOVQ AX, ret+16(FP)
+	MOVQ AX, _2+16(FP)
 	RET
 
-// func Yfts_close(t *TLS, ftsp uintptr) int32
+// func Yfts_close(t *TLS, ftsp uintptr) (_2 int32)
 TEXT ·Yfts_close(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -14128,10 +14302,10 @@ TEXT ·Yfts_close(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·Xfts_close(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Yfts_open(t *TLS, path_argv uintptr, options int32, compar uintptr) uintptr
+// func Yfts_open(t *TLS, path_argv uintptr, options int32, compar uintptr) (_4 uintptr)
 TEXT ·Yfts_open(SB),$40-40
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -14145,10 +14319,10 @@ TEXT ·Yfts_open(SB),$40-40
 	MOVQ AX, 24(SP)
 	CALL ·Xfts_open(SB)
 	MOVQ 32(SP), AX
-	MOVQ AX, ret+32(FP)
+	MOVQ AX, _4+32(FP)
 	RET
 
-// func Yfts_read(t *TLS, ftsp uintptr) uintptr
+// func Yfts_read(t *TLS, ftsp uintptr) (_2 uintptr)
 TEXT ·Yfts_read(SB),$24-24
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -14158,24 +14332,60 @@ TEXT ·Yfts_read(SB),$24-24
 	MOVQ AX, 8(SP)
 	CALL ·Xfts_read(SB)
 	MOVQ 16(SP), AX
-	MOVQ AX, ret+16(FP)
+	MOVQ AX, _2+16(FP)
 	RET
 
 // func Yftw(tls *TLS, path uintptr, __ccgo_fp_fn uintptr, fd_limit int32) (r int32)
-TEXT ·Yftw(SB),$40-36
+TEXT ·Yftw(SB),$48-36
 	GO_ARGS
 	NO_LOCAL_POINTERS
+	MOVQ tls+0(FP), AX	// alloc all ABI trampolines
+	MOVQ AX, 0(SP)
+	MOVQ $16, 8(SP)	// 16*(number of func ptrs in signature)
+	CALL modernc·org∕libc·TLSAlloc(SB)
+	MOVQ 16(SP), AX
+	MOVQ AX, -8(BP) // Trampolines[0]
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ -8(BP), AX
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
+	MOVQ AX, 8(SP)
+	MOVQ __ccgo_fp_fn+16(FP), AX	// ABI0 code ptr
+	MOVQ AX, 16(SP)
+	CALL ·__ccgo_abiInternal_ftw_1(SB)	// Create the closure for calling __ccgo_fp_fn
 	MOVQ tls+0(FP), AX
 	MOVQ AX, 0(SP)
 	MOVQ path+8(FP), AX
 	MOVQ AX, 8(SP)
-	MOVQ __ccgo_fp_fn+16(FP), AX
+	MOVQ -8(BP), AX // Trampolines[0]
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
 	MOVQ AX, 16(SP)
 	MOVL fd_limit+24(FP), AX
 	MOVL AX, 24(SP)
 	CALL ·Xftw(SB)
 	MOVL 32(SP), AX
 	MOVL AX, r+32(FP)
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ $0, 8(SP)
+	CALL modernc·org∕libc·TLSFree(SB)
+	RET
+
+TEXT ·__ccgo_abi0_ftw_1(SB),$48-44
+	GO_ARGS
+	NO_LOCAL_POINTERS
+	MOVQ _0+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ _1+8(FP), AX
+	MOVQ AX, 8(SP)
+	MOVQ _2+16(FP), AX
+	MOVQ AX, 16(SP)
+	MOVL _3+24(FP), AX
+	MOVL AX, 24(SP)
+	MOVQ __ccgo_fp+32(FP), AX
+	CALL *AX	// Call the ABI0 code ptr
+	MOVL 32(SP), AX
+	MOVL AX, _4+40(FP)
 	RET
 
 // func Yfunlockfile(tls *TLS, f uintptr)
@@ -15810,22 +16020,56 @@ TEXT ·Ygetxattr(SB),$48-48
 	RET
 
 // func Yglob(tls *TLS, pat uintptr, flags int32, __ccgo_fp_errfunc uintptr, g_ uintptr) (r int32)
-TEXT ·Yglob(SB),$48-44
+TEXT ·Yglob(SB),$56-44
 	GO_ARGS
 	NO_LOCAL_POINTERS
+	MOVQ tls+0(FP), AX	// alloc all ABI trampolines
+	MOVQ AX, 0(SP)
+	MOVQ $16, 8(SP)	// 16*(number of func ptrs in signature)
+	CALL modernc·org∕libc·TLSAlloc(SB)
+	MOVQ 16(SP), AX
+	MOVQ AX, -8(BP) // Trampolines[0]
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ -8(BP), AX
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
+	MOVQ AX, 8(SP)
+	MOVQ __ccgo_fp_errfunc+24(FP), AX	// ABI0 code ptr
+	MOVQ AX, 16(SP)
+	CALL ·__ccgo_abiInternal_glob_2(SB)	// Create the closure for calling __ccgo_fp_errfunc
 	MOVQ tls+0(FP), AX
 	MOVQ AX, 0(SP)
 	MOVQ pat+8(FP), AX
 	MOVQ AX, 8(SP)
 	MOVL flags+16(FP), AX
 	MOVL AX, 16(SP)
-	MOVQ __ccgo_fp_errfunc+24(FP), AX
+	MOVQ -8(BP), AX // Trampolines[0]
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
 	MOVQ AX, 24(SP)
 	MOVQ g_+32(FP), AX
 	MOVQ AX, 32(SP)
 	CALL ·Xglob(SB)
 	MOVL 40(SP), AX
 	MOVL AX, r+40(FP)
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ $0, 8(SP)
+	CALL modernc·org∕libc·TLSFree(SB)
+	RET
+
+TEXT ·__ccgo_abi0_glob_2(SB),$40-36
+	GO_ARGS
+	NO_LOCAL_POINTERS
+	MOVQ _0+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ _1+8(FP), AX
+	MOVQ AX, 8(SP)
+	MOVL _2+16(FP), AX
+	MOVL AX, 16(SP)
+	MOVQ __ccgo_fp+24(FP), AX
+	CALL *AX	// Call the ABI0 code ptr
+	MOVL 24(SP), AX
+	MOVL AX, _3+32(FP)
 	RET
 
 // func Yglobfree(tls *TLS, g_ uintptr)
@@ -16377,7 +16621,7 @@ TEXT ·Yinitstate(SB),$40-40
 	MOVQ AX, r+32(FP)
 	RET
 
-// func Yinitstate_r(t *TLS, seed uint32, statebuf uintptr, statelen Tsize_t, buf uintptr) int32
+// func Yinitstate_r(t *TLS, seed uint32, statebuf uintptr, statelen Tsize_t, buf uintptr) (_5 int32)
 TEXT ·Yinitstate_r(SB),$48-44
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -16393,7 +16637,7 @@ TEXT ·Yinitstate_r(SB),$48-44
 	MOVQ AX, 32(SP)
 	CALL ·Xinitstate_r(SB)
 	MOVL 40(SP), AX
-	MOVL AX, ret+40(FP)
+	MOVL AX, _5+40(FP)
 	RET
 
 // func Yinotify_add_watch(tls *TLS, fd int32, pathname uintptr, mask Tuint32_t) (r int32)
@@ -16747,7 +16991,7 @@ TEXT ·Yislower_l(SB),$32-28
 	MOVL AX, r+24(FP)
 	RET
 
-// func Yisnan(t *TLS, x float64) int32
+// func Yisnan(t *TLS, x float64) (_2 int32)
 TEXT ·Yisnan(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -16757,10 +17001,10 @@ TEXT ·Yisnan(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·Xisnan(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Yisnanf(t *TLS, arg float32) int32
+// func Yisnanf(t *TLS, arg float32) (_2 int32)
 TEXT ·Yisnanf(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -16770,10 +17014,10 @@ TEXT ·Yisnanf(SB),$24-20
 	MOVL AX, 8(SP)
 	CALL ·Xisnanf(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Yisnanl(t *TLS, arg float64) int32
+// func Yisnanl(t *TLS, arg float64) (_2 int32)
 TEXT ·Yisnanl(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -16783,7 +17027,7 @@ TEXT ·Yisnanl(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·Xisnanl(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
 // func Yisprint(tls *TLS, c int32) (r int32)
@@ -17590,9 +17834,23 @@ TEXT ·Yldiv(SB),$40-40
 	RET
 
 // func Ylfind(tls *TLS, key uintptr, base uintptr, nelp uintptr, width Tsize_t, __ccgo_fp_compar uintptr) (r uintptr)
-TEXT ·Ylfind(SB),$56-56
+TEXT ·Ylfind(SB),$64-56
 	GO_ARGS
 	NO_LOCAL_POINTERS
+	MOVQ tls+0(FP), AX	// alloc all ABI trampolines
+	MOVQ AX, 0(SP)
+	MOVQ $16, 8(SP)	// 16*(number of func ptrs in signature)
+	CALL modernc·org∕libc·TLSAlloc(SB)
+	MOVQ 16(SP), AX
+	MOVQ AX, -8(BP) // Trampolines[0]
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ -8(BP), AX
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
+	MOVQ AX, 8(SP)
+	MOVQ __ccgo_fp_compar+40(FP), AX	// ABI0 code ptr
+	MOVQ AX, 16(SP)
+	CALL ·__ccgo_abiInternal_lfind_4(SB)	// Create the closure for calling __ccgo_fp_compar
 	MOVQ tls+0(FP), AX
 	MOVQ AX, 0(SP)
 	MOVQ key+8(FP), AX
@@ -17603,11 +17861,31 @@ TEXT ·Ylfind(SB),$56-56
 	MOVQ AX, 24(SP)
 	MOVQ width+32(FP), AX
 	MOVQ AX, 32(SP)
-	MOVQ __ccgo_fp_compar+40(FP), AX
+	MOVQ -8(BP), AX // Trampolines[0]
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
 	MOVQ AX, 40(SP)
 	CALL ·Xlfind(SB)
 	MOVQ 48(SP), AX
 	MOVQ AX, r+48(FP)
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ $0, 8(SP)
+	CALL modernc·org∕libc·TLSFree(SB)
+	RET
+
+TEXT ·__ccgo_abi0_lfind_4(SB),$40-36
+	GO_ARGS
+	NO_LOCAL_POINTERS
+	MOVQ _0+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ _1+8(FP), AX
+	MOVQ AX, 8(SP)
+	MOVQ _2+16(FP), AX
+	MOVQ AX, 16(SP)
+	MOVQ __ccgo_fp+24(FP), AX
+	CALL *AX	// Call the ABI0 code ptr
+	MOVL 24(SP), AX
+	MOVL AX, _3+32(FP)
 	RET
 
 // func Ylgamma(tls *TLS, x float64) (r float64)
@@ -18288,9 +18566,23 @@ TEXT ·Ylroundl(SB),$24-24
 	RET
 
 // func Ylsearch(tls *TLS, key uintptr, base uintptr, nelp uintptr, width Tsize_t, __ccgo_fp_compar uintptr) (r uintptr)
-TEXT ·Ylsearch(SB),$56-56
+TEXT ·Ylsearch(SB),$64-56
 	GO_ARGS
 	NO_LOCAL_POINTERS
+	MOVQ tls+0(FP), AX	// alloc all ABI trampolines
+	MOVQ AX, 0(SP)
+	MOVQ $16, 8(SP)	// 16*(number of func ptrs in signature)
+	CALL modernc·org∕libc·TLSAlloc(SB)
+	MOVQ 16(SP), AX
+	MOVQ AX, -8(BP) // Trampolines[0]
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ -8(BP), AX
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
+	MOVQ AX, 8(SP)
+	MOVQ __ccgo_fp_compar+40(FP), AX	// ABI0 code ptr
+	MOVQ AX, 16(SP)
+	CALL ·__ccgo_abiInternal_lsearch_4(SB)	// Create the closure for calling __ccgo_fp_compar
 	MOVQ tls+0(FP), AX
 	MOVQ AX, 0(SP)
 	MOVQ key+8(FP), AX
@@ -18301,11 +18593,31 @@ TEXT ·Ylsearch(SB),$56-56
 	MOVQ AX, 24(SP)
 	MOVQ width+32(FP), AX
 	MOVQ AX, 32(SP)
-	MOVQ __ccgo_fp_compar+40(FP), AX
+	MOVQ -8(BP), AX // Trampolines[0]
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
 	MOVQ AX, 40(SP)
 	CALL ·Xlsearch(SB)
 	MOVQ 48(SP), AX
 	MOVQ AX, r+48(FP)
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ $0, 8(SP)
+	CALL modernc·org∕libc·TLSFree(SB)
+	RET
+
+TEXT ·__ccgo_abi0_lsearch_4(SB),$40-36
+	GO_ARGS
+	NO_LOCAL_POINTERS
+	MOVQ _0+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ _1+8(FP), AX
+	MOVQ AX, 8(SP)
+	MOVQ _2+16(FP), AX
+	MOVQ AX, 16(SP)
+	MOVQ __ccgo_fp+24(FP), AX
+	CALL *AX	// Call the ABI0 code ptr
+	MOVL 24(SP), AX
+	MOVL AX, _3+32(FP)
 	RET
 
 // func Ylseek(tls *TLS, fd int32, offset Toff_t, whence int32) (r Toff_t)
@@ -19562,14 +19874,29 @@ TEXT ·Ynexttowardl(SB),$32-32
 	RET
 
 // func Ynftw(tls *TLS, path uintptr, __ccgo_fp_fn uintptr, fd_limit int32, flags int32) (r1 int32)
-TEXT ·Ynftw(SB),$40-36
+TEXT ·Ynftw(SB),$48-36
 	GO_ARGS
 	NO_LOCAL_POINTERS
+	MOVQ tls+0(FP), AX	// alloc all ABI trampolines
+	MOVQ AX, 0(SP)
+	MOVQ $16, 8(SP)	// 16*(number of func ptrs in signature)
+	CALL modernc·org∕libc·TLSAlloc(SB)
+	MOVQ 16(SP), AX
+	MOVQ AX, -8(BP) // Trampolines[0]
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ -8(BP), AX
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
+	MOVQ AX, 8(SP)
+	MOVQ __ccgo_fp_fn+16(FP), AX	// ABI0 code ptr
+	MOVQ AX, 16(SP)
+	CALL ·__ccgo_abiInternal_nftw_1(SB)	// Create the closure for calling __ccgo_fp_fn
 	MOVQ tls+0(FP), AX
 	MOVQ AX, 0(SP)
 	MOVQ path+8(FP), AX
 	MOVQ AX, 8(SP)
-	MOVQ __ccgo_fp_fn+16(FP), AX
+	MOVQ -8(BP), AX // Trampolines[0]
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
 	MOVQ AX, 16(SP)
 	MOVL fd_limit+24(FP), AX
 	MOVL AX, 24(SP)
@@ -19578,6 +19905,29 @@ TEXT ·Ynftw(SB),$40-36
 	CALL ·Xnftw(SB)
 	MOVL 32(SP), AX
 	MOVL AX, r1+32(FP)
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ $0, 8(SP)
+	CALL modernc·org∕libc·TLSFree(SB)
+	RET
+
+TEXT ·__ccgo_abi0_nftw_1(SB),$56-52
+	GO_ARGS
+	NO_LOCAL_POINTERS
+	MOVQ _0+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ _1+8(FP), AX
+	MOVQ AX, 8(SP)
+	MOVQ _2+16(FP), AX
+	MOVQ AX, 16(SP)
+	MOVL _3+24(FP), AX
+	MOVL AX, 24(SP)
+	MOVQ _4+32(FP), AX
+	MOVQ AX, 32(SP)
+	MOVQ __ccgo_fp+40(FP), AX
+	CALL *AX	// Call the ABI0 code ptr
+	MOVL 40(SP), AX
+	MOVL AX, _5+48(FP)
 	RET
 
 // func Yngettext(tls *TLS, msgid1 uintptr, msgid2 uintptr, n uint64) (r uintptr)
@@ -19818,7 +20168,7 @@ TEXT ·Yobstack_free(SB),$24-24
 	CALL ·Xobstack_free(SB)
 	RET
 
-// func Yobstack_vprintf(t *TLS, obstack, template, va uintptr) int32
+// func Yobstack_vprintf(t *TLS, obstack, template, va uintptr) (_2 int32)
 TEXT ·Yobstack_vprintf(SB),$40-36
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -19832,7 +20182,7 @@ TEXT ·Yobstack_vprintf(SB),$40-36
 	MOVQ AX, 24(SP)
 	CALL ·Xobstack_vprintf(SB)
 	MOVL 32(SP), AX
-	MOVL AX, ret+32(FP)
+	MOVL AX, _2+32(FP)
 	RET
 
 // func Yopen(tls *TLS, filename uintptr, flags int32, va uintptr) (r int32)
@@ -20107,7 +20457,7 @@ TEXT ·Ypoll(SB),$40-36
 	MOVL AX, r+32(FP)
 	RET
 
-// func Ypopen(t *TLS, command, type1 uintptr) uintptr
+// func Ypopen(t *TLS, command, type1 uintptr) (_2 uintptr)
 TEXT ·Ypopen(SB),$32-32
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -20119,7 +20469,7 @@ TEXT ·Ypopen(SB),$32-32
 	MOVQ AX, 16(SP)
 	CALL ·Xpopen(SB)
 	MOVQ 24(SP), AX
-	MOVQ AX, ret+24(FP)
+	MOVQ AX, _2+24(FP)
 	RET
 
 // func Yposix_close(tls *TLS, fd int32, flags int32) (r int32)
@@ -20824,7 +21174,7 @@ TEXT ·Ypsignal(SB),$24-24
 	CALL ·Xpsignal(SB)
 	RET
 
-// func Ypthread_atfork(tls *TLS, prepare, parent, child uintptr) int32
+// func Ypthread_atfork(tls *TLS, prepare, parent, child uintptr) (_2 int32)
 TEXT ·Ypthread_atfork(SB),$40-36
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -20838,10 +21188,10 @@ TEXT ·Ypthread_atfork(SB),$40-36
 	MOVQ AX, 24(SP)
 	CALL ·Xpthread_atfork(SB)
 	MOVL 32(SP), AX
-	MOVL AX, ret+32(FP)
+	MOVL AX, _2+32(FP)
 	RET
 
-// func Ypthread_attr_destroy(tls *TLS, a uintptr) int32
+// func Ypthread_attr_destroy(tls *TLS, a uintptr) (_2 int32)
 TEXT ·Ypthread_attr_destroy(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -20851,10 +21201,10 @@ TEXT ·Ypthread_attr_destroy(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·Xpthread_attr_destroy(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Ypthread_attr_getdetachstate(tls *TLS, a uintptr, state uintptr) int32
+// func Ypthread_attr_getdetachstate(tls *TLS, a uintptr, state uintptr) (_3 int32)
 TEXT ·Ypthread_attr_getdetachstate(SB),$32-28
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -20866,10 +21216,10 @@ TEXT ·Ypthread_attr_getdetachstate(SB),$32-28
 	MOVQ AX, 16(SP)
 	CALL ·Xpthread_attr_getdetachstate(SB)
 	MOVL 24(SP), AX
-	MOVL AX, ret+24(FP)
+	MOVL AX, _3+24(FP)
 	RET
 
-// func Ypthread_attr_init(tls *TLS, a uintptr) int32
+// func Ypthread_attr_init(tls *TLS, a uintptr) (_2 int32)
 TEXT ·Ypthread_attr_init(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -20879,7 +21229,7 @@ TEXT ·Ypthread_attr_init(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·Xpthread_attr_init(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
 // func Ypthread_attr_setdetachstate(tls *TLS, a uintptr, state int32) (r int32)
@@ -20897,7 +21247,7 @@ TEXT ·Ypthread_attr_setdetachstate(SB),$32-28
 	MOVL AX, r+24(FP)
 	RET
 
-// func Ypthread_attr_setscope(tls *TLS, a uintptr, scope int32) int32
+// func Ypthread_attr_setscope(tls *TLS, a uintptr, scope int32) (_3 int32)
 TEXT ·Ypthread_attr_setscope(SB),$32-28
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -20909,10 +21259,10 @@ TEXT ·Ypthread_attr_setscope(SB),$32-28
 	MOVL AX, 16(SP)
 	CALL ·Xpthread_attr_setscope(SB)
 	MOVL 24(SP), AX
-	MOVL AX, ret+24(FP)
+	MOVL AX, _3+24(FP)
 	RET
 
-// func Ypthread_attr_setstacksize(tls *TLS, a uintptr, stacksite Tsize_t) int32
+// func Ypthread_attr_setstacksize(tls *TLS, a uintptr, stacksite Tsize_t) (_3 int32)
 TEXT ·Ypthread_attr_setstacksize(SB),$32-28
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -20924,7 +21274,7 @@ TEXT ·Ypthread_attr_setstacksize(SB),$32-28
 	MOVQ AX, 16(SP)
 	CALL ·Xpthread_attr_setstacksize(SB)
 	MOVL 24(SP), AX
-	MOVL AX, ret+24(FP)
+	MOVL AX, _3+24(FP)
 	RET
 
 // func Ypthread_cleanup_pop(tls *TLS, run int32)
@@ -20951,7 +21301,7 @@ TEXT ·Ypthread_cleanup_push(SB),$24-24
 	CALL ·Xpthread_cleanup_push(SB)
 	RET
 
-// func Ypthread_cond_broadcast(tls *TLS, c uintptr) int32
+// func Ypthread_cond_broadcast(tls *TLS, c uintptr) (_2 int32)
 TEXT ·Ypthread_cond_broadcast(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -20961,10 +21311,10 @@ TEXT ·Ypthread_cond_broadcast(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·Xpthread_cond_broadcast(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Ypthread_cond_destroy(tls *TLS, c uintptr) int32
+// func Ypthread_cond_destroy(tls *TLS, c uintptr) (_2 int32)
 TEXT ·Ypthread_cond_destroy(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -20974,10 +21324,10 @@ TEXT ·Ypthread_cond_destroy(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·Xpthread_cond_destroy(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Ypthread_cond_init(tls *TLS, c, a uintptr) int32
+// func Ypthread_cond_init(tls *TLS, c, a uintptr) (_2 int32)
 TEXT ·Ypthread_cond_init(SB),$32-28
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -20989,10 +21339,10 @@ TEXT ·Ypthread_cond_init(SB),$32-28
 	MOVQ AX, 16(SP)
 	CALL ·Xpthread_cond_init(SB)
 	MOVL 24(SP), AX
-	MOVL AX, ret+24(FP)
+	MOVL AX, _2+24(FP)
 	RET
 
-// func Ypthread_cond_signal(tls *TLS, c uintptr) int32
+// func Ypthread_cond_signal(tls *TLS, c uintptr) (_2 int32)
 TEXT ·Ypthread_cond_signal(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -21002,7 +21352,7 @@ TEXT ·Ypthread_cond_signal(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·Xpthread_cond_signal(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
 // func Ypthread_cond_timedwait(tls *TLS, c, m, ts uintptr) (r int32)
@@ -21022,7 +21372,7 @@ TEXT ·Ypthread_cond_timedwait(SB),$40-36
 	MOVL AX, r+32(FP)
 	RET
 
-// func Ypthread_cond_wait(tls *TLS, c, m uintptr) int32
+// func Ypthread_cond_wait(tls *TLS, c, m uintptr) (_2 int32)
 TEXT ·Ypthread_cond_wait(SB),$32-28
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -21034,10 +21384,10 @@ TEXT ·Ypthread_cond_wait(SB),$32-28
 	MOVQ AX, 16(SP)
 	CALL ·Xpthread_cond_wait(SB)
 	MOVL 24(SP), AX
-	MOVL AX, ret+24(FP)
+	MOVL AX, _2+24(FP)
 	RET
 
-// func Ypthread_create(tls *TLS, res, attrp, entry, arg uintptr) int32
+// func Ypthread_create(tls *TLS, res, attrp, entry, arg uintptr) (_2 int32)
 TEXT ·Ypthread_create(SB),$48-44
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -21053,10 +21403,10 @@ TEXT ·Ypthread_create(SB),$48-44
 	MOVQ AX, 32(SP)
 	CALL ·Xpthread_create(SB)
 	MOVL 40(SP), AX
-	MOVL AX, ret+40(FP)
+	MOVL AX, _2+40(FP)
 	RET
 
-// func Ypthread_detach(tls *TLS, t uintptr) int32
+// func Ypthread_detach(tls *TLS, t uintptr) (_2 int32)
 TEXT ·Ypthread_detach(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -21066,10 +21416,10 @@ TEXT ·Ypthread_detach(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·Xpthread_detach(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Ypthread_equal(tls *TLS, t, u uintptr) int32
+// func Ypthread_equal(tls *TLS, t, u uintptr) (_2 int32)
 TEXT ·Ypthread_equal(SB),$32-28
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -21081,7 +21431,7 @@ TEXT ·Ypthread_equal(SB),$32-28
 	MOVQ AX, 16(SP)
 	CALL ·Xpthread_equal(SB)
 	MOVL 24(SP), AX
-	MOVL AX, ret+24(FP)
+	MOVL AX, _2+24(FP)
 	RET
 
 // func Ypthread_exit(tls *TLS, result uintptr)
@@ -21095,7 +21445,7 @@ TEXT ·Ypthread_exit(SB),$16-16
 	CALL ·Xpthread_exit(SB)
 	RET
 
-// func Ypthread_getspecific(tls *TLS, k Tpthread_key_t) uintptr
+// func Ypthread_getspecific(tls *TLS, k Tpthread_key_t) (_2 uintptr)
 TEXT ·Ypthread_getspecific(SB),$24-24
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -21105,7 +21455,7 @@ TEXT ·Ypthread_getspecific(SB),$24-24
 	MOVL AX, 8(SP)
 	CALL ·Xpthread_getspecific(SB)
 	MOVQ 16(SP), AX
-	MOVQ AX, ret+16(FP)
+	MOVQ AX, _2+16(FP)
 	RET
 
 // func Ypthread_join(tls *TLS, t Tpthread_t, res uintptr) (r int32)
@@ -21123,7 +21473,7 @@ TEXT ·Ypthread_join(SB),$32-28
 	MOVL AX, r+24(FP)
 	RET
 
-// func Ypthread_key_create(tls *TLS, k uintptr, dtor uintptr) int32
+// func Ypthread_key_create(tls *TLS, k uintptr, dtor uintptr) (_3 int32)
 TEXT ·Ypthread_key_create(SB),$32-28
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -21135,10 +21485,10 @@ TEXT ·Ypthread_key_create(SB),$32-28
 	MOVQ AX, 16(SP)
 	CALL ·Xpthread_key_create(SB)
 	MOVL 24(SP), AX
-	MOVL AX, ret+24(FP)
+	MOVL AX, _3+24(FP)
 	RET
 
-// func Ypthread_key_delete(tls *TLS, k Tpthread_key_t) int32
+// func Ypthread_key_delete(tls *TLS, k Tpthread_key_t) (_2 int32)
 TEXT ·Ypthread_key_delete(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -21148,10 +21498,10 @@ TEXT ·Ypthread_key_delete(SB),$24-20
 	MOVL AX, 8(SP)
 	CALL ·Xpthread_key_delete(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Ypthread_mutex_destroy(tls *TLS, m uintptr) int32
+// func Ypthread_mutex_destroy(tls *TLS, m uintptr) (_2 int32)
 TEXT ·Ypthread_mutex_destroy(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -21161,10 +21511,10 @@ TEXT ·Ypthread_mutex_destroy(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·Xpthread_mutex_destroy(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Ypthread_mutex_init(tls *TLS, m, a uintptr) int32
+// func Ypthread_mutex_init(tls *TLS, m, a uintptr) (_2 int32)
 TEXT ·Ypthread_mutex_init(SB),$32-28
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -21176,10 +21526,10 @@ TEXT ·Ypthread_mutex_init(SB),$32-28
 	MOVQ AX, 16(SP)
 	CALL ·Xpthread_mutex_init(SB)
 	MOVL 24(SP), AX
-	MOVL AX, ret+24(FP)
+	MOVL AX, _2+24(FP)
 	RET
 
-// func Ypthread_mutex_lock(tls *TLS, m uintptr) int32
+// func Ypthread_mutex_lock(tls *TLS, m uintptr) (_2 int32)
 TEXT ·Ypthread_mutex_lock(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -21189,10 +21539,10 @@ TEXT ·Ypthread_mutex_lock(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·Xpthread_mutex_lock(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Ypthread_mutex_trylock(tls *TLS, m uintptr) int32
+// func Ypthread_mutex_trylock(tls *TLS, m uintptr) (_2 int32)
 TEXT ·Ypthread_mutex_trylock(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -21202,10 +21552,10 @@ TEXT ·Ypthread_mutex_trylock(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·Xpthread_mutex_trylock(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Ypthread_mutex_unlock(tls *TLS, m uintptr) int32
+// func Ypthread_mutex_unlock(tls *TLS, m uintptr) (_2 int32)
 TEXT ·Ypthread_mutex_unlock(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -21215,10 +21565,10 @@ TEXT ·Ypthread_mutex_unlock(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·Xpthread_mutex_unlock(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Ypthread_mutexattr_destroy(tls *TLS, a uintptr) int32
+// func Ypthread_mutexattr_destroy(tls *TLS, a uintptr) (_2 int32)
 TEXT ·Ypthread_mutexattr_destroy(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -21228,10 +21578,10 @@ TEXT ·Ypthread_mutexattr_destroy(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·Xpthread_mutexattr_destroy(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Ypthread_mutexattr_init(tls *TLS, a uintptr) int32
+// func Ypthread_mutexattr_init(tls *TLS, a uintptr) (_2 int32)
 TEXT ·Ypthread_mutexattr_init(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -21241,10 +21591,10 @@ TEXT ·Ypthread_mutexattr_init(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·Xpthread_mutexattr_init(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
-// func Ypthread_mutexattr_settype(tls *TLS, a uintptr, typ int32) int32
+// func Ypthread_mutexattr_settype(tls *TLS, a uintptr, typ int32) (_3 int32)
 TEXT ·Ypthread_mutexattr_settype(SB),$32-28
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -21256,10 +21606,10 @@ TEXT ·Ypthread_mutexattr_settype(SB),$32-28
 	MOVL AX, 16(SP)
 	CALL ·Xpthread_mutexattr_settype(SB)
 	MOVL 24(SP), AX
-	MOVL AX, ret+24(FP)
+	MOVL AX, _3+24(FP)
 	RET
 
-// func Ypthread_self(tls *TLS) uintptr
+// func Ypthread_self(tls *TLS) (_1 uintptr)
 TEXT ·Ypthread_self(SB),$16-16
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -21267,10 +21617,10 @@ TEXT ·Ypthread_self(SB),$16-16
 	MOVQ AX, 0(SP)
 	CALL ·Xpthread_self(SB)
 	MOVQ 8(SP), AX
-	MOVQ AX, ret+8(FP)
+	MOVQ AX, _1+8(FP)
 	RET
 
-// func Ypthread_setcancelstate(tls *TLS, new int32, old uintptr) int32
+// func Ypthread_setcancelstate(tls *TLS, new int32, old uintptr) (_3 int32)
 TEXT ·Ypthread_setcancelstate(SB),$32-28
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -21282,10 +21632,10 @@ TEXT ·Ypthread_setcancelstate(SB),$32-28
 	MOVQ AX, 16(SP)
 	CALL ·Xpthread_setcancelstate(SB)
 	MOVL 24(SP), AX
-	MOVL AX, ret+24(FP)
+	MOVL AX, _3+24(FP)
 	RET
 
-// func Ypthread_setspecific(tls *TLS, k Tpthread_key_t, x uintptr) int32
+// func Ypthread_setspecific(tls *TLS, k Tpthread_key_t, x uintptr) (_3 int32)
 TEXT ·Ypthread_setspecific(SB),$32-28
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -21297,10 +21647,10 @@ TEXT ·Ypthread_setspecific(SB),$32-28
 	MOVQ AX, 16(SP)
 	CALL ·Xpthread_setspecific(SB)
 	MOVL 24(SP), AX
-	MOVL AX, ret+24(FP)
+	MOVL AX, _3+24(FP)
 	RET
 
-// func Ypthread_sigmask(tls *TLS, now int32, set, old uintptr) int32
+// func Ypthread_sigmask(tls *TLS, now int32, set, old uintptr) (_3 int32)
 TEXT ·Ypthread_sigmask(SB),$40-36
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -21314,7 +21664,7 @@ TEXT ·Ypthread_sigmask(SB),$40-36
 	MOVQ AX, 24(SP)
 	CALL ·Xpthread_sigmask(SB)
 	MOVL 32(SP), AX
-	MOVL AX, ret+32(FP)
+	MOVL AX, _3+32(FP)
 	RET
 
 // func Yptrace(tls *TLS, req int32, va uintptr) (r int64)
@@ -21645,48 +21995,24 @@ TEXT ·Ypwritev2(SB),$56-56
 	MOVQ AX, r+48(FP)
 	RET
 
-// Orig
-//
 // func Yqsort(tls *TLS, base uintptr, nel Tsize_t, width Tsize_t, __ccgo_fp_cmp Tcmpfun)
-//	 0:	TEXT ·Yqsort(SB),$40-40
-//	 1:		GO_ARGS
-//	 2:		NO_LOCAL_POINTERS
-//	 3:		MOVQ tls+0(FP), AX
-//	 4:		MOVQ AX, 0(SP)
-//	 5:		MOVQ base+8(FP), AX
-//	 6:		MOVQ AX, 8(SP)
-//	 7:		MOVQ nel+16(FP), AX
-//	 8:		MOVQ AX, 16(SP)
-//	 9:		MOVQ width+24(FP), AX
-//	10:		MOVQ AX, 24(SP)
-//	11:		MOVQ __ccgo_fp_cmp+32(FP), AX
-//	12:		MOVQ AX, 32(SP)
-//	13:		CALL ·Xqsort(SB)
-//	14:		RET
-
-
-// $nn-40: nn = nn_0+8
 TEXT ·Yqsort(SB),$48-40
 	GO_ARGS
 	NO_LOCAL_POINTERS
-
-	MOVQ tls+0(FP), AX
+	MOVQ tls+0(FP), AX	// alloc all ABI trampolines
 	MOVQ AX, 0(SP)
-	MOVQ $16, 8(SP)	// $16 = 16*(number of func ptrs in signature)
+	MOVQ $16, 8(SP)	// 16*(number of func ptrs in signature)
 	CALL modernc·org∕libc·TLSAlloc(SB)
 	MOVQ 16(SP), AX
-	MOVQ AX, -8(BP)
-
-
+	MOVQ AX, -8(BP) // Trampolines[0]
 	MOVQ tls+0(FP), AX
 	MOVQ AX, 0(SP)
 	MOVQ -8(BP), AX
-	ADDQ $0, AX	// $0 = 16*(0-based ordinal number of the func ptr in signature)
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
 	MOVQ AX, 8(SP)
 	MOVQ __ccgo_fp_cmp+32(FP), AX	// ABI0 code ptr
 	MOVQ AX, 16(SP)
-	CALL ·__ccgo_abiI_cmpFun(SB)	// Create the closure for calling __ccgo_fp_cmp
-
+	CALL ·__ccgo_abiInternal_qsort_3(SB)	// Create the closure for calling __ccgo_fp_cmp
 	MOVQ tls+0(FP), AX
 	MOVQ AX, 0(SP)
 	MOVQ base+8(FP), AX
@@ -21695,41 +22021,49 @@ TEXT ·Yqsort(SB),$48-40
 	MOVQ AX, 16(SP)
 	MOVQ width+24(FP), AX
 	MOVQ AX, 24(SP)
-
-	MOVQ -8(BP), AX
-	ADDQ $0, AX	// $0 = 16*(0-based ordinal number of the func ptr in signature)
+	MOVQ -8(BP), AX // Trampolines[0]
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
 	MOVQ AX, 32(SP)
-
 	CALL ·Xqsort(SB)
-
-
 	MOVQ tls+0(FP), AX
 	MOVQ AX, 0(SP)
 	MOVQ $0, 8(SP)
 	CALL modernc·org∕libc·TLSFree(SB)
-
 	RET
 
-
-TEXT ·__ccgo_abi0_cmpFun(SB),$80-32
+TEXT ·__ccgo_abi0_qsort_3(SB),$40-36
 	GO_ARGS
 	NO_LOCAL_POINTERS
-	MOVQ tls+0(FP), AX
+	MOVQ _0+0(FP), AX
 	MOVQ AX, 0(SP)
-	MOVQ i+8(FP), AX
+	MOVQ _1+8(FP), AX
 	MOVQ AX, 8(SP)
-	MOVQ j+16(FP), AX
+	MOVQ _2+16(FP), AX
 	MOVQ AX, 16(SP)
-	MOVQ abi0Code+24(FP), AX
+	MOVQ __ccgo_fp+24(FP), AX
 	CALL *AX	// Call the ABI0 code ptr
 	MOVL 24(SP), AX
-	MOVL AX, ret+32(FP)
+	MOVL AX, _3+32(FP)
 	RET
 
 // func Yqsort_r(tls *TLS, base uintptr, nel Tsize_t, width Tsize_t, __ccgo_fp_cmp Tcmpfun, arg uintptr)
-TEXT ·Yqsort_r(SB),$48-48
+TEXT ·Yqsort_r(SB),$56-48
 	GO_ARGS
 	NO_LOCAL_POINTERS
+	MOVQ tls+0(FP), AX	// alloc all ABI trampolines
+	MOVQ AX, 0(SP)
+	MOVQ $16, 8(SP)	// 16*(number of func ptrs in signature)
+	CALL modernc·org∕libc·TLSAlloc(SB)
+	MOVQ 16(SP), AX
+	MOVQ AX, -8(BP) // Trampolines[0]
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ -8(BP), AX
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
+	MOVQ AX, 8(SP)
+	MOVQ __ccgo_fp_cmp+32(FP), AX	// ABI0 code ptr
+	MOVQ AX, 16(SP)
+	CALL ·__ccgo_abiInternal_qsort_r_3(SB)	// Create the closure for calling __ccgo_fp_cmp
 	MOVQ tls+0(FP), AX
 	MOVQ AX, 0(SP)
 	MOVQ base+8(FP), AX
@@ -21738,11 +22072,33 @@ TEXT ·Yqsort_r(SB),$48-48
 	MOVQ AX, 16(SP)
 	MOVQ width+24(FP), AX
 	MOVQ AX, 24(SP)
-	MOVQ __ccgo_fp_cmp+32(FP), AX
+	MOVQ -8(BP), AX // Trampolines[0]
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
 	MOVQ AX, 32(SP)
 	MOVQ arg+40(FP), AX
 	MOVQ AX, 40(SP)
 	CALL ·Xqsort_r(SB)
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ $0, 8(SP)
+	CALL modernc·org∕libc·TLSFree(SB)
+	RET
+
+TEXT ·__ccgo_abi0_qsort_r_3(SB),$48-44
+	GO_ARGS
+	NO_LOCAL_POINTERS
+	MOVQ _0+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ _1+8(FP), AX
+	MOVQ AX, 8(SP)
+	MOVQ _2+16(FP), AX
+	MOVQ AX, 16(SP)
+	MOVQ _3+24(FP), AX
+	MOVQ AX, 24(SP)
+	MOVQ __ccgo_fp+32(FP), AX
+	CALL *AX	// Call the ABI0 code ptr
+	MOVL 32(SP), AX
+	MOVL AX, _4+40(FP)
 	RET
 
 // func Yquick_exit(tls *TLS, code int32)
@@ -21823,7 +22179,7 @@ TEXT ·Yrandom(SB),$16-16
 	MOVQ AX, r+8(FP)
 	RET
 
-// func Yrandom_r(t *TLS, buf, result uintptr) int32
+// func Yrandom_r(t *TLS, buf, result uintptr) (_2 int32)
 TEXT ·Yrandom_r(SB),$32-28
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -21835,7 +22191,7 @@ TEXT ·Yrandom_r(SB),$32-28
 	MOVQ AX, 16(SP)
 	CALL ·Xrandom_r(SB)
 	MOVL 24(SP), AX
-	MOVL AX, ret+24(FP)
+	MOVL AX, _2+24(FP)
 	RET
 
 // func Yread(tls *TLS, fd int32, buf uintptr, count Tsize_t) (r Tssize_t)
@@ -22366,7 +22722,7 @@ TEXT ·Yrenameat(SB),$48-44
 	MOVL AX, r+40(FP)
 	RET
 
-// func Yrenameat2(t *TLS, olddirfd int32, oldpath uintptr, newdirfd int32, newpath uintptr, flags int32) int32
+// func Yrenameat2(t *TLS, olddirfd int32, oldpath uintptr, newdirfd int32, newpath uintptr, flags int32) (_6 int32)
 TEXT ·Yrenameat2(SB),$56-52
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -22384,7 +22740,7 @@ TEXT ·Yrenameat2(SB),$56-52
 	MOVL AX, 40(SP)
 	CALL ·Xrenameat2(SB)
 	MOVL 48(SP), AX
-	MOVL AX, ret+48(FP)
+	MOVL AX, _6+48(FP)
 	RET
 
 // func Yres_init(tls *TLS) (r int32)
@@ -22708,22 +23064,78 @@ TEXT ·Yscalbnl(SB),$32-32
 	RET
 
 // func Yscandir(tls *TLS, path uintptr, res uintptr, __ccgo_fp_sel uintptr, __ccgo_fp_cmp uintptr) (r int32)
-TEXT ·Yscandir(SB),$48-44
+TEXT ·Yscandir(SB),$56-44
 	GO_ARGS
 	NO_LOCAL_POINTERS
+	MOVQ tls+0(FP), AX	// alloc all ABI trampolines
+	MOVQ AX, 0(SP)
+	MOVQ $32, 8(SP)	// 16*(number of func ptrs in signature)
+	CALL modernc·org∕libc·TLSAlloc(SB)
+	MOVQ 16(SP), AX
+	MOVQ AX, -8(BP) // Trampolines[0]
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ -8(BP), AX
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
+	MOVQ AX, 8(SP)
+	MOVQ __ccgo_fp_sel+24(FP), AX	// ABI0 code ptr
+	MOVQ AX, 16(SP)
+	CALL ·__ccgo_abiInternal_scandir_2(SB)	// Create the closure for calling __ccgo_fp_sel
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ -8(BP), AX
+	ADDQ $16, AX	// 16*(0-based ordinal number of the func ptr in signature)
+	MOVQ AX, 8(SP)
+	MOVQ __ccgo_fp_cmp+32(FP), AX	// ABI0 code ptr
+	MOVQ AX, 16(SP)
+	CALL ·__ccgo_abiInternal_scandir_3(SB)	// Create the closure for calling __ccgo_fp_cmp
 	MOVQ tls+0(FP), AX
 	MOVQ AX, 0(SP)
 	MOVQ path+8(FP), AX
 	MOVQ AX, 8(SP)
 	MOVQ res+16(FP), AX
 	MOVQ AX, 16(SP)
-	MOVQ __ccgo_fp_sel+24(FP), AX
+	MOVQ -8(BP), AX // Trampolines[0]
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
 	MOVQ AX, 24(SP)
-	MOVQ __ccgo_fp_cmp+32(FP), AX
+	MOVQ -8(BP), AX // Trampolines[0]
+	ADDQ $16, AX	// 16*(0-based ordinal number of the func ptr in signature)
 	MOVQ AX, 32(SP)
 	CALL ·Xscandir(SB)
 	MOVL 40(SP), AX
 	MOVL AX, r+40(FP)
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ $0, 8(SP)
+	CALL modernc·org∕libc·TLSFree(SB)
+	RET
+
+TEXT ·__ccgo_abi0_scandir_2(SB),$32-28
+	GO_ARGS
+	NO_LOCAL_POINTERS
+	MOVQ _0+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ _1+8(FP), AX
+	MOVQ AX, 8(SP)
+	MOVQ __ccgo_fp+16(FP), AX
+	CALL *AX	// Call the ABI0 code ptr
+	MOVL 16(SP), AX
+	MOVL AX, _2+24(FP)
+	RET
+
+TEXT ·__ccgo_abi0_scandir_3(SB),$40-36
+	GO_ARGS
+	NO_LOCAL_POINTERS
+	MOVQ _0+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ _1+8(FP), AX
+	MOVQ AX, 8(SP)
+	MOVQ _2+16(FP), AX
+	MOVQ AX, 16(SP)
+	MOVQ __ccgo_fp+24(FP), AX
+	CALL *AX	// Call the ABI0 code ptr
+	MOVL 24(SP), AX
+	MOVL AX, _3+32(FP)
 	RET
 
 // func Yscanf(tls *TLS, fmt uintptr, va uintptr) (r int32)
@@ -22741,7 +23153,7 @@ TEXT ·Yscanf(SB),$32-28
 	MOVL AX, r+24(FP)
 	RET
 
-// func Ysched_yield(tls *TLS) int32
+// func Ysched_yield(tls *TLS) (_1 int32)
 TEXT ·Ysched_yield(SB),$16-12
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -22749,7 +23161,7 @@ TEXT ·Ysched_yield(SB),$16-12
 	MOVQ AX, 0(SP)
 	CALL ·Xsched_yield(SB)
 	MOVL 8(SP), AX
-	MOVL AX, ret+8(FP)
+	MOVL AX, _1+8(FP)
 	RET
 
 // func Ysecure_getenv(tls *TLS, name uintptr) (r uintptr)
@@ -23132,7 +23544,7 @@ TEXT ·Ysetitimer(SB),$40-36
 	MOVL AX, r1+32(FP)
 	RET
 
-// func Ysetjmp(t *TLS, env uintptr) int32
+// func Ysetjmp(t *TLS, env uintptr) (_2 int32)
 TEXT ·Ysetjmp(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -23142,7 +23554,7 @@ TEXT ·Ysetjmp(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·Xsetjmp(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
 // func Ysetkey(tls *TLS, key uintptr)
@@ -25402,7 +25814,7 @@ TEXT ·Ysysconf(SB),$24-24
 	MOVQ AX, r+16(FP)
 	RET
 
-// func Ysysctlbyname(t *TLS, name, oldp, oldlenp, newp uintptr, newlen Tsize_t) int32
+// func Ysysctlbyname(t *TLS, name, oldp, oldlenp, newp uintptr, newlen Tsize_t) (_3 int32)
 TEXT ·Ysysctlbyname(SB),$56-52
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -25420,7 +25832,7 @@ TEXT ·Ysysctlbyname(SB),$56-52
 	MOVQ AX, 40(SP)
 	CALL ·Xsysctlbyname(SB)
 	MOVL 48(SP), AX
-	MOVL AX, ret+48(FP)
+	MOVL AX, _3+48(FP)
 	RET
 
 // func Ysysinfo(tls *TLS, info uintptr) (r int32)
@@ -25451,7 +25863,7 @@ TEXT ·Ysyslog(SB),$32-32
 	CALL ·Xsyslog(SB)
 	RET
 
-// func Ysystem(t *TLS, command uintptr) int32
+// func Ysystem(t *TLS, command uintptr) (_2 int32)
 TEXT ·Ysystem(SB),$24-20
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -25461,7 +25873,7 @@ TEXT ·Ysystem(SB),$24-20
 	MOVQ AX, 8(SP)
 	CALL ·Xsystem(SB)
 	MOVL 16(SP), AX
-	MOVL AX, ret+16(FP)
+	MOVL AX, _2+16(FP)
 	RET
 
 // func Ytan(tls *TLS, x3 float64) (r float64)
@@ -25704,33 +26116,97 @@ TEXT ·Ytcsetwinsize(SB),$32-28
 	RET
 
 // func Ytdelete(tls *TLS, key uintptr, rootp uintptr, __ccgo_fp_cmp uintptr) (r uintptr)
-TEXT ·Ytdelete(SB),$40-40
+TEXT ·Ytdelete(SB),$48-40
 	GO_ARGS
 	NO_LOCAL_POINTERS
+	MOVQ tls+0(FP), AX	// alloc all ABI trampolines
+	MOVQ AX, 0(SP)
+	MOVQ $16, 8(SP)	// 16*(number of func ptrs in signature)
+	CALL modernc·org∕libc·TLSAlloc(SB)
+	MOVQ 16(SP), AX
+	MOVQ AX, -8(BP) // Trampolines[0]
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ -8(BP), AX
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
+	MOVQ AX, 8(SP)
+	MOVQ __ccgo_fp_cmp+24(FP), AX	// ABI0 code ptr
+	MOVQ AX, 16(SP)
+	CALL ·__ccgo_abiInternal_tdelete_2(SB)	// Create the closure for calling __ccgo_fp_cmp
 	MOVQ tls+0(FP), AX
 	MOVQ AX, 0(SP)
 	MOVQ key+8(FP), AX
 	MOVQ AX, 8(SP)
 	MOVQ rootp+16(FP), AX
 	MOVQ AX, 16(SP)
-	MOVQ __ccgo_fp_cmp+24(FP), AX
+	MOVQ -8(BP), AX // Trampolines[0]
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
 	MOVQ AX, 24(SP)
 	CALL ·Xtdelete(SB)
 	MOVQ 32(SP), AX
 	MOVQ AX, r+32(FP)
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ $0, 8(SP)
+	CALL modernc·org∕libc·TLSFree(SB)
+	RET
+
+TEXT ·__ccgo_abi0_tdelete_2(SB),$40-36
+	GO_ARGS
+	NO_LOCAL_POINTERS
+	MOVQ _0+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ _1+8(FP), AX
+	MOVQ AX, 8(SP)
+	MOVQ _2+16(FP), AX
+	MOVQ AX, 16(SP)
+	MOVQ __ccgo_fp+24(FP), AX
+	CALL *AX	// Call the ABI0 code ptr
+	MOVL 24(SP), AX
+	MOVL AX, _3+32(FP)
 	RET
 
 // func Ytdestroy(tls *TLS, root uintptr, __ccgo_fp_freekey uintptr)
-TEXT ·Ytdestroy(SB),$24-24
+TEXT ·Ytdestroy(SB),$32-24
 	GO_ARGS
 	NO_LOCAL_POINTERS
+	MOVQ tls+0(FP), AX	// alloc all ABI trampolines
+	MOVQ AX, 0(SP)
+	MOVQ $16, 8(SP)	// 16*(number of func ptrs in signature)
+	CALL modernc·org∕libc·TLSAlloc(SB)
+	MOVQ 16(SP), AX
+	MOVQ AX, -8(BP) // Trampolines[0]
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ -8(BP), AX
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
+	MOVQ AX, 8(SP)
+	MOVQ __ccgo_fp_freekey+16(FP), AX	// ABI0 code ptr
+	MOVQ AX, 16(SP)
+	CALL ·__ccgo_abiInternal_tdestroy_1(SB)	// Create the closure for calling __ccgo_fp_freekey
 	MOVQ tls+0(FP), AX
 	MOVQ AX, 0(SP)
 	MOVQ root+8(FP), AX
 	MOVQ AX, 8(SP)
-	MOVQ __ccgo_fp_freekey+16(FP), AX
+	MOVQ -8(BP), AX // Trampolines[0]
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
 	MOVQ AX, 16(SP)
 	CALL ·Xtdestroy(SB)
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ $0, 8(SP)
+	CALL modernc·org∕libc·TLSFree(SB)
+	RET
+
+TEXT ·__ccgo_abi0_tdestroy_1(SB),$24-24
+	GO_ARGS
+	NO_LOCAL_POINTERS
+	MOVQ _0+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ _1+8(FP), AX
+	MOVQ AX, 8(SP)
+	MOVQ __ccgo_fp+16(FP), AX
+	CALL *AX	// Call the ABI0 code ptr
 	RET
 
 // func Ytee(tls *TLS, src int32, dest int32, len1 Tsize_t, flags uint32) (r Tssize_t)
@@ -25794,20 +26270,54 @@ TEXT ·Ytextdomain(SB),$24-24
 	RET
 
 // func Ytfind(tls *TLS, key uintptr, rootp uintptr, __ccgo_fp_cmp uintptr) (r uintptr)
-TEXT ·Ytfind(SB),$40-40
+TEXT ·Ytfind(SB),$48-40
 	GO_ARGS
 	NO_LOCAL_POINTERS
+	MOVQ tls+0(FP), AX	// alloc all ABI trampolines
+	MOVQ AX, 0(SP)
+	MOVQ $16, 8(SP)	// 16*(number of func ptrs in signature)
+	CALL modernc·org∕libc·TLSAlloc(SB)
+	MOVQ 16(SP), AX
+	MOVQ AX, -8(BP) // Trampolines[0]
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ -8(BP), AX
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
+	MOVQ AX, 8(SP)
+	MOVQ __ccgo_fp_cmp+24(FP), AX	// ABI0 code ptr
+	MOVQ AX, 16(SP)
+	CALL ·__ccgo_abiInternal_tfind_2(SB)	// Create the closure for calling __ccgo_fp_cmp
 	MOVQ tls+0(FP), AX
 	MOVQ AX, 0(SP)
 	MOVQ key+8(FP), AX
 	MOVQ AX, 8(SP)
 	MOVQ rootp+16(FP), AX
 	MOVQ AX, 16(SP)
-	MOVQ __ccgo_fp_cmp+24(FP), AX
+	MOVQ -8(BP), AX // Trampolines[0]
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
 	MOVQ AX, 24(SP)
 	CALL ·Xtfind(SB)
 	MOVQ 32(SP), AX
 	MOVQ AX, r+32(FP)
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ $0, 8(SP)
+	CALL modernc·org∕libc·TLSFree(SB)
+	RET
+
+TEXT ·__ccgo_abi0_tfind_2(SB),$40-36
+	GO_ARGS
+	NO_LOCAL_POINTERS
+	MOVQ _0+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ _1+8(FP), AX
+	MOVQ AX, 8(SP)
+	MOVQ _2+16(FP), AX
+	MOVQ AX, 16(SP)
+	MOVQ __ccgo_fp+24(FP), AX
+	CALL *AX	// Call the ABI0 code ptr
+	MOVL 24(SP), AX
+	MOVL AX, _3+32(FP)
 	RET
 
 // func Ytgamma(tls *TLS, x3 float64) (r1 float64)
@@ -26248,20 +26758,54 @@ TEXT ·Ytruncl(SB),$24-24
 	RET
 
 // func Ytsearch(tls *TLS, key uintptr, rootp uintptr, __ccgo_fp_cmp uintptr) (r1 uintptr)
-TEXT ·Ytsearch(SB),$40-40
+TEXT ·Ytsearch(SB),$48-40
 	GO_ARGS
 	NO_LOCAL_POINTERS
+	MOVQ tls+0(FP), AX	// alloc all ABI trampolines
+	MOVQ AX, 0(SP)
+	MOVQ $16, 8(SP)	// 16*(number of func ptrs in signature)
+	CALL modernc·org∕libc·TLSAlloc(SB)
+	MOVQ 16(SP), AX
+	MOVQ AX, -8(BP) // Trampolines[0]
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ -8(BP), AX
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
+	MOVQ AX, 8(SP)
+	MOVQ __ccgo_fp_cmp+24(FP), AX	// ABI0 code ptr
+	MOVQ AX, 16(SP)
+	CALL ·__ccgo_abiInternal_tsearch_2(SB)	// Create the closure for calling __ccgo_fp_cmp
 	MOVQ tls+0(FP), AX
 	MOVQ AX, 0(SP)
 	MOVQ key+8(FP), AX
 	MOVQ AX, 8(SP)
 	MOVQ rootp+16(FP), AX
 	MOVQ AX, 16(SP)
-	MOVQ __ccgo_fp_cmp+24(FP), AX
+	MOVQ -8(BP), AX // Trampolines[0]
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
 	MOVQ AX, 24(SP)
 	CALL ·Xtsearch(SB)
 	MOVQ 32(SP), AX
 	MOVQ AX, r1+32(FP)
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ $0, 8(SP)
+	CALL modernc·org∕libc·TLSFree(SB)
+	RET
+
+TEXT ·__ccgo_abi0_tsearch_2(SB),$40-36
+	GO_ARGS
+	NO_LOCAL_POINTERS
+	MOVQ _0+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ _1+8(FP), AX
+	MOVQ AX, 8(SP)
+	MOVQ _2+16(FP), AX
+	MOVQ AX, 16(SP)
+	MOVQ __ccgo_fp+24(FP), AX
+	CALL *AX	// Call the ABI0 code ptr
+	MOVL 24(SP), AX
+	MOVL AX, _3+32(FP)
 	RET
 
 // func Yttyname(tls *TLS, fd int32) (r uintptr)
@@ -26295,16 +26839,50 @@ TEXT ·Yttyname_r(SB),$40-36
 	RET
 
 // func Ytwalk(tls *TLS, root uintptr, __ccgo_fp_action uintptr)
-TEXT ·Ytwalk(SB),$24-24
+TEXT ·Ytwalk(SB),$32-24
 	GO_ARGS
 	NO_LOCAL_POINTERS
+	MOVQ tls+0(FP), AX	// alloc all ABI trampolines
+	MOVQ AX, 0(SP)
+	MOVQ $16, 8(SP)	// 16*(number of func ptrs in signature)
+	CALL modernc·org∕libc·TLSAlloc(SB)
+	MOVQ 16(SP), AX
+	MOVQ AX, -8(BP) // Trampolines[0]
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ -8(BP), AX
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
+	MOVQ AX, 8(SP)
+	MOVQ __ccgo_fp_action+16(FP), AX	// ABI0 code ptr
+	MOVQ AX, 16(SP)
+	CALL ·__ccgo_abiInternal_twalk_1(SB)	// Create the closure for calling __ccgo_fp_action
 	MOVQ tls+0(FP), AX
 	MOVQ AX, 0(SP)
 	MOVQ root+8(FP), AX
 	MOVQ AX, 8(SP)
-	MOVQ __ccgo_fp_action+16(FP), AX
+	MOVQ -8(BP), AX // Trampolines[0]
+	ADDQ $0, AX	// 16*(0-based ordinal number of the func ptr in signature)
 	MOVQ AX, 16(SP)
 	CALL ·Xtwalk(SB)
+	MOVQ tls+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ $0, 8(SP)
+	CALL modernc·org∕libc·TLSFree(SB)
+	RET
+
+TEXT ·__ccgo_abi0_twalk_1(SB),$32-32
+	GO_ARGS
+	NO_LOCAL_POINTERS
+	MOVQ _0+0(FP), AX
+	MOVQ AX, 0(SP)
+	MOVQ _1+8(FP), AX
+	MOVQ AX, 8(SP)
+	MOVL _2+16(FP), AX
+	MOVL AX, 16(SP)
+	MOVL _3+20(FP), AX
+	MOVL AX, 20(SP)
+	MOVQ __ccgo_fp+24(FP), AX
+	CALL *AX	// Call the ABI0 code ptr
 	RET
 
 // func Ytzset(tls *TLS)
@@ -26635,7 +27213,7 @@ TEXT ·Yuuid_generate_random(SB),$16-16
 	CALL ·Xuuid_generate_random(SB)
 	RET
 
-// func Yuuid_parse(t *TLS, in uintptr, uu uintptr) int32
+// func Yuuid_parse(t *TLS, in uintptr, uu uintptr) (_3 int32)
 TEXT ·Yuuid_parse(SB),$32-28
 	GO_ARGS
 	NO_LOCAL_POINTERS
@@ -26647,7 +27225,7 @@ TEXT ·Yuuid_parse(SB),$32-28
 	MOVQ AX, 16(SP)
 	CALL ·Xuuid_parse(SB)
 	MOVL 24(SP), AX
-	MOVL AX, ret+24(FP)
+	MOVL AX, _3+24(FP)
 	RET
 
 // func Yuuid_unparse(t *TLS, uu, out uintptr)
