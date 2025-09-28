@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/metainfo"
@@ -39,75 +40,9 @@ import (
 
 func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSize uint64, subpath string) ([]byte, error) {
 	log.Debug("Get file with size", "ih", infohash, "size", common.StorageSize(rawSize), "path", subpath)
-	if ret, mux, err := fs.storage().GetFile(ctx, infohash, subpath); err != nil {
-		fs.wg.Add(1)
-		go func(ctx context.Context, ih string) {
-			defer fs.wg.Done()
-			fs.wakeup(ctx, ih)
-		}(ctx, infohash)
 
-		if params.IsGood(infohash) {
-			//start := mclock.Now()
-			//log.Info("Downloading ... ...", "ih", infohash, "size", common.StorageSize(rawSize), "neighbors", fs.Neighbors(), "current", fs.monitor.CurrentNumber())
-
-			if mux != nil {
-				sub := mux.Subscribe(caffe.TorrentEvent{})
-				defer sub.Unsubscribe()
-
-				select {
-				case <-sub.Chan():
-					//log.Info("Seeding notify !!! !!!", "ih", infohash, "size", common.StorageSize(rawSize), "neighbors", fs.Neighbors(), "current", fs.monitor.CurrentNumber(), "ev", ev.Data)
-					if ret, _, err := fs.storage().GetFile(ctx, infohash, subpath); err != nil {
-						log.Debug("File downloading ... ...", "ih", infohash, "size", common.StorageSize(rawSize), "path", subpath, "err", err)
-					} else {
-						//elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-						//log.Info("Downloaded", "ih", infohash, "size", common.StorageSize(rawSize), "neighbors", fs.Neighbors(), "elapsed", common.PrettyDuration(elapsed), "current", fs.monitor.CurrentNumber())
-						if uint64(len(ret)) > rawSize {
-							return nil, backend.ErrInvalidRawSize
-						}
-						return ret, err
-					}
-				case <-ctx.Done():
-					fs.retry.Add(1)
-					ex, co, to, e := fs.storage().ExistsOrActive(ctx, infohash, rawSize)
-					log.Warn("Timeout", "ih", infohash, "size", common.StorageSize(rawSize), "err", ctx.Err(), "retry", fs.retry.Load(), "complete", common.StorageSize(co), "timeout", to, "exist", ex, "err", e)
-					return nil, ctx.Err()
-				case <-fs.closeAll:
-					log.Info("File out")
-					return nil, nil
-				}
-			} else {
-				t := time.NewTimer(1000 * time.Millisecond)
-				defer t.Stop()
-				for {
-					select {
-					case <-t.C:
-						if ret, _, err := fs.storage().GetFile(ctx, infohash, subpath); err != nil {
-							log.Debug("File downloading ... ...", "ih", infohash, "size", common.StorageSize(rawSize), "path", subpath, "err", err)
-							t.Reset(1000 * time.Millisecond)
-						} else {
-							//elapsed := time.Duration(mclock.Now()) - time.Duration(start)
-							//log.Info("Downloaded", "ih", infohash, "size", common.StorageSize(rawSize), "neighbors", fs.Neighbors(), "elapsed", common.PrettyDuration(elapsed), "current", fs.monitor.CurrentNumber())
-							if uint64(len(ret)) > rawSize {
-								return nil, backend.ErrInvalidRawSize
-							}
-							return ret, err
-						}
-					case <-ctx.Done():
-						fs.retry.Add(1)
-						ex, co, to, _ := fs.storage().ExistsOrActive(ctx, infohash, rawSize)
-						log.Warn("Timeout", "ih", infohash, "size", common.StorageSize(rawSize), "err", ctx.Err(), "retry", fs.retry.Load(), "complete", common.StorageSize(co), "timeout", to, "exist", ex)
-						return nil, ctx.Err()
-					case <-fs.closeAll:
-						log.Info("File out")
-						return nil, nil
-					}
-				}
-			}
-		}
-
-		return nil, err
-	} else {
+	ret, mux, err := fs.storage().GetFile(ctx, infohash, subpath)
+	if err == nil {
 		if uint64(len(ret)) > rawSize {
 			return nil, backend.ErrInvalidRawSize
 		}
@@ -116,6 +51,84 @@ func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSi
 			fs.encounter(infohash)
 		}
 		return ret, nil
+	}
+
+	fs.wg.Add(1)
+	go func(ctx context.Context, ih string) {
+		defer fs.wg.Done()
+		fs.wakeup(ctx, ih)
+	}(ctx, infohash)
+
+	if !params.IsGood(infohash) {
+		return nil, err
+	}
+
+	if mux != nil {
+		return fs.waitWithMux(ctx, mux, infohash, rawSize, subpath)
+	}
+	return fs.waitWithPolling(ctx, infohash, rawSize, subpath)
+}
+
+func (fs *TorrentFS) waitWithMux(ctx context.Context, mux *event.TypeMux, infohash string, rawSize uint64, subpath string) ([]byte, error) {
+	sub := mux.Subscribe(caffe.TorrentEvent{})
+	defer sub.Unsubscribe()
+
+	select {
+	case <-sub.Chan():
+		ret, _, err := fs.storage().GetFile(ctx, infohash, subpath)
+		if err != nil {
+			log.Debug("File downloading ... ...", "ih", infohash, "size", common.StorageSize(rawSize), "path", subpath, "err", err)
+			return nil, err
+		}
+		if uint64(len(ret)) > rawSize {
+			return nil, backend.ErrInvalidRawSize
+		}
+		return ret, nil
+
+	case <-ctx.Done():
+		fs.retry.Add(1)
+		ex, co, to, e := fs.storage().ExistsOrActive(ctx, infohash, rawSize)
+		log.Warn("Timeout", "ih", infohash, "size", common.StorageSize(rawSize),
+			"err", ctx.Err(), "retry", fs.retry.Load(),
+			"complete", common.StorageSize(co), "timeout", to, "exist", ex, "err", e)
+		return nil, ctx.Err()
+
+	case <-fs.closeAll:
+		log.Info("File out")
+		return nil, nil
+	}
+}
+
+func (fs *TorrentFS) waitWithPolling(ctx context.Context, infohash string, rawSize uint64, subpath string) ([]byte, error) {
+	t := time.NewTimer(time.Second)
+	defer t.Stop()
+
+	for {
+		select {
+		case <-t.C:
+			ret, _, err := fs.storage().GetFile(ctx, infohash, subpath)
+			if err != nil {
+				log.Debug("File downloading ... ...", "ih", infohash, "size", common.StorageSize(rawSize), "path", subpath, "err", err)
+				t.Reset(time.Second)
+				continue
+			}
+			if uint64(len(ret)) > rawSize {
+				return nil, backend.ErrInvalidRawSize
+			}
+			return ret, nil
+
+		case <-ctx.Done():
+			fs.retry.Add(1)
+			ex, co, to, _ := fs.storage().ExistsOrActive(ctx, infohash, rawSize)
+			log.Warn("Timeout", "ih", infohash, "size", common.StorageSize(rawSize),
+				"err", ctx.Err(), "retry", fs.retry.Load(),
+				"complete", common.StorageSize(co), "timeout", to, "exist", ex)
+			return nil, ctx.Err()
+
+		case <-fs.closeAll:
+			log.Info("File out")
+			return nil, nil
+		}
 	}
 }
 

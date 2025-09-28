@@ -387,7 +387,6 @@ func (tm *TorrentManager) verifyTorrent(info *metainfo.Info, root string) error 
 	return nil
 }*/
 
-// func (tm *TorrentManager) loadSpec(ih metainfo.Hash, filePath string, BytesRequested int64) *torrent.TorrentSpec {
 func (tm *TorrentManager) loadSpec(ih string, filePath string) *torrent.TorrentSpec {
 	if _, err := os.Stat(filePath); err != nil {
 		return nil
@@ -406,15 +405,15 @@ func (tm *TorrentManager) loadSpec(ih string, filePath string) *torrent.TorrentS
 	}
 
 	var (
-		TmpDir   = filepath.Join(tm.tmpDataDir, ih)
-		ExistDir = filepath.Join(tm.dataDir, ih)
+		TmpDir = filepath.Join(tm.tmpDataDir, ih)
+		//ExistDir = filepath.Join(tm.dataDir, ih)
 	)
-	if _, err := os.Stat(ExistDir); err == nil {
-		log.Debug("Seeding from existing file.", "ih", ih)
-		spec.Storage = storage.NewMMap(ExistDir) //storage.NewFile(ExistDir)
-	} else {
-		spec.Storage = storage.NewMMap(TmpDir)
-	}
+
+	//if _, err := os.Stat(ExistDir); err == nil {
+	//	spec.Storage = storage.NewMMap(ExistDir) //storage.NewFile(ExistDir)
+	//} else {
+	spec.Storage = storage.NewMMap(TmpDir)
+	//}
 
 	spec.Trackers = nil
 
