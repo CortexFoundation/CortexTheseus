@@ -17,8 +17,10 @@
 package torrentfs
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -121,125 +123,109 @@ func (fs *TorrentFS) GetFileWithSize(ctx context.Context, infohash string, rawSi
 // load files, default mode is copyMode, linkMode
 // will limit user's operations for original files
 func (fs *TorrentFS) SeedingLocal(ctx context.Context, filePath string, isLinkMode bool) (infoHash string, err error) {
-	// 1. check folder exist
+	// 1. Check root folder
 	if _, err = os.Stat(filePath); err != nil {
-		return
+		return "", fmt.Errorf("stat filePath failed: %w", err)
 	}
 
-	// 2. check subfile data exist and not empty:
-	// recursively iterate until meet file not empty
-	var iterateForValidFile func(basePath string, dataInfo os.FileInfo) bool
-	iterateForValidFile = func(basePath string, dataInfo os.FileInfo) bool {
-		filePath := filepath.Join(basePath, dataInfo.Name())
-		if dataInfo.IsDir() {
-			dirFp, _ := os.Open(filePath)
-			if fInfos, err := dirFp.Readdir(0); err != nil {
-				log.Error("Read dir failed", "filePath", filePath, "err", err)
+	// 2. Ensure there is at least one non-empty file
+	var hasValidFile func(basePath string, fi os.FileInfo) bool
+	hasValidFile = func(basePath string, fi os.FileInfo) bool {
+		path := filepath.Join(basePath, fi.Name())
+		if fi.IsDir() {
+			dirFp, e := os.Open(path)
+			if e != nil {
 				return false
-			} else {
-				for _, v := range fInfos {
-					// return as soon as possible if meet 'true', else continue
-					if iterateForValidFile(filePath, v) {
-						return true
-					}
+			}
+			fInfos, e := dirFp.Readdir(0)
+			dirFp.Close()
+			if e != nil {
+				log.Error("Read dir failed", "filePath", path, "err", e)
+				return false
+			}
+			for _, v := range fInfos {
+				if hasValidFile(path, v) {
+					return true
 				}
 			}
-		} else if dataInfo.Size() > 0 {
-			return true
+			return false
 		}
-		return false
+		return fi.Size() > 0
 	}
 
 	var (
 		dataInfo os.FileInfo
-		fileMode bool = false
+		fileMode bool
 	)
 	dataPath := filepath.Join(filePath, "data")
 	if dataInfo, err = os.Stat(dataPath); err != nil {
-		dataPath = filepath.Join(filePath, "")
+		dataPath = filePath
 		if dataInfo, err = os.Stat(dataPath); err != nil {
-			log.Error("Load data failed", "dataPath", dataPath)
-			return
+			return "", fmt.Errorf("load data failed: %w", err)
 		}
 		fileMode = true
 	}
-	validFlag := iterateForValidFile(filePath, dataInfo)
-	if !validFlag {
-		err = errors.New("SeedingLocal: Empty Seeding Data!")
-		log.Error("SeedingLocal", "check", err.Error(), "path", dataPath, "name", dataInfo.Name(), "fileMode", fileMode)
-		return
+
+	if !hasValidFile(filePath, dataInfo) {
+		return "", fmt.Errorf("seedingLocal: empty seeding data, path=%s fileMode=%t", dataPath, fileMode)
 	}
 
-	// 3. generate torrent file, rewrite if exists
+	// 3. Build torrent metainfo
 	mi := metainfo.MetaInfo{
 		AnnounceList: [][]string{params.MainnetTrackers},
 	}
 	mi.SetDefaults()
+
 	info := metainfo.Info{PieceLength: 256 * 1024}
 	if err = info.BuildFromFilePath(dataPath); err != nil {
-		return
+		return "", fmt.Errorf("build metainfo failed: %w", err)
 	}
 	if mi.InfoBytes, err = bencode.Marshal(info); err != nil {
-		return
+		return "", fmt.Errorf("marshal metainfo failed: %w", err)
 	}
 
 	torrentPath := filepath.Join(filePath, "torrent")
 	if fileMode {
-		torrentPath = filepath.Join("", "torrent")
+		torrentPath = "torrent"
 	}
 
-	var fileTorrent *os.File
-	fileTorrent, err = os.OpenFile(torrentPath, os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return
+	// safer: buffer + atomic write
+	var buf bytes.Buffer
+	if err = mi.Write(&buf); err != nil {
+		return "", fmt.Errorf("encode metainfo failed: %w", err)
 	}
-	if err = mi.Write(fileTorrent); err != nil {
-		return
+	if err = os.WriteFile(torrentPath, buf.Bytes(), 0644); err != nil {
+		return "", fmt.Errorf("write torrent file failed: %w", err)
 	}
 
-	// 4. copy or link, will not cover if dst exist!
+	// 4. Copy or symlink
 	ih := common.Address(mi.HashInfoBytes())
 	infoHash = strings.TrimPrefix(strings.ToLower(ih.Hex()), common.Prefix)
 	linkDst := filepath.Join(fs.storage().TmpDataDir(), infoHash)
 
 	log.Info("Local file Seeding", "ih", infoHash, "path", dataPath, "len", info.Length)
+
 	if !isLinkMode {
 		if !fileMode {
 			err = cp.Copy(filePath, linkDst)
 		} else {
-			err = os.MkdirAll(filepath.Dir(linkDst), 0777) //os.FileMode(os.ModePerm))
-			if err != nil {
-				log.Error("Mkdir failed", "path", linkDst)
-				return
+			if err = os.MkdirAll(filepath.Dir(linkDst), 0777); err != nil {
+				return "", fmt.Errorf("mkdir failed: %w", err)
 			}
-
-			err = cp.Copy(filePath, filepath.Join(linkDst, dataInfo.Name()))
-			if err != nil {
-				log.Error("Mkdir failed", "filePath", filePath, "path", linkDst)
-				return
+			if err = cp.Copy(filePath, filepath.Join(linkDst, dataInfo.Name())); err != nil {
+				return "", fmt.Errorf("copy data failed: %w", err)
 			}
-			log.Info("Torrent copy", "torrentPath", torrentPath, "linkDst", linkDst)
-			err = cp.Copy(torrentPath, filepath.Join(linkDst, "torrent"))
-			if err != nil {
-				log.Error("Mkdir failed", "torrentPath", torrentPath, "path", linkDst)
-				return
+			if err = cp.Copy(torrentPath, filepath.Join(linkDst, "torrent")); err != nil {
+				return "", fmt.Errorf("copy torrent failed: %w", err)
 			}
-
 		}
 	} else {
 		if fileMode {
-			//TODO
-			log.Error("Not support", "link", isLinkMode)
-			return
+			return "", fmt.Errorf("link mode not supported in fileMode=true")
 		}
-		// check if symbol link exist
 		if _, err = os.Stat(linkDst); err == nil {
-			// choice-1: original symbol link exists, cover it. (passed)
-
-			// choice-2: original symbol link exists, return error
 			err = os.ErrExist
 		} else {
-			// create symbol link
 			var absOriFilePath string
 			if absOriFilePath, err = filepath.Abs(filePath); err == nil {
 				err = os.Symlink(absOriFilePath, linkDst)
@@ -247,16 +233,17 @@ func (fs *TorrentFS) SeedingLocal(ctx context.Context, filePath string, isLinkMo
 		}
 	}
 
-	// 5. seeding
+	// 5. Start seeding
 	if err == nil || errors.Is(err, os.ErrExist) {
 		log.Debug("SeedingLocal", "dest", linkDst, "err", err)
-		err = fs.storage().Search(ctx, infoHash, 1024*1024*1024)
-		if err == nil {
+		if e := fs.storage().Search(ctx, infoHash, 1024*1024*1024); e == nil {
 			fs.storage().AddLocalSeedFile(infoHash)
+		} else {
+			return "", fmt.Errorf("search storage failed: %w", e)
 		}
 	}
 
-	return
+	return infoHash, err
 }
 
 // PauseSeeding Local File
