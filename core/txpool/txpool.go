@@ -605,6 +605,10 @@ func (pool *TxPool) validateTxBasics(tx *types.Transaction, head *types.Header, 
 	if _, err := types.Sender(pool.signer, tx); err != nil {
 		return ErrInvalidSender
 	}
+	// Limit nonce to 2^64-1 per EIP-2681
+	if tx.Nonce()+1 < tx.Nonce() {
+		return core.ErrNonceMax
+	}
 	// Drop non-local transactions under our own minimal accepted gas price
 	if !local && tx.GasPriceIntCmp(pool.gasPrice.Load()) < 0 {
 		return ErrUnderpriced

@@ -101,7 +101,7 @@ func (s *srtpCipherAeadAesGcm) encryptRTP(
 		return nil, err
 	}
 	payloadLen := len(plaintext) - headerLen
-	authPartLen := header.MarshalSize() + payloadLen + authTagLen
+	authPartLen := headerLen + payloadLen + authTagLen
 	dstLen := authPartLen + len(s.mki)
 	if rocInAuthTag {
 		dstLen += 4
