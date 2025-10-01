@@ -237,7 +237,10 @@ type storageblock struct {
 // block.
 //
 // relevant portions of the header.
-func NewBlock(header *Header, body *Body, receipts []*Receipt, hasher Hasher) *Block {
+//
+// The receipt's bloom must already calculated for the block's bloom to be
+// correctly calculated.
+func NewBlock(header *Header, body *Body, receipts []*Receipt, hasher ListHasher) *Block {
 	if body == nil {
 		body = &Body{}
 	}

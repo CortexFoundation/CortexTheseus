@@ -359,14 +359,17 @@ func (t *Trie) tryGetNode(origNode node, path []byte, pos int) (item []byte, new
 //
 // The value bytes must not be modified by the caller while they are
 // stored in the trie.
-func (t *Trie) Update(key, value []byte) {
+func (t *Trie) Update(key, value []byte) error {
 	// Short circuit if the trie is already committed and not usable.
 	if t.committed {
 		//return
 	}
 	if err := t.TryUpdate(key, value); err != nil {
 		log.Error(fmt.Sprintf("Unhandled trie error: %v", err))
+		return err
 	}
+
+	return nil
 }
 
 // TryUpdate associates key with value in the trie. Subsequent calls to
@@ -763,8 +766,14 @@ func (t *Trie) hashRoot() []byte {
 	return h.hash(t.root, true)
 }
 
-// Reset drops the referenced root node and cleans all internal state.
-func (t *Trie) Reset() {
+// Witness returns a set containing all trie nodes that have been accessed.
+func (t *Trie) Witness() map[string][]byte {
+	//return t.prevalueTracer.Values()
+	return nil
+}
+
+// reset drops the referenced root node and cleans all internal state.
+func (t *Trie) reset() {
 	t.root = nil
 	t.unhashed = 0
 	t.uncommitted = 0

@@ -17,6 +17,7 @@
 package types
 
 import (
+	"bytes"
 	"container/heap"
 	"errors"
 	"fmt"
@@ -290,6 +291,14 @@ func (s Transactions) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 func (s Transactions) GetRlp(i int) []byte {
 	enc, _ := rlp.EncodeToBytes(s[i])
 	return enc
+}
+
+// EncodeIndex encodes the i'th transaction to w. Note that this does not check for errors
+// because we assume that *Transaction will only ever contain valid txs that were either
+// constructed by decoding or via public API in this package.
+func (s Transactions) EncodeIndex(i int, w *bytes.Buffer) {
+	tx := s[i]
+	rlp.Encode(w, &tx.data)
 }
 
 // TxDifference returns a new set of transactions that are present in a but not in b.
