@@ -110,8 +110,7 @@ type Torrent struct {
 	// Read-locked for using storage, and write-locked for Closing.
 	storageLock sync.RWMutex
 
-	// TODO: Only announce stuff is used?
-	metainfo metainfo.MetaInfo
+	announceList metainfo.AnnounceList
 
 	// The info dict. nil if we don't have it (yet).
 	info *metainfo.Info
@@ -1000,7 +999,7 @@ func (t *Torrent) newMetaInfo() metainfo.MetaInfo {
 		CreationDate: time.Now().Unix(),
 		Comment:      "dynamic metainfo from client",
 		CreatedBy:    "https://github.com/anacrolix/torrent",
-		AnnounceList: t.metainfo.UpvertedAnnounceList().Clone(),
+		AnnounceList: t.announceList.Clone(),
 		InfoBytes: func() []byte {
 			if t.haveInfo() {
 				return t.metadataBytes
@@ -1232,8 +1231,8 @@ func (t *Torrent) countBytesHashed(n int64) {
 
 func (t *Torrent) hashPiece(piece pieceIndex) (
 	correct bool,
-	// These are peers that sent us blocks that differ from what we hash here. TODO: Track Peer not
-	// bannable addr for peer types that are rebuked differently.
+// These are peers that sent us blocks that differ from what we hash here. TODO: Track Peer not
+// bannable addr for peer types that are rebuked differently.
 	differingPeers map[bannableAddr]struct{},
 	err error,
 ) {
@@ -1307,7 +1306,7 @@ func sumExactly(dst []byte, sum func(b []byte) []byte) {
 }
 
 func (t *Torrent) hashPieceWithSpecificHash(piece pieceIndex, h hash.Hash) (
-	// These are peers that sent us blocks that differ from what we hash here.
+// These are peers that sent us blocks that differ from what we hash here.
 	differingPeers map[bannableAddr]struct{},
 	err error,
 ) {
@@ -1351,8 +1350,8 @@ func (t *Torrent) havePiece(index pieceIndex) bool {
 }
 
 func (t *Torrent) maybeDropMutuallyCompletePeer(
-	// I'm not sure about taking peer here, not all peer implementations actually drop. Maybe that's
-	// okay?
+// I'm not sure about taking peer here, not all peer implementations actually drop. Maybe that's
+// okay?
 	p *PeerConn,
 ) {
 	if !t.cl.config.DropMutuallyCompletePeers {
@@ -1781,10 +1780,10 @@ func (t *Torrent) afterSetPieceCompletion(piece pieceIndex, changed bool) {
 	p := t.piece(piece)
 	cmpl := p.completion()
 	complete := cmpl.Ok && cmpl.Complete
+	p.t.updatePieceRequestOrderPiece(piece)
 	if complete {
 		t.openNewConns()
 	}
-	p.t.updatePieceRequestOrderPiece(piece)
 	t.deferUpdateComplete()
 	if complete && len(p.dirtiers) != 0 {
 		t.logger.Printf("marked piece %v complete but still has dirtiers", piece)
@@ -1843,6 +1842,7 @@ func (t *Torrent) needData() bool {
 	if !t.haveInfo() {
 		return true
 	}
+	t.checkPendingPiecesMatchesRequestOrder()
 	return !t._pendingPieces.IsEmpty()
 }
 
@@ -1869,8 +1869,8 @@ func appendMissingTrackerTiers(existing [][]string, minNumTiers int) (ret [][]st
 }
 
 func (t *Torrent) addTrackers(announceList [][]string) {
-	fullAnnounceList := &t.metainfo.AnnounceList
-	t.metainfo.AnnounceList = appendMissingTrackerTiers(*fullAnnounceList, len(announceList))
+	fullAnnounceList := &t.announceList
+	t.announceList = appendMissingTrackerTiers(*fullAnnounceList, len(announceList))
 	for tierIndex, trackerURLs := range announceList {
 		(*fullAnnounceList)[tierIndex] = appendMissingStrings((*fullAnnounceList)[tierIndex], trackerURLs)
 	}
@@ -1888,7 +1888,7 @@ func (t *Torrent) modifyTrackers(announceList [][]string) {
 	}
 	workers.Wait()
 
-	clear(t.metainfo.AnnounceList)
+	clear(t.announceList)
 	t.addTrackers(announceList)
 }
 
@@ -2182,8 +2182,7 @@ func (t *Torrent) startMissingTrackerScrapers() {
 	if t.cl.config.DisableTrackers {
 		return
 	}
-	t.startScrapingTracker(t.metainfo.Announce)
-	for _, tier := range t.metainfo.AnnounceList {
+	for _, tier := range t.announceList {
 		for _, url := range tier {
 			t.startScrapingTracker(url)
 		}
@@ -2780,14 +2779,18 @@ func (t *Torrent) finishHash(index pieceIndex) {
 	// Do we really need to spell out that it's a copy error? If it's a failure to hash the hash
 	// will just be wrong.
 	correct, failedPeers, copyErr := t.hashPiece(index)
+	t.storageLock.RUnlock()
+	level := slog.LevelDebug
 	switch copyErr {
 	case nil, io.EOF:
 	default:
-		t.logger.WithNames("hashing").Levelf(
-			log.Warning,
-			"error hashing piece %v: %v", index, copyErr)
+		level = slog.LevelWarn
 	}
-	t.storageLock.RUnlock()
+	t.slogger().Log(context.Background(), level, "finished hashing piece",
+		"piece", index,
+		"correct", correct,
+		"failedPeers", failedPeers,
+		"err", copyErr)
 	t.cl.lock()
 	if correct {
 		if len(failedPeers) > 0 {
@@ -3551,7 +3554,20 @@ func (t *Torrent) Complete() chansync.ReadOnlyFlag {
 }
 
 func (t *Torrent) slogger() *slog.Logger {
-	return t._slogger
+	return t._slogger.With(t.slogGroup())
+}
+
+// Returns a group attr describing the Torrent.
+func (t *Torrent) slogGroup() slog.Attr {
+	var name any
+	opt := t.bestName()
+	if opt.Ok {
+		name = opt.Value
+	}
+	return slog.Group("torrent",
+		"name", name,
+		"ih", *t.canonicalShortInfohash(),
+	)
 }
 
 // Get a chunk buffer from the pool. It should be returned when it's no longer in use. Do we
@@ -3569,13 +3585,6 @@ func (t *Torrent) putChunkBuffer(b []byte) {
 func (t *Torrent) withSlogger(base *slog.Logger) *slog.Logger {
 	return base.With(slog.Group(
 		"torrent",
-		"name", lazyLogValuer(func() any {
-			opt := t.bestName()
-			if opt.Ok {
-				return opt.Value
-			}
-			return nil
-		}),
 		"ih", *t.canonicalShortInfohash()))
 }
 
