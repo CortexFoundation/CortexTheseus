@@ -25,6 +25,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
+	"slices"
 )
 
 // ErrNotRequested is returned by the trie sync when it's requested to process a
@@ -374,14 +375,14 @@ func (s *Sync) children(req *request, object node) ([]*request, error) {
 		}
 		children = []child{{
 			node: node.Val,
-			path: append(append([]byte(nil), req.path...), key...),
+			path: slices.Concat(req.path, key),
 		}}
 	case *fullNode:
 		for i := 0; i < 17; i++ {
 			if node.Children[i] != nil {
 				children = append(children, child{
 					node: node.Children[i],
-					path: append(append([]byte(nil), req.path...), byte(i)),
+					path: append(slices.Clone(req.path), byte(i)),
 				})
 			}
 		}
