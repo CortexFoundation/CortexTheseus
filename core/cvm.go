@@ -29,11 +29,9 @@ import (
 // ChainContext supports retrieving headers and consensus parameters from the
 // current blockchain to be used during transaction processing.
 type ChainContext interface {
+	consensus.ChainHeaderReader
 	// Engine retrieves the chain's consensus engine.
 	Engine() consensus.Engine
-
-	// GetHeader returns the header corresponding to the hash/number argument pair.
-	GetHeader(common.Hash, uint64) *types.Header
 }
 
 // NewCVMContext creates a new context for use in the CVM.

@@ -259,6 +259,11 @@ type dummyChain struct {
 	counter int
 }
 
+func (d *dummyChain) Config() *params.ChainConfig                 { return nil }
+func (d *dummyChain) CurrentHeader() *types.Header                { return nil }
+func (d *dummyChain) GetHeaderByNumber(n uint64) *types.Header    { return nil }
+func (d *dummyChain) GetHeaderByHash(h common.Hash) *types.Header { return nil }
+
 // Engine retrieves the chain's consensus engine.
 func (d *dummyChain) Engine() consensus.Engine {
 	return nil

@@ -21,7 +21,6 @@ import (
 	"math/big"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/consensus"
 	"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
@@ -34,18 +33,19 @@ import (
 //
 // StateProcessor implements Processor.
 type StateProcessor struct {
-	config *params.ChainConfig // Chain configuration options
-	bc     *BlockChain         // Canonical block chain
-	engine consensus.Engine    // Consensus engine used for block rewards
+	chain ChainContext // Chain context interface
 }
 
 // NewStateProcessor initialises a new StateProcessor.
-func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consensus.Engine) *StateProcessor {
+func NewStateProcessor(chain ChainContext) *StateProcessor {
 	return &StateProcessor{
-		config: config,
-		bc:     bc,
-		engine: engine,
+		chain: chain,
 	}
+}
+
+// chainConfig returns the chain configuration.
+func (p *StateProcessor) chainConfig() *params.ChainConfig {
+	return p.chain.Config()
 }
 
 // Process processes the state changes according to the Cortex rules by running
@@ -57,6 +57,7 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consen
 // transactions failed to execute due to insufficient gas it will return an error.
 func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error) {
 	var (
+		config   = p.chainConfig()
 		receipts types.Receipts
 		usedGas  = new(uint64)
 		//quotaLimit = big.NewInt(0)//parent.quota+64k - parent.quotaUsed
@@ -76,9 +77,9 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	//	misc.ApplyDAOHardFork(statedb)
 	//}
 	var (
-		blockContext = NewCVMBlockContext(header, p.bc, nil)
-		vmenv        = vm.NewCVM(blockContext, statedb, p.config, cfg)
-		signer       = types.MakeSigner(p.config, header.Number, header.Time)
+		blockContext = NewCVMBlockContext(header, p.chain, nil)
+		vmenv        = vm.NewCVM(blockContext, statedb, config, cfg)
+		signer       = types.MakeSigner(config, header.Number, header.Time)
 	)
 	// Iterate over and process the individual transactions
 	for i, tx := range block.Transactions() {
@@ -87,7 +88,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 			return nil, nil, 0, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
 		}
 		statedb.SetTxContext(tx.Hash(), i)
-		receipt, err := applyTransaction(msg, p.config, gp, qp, statedb, header, blockNumber, blockHash, tx, usedGas, vmenv)
+		receipt, err := applyTransaction(msg, config, gp, qp, statedb, header, blockNumber, blockHash, tx, usedGas, vmenv)
 		if err != nil {
 			return nil, nil, 0, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
 		}
@@ -100,7 +101,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	//        return nil,nil,0,consensus.ErrUnknownAncestor
 	//}
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
-	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles())
+	p.chain.Engine().Finalize(p.chain, header, statedb, block.Transactions(), block.Uncles())
 
 	return receipts, allLogs, *usedGas, nil
 }

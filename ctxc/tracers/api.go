@@ -73,6 +73,7 @@ type StateReleaseFunc func()
 type Backend interface {
 	HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error)
 	HeaderByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Header, error)
+	CurrentHeader() *types.Header
 	BlockByHash(ctx context.Context, hash common.Hash) (*types.Block, error)
 	BlockByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Block, error)
 	GetTransaction(txHash common.Hash) (bool, *types.Transaction, common.Hash, uint64, uint64)
@@ -98,6 +99,24 @@ func NewAPI(backend Backend) *API {
 type chainContext struct {
 	api *API
 	ctx context.Context
+}
+
+func (context *chainContext) Config() *params.ChainConfig {
+	return context.api.backend.ChainConfig()
+}
+
+func (context *chainContext) CurrentHeader() *types.Header {
+	return context.api.backend.CurrentHeader()
+}
+
+func (context *chainContext) GetHeaderByNumber(number uint64) *types.Header {
+	header, _ := context.api.backend.HeaderByNumber(context.ctx, rpc.BlockNumber(number))
+	return header
+}
+
+func (context *chainContext) GetHeaderByHash(hash common.Hash) *types.Header {
+	header, _ := context.api.backend.HeaderByHash(context.ctx, hash)
+	return header
 }
 
 func (context *chainContext) Engine() consensus.Engine {
