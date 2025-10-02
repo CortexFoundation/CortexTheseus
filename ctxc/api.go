@@ -581,7 +581,7 @@ func (api *PrivateDebugAPI) computeStateDB(block *types.Block, reexec uint64) (*
 		if block = api.ctxc.blockchain.GetBlockByNumber(block.NumberU64() + 1); block == nil {
 			return nil, fmt.Errorf("block #%d not found", block.NumberU64()+1)
 		}
-		_, _, _, err := api.ctxc.blockchain.Processor().Process(block, statedb, vm.Config{})
+		_, err := api.ctxc.blockchain.Processor().Process(block, statedb, vm.Config{})
 		if err != nil {
 			return nil, err
 		}

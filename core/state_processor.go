@@ -55,7 +55,7 @@ func (p *StateProcessor) chainConfig() *params.ChainConfig {
 // Process returns the receipts and logs accumulated during the process and
 // returns the amount of gas that was used in the process. If any of the
 // transactions failed to execute due to insufficient gas it will return an error.
-func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error) {
+func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg vm.Config) (*ProcessResult, error) {
 	var (
 		config   = p.chainConfig()
 		receipts types.Receipts
@@ -69,7 +69,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		qp          = NewQuotaPool(header.Quota)
 	)
 	if err := qp.SubQuota(header.QuotaUsed); err != nil {
-		return nil, nil, 0, err
+		return nil, err
 	}
 	//*usedQuota = quotaUsed
 	// Mutate the block and state according to any hard-fork specs
@@ -85,12 +85,12 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	for i, tx := range block.Transactions() {
 		msg, err := TransactionToMessage(tx, signer)
 		if err != nil {
-			return nil, nil, 0, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
+			return nil, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
 		}
 		statedb.SetTxContext(tx.Hash(), i)
 		receipt, err := applyTransaction(msg, config, gp, qp, statedb, header, blockNumber, blockHash, tx, usedGas, vmenv)
 		if err != nil {
-			return nil, nil, 0, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
+			return nil, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
 		}
 		receipts = append(receipts, receipt)
 		allLogs = append(allLogs, receipt.Logs...)
@@ -103,7 +103,12 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	p.chain.Engine().Finalize(p.chain, header, statedb, block.Transactions(), block.Uncles())
 
-	return receipts, allLogs, *usedGas, nil
+	return &ProcessResult{
+		Receipts: receipts,
+		Requests: nil,
+		Logs:     allLogs,
+		GasUsed:  *usedGas,
+	}, nil
 }
 
 // ApplyTransaction attempts to apply a transaction to the given state database

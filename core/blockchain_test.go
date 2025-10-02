@@ -141,14 +141,14 @@ func testBlockChainImport(chain types.Blocks, blockchain *BlockChain) error {
 		if err != nil {
 			return err
 		}
-		receipts, _, usedGas, err := blockchain.processor.Process(block, statedb, vm.Config{})
+		res, err := blockchain.processor.Process(block, statedb, vm.Config{})
 		if err != nil {
-			blockchain.reportBlock(block, receipts, err)
+			blockchain.reportBlock(block, res.Receipts, err)
 			return err
 		}
-		err = blockchain.validator.ValidateState(block, statedb, receipts, usedGas)
+		err = blockchain.validator.ValidateState(block, statedb, res)
 		if err != nil {
-			blockchain.reportBlock(block, receipts, err)
+			blockchain.reportBlock(block, res.Receipts, err)
 			return err
 		}
 

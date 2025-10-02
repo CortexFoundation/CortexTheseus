@@ -152,7 +152,7 @@ func (ctxc *Cortex) StateAtBlock(block *types.Block, reexec uint64, base *state.
 		if current = ctxc.blockchain.GetBlockByNumber(next); current == nil {
 			return nil, nil, fmt.Errorf("block #%d not found", next)
 		}
-		_, _, _, err := ctxc.blockchain.Processor().Process(current, statedb, vm.Config{})
+		_, err := ctxc.blockchain.Processor().Process(current, statedb, vm.Config{})
 		if err != nil {
 			return nil, nil, fmt.Errorf("processing block %d failed: %v", current.NumberU64(), err)
 		}
