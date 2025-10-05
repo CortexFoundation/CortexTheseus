@@ -11,8 +11,13 @@ import (
 // Deliver directly send packet to vnet or real-server.
 // For example, we can use this API to simulate the REPLAY ATTACK.
 func (v *UDPProxy) Deliver(sourceAddr, destAddr net.Addr, b []byte) (nn int, err error) {
-	v.workers.Range(func(_, value interface{}) bool {
-		if nn, err = value.(*aUDPProxyWorker).Deliver(sourceAddr, destAddr, b); err != nil {
+	v.workers.Range(func(_, value any) bool {
+		worker, ok := value.(*aUDPProxyWorker)
+		if !ok {
+			return false
+		}
+
+		if nn, err = worker.Deliver(sourceAddr, destAddr, b); err != nil {
 			return false // Fail, abort.
 		} else if nn == len(b) {
 			return false // Done.
@@ -20,13 +25,14 @@ func (v *UDPProxy) Deliver(sourceAddr, destAddr net.Addr, b []byte) (nn int, err
 
 		return true // Deliver by next worker.
 	})
+
 	return
 }
 
 func (v *aUDPProxyWorker) Deliver(sourceAddr, _ net.Addr, b []byte) (nn int, err error) {
 	addr, ok := sourceAddr.(*net.UDPAddr)
 	if !ok {
-		return 0, fmt.Errorf("invalid addr %v", sourceAddr) // nolint:goerr113
+		return 0, fmt.Errorf("invalid addr %v", sourceAddr) // nolint:err113
 	}
 
 	// nolint:godox // TODO: Support deliver packet from real server to vnet.

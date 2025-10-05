@@ -5,6 +5,7 @@ package nack
 
 import (
 	"math/rand"
+	"slices"
 	"sync"
 	"time"
 
@@ -197,14 +198,7 @@ func (n *GeneratorInterceptor) loop(rtcpWriter interceptor.RTCPWriter) {
 					}
 
 					for nackSeq := range n.nackCountLogs[ssrc] {
-						isMissing := false
-						for _, missingSeq := range missing {
-							if missingSeq == nackSeq {
-								isMissing = true
-
-								break
-							}
-						}
+						isMissing := slices.Contains(missing, nackSeq)
 						if !isMissing {
 							delete(n.nackCountLogs[ssrc], nackSeq)
 						}

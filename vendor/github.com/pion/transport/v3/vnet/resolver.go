@@ -37,6 +37,7 @@ func newResolver(config *resolverConfig) *resolver {
 	if err := r.addHost("localhost", "127.0.0.1"); err != nil {
 		r.log.Warn("failed to add localhost to resolver")
 	}
+
 	return r
 }
 
@@ -59,6 +60,7 @@ func (r *resolver) addHost(name string, ipAddr string) error {
 		return fmt.Errorf("%w \"%s\"", errFailedToParseIPAddr, ipAddr)
 	}
 	r.hosts[name] = ip
+
 	return nil
 }
 
@@ -70,6 +72,7 @@ func (r *resolver) lookUp(hostName string) (net.IP, error) {
 		if ip2, ok := r.hosts[hostName]; ok {
 			return ip2
 		}
+
 		return nil
 	}()
 	if ip != nil {

@@ -50,11 +50,12 @@ var assignChunkTag = func() func() string { //nolint:gochecknoglobals
 
 	return func() string {
 		n := atomic.AddUint64(&tagCtr, 1)
+
 		return strconv.FormatUint(n, 36)
 	}
 }()
 
-// Chunk represents a packet passed around in the vnet
+// Chunk represents a packet passed around in the vnet.
 type Chunk interface {
 	setTimestamp() time.Time                 // used by router
 	getTimestamp() time.Time                 // used by router
@@ -81,6 +82,7 @@ type chunkIP struct {
 
 func (c *chunkIP) setTimestamp() time.Time {
 	c.timestamp = time.Now()
+
 	return c.timestamp
 }
 
@@ -164,6 +166,7 @@ func (c *chunkUDP) Network() string {
 func (c *chunkUDP) String() string {
 	src := c.SourceAddr()
 	dst := c.DestinationAddr()
+
 	return fmt.Sprintf("%s chunk %s %s => %s",
 		src.Network(),
 		c.tag,
@@ -179,6 +182,7 @@ func (c *chunkUDP) setSourceAddr(address string) error {
 	}
 	c.sourceIP = addr.IP
 	c.sourcePort = addr.Port
+
 	return nil
 }
 
@@ -189,6 +193,7 @@ func (c *chunkUDP) setDestinationAddr(address string) error {
 	}
 	c.destinationIP = addr.IP
 	c.destinationPort = addr.Port
+
 	return nil
 }
 
@@ -256,6 +261,7 @@ func (c *chunkTCP) Network() string {
 func (c *chunkTCP) String() string {
 	src := c.SourceAddr()
 	dst := c.DestinationAddr()
+
 	return fmt.Sprintf("%s %s chunk %s %s => %s",
 		src.Network(),
 		c.flags.String(),
@@ -272,6 +278,7 @@ func (c *chunkTCP) setSourceAddr(address string) error {
 	}
 	c.sourceIP = addr.IP
 	c.sourcePort = addr.Port
+
 	return nil
 }
 
@@ -282,5 +289,6 @@ func (c *chunkTCP) setDestinationAddr(address string) error {
 	}
 	c.destinationIP = addr.IP
 	c.destinationPort = addr.Port
+
 	return nil
 }

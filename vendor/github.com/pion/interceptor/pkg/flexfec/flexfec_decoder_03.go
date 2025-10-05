@@ -283,7 +283,7 @@ func (d *fecDecoder) recoverPacket(fec *fecPacketState) (rtp.Packet, error) {
 			if err != nil {
 				return rtp.Packet{}, fmt.Errorf("marshal protected packet: %w", err)
 			}
-			for i := 0; i < minInt(int(payloadLength), len(packet)-12); i++ {
+			for i := 0; i < min(int(payloadLength), len(packet)-12); i++ {
 				payloadRecovery[i] ^= packet[12+i]
 			}
 		}
@@ -407,23 +407,7 @@ func parseFlexFEC03Header(data []byte) (flexFec, error) {
 }
 
 func seqDiff(a, b uint16) uint16 {
-	return minUInt16(a-b, b-a)
-}
-
-func minInt(a, b int) int {
-	if a < b {
-		return a
-	}
-
-	return b
-}
-
-func minUInt16(a, b uint16) uint16 {
-	if a < b {
-		return a
-	}
-
-	return b
+	return min(a-b, b-a)
 }
 
 func abs(x int) int {

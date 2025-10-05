@@ -20,6 +20,7 @@ func newFixedBigInt(n uint) *fixedBigInt {
 	if chunkSize == 0 {
 		chunkSize = 1
 	}
+
 	return &fixedBigInt{
 		bits:    make([]uint64, chunkSize),
 		n:       n,
@@ -28,11 +29,11 @@ func newFixedBigInt(n uint) *fixedBigInt {
 }
 
 // Lsh is the left shift operation.
-func (s *fixedBigInt) Lsh(n uint) {
+func (s *fixedBigInt) Lsh(n uint) { //nolint:varnamelen
 	if n == 0 {
 		return
 	}
-	nChunk := int(n / 64)
+	nChunk := int(n / 64) //nolint:gosec
 	nN := n % 64
 
 	for i := len(s.bits) - 1; i >= 0; i-- {
@@ -58,6 +59,7 @@ func (s *fixedBigInt) Bit(i uint) uint {
 	if s.bits[chunk]&(1<<pos) != 0 {
 		return 1
 	}
+
 	return 0
 }
 
@@ -77,5 +79,6 @@ func (s *fixedBigInt) String() string {
 	for i := len(s.bits) - 1; i >= 0; i-- {
 		out += fmt.Sprintf("%016X", s.bits[i])
 	}
+
 	return out
 }

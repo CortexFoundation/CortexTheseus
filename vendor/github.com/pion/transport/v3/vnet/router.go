@@ -32,12 +32,13 @@ var (
 	errNoIPAddrEth0                  = errors.New("no IP address is assigned for eth0")
 )
 
-// Generate a unique router name
+// Generate a unique router name.
 var assignRouterName = func() func() string { //nolint:gochecknoglobals
 	var routerIDCtr uint64
 
 	return func() string {
 		n := atomic.AddUint64(&routerIDCtr, 1)
+
 		return fmt.Sprintf("router%d", n)
 	}
 }()
@@ -67,7 +68,7 @@ type RouterConfig struct {
 	LoggerFactory logging.LoggerFactory
 }
 
-// NIC is a network interface controller that interfaces Router
+// NIC is a network interface controller that interfaces Router.
 type NIC interface {
 	getInterface(ifName string) (*transport.Interface, error)
 	onInboundChunk(c Chunk)
@@ -105,7 +106,7 @@ type Router struct {
 }
 
 // NewRouter ...
-func NewRouter(config *RouterConfig) (*Router, error) {
+func NewRouter(config *RouterConfig) (*Router, error) { //nolint:cyclop
 	loggerFactory := config.LoggerFactory
 	log := loggerFactory.NewLogger("vnet")
 
@@ -152,7 +153,7 @@ func NewRouter(config *RouterConfig) (*Router, error) {
 	staticLocalIPs := map[string]net.IP{}
 	for _, ipStr := range config.StaticIPs {
 		ipPair := strings.Split(ipStr, "/")
-		if ip := net.ParseIP(ipPair[0]); ip != nil {
+		if ip := net.ParseIP(ipPair[0]); ip != nil { //nolint:nestif
 			if len(ipPair) > 1 {
 				locIP := net.ParseIP(ipPair[1])
 				if locIP == nil {
@@ -197,7 +198,7 @@ func NewRouter(config *RouterConfig) (*Router, error) {
 	}, nil
 }
 
-// caller must hold the mutex
+// caller must hold the mutex.
 func (r *Router) getInterfaces() ([]*transport.Interface, error) {
 	if len(r.interfaces) == 0 {
 		return nil, fmt.Errorf("%w is available", errNoInterface)
@@ -224,7 +225,7 @@ func (r *Router) getInterface(ifName string) (*transport.Interface, error) {
 }
 
 // Start ...
-func (r *Router) Start() error {
+func (r *Router) Start() error { //nolint:cyclop
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -237,20 +238,21 @@ func (r *Router) Start() error {
 	go func() {
 	loop:
 		for {
-			d, err := r.processChunks()
+			duration, err := r.processChunks()
 			if err != nil {
 				r.log.Errorf("[%s] %s", r.name, err.Error())
+
 				break
 			}
 
-			if d <= 0 {
+			if duration <= 0 {
 				select {
 				case <-r.pushCh:
 				case <-cancelCh:
 					break loop
 				}
 			} else {
-				t := time.NewTimer(d)
+				t := time.NewTimer(duration)
 				select {
 				case <-t.C:
 				case <-cancelCh:
@@ -294,10 +296,11 @@ func (r *Router) Stop() error {
 
 	r.stopFunc()
 	r.stopFunc = nil
+
 	return nil
 }
 
-// caller must hold the mutex
+// caller must hold the mutex.
 func (r *Router) addNIC(nic NIC) error {
 	ifc, err := nic.getInterface("eth0")
 	if err != nil {
@@ -348,6 +351,7 @@ func (r *Router) AddRouter(router *Router) error {
 	}
 
 	r.children = append(r.children, router)
+
 	return nil
 }
 
@@ -363,6 +367,7 @@ func (r *Router) AddChildRouter(router *Router) error {
 	}
 
 	r.children = append(r.children, router)
+
 	return nil
 }
 
@@ -389,7 +394,7 @@ func (r *Router) AddChunkFilter(filter ChunkFilter) {
 	r.chunkFilters = append(r.chunkFilters, filter)
 }
 
-// caller should hold the mutex
+// caller should hold the mutex.
 func (r *Router) assignIPAddress() (net.IP, error) {
 	// See: https://stackoverflow.com/questions/14915188/ip-address-ending-with-zero
 
@@ -401,6 +406,7 @@ func (r *Router) assignIPAddress() (net.IP, error) {
 	copy(ip, r.ipv4Net.IP[:3])
 	r.lastID++
 	ip[3] = r.lastID
+
 	return ip, nil
 }
 
@@ -422,7 +428,7 @@ func (r *Router) push(c Chunk) {
 	}
 }
 
-func (r *Router) processChunks() (time.Duration, error) {
+func (r *Router) processChunks() (time.Duration, error) { //nolint:cyclop
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -444,35 +450,37 @@ func (r *Router) processChunks() (time.Duration, error) {
 	enteredAt := time.Now()
 	cutOff := enteredAt.Add(-r.minDelay)
 
-	var d time.Duration // the next sleep duration
+	var duration time.Duration // the next sleep duration
 
 	for {
-		d = 0
+		duration = 0
 
-		c := r.queue.peek()
-		if c == nil {
+		chunk := r.queue.peek()
+		if chunk == nil {
 			break // no more chunk in the queue
 		}
 
 		// check timestamp to find if the chunk is due
-		if c.getTimestamp().After(cutOff) {
+		if chunk.getTimestamp().After(cutOff) {
 			// There is one or more chunk in the queue but none of them are due.
 			// Calculate the next sleep duration here.
-			nextExpire := c.getTimestamp().Add(r.minDelay)
-			d = nextExpire.Sub(enteredAt)
+			nextExpire := chunk.getTimestamp().Add(r.minDelay)
+			duration = nextExpire.Sub(enteredAt)
+
 			break
 		}
 
 		var ok bool
-		if c, ok = r.queue.pop(); !ok {
+		if chunk, ok = r.queue.pop(); !ok {
 			break // no more chunk in the queue
 		}
 
 		blocked := false
 		for i := 0; i < len(r.chunkFilters); i++ {
 			filter := r.chunkFilters[i]
-			if !filter(c) {
+			if !filter(chunk) {
 				blocked = true
+
 				break
 			}
 		}
@@ -480,7 +488,7 @@ func (r *Router) processChunks() (time.Duration, error) {
 			continue // discard
 		}
 
-		dstIP := c.getDestinationIP()
+		dstIP := chunk.getDestinationIP()
 
 		// check if the destination is in our subnet
 		if r.ipv4Net.Contains(dstIP) {
@@ -488,15 +496,17 @@ func (r *Router) processChunks() (time.Duration, error) {
 			var nic NIC
 			if nic, ok = r.nics[dstIP.String()]; !ok {
 				// NIC not found. drop it.
-				r.log.Debugf("[%s] %s unreachable", r.name, c.String())
+				r.log.Debugf("[%s] %s unreachable", r.name, chunk.String())
+
 				continue
 			}
 
 			// found the NIC, forward the chunk to the NIC.
 			// call to NIC must unlock mutex
 			r.mutex.Unlock()
-			nic.onInboundChunk(c)
+			nic.onInboundChunk(chunk)
 			r.mutex.Lock()
+
 			continue
 		}
 
@@ -504,12 +514,13 @@ func (r *Router) processChunks() (time.Duration, error) {
 		// is this WAN?
 		if r.parent == nil {
 			// this WAN. No route for this chunk
-			r.log.Debugf("[%s] no route found for %s", r.name, c.String())
+			r.log.Debugf("[%s] no route found for %s", r.name, chunk.String())
+
 			continue
 		}
 
 		// Pass it to the parent via NAT
-		toParent, err := r.nat.translateOutbound(c)
+		toParent, err := r.nat.translateOutbound(chunk)
 		if err != nil {
 			return 0, err
 		}
@@ -538,11 +549,11 @@ func (r *Router) processChunks() (time.Duration, error) {
 		r.mutex.Lock()
 	}
 
-	return d, nil
+	return duration, nil
 }
 
-// caller must hold the mutex
-func (r *Router) setRouter(parent *Router) error {
+// caller must hold the mutex.
+func (r *Router) setRouter(parent *Router) error { //nolint:cyclop
 	r.parent = parent
 	r.resolver.setParent(parent.resolver)
 
@@ -610,6 +621,7 @@ func (r *Router) onInboundChunk(c Chunk) {
 	fromParent, err := r.nat.translateInbound(c)
 	if err != nil {
 		r.log.Warnf("[%s] %s", r.name, err.Error())
+
 		return
 	}
 

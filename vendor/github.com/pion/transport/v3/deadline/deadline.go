@@ -43,6 +43,7 @@ func (d *Deadline) timeout() {
 	d.mu.Lock()
 	if d.pending--; d.pending != 0 || d.state != deadlineStarted {
 		d.mu.Unlock()
+
 		return
 	}
 
@@ -54,7 +55,7 @@ func (d *Deadline) timeout() {
 }
 
 // Set new deadline. Zero value means no deadline.
-func (d *Deadline) Set(t time.Time) {
+func (d *Deadline) Set(setTo time.Time) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -62,26 +63,28 @@ func (d *Deadline) Set(t time.Time) {
 		d.pending--
 	}
 
-	d.deadline = t
+	d.deadline = setTo
 	d.pending++
 
 	if d.state == deadlineExceeded {
 		d.done = make(chan struct{})
 	}
 
-	if t.IsZero() {
+	if setTo.IsZero() {
 		d.pending--
 		d.state = deadlineStopped
+
 		return
 	}
 
-	if dur := time.Until(t); dur > 0 {
+	if dur := time.Until(setTo); dur > 0 {
 		d.state = deadlineStarted
 		if d.timer == nil {
 			d.timer = afterFunc(dur, d.timeout)
 		} else {
 			d.timer.Reset(dur)
 		}
+
 		return
 	}
 
@@ -94,6 +97,7 @@ func (d *Deadline) Set(t time.Time) {
 func (d *Deadline) Done() <-chan struct{} {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
+
 	return d.done
 }
 
@@ -105,6 +109,7 @@ func (d *Deadline) Err() error {
 	if d.state == deadlineExceeded {
 		return context.DeadlineExceeded
 	}
+
 	return nil
 }
 
@@ -115,10 +120,11 @@ func (d *Deadline) Deadline() (time.Time, bool) {
 	if d.deadline.IsZero() {
 		return d.deadline, false
 	}
+
 	return d.deadline, true
 }
 
 // Value returns nil.
-func (d *Deadline) Value(interface{}) interface{} {
+func (d *Deadline) Value(any) any {
 	return nil
 }

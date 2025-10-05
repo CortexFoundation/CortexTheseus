@@ -30,12 +30,12 @@ type PacketFactoryCopy struct {
 func NewPacketFactoryCopy() *PacketFactoryCopy {
 	return &PacketFactoryCopy{
 		headerPool: &sync.Pool{
-			New: func() interface{} {
+			New: func() any {
 				return &rtp.Header{}
 			},
 		},
 		payloadPool: &sync.Pool{
-			New: func() interface{} {
+			New: func() any {
 				buf := make([]byte, maxPayloadLen)
 
 				return &buf

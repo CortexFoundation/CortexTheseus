@@ -32,15 +32,15 @@ var (
 type EndpointDependencyType uint8
 
 const (
-	// EndpointIndependent means the behavior is independent of the endpoint's address or port
+	// EndpointIndependent means the behavior is independent of the endpoint's address or port.
 	EndpointIndependent EndpointDependencyType = iota
-	// EndpointAddrDependent means the behavior is dependent on the endpoint's address
+	// EndpointAddrDependent means the behavior is dependent on the endpoint's address.
 	EndpointAddrDependent
-	// EndpointAddrPortDependent means the behavior is dependent on the endpoint's address and port
+	// EndpointAddrPortDependent means the behavior is dependent on the endpoint's address and port.
 	EndpointAddrPortDependent
 )
 
-// NATMode defines basic behavior of the NAT
+// NATMode defines basic behavior of the NAT.
 type NATMode uint8
 
 const (
@@ -137,6 +137,7 @@ func (n *networkAddressTranslator) getPairedMappedIP(locIP net.IP) net.IP {
 			return n.mappedIPs[i]
 		}
 	}
+
 	return nil
 }
 
@@ -146,22 +147,24 @@ func (n *networkAddressTranslator) getPairedLocalIP(mappedIP net.IP) net.IP {
 			return n.localIPs[i]
 		}
 	}
+
 	return nil
 }
 
-func (n *networkAddressTranslator) translateOutbound(from Chunk) (Chunk, error) {
+func (n *networkAddressTranslator) translateOutbound(from Chunk) (Chunk, error) { //nolint:cyclop
 	n.mutex.Lock()
 	defer n.mutex.Unlock()
 
 	to := from.Clone()
 
-	if from.Network() == udp {
+	if from.Network() == udp { //nolint:nestif
 		if n.natType.Mode == NATModeNAT1To1 {
 			// 1:1 NAT behavior
 			srcAddr := from.SourceAddr().(*net.UDPAddr) //nolint:forcetypeassert
 			srcIP := n.getPairedMappedIP(srcAddr.IP)
 			if srcIP == nil {
 				n.log.Debugf("[%s] drop outbound chunk %s with not route", n.name, from.String())
+
 				return nil, nil // nolint:nilnil
 			}
 			srcPort := srcAddr.Port
@@ -191,13 +194,13 @@ func (n *networkAddressTranslator) translateOutbound(from Chunk) (Chunk, error) 
 
 			oKey := fmt.Sprintf("udp:%s:%s", from.SourceAddr().String(), bound)
 
-			m := n.findOutboundMapping(oKey)
-			if m == nil {
+			mapp := n.findOutboundMapping(oKey)
+			if mapp == nil {
 				// Create a new mapping
 				mappedPort := 0xC000 + n.udpPortCounter
 				n.udpPortCounter++
 
-				m = &mapping{
+				mapp = &mapping{
 					proto:   from.SourceAddr().Network(),
 					local:   from.SourceAddr().String(),
 					bound:   bound,
@@ -206,24 +209,24 @@ func (n *networkAddressTranslator) translateOutbound(from Chunk) (Chunk, error) 
 					expires: time.Now().Add(n.natType.MappingLifeTime),
 				}
 
-				n.outboundMap[oKey] = m
+				n.outboundMap[oKey] = mapp
 
-				iKey := fmt.Sprintf("udp:%s", m.mapped)
+				iKey := fmt.Sprintf("udp:%s", mapp.mapped)
 
 				n.log.Debugf("[%s] created a new NAT binding oKey=%s iKey=%s",
 					n.name,
 					oKey,
 					iKey)
 
-				m.filters[filterKey] = struct{}{}
-				n.log.Debugf("[%s] permit access from %s to %s", n.name, filterKey, m.mapped)
-				n.inboundMap[iKey] = m
-			} else if _, ok := m.filters[filterKey]; !ok {
-				n.log.Debugf("[%s] permit access from %s to %s", n.name, filterKey, m.mapped)
-				m.filters[filterKey] = struct{}{}
+				mapp.filters[filterKey] = struct{}{}
+				n.log.Debugf("[%s] permit access from %s to %s", n.name, filterKey, mapp.mapped)
+				n.inboundMap[iKey] = mapp
+			} else if _, ok := mapp.filters[filterKey]; !ok {
+				n.log.Debugf("[%s] permit access from %s to %s", n.name, filterKey, mapp.mapped)
+				mapp.filters[filterKey] = struct{}{}
 			}
 
-			if err := to.setSourceAddr(m.mapped); err != nil {
+			if err := to.setSourceAddr(mapp.mapped); err != nil {
 				return nil, err
 			}
 		}
@@ -236,13 +239,13 @@ func (n *networkAddressTranslator) translateOutbound(from Chunk) (Chunk, error) 
 	return nil, errNonUDPTranslationNotSupported
 }
 
-func (n *networkAddressTranslator) translateInbound(from Chunk) (Chunk, error) {
+func (n *networkAddressTranslator) translateInbound(from Chunk) (Chunk, error) { //nolint:cyclop
 	n.mutex.Lock()
 	defer n.mutex.Unlock()
 
 	to := from.Clone()
 
-	if from.Network() == udp {
+	if from.Network() == udp { //nolint:nestif
 		if n.natType.Mode == NATModeNAT1To1 {
 			// 1:1 NAT behavior
 			dstAddr := from.DestinationAddr().(*net.UDPAddr) //nolint:forcetypeassert
@@ -257,8 +260,8 @@ func (n *networkAddressTranslator) translateInbound(from Chunk) (Chunk, error) {
 		} else {
 			// Normal (NAPT) behavior
 			iKey := fmt.Sprintf("udp:%s", from.DestinationAddr().String())
-			m := n.findInboundMapping(iKey)
-			if m == nil {
+			mapping := n.findInboundMapping(iKey)
+			if mapping == nil {
 				return nil, fmt.Errorf("drop %s as %w", from.String(), errNoNATBindingFound)
 			}
 
@@ -272,7 +275,7 @@ func (n *networkAddressTranslator) translateInbound(from Chunk) (Chunk, error) {
 				filterKey = from.SourceAddr().String()
 			}
 
-			if _, ok := m.filters[filterKey]; !ok {
+			if _, ok := mapping.filters[filterKey]; !ok {
 				return nil, fmt.Errorf("drop %s as the remote %s %w", from.String(), filterKey, errHasNoPermission)
 			}
 
@@ -284,7 +287,7 @@ func (n *networkAddressTranslator) translateInbound(from Chunk) (Chunk, error) {
 			//   process is repeated with different ports, over time, it could
 			//   use up all the ports on the NAT.
 
-			if err := to.setDestinationAddr(m.local); err != nil {
+			if err := to.setDestinationAddr(mapping.local); err != nil {
 				return nil, err
 			}
 		}
@@ -297,7 +300,7 @@ func (n *networkAddressTranslator) translateInbound(from Chunk) (Chunk, error) {
 	return nil, errNonUDPTranslationNotSupported
 }
 
-// caller must hold the mutex
+// caller must hold the mutex.
 func (n *networkAddressTranslator) findOutboundMapping(oKey string) *mapping {
 	now := time.Now()
 
@@ -315,7 +318,7 @@ func (n *networkAddressTranslator) findOutboundMapping(oKey string) *mapping {
 	return m
 }
 
-// caller must hold the mutex
+// caller must hold the mutex.
 func (n *networkAddressTranslator) findInboundMapping(iKey string) *mapping {
 	now := time.Now()
 	m, ok := n.inboundMap[iKey]
@@ -326,13 +329,14 @@ func (n *networkAddressTranslator) findInboundMapping(iKey string) *mapping {
 	// check if this mapping is expired
 	if now.After(m.expires) {
 		n.removeMapping(m)
+
 		return nil
 	}
 
 	return m
 }
 
-// caller must hold the mutex
+// caller must hold the mutex.
 func (n *networkAddressTranslator) removeMapping(m *mapping) {
 	oKey := fmt.Sprintf("%s:%s:%s", m.proto, m.local, m.bound)
 	iKey := fmt.Sprintf("%s:%s", m.proto, m.mapped)

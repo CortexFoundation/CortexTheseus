@@ -19,7 +19,7 @@ func (r *Registry) Build(id string) (Interceptor, error) {
 		return &NoOp{}, nil
 	}
 
-	interceptors := []Interceptor{}
+	interceptors := make([]Interceptor, 0, len(r.factories))
 	for _, f := range r.factories {
 		i, err := f.NewInterceptor(id)
 		if err != nil {

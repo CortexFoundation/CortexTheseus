@@ -31,7 +31,7 @@ func NewNet() (*Net, error) {
 	return n, n.UpdateInterfaces()
 }
 
-// Compile-time assertion
+// Compile-time assertion.
 var _ transport.Net = &Net{}
 
 // UpdateInterfaces updates the internal list of network interfaces
@@ -65,7 +65,7 @@ func (n *Net) UpdateInterfaces() error {
 }
 
 // Interfaces returns a slice of interfaces which are available on the
-// system
+// system.
 func (n *Net) Interfaces() ([]*transport.Interface, error) {
 	return n.interfaces, nil
 }
@@ -98,7 +98,7 @@ func (n *Net) InterfaceByName(name string) (*transport.Interface, error) {
 
 // ListenPacket announces on the local network address.
 func (n *Net) ListenPacket(network string, address string) (net.PacketConn, error) {
-	return net.ListenPacket(network, address)
+	return net.ListenPacket(network, address) //nolint: noctx
 }
 
 // ListenUDP acts like ListenPacket for UDP networks.
@@ -108,7 +108,7 @@ func (n *Net) ListenUDP(network string, locAddr *net.UDPAddr) (transport.UDPConn
 
 // Dial connects to the address on the named network.
 func (n *Net) Dial(network, address string) (net.Conn, error) {
-	return net.Dial(network, address)
+	return net.Dial(network, address) //nolint: noctx
 }
 
 // DialUDP acts like Dial for UDP networks.
@@ -162,7 +162,7 @@ func (d stdDialer) Dial(network, address string) (net.Conn, error) {
 	return d.Dialer.Dial(network, address)
 }
 
-// CreateDialer creates an instance of vnet.Dialer
+// CreateDialer creates an instance of vnet.Dialer.
 func (n *Net) CreateDialer(d *net.Dialer) transport.Dialer {
 	return stdDialer{d}
 }
