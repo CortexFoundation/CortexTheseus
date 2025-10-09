@@ -29,6 +29,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
+	"github.com/CortexFoundation/CortexTheseus/internal/ctxcapi"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 )
 
@@ -38,15 +39,20 @@ var (
 	errInvalidBlockRange      = errors.New("invalid block range params")
 	errUnknownBlock           = errors.New("unknown block")
 	errBlockHashWithRange     = errors.New("can't specify fromBlock/toBlock with blockHash")
-	errExceedMaxTopics        = errors.New("exceed max topics")
 	errPendingLogsUnsupported = errors.New("pending logs are not supported")
+	errExceedMaxTopics        = errors.New("exceed max topics")
+	errExceedLogQueryLimit    = errors.New("exceed max addresses or topics per search position")
+	errExceedMaxTxHashes      = errors.New("exceed max number of transaction hashes allowed per transactionReceipts subscription")
 )
 
-// The maximum number of topic criteria allowed, vm.LOG4 - vm.LOG0
-const maxTopics = 4
-
-// The maximum number of allowed topics within a topic criteria
-const maxSubTopics = 1000
+const (
+	// The maximum number of topic criteria allowed, vm.LOG4 - vm.LOG0
+	maxTopics = 4
+	// The maximum number of allowed topics within a topic criteria
+	maxSubTopics = 1000
+	// The maximum number of transaction hash criteria allowed in a single subscription
+	maxTxHashes = 200
+)
 
 // filter is a helper struct that holds meta information over the filter type
 // and associated subscription in the event system.
@@ -272,6 +278,70 @@ func (api *FilterAPI) Logs(ctx context.Context, crit FilterCriteria) (*rpc.Subsc
 					notifier.Notify(rpcSub.ID, &log)
 				}
 			case <-rpcSub.Err(): // client send an unsubscribe request
+				return
+			}
+		}
+	}()
+
+	return rpcSub, nil
+}
+
+// TransactionReceiptsFilter defines criteria for transaction receipts subscription.
+// If TransactionHashes is nil or empty, receipts for all transactions included in new blocks will be delivered.
+// Otherwise, only receipts for the specified transactions will be delivered.
+type TransactionReceiptsFilter struct {
+	TransactionHashes []common.Hash `json:"transactionHashes,omitempty"`
+}
+
+// TransactionReceipts creates a subscription that fires transaction receipts when transactions are included in blocks.
+func (api *FilterAPI) TransactionReceipts(ctx context.Context, filter *TransactionReceiptsFilter) (*rpc.Subscription, error) {
+	notifier, supported := rpc.NotifierFromContext(ctx)
+	if !supported {
+		return &rpc.Subscription{}, rpc.ErrNotificationsUnsupported
+	}
+
+	// Validate transaction hashes limit
+	if filter != nil && len(filter.TransactionHashes) > maxTxHashes {
+		return nil, errExceedMaxTxHashes
+	}
+
+	var (
+		rpcSub          = notifier.CreateSubscription()
+		matchedReceipts = make(chan []*ReceiptWithTx)
+		txHashes        []common.Hash
+	)
+
+	if filter != nil {
+		txHashes = filter.TransactionHashes
+	}
+
+	receiptsSub := api.events.SubscribeTransactionReceipts(txHashes, matchedReceipts)
+
+	go func() {
+		defer receiptsSub.Unsubscribe()
+
+		signer := types.LatestSigner(api.sys.backend.ChainConfig())
+
+		for {
+			select {
+			case receiptsWithTxs := <-matchedReceipts:
+				if len(receiptsWithTxs) > 0 {
+					marshaledReceipts := make([]map[string]interface{}, len(receiptsWithTxs))
+					for i, receiptWithTx := range receiptsWithTxs {
+						marshaledReceipts[i] = ctxcapi.MarshalReceipt(
+							receiptWithTx.Receipt,
+							receiptWithTx.Receipt.BlockHash,
+							receiptWithTx.Receipt.BlockNumber.Uint64(),
+							signer,
+							receiptWithTx.Transaction,
+							int(receiptWithTx.Receipt.TransactionIndex),
+						)
+					}
+
+					// Send a batch of tx receipts in one notification
+					notifier.Notify(rpcSub.ID, marshaledReceipts)
+				}
+			case <-rpcSub.Err():
 				return
 			}
 		}

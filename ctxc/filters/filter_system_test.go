@@ -56,6 +56,10 @@ func (b *testBackend) ChainDb() ctxcdb.Database {
 	return b.db
 }
 
+func (b *testBackend) ChainConfig() *params.ChainConfig {
+	return nil
+}
+
 func (b *testBackend) CurrentHeader() *types.Header {
 	hdr, _ := b.HeaderByNumber(context.TODO(), rpc.LatestBlockNumber)
 	return hdr
