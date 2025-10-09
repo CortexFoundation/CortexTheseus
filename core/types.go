@@ -33,7 +33,7 @@ type Validator interface {
 
 	// ValidateState validates the given statedb and optionally the receipts and
 	// gas used.
-	ValidateState(block *types.Block, state *state.StateDB, receipts types.Receipts, usedGas uint64) error
+	ValidateState(block *types.Block, state *state.StateDB, res *ProcessResult) error
 }
 
 // Prefetcher is an interface for pre-caching transaction signatures and state.
@@ -51,5 +51,13 @@ type Prefetcher interface {
 // of gas used in the process and return an error if any of the internal rules
 // failed.
 type Processor interface {
-	Process(block *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error)
+	Process(block *types.Block, statedb *state.StateDB, cfg vm.Config) (*ProcessResult, error)
+}
+
+// ProcessResult contains the values computed by Process.
+type ProcessResult struct {
+	Receipts types.Receipts
+	Requests [][]byte
+	Logs     []*types.Log
+	GasUsed  uint64
 }

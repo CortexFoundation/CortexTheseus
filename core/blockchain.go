@@ -1850,9 +1850,9 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		block.Header().QuotaUsed = parent.QuotaUsed
 		// Process block using the parent state as reference point
 		substart := time.Now()
-		receipts, logs, usedGas, err := bc.processor.Process(block, statedb, bc.vmConfig)
+		res, err := bc.processor.Process(block, statedb, bc.vmConfig)
 		if err != nil {
-			bc.reportBlock(block, receipts, err)
+			bc.reportBlock(block, res.Receipts, err)
 			followupInterrupt.Store(true)
 			return it.index, err
 		}
@@ -1872,8 +1872,8 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 
 		// Validate the state using the default validator
 		substart = time.Now()
-		if err := bc.validator.ValidateState(block, statedb, receipts, usedGas); err != nil {
-			bc.reportBlock(block, receipts, err)
+		if err := bc.validator.ValidateState(block, statedb, res); err != nil {
+			bc.reportBlock(block, res.Receipts, err)
 			followupInterrupt.Store(true)
 			return it.index, err
 		}
@@ -1887,7 +1887,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 
 		// Write the block to the chain and get the status.
 		substart = time.Now()
-		status, err := bc.writeBlockWithState(block, receipts, logs, statedb, false)
+		status, err := bc.writeBlockWithState(block, res.Receipts, res.Logs, statedb, false)
 		followupInterrupt.Store(true)
 		if err != nil {
 			return it.index, err
@@ -1902,7 +1902,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 
 		// Report the import stats before returning the various results
 		stats.processed++
-		stats.usedGas += usedGas
+		stats.usedGas += res.GasUsed
 
 		dirty, _ := bc.stateCache.TrieDB().Size()
 		stats.report(chain, it.index, dirty)
