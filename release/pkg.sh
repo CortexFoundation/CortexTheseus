@@ -5,9 +5,17 @@ log() {
   echo "[`date '+%Y-%m-%d %H:%M:%S'`] $*"
 }
 
+error_handler() {
+  local exit_code=$?
+  log "[ERROR] Script failed at line $1 with exit code $exit_code"
+  exit $exit_code
+}
+
+trap 'error_handler $LINENO' ERR
+
 for cmd in git make tar zip md5sum sha256sum; do
   if ! command -v $cmd >/dev/null 2>&1; then
-    echo "[ERROR] Command '$cmd' not found. Please install it first."
+    log "[ERROR] Command '$cmd' not found. Please install it first."
     exit 1
   fi
 done
@@ -19,7 +27,7 @@ git fetch --tags origin
 
 version=$(git tag --sort=committerdate | tail -1)
 if [ -z "$version" ]; then
-  echo "[ERROR] No git tag found!"
+  log "[ERROR] No git tag found!"
   exit 1
 fi
 
@@ -66,4 +74,3 @@ log "Generating checksum file"
 
 cat checksum
 log "Release completed successfully!"
-
