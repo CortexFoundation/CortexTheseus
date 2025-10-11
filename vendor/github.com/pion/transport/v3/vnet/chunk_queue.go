@@ -38,6 +38,7 @@ func (q *chunkQueue) push(c Chunk) bool {
 
 	q.currentBytes += len(c.UserData())
 	q.chunks = append(q.chunks, c)
+
 	return true
 }
 

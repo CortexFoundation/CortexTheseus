@@ -40,6 +40,7 @@ func newMACAddress() net.HardwareAddr {
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, macAddrCounter)
 	macAddrCounter++
+
 	return b[2:]
 }
 
@@ -53,7 +54,7 @@ type Net struct {
 	mutex      sync.RWMutex
 }
 
-// Compile-time assertion
+// Compile-time assertion.
 var _ transport.Net = &Net{}
 
 func (v *Net) _getInterfaces() ([]*transport.Interface, error) {
@@ -72,7 +73,7 @@ func (v *Net) Interfaces() ([]*transport.Interface, error) {
 	return v._getInterfaces()
 }
 
-// caller must hold the mutex (read)
+// caller must hold the mutex (read).
 func (v *Net) _getInterface(ifName string) (*transport.Interface, error) {
 	ifs, err := v._getInterfaces()
 	if err != nil {
@@ -114,7 +115,7 @@ func (v *Net) InterfaceByName(ifName string) (*transport.Interface, error) {
 	return v.getInterface(ifName)
 }
 
-// caller must hold the mutex
+// caller must hold the mutex.
 func (v *Net) getAllIPAddrs(ipv6 bool) []net.IP {
 	ips := []net.IP{}
 
@@ -150,6 +151,7 @@ func (v *Net) setRouter(r *Router) error {
 	defer v.mutex.Unlock()
 
 	v.router = r
+
 	return nil
 }
 
@@ -164,8 +166,8 @@ func (v *Net) onInboundChunk(c Chunk) {
 	}
 }
 
-// caller must hold the mutex
-func (v *Net) _dialUDP(network string, locAddr, remAddr *net.UDPAddr) (transport.UDPConn, error) {
+// caller must hold the mutex.
+func (v *Net) _dialUDP(network string, locAddr, remAddr *net.UDPAddr) (transport.UDPConn, error) { //nolint:cyclop
 	// validate network
 	if network != udp && network != udp4 {
 		return nil, fmt.Errorf("%w: %s", errUnexpectedNetwork, network)
@@ -276,7 +278,7 @@ func (v *Net) ResolveIPAddr(_, address string) (*net.IPAddr, error) {
 
 	// Check if host is a domain name
 	ip := net.ParseIP(address)
-	if ip == nil {
+	if ip == nil { //nolint:nestif
 		address = strings.ToLower(address)
 		if address == "localhost" {
 			ip = net.IPv4(127, 0, 0, 1)
@@ -358,13 +360,14 @@ func (v *Net) ResolveTCPAddr(network, address string) (*net.TCPAddr, error) {
 	return udpAddr, nil
 }
 
-func (v *Net) write(c Chunk) error {
-	if c.Network() == udp {
-		if udp, ok := c.(*chunkUDP); ok {
-			if c.getDestinationIP().IsLoopback() {
+func (v *Net) write(chunk Chunk) error {
+	if chunk.Network() == udp { //nolint:nestif
+		if udp, ok := chunk.(*chunkUDP); ok {
+			if chunk.getDestinationIP().IsLoopback() {
 				if conn, ok := v.udpConns.find(udp.DestinationAddr()); ok {
 					conn.onInboundChunk(udp)
 				}
+
 				return nil
 			}
 		} else {
@@ -376,7 +379,8 @@ func (v *Net) write(c Chunk) error {
 		return errNoRouterLinked
 	}
 
-	v.router.push(c)
+	v.router.push(chunk)
+
 	return nil
 }
 
@@ -390,15 +394,15 @@ func (v *Net) onClosed(addr net.Addr) {
 // This method determines the srcIP based on the dstIP when locIP
 // is any IP address ("0.0.0.0" or "::"). If locIP is a non-any addr,
 // this method simply returns locIP.
-// caller must hold the mutex
-func (v *Net) determineSourceIP(locIP, dstIP net.IP) net.IP {
+// caller must hold the mutex.
+func (v *Net) determineSourceIP(locIP, dstIP net.IP) net.IP { //nolint:cyclop
 	if locIP != nil && !locIP.IsUnspecified() {
 		return locIP
 	}
 
 	var srcIP net.IP
 
-	if dstIP.IsLoopback() {
+	if dstIP.IsLoopback() { //nolint:nestif
 		srcIP = net.ParseIP("127.0.0.1")
 	} else {
 		ifc, err2 := v._getInterface("eth0")
@@ -427,11 +431,13 @@ func (v *Net) determineSourceIP(locIP, dstIP net.IP) net.IP {
 			if findIPv4 {
 				if ip.To4() != nil {
 					srcIP = ip
+
 					break
 				}
 			} else {
 				if ip.To4() == nil {
 					srcIP = ip
+
 					break
 				}
 			}
@@ -441,10 +447,10 @@ func (v *Net) determineSourceIP(locIP, dstIP net.IP) net.IP {
 	return srcIP
 }
 
-// caller must hold the mutex
-func (v *Net) hasIPAddr(ip net.IP) bool { //nolint:gocognit
+// caller must hold the mutex.
+func (v *Net) hasIPAddr(ip net.IP) bool { //nolint:gocognit,cyclop
 	for _, ifc := range v.interfaces {
-		if addrs, err := ifc.Addrs(); err == nil {
+		if addrs, err := ifc.Addrs(); err == nil { //nolint:nestif
 			for _, addr := range addrs {
 				var locIP net.IP
 				if ipNet, ok := addr.(*net.IPNet); ok {
@@ -476,7 +482,7 @@ func (v *Net) hasIPAddr(ip net.IP) bool { //nolint:gocognit
 	return false
 }
 
-// caller must hold the mutex
+// caller must hold the mutex.
 func (v *Net) allocateLocalAddr(ip net.IP, port int) error {
 	// gather local IP addresses to bind
 	var ips []net.IP
@@ -509,7 +515,7 @@ func (v *Net) allocateLocalAddr(ip net.IP, port int) error {
 	return nil
 }
 
-// caller must hold the mutex
+// caller must hold the mutex.
 func (v *Net) assignPort(ip net.IP, start, end int) (int, error) {
 	// choose randomly from the range between start and end (inclusive)
 	if end < start {
@@ -600,7 +606,7 @@ func (v *Net) ListenTCP(string, *net.TCPAddr) (transport.TCPListener, error) {
 	return nil, transport.ErrNotSupported
 }
 
-// CreateDialer creates an instance of vnet.Dialer
+// CreateDialer creates an instance of vnet.Dialer.
 func (v *Net) CreateDialer(d *net.Dialer) transport.Dialer {
 	return &dialer{
 		dialer: d,

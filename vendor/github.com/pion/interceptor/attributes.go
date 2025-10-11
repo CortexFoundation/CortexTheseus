@@ -20,15 +20,15 @@ const (
 var errInvalidType = errors.New("found value of invalid type in attributes map")
 
 // Attributes are a generic key/value store used by interceptors.
-type Attributes map[interface{}]interface{}
+type Attributes map[any]any
 
 // Get returns the attribute associated with key.
-func (a Attributes) Get(key interface{}) interface{} {
+func (a Attributes) Get(key any) any {
 	return a[key]
 }
 
 // Set sets the attribute associated with key to the given value.
-func (a Attributes) Set(key interface{}, val interface{}) {
+func (a Attributes) Set(key any, val any) {
 	a[key] = val
 }
 

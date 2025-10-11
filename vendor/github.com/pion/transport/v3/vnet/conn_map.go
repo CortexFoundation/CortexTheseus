@@ -52,6 +52,7 @@ func (m *udpConnMap) insert(conn *UDPConn) error {
 	}
 
 	m.portMap[udpAddr.Port] = conns
+
 	return nil
 }
 
@@ -67,8 +68,10 @@ func (m *udpConnMap) find(addr net.Addr) (*UDPConn, bool) {
 			if len(conns) == 0 {
 				// This can't happen!
 				delete(m.portMap, udpAddr.Port)
+
 				return nil, false
 			}
+
 			return conns[0], true
 		}
 
@@ -97,6 +100,7 @@ func (m *udpConnMap) delete(addr net.Addr) error {
 	if udpAddr.IP.IsUnspecified() {
 		// remove all from this port
 		delete(m.portMap, udpAddr.Port)
+
 		return nil
 	}
 
@@ -125,7 +129,7 @@ func (m *udpConnMap) delete(addr net.Addr) error {
 	return nil
 }
 
-// size returns the number of UDPConns (UDP listeners)
+// size returns the number of UDPConns (UDP listeners).
 func (m *udpConnMap) size() int {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()

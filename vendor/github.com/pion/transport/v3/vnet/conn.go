@@ -28,7 +28,7 @@ var (
 	errNoRemAddr            = errors.New("no remAddr defined")
 )
 
-// vNet implements this
+// vNet implements this.
 type connObserver interface {
 	write(c Chunk) error
 	onClosed(addr net.Addr)
@@ -36,7 +36,7 @@ type connObserver interface {
 }
 
 // UDPConn is the implementation of the Conn and PacketConn interfaces for UDP network connections.
-// compatible with net.PacketConn and net.Conn
+// compatible with net.PacketConn and net.Conn.
 type UDPConn struct {
 	locAddr   *net.UDPAddr // read-only
 	remAddr   *net.UDPAddr // read-only
@@ -76,6 +76,7 @@ func (c *UDPConn) Close() error {
 	close(c.readCh)
 
 	c.obs.onClosed(c.locAddr)
+
 	return nil
 }
 
@@ -113,13 +114,13 @@ func (c *UDPConn) SetDeadline(t time.Time) error {
 // A zero value for t means ReadFrom will not time out.
 func (c *UDPConn) SetReadDeadline(t time.Time) error {
 	var d time.Duration
-	var noDeadline time.Time
-	if t == noDeadline {
+	if t.IsZero() {
 		d = time.Duration(math.MaxInt64)
 	} else {
 		d = time.Until(t)
 	}
 	c.readTimer.Reset(d)
+
 	return nil
 }
 
@@ -138,6 +139,7 @@ func (c *UDPConn) SetWriteDeadline(time.Time) error {
 // after a fixed time limit; see SetDeadline and SetReadDeadline.
 func (c *UDPConn) Read(b []byte) (int, error) {
 	n, _, err := c.ReadFrom(b)
+
 	return n, err
 }
 
@@ -171,6 +173,7 @@ loop:
 					break // discard (shouldn't happen)
 				}
 			}
+
 			return n, addr, err
 
 		case <-c.readTimer.C:
@@ -225,12 +228,12 @@ func (c *UDPConn) Write(b []byte) (int, error) {
 	return c.WriteTo(b, c.remAddr)
 }
 
-// WriteTo writes a packet with payload p to addr.
+// WriteTo writes a packet with payload to addr.
 // WriteTo can be made to time out and return
 // an Error with Timeout() == true after a fixed time limit;
 // see SetDeadline and SetWriteDeadline.
 // On packet-oriented connections, write timeouts are rare.
-func (c *UDPConn) WriteTo(p []byte, addr net.Addr) (n int, err error) {
+func (c *UDPConn) WriteTo(payload []byte, addr net.Addr) (n int, err error) {
 	dstAddr, ok := addr.(*net.UDPAddr)
 	if !ok {
 		return 0, errAddrNotUDPAddr
@@ -246,12 +249,13 @@ func (c *UDPConn) WriteTo(p []byte, addr net.Addr) (n int, err error) {
 	}
 
 	chunk := newChunkUDP(srcAddr, dstAddr)
-	chunk.userData = make([]byte, len(p))
-	copy(chunk.userData, p)
+	chunk.userData = make([]byte, len(payload))
+	copy(chunk.userData, payload)
 	if err := c.obs.write(chunk); err != nil {
 		return 0, err
 	}
-	return len(p), nil
+
+	return len(payload), nil
 }
 
 // WriteToUDP acts like WriteTo but takes a UDPAddr.

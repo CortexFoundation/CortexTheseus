@@ -19,9 +19,9 @@ var errPacketTooBig = errors.New("packet too big")
 type BufferPacketType int
 
 const (
-	// RTPBufferPacket indicates the Buffer that is handling RTP packets
+	// RTPBufferPacket indicates the Buffer that is handling RTP packets.
 	RTPBufferPacket BufferPacketType = 1
-	// RTCPBufferPacket indicates the Buffer that is handling RTCP packets
+	// RTCPBufferPacket indicates the Buffer that is handling RTCP packets.
 	RTCPBufferPacket BufferPacketType = 2
 )
 
@@ -123,7 +123,7 @@ func (b *Buffer) grow() error {
 // Returns ErrFull if the packet doesn't fit.
 //
 // Note that the packet size is limited to 65536 bytes since v0.11.0 due to the internal data structure.
-func (b *Buffer) Write(packet []byte) (int, error) {
+func (b *Buffer) Write(packet []byte) (int, error) { //nolint:cyclop
 	if len(packet) >= 0x10000 {
 		return 0, errPacketTooBig
 	}
@@ -132,12 +132,14 @@ func (b *Buffer) Write(packet []byte) (int, error) {
 
 	if b.closed {
 		b.mutex.Unlock()
+
 		return 0, io.ErrClosedPipe
 	}
 
 	if (b.limitCount > 0 && b.count >= b.limitCount) ||
 		(b.limitSize > 0 && b.size()+2+len(packet) > b.limitSize) {
 		b.mutex.Unlock()
+
 		return 0, ErrFull
 	}
 
@@ -146,17 +148,18 @@ func (b *Buffer) Write(packet []byte) (int, error) {
 		err := b.grow()
 		if err != nil {
 			b.mutex.Unlock()
+
 			return 0, err
 		}
 	}
 
 	// store the length of the packet
-	b.data[b.tail] = uint8(len(packet) >> 8)
+	b.data[b.tail] = uint8(len(packet) >> 8) //nolint:gosec
 	b.tail++
 	if b.tail >= len(b.data) {
 		b.tail = 0
 	}
-	b.data[b.tail] = uint8(len(packet))
+	b.data[b.tail] = uint8(len(packet)) //nolint:gosec
 	b.tail++
 	if b.tail >= len(b.data) {
 		b.tail = 0
@@ -185,7 +188,7 @@ func (b *Buffer) Write(packet []byte) (int, error) {
 // Blocks until data is available or the buffer is closed.
 // Returns io.ErrShortBuffer is the packet is too small to copy the Write.
 // Returns io.EOF if the buffer is closed.
-func (b *Buffer) Read(packet []byte) (n int, err error) { //nolint:gocognit
+func (b *Buffer) Read(packet []byte) (n int, err error) { //nolint:gocognit,cyclop
 	// Return immediately if the deadline is already exceeded.
 	select {
 	case <-b.readDeadline.Done():
@@ -196,7 +199,7 @@ func (b *Buffer) Read(packet []byte) (n int, err error) { //nolint:gocognit
 	for {
 		b.mutex.Lock()
 
-		if b.head != b.tail {
+		if b.head != b.tail { //nolint:nestif
 			// decode the packet size
 			n1 := b.data[b.head]
 			b.head++
@@ -243,11 +246,13 @@ func (b *Buffer) Read(packet []byte) (n int, err error) { //nolint:gocognit
 			if copied < count {
 				return copied, io.ErrShortBuffer
 			}
+
 			return copied, nil
 		}
 
 		if b.closed {
 			b.mutex.Unlock()
+
 			return 0, io.EOF
 		}
 		b.mutex.Unlock()
@@ -267,6 +272,7 @@ func (b *Buffer) Close() (err error) {
 
 	if b.closed {
 		b.mutex.Unlock()
+
 		return nil
 	}
 
@@ -281,6 +287,7 @@ func (b *Buffer) Close() (err error) {
 func (b *Buffer) Count() int {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
+
 	return b.count
 }
 
@@ -308,6 +315,7 @@ func (b *Buffer) size() int {
 	if size < 0 {
 		size += len(b.data)
 	}
+
 	return size
 }
 
@@ -329,5 +337,6 @@ func (b *Buffer) SetLimitSize(limit int) {
 // Setting to zero means no deadline.
 func (b *Buffer) SetReadDeadline(t time.Time) error {
 	b.readDeadline.Set(t)
+
 	return nil
 }

@@ -390,13 +390,13 @@ type TCPListener interface {
 	SetDeadline(t time.Time) error
 }
 
-// Interface wraps a standard net.Interfaces and its assigned addresses
+// Interface wraps a standard net.Interfaces and its assigned addresses.
 type Interface struct {
 	net.Interface
 	addrs []net.Addr
 }
 
-// NewInterface creates a new interface based of a standard net.Interface
+// NewInterface creates a new interface based of a standard net.Interface.
 func NewInterface(ifc net.Interface) *Interface {
 	return &Interface{
 		Interface: ifc,
@@ -404,15 +404,16 @@ func NewInterface(ifc net.Interface) *Interface {
 	}
 }
 
-// AddAddress adds a new address to the interface
+// AddAddress adds a new address to the interface.
 func (ifc *Interface) AddAddress(addr net.Addr) {
 	ifc.addrs = append(ifc.addrs, addr)
 }
 
-// Addrs returns a slice of configured addresses on the interface
+// Addrs returns a slice of configured addresses on the interface.
 func (ifc *Interface) Addrs() ([]net.Addr, error) {
 	if len(ifc.addrs) == 0 {
 		return nil, ErrNoAddressAssigned
 	}
+
 	return ifc.addrs, nil
 }

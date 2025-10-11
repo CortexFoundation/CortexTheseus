@@ -12,11 +12,11 @@ import (
 )
 
 const (
-	// Bit is a single bit
+	// Bit is a single bit.
 	Bit = 1
-	// KBit is a kilobit
+	// KBit is a kilobit.
 	KBit = 1000 * Bit
-	// MBit is a Megabit
+	// MBit is a Megabit.
 	MBit = 1000 * KBit
 )
 
@@ -39,7 +39,7 @@ type TokenBucketFilter struct {
 	log logging.LeveledLogger
 }
 
-// TBFOption is the option type to configure a TokenBucketFilter
+// TBFOption is the option type to configure a TokenBucketFilter.
 type TBFOption func(*TokenBucketFilter) TBFOption
 
 // TBFQueueSizeInBytes sets the max number of bytes waiting in the queue. Can
@@ -48,17 +48,19 @@ func TBFQueueSizeInBytes(bytes int) TBFOption {
 	return func(t *TokenBucketFilter) TBFOption {
 		prev := t.queueSize
 		t.queueSize = bytes
+
 		return TBFQueueSizeInBytes(prev)
 	}
 }
 
-// TBFRate sets the bit rate of a TokenBucketFilter
+// TBFRate sets the bit rate of a TokenBucketFilter.
 func TBFRate(rate int) TBFOption {
 	return func(t *TokenBucketFilter) TBFOption {
 		t.mutex.Lock()
 		defer t.mutex.Unlock()
 		previous := t.rate
 		t.rate = rate
+
 		return TBFRate(previous)
 	}
 }
@@ -71,19 +73,21 @@ func TBFMaxBurst(size int) TBFOption {
 		defer t.mutex.Unlock()
 		previous := t.maxBurst
 		t.maxBurst = size
+
 		return TBFMaxBurst(previous)
 	}
 }
 
-// Set updates a setting on the token bucket filter
+// Set updates a setting on the token bucket filter.
 func (t *TokenBucketFilter) Set(opts ...TBFOption) (previous TBFOption) {
 	for _, opt := range opts {
 		previous = opt(t)
 	}
+
 	return previous
 }
 
-// NewTokenBucketFilter creates and starts a new TokenBucketFilter
+// NewTokenBucketFilter creates and starts a new TokenBucketFilter.
 func NewTokenBucketFilter(n NIC, opts ...TBFOption) (*TokenBucketFilter, error) {
 	tbf := &TokenBucketFilter{
 		NIC:                   n,
@@ -103,11 +107,15 @@ func NewTokenBucketFilter(n NIC, opts ...TBFOption) (*TokenBucketFilter, error) 
 	tbf.queue = newChunkQueue(0, tbf.queueSize)
 	tbf.wg.Add(1)
 	go tbf.run()
+
 	return tbf, nil
 }
 
 func (t *TokenBucketFilter) onInboundChunk(c Chunk) {
-	t.c <- c
+	select {
+	case t.c <- c:
+	case <-t.done:
+	}
 }
 
 func (t *TokenBucketFilter) run() {
@@ -120,6 +128,7 @@ func (t *TokenBucketFilter) run() {
 		select {
 		case <-t.done:
 			t.drainQueue()
+
 			return
 		case chunk := <-t.c:
 			if time.Since(lastRefill) > t.minRefillDuration {
@@ -133,12 +142,19 @@ func (t *TokenBucketFilter) run() {
 }
 
 func (t *TokenBucketFilter) refillTokens(dt time.Duration) {
-	m := 1000.0 / float64(dt.Milliseconds())
-	add := (float64(t.rate) / m) / 8.0
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
+	m := 1000.0 / float64(dt.Milliseconds())
+	add := (float64(t.rate) / m) / 8.0
 	t.currentTokensInBucket = math.Min(float64(t.maxBurst), t.currentTokensInBucket+add)
-	t.log.Tracef("add=(%v / %v) / 8 = %v, currentTokensInBucket=%v, maxBurst=%v", t.rate, m, add, t.currentTokensInBucket, t.maxBurst)
+	t.log.Tracef(
+		"add=(%v / %v) / 8 = %v, currentTokensInBucket=%v, maxBurst=%v",
+		t.rate,
+		m,
+		add,
+		t.currentTokensInBucket,
+		t.maxBurst,
+	)
 }
 
 func (t *TokenBucketFilter) drainQueue() {
@@ -150,6 +166,7 @@ func (t *TokenBucketFilter) drainQueue() {
 		tokens := float64(len(next.UserData()))
 		if t.currentTokensInBucket < tokens {
 			t.log.Tracef("currentTokensInBucket=%v, tokens=%v, stop drain", t.currentTokensInBucket, tokens)
+
 			break
 		}
 		t.log.Tracef("currentTokensInBucket=%v, tokens=%v, pop chunk", t.currentTokensInBucket, tokens)
@@ -159,9 +176,10 @@ func (t *TokenBucketFilter) drainQueue() {
 	}
 }
 
-// Close closes and stops the token bucket filter queue
+// Close closes and stops the token bucket filter queue.
 func (t *TokenBucketFilter) Close() error {
 	close(t.done)
 	t.wg.Wait()
+
 	return nil
 }

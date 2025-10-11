@@ -63,6 +63,7 @@ func (d *slidingWindowDetector) Check(seq uint64) (func() bool, bool) {
 		}
 		diff := (d.latestSeq - seq) % d.maxSeq
 		d.mask.SetBit(uint(diff))
+
 		return latest
 	}, true
 }
@@ -99,15 +100,15 @@ func (d *wrappedSlidingWindowDetector) Check(seq uint64) (func() bool, bool) {
 		d.init = true
 	}
 
-	diff := int64(d.latestSeq) - int64(seq)
+	diff := int64(d.latestSeq) - int64(seq) //nolint:gosec // GG115 TODO check
 	// Wrap the number.
-	if diff > int64(d.maxSeq)/2 {
-		diff -= int64(d.maxSeq + 1)
-	} else if diff <= -int64(d.maxSeq)/2 {
-		diff += int64(d.maxSeq + 1)
+	if diff > int64(d.maxSeq)/2 { //nolint:gosec // GG115 TODO check
+		diff -= int64(d.maxSeq + 1) //nolint:gosec // GG115 TODO check
+	} else if diff <= -int64(d.maxSeq)/2 { //nolint:gosec // GG115 TODO check
+		diff += int64(d.maxSeq + 1) //nolint:gosec // GG115 TODO check
 	}
 
-	if diff >= int64(d.windowSize) {
+	if diff >= int64(d.windowSize) { //nolint:gosec // GG115 TODO check
 		// Too old.
 		return nop, false
 	}
@@ -125,8 +126,11 @@ func (d *wrappedSlidingWindowDetector) Check(seq uint64) (func() bool, bool) {
 			d.mask.Lsh(uint(-diff))
 			d.latestSeq = seq
 			latest = true
+			d.mask.SetBit(0)
+		} else {
+			d.mask.SetBit(uint(diff))
 		}
-		d.mask.SetBit(uint(d.latestSeq - seq))
+
 		return latest
 	}, true
 }
