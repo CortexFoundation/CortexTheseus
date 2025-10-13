@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/CortexFoundation/CortexTheseus/common/bitutil"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 )
@@ -123,9 +124,7 @@ func MergeBloom(receipts Receipts) Bloom {
 	for _, receipt := range receipts {
 		if len(receipt.Logs) != 0 {
 			bl := receipt.Bloom.Bytes()
-			for i := range bin {
-				bin[i] |= bl[i]
-			}
+			bitutil.ORBytes(bin[:], bin[:], bl)
 		}
 	}
 	return bin
