@@ -31,39 +31,48 @@ import (
 )
 
 // SetConnection method builds connection to remote or local communicator.
-func (m *Monitor) buildConnection(ipcpath string, rpcuri string) (*rpc.Client, error) {
+func (m *Monitor) buildConnection(ipcPath, rpcURI string) (*rpc.Client, error) {
 	log.Debug("Building connection", "terminated", m.terminated.Load())
 
-	if len(ipcpath) > 0 {
-		for i := 0; i < 30; i++ {
-			time.Sleep(time.Second * params.QueryTimeInterval * 2)
-			cl, err := rpc.Dial(ipcpath)
-			if err != nil {
-				log.Warn("Building internal ipc connection ... ", "ipc", ipcpath, "rpc", rpcuri, "error", err, "terminated", m.terminated.Load())
-			} else {
+	if ipcPath == "" && rpcURI == "" {
+		return nil, errors.New("both ipcPath and rpcURI are empty — cannot build connection")
+	}
+
+	const maxRetries = 30
+	retryInterval := time.Second * params.QueryTimeInterval * 2
+
+	if ipcPath != "" {
+		for i := 0; i < maxRetries; i++ {
+			if m.terminated.Load() {
+				log.Info("Connection build terminated during IPC")
+				return nil, errors.New("ipc connection terminated")
+			}
+
+			cl, err := rpc.Dial(ipcPath)
+			if err == nil {
 				m.local = true
-				log.Info("Internal ipc connection established", "ipc", ipcpath, "rpc", rpcuri, "local", m.local)
+				log.Info("Internal IPC connection established", "ipc", ipcPath, "rpc", rpcURI, "local", m.local)
 				return cl, nil
 			}
 
-			if m.terminated.Load() {
-				log.Info("Connection builder break")
-				return nil, errors.New("ipc connection terminated")
-			}
+			log.Warn("Retrying IPC connection...", "attempt", i+1, "max", maxRetries, "ipc", ipcPath, "rpc", rpcURI, "error", err)
+			time.Sleep(retryInterval)
 		}
-	} else {
-		log.Warn("IPC is empty, try remote RPC instead")
+		log.Warn("IPC connection attempts exhausted, fallback to RPC", "ipc", ipcPath, "rpc", rpcURI)
 	}
 
-	cl, err := rpc.Dial(rpcuri)
-	if err != nil {
-		log.Warn("Building internal rpc connection ... ", "ipc", ipcpath, "rpc", rpcuri, "error", err, "terminated", m.terminated.Load())
-	} else {
-		log.Info("Internal rpc connection established", "ipc", ipcpath, "rpc", rpcuri, "local", m.local)
-		return cl, nil
+	if rpcURI != "" {
+		cl, err := rpc.Dial(rpcURI)
+		if err == nil {
+			log.Info("Internal RPC connection established", "ipc", ipcPath, "rpc", rpcURI, "local", m.local)
+			return cl, nil
+		}
+
+		log.Error("Failed to build RPC connection", "ipc", ipcPath, "rpc", rpcURI, "error", err)
+		return nil, fmt.Errorf("failed to establish rpc connection: %w", err)
 	}
 
-	return nil, errors.New("building internal ipc connection failed")
+	return nil, errors.New("no valid connection endpoint found (both IPC and RPC failed or missing)")
 }
 
 func (m *Monitor) rpcBlockByNumber(blockNumber uint64) (*types.Block, error) {
