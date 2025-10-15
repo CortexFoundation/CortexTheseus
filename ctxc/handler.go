@@ -1029,12 +1029,19 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if err := msg.Decode(&txs); err != nil {
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
+		// Duplicate transactions are not allowed
+		seen := make(map[common.Hash]struct{})
 		for i, tx := range txs {
 			// Validate and mark the remote transaction
 			if tx == nil {
 				return errResp(ErrDecode, "transaction %d is nil", i)
 			}
-			p.MarkTransaction(tx.Hash())
+			hash := tx.Hash()
+			if _, exists := seen[hash]; exists {
+				return fmt.Errorf("Transactions: multiple copies of the same hash %v", hash)
+			}
+			seen[hash] = struct{}{}
+			p.MarkTransaction(hash)
 		}
 		pm.txFetcher.Enqueue(p.id, txs, msg.Code == ctxc.PooledTransactionsMsg)
 
