@@ -35,6 +35,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/event"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 )
 
@@ -62,6 +63,8 @@ type Backend interface {
 	GetLogs(ctx context.Context, blockHash common.Hash, number uint64) ([][]*types.Log, error)
 	PendingBlockAndReceipts() (*types.Block, types.Receipts)
 
+	CurrentHeader() *types.Header
+	ChainConfig() *params.ChainConfig
 	SubscribeNewTxsEvent(chan<- core.NewTxsEvent) event.Subscription
 	SubscribeChainEvent(ch chan<- core.ChainEvent) event.Subscription
 	SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription
@@ -128,6 +131,8 @@ const (
 	PendingTransactionsSubscription
 	// BlocksSubscription queries hashes for blocks that are imported
 	BlocksSubscription
+	// TransactionReceiptsSubscription queries for transaction receipts when transactions are included in blocks
+	TransactionReceiptsSubscription
 	// LastIndexSubscription keeps track of the last index
 	LastIndexSubscription
 )
@@ -150,8 +155,11 @@ type subscription struct {
 	created   time.Time
 	logsCrit  cortex.FilterQuery
 	logs      chan []*types.Log
+	txs       chan []*types.Transaction
 	hashes    chan []common.Hash
 	headers   chan *types.Header
+	receipts  chan []*ReceiptWithTx
+	txHashes  []common.Hash // contains transaction hashes for transactionReceipts subscription filtering
 	installed chan struct{} // closed when the filter is installed
 	err       chan error    // closed when the filter is uninstalled
 }
@@ -245,6 +253,7 @@ func (sub *Subscription) Unsubscribe() {
 			case <-sub.f.logs:
 			case <-sub.f.hashes:
 			case <-sub.f.headers:
+			case <-sub.f.receipts:
 			}
 		}
 
@@ -315,6 +324,7 @@ func (es *EventSystem) subscribeMinedPendingLogs(crit cortex.FilterQuery, logs c
 		logs:      logs,
 		hashes:    make(chan []common.Hash),
 		headers:   make(chan *types.Header),
+		receipts:  make(chan []*ReceiptWithTx),
 		installed: make(chan struct{}),
 		err:       make(chan error),
 	}
@@ -332,6 +342,7 @@ func (es *EventSystem) subscribeLogs(crit cortex.FilterQuery, logs chan []*types
 		logs:      logs,
 		hashes:    make(chan []common.Hash),
 		headers:   make(chan *types.Header),
+		receipts:  make(chan []*ReceiptWithTx),
 		installed: make(chan struct{}),
 		err:       make(chan error),
 	}
@@ -365,6 +376,7 @@ func (es *EventSystem) SubscribeNewHeads(headers chan *types.Header) *Subscripti
 		logs:      make(chan []*types.Log),
 		hashes:    make(chan []common.Hash),
 		headers:   headers,
+		receipts:  make(chan []*ReceiptWithTx),
 		installed: make(chan struct{}),
 		err:       make(chan error),
 	}
@@ -381,6 +393,26 @@ func (es *EventSystem) SubscribePendingTxs(hashes chan []common.Hash) *Subscript
 		logs:      make(chan []*types.Log),
 		hashes:    hashes,
 		headers:   make(chan *types.Header),
+		receipts:  make(chan []*ReceiptWithTx),
+		installed: make(chan struct{}),
+		err:       make(chan error),
+	}
+	return es.subscribe(sub)
+}
+
+// SubscribeTransactionReceipts creates a subscription that writes transaction receipts for
+// transactions when they are included in blocks. If txHashes is provided, only receipts
+// for those specific transaction hashes will be delivered.
+func (es *EventSystem) SubscribeTransactionReceipts(txHashes []common.Hash, receipts chan []*ReceiptWithTx) *Subscription {
+	sub := &subscription{
+		id:        rpc.NewID(),
+		typ:       TransactionReceiptsSubscription,
+		created:   time.Now(),
+		logs:      make(chan []*types.Log),
+		txs:       make(chan []*types.Transaction),
+		headers:   make(chan *types.Header),
+		receipts:  receipts,
+		txHashes:  txHashes,
 		installed: make(chan struct{}),
 		err:       make(chan error),
 	}
@@ -435,6 +467,13 @@ func (es *EventSystem) handleChainEvent(filters filterIndex, ev core.ChainEvent)
 				}
 			}
 		})
+	}
+	// Handle transaction receipts subscriptions when a new block is added
+	for _, f := range filters[TransactionReceiptsSubscription] {
+		matchedReceipts := filterReceipts(f.txHashes, ev)
+		if len(matchedReceipts) > 0 {
+			f.receipts <- matchedReceipts
+		}
 	}
 }
 

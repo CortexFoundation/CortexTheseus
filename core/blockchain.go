@@ -1543,8 +1543,11 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 
 	if status == CanonStatTy {
 		logs := bc.collectLogs(block, false)
-		//bc.chainFeed.Send(ChainEvent{Header: block.Header(), Hash: block.Hash(), Logs: logs})
-		bc.chainFeed.Send(ChainEvent{Header: block.Header()})
+		bc.chainFeed.Send(ChainEvent{
+			Header:       block.Header(),
+			Receipts:     receipts,
+			Transactions: block.Transactions(),
+		})
 		if len(logs) > 0 {
 			bc.logsFeed.Send(logs)
 		}
@@ -2102,6 +2105,13 @@ func (bc *BlockChain) insertSideChain(block *types.Block, it *insertIterator) (i
 // the processing of the block that corresponds with the given hash.
 // These logs are later announced as deleted or reborn.
 func (bc *BlockChain) collectLogs(b *types.Block, removed bool) []*types.Log {
+	_, logs := bc.collectReceiptsAndLogs(b, removed)
+	return logs
+}
+
+// collectReceiptsAndLogs retrieves receipts from the database and returns both receipts and logs.
+// This avoids duplicate database reads when both are needed.
+func (bc *BlockChain) collectReceiptsAndLogs(b *types.Block, removed bool) ([]*types.Receipt, []*types.Log) {
 	receipts := rawdb.ReadRawReceipts(bc.db, b.Hash(), b.NumberU64())
 	if err := receipts.DeriveFields(bc.chainConfig, b.Hash(), b.NumberU64(), b.Time(), b.Transactions()); err != nil {
 		log.Error("Failed to derive block receipts fields", "hash", b.Hash(), "number", b.NumberU64(), "err", err)
@@ -2116,7 +2126,7 @@ func (bc *BlockChain) collectLogs(b *types.Block, removed bool) []*types.Log {
 			logs = append(logs, log)
 		}
 	}
-	return logs
+	return receipts, logs
 }
 
 // reorg takes two blocks, an old chain and a new chain and will reconstruct the
