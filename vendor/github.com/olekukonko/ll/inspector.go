@@ -163,7 +163,7 @@ func (o *Inspector) structToMap(val reflect.Value) map[string]interface{} {
 				case reflect.Bool:
 					result[fieldName] = *(*bool)(ptr)
 				default:
-					result[fieldName] = fmt.Sprintf("<unexported %s>", field.Type().String())
+					result[fieldName] = fmt.Sprintf("*unexported %s*", field.Type().String())
 				}
 			}
 		}

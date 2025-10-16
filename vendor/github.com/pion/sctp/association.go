@@ -862,10 +862,7 @@ func (a *Association) gatherOutboundFastRetransmissionPackets(rawPackets [][]byt
 		toFastRetrans := []*chunkPayloadData{}
 		fastRetransSize := commonHeaderSize
 
-		fastRetransWnd := a.MTU()
-		if fastRetransWnd < a.fastRtxWnd {
-			fastRetransWnd = a.fastRtxWnd
-		}
+		fastRetransWnd := max(a.MTU(), a.fastRtxWnd)
 		for i := 0; ; i++ {
 			chunkPayload, ok := a.inflightQueue.get(a.cumulativeTSNAckPoint + uint32(i) + 1) //nolint:gosec // G115
 			if !ok {
@@ -1208,10 +1205,7 @@ func (a *Association) SRTT() float64 {
 // buffer within a small multiple of the user provided max receive buffer size.
 func getMaxTSNOffset(maxReceiveBufferSize uint32) uint32 {
 	// 4 is a magic number here. There is no theory behind this.
-	offset := (maxReceiveBufferSize * 4) / avgChunkSize
-	if offset < minTSNOffset {
-		offset = minTSNOffset
-	}
+	offset := max((maxReceiveBufferSize*4)/avgChunkSize, minTSNOffset)
 	if offset > maxTSNOffset {
 		offset = maxTSNOffset
 	}
@@ -1824,10 +1818,7 @@ func (a *Association) onCumulativeTSNAckPointAdvanced(totalBytesAcked int) {
 		//      reset partial_bytes_acked to (partial_bytes_acked - cwnd).
 		if a.partialBytesAcked >= a.CWND() && a.pendingQueue.size() > 0 {
 			a.partialBytesAcked -= a.CWND()
-			step := a.MTU()
-			if step < a.cwndCAStep {
-				step = a.cwndCAStep
-			}
+			step := max(a.MTU(), a.cwndCAStep)
 			a.setCWND(a.CWND() + step)
 			a.log.Tracef("[%s] updated cwnd=%d ssthresh=%d acked=%d (CA)",
 				a.name, a.CWND(), a.ssthresh, totalBytesAcked)
@@ -2774,12 +2765,6 @@ func (a *Association) handleChunk(receivedPacket *packet, receivedChunk chunk) e
 func (a *Association) onRetransmissionTimeout(id int, nRtos uint) { //nolint:cyclop
 	a.lock.Lock()
 	defer a.lock.Unlock()
-
-	// TSN hasn't been incremented in 3 attempts. Speculatively
-	// toggle ZeroChecksum because old Pion versions had a broken implementation
-	if a.cumulativeTSNAckPoint+1 == a.initialTSN && nRtos%3 == 0 {
-		a.sendZeroChecksum = !a.sendZeroChecksum
-	}
 
 	if id == timerT1Init {
 		err := a.sendInit()
