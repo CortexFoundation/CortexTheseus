@@ -20,6 +20,7 @@ package ctxcapi
 import (
 	"context"
 	"math/big"
+	"time"
 
 	"github.com/CortexFoundation/CortexTheseus"
 	"github.com/CortexFoundation/CortexTheseus/accounts"
@@ -48,6 +49,8 @@ type Backend interface {
 	RPCGasCap() uint64    // global gas cap for ctxc_call over rpc: DoS protection
 	RPCTxFeeCap() float64 // global tx fee cap for all transaction related APIs
 	UnprotectedAllowed() bool
+	RPCTxSyncDefaultTimeout() time.Duration
+	RPCTxSyncMaxTimeout() time.Duration
 	// BlockChain API
 	SetHead(number uint64)
 	HeaderByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*types.Header, error)

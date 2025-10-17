@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/CortexFoundation/CortexTheseus"
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -616,6 +617,39 @@ func (ec *Client) SendTransaction(ctx context.Context, tx *types.Transaction) er
 		return err
 	}
 	return ec.c.CallContext(ctx, nil, "ctxc_sendRawTransaction", hexutil.Encode(data))
+}
+
+// SendTransactionSync submits a signed tx and waits for a receipt (or until
+// the optional timeout elapses on the server side). If timeout == 0, the server
+// uses its default.
+func (ec *Client) SendTransactionSync(
+	ctx context.Context,
+	tx *types.Transaction,
+	timeout *time.Duration,
+) (*types.Receipt, error) {
+	raw, err := tx.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	return ec.SendRawTransactionSync(ctx, raw, timeout)
+}
+
+func (ec *Client) SendRawTransactionSync(
+	ctx context.Context,
+	rawTx []byte,
+	timeout *time.Duration,
+) (*types.Receipt, error) {
+	var ms *hexutil.Uint64
+	if timeout != nil {
+		if d := hexutil.Uint64(timeout.Milliseconds()); d > 0 {
+			ms = &d
+		}
+	}
+	var receipt types.Receipt
+	if err := ec.c.CallContext(ctx, &receipt, "ctxc_sendRawTransactionSync", hexutil.Bytes(rawTx), ms); err != nil {
+		return nil, err
+	}
+	return &receipt, nil
 }
 
 func (ec *Client) PendingUploadAt(ctx context.Context, account common.Address) (*big.Int, error) {

@@ -51,6 +51,7 @@ const (
 )
 
 var errTxNotFound = errors.New("transaction not found")
+var errSubClosed = errors.New("chain subscription closed")
 
 // PublicCortexAPI provides an API to access Cortex related information.
 // It offers only methods that operate on public data that is freely available to anyone.
@@ -1587,6 +1588,92 @@ func (s *PublicTransactionPoolAPI) SendRawTransaction(ctx context.Context, encod
 		return common.Hash{}, err
 	}
 	return submitTransaction(ctx, s.b, tx)
+}
+
+// SendRawTransactionSync will add the signed transaction to the transaction pool
+// and wait until the transaction has been included in a block and return the receipt, or the timeout.
+func (api *PublicTransactionPoolAPI) SendRawTransactionSync(ctx context.Context, input hexutil.Bytes, timeoutMs *hexutil.Uint64) (map[string]interface{}, error) {
+	tx := new(types.Transaction)
+	if err := tx.UnmarshalBinary(input); err != nil {
+		return nil, err
+	}
+
+	ch := make(chan core.ChainEvent, 128)
+	sub := api.b.SubscribeChainEvent(ch)
+	defer sub.Unsubscribe()
+
+	hash, err := submitTransaction(ctx, api.b, tx)
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		maxTimeout     = api.b.RPCTxSyncMaxTimeout()
+		defaultTimeout = api.b.RPCTxSyncDefaultTimeout()
+		timeout        = defaultTimeout
+	)
+
+	if timeoutMs != nil && *timeoutMs > 0 {
+		req := time.Duration(*timeoutMs) * time.Millisecond
+		if req > maxTimeout {
+			timeout = maxTimeout
+		} else {
+			timeout = req
+		}
+	}
+
+	receiptCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	// Fast path.
+	if r, err := api.GetTransactionReceipt(receiptCtx, hash); err == nil && r != nil {
+		return r, nil
+	}
+
+	for {
+		select {
+		case <-receiptCtx.Done():
+			// If server-side wait window elapsed, return the structured timeout.
+			if errors.Is(receiptCtx.Err(), context.DeadlineExceeded) {
+				return nil, &txSyncTimeoutError{
+					msg:  fmt.Sprintf("The transaction was added to the transaction pool but wasn't processed in %v.", timeout),
+					hash: hash,
+				}
+			}
+			return nil, receiptCtx.Err()
+
+		case err, ok := <-sub.Err():
+			if !ok {
+				return nil, errSubClosed
+			}
+			return nil, err
+
+		case ev, ok := <-ch:
+			if !ok {
+				return nil, errSubClosed
+			}
+			rs, txs := ev.Receipts, ev.Transactions
+			if len(rs) == 0 || len(rs) != len(txs) {
+				continue
+			}
+			for i := range rs {
+				if rs[i].TxHash == hash {
+					if rs[i].BlockNumber != nil && rs[i].BlockHash != (common.Hash{}) {
+						signer := types.LatestSigner(api.b.ChainConfig())
+						return MarshalReceipt(
+							rs[i],
+							rs[i].BlockHash,
+							rs[i].BlockNumber.Uint64(),
+							signer,
+							txs[i],
+							int(rs[i].TransactionIndex),
+						), nil
+					}
+					return api.GetTransactionReceipt(receiptCtx, hash)
+				}
+			}
+		}
+	}
 }
 
 // Sign calculates an ECDSA signature for:

@@ -150,6 +150,15 @@ func (tx *Transaction) MarshalBinary() ([]byte, error) {
 	return rlp.EncodeToBytes(tx)
 }
 
+func (tx *Transaction) UnmarshalBinary(b []byte) error {
+	var data Transaction
+	err := rlp.DecodeBytes(b, &data)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // DecodeRLP implements rlp.Decoder
 func (tx *Transaction) DecodeRLP(s *rlp.Stream) error {
 	_, size, _ := s.Kind()

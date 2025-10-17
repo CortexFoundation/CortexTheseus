@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/CortexFoundation/CortexTheseus"
 	"github.com/CortexFoundation/CortexTheseus/accounts"
@@ -387,4 +388,11 @@ func (b *CortexAPIBackend) StateAtBlock(ctx context.Context, block *types.Block,
 
 func (b *CortexAPIBackend) StateAtTransaction(ctx context.Context, block *types.Block, txIndex int, reexec uint64) (*core.Message, vm.BlockContext, *state.StateDB, tracers.StateReleaseFunc, error) {
 	return b.ctxc.stateAtTransaction(block, txIndex, reexec)
+}
+func (b *CortexAPIBackend) RPCTxSyncDefaultTimeout() time.Duration {
+	return b.ctxc.config.TxSyncDefaultTimeout
+}
+
+func (b *CortexAPIBackend) RPCTxSyncMaxTimeout() time.Duration {
+	return b.ctxc.config.TxSyncMaxTimeout
 }
