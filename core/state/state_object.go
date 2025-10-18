@@ -31,6 +31,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/metrics"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
+	"github.com/CortexFoundation/CortexTheseus/trie"
 )
 
 // hasherPool holds a pool of hashers used by state objects during concurrent
@@ -512,8 +513,10 @@ func (s *stateObject) deepCopy(db *StateDB) *stateObject {
 		selfDestructed: s.selfDestructed,
 		newContract:    s.newContract,
 	}
-	if s.trie != nil {
-		obj.trie = db.db.CopyTrie(s.trie)
+	switch s.trie.(type) {
+	case *trie.StateTrie:
+		obj.trie = mustCopyTrie(s.trie)
+	case nil:
 	}
 	return obj
 }
