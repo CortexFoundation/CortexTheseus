@@ -730,6 +730,10 @@ func (f *TxFetcher) loop() {
 					if len(f.announced[hash]) == 0 {
 						delete(f.announced, hash)
 					}
+					delete(f.alternates[hash], drop.peer)
+					if len(f.alternates[hash]) == 0 {
+						delete(f.alternates, hash)
+					}
 				}
 				delete(f.announces, drop.peer)
 			}
