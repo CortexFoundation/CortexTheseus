@@ -29,7 +29,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/txpool"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/log"
-	"github.com/CortexFoundation/CortexTheseus/metrics"
 )
 
 const (
@@ -71,35 +70,6 @@ var (
 	// txFetchTimeout is the maximum allotted time to return an explicitly
 	// requested transaction.
 	txFetchTimeout = 5 * time.Second
-)
-
-var (
-	txAnnounceInMeter          = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/announces/in", nil)
-	txAnnounceKnownMeter       = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/announces/known", nil)
-	txAnnounceUnderpricedMeter = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/announces/underpriced", nil)
-	txAnnounceDOSMeter         = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/announces/dos", nil)
-
-	txBroadcastInMeter          = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/broadcasts/in", nil)
-	txBroadcastKnownMeter       = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/broadcasts/known", nil)
-	txBroadcastUnderpricedMeter = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/broadcasts/underpriced", nil)
-	txBroadcastOtherRejectMeter = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/broadcasts/otherreject", nil)
-
-	txRequestOutMeter     = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/request/out", nil)
-	txRequestFailMeter    = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/request/fail", nil)
-	txRequestDoneMeter    = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/request/done", nil)
-	txRequestTimeoutMeter = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/request/timeout", nil)
-
-	txReplyInMeter          = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/replies/in", nil)
-	txReplyKnownMeter       = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/replies/known", nil)
-	txReplyUnderpricedMeter = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/replies/underpriced", nil)
-	txReplyOtherRejectMeter = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/replies/otherreject", nil)
-
-	txFetcherWaitingPeers   = metrics.NewRegisteredGauge("ctxc/fetcher/transaction/waiting/peers", nil)
-	txFetcherWaitingHashes  = metrics.NewRegisteredGauge("ctxc/fetcher/transaction/waiting/hashes", nil)
-	txFetcherQueueingPeers  = metrics.NewRegisteredGauge("ctxc/fetcher/transaction/queueing/peers", nil)
-	txFetcherQueueingHashes = metrics.NewRegisteredGauge("ctxc/fetcher/transaction/queueing/hashes", nil)
-	txFetcherFetchingPeers  = metrics.NewRegisteredGauge("ctxc/fetcher/transaction/fetching/peers", nil)
-	txFetcherFetchingHashes = metrics.NewRegisteredGauge("ctxc/fetcher/transaction/fetching/hashes", nil)
 )
 
 // txAnnounce is the notification of the availability of a batch
@@ -605,6 +575,7 @@ func (f *TxFetcher) loop() {
 					}
 					// Keep track of the request as dangling, but never expire
 					f.requests[peer].hashes = nil
+					txFetcherSlowPeers.Inc(1)
 				}
 			}
 			// Schedule a new transaction retrieval
@@ -662,6 +633,10 @@ func (f *TxFetcher) loop() {
 				if req == nil {
 					log.Warn("Unexpected transaction delivery", "peer", delivery.origin)
 					break
+				}
+				if req.hashes == nil {
+					txFetcherSlowPeers.Dec(1)
+					txFetcherSlowWait.Update(time.Duration(f.clock.Now() - req.time).Nanoseconds())
 				}
 				delete(f.requests, delivery.origin)
 
@@ -741,6 +716,10 @@ func (f *TxFetcher) loop() {
 						delete(f.alternates, hash)
 					}
 					delete(f.fetching, hash)
+				}
+				if request.hashes == nil {
+					txFetcherSlowPeers.Dec(1)
+					txFetcherSlowWait.Update(time.Duration(f.clock.Now() - request.time).Nanoseconds())
 				}
 				delete(f.requests, drop.peer)
 			}
