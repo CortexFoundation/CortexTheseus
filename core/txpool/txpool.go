@@ -284,9 +284,9 @@ type txpoolResetRequest struct {
 	oldHead, newHead *types.Header
 }
 
-// NewTxPool creates a new transaction pool to gather, sort and filter inbound
+// New creates a new transaction pool to gather, sort and filter inbound
 // transactions from the network.
-func NewTxPool(config Config, chainconfig *params.ChainConfig, chain blockChain) *TxPool {
+func New(config Config, chainconfig *params.ChainConfig, chain blockChain) *TxPool {
 	// Sanitize the input to ensure no vulnerable gas prices are set
 	config = (&config).sanitize()
 
@@ -334,8 +334,9 @@ func NewTxPool(config Config, chainconfig *params.ChainConfig, chain blockChain)
 		if err := pool.journal.load(pool.AddLocals); err != nil {
 			log.Warn("Failed to load transaction journal", "err", err)
 		}
-		if err := pool.journal.rotate(pool.local()); err != nil {
-			log.Warn("Failed to rotate transaction journal", "err", err)
+		// Setup the writer for the upcoming transactions
+		if err := pool.journal.setupWriter(); err != nil {
+			log.Error("Failed to setup the journal writer", "err", err)
 		}
 	}
 
