@@ -258,7 +258,7 @@ func TestPythonIntegration(t *testing.T) {
 
 // goos: darwin
 // goarch: arm64
-// pkg: github.com/ethereum/go-ethereum/crypto
+// pkg: github.com/CortexFoundation/CortexTheseus/crypto
 // cpu: Apple M1 Pro
 // BenchmarkKeccak256Hash
 // BenchmarkKeccak256Hash-8   	  931095	      1270 ns/op	      32 B/op	       1 allocs/op
@@ -274,7 +274,7 @@ func BenchmarkKeccak256Hash(b *testing.B) {
 
 // goos: darwin
 // goarch: arm64
-// pkg: github.com/ethereum/go-ethereum/crypto
+// pkg: github.com/CortexFoundation/CortexTheseus/crypto
 // cpu: Apple M1 Pro
 // BenchmarkHashData
 // BenchmarkHashData-8   	  793386	      1278 ns/op	      32 B/op	       1 allocs/op
