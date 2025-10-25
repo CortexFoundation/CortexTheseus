@@ -299,7 +299,7 @@ func (b *CortexAPIBackend) Stats() (pending int, queued int) {
 	return b.ctxc.txPool.Stats()
 }
 
-func (b *CortexAPIBackend) TxPoolContent() (map[common.Address]types.Transactions, map[common.Address]types.Transactions) {
+func (b *CortexAPIBackend) TxPoolContent() (map[common.Address][]*types.Transaction, map[common.Address][]*types.Transaction) {
 	return b.ctxc.TxPool().Content()
 }
 
