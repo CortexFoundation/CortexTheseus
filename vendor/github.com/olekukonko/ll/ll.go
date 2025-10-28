@@ -495,7 +495,7 @@ func (l *Logger) Fatal(args ...any) {
 		os.Exit(1)
 	}
 
-	l.log(lx.LevelError, lx.ClassText, cat.Space(args...), nil, true)
+	l.log(lx.LevelError, lx.ClassText, cat.Space(args...), nil, false)
 	os.Exit(1)
 }
 
