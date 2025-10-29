@@ -46,4 +46,34 @@ var (
 	headerFilterOutMeter = metrics.NewRegisteredMeter("ctxc/fetcher/filter/headers/out", nil)
 	bodyFilterInMeter    = metrics.NewRegisteredMeter("ctxc/fetcher/filter/bodies/in", nil)
 	bodyFilterOutMeter   = metrics.NewRegisteredMeter("ctxc/fetcher/filter/bodies/out", nil)
+
+	txAnnounceInMeter          = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/announces/in", nil)
+	txAnnounceKnownMeter       = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/announces/known", nil)
+	txAnnounceUnderpricedMeter = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/announces/underpriced", nil)
+	txAnnounceDOSMeter         = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/announces/dos", nil)
+
+	txBroadcastInMeter          = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/broadcasts/in", nil)
+	txBroadcastKnownMeter       = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/broadcasts/known", nil)
+	txBroadcastUnderpricedMeter = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/broadcasts/underpriced", nil)
+	txBroadcastOtherRejectMeter = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/broadcasts/otherreject", nil)
+
+	txRequestOutMeter     = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/request/out", nil)
+	txRequestFailMeter    = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/request/fail", nil)
+	txRequestDoneMeter    = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/request/done", nil)
+	txRequestTimeoutMeter = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/request/timeout", nil)
+
+	txReplyInMeter          = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/replies/in", nil)
+	txReplyKnownMeter       = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/replies/known", nil)
+	txReplyUnderpricedMeter = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/replies/underpriced", nil)
+	txReplyOtherRejectMeter = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/replies/otherreject", nil)
+
+	txFetcherWaitingPeers   = metrics.NewRegisteredGauge("ctxc/fetcher/transaction/waiting/peers", nil)
+	txFetcherWaitingHashes  = metrics.NewRegisteredGauge("ctxc/fetcher/transaction/waiting/hashes", nil)
+	txFetcherQueueingPeers  = metrics.NewRegisteredGauge("ctxc/fetcher/transaction/queueing/peers", nil)
+	txFetcherQueueingHashes = metrics.NewRegisteredGauge("ctxc/fetcher/transaction/queueing/hashes", nil)
+	txFetcherFetchingPeers  = metrics.NewRegisteredGauge("ctxc/fetcher/transaction/fetching/peers", nil)
+	txFetcherFetchingHashes = metrics.NewRegisteredGauge("ctxc/fetcher/transaction/fetching/hashes", nil)
+
+	txFetcherSlowPeers = metrics.NewRegisteredGauge("eth/fetcher/transaction/slow/peers", nil)
+	txFetcherSlowWait  = metrics.NewRegisteredHistogram("eth/fetcher/transaction/slow/wait", nil, metrics.NewExpDecaySample(1028, 0.015))
 )
