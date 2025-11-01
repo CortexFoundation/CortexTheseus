@@ -557,24 +557,28 @@ func (cvm *CVM) initNewContract(contract *Contract, address common.Address) ([]b
 		return ret, err
 	}
 
+	codeSize := len(ret)
+
 	// check whether the max code size has been exceeded
-	if err == nil && cvm.chainRules.IsEIP158 && len(ret) > params.MaxCodeSize {
+	if cvm.chainRules.IsEIP158 && codeSize > params.MaxCodeSize {
 		return ret, ErrMaxCodeSizeExceeded
 	}
+
+	if codeSize == 0 {
+		return ret, nil
+	}
+
 	// if the contract creation ran successfully and no errors were returned
 	// calculate the gas required to store the code. If the code could not
 	// be stored due to not enough gas set an error and let it be handled
 	// by the error checking condition below.
-	if err == nil {
-		createDataGas := uint64(len(ret)) * params.CreateDataGas
-		if contract.UseGas(createDataGas) {
-			cvm.StateDB.SetCode(address, ret)
-		} else {
-			return ret, ErrCodeStoreOutOfGas
-		}
+	createDataGas := uint64(codeSize) * params.CreateDataGas
+	if !contract.UseGas(createDataGas) {
+		return ret, ErrCodeStoreOutOfGas
 	}
+	cvm.StateDB.SetCode(address, ret)
 
-	return ret, err
+	return ret, nil
 }
 
 // Create creates a new contract using code as deployment code.
