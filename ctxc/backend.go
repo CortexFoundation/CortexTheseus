@@ -286,7 +286,7 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 	if config.TxPool.Journal != "" {
 		config.TxPool.Journal = stack.ResolvePath(config.TxPool.Journal)
 	}
-	ctxc.txPool = txpool.NewTxPool(config.TxPool, ctxc.chainConfig, ctxc.blockchain)
+	ctxc.txPool = txpool.New(config.TxPool, ctxc.chainConfig, ctxc.blockchain)
 
 	cacheLimit := cacheConfig.TrieCleanLimit + cacheConfig.TrieDirtyLimit + cacheConfig.SnapshotLimit
 
