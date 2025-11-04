@@ -128,7 +128,7 @@ func (h *Header) Unmarshal(buf []byte) (n int, err error) { //nolint:gocognit,cy
 	h.Padding = (buf[0] >> paddingShift & paddingMask) > 0
 	h.Extension = (buf[0] >> extensionShift & extensionMask) > 0
 	nCSRC := int(buf[0] & ccMask)
-	if cap(h.CSRC) < nCSRC || h.CSRC == nil {
+	if cap(h.CSRC) < nCSRC {
 		h.CSRC = make([]uint32, nCSRC)
 	} else {
 		h.CSRC = h.CSRC[:nCSRC]
@@ -153,9 +153,7 @@ func (h *Header) Unmarshal(buf []byte) (n int, err error) { //nolint:gocognit,cy
 		h.CSRC[i] = binary.BigEndian.Uint32(buf[offset:])
 	}
 
-	if h.Extensions != nil {
-		h.Extensions = h.Extensions[:0]
-	}
+	h.Extensions = h.Extensions[:0]
 
 	if h.Extension { // nolint: nestif
 		if expected := n + 4; len(buf) < expected {
@@ -404,27 +402,8 @@ func (h Header) MarshalSize() int {
 // SetExtension sets an RTP header extension.
 func (h *Header) SetExtension(id uint8, payload []byte) error { //nolint:gocognit, cyclop
 	if h.Extension { // nolint: nestif
-		switch h.ExtensionProfile {
-		// RFC 8285 RTP One Byte Header Extension
-		case ExtensionProfileOneByte:
-			if id < 1 || id > 14 {
-				return fmt.Errorf("%w actual(%d)", errRFC8285OneByteHeaderIDRange, id)
-			}
-			if len(payload) > 16 {
-				return fmt.Errorf("%w actual(%d)", errRFC8285OneByteHeaderSize, len(payload))
-			}
-		// RFC 8285 RTP Two Byte Header Extension
-		case ExtensionProfileTwoByte:
-			if id < 1 {
-				return fmt.Errorf("%w actual(%d)", errRFC8285TwoByteHeaderIDRange, id)
-			}
-			if len(payload) > 255 {
-				return fmt.Errorf("%w actual(%d)", errRFC8285TwoByteHeaderSize, len(payload))
-			}
-		default: // RFC3550 Extension
-			if id != 0 {
-				return fmt.Errorf("%w actual(%d)", errRFC3550HeaderIDRange, id)
-			}
+		if err := headerExtensionCheck(h.ExtensionProfile, id, payload); err != nil {
+			return err
 		}
 
 		// Update existing if it exists else add new extension
@@ -454,6 +433,31 @@ func (h *Header) SetExtension(id uint8, payload []byte) error { //nolint:gocogni
 	h.Extensions = append(h.Extensions, Extension{id: id, payload: payload})
 
 	return nil
+}
+
+// SetExtensionWithProfile sets an RTP header extension and converts Header Extension Profile if needed.
+func (h *Header) SetExtensionWithProfile(id uint8, payload []byte, intendedProfile uint16) error {
+	if !h.Extension || h.ExtensionProfile == intendedProfile {
+		return h.SetExtension(id, payload)
+	}
+
+	// Don't mutate the packet if Set is going to fail anyway
+	if err := headerExtensionCheck(intendedProfile, id, payload); err != nil {
+		return err
+	}
+
+	// If downgrading assert that existing Extensions will work
+	if intendedProfile == ExtensionProfileOneByte {
+		for i := range h.Extensions {
+			if err := headerExtensionCheck(intendedProfile, h.Extensions[i].id, h.Extensions[i].payload); err != nil {
+				return err
+			}
+		}
+	}
+
+	h.ExtensionProfile = intendedProfile
+
+	return h.SetExtension(id, payload)
 }
 
 // GetExtensionIDs returns an extension id array.
