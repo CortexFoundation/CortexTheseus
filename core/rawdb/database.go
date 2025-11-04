@@ -331,6 +331,7 @@ func Open(db ctxcdb.KeyValueStore, opts OpenOptions) (ctxcdb.Database, error) {
 		}()
 	}
 	return &freezerdb{
+		readOnly:      opts.ReadOnly,
 		ancientRoot:   opts.Ancient,
 		KeyValueStore: db,
 		chainFreezer:  frdb,
