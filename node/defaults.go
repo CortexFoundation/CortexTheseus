@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
 	"github.com/CortexFoundation/CortexTheseus/p2p/nat"
 	"github.com/CortexFoundation/CortexTheseus/rpc"
@@ -83,7 +84,7 @@ func DefaultDataDir() string {
 			// is non-empty, use it, otherwise DTRT and check %LOCALAPPDATA%.
 			fallback := filepath.Join(home, "AppData", "Roaming", "Cortex")
 			appdata := windowsAppData()
-			if appdata == "" || isNonEmptyDir(fallback) {
+			if appdata == "" || common.IsNonEmptyDir(fallback) {
 				return fallback
 			}
 			return filepath.Join(appdata, "Cortex")
@@ -117,16 +118,6 @@ func windowsAppData() string {
 		panic("environment variable LocalAppData is undefined")
 	}
 	return v
-}
-
-func isNonEmptyDir(dir string) bool {
-	f, err := os.Open(dir)
-	if err != nil {
-		return false
-	}
-	names, _ := f.Readdir(1)
-	f.Close()
-	return len(names) > 0
 }
 
 func homeDir() string {
