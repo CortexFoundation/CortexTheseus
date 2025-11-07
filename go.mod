@@ -8,13 +8,13 @@ require (
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 	github.com/CortexFoundation/torrentfs v1.0.73-0.20251014112104-18ee6a47ca04
 	github.com/Microsoft/go-winio v0.6.2
-	github.com/ProjectZKM/Ziren/crates/go-runtime/zkvm_runtime v0.0.0-20251024001518-0792d9712f07
+	github.com/ProjectZKM/Ziren/crates/go-runtime/zkvm_runtime v0.0.0-20251101005303-90401b9f2bb6
 	github.com/VictoriaMetrics/fastcache v1.13.0
 	github.com/arsham/figurine v1.3.0
-	github.com/aws/aws-sdk-go-v2 v1.39.4
-	github.com/aws/aws-sdk-go-v2/config v1.31.15
-	github.com/aws/aws-sdk-go-v2/credentials v1.18.19
-	github.com/aws/aws-sdk-go-v2/service/route53 v1.59.1
+	github.com/aws/aws-sdk-go-v2 v1.39.5
+	github.com/aws/aws-sdk-go-v2/config v1.31.16
+	github.com/aws/aws-sdk-go-v2/credentials v1.18.20
+	github.com/aws/aws-sdk-go-v2/service/route53 v1.59.2
 	github.com/cespare/cp v1.1.1
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/cloudflare/cloudflare-go v0.116.0
@@ -109,15 +109,15 @@ require (
 	github.com/antlabs/timer v0.1.4 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/arsham/rainbow v1.2.1 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.11 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.11 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.11 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.12 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.12 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.12 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.11 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.29.8 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.3 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.38.9 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.12 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.30.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.4 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.39.0 // indirect
 	github.com/aws/smithy-go v1.23.1 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
@@ -132,7 +132,7 @@ require (
 	github.com/charmbracelet/lipgloss v1.1.0 // indirect
 	github.com/charmbracelet/x/ansi v0.10.2 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.13 // indirect
-	github.com/charmbracelet/x/term v0.2.1 // indirect
+	github.com/charmbracelet/x/term v0.2.2 // indirect
 	github.com/clipperhouse/stringish v0.1.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.3.0 // indirect
 	github.com/cockroachdb/errors v1.12.0 // indirect
@@ -218,7 +218,7 @@ require (
 	github.com/prometheus/client_golang v1.23.2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.67.2 // indirect
-	github.com/prometheus/procfs v0.19.1 // indirect
+	github.com/prometheus/procfs v0.19.2 // indirect
 	github.com/protolambda/ctxlock v0.1.0 // indirect
 	github.com/rakyll/statik v0.1.7 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
