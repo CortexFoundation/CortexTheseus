@@ -41,7 +41,7 @@ type Packet interface {
 
 // Message types.
 const (
-	PingMsg byte = iota + 1
+	PingMsg byte = iota + 100
 	PongMsg
 	FindnodeMsg
 	NodesMsg
