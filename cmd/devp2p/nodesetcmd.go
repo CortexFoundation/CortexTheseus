@@ -77,7 +77,7 @@ func nodesetFilter(ctx *cli.Context) error {
 
 	result := make(nodeSet)
 	for id, n := range ns {
-		if filter(n) {
+		if filter(n) && len(n.N.Record().Signature()) != 0 {
 			result[id] = n
 		}
 	}
