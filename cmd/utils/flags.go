@@ -160,7 +160,7 @@ var (
 		Name:  "datadir.era",
 		Usage: "Root directory for era1 history (default = inside ancient/chain)",
 	}
-	MinFreeDiskSpaceFlag = DirectoryFlag{
+	MinFreeDiskSpaceFlag = &cli.IntFlag{
 		Name:  "datadir.minfreedisk",
 		Usage: "Minimum free disk space in MB, once reached triggers auto shut down (default = --cache.gc converted to MB, 0 = disabled)",
 	}
