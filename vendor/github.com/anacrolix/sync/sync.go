@@ -28,10 +28,8 @@ import (
 )
 
 var (
-	// Whether shared locks must be handled as exclusive locks.
-	noSharedLocking = false
-	contentionOn    = false
-	lockTimesOn     = false
+	contentionOn = false
+	lockTimesOn  = false
 	// Current lock holders.
 	lockHolders *pprof.Profile
 	// Those blocked on acquiring a lock.
@@ -59,7 +57,6 @@ func Enable() {
 func EnableContention() {
 	lockHolders = pprof.NewProfile("lockHolders")
 	lockBlockers = pprof.NewProfile("lockBlockers")
-	noSharedLocking = true
 	contentionOn = true
 }
 
@@ -68,7 +65,6 @@ func EnableLockTimes() {
 	http.DefaultServeMux.HandleFunc("/debug/lockTimes", func(w http.ResponseWriter, r *http.Request) {
 		PrintLockTimes(w)
 	})
-	noSharedLocking = true
 	lockTimesOn = true
 }
 

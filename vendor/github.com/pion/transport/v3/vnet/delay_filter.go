@@ -118,8 +118,7 @@ func (f *DelayFilter) processReadyPackets(now time.Time) {
 		if next == nil {
 			break
 		}
-
-		if chunk, ok := next.(timedChunk); ok && chunk.deadline.Before(now) {
+		if chunk, ok := next.(timedChunk); ok && !chunk.deadline.After(now) {
 			_, _ = f.queue.pop() // We already have the item from peek()
 			f.NIC.onInboundChunk(chunk.Chunk)
 		} else {

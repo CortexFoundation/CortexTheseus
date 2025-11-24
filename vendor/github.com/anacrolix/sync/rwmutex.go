@@ -2,44 +2,72 @@ package sync
 
 import "sync"
 
-// This RWMutex's RLock and RUnlock methods don't allow shared reading because there's no way to
-// determine what goroutine has stopped holding the read lock when RUnlock is called. So for
-// debugging purposes when the package is Enable()d, it's just like Mutex. TODO: Maybe this can be
-// done by tracking all of the stacks and releasing them all when the read lock is dropped. Having
-// RLock wrap Lock causes issues with some use cases, such as reading and writing to the same
-// torrent storage with an operation mutex.
+// TODO: No lock times currently, was in the wrapped sync.Mutex before.
 type RWMutex struct {
-	ins Mutex        // Instrumented
-	rw  sync.RWMutex // Real McCoy
+	inner   sync.RWMutex // Real McCoy
+	mu      sync.Mutex
+	holders []*int
 }
 
 func (me *RWMutex) Lock() {
-	if noSharedLocking {
-		me.ins.Lock()
-	} else {
-		me.rw.Lock()
+	withBlocked(func() {
+		me.inner.Lock()
+	})
+	me.addHolder()
+}
+
+func (me *RWMutex) TryLock() bool {
+	if me.inner.TryLock() {
+		me.addHolder()
+		return true
 	}
+	return false
 }
 
 func (me *RWMutex) Unlock() {
-	if noSharedLocking {
-		me.ins.Unlock()
-	} else {
-		me.rw.Unlock()
-	}
+	me.removeHolder()
+	me.inner.Unlock()
 }
 
 func (me *RWMutex) RLock() {
-	if noSharedLocking {
-		me.ins.Lock()
-	} else {
-		me.rw.RLock()
-	}
+	withBlocked(func() {
+		me.inner.RLock()
+	})
+	me.addHolder()
 }
 func (me *RWMutex) RUnlock() {
-	if noSharedLocking {
-		me.ins.Unlock()
-	} else {
-		me.rw.RUnlock()
+	me.removeHolder()
+	me.inner.RUnlock()
+}
+
+func (me *RWMutex) TryRLock() bool {
+	if me.inner.TryRLock() {
+		me.addHolder()
+		return true
 	}
+	return false
+}
+
+func (me *RWMutex) addHolder() {
+	if !contentionOn {
+		return
+	}
+	v := new(int)
+	me.mu.Lock()
+	me.holders = append(me.holders, v)
+	me.mu.Unlock()
+	lockHolders.Add(v, 0)
+}
+
+// Currently we just evict the last profile added. If it's a write lock there should only be one. If
+// it's a read lock... Well that needs more context.
+func (me *RWMutex) removeHolder() {
+	if !contentionOn {
+		return
+	}
+	me.mu.Lock()
+	v := me.holders[len(me.holders)-1]
+	me.holders = me.holders[:len(me.holders)-1]
+	me.mu.Unlock()
+	lockHolders.Remove(v)
 }

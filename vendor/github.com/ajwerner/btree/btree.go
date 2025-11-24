@@ -59,3 +59,7 @@ func (t *Set[K]) Delete(item K) (removed bool) {
 	_, _, removed = t.Map.Delete(item)
 	return removed
 }
+
+type MapIterator[K, V any] = abstract.Iterator[K, V, struct{}]
+
+type SetIterator[T any] = MapIterator[T, struct{}]
