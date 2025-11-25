@@ -3,15 +3,18 @@ package log
 import (
 	"fmt"
 	"log/slog"
+	"slices"
 )
 
 // Returns a new Logger with the names given, and Default's handlers. I'm not sure copying those
 // handlers is the right choice yet, but it's better than having your messages vanish if you forget
 // to configure them.
 func NewLogger(names ...string) Logger {
-	l := Default
-	l.names = nil
-	return l.WithNames(names...)
+	// Should this include a default log level? (Not the same as filter level.)
+	return loggerCore{
+		nonZero:  true,
+		Handlers: slices.Clone(Default.Handlers),
+	}.WithNames(names...).asLogger()
 }
 
 // Logger handles logging in a specific context. It includes a bunch of helpers and compatibility

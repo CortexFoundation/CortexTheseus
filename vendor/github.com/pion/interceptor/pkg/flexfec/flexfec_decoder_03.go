@@ -81,6 +81,9 @@ func (d *fecDecoder) insertPacket(receivedPkt rtp.Packet) {
 				break
 			}
 		}
+		if toRemove > 0 {
+			d.receivedFECPackets = d.receivedFECPackets[toRemove:]
+		}
 	}
 
 	switch receivedPkt.SSRC {

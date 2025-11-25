@@ -78,6 +78,7 @@ type chunkIP struct {
 	sourceIP      net.IP
 	destinationIP net.IP
 	tag           string
+	duplicate     bool
 }
 
 func (c *chunkIP) setTimestamp() time.Time {
@@ -100,6 +101,14 @@ func (c *chunkIP) getSourceIP() net.IP {
 
 func (c *chunkIP) Tag() string {
 	return c.tag
+}
+
+func (c *chunkIP) markDuplicate() {
+	c.duplicate = true
+}
+
+func (c *chunkIP) isDuplicate() bool {
+	return c.duplicate
 }
 
 type chunkUDP struct {

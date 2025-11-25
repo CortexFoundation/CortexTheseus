@@ -62,7 +62,7 @@ func (i *Iterator[K, V, A]) SeekGE(key K) {
 	}
 }
 
-// SeekLT seeks to the first key less-than the provided key.
+// SeekLT seeks to the last key less-than the provided key.
 func (i *Iterator[K, V, A]) SeekLT(key K) {
 	i.Reset()
 	if i.node == nil {
@@ -167,7 +167,7 @@ func (i *Iterator[K, V, A]) Valid() bool {
 }
 
 // Cur returns the key at the Iterator's current position. It is illegal
-// to call Key if the Iterator is not valid.
+// to call Cur if the Iterator is not valid.
 func (i *Iterator[K, V, A]) Cur() K {
 	return i.node.keys[i.pos]
 }

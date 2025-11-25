@@ -105,7 +105,8 @@ func (l loggerCore) handle(level Level, m Msg, names []string) {
 		Level: level,
 		Names: names,
 	}
-	l.assertNonZero()
+	// I'm not sure we care if something is initialized anymore...
+	//l.assertNonZero()
 	for _, h := range l.Handlers {
 		h.Handle(r)
 	}

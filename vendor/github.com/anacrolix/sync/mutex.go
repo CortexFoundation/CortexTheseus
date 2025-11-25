@@ -47,6 +47,28 @@ func (m *Mutex) Lock() {
 	}
 }
 
+func (m *Mutex) TryLock() bool {
+	if !m.mu.TryLock() {
+		return false
+	}
+	if contentionOn {
+		v := new(int)
+		lockHolders.Add(v, 0)
+		m.hold = v
+	}
+	if lockTimesOn {
+		// We're holding the lock here so it's safe to check.
+		if m.lockTimes == nil {
+			m.lockTimes = new(lockTimes)
+		}
+		var stack callerArray
+		m.entries = runtime.Callers(2, stack[:])
+		m.stack = unique.Make(stack)
+		m.start = time.Now()
+	}
+	return true
+}
+
 func (m *Mutex) Unlock() {
 	if lockTimesOn {
 		d := time.Since(m.start)

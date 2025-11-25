@@ -47,6 +47,12 @@ func (l Level) LogString() string {
 	}
 }
 
+// Not sure why we didn't define this. Show LogString as the default for human-readable
+// representation.
+func (l Level) String() string {
+	return l.LogString()
+}
+
 func (l Level) LessThan(r Level) bool {
 	if l.rank == NotSet.rank {
 		return false
