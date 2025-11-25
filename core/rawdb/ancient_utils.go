@@ -34,12 +34,8 @@ type freezerInfo struct {
 	name  string      // The identifier of freezer
 	head  uint64      // The number of last stored item in the freezer
 	tail  uint64      // The number of first stored item in the freezer
+	count uint64      // The number of stored items in the freezer
 	sizes []tableSize // The storage size per table
-}
-
-// count returns the number of stored items in the freezer.
-func (info *freezerInfo) count() uint64 {
-	return info.head - info.tail + 1
 }
 
 // size returns the storage size of the entire freezer.
@@ -49,6 +45,41 @@ func (info *freezerInfo) size() common.StorageSize {
 		total += table.size
 	}
 	return total
+}
+
+func inspect(name string, order map[string]freezerTableConfig, reader ctxcdb.AncientReader) (freezerInfo, error) {
+	info := freezerInfo{name: name}
+	for t := range order {
+		size, err := reader.AncientSize(t)
+		if err != nil {
+			return freezerInfo{}, err
+		}
+		info.sizes = append(info.sizes, tableSize{name: t, size: common.StorageSize(size)})
+	}
+	// Retrieve the number of last stored item
+	ancients, err := reader.Ancients()
+	if err != nil {
+		return freezerInfo{}, err
+	}
+	if ancients > 0 {
+		info.head = ancients - 1
+	} else {
+		info.head = 0
+	}
+
+	// Retrieve the number of first stored item
+	tail, err := reader.Tail()
+	if err != nil {
+		return freezerInfo{}, err
+	}
+	info.tail = tail
+
+	if ancients == 0 {
+		info.count = 0
+	} else {
+		info.count = info.head - info.tail + 1
+	}
+	return info, nil
 }
 
 // inspectFreezers inspects all freezers registered in the system.
