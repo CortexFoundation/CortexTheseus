@@ -1855,7 +1855,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		substart := time.Now()
 		res, err := bc.processor.Process(block, statedb, bc.vmConfig)
 		if err != nil {
-			bc.reportBlock(block, res.Receipts, err)
+			bc.reportBlock(block, res, err)
 			followupInterrupt.Store(true)
 			return it.index, err
 		}
@@ -1876,7 +1876,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		// Validate the state using the default validator
 		substart = time.Now()
 		if err := bc.validator.ValidateState(block, statedb, res); err != nil {
-			bc.reportBlock(block, res.Receipts, err)
+			bc.reportBlock(block, res, err)
 			followupInterrupt.Store(true)
 			return it.index, err
 		}
@@ -2376,9 +2376,13 @@ func (bc *BlockChain) skipBlock(err error, it *insertIterator) bool {
 }
 
 // reportBlock logs a bad block error.
-func (bc *BlockChain) reportBlock(block *types.Block, receipts types.Receipts, err error) {
+func (bc *BlockChain) reportBlock(block *types.Block, res *ProcessResult, err error) {
 	if errors.Is(err, vm.ErrRuntime) {
 		return
+	}
+	var receipts types.Receipts
+	if res != nil {
+		receipts = res.Receipts
 	}
 	rawdb.WriteBadBlock(bc.db, block)
 
