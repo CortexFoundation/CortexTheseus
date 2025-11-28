@@ -163,7 +163,6 @@ func TestServiceLifeCycle(t *testing.T) {
 	stopped := make(map[string]bool)
 
 	for id, maker := range services {
-		id := id // Closure for the constructor
 		constructor := func(*ServiceContext) (Service, error) {
 			return &InstrumentedService{
 				startHook: func() { started[id] = true },
@@ -263,7 +262,6 @@ func TestServiceConstructionAbortion(t *testing.T) {
 	}
 	started := make(map[string]bool)
 	for id, maker := range services {
-		id := id // Closure for the constructor
 		constructor := func(*ServiceContext) (Service, error) {
 			return &InstrumentedService{
 				startHook: func() { started[id] = true },
@@ -314,7 +312,6 @@ func TestServiceStartupAbortion(t *testing.T) {
 	stopped := make(map[string]bool)
 
 	for id, maker := range services {
-		id := id // Closure for the constructor
 		constructor := func(*ServiceContext) (Service, error) {
 			return &InstrumentedService{
 				startHook: func() { started[id] = true },
@@ -369,7 +366,6 @@ func TestServiceTerminationGuarantee(t *testing.T) {
 	stopped := make(map[string]bool)
 
 	for id, maker := range services {
-		id := id // Closure for the constructor
 		constructor := func(*ServiceContext) (Service, error) {
 			return &InstrumentedService{
 				startHook: func() { started[id] = true },
@@ -555,7 +551,6 @@ func TestAPIGather(t *testing.T) {
 	}
 
 	for id, config := range services {
-		config := config
 		constructor := func(*ServiceContext) (Service, error) {
 			return &InstrumentedService{apis: config.APIs}, nil
 		}
