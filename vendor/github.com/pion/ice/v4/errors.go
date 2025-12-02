@@ -120,6 +120,24 @@ var (
 	// ErrDetermineNetworkType indicates that the NetworkType was not able to be parsed.
 	ErrDetermineNetworkType = errors.New("unable to determine networkType")
 
+	// ErrOnlyControllingAgentCanRenominate indicates that only controlling agent can renominate.
+	ErrOnlyControllingAgentCanRenominate = errors.New("only controlling agent can renominate")
+
+	// ErrRenominationNotEnabled indicates that renomination is not enabled.
+	ErrRenominationNotEnabled = errors.New("renomination is not enabled")
+
+	// ErrCandidatePairNotFound indicates that candidate pair was not found.
+	ErrCandidatePairNotFound = errors.New("candidate pair not found")
+
+	// ErrInvalidNominationAttribute indicates an invalid nomination attribute type was provided.
+	ErrInvalidNominationAttribute = errors.New("invalid nomination attribute type")
+
+	// ErrInvalidNominationValueGenerator indicates a nil nomination value generator was provided.
+	ErrInvalidNominationValueGenerator = errors.New("nomination value generator cannot be nil")
+
+	// ErrInvalidNetworkMonitorInterval indicates an invalid network monitor interval was provided.
+	ErrInvalidNetworkMonitorInterval = errors.New("network monitor interval must be greater than 0")
+
 	errAttributeTooShortICECandidate = errors.New("attribute not long enough to be ICE candidate")
 	errClosingConnection             = errors.New("failed to close connection")
 	errConnectionAddrAlreadyExist    = errors.New("connection with same remote address already exists")
@@ -136,7 +154,6 @@ var (
 	errParseRelatedAddr              = errors.New("failed to parse related addresses")
 	errParseExtension                = errors.New("failed to parse extension")
 	errParseTCPType                  = errors.New("failed to parse TCP type")
-	errRead                          = errors.New("failed to read")
 	errUDPMuxDisabled                = errors.New("UDPMux is not enabled")
 	errUnknownRole                   = errors.New("unknown role")
 	errWrite                         = errors.New("failed to write")

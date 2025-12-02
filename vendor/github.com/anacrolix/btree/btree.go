@@ -14,7 +14,7 @@
 
 package btree
 
-import "github.com/ajwerner/btree/internal/abstract"
+import "github.com/anacrolix/btree/internal/abstract"
 
 // Map is a ordered map from K to V.
 type Map[K, V any] struct {

@@ -61,7 +61,7 @@ github.com/CortexFoundation/robot/backend
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit; go 1.16
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.73-0.20251124184227-7b581860e3c0
+# github.com/CortexFoundation/torrentfs v1.0.73-0.20251202154802-316eb23b5a00
 ## explicit; go 1.24.4
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/backend
@@ -91,13 +91,13 @@ github.com/RoaringBitmap/roaring/internal
 # github.com/VictoriaMetrics/fastcache v1.13.2
 ## explicit; go 1.24.0
 github.com/VictoriaMetrics/fastcache
-# github.com/ajwerner/btree v0.0.0-20211221152037-f427b3e689c0 => github.com/anacrolix/btree v0.0.0-20251103085645-fd1051eb0009
-## explicit; go 1.23
-github.com/ajwerner/btree
-github.com/ajwerner/btree/internal/abstract
 # github.com/alecthomas/atomic v0.1.0-alpha2
 ## explicit; go 1.18
 github.com/alecthomas/atomic
+# github.com/anacrolix/btree v0.0.0-20251201064447-d86c3fa41bd8
+## explicit; go 1.23
+github.com/anacrolix/btree
+github.com/anacrolix/btree/internal/abstract
 # github.com/anacrolix/chansync v0.7.0
 ## explicit; go 1.16
 github.com/anacrolix/chansync
@@ -117,7 +117,7 @@ github.com/anacrolix/dht/v2/types
 # github.com/anacrolix/envpprof v1.4.0
 ## explicit; go 1.12
 github.com/anacrolix/envpprof
-# github.com/anacrolix/generics v0.1.0
+# github.com/anacrolix/generics v0.1.1-0.20251125230353-15d98d46693b
 ## explicit; go 1.18
 github.com/anacrolix/generics
 github.com/anacrolix/generics/heap
@@ -164,8 +164,8 @@ github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.5.5-0.20251119100342-d78dd1f686f1
 ## explicit; go 1.18
 github.com/anacrolix/sync
-# github.com/anacrolix/torrent v1.59.2-0.20251121022239-29ca7fdf5c63
-## explicit; go 1.24
+# github.com/anacrolix/torrent v1.59.2-0.20251201070025-62f62628d9b8
+## explicit; go 1.24.0
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/analysis
 github.com/anacrolix/torrent/bencode
@@ -248,10 +248,10 @@ github.com/aws/aws-sdk-go-v2/internal/shareddefaults
 github.com/aws/aws-sdk-go-v2/internal/strings
 github.com/aws/aws-sdk-go-v2/internal/sync/singleflight
 github.com/aws/aws-sdk-go-v2/internal/timeconv
-# github.com/aws/aws-sdk-go-v2/config v1.32.1
+# github.com/aws/aws-sdk-go-v2/config v1.32.2
 ## explicit; go 1.23
 github.com/aws/aws-sdk-go-v2/config
-# github.com/aws/aws-sdk-go-v2/credentials v1.19.1
+# github.com/aws/aws-sdk-go-v2/credentials v1.19.2
 ## explicit; go 1.23
 github.com/aws/aws-sdk-go-v2/credentials
 github.com/aws/aws-sdk-go-v2/credentials/ec2rolecreds
@@ -280,33 +280,33 @@ github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding
 # github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.14
 ## explicit; go 1.23
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url
-# github.com/aws/aws-sdk-go-v2/service/route53 v1.60.1
+# github.com/aws/aws-sdk-go-v2/service/route53 v1.61.0
 ## explicit; go 1.23
 github.com/aws/aws-sdk-go-v2/service/route53
 github.com/aws/aws-sdk-go-v2/service/route53/internal/customizations
 github.com/aws/aws-sdk-go-v2/service/route53/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/route53/types
-# github.com/aws/aws-sdk-go-v2/service/signin v1.0.1
+# github.com/aws/aws-sdk-go-v2/service/signin v1.0.2
 ## explicit; go 1.23
 github.com/aws/aws-sdk-go-v2/service/signin
 github.com/aws/aws-sdk-go-v2/service/signin/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/signin/types
-# github.com/aws/aws-sdk-go-v2/service/sso v1.30.4
+# github.com/aws/aws-sdk-go-v2/service/sso v1.30.5
 ## explicit; go 1.23
 github.com/aws/aws-sdk-go-v2/service/sso
 github.com/aws/aws-sdk-go-v2/service/sso/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/sso/types
-# github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.9
+# github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.10
 ## explicit; go 1.23
 github.com/aws/aws-sdk-go-v2/service/ssooidc
 github.com/aws/aws-sdk-go-v2/service/ssooidc/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/ssooidc/types
-# github.com/aws/aws-sdk-go-v2/service/sts v1.41.1
+# github.com/aws/aws-sdk-go-v2/service/sts v1.41.2
 ## explicit; go 1.23
 github.com/aws/aws-sdk-go-v2/service/sts
 github.com/aws/aws-sdk-go-v2/service/sts/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/sts/types
-# github.com/aws/smithy-go v1.23.2
+# github.com/aws/smithy-go v1.24.0
 ## explicit; go 1.23
 github.com/aws/smithy-go
 github.com/aws/smithy-go/auth
@@ -318,6 +318,7 @@ github.com/aws/smithy-go/encoding/httpbinding
 github.com/aws/smithy-go/encoding/json
 github.com/aws/smithy-go/encoding/xml
 github.com/aws/smithy-go/endpoints
+github.com/aws/smithy-go/endpoints/private/rulesfn
 github.com/aws/smithy-go/internal/sync/singleflight
 github.com/aws/smithy-go/io
 github.com/aws/smithy-go/logging
@@ -370,7 +371,7 @@ github.com/charmbracelet/colorprofile
 # github.com/charmbracelet/lipgloss v1.1.0
 ## explicit; go 1.18
 github.com/charmbracelet/lipgloss
-# github.com/charmbracelet/x/ansi v0.11.1
+# github.com/charmbracelet/x/ansi v0.11.2
 ## explicit; go 1.24.2
 github.com/charmbracelet/x/ansi
 github.com/charmbracelet/x/ansi/parser
@@ -380,7 +381,7 @@ github.com/charmbracelet/x/cellbuf
 # github.com/charmbracelet/x/term v0.2.2
 ## explicit; go 1.24.0
 github.com/charmbracelet/x/term
-# github.com/clipperhouse/displaywidth v0.6.0
+# github.com/clipperhouse/displaywidth v0.6.1
 ## explicit; go 1.18
 github.com/clipperhouse/displaywidth
 # github.com/clipperhouse/stringish v0.1.1
@@ -549,7 +550,7 @@ github.com/dgraph-io/ristretto/v2/z/simd
 ## explicit; go 1.13
 github.com/dlclark/regexp2
 github.com/dlclark/regexp2/syntax
-# github.com/dop251/goja v0.0.0-20251121114222-56b1242a5f86
+# github.com/dop251/goja v0.0.0-20251201205617-2bb4c724c0f9
 ## explicit; go 1.20
 github.com/dop251/goja
 github.com/dop251/goja/ast
@@ -603,7 +604,7 @@ github.com/garslo/gogen
 # github.com/gballet/go-libpcsclite v0.0.0-20250918194357-1ec6f2e601c6
 ## explicit; go 1.19
 github.com/gballet/go-libpcsclite
-# github.com/getsentry/sentry-go v0.39.0
+# github.com/getsentry/sentry-go v0.40.0
 ## explicit; go 1.23.0
 github.com/getsentry/sentry-go
 github.com/getsentry/sentry-go/attribute
@@ -755,7 +756,7 @@ github.com/jedib0t/go-pretty/v6/text
 # github.com/jedisct1/go-minisign v0.0.0-20241212093149-d2f9f49435c7
 ## explicit; go 1.23.4
 github.com/jedisct1/go-minisign
-# github.com/klauspost/compress v1.18.1
+# github.com/klauspost/compress v1.18.2
 ## explicit; go 1.23
 github.com/klauspost/compress
 github.com/klauspost/compress/fse
@@ -909,8 +910,8 @@ github.com/pion/dtls/v3/pkg/protocol/alert
 github.com/pion/dtls/v3/pkg/protocol/extension
 github.com/pion/dtls/v3/pkg/protocol/handshake
 github.com/pion/dtls/v3/pkg/protocol/recordlayer
-# github.com/pion/ice/v4 v4.0.10
-## explicit; go 1.20
+# github.com/pion/ice/v4 v4.0.12
+## explicit; go 1.21
 github.com/pion/ice/v4
 github.com/pion/ice/v4/internal/atomic
 github.com/pion/ice/v4/internal/fakenet
@@ -947,13 +948,13 @@ github.com/pion/rtp
 github.com/pion/rtp/codecs
 github.com/pion/rtp/codecs/av1/obu
 github.com/pion/rtp/codecs/vp9
-# github.com/pion/sctp v1.8.40
+# github.com/pion/sctp v1.8.41
 ## explicit; go 1.21
 github.com/pion/sctp
 # github.com/pion/sdp/v3 v3.0.16
 ## explicit; go 1.21
 github.com/pion/sdp/v3
-# github.com/pion/srtp/v3 v3.0.8
+# github.com/pion/srtp/v3 v3.0.9
 ## explicit; go 1.21
 github.com/pion/srtp/v3
 # github.com/pion/stun/v2 v2.0.0
@@ -1104,7 +1105,7 @@ github.com/ucwong/filecache
 # github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb
 ## explicit; go 1.19
 github.com/ucwong/go-ttlmap
-# github.com/ucwong/golang-kv v1.0.24-0.20251109124133-d3b517c91775
+# github.com/ucwong/golang-kv v1.0.24-0.20251129161750-0c74710bc499
 ## explicit; go 1.24.0
 github.com/ucwong/golang-kv
 github.com/ucwong/golang-kv/badger
@@ -1202,7 +1203,7 @@ golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/exp v0.0.0-20251113190631-e25ba8c21ef6
+# golang.org/x/exp v0.0.0-20251125195548-87e1e737ad39
 ## explicit; go 1.24.0
 golang.org/x/exp/constraints
 golang.org/x/exp/rand
@@ -1402,4 +1403,3 @@ modernc.org/sqlite/lib
 ## explicit; go 1.23.0
 zombiezen.com/go/sqlite
 zombiezen.com/go/sqlite/sqlitex
-# github.com/ajwerner/btree => github.com/anacrolix/btree v0.0.0-20251103085645-fd1051eb0009

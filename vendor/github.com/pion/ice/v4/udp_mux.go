@@ -95,12 +95,13 @@ func NewUDPMuxDefault(params UDPMuxParams) *UDPMuxDefault { //nolint:cyclop
 
 			_, addrs, err := localInterfaces(params.Net, nil, nil, networks, true)
 			if err == nil {
-				for _, addr := range addrs {
-					localAddrsForUnspecified = append(localAddrsForUnspecified, &net.UDPAddr{
+				localAddrsForUnspecified = make([]net.Addr, len(addrs))
+				for i, addr := range addrs {
+					localAddrsForUnspecified[i] = &net.UDPAddr{
 						IP:   addr.AsSlice(),
 						Port: udpAddr.Port,
 						Zone: addr.Zone(),
-					})
+					}
 				}
 			} else {
 				params.Logger.Errorf("Failed to get local interfaces for unspecified addr: %v", err)
@@ -116,7 +117,7 @@ func NewUDPMuxDefault(params UDPMuxParams) *UDPMuxDefault { //nolint:cyclop
 		connsIPv6:  make(map[string]*udpMuxedConn),
 		closedChan: make(chan struct{}, 1),
 		pool: &sync.Pool{
-			New: func() interface{} {
+			New: func() any {
 				// Big enough buffer to fit both packet and address
 				return newBufferHolder(receiveMTU)
 			},

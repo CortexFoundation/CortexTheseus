@@ -220,7 +220,8 @@ func New(file string, cache int, handles int, namespace string, readonly bool) (
 			{TargetFileSize: 16 * 1024 * 1024, FilterPolicy: bloom.FilterPolicy(10)},
 			{TargetFileSize: 32 * 1024 * 1024, FilterPolicy: bloom.FilterPolicy(10)},
 			{TargetFileSize: 64 * 1024 * 1024, FilterPolicy: bloom.FilterPolicy(10)},
-			{TargetFileSize: 128 * 1024 * 1024, FilterPolicy: bloom.FilterPolicy(10)},
+			// Pebble doesn't use the Bloom filter at level6 for read efficiency.
+			{TargetFileSize: 128 * 1024 * 1024},
 		},
 		ReadOnly: readonly,
 		EventListener: &pebble.EventListener{
@@ -251,9 +252,6 @@ func New(file string, cache int, handles int, namespace string, readonly bool) (
 		// debt will be less than 1GB, but with more frequent compactions scheduled.
 		L0CompactionThreshold: 2,
 	}
-	// Disable seek compaction explicitly. Check https://github.com/CortexFoundation/CortexTheseus/pull/20130
-	// for more details.
-	opt.Experimental.ReadSamplingMultiplier = -1
 
 	// Open the db and recover any potential corruptions
 	innerDB, err := pebble.Open(file, opt)
