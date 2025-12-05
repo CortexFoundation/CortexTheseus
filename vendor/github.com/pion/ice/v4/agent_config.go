@@ -38,6 +38,9 @@ const (
 	// defaultRelayAcceptanceMinWait is the wait time before nominating a relay candidate.
 	defaultRelayAcceptanceMinWait = 2000 * time.Millisecond
 
+	// defaultRelayOnlyAcceptanceMinWait is the wait time before nominating with a relay only candidate.
+	defaultRelayOnlyAcceptanceMinWait = time.Duration(0)
+
 	// defaultSTUNGatherTimeout is the wait time for STUN responses.
 	defaultSTUNGatherTimeout = 5 * time.Second
 
@@ -57,6 +60,14 @@ const (
 
 func defaultCandidateTypes() []CandidateType {
 	return []CandidateType{CandidateTypeHost, CandidateTypeServerReflexive, CandidateTypeRelay}
+}
+
+func defaultRelayAcceptanceMinWaitFor(candidateTypes []CandidateType) time.Duration {
+	if len(candidateTypes) == 1 && candidateTypes[0] == CandidateTypeRelay {
+		return defaultRelayOnlyAcceptanceMinWait
+	}
+
+	return defaultRelayAcceptanceMinWait
 }
 
 // AgentConfig collects the arguments to ice.Agent construction into
@@ -236,7 +247,7 @@ func (config *AgentConfig) initWithDefaults(agent *Agent) { //nolint:cyclop
 	}
 
 	if config.RelayAcceptanceMinWait == nil {
-		agent.relayAcceptanceMinWait = defaultRelayAcceptanceMinWait
+		agent.relayAcceptanceMinWait = defaultRelayAcceptanceMinWaitFor(config.CandidateTypes)
 	} else {
 		agent.relayAcceptanceMinWait = *config.RelayAcceptanceMinWait
 	}
@@ -282,45 +293,4 @@ func (config *AgentConfig) initWithDefaults(agent *Agent) { //nolint:cyclop
 	} else {
 		agent.candidateTypes = config.CandidateTypes
 	}
-}
-
-func (config *AgentConfig) initExtIPMapping(agent *Agent) error { //nolint:cyclop
-	var err error
-	agent.extIPMapper, err = newExternalIPMapper(config.NAT1To1IPCandidateType, config.NAT1To1IPs)
-	if err != nil {
-		return err
-	}
-	if agent.extIPMapper == nil {
-		return nil // This may happen when config.NAT1To1IPs is an empty array
-	}
-	if agent.extIPMapper.candidateType == CandidateTypeHost { //nolint:nestif
-		if agent.mDNSMode == MulticastDNSModeQueryAndGather {
-			return ErrMulticastDNSWithNAT1To1IPMapping
-		}
-		candiHostEnabled := false
-		for _, candiType := range agent.candidateTypes {
-			if candiType == CandidateTypeHost {
-				candiHostEnabled = true
-
-				break
-			}
-		}
-		if !candiHostEnabled {
-			return ErrIneffectiveNAT1To1IPMappingHost
-		}
-	} else if agent.extIPMapper.candidateType == CandidateTypeServerReflexive {
-		candiSrflxEnabled := false
-		for _, candiType := range agent.candidateTypes {
-			if candiType == CandidateTypeServerReflexive {
-				candiSrflxEnabled = true
-
-				break
-			}
-		}
-		if !candiSrflxEnabled {
-			return ErrIneffectiveNAT1To1IPMappingSrflx
-		}
-	}
-
-	return nil
 }

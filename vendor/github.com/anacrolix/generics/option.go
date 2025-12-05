@@ -2,9 +2,9 @@ package generics
 
 import (
 	"fmt"
-	"iter"
 )
 
+// Any functions that include types additional to V must be global and are in the option package.
 type Option[V any] struct {
 	// Value must be zeroed when Ok is false for deterministic comparability.
 	Value V
@@ -116,10 +116,15 @@ func (me Option[V]) AsTuple() (V, bool) {
 }
 
 // Yields value for use as iter.Seq such as in range expression.
-func (me Option[V]) Iter() iter.Seq[V] {
-	return func(yield func(V) bool) {
-		if me.Ok {
-			yield(me.Value)
-		}
+func (me Option[V]) Iter(yield func(V) bool) {
+	if me.Ok {
+		yield(me.Value)
 	}
+}
+
+func (me Option[V]) Filter(f func(V) bool) Option[V] {
+	if me.Ok && !f(me.Value) {
+		me.SetNone()
+	}
+	return me
 }

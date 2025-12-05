@@ -6,6 +6,7 @@ package ice
 import (
 	"io"
 	"net"
+	"slices"
 	"sync"
 	"time"
 
@@ -102,8 +103,11 @@ func (c *udpMuxedConn) WriteTo(buf []byte, rAddr net.Addr) (n int, err error) {
 		return 0, errFailedToCastUDPAddr
 	}
 
-	//nolint:gosec // TODO add port validation G115
-	ipAndPort, err := newIPPort(netUDPAddr.IP, netUDPAddr.Zone, uint16(netUDPAddr.Port))
+	port := netUDPAddr.Port
+	if port < 0 || port > 0xFFFF {
+		return 0, ErrPort
+	}
+	ipAndPort, err := newIPPort(netUDPAddr.IP, netUDPAddr.Zone, uint16(port))
 	if err != nil {
 		return 0, err
 	}
@@ -198,13 +202,8 @@ func (c *udpMuxedConn) removeAddress(addr ipPort) {
 func (c *udpMuxedConn) containsAddress(addr ipPort) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	for _, a := range c.addresses {
-		if addr == a {
-			return true
-		}
-	}
 
-	return false
+	return slices.Contains(c.addresses, addr)
 }
 
 func (c *udpMuxedConn) writePacket(data []byte, addr *net.UDPAddr) error {

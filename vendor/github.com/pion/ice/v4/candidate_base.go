@@ -69,7 +69,7 @@ func (c *candidateBase) Deadline() (deadline time.Time, ok bool) {
 }
 
 // Value implements context.Context.
-func (c *candidateBase) Value(interface{}) interface{} {
+func (c *candidateBase) Value(any) any {
 	return nil
 }
 
@@ -217,7 +217,7 @@ func (c *candidateBase) start(a *Agent, conn net.PacketConn, initializedCh <-cha
 }
 
 var bufferPool = sync.Pool{ // nolint:gochecknoglobals
-	New: func() interface{} {
+	New: func() any {
 		return make([]byte, receiveMTU)
 	},
 }
@@ -243,7 +243,7 @@ func (c *candidateBase) recvLoop(initializedCh <-chan struct{}) {
 	for {
 		n, srcAddr, err := c.conn.ReadFrom(buf)
 		if err != nil {
-			if !(errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed)) {
+			if !errors.Is(err, io.EOF) && !errors.Is(err, net.ErrClosed) {
 				agent.log.Warnf("Failed to read from candidate %s: %v", c, err)
 			}
 
@@ -309,10 +309,18 @@ func (c *candidateBase) handleInboundPacket(buf []byte, srcAddr net.Addr) {
 	}
 
 	// Note: This will return packetio.ErrFull if the buffer ever manages to fill up.
-	if _, err := agent.buf.Write(buf); err != nil {
+	n, err := agent.buf.Write(buf)
+	if err != nil {
 		agent.log.Warnf("Failed to write packet: %s", err)
 
 		return
+	}
+
+	// Add received application bytes to the currently selected candidate pair.
+	if n > 0 {
+		if sp := agent.getSelectedPair(); sp != nil {
+			sp.UpdatePacketReceived(n)
+		}
 	}
 }
 
@@ -891,10 +899,10 @@ func readCandidateCharToken(raw string, start int, limit int) (string, int, erro
 			return "", 0, fmt.Errorf("token too long: %s expected 1x%d", raw[start:start+i], limit)
 		}
 
-		if !(char >= 'A' && char <= 'Z' ||
-			char >= 'a' && char <= 'z' ||
-			char >= '0' && char <= '9' ||
-			char == '+' || char == '/') {
+		if (char < 'A' || char > 'Z') &&
+			(char < 'a' || char > 'z') &&
+			(char < '0' || char > '9') &&
+			char != '+' && char != '/' {
 			return "", 0, fmt.Errorf("invalid ice-char token: %c", char) //nolint: err113 // handled by caller
 		}
 	}
@@ -928,7 +936,7 @@ func readCandidateDigitToken(raw string, start, limit int) (int, int, error) {
 			return 0, 0, fmt.Errorf("token too long: %s expected 1x%d", raw[start:start+i], limit)
 		}
 
-		if !(char >= '0' && char <= '9') {
+		if char < '0' || char > '9' {
 			return 0, 0, fmt.Errorf("invalid digit token: %c", char) //nolint: err113 // handled by caller
 		}
 
@@ -962,9 +970,9 @@ func readCandidateByteString(raw string, start int) (string, int, error) {
 		}
 
 		// 1*(%x01-09/%x0B-0C/%x0E-FF)
-		if !(char >= 0x01 && char <= 0x09 ||
-			char >= 0x0B && char <= 0x0C ||
-			char >= 0x0E && char <= 0xFF) {
+		if (char < 0x01 || char > 0x09) &&
+			(char < 0x0B || char > 0x0C) &&
+			(char < 0x0E || char > 0xFF) {
 			return "", 0, fmt.Errorf("invalid byte-string character: %c", char) //nolint: err113 // handled by caller
 		}
 	}
