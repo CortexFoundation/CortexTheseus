@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"testing"
+	"weak"
 
 	"github.com/anacrolix/log"
 )
@@ -22,6 +24,15 @@ var (
 // writes the heap profile to a file. Stop should be deferred from main if cpu or heap profiling
 // are to be used through envpprof.
 func Stop() {
+	stop()
+}
+
+// Replaced to track forgetting to Stop-by-GC.
+var stop = func() {
+	stopProfilers()
+}
+
+func stopProfilers() {
 	for _, profiler := range profilers {
 		profiler.stop()
 	}
@@ -61,6 +72,11 @@ func startHTTP(value string) {
 	}()
 }
 
+var (
+	forgotStopIfGCed  weak.Pointer[forgotStopValueType]
+	cleanupForgotStop runtime.Cleanup
+)
+
 func init() {
 	expvar.Publish("numGoroutine", expvar.Func(func() interface{} { return runtime.NumGoroutine() }))
 
@@ -68,6 +84,7 @@ func init() {
 	if envValue == "" {
 		return
 	}
+	needStop := false
 	for _, item := range strings.Split(envValue, ",") {
 		equalsPos := strings.IndexByte(item, '=')
 		var key, value string
@@ -84,9 +101,58 @@ func init() {
 			profiler, ok := profilers[key]
 			if ok {
 				profiler.start(key)
+				needStop = true
 			} else {
 				log.Printf("unexpected GOPPROF key %q", key)
 			}
 		}
 	}
+	// This only installs the warning if profiling is enabled. But it could be for any consumer of
+	// envpprof...
+	if needStop {
+		strong, cleanup := makeForget()
+		forgotStopIfGCed = weak.Make(strong)
+		cleanupForgotStop = cleanup
+		stop = makeStopFunc(strong)
+	}
+}
+
+func makeStopFunc(strong *forgotStopValueType) func() {
+	return func() {
+		cleanupForgotStop.Stop()
+		stopProfilers()
+		_ = strong
+	}
+}
+
+// I suspect struct{} silently fails (or succeeds) as it might not be on the heap.
+type forgotStopValueType = int
+
+func makeForget() (*forgotStopValueType, runtime.Cleanup) {
+	forgot := new(forgotStopValueType)
+	return forgot, runtime.AddCleanup(
+		forgot,
+		func(struct{}) {
+			log.Printf("envpprof: forgot to Stop()")
+		},
+		struct{}{},
+	)
+}
+
+// Synchronous init that returns the cleanup function directly with no risk. Future proofing for a
+// safer way to do it.
+func Init() (stop func()) {
+	// Extract the strong pointer created by the package init. Eventually we want to make it
+	// synchronously here.
+	strong := forgotStopIfGCed.Value()
+	// Allocate a new func since that seems to work with GC better than a global variable.
+	return makeStopFunc(strong)
+}
+
+// Runs main test suite with clean handled for you.
+func TestMain(m *testing.M) {
+	stop := Init()
+	code := m.Run()
+	stop()
+	os.Exit(code)
 }
