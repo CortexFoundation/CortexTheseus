@@ -65,6 +65,13 @@ type simulcastStreamPair struct {
 	srtcp *srtp.ReadStreamSRTCP
 }
 
+type streamsForSSRCResult struct {
+	rtpReadStream   *srtp.ReadStreamSRTP
+	rtpInterceptor  interceptor.RTPReader
+	rtcpReadStream  *srtp.ReadStreamSRTCP
+	rtcpInterceptor interceptor.RTCPReader
+}
+
 // NewDTLSTransport creates a new DTLSTransport.
 // This constructor is part of the ORTC API. It is not
 // meant to be used together with the basic WebRTC API.
@@ -333,6 +340,7 @@ func (t *DTLSTransport) Start(remoteParameters DTLSParameters) error { //nolint:
 			ClientAuth:         dtls.RequireAnyClientCert,
 			LoggerFactory:      t.api.settingEngine.LoggerFactory,
 			InsecureSkipVerify: !t.api.settingEngine.dtls.disableInsecureSkipVerify,
+			CipherSuites:       t.api.settingEngine.dtls.cipherSuites,
 			CustomCipherSuites: t.api.settingEngine.dtls.customCipherSuites,
 		}, nil
 	}
@@ -530,15 +538,15 @@ func (t *DTLSTransport) storeSimulcastStream(
 func (t *DTLSTransport) streamsForSSRC(
 	ssrc SSRC,
 	streamInfo interceptor.StreamInfo,
-) (*srtp.ReadStreamSRTP, interceptor.RTPReader, *srtp.ReadStreamSRTCP, interceptor.RTCPReader, error) {
+) (*streamsForSSRCResult, error) {
 	srtpSession, err := t.getSRTPSession()
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, err
 	}
 
 	rtpReadStream, err := srtpSession.OpenReadStream(uint32(ssrc))
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, err
 	}
 
 	rtpInterceptor := t.api.interceptor.BindRemoteStream(
@@ -554,12 +562,12 @@ func (t *DTLSTransport) streamsForSSRC(
 
 	srtcpSession, err := t.getSRTCPSession()
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, err
 	}
 
 	rtcpReadStream, err := srtcpSession.OpenReadStream(uint32(ssrc))
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, err
 	}
 
 	rtcpInterceptor := t.api.interceptor.BindRTCPReader(interceptor.RTCPReaderFunc(
@@ -570,5 +578,10 @@ func (t *DTLSTransport) streamsForSSRC(
 		}),
 	)
 
-	return rtpReadStream, rtpInterceptor, rtcpReadStream, rtcpInterceptor, nil
+	return &streamsForSSRCResult{
+		rtpReadStream:   rtpReadStream,
+		rtpInterceptor:  rtpInterceptor,
+		rtcpReadStream:  rtcpReadStream,
+		rtcpInterceptor: rtcpInterceptor,
+	}, nil
 }

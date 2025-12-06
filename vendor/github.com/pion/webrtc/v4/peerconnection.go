@@ -12,7 +12,6 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"io"
 	"slices"
 	"strconv"
 	"strings"
@@ -35,8 +34,8 @@ import (
 // peer-to-peer communications with another PeerConnection instance in a
 // browser, or to another endpoint implementing the required protocols.
 type PeerConnection struct {
-	statsID string
-	mu      sync.RWMutex
+	id string
+	mu sync.RWMutex
 
 	sdpOrigin sdp.Origin
 
@@ -66,6 +65,8 @@ type PeerConnection struct {
 
 	lastOffer  string
 	lastAnswer string
+	// Whether the remote endpoint can accept trickled ICE candidates.
+	canTrickleICECandidates ICETrickleCapability
 
 	// a value containing the last known greater mid value
 	// we internally generate mids as numbers. Needed since JSEP
@@ -118,7 +119,7 @@ func (api *API) NewPeerConnection(configuration Configuration) (*PeerConnection,
 	// allow better readability to understand what is happening.
 
 	pc := &PeerConnection{
-		statsID: fmt.Sprintf("PeerConnection-%d", time.Now().UnixNano()),
+		id: fmt.Sprintf("PeerConnection-%d", time.Now().UnixNano()),
 		configuration: Configuration{
 			ICEServers:           []ICEServer{},
 			ICETransportPolicy:   ICETransportPolicyAll,
@@ -145,12 +146,12 @@ func (api *API) NewPeerConnection(configuration Configuration) (*PeerConnection,
 	pc.iceConnectionState.Store(ICEConnectionStateNew)
 	pc.connectionState.Store(PeerConnectionStateNew)
 
-	i, err := api.interceptorRegistry.Build(pc.statsID)
+	i, err := api.interceptorRegistry.Build(pc.id)
 	if err != nil {
 		return nil, err
 	}
 
-	if getter, ok := lookupStats(pc.statsID); ok {
+	if getter, ok := lookupStats(pc.id); ok {
 		pc.statsGetter = getter
 	}
 
@@ -597,11 +598,11 @@ func (pc *PeerConnection) GetConfiguration() Configuration {
 	return pc.configuration
 }
 
-func (pc *PeerConnection) getStatsID() string {
+func (pc *PeerConnection) ID() string {
 	pc.mu.RLock()
 	defer pc.mu.RUnlock()
 
-	return pc.statsID
+	return pc.id
 }
 
 // hasLocalDescriptionChanged returns whether local media (rtpTransceivers) has changed
@@ -712,11 +713,16 @@ func (pc *PeerConnection) CreateOffer(options *OfferOptions) (SessionDescription
 				useIdentity,
 				true, /*includeUnmatched */
 				connectionRoleFromDtlsRole(defaultDtlsRoleOffer),
+				false,
 			)
 		}
 
 		if err != nil {
 			return SessionDescription{}, err
+		}
+
+		if options != nil && options.ICETricklingSupported {
+			descr.WithICETrickleAdvertised()
 		}
 
 		updateSDPOrigin(&pc.sdpOrigin, descr)
@@ -843,7 +849,7 @@ func (pc *PeerConnection) createICETransport() *ICETransport {
 // CreateAnswer starts the PeerConnection and generates the localDescription.
 //
 //nolint:cyclop
-func (pc *PeerConnection) CreateAnswer(*AnswerOptions) (SessionDescription, error) {
+func (pc *PeerConnection) CreateAnswer(options *AnswerOptions) (SessionDescription, error) {
 	useIdentity := pc.idpLoginURL != nil
 	remoteDesc := pc.RemoteDescription()
 	switch {
@@ -872,9 +878,19 @@ func (pc *PeerConnection) CreateAnswer(*AnswerOptions) (SessionDescription, erro
 	pc.mu.Lock()
 	defer pc.mu.Unlock()
 
-	descr, err := pc.generateMatchedSDP(pc.rtpTransceivers, useIdentity, false /*includeUnmatched */, connectionRole)
+	descr, err := pc.generateMatchedSDP(
+		pc.rtpTransceivers,
+		useIdentity,
+		false, /*includeUnmatched */
+		connectionRole,
+		pc.api.settingEngine.ignoreRidPauseForRecv,
+	)
 	if err != nil {
 		return SessionDescription{}, err
+	}
+
+	if options != nil && options.ICETricklingSupported {
+		descr.WithICETrickleAdvertised()
 	}
 
 	updateSDPOrigin(&pc.sdpOrigin, descr)
@@ -1097,6 +1113,7 @@ func (pc *PeerConnection) SetRemoteDescription(desc SessionDescription) error {
 	if _, err := desc.Unmarshal(); err != nil {
 		return err
 	}
+
 	if err := pc.setDescription(&desc, stateChangeOpSetRemote); err != nil {
 		return err
 	}
@@ -1104,6 +1121,20 @@ func (pc *PeerConnection) SetRemoteDescription(desc SessionDescription) error {
 	if err := pc.api.mediaEngine.updateFromRemoteDescription(*desc.parsed); err != nil {
 		return err
 	}
+
+	canTrickle := hasICETrickleOption(desc.parsed)
+	pc.mu.Lock()
+	switch desc.Type {
+	case SDPTypeOffer, SDPTypeAnswer, SDPTypePranswer:
+		if canTrickle {
+			pc.canTrickleICECandidates = ICETrickleCapabilitySupported
+		} else {
+			pc.canTrickleICECandidates = ICETrickleCapabilityUnsupported
+		}
+	default:
+		pc.canTrickleICECandidates = ICETrickleCapabilityUnknown
+	}
+	pc.mu.Unlock()
 
 	// Disable RTX/FEC on RTPSenders if the remote didn't support it
 	for _, sender := range pc.GetSenders() {
@@ -1688,7 +1719,7 @@ func (pc *PeerConnection) handleNonMediaBandwidthProbe() {
 	}
 }
 
-func (pc *PeerConnection) handleIncomingSSRC(rtpStream io.Reader, ssrc SSRC) error { //nolint:gocyclo,gocognit,cyclop
+func (pc *PeerConnection) handleIncomingSSRC(rtpStream *srtp.ReadStreamSRTP, ssrc SSRC) error { //nolint:gocyclo,gocognit,cyclop,lll
 	remoteDescription := pc.RemoteDescription()
 	if remoteDescription == nil {
 		return errPeerConnRemoteDescriptionNil
@@ -1725,7 +1756,7 @@ func (pc *PeerConnection) handleIncomingSSRC(rtpStream io.Reader, ssrc SSRC) err
 	// We read the RTP packet to determine the payload type
 	b := make([]byte, pc.api.settingEngine.getReceiveMTU())
 
-	i, err := rtpStream.Read(b)
+	i, err := rtpStream.Peek(b)
 	if err != nil {
 		return err
 	}
@@ -1780,12 +1811,31 @@ func (pc *PeerConnection) handleIncomingSSRC(rtpStream io.Reader, ssrc SSRC) err
 		params.Codecs[0].RTPCodecCapability,
 		params.HeaderExtensions,
 	)
-	readStream, interceptor, rtcpReadStream, rtcpInterceptor, err := pc.dtlsTransport.streamsForSSRC(ssrc, *streamInfo)
+	result, err := pc.dtlsTransport.streamsForSSRC(ssrc, *streamInfo)
 	if err != nil {
 		return err
 	}
+	readStream := result.rtpReadStream
+	interceptor := result.rtpInterceptor
+	rtcpReadStream := result.rtcpReadStream
+	rtcpInterceptor := result.rtcpInterceptor
 
+	// try to read simulcast IDs from the packet we already have
 	var mid, rid, rsid string
+	if _, err = handleUnknownRTPPacket(
+		b[:i], uint8(midExtensionID), //nolint:gosec // G115
+		uint8(streamIDExtensionID),       //nolint:gosec // G115
+		uint8(repairStreamIDExtensionID), //nolint:gosec // G115
+		&mid,
+		&rid,
+		&rsid,
+	); err != nil {
+		return err
+	}
+
+	peekedPackets := []*peekedPacket{}
+
+	// if the first packet didn't contain simuilcast IDs, then probe more packets
 	var paddingOnly bool
 	for readCount := 0; readCount <= simulcastProbeCount; readCount++ {
 		if mid == "" || (rid == "" && rsid == "") {
@@ -1794,12 +1844,17 @@ func (pc *PeerConnection) handleIncomingSSRC(rtpStream io.Reader, ssrc SSRC) err
 				readCount--
 			}
 
-			i, _, err := interceptor.Read(b, nil)
+			i, attributes, err := interceptor.Read(b, nil)
 			if err != nil {
 				return err
 			}
 
-			if _, paddingOnly, err = handleUnknownRTPPacket(
+			peekedPackets = append(peekedPackets, &peekedPacket{
+				payload:    slices.Clone(b[:i]),
+				attributes: attributes,
+			})
+
+			if paddingOnly, err = handleUnknownRTPPacket(
 				b[:i], uint8(midExtensionID), //nolint:gosec // G115
 				uint8(streamIDExtensionID),       //nolint:gosec // G115
 				uint8(repairStreamIDExtensionID), //nolint:gosec // G115
@@ -1834,6 +1889,7 @@ func (pc *PeerConnection) handleIncomingSSRC(rtpStream io.Reader, ssrc SSRC) err
 				interceptor,
 				rtcpReadStream,
 				rtcpInterceptor,
+				peekedPackets,
 			)
 			if err != nil {
 				return err
@@ -1913,7 +1969,7 @@ func (pc *PeerConnection) undeclaredRTPMediaProcessor() { //nolint:cyclop
 			continue
 		}
 
-		go func(rtpStream io.Reader, ssrc SSRC) {
+		go func(rtpStream *srtp.ReadStreamSRTP, ssrc SSRC) {
 			if err := pc.handleIncomingSSRC(rtpStream, ssrc); err != nil {
 				pc.log.Errorf(incomingUnhandledRTPSsrc, ssrc, err)
 			}
@@ -2482,7 +2538,7 @@ func (pc *PeerConnection) close(shouldGracefullyClose bool) error { //nolint:cyc
 	closeErrs = append(closeErrs, doGracefulCloseOps()...)
 
 	pc.statsGetter = nil
-	cleanupStats(pc.statsID)
+	cleanupStats(pc.id)
 
 	// Interceptor closes at the end to prevent Bind from being called after interceptor is closed
 	closeErrs = append(closeErrs, pc.api.interceptor.Close())
@@ -2549,6 +2605,15 @@ func (pc *PeerConnection) PendingRemoteDescription() *SessionDescription {
 	defer pc.mu.RUnlock()
 
 	return pc.pendingRemoteDescription
+}
+
+// CanTrickleICECandidates reports whether the remote endpoint indicated
+// support for receiving trickled ICE candidates.
+func (pc *PeerConnection) CanTrickleICECandidates() ICETrickleCapability {
+	pc.mu.RLock()
+	defer pc.mu.RUnlock()
+
+	return pc.canTrickleICECandidates
 }
 
 // SignalingState attribute returns the signaling state of the
@@ -2623,7 +2688,7 @@ func (pc *PeerConnection) GetStats() StatsReport {
 	stats := PeerConnectionStats{
 		Timestamp:             statsTimestampNow(),
 		Type:                  StatsTypePeerConnection,
-		ID:                    pc.statsID,
+		ID:                    pc.id,
 		DataChannelsAccepted:  dataChannelsAccepted,
 		DataChannelsClosed:    dataChannelsClosed,
 		DataChannelsOpened:    dataChannelsOpened,
@@ -2803,6 +2868,7 @@ func (pc *PeerConnection) generateUnmatchedSDP(
 		pc.ICEGatheringState(),
 		nil,
 		pc.api.settingEngine.getSCTPMaxMessageSize(),
+		false,
 	)
 }
 
@@ -2814,6 +2880,7 @@ func (pc *PeerConnection) generateMatchedSDP(
 	transceivers []*RTPTransceiver,
 	useIdentity, includeUnmatched bool,
 	connectionRole sdp.ConnectionRole,
+	ignoreRidPauseForRecv bool,
 ) (*sdp.SessionDescription, error) {
 	desc, err := sdp.NewJSEPSessionDescription(useIdentity)
 	if err != nil {
@@ -2973,6 +3040,7 @@ func (pc *PeerConnection) generateMatchedSDP(
 		pc.ICEGatheringState(),
 		bundleGroup,
 		pc.api.settingEngine.getSCTPMaxMessageSize(),
+		ignoreRidPauseForRecv,
 	)
 }
 

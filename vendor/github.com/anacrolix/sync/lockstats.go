@@ -15,6 +15,7 @@ var (
 )
 
 type (
+	callerArray  = [32]uintptr
 	lockStats    = perf.Event
 	lockStackKey = callerArray
 )

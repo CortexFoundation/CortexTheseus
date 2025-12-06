@@ -1,27 +1,34 @@
+//go:build !disable_pprof_sync
+
 package sync
 
-import "sync"
+import (
+	"sync"
+)
 
 // TODO: No lock times currently, was in the wrapped sync.Mutex before.
 type RWMutex struct {
 	inner   sync.RWMutex // Real McCoy
-	mu      sync.Mutex
-	holders []*int
+	holders mutexHolderSet
 }
 
 func (me *RWMutex) Lock() {
-	withBlocked(func() {
+	if !contentionOn {
 		me.inner.Lock()
-	})
+		return
+	}
+	withBlocked(me.inner.Lock, me.inner.TryLock)
 	me.addHolder()
 }
 
 func (me *RWMutex) TryLock() bool {
-	if me.inner.TryLock() {
-		me.addHolder()
-		return true
+	if !me.inner.TryLock() {
+		return false
 	}
-	return false
+	if contentionOn {
+		me.addHolder()
+	}
+	return true
 }
 
 func (me *RWMutex) Unlock() {
@@ -30,9 +37,11 @@ func (me *RWMutex) Unlock() {
 }
 
 func (me *RWMutex) RLock() {
-	withBlocked(func() {
+	if !contentionOn {
 		me.inner.RLock()
-	})
+		return
+	}
+	withBlocked(me.inner.RLock, me.inner.TryRLock)
 	me.addHolder()
 }
 func (me *RWMutex) RUnlock() {
@@ -41,22 +50,18 @@ func (me *RWMutex) RUnlock() {
 }
 
 func (me *RWMutex) TryRLock() bool {
-	if me.inner.TryRLock() {
-		me.addHolder()
-		return true
+	if !me.inner.TryRLock() {
+		return false
 	}
-	return false
+	if contentionOn {
+		me.addHolder()
+	}
+	return true
 }
 
 func (me *RWMutex) addHolder() {
-	if !contentionOn {
-		return
-	}
-	v := new(int)
-	me.mu.Lock()
-	me.holders = append(me.holders, v)
-	me.mu.Unlock()
-	lockHolders.Add(v, 0)
+	key := addHolderProfile(1)
+	me.holders.Add(key)
 }
 
 // Currently we just evict the last profile added. If it's a write lock there should only be one. If
@@ -65,9 +70,6 @@ func (me *RWMutex) removeHolder() {
 	if !contentionOn {
 		return
 	}
-	me.mu.Lock()
-	v := me.holders[len(me.holders)-1]
-	me.holders = me.holders[:len(me.holders)-1]
-	me.mu.Unlock()
-	lockHolders.Remove(v)
+	// TODO: This could push to a special routine to reduce overhead.
+	lockHolders.Remove(me.holders.Pop())
 }
