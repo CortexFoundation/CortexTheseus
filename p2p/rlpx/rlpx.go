@@ -24,6 +24,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/hmac"
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -33,7 +34,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/CortexFoundation/CortexTheseus/common/bitutil"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/crypto/ecies"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
@@ -677,6 +677,6 @@ func exportPubkey(pub *ecies.PublicKey) []byte {
 
 func xor(one, other []byte) (xor []byte) {
 	xor = make([]byte, len(one))
-	bitutil.XORBytes(xor, one, other)
+	subtle.XORBytes(xor, one, other)
 	return xor
 }
