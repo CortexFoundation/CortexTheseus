@@ -27,7 +27,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/rpc"
 )
 
-// ChainReader defines a small collection of methods needed to access the local
+// ChainHeaderReader defines a small collection of methods needed to access the local
 // blockchain during header and/or uncle verification.
 type ChainHeaderReader interface {
 	// Config retrieves the blockchain's chain configuration.
