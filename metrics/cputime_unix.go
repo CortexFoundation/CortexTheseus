@@ -15,7 +15,6 @@
 // along with The go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 //go:build !windows && !js && !wasip1 && !tinygo
-// +build !windows,!js,!wasip1,!tinygo
 
 package metrics
 
