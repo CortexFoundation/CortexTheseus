@@ -122,28 +122,18 @@ func graphemeWidth[T stringish.Interface](s T, options Options) int {
 	prop := property(p)
 
 	// Variation Selector 16 (VS16) requests emoji presentation
-	if sz > 0 && len(s) >= sz+3 {
+	if prop != _Wide && sz > 0 && len(s) >= sz+3 {
 		vs := s[sz : sz+3]
 		if isVS16(vs) {
-			prop = _Emoji
+			prop = _Wide
 		}
 		// VS15 (0x8E) requests text presentation but does not affect width,
 		// in my reading of Unicode TR51. Falls through to return the base
 		// character's property.
 	}
 
-	/*
-		Note: we previously had some regional indicator handling here,
-		intending to treat single RI's as width 1 and pairs as width 2.
-		We think that's what the Unicode #11 indicates?
-
-		Then we looked at what actual terminals do, and they seem to treat
-		single and paired RI's as width 2, regardless. See terminal-test/.
-		Looks like VS Code does the same FWIW.
-	*/
-
 	if options.EastAsianWidth && prop == _East_Asian_Ambiguous {
-		prop = _East_Asian_Wide
+		prop = _Wide
 	}
 
 	if prop > upperBound {
@@ -167,13 +157,11 @@ func isVS16[T stringish.Interface](s T) bool {
 }
 
 // propertyWidths is a jump table of sorts, instead of a switch
-var propertyWidths = [6]int{
+var propertyWidths = [4]int{
 	_Default:              1,
 	_Zero_Width:           0,
-	_East_Asian_Wide:      2,
+	_Wide:                 2,
 	_East_Asian_Ambiguous: 1,
-	_Emoji:                2,
-	_Regional_Indicator:   2,
 }
 
 const upperBound = property(len(propertyWidths) - 1)

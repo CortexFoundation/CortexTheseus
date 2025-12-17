@@ -5,7 +5,7 @@ set -eo pipefail
 go version
 
 # Check if Github Actions is running
-if [ $CI = "true" ]; then
+if [ "$CI" = "true" ]; then
 	# Enable code coverage
 	# export because tests run in a subprocess
 	export covermode="-covermode=atomic"
@@ -27,7 +27,7 @@ popd
 
 # Run the memory intensive tests first.
 manual() {
-	timeout="-timeout 2m"
+	timeout="-timeout 5m"
 	echo "==> Running package tests for $packages"
 	set -e
 	go env -w GOTOOLCHAIN=go1.25.0+auto
