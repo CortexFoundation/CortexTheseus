@@ -1,7 +1,7 @@
 package torrent
 
 import (
-	"github.com/anacrolix/missinggo/v2/panicif"
+	g "github.com/anacrolix/generics"
 
 	requestStrategy "github.com/anacrolix/torrent/internal/request-strategy"
 	"github.com/anacrolix/torrent/metainfo"
@@ -16,20 +16,14 @@ func (r requestStrategyInputCommon) MaxUnverifiedBytes() int64 {
 	return r.maxUnverifiedBytes
 }
 
-type torrentFromHashGetter interface {
-	Get(shortInfohash) (*Torrent, bool)
-}
-
 type requestStrategyInputMultiTorrent struct {
 	requestStrategyInputCommon
-	torrents torrentFromHashGetter
+	torrents map[metainfo.Hash]*Torrent
 	capFunc  storage.TorrentCapacity
 }
 
 func (r requestStrategyInputMultiTorrent) Torrent(ih metainfo.Hash) requestStrategy.Torrent {
-	t, ok := r.torrents.Get(ih)
-	panicif.False(ok)
-	return requestStrategyTorrent{t}
+	return requestStrategyTorrent{g.MapMustGet(r.torrents, ih)}
 }
 
 func (r requestStrategyInputMultiTorrent) Capacity() (int64, bool) {

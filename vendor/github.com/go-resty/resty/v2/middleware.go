@@ -501,6 +501,9 @@ func handleFormData(c *Client, r *Request) {
 }
 
 func handleContentType(c *Client, r *Request) {
+	if r.Body == http.NoBody {
+		return
+	}
 	contentType := r.Header.Get(hdrContentTypeKey)
 	if IsStringEmpty(contentType) {
 		contentType = DetectContentType(r.Body)
