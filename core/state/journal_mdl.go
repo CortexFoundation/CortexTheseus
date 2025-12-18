@@ -17,8 +17,9 @@
 package state
 
 import (
-	"github.com/CortexFoundation/CortexTheseus/common"
 	"math/big"
+
+	"github.com/CortexFoundation/CortexTheseus/common"
 )
 
 type (

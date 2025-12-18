@@ -33,7 +33,7 @@ import (
 
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/accounts/keystore"
-	"github.com/CortexFoundation/CortexTheseus/client"
+	ctxcclient "github.com/CortexFoundation/CortexTheseus/client"
 	"github.com/CortexFoundation/CortexTheseus/cmd/utils"
 	"github.com/CortexFoundation/CortexTheseus/console"
 	"github.com/CortexFoundation/CortexTheseus/ctxc"

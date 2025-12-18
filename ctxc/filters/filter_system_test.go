@@ -27,7 +27,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CortexFoundation/CortexTheseus"
+	cortex "github.com/CortexFoundation/CortexTheseus"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/bloombits"

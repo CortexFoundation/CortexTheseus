@@ -21,6 +21,7 @@ import (
 	crand "crypto/rand"
 	"encoding/binary"
 	mrand "math/rand"
+	"slices"
 	"testing"
 	"time"
 
@@ -28,7 +29,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb/memorydb"
-	"slices"
 )
 
 func init() {

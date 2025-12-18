@@ -21,7 +21,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/CortexFoundation/CortexTheseus"
+	cortex "github.com/CortexFoundation/CortexTheseus"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/log"

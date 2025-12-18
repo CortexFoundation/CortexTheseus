@@ -21,16 +21,15 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	bloomfilter "github.com/holiman/bloomfilter/v2"
-	"slices"
-
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
+	bloomfilter "github.com/holiman/bloomfilter/v2"
 )
 
 var (

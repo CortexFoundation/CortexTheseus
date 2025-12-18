@@ -24,7 +24,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/CortexFoundation/CortexTheseus"
+	cortex "github.com/CortexFoundation/CortexTheseus"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
 	"github.com/CortexFoundation/CortexTheseus/core"

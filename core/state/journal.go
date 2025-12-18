@@ -17,14 +17,14 @@
 package state
 
 import (
-	"math/big"
-
 	"fmt"
-	"github.com/CortexFoundation/CortexTheseus/common"
-	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"maps"
+	"math/big"
 	"slices"
 	"sort"
+
+	"github.com/CortexFoundation/CortexTheseus/common"
+	"github.com/CortexFoundation/CortexTheseus/core/types"
 )
 
 type revision struct {

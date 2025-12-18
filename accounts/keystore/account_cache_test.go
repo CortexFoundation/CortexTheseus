@@ -23,6 +23,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"testing"
 	"time"
 
@@ -30,7 +31,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/cespare/cp"
 	"github.com/davecgh/go-spew/spew"
-	"slices"
 )
 
 var (

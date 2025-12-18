@@ -18,10 +18,11 @@ package state
 
 import (
 	"fmt"
-	"github.com/CortexFoundation/CortexTheseus/common"
 	"maps"
 	"slices"
 	"strings"
+
+	"github.com/CortexFoundation/CortexTheseus/common"
 )
 
 type accessList struct {

@@ -18,10 +18,11 @@ package state
 
 import (
 	"fmt"
-	"github.com/CortexFoundation/CortexTheseus/common"
 	"maps"
 	"slices"
 	"strings"
+
+	"github.com/CortexFoundation/CortexTheseus/common"
 )
 
 // transientStorage is a representation of EIP-1153 "Transient Storage".

@@ -22,17 +22,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
-	mapset "github.com/deckarep/golang-set/v2"
-	"slices"
-
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/log"
+	mapset "github.com/deckarep/golang-set/v2"
 )
 
 // Minimum amount of time between cache reloads. This limit applies if the platform does

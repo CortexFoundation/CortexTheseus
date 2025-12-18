@@ -21,7 +21,7 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/CortexFoundation/CortexTheseus"
+	cortex "github.com/CortexFoundation/CortexTheseus"
 	"github.com/CortexFoundation/CortexTheseus/accounts"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/hexutil"

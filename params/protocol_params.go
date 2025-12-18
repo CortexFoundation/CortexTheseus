@@ -17,8 +17,9 @@
 package params
 
 import (
-	"github.com/CortexFoundation/CortexTheseus/common"
 	"math/big"
+
+	"github.com/CortexFoundation/CortexTheseus/common"
 )
 
 const (

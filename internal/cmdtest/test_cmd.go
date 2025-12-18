@@ -20,7 +20,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/CortexFoundation/CortexTheseus/internal/reexec"
 	"io"
 	"os"
 	"os/exec"
@@ -30,6 +29,8 @@ import (
 	"testing"
 	"text/template"
 	"time"
+
+	"github.com/CortexFoundation/CortexTheseus/internal/reexec"
 )
 
 func NewTestCmd(t *testing.T, data any) *TestCmd {

@@ -18,17 +18,16 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"time"
-
-	"gopkg.in/urfave/cli.v1"
-	"log/slog"
 
 	"github.com/CortexFoundation/CortexTheseus/cmd/devp2p/internal/v5test"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/internal/utesting"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/p2p/discover"
+	"gopkg.in/urfave/cli.v1"
 )
 
 var (

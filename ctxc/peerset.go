@@ -17,14 +17,14 @@
 package ctxc
 
 import (
+	"errors"
+	"maps"
 	"math/big"
+	"slices"
 	"sync"
 
-	"errors"
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/p2p"
-	"maps"
-	"slices"
 )
 
 var (

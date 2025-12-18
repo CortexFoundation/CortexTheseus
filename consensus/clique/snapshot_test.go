@@ -19,6 +19,7 @@ package clique
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"slices"
 	"testing"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
@@ -28,7 +29,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/vm"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
 	"github.com/CortexFoundation/CortexTheseus/params"
-	"slices"
 )
 
 // testerAccountPool is a pool to maintain currently active tester accounts,

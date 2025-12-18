@@ -19,13 +19,13 @@ package trie
 import (
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/prque"
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
-	"slices"
 )
 
 // ErrNotRequested is returned by the trie sync when it's requested to process a

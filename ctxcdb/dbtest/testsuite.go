@@ -24,8 +24,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"slices"
+
+	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 )
 
 // TestDatabaseSuite runs a suite of tests against a KeyValueStore database

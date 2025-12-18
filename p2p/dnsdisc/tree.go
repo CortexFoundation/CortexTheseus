@@ -23,6 +23,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 
 	"github.com/CortexFoundation/CortexTheseus/crypto"
@@ -30,7 +31,6 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/p2p/enr"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"golang.org/x/crypto/sha3"
-	"slices"
 )
 
 // Tree is a merkle tree of node records.
