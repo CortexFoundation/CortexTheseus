@@ -57,7 +57,7 @@ func TestMakeTopics(t *testing.T) {
 		},
 		{
 			"support positive *big.Int types in topics",
-			args{[][]interface{}{
+			args{[][]any{
 				{big.NewInt(1)},
 				{big.NewInt(1).Lsh(big.NewInt(2), 254)},
 			}},
@@ -69,7 +69,7 @@ func TestMakeTopics(t *testing.T) {
 		},
 		{
 			"support negative *big.Int types in topics",
-			args{[][]interface{}{
+			args{[][]any{
 				{big.NewInt(-1)},
 				{big.NewInt(math.MinInt64)},
 			}},
@@ -155,7 +155,7 @@ func TestMakeTopics(t *testing.T) {
 		want := [][]common.Hash{{common.HexToHash("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")}}
 
 		in := big.NewInt(-1)
-		got, err := MakeTopics([]interface{}{in})
+		got, err := MakeTopics([]any{in})
 		if err != nil {
 			t.Fatalf("makeTopics() error = %v", err)
 		}

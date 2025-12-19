@@ -51,7 +51,7 @@ func newFreezerBatch(f *Freezer) *freezerBatch {
 }
 
 // Append adds an RLP-encoded item of the given kind.
-func (batch *freezerBatch) Append(kind string, num uint64, item interface{}) error {
+func (batch *freezerBatch) Append(kind string, num uint64, item any) error {
 	if table := batch.tables[kind]; table != nil {
 		return table.Append(num, item)
 	}

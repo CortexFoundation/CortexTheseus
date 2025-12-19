@@ -71,10 +71,10 @@ func (st *insertStats) report(chain []*types.Block, index int, dirty common.Stor
 			"mgasps", mgasps, "size", common.StorageSize(size),
 		}
 		if timestamp := time.Unix(int64(end.Time()), 0); time.Since(timestamp) > time.Minute {
-			context = append(context, []interface{}{"age", common.PrettyAge(timestamp)}...)
+			context = append(context, []any{"age", common.PrettyAge(timestamp)}...)
 		}
 		if dirty != 0 { // snapshots enabled
-			context = append(context, []interface{}{"dirty", dirty}...)
+			context = append(context, []any{"dirty", dirty}...)
 		}
 
 		if st.queued > 0 {

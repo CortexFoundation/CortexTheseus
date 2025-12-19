@@ -1365,7 +1365,7 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 	}
 	var (
 		head    = blockChain[len(blockChain)-1]
-		context = []interface{}{
+		context = []any{
 			"count", stats.processed, "elapsed", common.PrettyDuration(time.Since(start)),
 			"number", head.Number(), "hash", head.Hash(), "age", common.PrettyAge(time.Unix(int64(head.Time()), 0)),
 			"size", common.StorageSize(size),
