@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -98,10 +99,8 @@ func (c Codec) String() string {
 }
 
 func (c *Codec) appendRTCPFeedback(rtcpFeedback string) {
-	for _, existingRTCPFeedback := range c.RTCPFeedback {
-		if existingRTCPFeedback == rtcpFeedback {
-			return
-		}
+	if slices.Contains(c.RTCPFeedback, rtcpFeedback) {
+		return
 	}
 
 	c.RTCPFeedback = append(c.RTCPFeedback, rtcpFeedback)
@@ -335,6 +334,20 @@ func (s *SessionDescription) GetCodecForPayloadType(payloadType uint8) (Codec, e
 	}
 
 	return codec, errPayloadTypeNotFound
+}
+
+func (s *SessionDescription) GetCodecsForPayloadTypes(payloadTypes []uint8) ([]Codec, error) {
+	codecs := s.buildCodecMap()
+
+	result := make([]Codec, 0, len(payloadTypes))
+	for _, payloadType := range payloadTypes {
+		codec, ok := codecs[payloadType]
+		if ok {
+			result = append(result, codec)
+		}
+	}
+
+	return result, nil
 }
 
 // GetPayloadTypeForCodec scans the SessionDescription for a codec that matches the provided codec

@@ -21,7 +21,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"sort"
@@ -29,7 +28,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bwmarrin/snowflake"
 	"github.com/gofrs/flock"
+	"github.com/nutsdb/nutsdb/internal/data"
+	"github.com/nutsdb/nutsdb/internal/fileio"
+	"github.com/nutsdb/nutsdb/internal/utils"
 	"github.com/xujiajun/utils/filesystem"
 	"github.com/xujiajun/utils/strconv2"
 )
@@ -40,6 +43,13 @@ const KvWriteChCapacity = 1000
 const FLockName = "nutsdb-flock"
 
 type (
+	// SnowflakeManager manages snowflake node initialization and caching
+	SnowflakeManager struct {
+		node    *snowflake.Node
+		once    sync.Once
+		nodeNum int64
+	}
+
 	// DB represents a collection of buckets that persist on disk.
 	DB struct {
 		opt                     Options // the database options
@@ -50,7 +60,7 @@ type (
 		KeyCount                int // total key number ,include expired, deleted, repeated.
 		closed                  bool
 		isMerging               bool
-		fm                      *fileManager
+		fm                      *FileManager
 		flock                   *flock.Flock
 		commitBuffer            *bytes.Buffer
 		mergeStartCh            chan struct{}
@@ -60,9 +70,31 @@ type (
 		tm                      *ttlManager
 		RecordCount             int64 // current valid record count, exclude deleted, repeated
 		bm                      *BucketManager
-		hintKeyAndRAMIdxModeLru *LRUCache // lru cache for HintKeyAndRAMIdxMode
+		hintKeyAndRAMIdxModeLru *utils.LRUCache // lru cache for HintKeyAndRAMIdxMode
+		sm                      *SnowflakeManager
+		wm                      *watchManager
 	}
 )
+
+// NewSnowflakeManager creates a new SnowflakeManager with the given node number
+func NewSnowflakeManager(nodeNum int64) *SnowflakeManager {
+	return &SnowflakeManager{
+		nodeNum: nodeNum,
+	}
+}
+
+// GetNode returns the snowflake node, initializing it once.
+// If initialization fails, it will fatal the program.
+func (sm *SnowflakeManager) GetNode() *snowflake.Node {
+	sm.once.Do(func() {
+		var err error
+		sm.node, err = snowflake.NewNode(sm.nodeNum)
+		if err != nil {
+			log.Fatalf("Failed to initialize snowflake node with nodeNum=%d: %v", sm.nodeNum, err)
+		}
+	})
+	return sm.node
+}
 
 // open returns a newly initialized DB object.
 func open(opt Options) (*DB, error) {
@@ -71,14 +103,15 @@ func open(opt Options) (*DB, error) {
 		opt:                     opt,
 		KeyCount:                0,
 		closed:                  false,
-		Index:                   newIndex(),
-		fm:                      newFileManager(opt.RWMode, opt.MaxFdNumsInCache, opt.CleanFdsCacheThreshold, opt.SegmentSize),
+		Index:                   newIndexWithOptions(opt),
+		fm:                      NewFileManager(opt.RWMode, opt.MaxFdNumsInCache, opt.CleanFdsCacheThreshold, opt.SegmentSize),
 		mergeStartCh:            make(chan struct{}),
 		mergeEndCh:              make(chan error),
 		mergeWorkCloseCh:        make(chan struct{}),
 		writeCh:                 make(chan *request, KvWriteChCapacity),
 		tm:                      newTTLManager(opt.ExpiredDeleteType),
-		hintKeyAndRAMIdxModeLru: NewLruCache(opt.HintKeyAndRAMIdxCacheSize),
+		hintKeyAndRAMIdxModeLru: utils.NewLruCache(opt.HintKeyAndRAMIdxCacheSize),
+		sm:                      NewSnowflakeManager(opt.NodeNum),
 	}
 
 	db.commitBuffer = createNewBufferWithSize(int(db.opt.CommitBufferSize))
@@ -108,8 +141,19 @@ func open(opt Options) (*DB, error) {
 		return nil, fmt.Errorf("db.rebuildBucketManager err:%s", err)
 	}
 
+	if err := db.recoverMergeManifest(); err != nil {
+		return nil, fmt.Errorf("recover merge manifest: %w", err)
+	}
+
 	if err := db.buildIndexes(); err != nil {
 		return nil, fmt.Errorf("db.buildIndexes error: %s", err)
+	}
+
+	if db.opt.EnableWatch {
+		db.wm = NewWatchManager()
+		go db.wm.startDistributor()
+	} else {
+		db.wm = nil
 	}
 
 	go db.mergeWorker()
@@ -156,7 +200,7 @@ func (db *DB) Backup(dir string) error {
 // BackupTarGZ Backup copy the database to writer.
 func (db *DB) BackupTarGZ(w io.Writer) error {
 	return db.View(func(tx *Tx) error {
-		return tarGZCompress(w, db.opt.Dir)
+		return utils.TarGZCompress(w, db.opt.Dir)
 	})
 }
 
@@ -192,7 +236,7 @@ func (db *DB) release() error {
 
 	db.ActiveFile = nil
 
-	err = db.fm.close()
+	err = db.fm.Close()
 
 	if err != nil {
 		return err
@@ -211,7 +255,15 @@ func (db *DB) release() error {
 
 	db.fm = nil
 
+	db.commitBuffer = nil
+
 	db.tm.close()
+
+	if db.wm != nil {
+		if err := db.wm.close(); err != nil {
+			log.Printf("watch manager closed already")
+		}
+	}
 
 	if GCEnable {
 		runtime.GC()
@@ -220,7 +272,7 @@ func (db *DB) release() error {
 	return nil
 }
 
-func (db *DB) getValueByRecord(record *Record) ([]byte, error) {
+func (db *DB) getValueByRecord(record *data.Record) ([]byte, error) {
 	if record == nil {
 		return nil, ErrRecordIsNil
 	}
@@ -237,11 +289,11 @@ func (db *DB) getValueByRecord(record *Record) ([]byte, error) {
 	}
 
 	dirPath := getDataPath(record.FileID, db.opt.Dir)
-	df, err := db.fm.getDataFile(dirPath, db.opt.SegmentSize)
+	df, err := db.fm.GetDataFileReadOnly(dirPath, db.opt.SegmentSize)
 	if err != nil {
 		return nil, err
 	}
-	defer func(rwManager RWManager) {
+	defer func(rwManager fileio.RWManager) {
 		err := rwManager.Release()
 		if err != nil {
 			return
@@ -271,7 +323,6 @@ func (db *DB) commitTransaction(tx *Tx) error {
 			panicked = true
 		}
 		if panicked || err != nil {
-			// log.Fatal("panicked=", panicked, ", err=", err)
 			if errRollback := tx.Rollback(); errRollback != nil {
 				err = errRollback
 			}
@@ -283,7 +334,6 @@ func (db *DB) commitTransaction(tx *Tx) error {
 	tx.setStatusRunning()
 	err = tx.Commit()
 	if err != nil {
-		// log.Fatal("txCommit fail,err=", err)
 		return err
 	}
 
@@ -331,6 +381,11 @@ func (db *DB) getMaxWriteRecordCount() int64 {
 
 func (db *DB) getHintKeyAndRAMIdxCacheSize() int {
 	return db.opt.HintKeyAndRAMIdxCacheSize
+}
+
+// getSnowflakeNode returns a cached snowflake node, creating it once if needed.
+func (db *DB) getSnowflakeNode() *snowflake.Node {
+	return db.sm.GetNode()
 }
 
 func (db *DB) doWrites() {
@@ -393,7 +448,7 @@ func (db *DB) doWrites() {
 // setActiveFile sets the ActiveFile (DataFile object).
 func (db *DB) setActiveFile() (err error) {
 	activeFilePath := getDataPath(db.MaxFileID, db.opt.Dir)
-	db.ActiveFile, err = db.fm.getDataFile(activeFilePath, db.opt.SegmentSize)
+	db.ActiveFile, err = db.fm.GetDataFile(activeFilePath, db.opt.SegmentSize)
 	if err != nil {
 		return
 	}
@@ -404,36 +459,32 @@ func (db *DB) setActiveFile() (err error) {
 }
 
 // getMaxFileIDAndFileIds returns max fileId and fileIds.
-func (db *DB) getMaxFileIDAndFileIDs() (maxFileID int64, dataFileIds []int) {
-	files, _ := os.ReadDir(db.opt.Dir)
-
-	if len(files) == 0 {
+func (db *DB) getMaxFileIDAndFileIDs() (maxFileID int64, dataFileIds []int64) {
+	userIDs, mergeIDs, err := enumerateDataFileIDs(db.opt.Dir)
+	if err != nil {
 		return 0, nil
 	}
 
-	for _, file := range files {
-		filename := file.Name()
-		fileSuffix := path.Ext(path.Base(filename))
-		if fileSuffix != DataSuffix {
-			continue
-		}
+	if len(userIDs) > 0 {
+		maxFileID = userIDs[len(userIDs)-1]
+	}
 
-		filename = strings.TrimSuffix(filename, DataSuffix)
-		id, _ := strconv2.StrToInt(filename)
-		dataFileIds = append(dataFileIds, id)
+	dataFileIds = make([]int64, 0, len(userIDs)+len(mergeIDs))
+	dataFileIds = append(dataFileIds, userIDs...)
+	dataFileIds = append(dataFileIds, mergeIDs...)
+
+	if len(dataFileIds) > 1 {
+		sort.Slice(dataFileIds, func(i, j int) bool { return dataFileIds[i] < dataFileIds[j] })
 	}
 
 	if len(dataFileIds) == 0 {
-		return 0, nil
+		return maxFileID, nil
 	}
 
-	sort.Ints(dataFileIds)
-	maxFileID = int64(dataFileIds[len(dataFileIds)-1])
-
-	return
+	return maxFileID, dataFileIds
 }
 
-func (db *DB) parseDataFiles(dataFileIds []int) (err error) {
+func (db *DB) parseDataFiles(dataFileIds []int64) (err error) {
 	var (
 		off      int64
 		f        *fileRecovery
@@ -523,13 +574,25 @@ func (db *DB) parseDataFiles(dataFileIds []int) (err error) {
 
 	for _, dataID := range dataFileIds {
 		off = 0
-		fID = int64(dataID)
+		fID = dataID
+
+		// Try to load hint file first if enabled
+		if db.opt.EnableHintFile {
+			hintLoaded, _ := db.loadHintFile(fID)
+
+			if hintLoaded {
+				// Hint file loaded successfully, skip scanning data file
+				continue
+			}
+		}
+
+		// Fall back to scanning data file
 		dataPath := getDataPath(fID, db.opt.Dir)
 		f, err = newFileRecovery(dataPath, db.opt.BufferSizeOfRecovery)
 		if err != nil {
 			return err
 		}
-		err := readEntriesFromFile()
+		err = readEntriesFromFile()
 		if err != nil {
 			return err
 		}
@@ -538,6 +601,108 @@ func (db *DB) parseDataFiles(dataFileIds []int) (err error) {
 	// compute the valid record count and save it in db.RecordCount
 	db.RecordCount, err = db.getRecordCount()
 	return
+}
+
+// loadHintFile loads a single hint file and rebuilds indexes
+func (db *DB) loadHintFile(fid int64) (bool, error) {
+	hintPath := getHintPath(fid, db.opt.Dir)
+
+	// Check if hint file exists
+	if _, err := os.Stat(hintPath); os.IsNotExist(err) {
+		return false, nil // Hint file doesn't exist, need to scan data file
+	}
+
+	reader := &HintFileReader{}
+	if err := reader.Open(hintPath); err != nil {
+		return false, nil
+	}
+	defer func() {
+		if err := reader.Close(); err != nil {
+			// Log error but don't fail the operation
+			log.Printf("Warning: failed to close hint file reader: %v", err)
+		}
+	}()
+
+	// Read all hint entries and build indexes
+	for {
+		hintEntry, err := reader.Read()
+		if err != nil {
+			if err == io.EOF {
+				break // End of file
+			}
+			return false, nil
+		}
+
+		if hintEntry == nil {
+			continue
+		}
+
+		// Check if bucket exists
+		bucketId := hintEntry.BucketId
+		if _, err := db.bm.GetBucketById(bucketId); errors.Is(err, ErrBucketNotExist) {
+			continue // Skip if bucket doesn't exist
+		}
+
+		// Create a record from hint entry
+		record := data.NewRecord()
+		record.WithKey(hintEntry.Key).
+			WithFileId(hintEntry.FileID).
+			WithDataPos(hintEntry.DataPos).
+			WithValueSize(hintEntry.ValueSize).
+			WithTimestamp(hintEntry.Timestamp).
+			WithTTL(hintEntry.TTL).
+			WithTxID(0) // TxID is not stored in hint file
+
+		// Create an entry from hint entry
+		entry := NewEntry()
+		entry.WithKey(hintEntry.Key)
+
+		// Create metadata
+		meta := NewMetaData()
+		meta.WithBucketId(hintEntry.BucketId).
+			WithKeySize(hintEntry.KeySize).
+			WithValueSize(hintEntry.ValueSize).
+			WithTimeStamp(hintEntry.Timestamp).
+			WithTTL(hintEntry.TTL).
+			WithFlag(hintEntry.Flag).
+			WithStatus(hintEntry.Status).
+			WithDs(hintEntry.Ds).
+			WithTxID(0) // TxID is not stored in hint file
+
+		entry.WithMeta(meta)
+
+		// In HintKeyValAndRAMIdxMode, we need to load the value from data file
+		if db.opt.EntryIdxMode == HintKeyValAndRAMIdxMode {
+			value, err := db.getValueByRecord(record)
+			if err != nil {
+				// If we can't load the value, we can't use this entry in HintKeyValAndRAMIdxMode
+				// Skip this entry and continue
+				continue
+			}
+			entry.WithValue(value)
+			record.WithValue(value)
+		} else if db.opt.EntryIdxMode == HintKeyAndRAMIdxMode {
+			// In HintKeyAndRAMIdxMode, for Set data structure, we also need to load the value
+			// because Set uses value hash as the key in its internal map structure
+			if hintEntry.Ds == DataStructureSet || hintEntry.Ds == DataStructureSortedSet {
+				value, err := db.getValueByRecord(record)
+				if err != nil {
+					continue
+				}
+				entry.WithValue(value)
+				// Don't set record.WithValue for HintKeyAndRAMIdxMode, as we only need it for index building
+			}
+		}
+
+		// Build indexes
+		if err := db.buildIdxes(record, entry); err != nil {
+			continue
+		}
+
+		db.KeyCount++
+	}
+
+	return true, nil
 }
 
 func (db *DB) getRecordCount() (int64, error) {
@@ -580,7 +745,7 @@ func (db *DB) getRecordCount() (int64, error) {
 	return res, nil
 }
 
-func (db *DB) buildBTreeIdx(record *Record, entry *Entry) error {
+func (db *DB) buildBTreeIdx(record *data.Record, entry *Entry) error {
 	key, meta := entry.Key, entry.Meta
 
 	bucket, err := db.bm.GetBucketById(meta.BucketId)
@@ -596,23 +761,16 @@ func (db *DB) buildBTreeIdx(record *Record, entry *Entry) error {
 		bTree.Delete(key)
 	} else {
 		if meta.TTL != Persistent {
-			db.tm.add(bucketId, string(key), db.expireTime(meta.Timestamp, meta.TTL), db.buildExpireCallback(bucket.Name, key))
+			db.tm.add(bucketId, string(key), expireTime(meta.Timestamp, meta.TTL), db.buildExpireCallback(bucket.Name, key))
 		} else {
 			db.tm.del(bucketId, string(key))
 		}
-		bTree.Insert(record)
+		bTree.InsertRecord(record.Key, record)
 	}
 	return nil
 }
 
-func (db *DB) expireTime(timestamp uint64, ttl uint32) time.Duration {
-	now := time.UnixMilli(time.Now().UnixMilli())
-	expireTime := time.UnixMilli(int64(timestamp))
-	expireTime = expireTime.Add(time.Duration(int64(ttl)) * time.Second)
-	return expireTime.Sub(now)
-}
-
-func (db *DB) buildIdxes(record *Record, entry *Entry) error {
+func (db *DB) buildIdxes(record *data.Record, entry *Entry) error {
 	meta := entry.Meta
 	switch meta.Ds {
 	case DataStructureBTree:
@@ -635,23 +793,8 @@ func (db *DB) buildIdxes(record *Record, entry *Entry) error {
 	return nil
 }
 
-func (db *DB) deleteBucket(ds uint16, bucket BucketId) {
-	if ds == DataStructureSet {
-		db.Index.set.delete(bucket)
-	}
-	if ds == DataStructureSortedSet {
-		db.Index.sortedSet.delete(bucket)
-	}
-	if ds == DataStructureBTree {
-		db.Index.bTree.delete(bucket)
-	}
-	if ds == DataStructureList {
-		db.Index.list.delete(bucket)
-	}
-}
-
 // buildSetIdx builds set index when opening the DB.
-func (db *DB) buildSetIdx(record *Record, entry *Entry) error {
+func (db *DB) buildSetIdx(record *data.Record, entry *Entry) error {
 	key, val, meta := entry.Key, entry.Value, entry.Meta
 
 	bucket, err := db.bm.GetBucketById(entry.Meta.BucketId)
@@ -664,7 +807,7 @@ func (db *DB) buildSetIdx(record *Record, entry *Entry) error {
 
 	switch meta.Flag {
 	case DataSetFlag:
-		if err := s.SAdd(string(key), [][]byte{val}, []*Record{record}); err != nil {
+		if err := s.SAdd(string(key), [][]byte{val}, []*data.Record{record}); err != nil {
 			return fmt.Errorf("when build SetIdx SAdd index err: %s", err)
 		}
 	case DataDeleteFlag:
@@ -677,7 +820,7 @@ func (db *DB) buildSetIdx(record *Record, entry *Entry) error {
 }
 
 // buildSortedSetIdx builds sorted set index when opening the DB.
-func (db *DB) buildSortedSetIdx(record *Record, entry *Entry) error {
+func (db *DB) buildSortedSetIdx(record *data.Record, entry *Entry) error {
 	key, val, meta := entry.Key, entry.Value, entry.Meta
 
 	bucket, err := db.bm.GetBucketById(entry.Meta.BucketId)
@@ -716,7 +859,7 @@ func (db *DB) buildSortedSetIdx(record *Record, entry *Entry) error {
 }
 
 // buildListIdx builds List index when opening the DB.
-func (db *DB) buildListIdx(record *Record, entry *Entry) error {
+func (db *DB) buildListIdx(record *data.Record, entry *Entry) error {
 	key, val, meta := entry.Key, entry.Value, entry.Meta
 
 	bucket, err := db.bm.GetBucketById(entry.Meta.BucketId)
@@ -727,7 +870,7 @@ func (db *DB) buildListIdx(record *Record, entry *Entry) error {
 
 	l := db.Index.list.getWithDefault(bucketId)
 
-	if IsExpired(meta.TTL, meta.Timestamp) {
+	if data.IsExpired(meta.TTL, meta.Timestamp) {
 		return nil
 	}
 
@@ -752,7 +895,7 @@ func (db *DB) buildListIdx(record *Record, entry *Entry) error {
 		end, _ := strconv2.StrToInt(string(val))
 		err = l.LTrim(newKey, start, end)
 	case DataLRemByIndex:
-		indexes, _ := UnmarshalInts(val)
+		indexes, _ := utils.UnmarshalInts(val)
 		err = l.LRemByIndex(string(key), indexes)
 	}
 
@@ -763,10 +906,10 @@ func (db *DB) buildListIdx(record *Record, entry *Entry) error {
 	return nil
 }
 
-func (db *DB) buildListLRemIdx(value []byte, l *List, key []byte) error {
+func (db *DB) buildListLRemIdx(value []byte, l *data.List, key []byte) error {
 	count, newValue := splitIntStringStr(string(value), SeparatorForListKey)
 
-	return l.LRem(string(key), count, func(r *Record) (bool, error) {
+	return l.LRem(string(key), count, func(r *data.Record) (bool, error) {
 		v, err := db.getValueByRecord(r)
 		if err != nil {
 			return false, err
@@ -779,7 +922,7 @@ func (db *DB) buildListLRemIdx(value []byte, l *List, key []byte) error {
 func (db *DB) buildIndexes() (err error) {
 	var (
 		maxFileID   int64
-		dataFileIds []int
+		dataFileIds []int64
 	)
 
 	maxFileID, dataFileIds = db.getMaxFileIDAndFileIDs()
@@ -792,7 +935,7 @@ func (db *DB) buildIndexes() (err error) {
 		return
 	}
 
-	if dataFileIds == nil && maxFileID == 0 {
+	if len(dataFileIds) == 0 {
 		return
 	}
 
@@ -800,8 +943,8 @@ func (db *DB) buildIndexes() (err error) {
 	return db.parseDataFiles(dataFileIds)
 }
 
-func (db *DB) createRecordByModeWithFidAndOff(fid int64, off uint64, entry *Entry) *Record {
-	record := NewRecord()
+func (db *DB) createRecordByModeWithFidAndOff(fid int64, off uint64, entry *Entry) *data.Record {
+	record := data.NewRecord()
 
 	record.WithKey(entry.Key).
 		WithTimestamp(entry.Meta.Timestamp).
@@ -861,7 +1004,7 @@ func (db *DB) sendToWriteCh(tx *Tx) (*request, error) {
 }
 
 func (db *DB) checkListExpired() {
-	db.Index.list.rangeIdx(func(l *List) {
+	db.Index.list.rangeIdx(func(l *data.List) {
 		for key := range l.TTL {
 			l.IsExpire(key)
 		}
@@ -875,7 +1018,7 @@ func (db *DB) IsClose() bool {
 
 func (db *DB) buildExpireCallback(bucket string, key []byte) func() {
 	return func() {
-		err := db.Update(func(tx *Tx) error {
+		_ = db.Update(func(tx *Tx) error {
 			b, err := tx.db.bm.GetBucket(DataStructureBTree, bucket)
 			if err != nil {
 				return err
@@ -886,9 +1029,6 @@ func (db *DB) buildExpireCallback(bucket string, key []byte) func() {
 			}
 			return nil
 		})
-		if err != nil {
-			log.Printf("occur error when expired deletion, error: %v", err.Error())
-		}
 	}
 }
 
@@ -925,4 +1065,109 @@ func (db *DB) rebuildBucketManager() error {
 		}
 	}
 	return nil
+}
+
+/**
+ * Watch watches the key and bucket and calls the callback function for each message received.
+ * The callback will be called once for each individual message in the batch.
+ *
+ * @param bucket - the bucket name to watch
+ * @param key - the key in the bucket to watch
+ * @param cb - the callback function to call for each message received
+ * @param opts - the options for the watch
+ *   - CallbackTimeout - the timeout for the callback, default is 1 second
+ *
+ * @return error - the error if the watch is stopped
+ */
+func (db *DB) Watch(bucket string, key []byte, cb func(message *Message) error, opts ...WatchOptions) error {
+	watchOpts := NewWatchOptions()
+
+	if len(opts) > 0 {
+		watchOpts = &opts[0]
+	}
+
+	if db.wm == nil {
+		return ErrWatchFeatureDisabled
+	}
+
+	subscriber, err := db.wm.subscribe(bucket, string(key))
+	if err != nil {
+		return err
+	}
+
+	maxBatchSize := 128
+	batch := make([]*Message, 0, maxBatchSize)
+
+	// Use a ticker to process the batch every 100 milliseconds
+	// Avoid CPU busy spinning
+	ticker := time.NewTicker(100 * time.Millisecond)
+	keyWatch := string(key)
+
+	processBatch := func(batch []*Message) error {
+		if len(batch) == 0 {
+			return nil
+		}
+
+		for _, msg := range batch {
+			errChan := make(chan error, 1)
+			go func(msg *Message) {
+				errChan <- cb(msg)
+			}(msg)
+
+			select {
+			case <-time.After(watchOpts.CallbackTimeout):
+				return ErrWatchingCallbackTimeout
+			case err := <-errChan:
+				if err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+
+	defer func() {
+		ticker.Stop()
+
+		if subscriber != nil && subscriber.active.Load() {
+			if err := db.wm.unsubscribe(bucket, keyWatch, subscriber.id); err != nil {
+				// ignore the error
+			}
+		}
+	}()
+
+	for {
+		select {
+		case <-db.wm.done():
+			// drain the batch
+			if err := processBatch(batch); err != nil {
+				return err
+			}
+			return nil
+		case message, ok := <-subscriber.receiveChan:
+			if !ok {
+				if err := processBatch(batch); err != nil {
+					return err
+				}
+
+				return nil
+			}
+
+			batch = append(batch, message)
+
+			if len(batch) >= maxBatchSize {
+				if err := processBatch(batch); err != nil {
+					return err
+				}
+				batch = batch[:0]
+			}
+		case <-ticker.C:
+			for len(batch) > 0 {
+				if err := processBatch(batch); err != nil {
+					return err
+				}
+				batch = batch[:0]
+			}
+		}
+	}
 }

@@ -20,17 +20,31 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nutsdb/nutsdb/internal/data"
+	"github.com/nutsdb/nutsdb/internal/utils"
 	"github.com/pkg/errors"
 	"github.com/xujiajun/utils/strconv2"
 )
 
-var bucketKeySeqMap map[string]*HeadTailSeq
-
-// ErrSeparatorForListKey returns when list key contains the SeparatorForListKey.
-var ErrSeparatorForListKey = errors.Errorf("contain separator (%s) for List key", SeparatorForListKey)
-
 // SeparatorForListKey represents separator for listKey
 const SeparatorForListKey = "|"
+
+var (
+	// ErrListNotFound is returned when the list not found.
+	ErrListNotFound = data.ErrListNotFound
+
+	// ErrCount is returned when count is error.
+	ErrCount = data.ErrCount
+
+	// ErrEmptyList is returned when the list is empty.
+	ErrEmptyList = data.ErrEmptyList
+
+	// ErrStartOrEnd is returned when start > end
+	ErrStartOrEnd = data.ErrStartOrEnd
+
+	// ErrSeparatorForListKey returns when list key contains the SeparatorForListKey.
+	ErrSeparatorForListKey = errors.Errorf("contain separator (%s) for List key", SeparatorForListKey)
+)
 
 // RPop removes and returns the last element of the list stored in the bucket at given bucket and key.
 func (tx *Tx) RPop(bucket string, key []byte) (item []byte, err error) {
@@ -54,7 +68,7 @@ func (tx *Tx) RPeek(bucket string, key []byte) ([]byte, error) {
 	}
 	var (
 		bucketId = b.Id
-		l        *List
+		l        *data.List
 		exist    bool
 	)
 
@@ -71,7 +85,7 @@ func (tx *Tx) RPeek(bucket string, key []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	v, err := tx.db.getValueByRecord(item.record)
+	v, err := tx.db.getValueByRecord(item.Record)
 	if err != nil {
 		return nil, err
 	}
@@ -91,24 +105,18 @@ func (tx *Tx) push(bucket string, key []byte, flag uint16, values ...[]byte) err
 	return nil
 }
 
-func (tx *Tx) getListNewKey(bucket string, key []byte, isLeft bool) []byte {
-	if bucketKeySeqMap == nil {
-		bucketKeySeqMap = make(map[string]*HeadTailSeq)
-	}
-
+// getListWithDefault
+// this function will get list, if list not exists, will create
+// a new one.
+func (tx *Tx) getListWithDefault(bucket string) (*data.List, error) {
 	b, err := tx.db.bm.GetBucket(DataStructureList, bucket)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	bucketId := b.Id
 
-	bucketKey := bucket + string(key)
-	if _, ok := bucketKeySeqMap[bucketKey]; !ok {
-		bucketKeySeqMap[bucketKey] = tx.getListHeadTailSeq(bucketId, string(key))
-	}
-
-	seq := generateSeq(bucketKeySeqMap[bucketKey], isLeft)
-	return encodeListKey(key, seq)
+	// 确保列表索引存在
+	return tx.db.Index.list.getWithDefault(bucketId), nil
 }
 
 // RPush inserts the values at the tail of the list stored in the bucket at given bucket,key and values.
@@ -122,8 +130,12 @@ func (tx *Tx) RPush(bucket string, key []byte, values ...[]byte) error {
 	}
 
 	for _, value := range values {
-		newKey := tx.getListNewKey(bucket, key, false)
-		err := tx.push(bucket, newKey, DataLPushFlag, value)
+		l, err := tx.getListWithDefault(bucket)
+		if err != nil {
+			return err
+		}
+		newKey := l.GeneratePushKey(key, false)
+		err = tx.push(bucket, newKey, DataRPushFlag, value)
 		if err != nil {
 			return err
 		}
@@ -143,8 +155,12 @@ func (tx *Tx) LPush(bucket string, key []byte, values ...[]byte) error {
 	}
 
 	for _, value := range values {
-		newKey := tx.getListNewKey(bucket, key, true)
-		err := tx.push(bucket, newKey, DataLPushFlag, value)
+		l, err := tx.getListWithDefault(bucket)
+		if err != nil {
+			return err
+		}
+		newKey := l.GeneratePushKey(key, true)
+		err = tx.push(bucket, newKey, DataLPushFlag, value)
 		if err != nil {
 			return err
 		}
@@ -203,7 +219,7 @@ func (tx *Tx) LPeek(bucket string, key []byte) (item []byte, err error) {
 	}
 	var (
 		bucketId = b.Id
-		l        *List
+		l        *data.List
 		exist    bool
 	)
 
@@ -218,7 +234,7 @@ func (tx *Tx) LPeek(bucket string, key []byte) (item []byte, err error) {
 		return nil, err
 	}
 
-	v, err := tx.db.getValueByRecord(r.record)
+	v, err := tx.db.getValueByRecord(r.Record)
 	if err != nil {
 		return nil, err
 	}
@@ -239,7 +255,7 @@ func (tx *Tx) LSize(bucket string, key []byte) (int, error) {
 
 	var (
 		bucketId = b.Id
-		l        *List
+		l        *data.List
 		exist    bool
 	)
 
@@ -268,7 +284,7 @@ func (tx *Tx) LRange(bucket string, key []byte, start, end int) ([][]byte, error
 	}
 	var (
 		bucketId = b.Id
-		l        *List
+		l        *data.List
 		exist    bool
 	)
 
@@ -351,7 +367,7 @@ func (tx *Tx) LTrim(bucket string, key []byte, start, end int) error {
 
 	var (
 		bucketId = b.Id
-		l        *List
+		l        *data.List
 		exist    bool
 	)
 
@@ -402,7 +418,7 @@ func (tx *Tx) LRemByIndex(bucket string, key []byte, indexes ...int) error {
 	}
 
 	sort.Ints(indexes)
-	data, err := MarshalInts(indexes)
+	data, err := utils.MarshalInts(indexes)
 	if err != nil {
 		return err
 	}
@@ -426,7 +442,7 @@ func (tx *Tx) LKeys(bucket, pattern string, f func(key string) bool) error {
 	}
 	var (
 		bucketId = b.Id
-		l        *List
+		l        *data.List
 		exist    bool
 	)
 	if l, exist = tx.db.Index.list.exist(bucketId); !exist {
@@ -437,7 +453,7 @@ func (tx *Tx) LKeys(bucket, pattern string, f func(key string) bool) error {
 		if tx.CheckExpire(bucket, []byte(key)) {
 			continue
 		}
-		if end, err := MatchForRange(pattern, key, f); end || err != nil {
+		if end, err := utils.MatchForRange(pattern, key, f); end || err != nil {
 			return err
 		}
 	}
@@ -455,7 +471,7 @@ func (tx *Tx) ExpireList(bucket string, key []byte, ttl uint32) error {
 
 	var (
 		bucketId = b.Id
-		l        *List
+		l        *data.List
 		exist    bool
 	)
 
@@ -463,8 +479,7 @@ func (tx *Tx) ExpireList(bucket string, key []byte, ttl uint32) error {
 		return ErrBucket
 	}
 
-	l.TTL[string(key)] = ttl
-	l.TimeStamp[string(key)] = uint64(time.Now().Unix())
+	l.ExpireList(key, ttl)
 	ttls := strconv2.Int64ToStr(int64(ttl))
 	err = tx.push(bucket, key, DataExpireListFlag, []byte(ttls))
 	if err != nil {
@@ -481,7 +496,7 @@ func (tx *Tx) CheckExpire(bucket string, key []byte) bool {
 
 	var (
 		bucketId = b.Id
-		l        *List
+		l        *data.List
 		exist    bool
 	)
 
@@ -507,7 +522,7 @@ func (tx *Tx) GetListTTL(bucket string, key []byte) (uint32, error) {
 
 	var (
 		bucketId = b.Id
-		l        *List
+		l        *data.List
 		exist    bool
 	)
 	if l, exist = tx.db.Index.list.exist(bucketId); !exist {

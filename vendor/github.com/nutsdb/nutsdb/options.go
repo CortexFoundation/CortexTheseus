@@ -14,7 +14,12 @@
 
 package nutsdb
 
-import "time"
+import (
+	"time"
+
+	"github.com/nutsdb/nutsdb/internal/data"
+	"github.com/nutsdb/nutsdb/internal/fileio"
+)
 
 // EntryIdxMode represents entry index mode.
 type EntryIdxMode int
@@ -35,6 +40,25 @@ const (
 
 	// TimeHeap represents use time heap to do expired deletion
 	TimeHeap
+)
+
+// ListImplementationType defines the implementation type for List data structure.
+type ListImplementationType data.ListImplementationType
+
+func (impl ListImplementationType) toInternal() data.ListImplementationType {
+	return data.ListImplementationType(impl)
+}
+
+const (
+	// ListImplDoublyLinkedList uses doubly linked list implementation (default).
+	// Advantages: O(1) head/tail operations, lower memory overhead
+	// Best for: High-frequency LPush/RPush/LPop/RPop operations
+	ListImplDoublyLinkedList = iota
+
+	// ListImplBTree uses BTree implementation.
+	// Advantages: O(log n + k) range queries, efficient random access
+	// Best for: Frequent range queries or indexed access patterns
+	ListImplBTree
 )
 
 // An ErrorHandler handles an error occurred during transaction.
@@ -84,7 +108,7 @@ type Options struct {
 	// BufferSizeOfRecovery represents the buffer size of recoveryReader buffer Size
 	BufferSizeOfRecovery int
 
-	// CcWhenClose represent initiative GC when calling db.Close()
+	// GcWhenClose represent initiative GC when calling db.Close()
 	GCWhenClose bool
 
 	// CommitBufferSize represent allocated memory for tx
@@ -121,16 +145,30 @@ type Options struct {
 
 	// cache size for HintKeyAndRAMIdxMode
 	HintKeyAndRAMIdxCacheSize int
+
+	// EnableHintFile represents if enable hint file feature.
+	// If EnableHintFile is true, hint files will be created and used for faster database startup.
+	// If EnableHintFile is false, hint files will not be created or used.
+	EnableHintFile bool
+
+	// EnableMergeV2 toggles the redesigned merge pipeline with deterministic merge files and manifest support.
+	// When disabled, NutsDB falls back to the legacy merge logic.
+	EnableMergeV2 bool
+
+	// ListImpl specifies the implementation type for List data structure.
+	// Default: ListImplDoublyLinkedList (maintains backward compatibility)
+	ListImpl ListImplementationType
+
+	// EnableWatch toggles the watch feature.
+	// If EnableWatch is true, the watch feature will be enabled. The watch feature will be disabled by default.
+	EnableWatch bool
 }
 
 const (
-	B = 1
-
-	KB = 1024 * B
-
-	MB = 1024 * KB
-
-	GB = 1024 * MB
+	B  = fileio.B
+	KB = fileio.KB
+	MB = fileio.MB
+	GB = fileio.GB
 )
 
 // defaultSegmentSize is default data file size.
@@ -139,17 +177,40 @@ var defaultSegmentSize int64 = 256 * MB
 // DefaultOptions represents the default options.
 var DefaultOptions = func() Options {
 	return Options{
-		EntryIdxMode:      HintKeyValAndRAMIdxMode,
-		SegmentSize:       defaultSegmentSize,
-		NodeNum:           1,
-		RWMode:            FileIO,
-		SyncEnable:        true,
-		CommitBufferSize:  4 * MB,
-		MergeInterval:     2 * time.Hour,
-		MaxBatchSize:      (15 * defaultSegmentSize / 4) / 100,
-		MaxBatchCount:     (15 * defaultSegmentSize / 4) / 100 / 100,
+		EntryIdxMode:              HintKeyValAndRAMIdxMode,
+		SegmentSize:               defaultSegmentSize,
+		NodeNum:                   1,
+		RWMode:                    FileIO,
+		SyncEnable:                true,
+		CommitBufferSize:          4 * MB,
+		MergeInterval:             2 * time.Hour,
+		MaxBatchSize:              (15 * defaultSegmentSize / 4) / 100,
+		MaxBatchCount:             (15 * defaultSegmentSize / 4) / 100 / 100,
 		HintKeyAndRAMIdxCacheSize: 0,
-		ExpiredDeleteType: TimeWheel,
+		ExpiredDeleteType:         TimeWheel,
+		EnableHintFile:            false,
+		EnableMergeV2:             false,
+		ListImpl:                  ListImplementationType(ListImplBTree),
+		EnableWatch:               false,
+	}
+}()
+
+var doublyLinkedListOptions = func() Options {
+	return Options{
+		EntryIdxMode:              HintKeyValAndRAMIdxMode,
+		SegmentSize:               defaultSegmentSize,
+		NodeNum:                   1,
+		RWMode:                    FileIO,
+		SyncEnable:                true,
+		CommitBufferSize:          4 * MB,
+		MergeInterval:             2 * time.Hour,
+		MaxBatchSize:              (15 * defaultSegmentSize / 4) / 100,
+		MaxBatchCount:             (15 * defaultSegmentSize / 4) / 100 / 100,
+		HintKeyAndRAMIdxCacheSize: 0,
+		ExpiredDeleteType:         TimeWheel,
+		EnableHintFile:            false,
+		EnableMergeV2:             false,
+		ListImpl:                  ListImplementationType(ListImplDoublyLinkedList),
 	}
 }()
 
@@ -186,9 +247,9 @@ func WithMaxBatchCount(count int64) Option {
 }
 
 func WithHintKeyAndRAMIdxCacheSize(size int) Option {
-    return func(opt *Options) {
-        opt.HintKeyAndRAMIdxCacheSize = size
-    }
+	return func(opt *Options) {
+		opt.HintKeyAndRAMIdxCacheSize = size
+	}
 }
 
 func WithMaxBatchSize(size int64) Option {
@@ -254,5 +315,23 @@ func WithLessFunc(lessFunc LessFunc) Option {
 func WithMaxWriteRecordCount(maxWriteRecordCount int64) Option {
 	return func(opt *Options) {
 		opt.MaxWriteRecordCount = maxWriteRecordCount
+	}
+}
+
+func WithEnableHintFile(enable bool) Option {
+	return func(opt *Options) {
+		opt.EnableHintFile = enable
+	}
+}
+
+func WithEnableMergeV2(enable bool) Option {
+	return func(opt *Options) {
+		opt.EnableMergeV2 = enable
+	}
+}
+
+func WithListImpl(implType ListImplementationType) Option {
+	return func(opt *Options) {
+		opt.ListImpl = implType
 	}
 }
