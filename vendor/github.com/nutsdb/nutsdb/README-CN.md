@@ -2,7 +2,7 @@
     <img src="https://user-images.githubusercontent.com/6065007/141310364-62d7eebb-2cbb-4949-80ed-5cd20f705405.png">
 </p>
 
-# NutsDB [![GoDoc](https://godoc.org/github.com/nutsdb/nutsdb?status.svg)](https://godoc.org/github.com/nutsdb/nutsdb)  [![Go Report Card](https://goreportcard.com/badge/github.com/nutsdb/nutsdb)](https://goreportcard.com/report/github.com/nutsdb/nutsdb)  [![Go](https://github.com/nutsdb/nutsdb/workflows/Go/badge.svg?branch=master)](https://github.com/nutsdb/nutsdb/actions) [![codecov](https://codecov.io/gh/nutsdb/nutsdb/branch/master/graph/badge.svg?token=CupujOXpbe)](https://codecov.io/gh/nutsdb/nutsdb) [![License](http://img.shields.io/badge/license-Apache_2-blue.svg?style=flat-square)](https://raw.githubusercontent.com/nutsdb/nutsdb/master/LICENSE) [![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go#database)  
+# NutsDB [![GoDoc](https://godoc.org/github.com/nutsdb/nutsdb?status.svg)](https://godoc.org/github.com/nutsdb/nutsdb)  [![Go Report Card](https://goreportcard.com/badge/github.com/nutsdb/nutsdb)](https://goreportcard.com/report/github.com/nutsdb/nutsdb) [![Go](https://github.com/nutsdb/nutsdb/actions/workflows/go.yml/badge.svg)](https://github.com/nutsdb/nutsdb/actions/workflows/go.yml) [![codecov](https://codecov.io/gh/nutsdb/nutsdb/branch/master/graph/badge.svg?token=CupujOXpbe)](https://codecov.io/gh/nutsdb/nutsdb) [![License](http://img.shields.io/badge/license-Apache_2-blue.svg?style=flat-square)](https://raw.githubusercontent.com/nutsdb/nutsdb/master/LICENSE) [![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go#database)
 
 [English](https://github.com/nutsdb/nutsdb/blob/master/README.md) | 简体中文
 
@@ -12,7 +12,7 @@ NutsDB 是一个用纯 Go 编写的简单、快速、可嵌入且持久的键/�
 
 我们可以在NutsDB的文档网站了解更多：[NutsDB Documents](https://nutsdb.github.io/nutsdb-docs/)
 
-欢迎对NutsDB感兴趣的加群、一起开发，具体看这个issue：https://github.com/nutsdb/nutsdb/issues/116。
+欢迎对NutsDB感兴趣的加群、一起开发，具体看这个issue：https://github.com/nutsdb/nutsdb/issues/116 。
 
 ### 关注nutsdb公众号
  <img src="https://user-images.githubusercontent.com/6065007/221391600-4f53e966-c376-426e-9dec-27364a0704d1.png"   height = "300" alt="nutsdb公众号" align=center />
@@ -2445,3 +2445,4 @@ https://github.com/golang/go/wiki/CodeReviewComments
 ### License
 
 The NutsDB is open-sourced software licensed under the [Apache 2.0 license](https://github.com/nutsdb/nutsdb/blob/master/LICENSE).
+

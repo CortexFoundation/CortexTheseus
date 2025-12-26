@@ -1,6 +1,8 @@
 package nutsdb
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
 	// ErrDataSizeExceed is returned when given key and value size is too big.
@@ -31,6 +33,7 @@ var (
 
 	// ErrNotFoundKey is returned when key not found int the bucket on an view function.
 	ErrNotFoundKey = errors.New("key not found in the bucket")
+	ErrKeyNotFound = ErrNotFoundKey
 
 	// ErrCannotCommitAClosedTx is returned when the tx committing a closed tx
 	ErrCannotCommitAClosedTx = errors.New("can not commit a closed tx")
@@ -40,18 +43,16 @@ var (
 
 	ErrCannotRollbackAClosedTx = errors.New("can not rollback a closed tx")
 
-	// ErrNotFoundBucket is returned when key not found int the bucket on an view function.
+	// ErrNotFoundBucket is returned when bucket not found int the bucket on an view function.
 	ErrNotFoundBucket = errors.New("bucket not found")
 
 	// ErrTxnTooBig is returned if too many writes are fit into a single transaction.
-	ErrTxnTooBig = errors.New("Txn is too big to fit into one request")
+	ErrTxnTooBig = errors.New("txn is too big to fit into one request")
 
 	// ErrTxnExceedWriteLimit is returned when this tx's write is exceed max write record
 	ErrTxnExceedWriteLimit = errors.New("txn is exceed max write record count")
 
 	ErrBucketAlreadyExist = errors.New("bucket is already exist")
-
-	ErrorBucketNotExist = errors.New("bucket is not exist yet, please use NewBucket function to create this bucket first")
 
 	ErrValueNotInteger = errors.New("value is not an integer")
 
@@ -60,4 +61,6 @@ var (
 	ErrKVArgsLenNotEven = errors.New("parameters is used to represent key value pairs and cannot be odd numbers")
 
 	ErrStartGreaterThanEnd = errors.New("start is greater than end")
+
+	ErrInvalidKey = errors.New("invalid key")
 )

@@ -11,17 +11,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package nutsdb
+package testutils
 
 import (
-	"fmt"
 	"math/rand"
+	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 func GetTestBytes(i int) []byte {
-	return []byte(fmt.Sprintf("nutsdb-%09d", i))
+	// Optimized version without fmt.Sprintf to reduce benchmark overhead
+	// Format: "nutsdb-000000000" (7 prefix + 9 digits = 16 bytes)
+	buf := make([]byte, 16)
+	copy(buf, "nutsdb-")
+
+	// Convert i to 9-digit string with leading zeros
+	for j := 15; j >= 7; j-- {
+		buf[j] = byte('0' + i%10)
+		i /= 10
+	}
+	return buf
 }
 
 func GetRandomBytes(length int) []byte {
@@ -30,4 +42,12 @@ func GetRandomBytes(length int) []byte {
 		b[i] = charset[rand.Intn(len(charset))]
 	}
 	return b
+}
+
+func AssertErr(t *testing.T, err error, expectErr error) {
+	if expectErr != nil {
+		require.Equal(t, expectErr, err)
+	} else {
+		require.NoError(t, err)
+	}
 }

@@ -17,7 +17,20 @@ package nutsdb
 import (
 	"time"
 
+	"github.com/nutsdb/nutsdb/internal/data"
+	"github.com/nutsdb/nutsdb/internal/utils"
 	"github.com/pkg/errors"
+)
+
+var (
+	// ErrSetNotExist is returned when the key does not exist.
+	ErrSetNotExist = data.ErrSetNotExist
+
+	// ErrSetMemberNotExist is returned when the member of set does not exist
+	ErrSetMemberNotExist = data.ErrSetMemberNotExist
+
+	// ErrMemberEmpty is returned when the item received is nil
+	ErrMemberEmpty = data.ErrMemberEmpty
 )
 
 func (tx *Tx) sPut(bucket string, key []byte, dataFlag uint16, values ...[]byte) error {
@@ -43,7 +56,7 @@ func (tx *Tx) sPut(bucket string, key []byte, dataFlag uint16, values ...[]byte)
 		}
 
 		for _, value := range values {
-			hash, err := getFnv32(value)
+			hash, err := utils.GetFnv32(value)
 			if err != nil {
 				return err
 			}
@@ -272,7 +285,7 @@ func (tx *Tx) SDiffByTwoBuckets(bucket1 string, key1 []byte, bucket2 string, key
 	}
 
 	var (
-		set1, set2 *Set
+		set1, set2 *data.Set
 		ok         bool
 	)
 
@@ -336,7 +349,7 @@ func (tx *Tx) SMoveByTwoBuckets(bucket1 string, key1 []byte, bucket2 string, key
 	}
 
 	var (
-		set1, set2 *Set
+		set1, set2 *data.Set
 		ok         bool
 	)
 
@@ -368,13 +381,13 @@ func (tx *Tx) SMoveByTwoBuckets(bucket1 string, key1 []byte, bucket2 string, key
 		return false, ErrNotFoundKeyInBucket(bucket2, key2)
 	}
 
-	hash, err := getFnv32(item)
+	hash, err := utils.GetFnv32(item)
 	if err != nil {
 		return false, err
 	}
 
 	if r, ok := set2.M[string(key2)][hash]; !ok {
-		err := set2.SAdd(string(key2), [][]byte{item}, []*Record{r})
+		err := set2.SAdd(string(key2), [][]byte{item}, []*data.Record{r})
 		if err != nil {
 			return false, err
 		}
@@ -427,7 +440,7 @@ func (tx *Tx) SUnionByTwoBuckets(bucket1 string, key1 []byte, bucket2 string, ke
 	}
 
 	var (
-		set1, set2 *Set
+		set1, set2 *data.Set
 		ok         bool
 	)
 	b1, err := tx.db.bm.GetBucket(DataStructureSet, bucket1)
@@ -495,7 +508,7 @@ func (tx *Tx) SKeys(bucket, pattern string, f func(key string) bool) error {
 		return ErrBucket
 	} else {
 		for key := range set.M {
-			if end, err := MatchForRange(pattern, key, f); end || err != nil {
+			if end, err := utils.MatchForRange(pattern, key, f); end || err != nil {
 				return err
 			}
 		}

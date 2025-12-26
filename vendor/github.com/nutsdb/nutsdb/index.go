@@ -14,8 +14,10 @@
 
 package nutsdb
 
+import "github.com/nutsdb/nutsdb/internal/data"
+
 type IdxType interface {
-	BTree | Set | SortedSet | List
+	data.BTree | data.Set | SortedSet | data.List
 }
 
 type defaultOp[T IdxType] struct {
@@ -51,32 +53,33 @@ func (op *defaultOp[T]) rangeIdx(f func(elem *T)) {
 }
 
 type ListIdx struct {
-	*defaultOp[List]
+	*defaultOp[data.List]
+	opts Options
 }
 
-func (idx ListIdx) getWithDefault(id BucketId) *List {
-	return idx.defaultOp.computeIfAbsent(id, func() *List {
-		return NewList()
+func (idx ListIdx) getWithDefault(id BucketId) *data.List {
+	return idx.defaultOp.computeIfAbsent(id, func() *data.List {
+		return data.NewList(idx.opts.ListImpl.toInternal())
 	})
 }
 
 type BTreeIdx struct {
-	*defaultOp[BTree]
+	*defaultOp[data.BTree]
 }
 
-func (idx BTreeIdx) getWithDefault(id BucketId) *BTree {
-	return idx.defaultOp.computeIfAbsent(id, func() *BTree {
-		return NewBTree()
+func (idx BTreeIdx) getWithDefault(id BucketId) *data.BTree {
+	return idx.defaultOp.computeIfAbsent(id, func() *data.BTree {
+		return data.NewBTree()
 	})
 }
 
 type SetIdx struct {
-	*defaultOp[Set]
+	*defaultOp[data.Set]
 }
 
-func (idx SetIdx) getWithDefault(id BucketId) *Set {
-	return idx.defaultOp.computeIfAbsent(id, func() *Set {
-		return NewSet()
+func (idx SetIdx) getWithDefault(id BucketId) *data.Set {
+	return idx.defaultOp.computeIfAbsent(id, func() *data.Set {
+		return data.NewSet()
 	})
 }
 
@@ -95,13 +98,19 @@ type index struct {
 	bTree     BTreeIdx
 	set       SetIdx
 	sortedSet SortedSetIdx
+	opts      Options // Store options for creating new data structures
 }
 
 func newIndex() *index {
+	return newIndexWithOptions(DefaultOptions)
+}
+
+func newIndexWithOptions(opts Options) *index {
 	i := new(index)
-	i.list = ListIdx{&defaultOp[List]{idx: map[BucketId]*List{}}}
-	i.bTree = BTreeIdx{&defaultOp[BTree]{idx: map[BucketId]*BTree{}}}
-	i.set = SetIdx{&defaultOp[Set]{idx: map[BucketId]*Set{}}}
+	i.opts = opts
+	i.list = ListIdx{defaultOp: &defaultOp[data.List]{idx: map[BucketId]*data.List{}}, opts: opts}
+	i.bTree = BTreeIdx{&defaultOp[data.BTree]{idx: map[BucketId]*data.BTree{}}}
+	i.set = SetIdx{&defaultOp[data.Set]{idx: map[BucketId]*data.Set{}}}
 	i.sortedSet = SortedSetIdx{&defaultOp[SortedSet]{idx: map[BucketId]*SortedSet{}}}
 	return i
 }

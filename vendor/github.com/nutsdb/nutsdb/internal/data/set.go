@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package nutsdb
+package data
 
 import (
 	"errors"
-	"hash/fnv"
+
+	"github.com/nutsdb/nutsdb/internal/utils"
 )
 
 var (
@@ -29,8 +30,6 @@ var (
 	// ErrMemberEmpty is returned when the item received is nil
 	ErrMemberEmpty = errors.New("item empty")
 )
-
-var fnvHash = fnv.New32a()
 
 type Set struct {
 	M map[string]map[uint32]*Record
@@ -51,7 +50,7 @@ func (s *Set) SAdd(key string, values [][]byte, records []*Record) error {
 	}
 
 	for i, value := range values {
-		hash, err := getFnv32(value)
+		hash, err := utils.GetFnv32(value)
 		if err != nil {
 			return err
 		}
@@ -73,7 +72,7 @@ func (s *Set) SRem(key string, values ...[]byte) error {
 	}
 
 	for _, value := range values {
-		hash, err := getFnv32(value)
+		hash, err := utils.GetFnv32(value)
 		if err != nil {
 			return err
 		}
@@ -152,7 +151,7 @@ func (s *Set) SIsMember(key string, value []byte) (bool, error) {
 		return false, ErrSetNotExist
 	}
 
-	hash, err := getFnv32(value)
+	hash, err := utils.GetFnv32(value)
 	if err != nil {
 		return false, err
 	}
@@ -173,7 +172,7 @@ func (s *Set) SAreMembers(key string, values ...[]byte) (bool, error) {
 
 	for _, value := range values {
 
-		hash, err := getFnv32(value)
+		hash, err := utils.GetFnv32(value)
 		if err != nil {
 			return false, err
 		}
@@ -209,7 +208,7 @@ func (s *Set) SMove(key1, key2 string, value []byte) (bool, error) {
 
 	set1, set2 := s.M[key1], s.M[key2]
 
-	hash, err := getFnv32(value)
+	hash, err := utils.GetFnv32(value)
 	if err != nil {
 		return false, err
 	}

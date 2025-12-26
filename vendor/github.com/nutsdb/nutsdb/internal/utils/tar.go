@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package nutsdb
+package utils
 
 import (
 	"archive/tar"
@@ -23,14 +23,14 @@ import (
 	"strings"
 )
 
-func tarGZCompress(dst io.Writer, src string) error {
+func TarGZCompress(dst io.Writer, src string) error {
 	gz := gzip.NewWriter(dst)
 	defer gz.Close()
-	return tarCompress(gz, src)
+	return TarCompress(gz, src)
 }
 
 // https://blog.ralch.com/articles/golang-working-with-tar-and-gzip
-func tarCompress(dst io.Writer, src string) error {
+func TarCompress(dst io.Writer, src string) error {
 	tarball := tar.NewWriter(dst)
 	defer tarball.Close()
 
@@ -76,39 +76,4 @@ func tarCompress(dst io.Writer, src string) error {
 			_, err = io.Copy(tarball, file)
 			return err
 		})
-}
-
-func tarDecompress(dst string, src io.Reader) error {
-	tarReader := tar.NewReader(src)
-
-	for {
-		header, err := tarReader.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return err
-		}
-
-		path := filepath.Join(dst, header.Name)
-		info := header.FileInfo()
-		if info.IsDir() {
-			if err = os.MkdirAll(path, info.Mode()); err != nil {
-				return err
-			}
-			continue
-		}
-
-		file, err := os.OpenFile(filepath.Clean(path), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, info.Mode())
-		if err != nil {
-			return err
-		}
-		defer file.Close()
-		_, err = io.Copy(file, tarReader)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }

@@ -1,4 +1,8 @@
 .idea/
 testdata/
-
+bin/
 */*.DS_Store
+.gocache
+.vscode
+coverage.out
+coverage.html
