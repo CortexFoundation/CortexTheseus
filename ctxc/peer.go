@@ -383,7 +383,7 @@ func (p *peer) RequestReceipts(hashes []common.Hash) error {
 
 // RequestTxs fetches a batch of transactions from a remote node.
 func (p *peer) RequestTxs(hashes []common.Hash) error {
-	p.Log().Debug("Fetching batch of transactions", "count", len(hashes))
+	p.Log().Trace("Fetching batch of transactions", "count", len(hashes))
 	return p2p.Send(p.rw, ctxc.GetPooledTransactionsMsg, hashes)
 }
 

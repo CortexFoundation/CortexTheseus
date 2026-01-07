@@ -1143,7 +1143,7 @@ func (pm *ProtocolManager) BroadcastTransactions(txs types.Transactions) {
 			peer.AsyncSendTransactions(hashes)
 		}
 	}
-	log.Debug("Transaction broadcast", "txs", len(txs)-largeTxs, "largetxs", largeTxs,
+	log.Trace("Transaction broadcast", "txs", len(txs)-largeTxs, "largetxs", largeTxs,
 		"announce packs", annoPeers, "announced hashes", annoCount,
 		"tx packs", directPeers, "broadcast txs", directCount)
 }
