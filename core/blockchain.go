@@ -632,19 +632,7 @@ func (bc *BlockChain) SetHead(head uint64) error {
 	if _, err := bc.setHeadBeyondRoot(head, 0, common.Hash{}, false); err != nil {
 		return err
 	}
-	// Send chain head event to update the transaction pool
-	if block := bc.CurrentBlock(); block == nil {
-		if block.Number().Uint64() > 0 {
-			// This should never happen. In practice, previously currentBlock
-			// contained the entire block whereas now only a "marker", so there
-			// is an ever so slight chance for a race we should handle.
-			log.Error("Current block not found in database", "block", block.Number(), "hash", block.Hash())
-			return fmt.Errorf("current block missing: #%d [%x..]", block.Number(), block.Hash().Bytes()[:4])
-		}
-	} else {
-		bc.chainHeadFeed.Send(ChainHeadEvent{Header: block.Header()})
-	}
-	return nil
+	return bc.sendChainHeadEvent()
 }
 
 // SetHeadWithTimestamp rewinds the local chain to a new head that has at max
@@ -655,9 +643,17 @@ func (bc *BlockChain) SetHeadWithTimestamp(timestamp uint64) error {
 	if _, err := bc.setHeadBeyondRoot(0, timestamp, common.Hash{}, false); err != nil {
 		return err
 	}
-	// Send chain head event to update the transaction pool
-	if block := bc.CurrentBlock(); block == nil {
-		if block.Number().Uint64() > 0 {
+	return bc.sendChainHeadEvent()
+}
+
+// sendChainHeadEvent notifies all subscribers about the new chain head,
+// checking first that the current block is actually available.
+func (bc *BlockChain) sendChainHeadEvent() error {
+	header := bc.CurrentBlock()
+	if block := bc.GetBlock(header.Hash(), header.Number().Uint64()); block == nil {
+		// In a pruned node the genesis block will not exist in the freezer.
+		// It should not happen that we set head to any other pruned block.
+		if header.Number().Uint64() > 0 {
 			// This should never happen. In practice, previously currentBlock
 			// contained the entire block whereas now only a "marker", so there
 			// is an ever so slight chance for a race we should handle.
