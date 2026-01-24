@@ -128,9 +128,9 @@ var (
 	// that this number is pretty low, since txpool reorgs happen very frequently.
 	dropBetweenReorgHistogram = metrics.NewRegisteredHistogram("txpool/dropbetweenreorg", nil, metrics.NewExpDecaySample(1028, 0.015))
 
-	pendingGauge = metrics.NewRegisteredCounter("txpool/pending", nil)
-	queuedGauge  = metrics.NewRegisteredCounter("txpool/queued", nil)
-	localGauge   = metrics.NewRegisteredCounter("txpool/local", nil)
+	pendingGauge = metrics.NewRegisteredGauge("txpool/pending", nil)
+	queuedGauge  = metrics.NewRegisteredGauge("txpool/queued", nil)
+	localGauge   = metrics.NewRegisteredGauge("txpool/local", nil)
 
 	slotsGauge = metrics.NewRegisteredGauge("txpool/slots", nil)
 
@@ -1370,6 +1370,10 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	pool.currentState = statedb
 	pool.pendingNonces = newNoncer(statedb)
 
+	// Reset gauges
+	pendingGauge.Update(0)
+	queuedGauge.Update(0)
+	slotsGauge.Update(0)
 	pendingAddrsGauge.Update(0)
 	queuedAddrsGauge.Update(0)
 
