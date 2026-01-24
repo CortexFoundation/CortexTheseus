@@ -206,6 +206,29 @@ const (
 	LOG4
 )
 
+// 0xd0 range - eof operations.
+const (
+	DATALOAD  OpCode = 0xd0
+	DATALOADN OpCode = 0xd1
+	DATASIZE  OpCode = 0xd2
+	DATACOPY  OpCode = 0xd3
+)
+
+// 0xe0 range - eof operations.
+const (
+	RJUMP          OpCode = 0xe0
+	RJUMPI         OpCode = 0xe1
+	RJUMPV         OpCode = 0xe2
+	CALLF          OpCode = 0xe3
+	RETF           OpCode = 0xe4
+	JUMPF          OpCode = 0xe5
+	DUPN           OpCode = 0xe6
+	SWAPN          OpCode = 0xe7
+	EXCHANGE       OpCode = 0xe8
+	EOFCREATE      OpCode = 0xec
+	RETURNCONTRACT OpCode = 0xee
+)
+
 // 0xf0 range - closures.
 const (
 	CREATE OpCode = 0xf0 + iota
