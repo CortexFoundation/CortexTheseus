@@ -35,9 +35,9 @@ type fecDecoder struct {
 	receivedFECPackets  []fecPacketState
 }
 
-func newFECDecoder(ssrc uint32, protectedStreamSSRC uint32) *fecDecoder {
+func newFECDecoder(ssrc uint32, protectedStreamSSRC uint32, loggerFactory logging.LoggerFactory) *fecDecoder {
 	return &fecDecoder{
-		logger:              logging.NewDefaultLoggerFactory().NewLogger("fec_decoder"),
+		logger:              loggerFactory.NewLogger("fec_decoder"),
 		ssrc:                ssrc,
 		protectedStreamSSRC: protectedStreamSSRC,
 		maxMediaPackets:     100,

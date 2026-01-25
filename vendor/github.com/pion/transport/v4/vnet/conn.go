@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pion/transport/v3"
+	"github.com/pion/transport/v4"
 )
 
 const (

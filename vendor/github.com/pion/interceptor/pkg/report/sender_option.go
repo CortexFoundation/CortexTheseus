@@ -21,6 +21,15 @@ func SenderLog(log logging.LeveledLogger) SenderOption {
 	}
 }
 
+// WithSenderLoggerFactory sets a logger factory for the interceptor.
+func WithSenderLoggerFactory(loggerFactory logging.LoggerFactory) SenderOption {
+	return func(r *SenderInterceptor) error {
+		r.loggerFactory = loggerFactory
+
+		return nil
+	}
+}
+
 // SenderInterval sets send interval for the interceptor.
 func SenderInterval(interval time.Duration) SenderOption {
 	return func(r *SenderInterceptor) error {

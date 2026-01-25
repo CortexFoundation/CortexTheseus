@@ -21,6 +21,15 @@ func ReceiverLog(log logging.LeveledLogger) ReceiverOption {
 	}
 }
 
+// WithReceiverLoggerFactory sets a logger factory for the interceptor.
+func WithReceiverLoggerFactory(loggerFactory logging.LoggerFactory) ReceiverOption {
+	return func(r *ReceiverInterceptor) error {
+		r.loggerFactory = loggerFactory
+
+		return nil
+	}
+}
+
 // ReceiverInterval sets send interval for the interceptor.
 func ReceiverInterval(interval time.Duration) ReceiverOption {
 	return func(r *ReceiverInterceptor) error {

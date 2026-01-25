@@ -519,13 +519,14 @@ func (pc *PeerConnection) onConnectionStateChange(cs PeerConnectionState) {
 }
 
 // SetConfiguration updates the configuration of this PeerConnection object.
+// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-setconfiguration
 func (pc *PeerConnection) SetConfiguration(configuration Configuration) error { //nolint:gocognit,cyclop
 	// https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-setconfiguration (step #2)
 	if pc.isClosed.Load() {
 		return &rtcerr.InvalidStateError{Err: ErrConnectionClosed}
 	}
 
-	// https://www.w3.org/TR/webrtc/#set-the-configuration (step #3)
+	// Not in W3C spec, but we validate PeerIdentity cannot be modified.
 	if configuration.PeerIdentity != "" {
 		if configuration.PeerIdentity != pc.configuration.PeerIdentity {
 			return &rtcerr.InvalidModificationError{Err: ErrModifyingPeerIdentity}
@@ -533,7 +534,7 @@ func (pc *PeerConnection) SetConfiguration(configuration Configuration) error { 
 		pc.configuration.PeerIdentity = configuration.PeerIdentity
 	}
 
-	// https://www.w3.org/TR/webrtc/#set-the-configuration (step #4)
+	// https://www.w3.org/TR/webrtc/#set-the-configuration (step #3.1 - #3.3)
 	if len(configuration.Certificates) > 0 {
 		if len(configuration.Certificates) != len(pc.configuration.Certificates) {
 			return &rtcerr.InvalidModificationError{Err: ErrModifyingCertificates}
@@ -547,7 +548,7 @@ func (pc *PeerConnection) SetConfiguration(configuration Configuration) error { 
 		pc.configuration.Certificates = configuration.Certificates
 	}
 
-	// https://www.w3.org/TR/webrtc/#set-the-configuration (step #5)
+	// https://www.w3.org/TR/webrtc/#set-the-configuration (step #3.4)
 	if configuration.BundlePolicy != BundlePolicyUnknown {
 		if configuration.BundlePolicy != pc.configuration.BundlePolicy {
 			return &rtcerr.InvalidModificationError{Err: ErrModifyingBundlePolicy}
@@ -555,7 +556,7 @@ func (pc *PeerConnection) SetConfiguration(configuration Configuration) error { 
 		pc.configuration.BundlePolicy = configuration.BundlePolicy
 	}
 
-	// https://www.w3.org/TR/webrtc/#set-the-configuration (step #6)
+	// https://www.w3.org/TR/webrtc/#set-the-configuration (step #3.5)
 	if configuration.RTCPMuxPolicy != RTCPMuxPolicyUnknown {
 		if configuration.RTCPMuxPolicy != pc.configuration.RTCPMuxPolicy {
 			return &rtcerr.InvalidModificationError{Err: ErrModifyingRTCPMuxPolicy}
@@ -563,7 +564,7 @@ func (pc *PeerConnection) SetConfiguration(configuration Configuration) error { 
 		pc.configuration.RTCPMuxPolicy = configuration.RTCPMuxPolicy
 	}
 
-	// https://www.w3.org/TR/webrtc/#set-the-configuration (step #7)
+	// https://www.w3.org/TR/webrtc/#set-the-configuration (step #3.6)
 	if configuration.ICECandidatePoolSize != 0 {
 		if pc.configuration.ICECandidatePoolSize != configuration.ICECandidatePoolSize &&
 			pc.LocalDescription() != nil {
@@ -572,19 +573,28 @@ func (pc *PeerConnection) SetConfiguration(configuration Configuration) error { 
 		pc.configuration.ICECandidatePoolSize = configuration.ICECandidatePoolSize
 	}
 
-	// https://www.w3.org/TR/webrtc/#set-the-configuration (step #8)
+	// https://www.w3.org/TR/webrtc/#set-the-configuration (step #4-6)
+	for _, server := range configuration.ICEServers {
+		if err := server.validate(); err != nil {
+			return err
+		}
+	}
+
+	// https://www.w3.org/TR/webrtc/#set-the-configuration (step #7)
 	pc.configuration.ICETransportPolicy = configuration.ICETransportPolicy
 
-	// https://www.w3.org/TR/webrtc/#set-the-configuration (step #11)
-	if len(configuration.ICEServers) > 0 {
-		// https://www.w3.org/TR/webrtc/#set-the-configuration (step #11.3)
-		for _, server := range configuration.ICEServers {
-			if err := server.validate(); err != nil {
-				return err
-			}
+	// Step #8: ICE candidate pool size is not implemented in pion/webrtc.
+	// The value is stored in configuration but candidate pooling is not supported.
+
+	// https://www.w3.org/TR/webrtc/#set-the-configuration (step #9)
+	// Update the ICE gatherer so new servers take effect at the next gathering phase.
+	if pc.iceGatherer != nil {
+		if err := pc.iceGatherer.updateServers(configuration.ICEServers, pc.configuration.ICETransportPolicy); err != nil {
+			pc.log.Debugf("Could not update ICE gatherer servers: %v", err)
 		}
-		pc.configuration.ICEServers = configuration.ICEServers
 	}
+
+	pc.configuration.ICEServers = configuration.ICEServers
 
 	return nil
 }
@@ -869,7 +879,15 @@ func (pc *PeerConnection) CreateAnswer(options *AnswerOptions) (SessionDescripti
 
 	connectionRole := connectionRoleFromDtlsRole(pc.api.settingEngine.answeringDTLSRole)
 	if connectionRole == sdp.ConnectionRole(0) {
-		connectionRole = connectionRoleFromDtlsRole(defaultDtlsRoleAnswer)
+		dtlsRole := dtlsRoleFromSDP(remoteDesc.parsed)
+		switch dtlsRole {
+		case DTLSRoleClient:
+			connectionRole = connectionRoleFromDtlsRole(DTLSRoleServer)
+		case DTLSRoleServer:
+			connectionRole = connectionRoleFromDtlsRole(DTLSRoleClient)
+		default:
+			connectionRole = connectionRoleFromDtlsRole(defaultDtlsRoleAnswer)
+		}
 
 		// If one of the agents is lite and the other one is not, the lite agent must be the controlled agent.
 		// If both or neither agents are lite the offering agent is controlling.
@@ -1303,7 +1321,7 @@ func (pc *PeerConnection) SetRemoteDescription(desc SessionDescription) error {
 	pc.ops.Enqueue(func() {
 		pc.startTransports(
 			iceRole,
-			dtlsRoleFromRemoteSDP(desc.parsed),
+			dtlsRoleFromSDP(desc.parsed),
 			iceDetails.Ufrag,
 			iceDetails.Password,
 			fingerprint,
@@ -1827,19 +1845,16 @@ func (pc *PeerConnection) handleIncomingSSRC(rtpStream *srtp.ReadStreamSRTP, ssr
 	rtcpInterceptor := result.rtcpInterceptor
 
 	// try to read simulcast IDs from the packet we already have
-	var mid, rid, rsid string
-	if _, err = handleUnknownRTPPacket(
+	mid, rid, rsid, _, err := handleUnknownRTPPacket(
 		b[:i], uint8(midExtensionID), //nolint:gosec // G115
 		uint8(streamIDExtensionID),       //nolint:gosec // G115
 		uint8(repairStreamIDExtensionID), //nolint:gosec // G115
-		&mid,
-		&rid,
-		&rsid,
-	); err != nil {
+	)
+	if err != nil {
 		return err
 	}
 
-	peekedPackets := []*peekedPacket{}
+	peekedPackets := []*peekedPacket(nil)
 
 	// if the first packet didn't contain simuilcast IDs, then probe more packets
 	var paddingOnly bool
@@ -1860,14 +1875,12 @@ func (pc *PeerConnection) handleIncomingSSRC(rtpStream *srtp.ReadStreamSRTP, ssr
 				attributes: attributes,
 			})
 
-			if paddingOnly, err = handleUnknownRTPPacket(
+			mid, rid, rsid, paddingOnly, err = handleUnknownRTPPacket(
 				b[:i], uint8(midExtensionID), //nolint:gosec // G115
 				uint8(streamIDExtensionID),       //nolint:gosec // G115
 				uint8(repairStreamIDExtensionID), //nolint:gosec // G115
-				&mid,
-				&rid,
-				&rsid,
-			); err != nil {
+			)
+			if err != nil {
 				return err
 			}
 

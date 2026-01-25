@@ -9,8 +9,7 @@ import (
 )
 
 type torrentUnlockActions struct {
-	updateRegularTrackerAnnouncing bool
-	updateComplete                 bool
+	updateComplete bool
 }
 
 // A non-dynamic way to register handlers to run just once when the client is unlocked.
@@ -24,13 +23,6 @@ func (me *clientUnlockHandlers) init() {
 	g.MakeMap(&me.changedPieceStates)
 }
 
-func (me *clientUnlockHandlers) deferUpdateTorrentRegularTrackerAnnouncing(t *Torrent) {
-	g.MakeMapIfNil(&me.torrentActions)
-	value := me.torrentActions[t]
-	value.updateRegularTrackerAnnouncing = true
-	me.torrentActions[t] = value
-}
-
 func (me *clientUnlockHandlers) addUpdateComplete(t *Torrent) {
 	v := me.torrentActions[t]
 	v.updateComplete = true
@@ -38,13 +30,8 @@ func (me *clientUnlockHandlers) addUpdateComplete(t *Torrent) {
 }
 
 func (me *clientUnlockHandlers) run(logger *slog.Logger) {
-	trackers := 0
 	started := time.Now()
 	for t, v := range me.torrentActions {
-		if v.updateRegularTrackerAnnouncing {
-			trackers++
-			t.updateRegularTrackerAnnouncing()
-		}
 		if v.updateComplete {
 			t.updateComplete()
 		}
@@ -53,7 +40,7 @@ func (me *clientUnlockHandlers) run(logger *slog.Logger) {
 	since := time.Since(started)
 	// Around here the Go scheduler starts to do crazy stuff.
 	if since > 20*time.Millisecond {
-		logger.Warn("client unlock handlers took a long time", "duration", since, "trackers", trackers)
+		logger.Warn("client unlock handlers took a long time", "duration", since)
 	}
 	for p := range me.changedPieceStates {
 		p.publishStateChange()

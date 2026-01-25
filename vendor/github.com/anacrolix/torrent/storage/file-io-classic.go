@@ -1,29 +1,27 @@
 package storage
 
 import (
-	"errors"
 	"io"
 	"os"
 )
 
 type classicFileIo struct{}
 
-func (me classicFileIo) rename(from, to string) error {
-	a := sharedFiles.CloseAll(from)
-	b := sharedFiles.CloseAll(to)
-	c := os.Rename(from, to)
-	if c != nil {
-		return errors.Join(a, b, c)
-	}
+// Lifetimes of files are scoped to their use, so let's hope everyone is being a good citizen.
+func (me classicFileIo) Close() error {
 	return nil
+}
+
+func (me classicFileIo) rename(from, to string) error {
+	return os.Rename(from, to)
 }
 
 func (me classicFileIo) flush(name string, offset, nbytes int64) error {
 	return fsync(name)
 }
 
-func (me classicFileIo) openForSharedRead(name string) (sharedFileIf, error) {
-	return sharedFiles.Open(name)
+func (me classicFileIo) openForSharedRead(name string) (sharableReader, error) {
+	return os.Open(name)
 }
 
 func (me classicFileIo) openForRead(name string) (fileReader, error) {

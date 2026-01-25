@@ -143,38 +143,6 @@ func newShuffleLossHandle(chance, shuffleBlockSize int, rng *rand.Rand) *lossHan
 	return handler
 }
 
-// NewRandomLossHandler creates a new LossHandler with random packet dropping.
-//
-// Deprecated: This function does not support seed-based deterministic behavior.
-// For deterministic testing, use NewLossFilterWithOptions with WithLossSeed instead.
-// This function will be removed in a future version.
-func NewRandomLossHandler(chance int) (LossFilterHandler, error) {
-	if !validateChance(chance) {
-		return nil, ErrInvalidChance
-	}
-
-	return newRandomLossHandle(chance, newRNG(nil)), nil
-}
-
-// NewRandomShuffleLossHandler creates a new LossHandler with shuffle-based deterministic packet loss.
-// The chance parameter is a percentage (0-100). For every shuffleBlockSize packets, it guarantees that
-// the number of packets dropped equals round(shuffleBlockSize * chance / 100).
-//
-// Deprecated: This function does not support seed-based deterministic behavior.
-// For deterministic testing and reproducible shuffle patterns, use NewLossFilterWithOptions with
-// WithShuffleLossHandler and WithLossSeed instead. This function will be removed in a future version.
-func NewRandomShuffleLossHandler(chance int, shuffleBlockSize int) (LossFilterHandler, error) {
-	if !validateChance(chance) {
-		return nil, ErrInvalidChance
-	}
-
-	if shuffleBlockSize < 1 {
-		return nil, ErrInvalidShuffleBlockSize
-	}
-
-	return newShuffleLossHandle(chance, shuffleBlockSize, newRNG(nil)), nil
-}
-
 func (r *lossHandle) shouldDrop() bool {
 	if r.shuffleBlockSize > 0 {
 		return r.shouldDropShuffle()
@@ -249,19 +217,12 @@ shuffleComplete:
 }
 
 // NewLossFilter creates a new LossFilter that drops every packet with a
-// probability of chance/100 using the default random LossHandler.
-// This maintains backward compatibility with the original API.
-func NewLossFilter(nic NIC, chance int) (*LossFilter, error) {
-	return NewLossFilterWithOptions(nic, chance)
-}
-
-// NewLossFilterWithOptions creates a new LossFilter that drops every packet with a
 // probability of chance/100. You can provide custom options to override the
 // default behavior. This follows the Pion options pattern for extensibility.
 //
 // Option precedence: If WithLossHandler is provided, it takes precedence and any
 // WithShuffleLossHandler option will be ignored.
-func NewLossFilterWithOptions(nic NIC, chance int, options ...LossFilterOption) (*LossFilter, error) {
+func NewLossFilter(nic NIC, chance int, options ...LossFilterOption) (*LossFilter, error) {
 	if !validateChance(chance) {
 		return nil, ErrInvalidChance
 	}
