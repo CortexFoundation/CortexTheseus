@@ -134,6 +134,9 @@ var (
 
 	slotsGauge = metrics.NewRegisteredGauge("txpool/slots", nil)
 
+	pendingAddrsGauge = metrics.NewRegisteredGauge("txpool/pending/accounts", nil)
+	queuedAddrsGauge  = metrics.NewRegisteredGauge("txpool/queued/accounts", nil)
+
 	reheapTimer = metrics.NewRegisteredTimer("txpool/reheap", nil)
 )
 
@@ -863,6 +866,7 @@ func (pool *TxPool) promoteTx(addr common.Address, hash common.Hash, tx *types.T
 	// Try to insert the transaction into the pending queue
 	if pool.pending[addr] == nil {
 		pool.pending[addr] = newList(true)
+		pendingAddrsGauge.Inc(1)
 	}
 	list := pool.pending[addr]
 
@@ -1073,6 +1077,7 @@ func (pool *TxPool) removeTx(hash common.Hash, outofbound bool, unreserve bool) 
 			// If no more pending transactions are left, remove the list
 			if pending.Empty() {
 				delete(pool.pending, addr)
+				pendingAddrsGauge.Dec(1)
 			}
 			// Postpone any invalidated transactions
 			for _, tx := range invalids {
@@ -1365,6 +1370,9 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	pool.currentState = statedb
 	pool.pendingNonces = newNoncer(statedb)
 
+	pendingAddrsGauge.Update(0)
+	queuedAddrsGauge.Update(0)
+
 	// Inject any transactions discarded due to reorgs
 	log.Debug("Reinjecting stale transactions", "count", len(reinject))
 	core.SenderCacher.Recover(pool.signer, reinject)
@@ -1568,6 +1576,7 @@ func (pool *TxPool) demoteUnexecutables() {
 		// Delete the entire pending entry if it became empty.
 		if list.Empty() {
 			delete(pool.pending, addr)
+			pendingAddrsGauge.Dec(1)
 			if _, ok := pool.queue.get(addr); !ok {
 				pool.reserver.Release(addr)
 			}
