@@ -39,6 +39,13 @@ func (s *SenderInterceptorFactory) NewInterceptor(_ string) (interceptor.Interce
 		}
 	}
 
+	if senderInterceptor.loggerFactory == nil {
+		senderInterceptor.loggerFactory = logging.NewDefaultLoggerFactory()
+	}
+	if senderInterceptor.log == nil {
+		senderInterceptor.log = senderInterceptor.loggerFactory.NewLogger("sender_interceptor")
+	}
+
 	return senderInterceptor, nil
 }
 
@@ -50,15 +57,16 @@ func NewSenderInterceptor(opts ...SenderOption) (*SenderInterceptorFactory, erro
 // SenderInterceptor interceptor generates sender reports.
 type SenderInterceptor struct {
 	interceptor.NoOp
-	interval  time.Duration
-	now       func() time.Time
-	newTicker TickerFactory
-	streams   sync.Map
-	log       logging.LeveledLogger
-	m         sync.Mutex
-	wg        sync.WaitGroup
-	close     chan struct{}
-	started   chan struct{}
+	interval      time.Duration
+	now           func() time.Time
+	newTicker     TickerFactory
+	streams       sync.Map
+	log           logging.LeveledLogger
+	loggerFactory logging.LoggerFactory
+	m             sync.Mutex
+	wg            sync.WaitGroup
+	close         chan struct{}
+	started       chan struct{}
 
 	useLatestPacket bool
 }

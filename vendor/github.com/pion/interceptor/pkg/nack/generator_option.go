@@ -53,6 +53,15 @@ func GeneratorLog(log logging.LeveledLogger) GeneratorOption {
 	}
 }
 
+// WithGeneratorLoggerFactory sets a logger factory for the interceptor.
+func WithGeneratorLoggerFactory(loggerFactory logging.LoggerFactory) GeneratorOption {
+	return func(r *GeneratorInterceptor) error {
+		r.loggerFactory = loggerFactory
+
+		return nil
+	}
+}
+
 // GeneratorInterval sets the nack send interval for the interceptor.
 func GeneratorInterval(interval time.Duration) GeneratorOption {
 	return func(r *GeneratorInterceptor) error {

@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/pion/logging"
-	"github.com/pion/transport/v3"
+	"github.com/pion/transport/v4"
 )
 
 const (
@@ -54,8 +54,6 @@ type RouterConfig struct {
 	// an IP address.
 	// This will be ignored if this router is the root.
 	StaticIPs []string
-	// StaticIP is deprecated. Use StaticIPs.
-	StaticIP string
 	// Internal queue size
 	QueueSize int
 	// Effective only when this router has a parent router
@@ -164,12 +162,6 @@ func NewRouter(config *RouterConfig) (*Router, error) { //nolint:cyclop
 				}
 				staticLocalIPs[ip.String()] = locIP
 			}
-			staticIPs = append(staticIPs, ip)
-		}
-	}
-	if len(config.StaticIP) > 0 {
-		log.Warn("StaticIP is deprecated. Use StaticIPs instead")
-		if ip := net.ParseIP(config.StaticIP); ip != nil {
 			staticIPs = append(staticIPs, ip)
 		}
 	}
@@ -334,6 +326,21 @@ func (r *Router) addNIC(nic NIC) error {
 	return nic.setRouter(r)
 }
 
+// caller must hold the mutex.
+func (r *Router) addIPToNIC(nic NIC, ip net.IP) error {
+	if !r.ipv4Net.Contains(ip) {
+		return fmt.Errorf("%w: %s", errStaticIPisBeyondSubnet, r.ipv4Net.String())
+	}
+	r.nics[ip.String()] = nic
+
+	return nil
+}
+
+// caller must hold the mutex.
+func (r *Router) removeIPFromNIC(ip net.IP) {
+	delete(r.nics, ip.String())
+}
+
 // AddRouter adds a child Router.
 func (r *Router) AddRouter(router *Router) error {
 	r.mutex.Lock()
@@ -405,7 +412,7 @@ func (r *Router) assignIPAddress() (net.IP, error) {
 	ip := make(net.IP, 4)
 	copy(ip, r.ipv4Net.IP[:3])
 	r.lastID++
-	ip[3] = r.lastID
+	ip[3] = r.lastID //nolint:gosec // IPv4 address is always 4 bytes
 
 	return ip, nil
 }

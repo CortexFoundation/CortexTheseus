@@ -9,7 +9,7 @@ import (
 
 	"github.com/pion/logging"
 	"github.com/pion/stun/v3"
-	"github.com/pion/transport/v3"
+	"github.com/pion/transport/v4"
 	"golang.org/x/net/proxy"
 )
 
@@ -72,6 +72,7 @@ func defaultRelayAcceptanceMinWaitFor(candidateTypes []CandidateType) time.Durat
 
 // AgentConfig collects the arguments to ice.Agent construction into
 // a single structure, for future-proofness of the interface.
+//
 // Deprecated: use NewAgentWithOptions instead.
 type AgentConfig struct {
 	Urls []*stun.URI

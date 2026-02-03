@@ -157,6 +157,9 @@ var (
 	// ErrCandidatePairNotFound indicates that candidate pair was not found.
 	ErrCandidatePairNotFound = errors.New("candidate pair not found")
 
+	// ErrCandidatePairNotSucceeded indicates that candidate pair is not in succeeded state.
+	ErrCandidatePairNotSucceeded = errors.New("candidate pair not in succeeded state")
+
 	// ErrInvalidNominationAttribute indicates an invalid nomination attribute type was provided.
 	ErrInvalidNominationAttribute = errors.New("invalid nomination attribute type")
 
@@ -165,6 +168,9 @@ var (
 
 	// ErrInvalidNetworkMonitorInterval indicates an invalid network monitor interval was provided.
 	ErrInvalidNetworkMonitorInterval = errors.New("network monitor interval must be greater than 0")
+
+	// ErrAgentOptionNotUpdatable indicates an option cannot be updated after construction.
+	ErrAgentOptionNotUpdatable = errors.New("option can only be set during agent construction")
 
 	errAttributeTooShortICECandidate = errors.New("attribute not long enough to be ICE candidate")
 	errClosingConnection             = errors.New("failed to close connection")

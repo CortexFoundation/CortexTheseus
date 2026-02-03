@@ -23,7 +23,6 @@ func (r *ResponderInterceptorFactory) NewInterceptor(_ string) (interceptor.Inte
 	responderInterceptor := &ResponderInterceptor{
 		streamsFilter: streamSupportNack,
 		size:          1024,
-		log:           logging.NewDefaultLoggerFactory().NewLogger("nack_responder"),
 		streams:       map[uint32]*localStream{},
 	}
 
@@ -33,6 +32,12 @@ func (r *ResponderInterceptorFactory) NewInterceptor(_ string) (interceptor.Inte
 		}
 	}
 
+	if responderInterceptor.loggerFactory == nil {
+		responderInterceptor.loggerFactory = logging.NewDefaultLoggerFactory()
+	}
+	if responderInterceptor.log == nil {
+		responderInterceptor.log = responderInterceptor.loggerFactory.NewLogger("nack_responder")
+	}
 	if responderInterceptor.packetFactory == nil {
 		responderInterceptor.packetFactory = rtpbuffer.NewPacketFactoryCopy()
 	}
@@ -50,6 +55,7 @@ type ResponderInterceptor struct {
 	streamsFilter func(info *interceptor.StreamInfo) bool
 	size          uint16
 	log           logging.LeveledLogger
+	loggerFactory logging.LoggerFactory
 	packetFactory rtpbuffer.PacketFactory
 
 	streams   map[uint32]*localStream
@@ -126,10 +132,10 @@ func (n *ResponderInterceptor) BindLocalStream(
 			if err != nil {
 				return 0, err
 			}
-			stream.rtpBufferMutex.Lock()
-			defer stream.rtpBufferMutex.Unlock()
 
-			rtpBuffer.Add(pkt)
+			stream.rtpBufferMutex.Lock()
+			stream.rtpBuffer.Add(pkt)
+			stream.rtpBufferMutex.Unlock()
 
 			return writer.Write(header, payload, attributes)
 		},
@@ -153,10 +159,13 @@ func (n *ResponderInterceptor) resendPackets(nack *rtcp.TransportLayerNack) {
 
 	for i := range nack.Nacks {
 		nack.Nacks[i].Range(func(seq uint16) bool {
+			// save the packet under the buffer lock
 			stream.rtpBufferMutex.Lock()
-			defer stream.rtpBufferMutex.Unlock()
+			p := stream.rtpBuffer.Get(seq)
+			stream.rtpBufferMutex.Unlock()
 
-			if p := stream.rtpBuffer.Get(seq); p != nil {
+			if p != nil {
+				// send without holding rtpBufferMutex
 				if _, err := stream.rtpWriter.Write(p.Header(), p.Payload(), interceptor.Attributes{}); err != nil {
 					n.log.Warnf("failed resending nacked packet: %+v", err)
 				}

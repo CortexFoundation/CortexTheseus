@@ -114,6 +114,40 @@ func (api *API) NewICEGatherer(opts ICEGatherOptions) (*ICEGatherer, error) {
 	}, nil
 }
 
+// updateServers updates the ICE servers and gather policy.
+// If called before gathering starts, the new servers will be used for initial gathering.
+// If called after gathering has started, the new servers will be used on the next ICE restart.
+func (g *ICEGatherer) updateServers(servers []ICEServer, policy ICETransportPolicy) error {
+	g.lock.Lock()
+	defer g.lock.Unlock()
+
+	var validatedServers []*stun.URI
+	for _, server := range servers {
+		urls, err := server.urls()
+		if err != nil {
+			return err
+		}
+		validatedServers = append(validatedServers, urls...)
+	}
+
+	g.validatedServers = validatedServers
+	g.gatherPolicy = policy
+
+	if g.agent != nil {
+		return g.agent.UpdateOptions(ice.WithUrls(validatedServers))
+	}
+
+	return nil
+}
+
+// validatedServersCount returns the number of validated ICE server URLs.
+func (g *ICEGatherer) validatedServersCount() int {
+	g.lock.RLock()
+	defer g.lock.RUnlock()
+
+	return len(g.validatedServers)
+}
+
 func (g *ICEGatherer) createAgent() error {
 	g.lock.Lock()
 	defer g.lock.Unlock()
@@ -449,6 +483,13 @@ func (g *ICEGatherer) close(shouldGracefullyClose bool) error {
 		if err := g.agent.Close(); err != nil {
 			return err
 		}
+	}
+
+	// onGatheringCompleteHandler is used solely by the GatheringCompletePromise helper and the common usage
+	// for that helper is aided by ensuring that this completion is fired in case the PC/ICEGatherer are closed
+	// before gathering actually completes. If things have already completed then this should be a no-op
+	if handler, ok := g.onGatheringCompleteHandler.Load().(func()); ok && handler != nil {
+		handler()
 	}
 
 	g.agent = nil

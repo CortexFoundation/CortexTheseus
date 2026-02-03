@@ -107,6 +107,75 @@ func (options Options) Rune(r rune) int {
 
 const _Default property = 0
 
+// TruncateString truncates a string to the given maxWidth, and appends the
+// given tail if the string is truncated.
+//
+// It ensures the total width, including the width of the tail, is less than or
+// equal to maxWidth.
+func (options Options) TruncateString(s string, maxWidth int, tail string) string {
+	maxWidthWithoutTail := maxWidth - options.String(tail)
+
+	var pos, total int
+	g := graphemes.FromString(s)
+	for g.Next() {
+		gw := graphemeWidth(g.Value(), options)
+		if total+gw <= maxWidthWithoutTail {
+			pos = g.End()
+		}
+		total += gw
+		if total > maxWidth {
+			return s[:pos] + tail
+		}
+	}
+	// No truncation
+	return s
+}
+
+// TruncateString truncates a string to the given maxWidth, and appends the
+// given tail if the string is truncated.
+//
+// It ensures the total width, including the width of the tail, is less than or
+// equal to maxWidth.
+func TruncateString(s string, maxWidth int, tail string) string {
+	return DefaultOptions.TruncateString(s, maxWidth, tail)
+}
+
+// TruncateBytes truncates a []byte to the given maxWidth, and appends the
+// given tail if the []byte is truncated.
+//
+// It ensures the total width, including the width of the tail, is less than or
+// equal to maxWidth.
+func (options Options) TruncateBytes(s []byte, maxWidth int, tail []byte) []byte {
+	maxWidthWithoutTail := maxWidth - options.Bytes(tail)
+
+	var pos, total int
+	g := graphemes.FromBytes(s)
+	for g.Next() {
+		gw := graphemeWidth(g.Value(), options)
+		if total+gw <= maxWidthWithoutTail {
+			pos = g.End()
+		}
+		total += gw
+		if total > maxWidth {
+			result := make([]byte, 0, pos+len(tail))
+			result = append(result, s[:pos]...)
+			result = append(result, tail...)
+			return result
+		}
+	}
+	// No truncation
+	return s
+}
+
+// TruncateBytes truncates a []byte to the given maxWidth, and appends the
+// given tail if the []byte is truncated.
+//
+// It ensures the total width, including the width of the tail, is less than or
+// equal to maxWidth.
+func TruncateBytes(s []byte, maxWidth int, tail []byte) []byte {
+	return DefaultOptions.TruncateBytes(s, maxWidth, tail)
+}
+
 // graphemeWidth returns the display width of a grapheme cluster.
 // The passed string must be a single grapheme cluster.
 func graphemeWidth[T stringish.Interface](s T, options Options) int {

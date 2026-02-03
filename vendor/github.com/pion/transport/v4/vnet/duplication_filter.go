@@ -159,8 +159,8 @@ type dupBucket struct {
 	chunks []Chunk
 }
 
-// NewDuplicationFilterWithOptions constructs a new DuplicationFilter bound to the provided router.
-func NewDuplicationFilterWithOptions(router *Router, opts ...DuplicationOption) (*DuplicationFilter, error) {
+// NewDuplicationFilter constructs a new DuplicationFilter bound to the provided router.
+func NewDuplicationFilter(router *Router, opts ...DuplicationOption) (*DuplicationFilter, error) {
 	if router == nil {
 		return nil, errInvalidDuplicationRouter
 	}

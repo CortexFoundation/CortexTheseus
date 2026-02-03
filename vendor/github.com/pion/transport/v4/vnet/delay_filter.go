@@ -5,10 +5,33 @@ package vnet
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"sync/atomic"
 	"time"
 )
+
+// ErrInvalidDelay indicates an invalid (negative) delay duration was provided.
+var ErrInvalidDelay = errors.New("delay must be non-negative")
+
+type delayFilterConfig struct {
+	delay time.Duration
+}
+
+// DelayFilterOption configures DelayFilter creation.
+type DelayFilterOption func(*delayFilterConfig) error
+
+// WithDelay sets the initial delay applied by the filter.
+func WithDelay(delay time.Duration) DelayFilterOption {
+	return func(cfg *delayFilterConfig) error {
+		if delay < 0 {
+			return ErrInvalidDelay
+		}
+		cfg.delay = delay
+
+		return nil
+	}
+}
 
 // DelayFilter delays inbound packets by the given delay. Automatically starts
 // processing when created and runs until Close() is called.
@@ -26,8 +49,19 @@ type timedChunk struct {
 	deadline time.Time
 }
 
-// NewDelayFilter creates and starts a new DelayFilter with the given nic and delay.
-func NewDelayFilter(nic NIC, delay time.Duration) (*DelayFilter, error) {
+// NewDelayFilter creates and starts a new DelayFilter with the given NIC and options.
+func NewDelayFilter(nic NIC, opts ...DelayFilterOption) (*DelayFilter, error) {
+	cfg := delayFilterConfig{}
+
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if err := opt(&cfg); err != nil {
+			return nil, err
+		}
+	}
+
 	delayFilter := &DelayFilter{
 		NIC:   nic,
 		push:  make(chan struct{}),
@@ -35,7 +69,7 @@ func NewDelayFilter(nic NIC, delay time.Duration) (*DelayFilter, error) {
 		done:  make(chan struct{}),
 	}
 
-	delayFilter.delay.Store(int64(delay))
+	delayFilter.delay.Store(int64(cfg.delay))
 
 	// Start processing automatically
 	delayFilter.wg.Add(1)

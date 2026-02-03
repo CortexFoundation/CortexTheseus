@@ -4,6 +4,7 @@
 package vnet
 
 import (
+	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -13,7 +14,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/pion/transport/v3"
+	"github.com/pion/transport/v4"
 )
 
 const (
@@ -151,6 +152,49 @@ func (v *Net) setRouter(r *Router) error {
 	defer v.mutex.Unlock()
 
 	v.router = r
+
+	return nil
+}
+
+// AddAddress adds an address to an interface and registers it for routing.
+// This method can be called before or after the router has started.
+func (v *Net) AddAddress(ifName string, addr *net.IPNet) error {
+	v.mutex.Lock()
+	defer v.mutex.Unlock()
+
+	ifc, err := v._getInterface(ifName)
+	if err != nil {
+		return err
+	}
+	ifc.AddAddress(addr)
+
+	if v.router != nil {
+		v.router.mutex.Lock()
+		defer v.router.mutex.Unlock()
+
+		return v.router.addIPToNIC(v, addr.IP)
+	}
+
+	return nil
+}
+
+// RemoveAddress removes an address from an interface and unregisters it from routing.
+// This method can be called before or after the router has started.
+func (v *Net) RemoveAddress(ifName string, ip net.IP) error {
+	v.mutex.Lock()
+	defer v.mutex.Unlock()
+
+	ifc, err := v._getInterface(ifName)
+	if err != nil {
+		return err
+	}
+	ifc.RemoveAddress(ip)
+
+	if v.router != nil {
+		v.router.mutex.Lock()
+		defer v.router.mutex.Unlock()
+		v.router.removeIPFromNIC(ip)
+	}
 
 	return nil
 }
@@ -546,9 +590,6 @@ type NetConfig struct {
 	// If no static IP address is given, the router will automatically assign
 	// an IP address.
 	StaticIPs []string
-
-	// StaticIP is deprecated. Use StaticIPs.
-	StaticIP string
 }
 
 // NewNet creates an instance of a virtual network.
@@ -580,11 +621,6 @@ func NewNet(config *NetConfig) (*Net, error) {
 	var staticIPs []net.IP
 	for _, ipStr := range config.StaticIPs {
 		if ip := net.ParseIP(ipStr); ip != nil {
-			staticIPs = append(staticIPs, ip)
-		}
-	}
-	if len(config.StaticIP) > 0 {
-		if ip := net.ParseIP(config.StaticIP); ip != nil {
 			staticIPs = append(staticIPs, ip)
 		}
 	}
@@ -621,4 +657,25 @@ type dialer struct {
 
 func (d *dialer) Dial(network, address string) (net.Conn, error) {
 	return d.net.Dial(network, address)
+}
+
+// CreateListenConfig creates an instance of vnet.ListenConfig.
+func (v *Net) CreateListenConfig(l *net.ListenConfig) transport.ListenConfig {
+	return &listenConfig{
+		listenConfig: l,
+		net:          v,
+	}
+}
+
+type listenConfig struct {
+	listenConfig *net.ListenConfig
+	net          *Net
+}
+
+func (l *listenConfig) Listen(ctx context.Context, network, address string) (net.Listener, error) {
+	return l.listenConfig.Listen(ctx, network, address)
+}
+
+func (l *listenConfig) ListenPacket(_ context.Context, network, address string) (net.PacketConn, error) {
+	return l.net.ListenPacket(network, address)
 }

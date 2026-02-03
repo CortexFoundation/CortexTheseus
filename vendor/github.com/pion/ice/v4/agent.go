@@ -21,10 +21,10 @@ import (
 	"github.com/pion/logging"
 	"github.com/pion/mdns/v2"
 	"github.com/pion/stun/v3"
-	"github.com/pion/transport/v3"
-	"github.com/pion/transport/v3/packetio"
-	"github.com/pion/transport/v3/stdnet"
-	"github.com/pion/transport/v3/vnet"
+	"github.com/pion/transport/v4"
+	"github.com/pion/transport/v4/packetio"
+	"github.com/pion/transport/v4/stdnet"
+	"github.com/pion/transport/v4/vnet"
 	"github.com/pion/turn/v4"
 	"golang.org/x/net/proxy"
 )
@@ -40,6 +40,10 @@ type bindingRequest struct {
 // Agent represents the ICE agent.
 type Agent struct {
 	loop *taskloop.Loop
+
+	// constructed is set to true after the agent is fully initialized.
+	// Options can check this flag to reject updates that are only valid during construction.
+	constructed bool
 
 	onConnectionStateChangeHdlr       atomic.Value // func(ConnectionState)
 	onSelectedCandidatePairChangeHdlr atomic.Value // func(Candidate, Candidate)
@@ -105,7 +109,9 @@ type Agent struct {
 	remotePwd        string
 	remoteCandidates map[NetworkType][]Candidate
 
-	checklist []*CandidatePair
+	checklist  []*CandidatePair
+	nextPairID uint64
+	pairsByID  map[uint64]*CandidatePair
 
 	selectorLock sync.RWMutex
 	selector     pairCandidateSelector
@@ -172,6 +178,7 @@ type Agent struct {
 }
 
 // NewAgent creates a new Agent.
+//
 // Deprecated: use NewAgentWithOptions instead.
 func NewAgent(config *AgentConfig) (*Agent, error) {
 	return newAgentFromConfig(config)
@@ -335,6 +342,7 @@ func createAgentBase(config *AgentConfig) (*Agent, error) {
 		connectionState:                 ConnectionStateNew,
 		localCandidates:                 make(map[NetworkType][]Candidate),
 		remoteCandidates:                make(map[NetworkType][]Candidate),
+		pairsByID:                       make(map[uint64]*CandidatePair),
 		urls:                            config.Urls,
 		networkTypes:                    config.NetworkTypes,
 		onConnected:                     make(chan struct{}),
@@ -545,6 +553,8 @@ func newAgentWithConfig(agent *Agent, opts ...AgentOption) (*Agent, error) {
 		return nil, err
 	}
 
+	agent.constructed = true
+
 	return agent, nil
 }
 
@@ -660,6 +670,7 @@ func (a *Agent) updateConnectionState(newState ConnectionState) {
 		if newState == ConnectionStateFailed {
 			a.removeUfragFromMux()
 			a.checklist = make([]*CandidatePair, 0)
+			a.pairsByID = make(map[uint64]*CandidatePair)
 			a.pendingBindingRequests = make([]bindingRequest, 0)
 			a.setSelectedPair(nil)
 			a.deleteAllCandidates()
@@ -783,8 +794,11 @@ func (a *Agent) getBestValidCandidatePair() *CandidatePair {
 }
 
 func (a *Agent) addPair(local, remote Candidate) *CandidatePair {
+	a.nextPairID++
 	p := newCandidatePair(local, remote, a.isControlling.Load())
+	p.id = a.nextPairID
 	a.checklist = append(a.checklist, p)
+	a.pairsByID[p.id] = p
 
 	return p
 }
@@ -1378,15 +1392,12 @@ func (a *Agent) handleRoleConflict(msg *stun.Message, local, remote Candidate, r
 }
 
 // handleInbound processes STUN traffic from a remote candidate.
-func (a *Agent) handleInbound(msg *stun.Message, local Candidate, remote net.Addr) { //nolint:gocognit,cyclop
+func (a *Agent) handleInbound(msg *stun.Message, local Candidate, remote net.Addr) {
 	if msg == nil || local == nil {
 		return
 	}
 
-	if msg.Type.Method != stun.MethodBinding ||
-		(msg.Type.Class != stun.ClassSuccessResponse &&
-			msg.Type.Class != stun.ClassRequest &&
-			msg.Type.Class != stun.ClassIndication) {
+	if !canHandleInbound(msg) {
 		a.log.Tracef("Unhandled STUN from %s to %s class(%s) method(%s)", remote, local, msg.Type.Class, msg.Type.Method)
 
 		return
@@ -1394,82 +1405,112 @@ func (a *Agent) handleInbound(msg *stun.Message, local Candidate, remote net.Add
 
 	remoteCandidate := a.findRemoteCandidate(local.NetworkType(), remote)
 
-	if msg.Type.Class == stun.ClassSuccessResponse { //nolint:nestif
-		if err := stun.MessageIntegrity([]byte(a.remotePwd)).Check(msg); err != nil {
-			a.log.Warnf("Discard success response with broken integrity from (%s), %v", remote, err)
-
+	switch msg.Type.Class {
+	case stun.ClassSuccessResponse:
+		if !a.handleInboundResponse(remoteCandidate, local, remote, msg) {
 			return
 		}
-
-		if remoteCandidate == nil {
-			a.log.Warnf("Discard success message from (%s), no such remote", remote)
-
+	case stun.ClassRequest:
+		var ok bool
+		if remoteCandidate, ok = a.handleInboundRequest(remoteCandidate, local, remote, msg); !ok {
 			return
 		}
-
-		a.getSelector().HandleSuccessResponse(msg, local, remoteCandidate, remote)
-	} else if msg.Type.Class == stun.ClassRequest {
-		a.log.Tracef(
-			"Inbound STUN (Request) from %s to %s, useCandidate: %v",
-			remote,
-			local,
-			msg.Contains(stun.AttrUseCandidate),
-		)
-
-		if err := stunx.AssertUsername(msg, a.localUfrag+":"+a.remoteUfrag); err != nil {
-			a.log.Warnf("Discard request with wrong username from (%s), %v", remote, err)
-
-			return
-		} else if err := stun.MessageIntegrity([]byte(a.localPwd)).Check(msg); err != nil {
-			a.log.Warnf("Discard request with broken integrity from (%s), %v", remote, err)
-
-			return
-		}
-
-		if remoteCandidate == nil {
-			ip, port, networkType, err := parseAddr(remote)
-			if err != nil {
-				a.log.Errorf("Failed to create parse remote net.Addr when creating remote prflx candidate: %s", err)
-
-				return
-			}
-
-			prflxCandidateConfig := CandidatePeerReflexiveConfig{
-				Network:   networkType.String(),
-				Address:   ip.String(),
-				Port:      port,
-				Component: local.Component(),
-				RelAddr:   "",
-				RelPort:   0,
-			}
-
-			prflxCandidate, err := NewCandidatePeerReflexive(&prflxCandidateConfig)
-			if err != nil {
-				a.log.Errorf("Failed to create new remote prflx candidate (%s)", err)
-
-				return
-			}
-			remoteCandidate = prflxCandidate
-
-			a.log.Debugf("Adding a new peer-reflexive candidate: %s ", remote)
-			a.addRemoteCandidate(remoteCandidate)
-		}
-
-		// Support Remotes that don't set a TIE-BREAKER. Not standards compliant, but
-		// keeping to maintain backwards compat
-		remoteTieBreaker := &AttrControl{}
-		if err := remoteTieBreaker.GetFrom(msg); err == nil && remoteTieBreaker.Role == a.role() {
-			a.handleRoleConflict(msg, local, remoteCandidate, remoteTieBreaker)
-
-			return
-		}
-
-		a.getSelector().HandleBindingRequest(msg, local, remoteCandidate)
+	default:
 	}
 
 	if remoteCandidate != nil {
 		remoteCandidate.seen(false)
 	}
+}
+
+func canHandleInbound(msg *stun.Message) bool {
+	return msg.Type.Method == stun.MethodBinding &&
+		(msg.Type.Class == stun.ClassSuccessResponse ||
+			msg.Type.Class == stun.ClassRequest ||
+			msg.Type.Class == stun.ClassIndication)
+}
+
+func (a *Agent) handleInboundResponse(
+	remoteCandidate, local Candidate, remote net.Addr, msg *stun.Message,
+) bool {
+	if err := stun.MessageIntegrity([]byte(a.remotePwd)).Check(msg); err != nil {
+		a.log.Warnf("Discard success response with broken integrity from (%s), %v", remote, err)
+
+		return false
+	}
+
+	if remoteCandidate == nil {
+		a.log.Warnf("Discard success message from (%s), no such remote", remote)
+
+		return false
+	}
+
+	a.getSelector().HandleSuccessResponse(msg, local, remoteCandidate, remote)
+
+	return true
+}
+
+func (a *Agent) handleInboundRequest(
+	remoteCandidate, local Candidate, remote net.Addr, msg *stun.Message,
+) (remoteCand Candidate, ok bool) {
+	a.log.Tracef(
+		"Inbound STUN (Request) from %s to %s, useCandidate: %v",
+		remote,
+		local,
+		msg.Contains(stun.AttrUseCandidate),
+	)
+
+	if err := stunx.AssertUsername(msg, a.localUfrag+":"+a.remoteUfrag); err != nil {
+		a.log.Warnf("Discard request with wrong username from (%s), %v", remote, err)
+
+		return nil, false
+	} else if err := stun.MessageIntegrity([]byte(a.localPwd)).Check(msg); err != nil {
+		a.log.Warnf("Discard request with broken integrity from (%s), %v", remote, err)
+
+		return nil, false
+	}
+
+	if remoteCandidate == nil {
+		ip, port, networkType, err := parseAddr(remote)
+		if err != nil {
+			a.log.Errorf("Failed to create parse remote net.Addr when creating remote prflx candidate: %s", err)
+
+			return nil, false
+		}
+
+		prflxCandidateConfig := CandidatePeerReflexiveConfig{
+			Network:   networkType.String(),
+			Address:   ip.String(),
+			Port:      port,
+			Component: local.Component(),
+			RelAddr:   "",
+			RelPort:   0,
+		}
+
+		prflxCandidate, err := NewCandidatePeerReflexive(&prflxCandidateConfig)
+		if err != nil {
+			a.log.Errorf("Failed to create new remote prflx candidate (%s)", err)
+
+			return nil, false
+		}
+		remoteCandidate = prflxCandidate
+
+		a.log.Debugf("Adding a new peer-reflexive candidate: %s ", remote)
+		a.addRemoteCandidate(remoteCandidate)
+	}
+
+	// Support Remotes that don't set a TIE-BREAKER. Not standards compliant, but
+	// keeping to maintain backwards compat
+	remoteTieBreaker := &AttrControl{}
+	if err := remoteTieBreaker.GetFrom(msg); err == nil && remoteTieBreaker.Role == a.role() {
+		a.handleRoleConflict(msg, local, remoteCandidate, remoteTieBreaker)
+
+		return nil, false
+	}
+
+	a.getSelector().HandleBindingRequest(msg, local, remoteCandidate)
+
+	return remoteCandidate, true
 }
 
 // validateNonSTUNTraffic processes non STUN traffic from a remote candidate,
@@ -1539,6 +1580,28 @@ func (a *Agent) SetRemoteCredentials(remoteUfrag, remotePwd string) error {
 	})
 }
 
+// UpdateOptions applies the given options to the agent at runtime.
+// Only a subset of options can be updated after agent creation:
+//   - WithUrls: updates STUN/TURN server URLs (takes effect on next GatherCandidates call)
+//
+// Returns an error if the agent is closed or if an unsupported option is provided.
+func (a *Agent) UpdateOptions(opts ...AgentOption) error {
+	var optErr error
+
+	err := a.loop.Run(a.loop, func(_ context.Context) {
+		for _, opt := range opts {
+			if optErr = opt(a); optErr != nil {
+				return
+			}
+		}
+	})
+	if err != nil {
+		return err
+	}
+
+	return optErr
+}
+
 // Restart restarts the ICE Agent with the provided ufrag/pwd
 // If no ufrag/pwd is provided the Agent will generate one itself
 //
@@ -1583,6 +1646,7 @@ func (a *Agent) Restart(ufrag, pwd string) error { //nolint:cyclop
 		a.remotePwd = ""
 		a.gatheringState = GatheringStateNew
 		a.checklist = make([]*CandidatePair, 0)
+		a.pairsByID = make(map[uint64]*CandidatePair)
 		a.pendingBindingRequests = make([]bindingRequest, 0)
 		a.setSelectedPair(nil)
 		a.deleteAllCandidates()

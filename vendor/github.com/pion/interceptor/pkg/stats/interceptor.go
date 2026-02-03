@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/pion/interceptor"
+	"github.com/pion/logging"
 	"github.com/pion/rtcp"
 	"github.com/pion/rtp"
 )
@@ -31,6 +32,15 @@ func SetRecorderFactory(f RecorderFactory) Option {
 func SetNowFunc(now func() time.Time) Option {
 	return func(i *Interceptor) error {
 		i.now = now
+
+		return nil
+	}
+}
+
+// WithLoggerFactory sets the logger factory for the interceptor.
+func WithLoggerFactory(loggerFactory logging.LoggerFactory) Option {
+	return func(i *Interceptor) error {
+		i.loggerFactory = loggerFactory
 
 		return nil
 	}
@@ -68,18 +78,24 @@ func (r *InterceptorFactory) OnNewPeerConnection(cb NewPeerConnectionCallback) {
 // NewInterceptor creates a new Interceptor.
 func (r *InterceptorFactory) NewInterceptor(id string) (interceptor.Interceptor, error) {
 	interceptor := &Interceptor{
-		NoOp: interceptor.NoOp{},
-		now:  time.Now,
-		lock: sync.Mutex{},
-		RecorderFactory: func(ssrc uint32, clockRate float64) Recorder {
-			return newRecorder(ssrc, clockRate)
-		},
+		NoOp:      interceptor.NoOp{},
+		now:       time.Now,
+		lock:      sync.Mutex{},
 		recorders: map[uint32]Recorder{},
 		wg:        sync.WaitGroup{},
 	}
 	for _, opt := range r.opts {
 		if err := opt(interceptor); err != nil {
 			return nil, err
+		}
+	}
+
+	if interceptor.loggerFactory == nil {
+		interceptor.loggerFactory = logging.NewDefaultLoggerFactory()
+	}
+	if interceptor.RecorderFactory == nil {
+		interceptor.RecorderFactory = func(ssrc uint32, clockRate float64) Recorder {
+			return newRecorder(ssrc, clockRate, interceptor.loggerFactory)
 		}
 	}
 
@@ -112,6 +128,7 @@ type Interceptor struct {
 	RecorderFactory RecorderFactory
 	recorders       map[uint32]Recorder
 	wg              sync.WaitGroup
+	loggerFactory   logging.LoggerFactory
 }
 
 // Get returns the statistics for the stream with ssrc.

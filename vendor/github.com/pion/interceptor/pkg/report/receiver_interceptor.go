@@ -22,7 +22,6 @@ func (r *ReceiverInterceptorFactory) NewInterceptor(_ string) (interceptor.Inter
 	receiverInterceptor := &ReceiverInterceptor{
 		interval: 1 * time.Second,
 		now:      time.Now,
-		log:      logging.NewDefaultLoggerFactory().NewLogger("receiver_interceptor"),
 		close:    make(chan struct{}),
 	}
 
@@ -30,6 +29,13 @@ func (r *ReceiverInterceptorFactory) NewInterceptor(_ string) (interceptor.Inter
 		if err := opt(receiverInterceptor); err != nil {
 			return nil, err
 		}
+	}
+
+	if receiverInterceptor.loggerFactory == nil {
+		receiverInterceptor.loggerFactory = logging.NewDefaultLoggerFactory()
+	}
+	if receiverInterceptor.log == nil {
+		receiverInterceptor.log = receiverInterceptor.loggerFactory.NewLogger("receiver_interceptor")
 	}
 
 	return receiverInterceptor, nil
@@ -43,13 +49,14 @@ func NewReceiverInterceptor(opts ...ReceiverOption) (*ReceiverInterceptorFactory
 // ReceiverInterceptor interceptor generates receiver reports.
 type ReceiverInterceptor struct {
 	interceptor.NoOp
-	interval time.Duration
-	now      func() time.Time
-	streams  sync.Map
-	log      logging.LeveledLogger
-	m        sync.Mutex
-	wg       sync.WaitGroup
-	close    chan struct{}
+	interval      time.Duration
+	now           func() time.Time
+	streams       sync.Map
+	log           logging.LeveledLogger
+	loggerFactory logging.LoggerFactory
+	m             sync.Mutex
+	wg            sync.WaitGroup
+	close         chan struct{}
 }
 
 func (r *ReceiverInterceptor) isClosed() bool {

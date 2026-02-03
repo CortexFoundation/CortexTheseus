@@ -55,7 +55,7 @@ Net provides 3 interfaces:
                              +-----------+
                              |   :App    |
                              +-----------+
-                                 * | 
+                                 * |
                                    | <<uses>>
                                  1 v
    +---------+ 1           * +-----------+ 1    * +-----------+ 1    * +------+
@@ -115,10 +115,10 @@ wan, err := vnet.NewRouter(&RouterConfig{
 })
 
 // Create a network.
-// You can specify a static IP for the instance of Net to use. If not specified,
+// You can specify static IPs for the instance of Net to use. If not specified,
 // router will assign an IP address that is contained in the router's CIDR.
 nw := vnet.NewNet(&vnet.NetConfig{
-    StaticIP: "27.1.2.3",
+    StaticIPs: []string{"27.1.2.3"},
 })
 
 // Add the network to the router.
@@ -169,7 +169,7 @@ func NetAgent(config *AgentConfig) *Agent {
     if config.Net == nil {
         config.Net = vnet.NewNet()
     }
-    
+
     return &Agent {
          :
         net: config.Net,

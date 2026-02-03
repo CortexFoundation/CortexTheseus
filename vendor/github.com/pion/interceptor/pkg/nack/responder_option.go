@@ -31,6 +31,15 @@ func ResponderLog(log logging.LeveledLogger) ResponderOption {
 	}
 }
 
+// WithResponderLoggerFactory sets a logger factory for the interceptor.
+func WithResponderLoggerFactory(loggerFactory logging.LoggerFactory) ResponderOption {
+	return func(r *ResponderInterceptor) error {
+		r.loggerFactory = loggerFactory
+
+		return nil
+	}
+}
+
 // DisableCopy bypasses copy of underlying packets. It should be used when
 // you are not re-using underlying buffers of packets that have been written.
 func DisableCopy() ResponderOption {

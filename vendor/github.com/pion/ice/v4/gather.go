@@ -19,7 +19,7 @@ import (
 	stunx "github.com/pion/ice/v4/internal/stun"
 	"github.com/pion/logging"
 	"github.com/pion/stun/v3"
-	"github.com/pion/transport/v3/stdnet"
+	"github.com/pion/transport/v4/stdnet"
 	"github.com/pion/turn/v4"
 )
 
@@ -831,15 +831,15 @@ func (a *Agent) gatherCandidatesRelay(ctx context.Context, urls []*stun.URI) {
 	network := NetworkTypeUDP4.String()
 	_, ifaces, _ := localInterfaces(a.net, a.interfaceFilter, a.ipFilter, a.networkTypes, a.includeLoopback)
 
-	for i := range urls {
+	for _, url := range urls {
 		switch {
-		case urls[i].Scheme != stun.SchemeTypeTURN && urls[i].Scheme != stun.SchemeTypeTURNS:
+		case url.Scheme != stun.SchemeTypeTURN && url.Scheme != stun.SchemeTypeTURNS:
 			continue
-		case urls[i].Username == "":
+		case url.Username == "":
 			a.log.Errorf("Failed to gather relay candidates: %v", ErrUsernameEmpty)
 
 			return
-		case urls[i].Password == "":
+		case url.Password == "":
 			a.log.Errorf("Failed to gather relay candidates: %v", ErrPasswordEmpty)
 
 			return
@@ -1042,7 +1042,7 @@ func (a *Agent) gatherCandidatesRelay(ctx context.Context, urls []*stun.URI) {
 					}
 				},
 			})
-		}(*urls[i])
+		}(*url)
 	}
 }
 
