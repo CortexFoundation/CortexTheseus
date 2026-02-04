@@ -22,17 +22,17 @@ import (
 	"sync"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"golang.org/x/crypto/sha3"
+	"github.com/CortexFoundation/CortexTheseus/crypto/keccak"
 )
 
 // NewKeccakState creates a new KeccakState
 func NewKeccakState() KeccakState {
-	return sha3.NewLegacyKeccak256().(KeccakState)
+	return keccak.NewLegacyKeccak256().(KeccakState)
 }
 
 var hasherPool = sync.Pool{
 	New: func() any {
-		return sha3.NewLegacyKeccak256().(KeccakState)
+		return keccak.NewLegacyKeccak256().(KeccakState)
 	},
 }
 

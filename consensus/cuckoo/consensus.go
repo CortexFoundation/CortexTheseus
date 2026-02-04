@@ -28,7 +28,6 @@ import (
 	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
-	"golang.org/x/crypto/sha3"
 
 	// "strconv"
 	// "strings"
@@ -41,6 +40,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/state"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
+	"github.com/CortexFoundation/CortexTheseus/crypto/keccak"
 	"github.com/CortexFoundation/CortexTheseus/log"
 	"github.com/CortexFoundation/CortexTheseus/params"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
@@ -762,7 +762,7 @@ func (cuckoo *Cuckoo) FinalizeWithoutParent(chain consensus.ChainHeaderReader, h
 
 // SealHash returns the hash of a block prior to it being sealed.
 func (cuckoo *Cuckoo) SealHash(header *types.Header) (hash common.Hash) {
-	hasher := sha3.NewLegacyKeccak256()
+	hasher := keccak.NewLegacyKeccak256()
 
 	rlp.Encode(hasher, []any{
 		header.ParentHash,
