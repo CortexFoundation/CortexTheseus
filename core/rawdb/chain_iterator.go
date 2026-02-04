@@ -152,9 +152,9 @@ func iterateTransactions(db ctxcdb.Database, from uint64, to uint64, reverse boo
 					err:    err,
 				}
 			} else {
-				var hashes []common.Hash
-				for _, tx := range body.Transactions {
-					hashes = append(hashes, tx.Hash())
+				hashes := make([]common.Hash, len(body.Transactions))
+				for i, tx := range body.Transactions {
+					hashes[i] = tx.Hash()
 				}
 				result = &blockTxHashes{
 					hashes: hashes,
