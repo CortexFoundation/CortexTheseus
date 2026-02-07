@@ -86,7 +86,9 @@ func (q *queue) get(addr common.Address) (*list, bool) {
 }
 
 func (q *queue) bump(addr common.Address) {
-	q.beats[addr] = time.Now()
+	if _, ok := q.beats[addr]; ok {
+		q.beats[addr] = time.Now()
+	}
 }
 
 func (q *queue) addresses() []common.Address {
