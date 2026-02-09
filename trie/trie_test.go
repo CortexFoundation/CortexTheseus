@@ -33,12 +33,12 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/core/rawdb"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/crypto"
+	"github.com/CortexFoundation/CortexTheseus/crypto/keccak"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb/leveldb"
 	"github.com/CortexFoundation/CortexTheseus/ctxcdb/memorydb"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
 	"github.com/davecgh/go-spew/spew"
-	"golang.org/x/crypto/sha3"
 )
 
 func init() {
@@ -794,7 +794,7 @@ func TestCommitSequence(t *testing.T) {
 	} {
 		addresses, accounts := makeAccounts(tc.count)
 		// This spongeDb is used to check the sequence of disk-db-writes
-		s := &spongeDb{sponge: sha3.NewLegacyKeccak256()}
+		s := &spongeDb{sponge: keccak.NewLegacyKeccak256()}
 		db := NewDatabase(s)
 		trie, _ := New(TrieID(common.Hash{}), db)
 		// Another sponge is used to check the callback-sequence
@@ -825,7 +825,7 @@ func TestCommitSequenceRandomBlobs(t *testing.T) {
 	} {
 		prng := rand.New(rand.NewSource(int64(i)))
 		// This spongeDb is used to check the sequence of disk-db-writes
-		s := &spongeDb{sponge: sha3.NewLegacyKeccak256()}
+		s := &spongeDb{sponge: keccak.NewLegacyKeccak256()}
 		db := NewDatabase(s)
 		trie, _ := New(TrieID(common.Hash{}), db)
 		// Fill the trie with elements

@@ -29,19 +29,41 @@ func String(s string) int {
 // String calculates the display width of a string, for the given options, by
 // iterating over grapheme clusters in the string and summing their widths.
 func (options Options) String(s string) int {
-	// Optimization: no need to parse grapheme
-	switch len(s) {
-	case 0:
-		return 0
-	case 1:
-		return asciiWidth(s[0])
+	width := 0
+	pos := 0
+
+	for pos < len(s) {
+		// Try ASCII optimization
+		asciiLen := printableASCIILength(s[pos:])
+		if asciiLen > 0 {
+			width += asciiLen
+			pos += asciiLen
+			continue
+		}
+
+		// Not ASCII, use grapheme parsing
+		g := graphemes.FromString(s[pos:])
+		start := pos
+
+		for g.Next() {
+			v := g.Value()
+			width += graphemeWidth(v, options)
+			pos += len(v)
+
+			// Quick check: if remaining might have printable ASCII, break to outer loop
+			if pos < len(s) && s[pos] >= 0x20 && s[pos] <= 0x7E {
+				break
+			}
+		}
+
+		// Defensive, should not happen: if no progress was made,
+		// skip a byte to prevent infinite loop. Only applies if
+		// the grapheme parser misbehaves.
+		if pos == start {
+			pos++
+		}
 	}
 
-	width := 0
-	g := graphemes.FromString(s)
-	for g.Next() {
-		width += graphemeWidth(g.Value(), options)
-	}
 	return width
 }
 
@@ -55,19 +77,41 @@ func Bytes(s []byte) int {
 // Bytes calculates the display width of a []byte, for the given options, by
 // iterating over grapheme clusters in the slice and summing their widths.
 func (options Options) Bytes(s []byte) int {
-	// Optimization: no need to parse grapheme
-	switch len(s) {
-	case 0:
-		return 0
-	case 1:
-		return asciiWidth(s[0])
+	width := 0
+	pos := 0
+
+	for pos < len(s) {
+		// Try ASCII optimization
+		asciiLen := printableASCIILength(s[pos:])
+		if asciiLen > 0 {
+			width += asciiLen
+			pos += asciiLen
+			continue
+		}
+
+		// Not ASCII, use grapheme parsing
+		g := graphemes.FromBytes(s[pos:])
+		start := pos
+
+		for g.Next() {
+			v := g.Value()
+			width += graphemeWidth(v, options)
+			pos += len(v)
+
+			// Quick check: if remaining might have printable ASCII, break to outer loop
+			if pos < len(s) && s[pos] >= 0x20 && s[pos] <= 0x7E {
+				break
+			}
+		}
+
+		// Defensive, should not happen: if no progress was made,
+		// skip a byte to prevent infinite loop. Only applies if
+		// the grapheme parser misbehaves.
+		if pos == start {
+			pos++
+		}
 	}
 
-	width := 0
-	g := graphemes.FromBytes(s)
-	for g.Next() {
-		width += graphemeWidth(g.Value(), options)
-	}
 	return width
 }
 
@@ -217,6 +261,28 @@ func asciiWidth(b byte) int {
 		return 0
 	}
 	return 1
+}
+
+// printableASCIILength returns the length of consecutive printable ASCII bytes
+// starting at the beginning of s.
+func printableASCIILength[T string | []byte](s T) int {
+	i := 0
+	for ; i < len(s); i++ {
+		b := s[i]
+		// Printable ASCII is 0x20-0x7E (space through tilde)
+		if b < 0x20 || b > 0x7E {
+			break
+		}
+	}
+
+	// If the next byte is non-ASCII (>= 0x80), back off by 1. The grapheme
+	// parser may group the last ASCII byte with subsequent non-ASCII bytes,
+	// such as combining marks.
+	if i > 0 && i < len(s) && s[i] >= 0x80 {
+		i--
+	}
+
+	return i
 }
 
 // isVS16 checks if the slice matches VS16 (U+FE0F) UTF-8 encoding

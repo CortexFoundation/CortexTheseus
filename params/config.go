@@ -22,7 +22,7 @@ import (
 	"math/big"
 
 	"github.com/CortexFoundation/CortexTheseus/common"
-	"golang.org/x/crypto/sha3"
+	"github.com/CortexFoundation/CortexTheseus/crypto/keccak"
 )
 
 func newUint64(val uint64) *uint64 { return &val }
@@ -70,7 +70,7 @@ func (c *TrustedCheckpoint) Hash() common.Hash {
 	var sectionIndex [8]byte
 	binary.BigEndian.PutUint64(sectionIndex[:], c.SectionIndex)
 
-	w := sha3.NewLegacyKeccak256()
+	w := keccak.NewLegacyKeccak256()
 	w.Write(sectionIndex[:])
 	w.Write(c.SectionHead[:])
 	//w.Write(c.CHTRoot[:])

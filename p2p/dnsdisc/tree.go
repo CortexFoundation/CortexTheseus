@@ -26,10 +26,10 @@ import (
 	"strings"
 
 	"github.com/CortexFoundation/CortexTheseus/crypto"
+	"github.com/CortexFoundation/CortexTheseus/crypto/keccak"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enode"
 	"github.com/CortexFoundation/CortexTheseus/p2p/enr"
 	"github.com/CortexFoundation/CortexTheseus/rlp"
-	"golang.org/x/crypto/sha3"
 	"slices"
 )
 
@@ -261,7 +261,7 @@ const (
 )
 
 func subdomain(e entry) string {
-	h := sha3.NewLegacyKeccak256()
+	h := keccak.NewLegacyKeccak256()
 	io.WriteString(h, e.String())
 	return b32format.EncodeToString(h.Sum(nil)[:16])
 }
@@ -271,7 +271,7 @@ func (e *rootEntry) String() string {
 }
 
 func (e *rootEntry) sigHash() []byte {
-	h := sha3.NewLegacyKeccak256()
+	h := keccak.NewLegacyKeccak256()
 	fmt.Fprintf(h, rootPrefix+" e=%s l=%s seq=%d", e.eroot, e.lroot, e.seq)
 	return h.Sum(nil)
 }

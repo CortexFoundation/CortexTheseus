@@ -97,18 +97,13 @@ This package implements the Unicode East Asian Width standard
 ([UAX #11](https://www.unicode.org/reports/tr11/tr11-43.html)), and handles
 [version selectors](https://en.wikipedia.org/wiki/Variation_Selectors_(Unicode_block)),
 and [regional indicator pairs](https://en.wikipedia.org/wiki/Regional_indicator_symbol)
-(flags). We implement [Unicode TR51](https://www.unicode.org/reports/tr51/tr51-27.html). We are keeping
-an eye on [emerging standards](https://www.jeffquast.com/post/state-of-terminal-emulation-2025/).
-
+(flags). We implement [Unicode TR51](https://www.unicode.org/reports/tr51/tr51-27.html)
+for emojis. We are keeping an eye on
+[emerging standards](https://www.jeffquast.com/post/state-of-terminal-emulation-2025/).
 
 `clipperhouse/displaywidth`, `mattn/go-runewidth`, and `rivo/uniseg` will
 give the same outputs for most real-world text. Extensive details are in the
 [compatibility analysis](comparison/COMPATIBILITY_ANALYSIS.md).
-
-If you wish to investigate the core logic, see the `lookupProperties` and `width`
-functions in [width.go](width.go#L139). The essential trie generation logic is in
-`buildPropertyBitmap` in [unicode.go](internal/gen/unicode.go#L316).
-
 
 ## Prior Art
 
@@ -133,39 +128,39 @@ goarch: arm64
 pkg: github.com/clipperhouse/displaywidth/comparison
 cpu: Apple M2
 
-BenchmarkString_Mixed/clipperhouse/displaywidth-8             10400 ns/op	  162.21 MB/s	      0 B/op	     0 allocs/op
-BenchmarkString_Mixed/mattn/go-runewidth-8                    14296 ns/op	  118.00 MB/s	      0 B/op	     0 allocs/op
-BenchmarkString_Mixed/rivo/uniseg-8                           19770 ns/op	   85.33 MB/s	      0 B/op	     0 allocs/op
+BenchmarkString_Mixed/clipperhouse/displaywidth-8             5784 ns/op	      291.69 MB/s	      0 B/op	   0 allocs/op
+BenchmarkString_Mixed/mattn/go-runewidth-8                   14751 ns/op	      114.36 MB/s	      0 B/op	   0 allocs/op
+BenchmarkString_Mixed/rivo/uniseg-8                          19360 ns/op	       87.14 MB/s	      0 B/op	   0 allocs/op
 
-BenchmarkString_EastAsian/clipperhouse/displaywidth-8         10593 ns/op	  159.26 MB/s	      0 B/op	     0 allocs/op
-BenchmarkString_EastAsian/mattn/go-runewidth-8                23980 ns/op	   70.35 MB/s	      0 B/op	     0 allocs/op
-BenchmarkString_EastAsian/rivo/uniseg-8                       19777 ns/op	   85.30 MB/s	      0 B/op	     0 allocs/op
+BenchmarkString_ASCII/clipperhouse/displaywidth-8               54.60 ns/op	     2344.32 MB/s	      0 B/op	   0 allocs/op
+BenchmarkString_ASCII/mattn/go-runewidth-8                    1195 ns/op	      107.08 MB/s	      0 B/op	   0 allocs/op
+BenchmarkString_ASCII/rivo/uniseg-8                           1578 ns/op	       81.13 MB/s	      0 B/op	   0 allocs/op
 
-BenchmarkString_ASCII/clipperhouse/displaywidth-8              1032 ns/op	  124.09 MB/s	      0 B/op	     0 allocs/op
-BenchmarkString_ASCII/mattn/go-runewidth-8                     1162 ns/op	  110.16 MB/s	      0 B/op	     0 allocs/op
-BenchmarkString_ASCII/rivo/uniseg-8                            1586 ns/op	   80.69 MB/s	      0 B/op	     0 allocs/op
+BenchmarkString_EastAsian/clipperhouse/displaywidth-8         5837 ns/op	      289.01 MB/s	      0 B/op	   0 allocs/op
+BenchmarkString_EastAsian/mattn/go-runewidth-8               24418 ns/op	       69.09 MB/s	      0 B/op	   0 allocs/op
+BenchmarkString_EastAsian/rivo/uniseg-8                      19339 ns/op	       87.23 MB/s	      0 B/op	   0 allocs/op
 
-BenchmarkString_Emoji/clipperhouse/displaywidth-8              3017 ns/op	  240.01 MB/s	      0 B/op	     0 allocs/op
-BenchmarkString_Emoji/mattn/go-runewidth-8                     4745 ns/op	  152.58 MB/s	      0 B/op	     0 allocs/op
-BenchmarkString_Emoji/rivo/uniseg-8                            6745 ns/op	  107.34 MB/s	      0 B/op	     0 allocs/op
+BenchmarkString_Emoji/clipperhouse/displaywidth-8             3225 ns/op	      224.51 MB/s	      0 B/op	   0 allocs/op
+BenchmarkString_Emoji/mattn/go-runewidth-8                    4851 ns/op	      149.25 MB/s	      0 B/op	   0 allocs/op
+BenchmarkString_Emoji/rivo/uniseg-8                           6591 ns/op	      109.85 MB/s	      0 B/op	   0 allocs/op
 
-BenchmarkRune_Mixed/clipperhouse/displaywidth-8                3381 ns/op	  498.90 MB/s	      0 B/op	     0 allocs/op
-BenchmarkRune_Mixed/mattn/go-runewidth-8                       5383 ns/op	  313.41 MB/s	      0 B/op	     0 allocs/op
+BenchmarkRune_Mixed/clipperhouse/displaywidth-8               3385 ns/op	      498.34 MB/s	      0 B/op	   0 allocs/op
+BenchmarkRune_Mixed/mattn/go-runewidth-8                      5354 ns/op	      315.07 MB/s	      0 B/op	   0 allocs/op
 
-BenchmarkRune_EastAsian/clipperhouse/displaywidth-8            3395 ns/op	  496.96 MB/s	      0 B/op	     0 allocs/op
-BenchmarkRune_EastAsian/mattn/go-runewidth-8                  15645 ns/op	  107.83 MB/s	      0 B/op	     0 allocs/op
+BenchmarkRune_EastAsian/clipperhouse/displaywidth-8           3397 ns/op	      496.56 MB/s	      0 B/op	   0 allocs/op
+BenchmarkRune_EastAsian/mattn/go-runewidth-8                 15673 ns/op	      107.64 MB/s	      0 B/op	   0 allocs/op
 
-BenchmarkRune_ASCII/clipperhouse/displaywidth-8                 257.8 ns/op	  496.57 MB/s	      0 B/op	     0 allocs/op
-BenchmarkRune_ASCII/mattn/go-runewidth-8                        267.3 ns/op	  478.89 MB/s	      0 B/op	     0 allocs/op
+BenchmarkRune_ASCII/clipperhouse/displaywidth-8                255.7 ns/op	      500.53 MB/s	      0 B/op	   0 allocs/op
+BenchmarkRune_ASCII/mattn/go-runewidth-8                       261.5 ns/op	      489.55 MB/s	      0 B/op	   0 allocs/op
 
-BenchmarkRune_Emoji/clipperhouse/displaywidth-8                1338 ns/op	  541.24 MB/s	      0 B/op	     0 allocs/op
-BenchmarkRune_Emoji/mattn/go-runewidth-8                       2287 ns/op	  316.58 MB/s	      0 B/op	     0 allocs/op
+BenchmarkRune_Emoji/clipperhouse/displaywidth-8               1371 ns/op	      528.22 MB/s	      0 B/op	   0 allocs/op
+BenchmarkRune_Emoji/mattn/go-runewidth-8                      2267 ns/op	      319.43 MB/s	      0 B/op	   0 allocs/op
 
-BenchmarkTruncateWithTail/clipperhouse/displaywidth-8          3689 ns/op	   47.98 MB/s	    192 B/op	    14 allocs/op
-BenchmarkTruncateWithTail/mattn/go-runewidth-8                 8069 ns/op	   21.93 MB/s	    192 B/op	    14 allocs/op
+BenchmarkTruncateWithTail/clipperhouse/displaywidth-8         3229 ns/op	       54.82 MB/s	    192 B/op	  14 allocs/op
+BenchmarkTruncateWithTail/mattn/go-runewidth-8                8408 ns/op	       21.05 MB/s	    192 B/op	  14 allocs/op
 
-BenchmarkTruncateWithoutTail/clipperhouse/displaywidth-8       3457 ns/op	   66.24 MB/s	      0 B/op	     0 allocs/op
-BenchmarkTruncateWithoutTail/mattn/go-runewidth-8             10441 ns/op	   21.93 MB/s	      0 B/op	     0 allocs/op
+BenchmarkTruncateWithoutTail/clipperhouse/displaywidth-8      3554 ns/op	       64.43 MB/s	      0 B/op	   0 allocs/op
+BenchmarkTruncateWithoutTail/mattn/go-runewidth-8            11189 ns/op	       20.47 MB/s	      0 B/op	   0 allocs/op
 ```
 
 Here are some notes on [how to make Unicode things fast](https://clipperhouse.com/go-unicode/).
