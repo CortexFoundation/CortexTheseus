@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2023 The Pion community <https://pion.ly>
+// SPDX-FileCopyrightText: 2026 The Pion community <https://pion.ly>
 // SPDX-License-Identifier: MIT
 
 package report
@@ -29,7 +29,6 @@ func (s *SenderInterceptorFactory) NewInterceptor(_ string) (interceptor.Interce
 		newTicker: func(d time.Duration) Ticker {
 			return &timeTicker{time.NewTicker(d)}
 		},
-		log:   logging.NewDefaultLoggerFactory().NewLogger("sender_interceptor"),
 		close: make(chan struct{}),
 	}
 
