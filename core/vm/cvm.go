@@ -263,12 +263,14 @@ func (cvm *CVM) Call(caller common.Address, addr common.Address, input []byte, g
 	if cvm.depth > int(params.CallCreateDepth) {
 		return nil, gas, nil, ErrDepth
 	}
+	syscall := isSystemCall(caller)
 	// Fail if we're trying to transfer more than the available balance
-	if value.Sign() != 0 && !cvm.Context.CanTransfer(cvm.StateDB, caller, value) {
+	if !syscall && value.Sign() != 0 && !cvm.Context.CanTransfer(cvm.StateDB, caller, value) {
 		return nil, gas, nil, ErrInsufficientBalance
 	}
 	snapshot := cvm.StateDB.Snapshot()
 	p, isPrecompile := cvm.precompile(addr)
+
 	debug := cvm.Config().Tracer != nil
 
 	if !cvm.StateDB.Exist(addr) {
@@ -287,7 +289,12 @@ func (cvm *CVM) Call(caller common.Address, addr common.Address, input []byte, g
 		}
 		cvm.StateDB.CreateAccount(addr)
 	}
-	cvm.Context.Transfer(cvm.StateDB, caller, addr, value)
+	// Perform the value transfer only in non-syscall mode.
+	// Calling this is required even for zero-value transfers,
+	// to ensure the state clearing mechanism is applied.
+	if !syscall {
+		cvm.Context.Transfer(cvm.StateDB, caller, addr, value)
+	}
 
 	// Capture the tracer start/end events in debug mode
 	if debug {
