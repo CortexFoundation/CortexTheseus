@@ -260,6 +260,9 @@ func New(stack *node.Node, config *Config) (*Cortex, error) {
 	}
 
 	chainView := ctxc.newChainView(ctxc.blockchain.CurrentBlock().Header())
+	if chainView == nil {
+		return nil, nil
+	}
 	historyCutoff, _ := ctxc.blockchain.HistoryPruningCutoff()
 	var finalBlock uint64
 	if fb := ctxc.blockchain.CurrentFinalizedBlock(); fb != nil {
