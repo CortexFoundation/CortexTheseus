@@ -18,6 +18,7 @@ package rlp
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
