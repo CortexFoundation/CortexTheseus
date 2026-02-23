@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2023 The Pion community <https://pion.ly>
+// SPDX-FileCopyrightText: 2026 The Pion community <https://pion.ly>
 // SPDX-License-Identifier: MIT
 
 package dtls
@@ -61,10 +61,11 @@ type State struct {
 	handshakeRecvSequence      int
 	serverName                 string
 	remoteCertRequestAlgs      []signaturehash.Algorithm
-	remoteRequestedCertificate bool   // Did we get a CertificateRequest
-	localCertificatesVerify    []byte // cache CertificateVerify
-	localVerifyData            []byte // cached VerifyData
-	localKeySignature          []byte // cached keySignature
+	remoteCertSignatureSchemes []signaturehash.Algorithm // signature_algorithms_cert from peer
+	remoteRequestedCertificate bool                      // Did we get a CertificateRequest
+	localCertificatesVerify    []byte                    // cache CertificateVerify
+	localVerifyData            []byte                    // cached VerifyData
+	localKeySignature          []byte                    // cached keySignature
 	peerCertificatesVerified   bool
 
 	replayDetector []replaydetector.ReplayDetector

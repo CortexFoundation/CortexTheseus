@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2023 The Pion community <https://pion.ly>
+// SPDX-FileCopyrightText: 2026 The Pion community <https://pion.ly>
 // SPDX-License-Identifier: MIT
 
 //go:build !js
@@ -515,8 +515,8 @@ func (r *RTPSender) hasStopped() bool {
 // Set a SSRC for FEC and RTX if MediaEngine has them enabled
 // If the remote doesn't support FEC or RTX we disable locally.
 func (r *RTPSender) configureRTXAndFEC() {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	for _, trackEncoding := range r.trackEncodings {
 		if !r.api.mediaEngine.isRTXEnabled(r.kind, []RTPTransceiverDirection{RTPTransceiverDirectionSendonly}) {
