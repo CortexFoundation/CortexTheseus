@@ -61,8 +61,8 @@ github.com/CortexFoundation/robot/backend
 # github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 ## explicit; go 1.16
 github.com/CortexFoundation/statik
-# github.com/CortexFoundation/torrentfs v1.0.73-0.20260210142519-9bcab0676e21
-## explicit; go 1.24.9
+# github.com/CortexFoundation/torrentfs v1.0.73-0.20260223192041-9493f0ab021a
+## explicit; go 1.25.0
 github.com/CortexFoundation/torrentfs
 github.com/CortexFoundation/torrentfs/backend
 github.com/CortexFoundation/torrentfs/backend/caffe
@@ -81,14 +81,14 @@ github.com/Microsoft/go-winio/internal/fs
 github.com/Microsoft/go-winio/internal/socket
 github.com/Microsoft/go-winio/internal/stringbuffer
 github.com/Microsoft/go-winio/pkg/guid
-# github.com/ProjectZKM/Ziren/crates/go-runtime/zkvm_runtime v0.0.0-20260208002143-2551aa251e34
+# github.com/ProjectZKM/Ziren/crates/go-runtime/zkvm_runtime v0.0.0-20260218040609-6f1c0c95351b
 ## explicit; go 1.24.0
 github.com/ProjectZKM/Ziren/crates/go-runtime/zkvm_runtime
 # github.com/RoaringBitmap/roaring v1.9.4
 ## explicit; go 1.14
 github.com/RoaringBitmap/roaring
 github.com/RoaringBitmap/roaring/internal
-# github.com/VictoriaMetrics/fastcache v1.13.2
+# github.com/VictoriaMetrics/fastcache v1.13.3
 ## explicit; go 1.24.0
 github.com/VictoriaMetrics/fastcache
 # github.com/alecthomas/atomic v0.1.0-alpha2
@@ -164,7 +164,7 @@ github.com/anacrolix/stm/stmutil
 # github.com/anacrolix/sync v0.6.0
 ## explicit; go 1.22
 github.com/anacrolix/sync
-# github.com/anacrolix/torrent v1.61.1-0.20260205044246-b4fcea2871e5
+# github.com/anacrolix/torrent v1.61.1-0.20260223045140-1566309c12af
 ## explicit; go 1.24.0
 github.com/anacrolix/torrent
 github.com/anacrolix/torrent/analysis
@@ -248,10 +248,10 @@ github.com/aws/aws-sdk-go-v2/internal/shareddefaults
 github.com/aws/aws-sdk-go-v2/internal/strings
 github.com/aws/aws-sdk-go-v2/internal/sync/singleflight
 github.com/aws/aws-sdk-go-v2/internal/timeconv
-# github.com/aws/aws-sdk-go-v2/config v1.32.7
+# github.com/aws/aws-sdk-go-v2/config v1.32.9
 ## explicit; go 1.23
 github.com/aws/aws-sdk-go-v2/config
-# github.com/aws/aws-sdk-go-v2/credentials v1.19.7
+# github.com/aws/aws-sdk-go-v2/credentials v1.19.9
 ## explicit; go 1.23
 github.com/aws/aws-sdk-go-v2/credentials
 github.com/aws/aws-sdk-go-v2/credentials/ec2rolecreds
@@ -291,12 +291,12 @@ github.com/aws/aws-sdk-go-v2/service/route53/types
 github.com/aws/aws-sdk-go-v2/service/signin
 github.com/aws/aws-sdk-go-v2/service/signin/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/signin/types
-# github.com/aws/aws-sdk-go-v2/service/sso v1.30.9
+# github.com/aws/aws-sdk-go-v2/service/sso v1.30.10
 ## explicit; go 1.23
 github.com/aws/aws-sdk-go-v2/service/sso
 github.com/aws/aws-sdk-go-v2/service/sso/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/sso/types
-# github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.13
+# github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.14
 ## explicit; go 1.23
 github.com/aws/aws-sdk-go-v2/service/ssooidc
 github.com/aws/aws-sdk-go-v2/service/ssooidc/internal/endpoints
@@ -306,7 +306,7 @@ github.com/aws/aws-sdk-go-v2/service/ssooidc/types
 github.com/aws/aws-sdk-go-v2/service/sts
 github.com/aws/aws-sdk-go-v2/service/sts/internal/endpoints
 github.com/aws/aws-sdk-go-v2/service/sts/types
-# github.com/aws/smithy-go v1.24.0
+# github.com/aws/smithy-go v1.24.1
 ## explicit; go 1.23
 github.com/aws/smithy-go
 github.com/aws/smithy-go/auth
@@ -365,7 +365,7 @@ github.com/cespare/xxhash/v2
 # github.com/charmbracelet/bubbletea v1.3.10
 ## explicit; go 1.24.0
 github.com/charmbracelet/bubbletea
-# github.com/charmbracelet/colorprofile v0.4.1
+# github.com/charmbracelet/colorprofile v0.4.2
 ## explicit; go 1.24.2
 github.com/charmbracelet/colorprofile
 # github.com/charmbracelet/lipgloss v1.1.0
@@ -381,10 +381,10 @@ github.com/charmbracelet/x/cellbuf
 # github.com/charmbracelet/x/term v0.2.2
 ## explicit; go 1.24.0
 github.com/charmbracelet/x/term
-# github.com/clipperhouse/displaywidth v0.10.0
+# github.com/clipperhouse/displaywidth v0.11.0
 ## explicit; go 1.18
 github.com/clipperhouse/displaywidth
-# github.com/clipperhouse/uax29/v2 v2.6.0
+# github.com/clipperhouse/uax29/v2 v2.7.0
 ## explicit; go 1.18
 github.com/clipperhouse/uax29/v2/graphemes
 # github.com/cloudflare/cloudflare-go v0.116.0
@@ -546,7 +546,7 @@ github.com/dgraph-io/ristretto/v2/z/simd
 ## explicit; go 1.13
 github.com/dlclark/regexp2
 github.com/dlclark/regexp2/syntax
-# github.com/dop251/goja v0.0.0-20260106131823-651366fbe6e3
+# github.com/dop251/goja v0.0.0-20260219130522-0ba9a5494a59
 ## explicit; go 1.20
 github.com/dop251/goja
 github.com/dop251/goja/ast
@@ -635,7 +635,7 @@ github.com/go-logr/stdr
 ## explicit; go 1.12
 github.com/go-ole/go-ole
 github.com/go-ole/go-ole/oleutil
-# github.com/go-resty/resty/v2 v2.17.1
+# github.com/go-resty/resty/v2 v2.17.2
 ## explicit; go 1.23.0
 github.com/go-resty/resty/v2
 github.com/go-resty/resty/v2/shellescape
@@ -789,7 +789,7 @@ github.com/mattn/go-isatty
 # github.com/mattn/go-localereader v0.0.1
 ## explicit
 github.com/mattn/go-localereader
-# github.com/mattn/go-runewidth v0.0.19
+# github.com/mattn/go-runewidth v0.0.20
 ## explicit; go 1.20
 github.com/mattn/go-runewidth
 # github.com/minio/sha256-simd v1.0.1
@@ -889,8 +889,8 @@ github.com/pion/dtls/v2/pkg/protocol/alert
 github.com/pion/dtls/v2/pkg/protocol/extension
 github.com/pion/dtls/v2/pkg/protocol/handshake
 github.com/pion/dtls/v2/pkg/protocol/recordlayer
-# github.com/pion/dtls/v3 v3.0.10
-## explicit; go 1.21
+# github.com/pion/dtls/v3 v3.1.2
+## explicit; go 1.24.0
 github.com/pion/dtls/v3
 github.com/pion/dtls/v3/internal/ciphersuite
 github.com/pion/dtls/v3/internal/ciphersuite/types
@@ -913,8 +913,8 @@ github.com/pion/dtls/v3/pkg/protocol/alert
 github.com/pion/dtls/v3/pkg/protocol/extension
 github.com/pion/dtls/v3/pkg/protocol/handshake
 github.com/pion/dtls/v3/pkg/protocol/recordlayer
-# github.com/pion/ice/v4 v4.2.0
-## explicit; go 1.21
+# github.com/pion/ice/v4 v4.2.1
+## explicit; go 1.24.0
 github.com/pion/ice/v4
 github.com/pion/ice/v4/internal/atomic
 github.com/pion/ice/v4/internal/fakenet
@@ -954,8 +954,8 @@ github.com/pion/rtp/codecs/vp9
 # github.com/pion/sctp v1.9.2
 ## explicit; go 1.21
 github.com/pion/sctp
-# github.com/pion/sdp/v3 v3.0.17
-## explicit; go 1.21
+# github.com/pion/sdp/v3 v3.0.18
+## explicit; go 1.24
 github.com/pion/sdp/v3
 # github.com/pion/srtp/v3 v3.0.10
 ## explicit; go 1.21
@@ -998,8 +998,8 @@ github.com/pion/turn/v4/internal/client
 github.com/pion/turn/v4/internal/ipnet
 github.com/pion/turn/v4/internal/proto
 github.com/pion/turn/v4/internal/server
-# github.com/pion/webrtc/v4 v4.2.3
-## explicit; go 1.21.0
+# github.com/pion/webrtc/v4 v4.2.9
+## explicit; go 1.24.0
 github.com/pion/webrtc/v4
 github.com/pion/webrtc/v4/internal/fmtp
 github.com/pion/webrtc/v4/internal/mux
@@ -1113,8 +1113,8 @@ github.com/ucwong/filecache
 # github.com/ucwong/go-ttlmap v1.0.2-0.20221020173635-331e7ddde2bb
 ## explicit; go 1.19
 github.com/ucwong/go-ttlmap
-# github.com/ucwong/golang-kv v1.0.24-0.20260209141533-0055cfac1082
-## explicit; go 1.24.0
+# github.com/ucwong/golang-kv v1.0.24-0.20260220085251-4f792d4bd541
+## explicit; go 1.25.0
 github.com/ucwong/golang-kv
 github.com/ucwong/golang-kv/badger
 github.com/ucwong/golang-kv/bolt
@@ -1210,8 +1210,8 @@ golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/exp v0.0.0-20260209203927-2842357ff358
-## explicit; go 1.24.0
+# golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa
+## explicit; go 1.25.0
 golang.org/x/exp/constraints
 golang.org/x/exp/rand
 # golang.org/x/mobile v0.0.0-20201217150744-e6ae53a27f4f
@@ -1370,7 +1370,7 @@ gopkg.in/yaml.v3
 lukechampine.com/blake3
 lukechampine.com/blake3/bao
 lukechampine.com/blake3/guts
-# modernc.org/libc v1.67.7
+# modernc.org/libc v1.68.0
 ## explicit; go 1.24.0
 modernc.org/libc
 modernc.org/libc/errno
@@ -1404,7 +1404,7 @@ modernc.org/mathutil
 # modernc.org/memory v1.11.0
 ## explicit; go 1.23.0
 modernc.org/memory
-# modernc.org/sqlite v1.45.0
+# modernc.org/sqlite v1.46.1
 ## explicit; go 1.24.0
 modernc.org/sqlite/lib
 # zombiezen.com/go/sqlite v1.4.2

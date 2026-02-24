@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2023 The Pion community <https://pion.ly>
+// SPDX-FileCopyrightText: 2026 The Pion community <https://pion.ly>
 // SPDX-License-Identifier: MIT
 
 package dtls
@@ -97,6 +97,7 @@ type handshakeConfig struct {
 	localPSKIdentityHint         []byte
 	localCipherSuites            []CipherSuite             // Available CipherSuites
 	localSignatureSchemes        []signaturehash.Algorithm // Available signature schemes
+	localCertSignatureSchemes    []signaturehash.Algorithm // Available signature schemes for certificates
 	extendedMasterSecret         ExtendedMasterSecretType  // Policy for the Extended Master Support extension
 	localSRTPProtectionProfiles  []SRTPProtectionProfile   // Available SRTPProtectionProfiles, if empty no SRTP support
 	localSRTPMasterKeyIdentifier []byte

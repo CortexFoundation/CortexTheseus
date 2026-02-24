@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2023 The Pion community <https://pion.ly>
+// SPDX-FileCopyrightText: 2026 The Pion community <https://pion.ly>
 // SPDX-License-Identifier: MIT
 
 package ice
@@ -416,7 +416,7 @@ func (s *controlledSelector) HandleBindingRequest(message *stun.Message, local, 
 	}
 	pair.UpdateRequestReceived()
 
-	if message.Contains(stun.AttrUseCandidate) { //nolint:nestif
+	if message.Contains(stun.AttrUseCandidate) || message.Contains(s.agent.nominationAttribute) { //nolint:nestif
 		// https://tools.ietf.org/html/rfc8445#section-7.3.1.5
 
 		// Check for renomination attribute

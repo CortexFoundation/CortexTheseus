@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2023 The Pion community <https://pion.ly>
+// SPDX-FileCopyrightText: 2026 The Pion community <https://pion.ly>
 // SPDX-License-Identifier: MIT
 
 package webrtc
@@ -277,6 +277,8 @@ var (
 	errStatsICECandidateStateInvalid = errors.New(
 		"cannot convert to StatsICECandidatePairStateSucceeded invalid ice candidate state",
 	)
+
+	errICECandidatePoolSizeTooLarge = errors.New("ice candidate pool size greater than 1 is not supported")
 
 	errInvalidICECredentialTypeString = errors.New("invalid ICECredentialType")
 	errInvalidICEServer               = errors.New("invalid ICEServer")
