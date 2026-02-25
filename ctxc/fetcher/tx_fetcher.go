@@ -26,6 +26,7 @@ import (
 	"github.com/CortexFoundation/CortexTheseus/common"
 	"github.com/CortexFoundation/CortexTheseus/common/lru"
 	"github.com/CortexFoundation/CortexTheseus/common/mclock"
+	"github.com/CortexFoundation/CortexTheseus/core"
 	"github.com/CortexFoundation/CortexTheseus/core/txpool"
 	"github.com/CortexFoundation/CortexTheseus/core/types"
 	"github.com/CortexFoundation/CortexTheseus/log"
@@ -64,6 +65,11 @@ const (
 
 	// addTxsBatchSize it the max number of transactions to add in a single batch from a peer.
 	addTxsBatchSize = 128
+
+	// txOnChainCacheLimit is number of on-chain transactions to keep in a cache to avoid
+	// re-fetching them soon after they are mined.
+	// Approx 1MB for 30 minutes of transactions at 18 tps
+	txOnChainCacheLimit = 32768
 )
 
 var (
@@ -141,6 +147,9 @@ type TxFetcher struct {
 
 	underpriced *lru.Cache[common.Hash, time.Time] // Transactions discarded as too cheap (don't re-fetch)
 
+	chain          *core.BlockChain                  // Blockchain interface for on-chain checks
+	txOnChainCache *lru.Cache[common.Hash, struct{}] // Cache to avoid fetching once the tx gets on chain
+
 	// Stage 1: Waiting lists for newly discovered transactions that might be
 	// broadcast without needing explicit request/reply round trips.
 	waitlist  map[common.Hash]map[string]struct{}           // Transactions waiting for an potential broadcast
@@ -171,34 +180,37 @@ type TxFetcher struct {
 
 // NewTxFetcher creates a transaction fetcher to retrieve transaction
 // based on hash announcements.
-func NewTxFetcher(hasTx func(common.Hash) bool, addTxs func([]*types.Transaction) []error, fetchTxs func(string, []common.Hash) error) *TxFetcher {
-	return NewTxFetcherForTests(hasTx, addTxs, fetchTxs, mclock.System{}, nil)
+func NewTxFetcher(chain *core.BlockChain, hasTx func(common.Hash) bool, addTxs func([]*types.Transaction) []error, fetchTxs func(string, []common.Hash) error) *TxFetcher {
+	return NewTxFetcherForTests(chain, hasTx, addTxs, fetchTxs, mclock.System{}, nil)
 }
 
 // NewTxFetcherForTests is a testing method to mock out the realtime clock with
 // a simulated version and the internal randomness with a deterministic one.
 func NewTxFetcherForTests(
+	chain *core.BlockChain,
 	hasTx func(common.Hash) bool, addTxs func([]*types.Transaction) []error, fetchTxs func(string, []common.Hash) error,
 	clock mclock.Clock, rand *mrand.Rand) *TxFetcher {
 	return &TxFetcher{
-		notify:      make(chan *txAnnounce),
-		cleanup:     make(chan *txDelivery),
-		drop:        make(chan *txDrop),
-		quit:        make(chan struct{}),
-		waitlist:    make(map[common.Hash]map[string]struct{}),
-		waittime:    make(map[common.Hash]mclock.AbsTime),
-		waitslots:   make(map[string]map[common.Hash]*txMetadataWithSeq),
-		announces:   make(map[string]map[common.Hash]*txMetadataWithSeq),
-		announced:   make(map[common.Hash]map[string]struct{}),
-		fetching:    make(map[common.Hash]string),
-		requests:    make(map[string]*txRequest),
-		alternates:  make(map[common.Hash]map[string]struct{}),
-		underpriced: lru.NewCache[common.Hash, time.Time](maxTxUnderpricedSetSize),
-		hasTx:       hasTx,
-		addTxs:      addTxs,
-		fetchTxs:    fetchTxs,
-		clock:       clock,
-		rand:        rand,
+		notify:         make(chan *txAnnounce),
+		cleanup:        make(chan *txDelivery),
+		drop:           make(chan *txDrop),
+		quit:           make(chan struct{}),
+		waitlist:       make(map[common.Hash]map[string]struct{}),
+		waittime:       make(map[common.Hash]mclock.AbsTime),
+		waitslots:      make(map[string]map[common.Hash]*txMetadataWithSeq),
+		announces:      make(map[string]map[common.Hash]*txMetadataWithSeq),
+		announced:      make(map[common.Hash]map[string]struct{}),
+		fetching:       make(map[common.Hash]string),
+		requests:       make(map[string]*txRequest),
+		alternates:     make(map[common.Hash]map[string]struct{}),
+		underpriced:    lru.NewCache[common.Hash, time.Time](maxTxUnderpricedSetSize),
+		txOnChainCache: lru.NewCache[common.Hash, struct{}](txOnChainCacheLimit),
+		chain:          chain,
+		hasTx:          hasTx,
+		addTxs:         addTxs,
+		fetchTxs:       fetchTxs,
+		clock:          clock,
+		rand:           rand,
 	}
 }
 
@@ -217,23 +229,31 @@ func (f *TxFetcher) Notify(peer string, hashes []common.Hash) error {
 		unknownHashes = make([]common.Hash, 0, len(hashes))
 		unknownMetas  = make([]txMetadata, 0, len(hashes))
 		duplicate     int64
+		onchain       int64
 		underpriced   int64
 	)
 	for _, hash := range hashes {
-		switch {
-		case f.hasTx(hash):
+		if f.hasTx(hash) {
 			duplicate++
-
-		case f.isKnownUnderpriced(hash):
-			underpriced++
-
-		default:
-			unknownHashes = append(unknownHashes, hash)
-			unknownMetas = append(unknownMetas, txMetadata{kind: types.LegacyTxType, size: 0})
+			continue
 		}
+
+		if _, exist := f.txOnChainCache.Get(hash); exist {
+			onchain++
+			continue
+		}
+
+		if f.isKnownUnderpriced(hash) {
+			underpriced++
+			continue
+		}
+
+		unknownHashes = append(unknownHashes, hash)
+		unknownMetas = append(unknownMetas, txMetadata{kind: types.LegacyTxType, size: 0})
 	}
 	txAnnounceKnownMeter.Mark(duplicate)
 	txAnnounceUnderpricedMeter.Mark(underpriced)
+	txAnnounceOnchainMeter.Mark(onchain)
 
 	// If anything's left to announce, push it into the internal loop
 	if len(unknownHashes) == 0 {
@@ -365,7 +385,16 @@ func (f *TxFetcher) loop() {
 
 		waitTrigger    = make(chan struct{}, 1)
 		timeoutTrigger = make(chan struct{}, 1)
+
+		oldHead *types.Header
 	)
+	// Subscribe to chain events to know when transactions are added to chain
+	var headEventCh chan core.ChainEvent
+	if f.chain != nil {
+		headEventCh = make(chan core.ChainEvent, 10)
+		sub := f.chain.SubscribeChainEvent(headEventCh)
+		defer sub.Unsubscribe()
+	}
 	for {
 		select {
 		case ann := <-f.notify:
@@ -741,6 +770,20 @@ func (f *TxFetcher) loop() {
 			if request != nil {
 				f.scheduleFetches(timeoutTimer, timeoutTrigger, nil)
 				f.rescheduleTimeout(timeoutTimer, timeoutTrigger)
+			}
+		case ev := <-headEventCh:
+			// New head(s) added
+			newHead := ev.Header
+			if oldHead != nil && newHead.ParentHash != oldHead.Hash() {
+				// Reorg or setHead detected, clear the cache. We could be smarter here and
+				// only remove/add the diff, but this is simpler and not being exact here
+				// only results in a few more fetches.
+				f.txOnChainCache.Purge()
+			}
+			oldHead = newHead
+			// Add all transactions from the new block to the on-chain cache
+			for _, tx := range ev.Transactions {
+				f.txOnChainCache.Add(tx.Hash(), struct{}{})
 			}
 
 		case <-f.quit:
