@@ -122,7 +122,7 @@ func TransactionToMessage(tx *types.Transaction, s types.Signer) (*Message, erro
 	msg := &Message{
 		Nonce:           tx.Nonce(),
 		GasLimit:        tx.Gas(),
-		GasPrice:        new(big.Int).Set(tx.GasPrice()),
+		GasPrice:        tx.GasPrice(),
 		To:              tx.To(),
 		Value:           tx.Value(),
 		Data:            tx.Data(),
