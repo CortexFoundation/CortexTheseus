@@ -436,7 +436,7 @@ func hasRightElement(node node, key []byte) bool {
 //
 // The firstKey is paired with firstProof, not necessarily the same as keys[0]
 // (unless firstProof is an existent proof). Similarly, lastKey and lastProof
-// are paired.
+// are paired. The firstKey should be less than or equal to all keys in the list.
 //
 // Expect the normal case, this function can also be used to verify the following
 // range proofs:
@@ -522,8 +522,14 @@ func VerifyRangeProof(rootHash common.Hash, firstKey []byte, lastKey []byte, key
 		}
 		return diskdb, tr, notary, hasRightElement(root, firstKey), nil
 	}
+	// Short circuit if the key of first element is greater than firstKey.
+	// A nil firstKey slice is equivalent to an empty slice.
+	if bytes.Compare(firstKey, keys[0]) > 0 {
+		return nil, nil, nil, false, errors.New("unexpected key-value pairs preceding the requested range")
+	}
 	// Special case, there is only one element and two edge keys are same.
 	// In this case, we can't construct two edge paths. So handle it here.
+	lastKey = keys[len(keys)-1]
 	if len(keys) == 1 && bytes.Equal(firstKey, lastKey) {
 		root, val, err := proofToPath(rootHash, nil, firstKey, notary, false)
 		if err != nil {
@@ -584,7 +590,9 @@ func VerifyRangeProof(rootHash common.Hash, firstKey []byte, lastKey []byte, key
 		tr.root = nil
 	}
 	for index, key := range keys {
-		tr.Update(key, values[index])
+		if err := tr.Update(key, values[index]); err != nil {
+			return nil, nil, nil, false, err
+		}
 	}
 	if tr.Hash() != rootHash {
 		return nil, nil, nil, false, fmt.Errorf("invalid proof, want hash %x, got %x", rootHash, tr.Hash())
