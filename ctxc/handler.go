@@ -272,7 +272,7 @@ func NewProtocolManager(config *handlerConfig) (*ProtocolManager, error) {
 		}
 		return p.RequestTxs(hashes)
 	}
-	manager.txFetcher = fetcher.NewTxFetcher(config.TxPool.Has, config.TxPool.AddRemotes, fetchTx)
+	manager.txFetcher = fetcher.NewTxFetcher(manager.blockchain, config.TxPool.Has, config.TxPool.AddRemotes, fetchTx)
 	manager.chainSync = newChainSyncer(manager)
 
 	return manager, nil

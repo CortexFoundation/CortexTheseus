@@ -50,6 +50,7 @@ var (
 	txAnnounceInMeter          = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/announces/in", nil)
 	txAnnounceKnownMeter       = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/announces/known", nil)
 	txAnnounceUnderpricedMeter = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/announces/underpriced", nil)
+	txAnnounceOnchainMeter     = metrics.NewRegisteredMeter("eth/fetcher/transaction/announces/onchain", nil)
 	txAnnounceDOSMeter         = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/announces/dos", nil)
 
 	txBroadcastInMeter          = metrics.NewRegisteredMeter("ctxc/fetcher/transaction/broadcasts/in", nil)
