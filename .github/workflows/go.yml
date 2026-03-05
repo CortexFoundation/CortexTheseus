@@ -58,7 +58,7 @@ jobs:
           go vet $(go list ./... | grep -v /cvm-runtime/)
 
     - name: Build
-      run: make clean && make all
+      run: make all
       
     - name: CodeCov
       run: |
