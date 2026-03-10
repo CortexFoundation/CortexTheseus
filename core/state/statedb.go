@@ -1095,6 +1095,8 @@ func (s *StateDB) Commit(block uint64, deleteEmptyObjects bool) (common.Hash, er
 		return common.Hash{}, err
 	}
 
+	code.Close()
+
 	// Write the account trie changes, measuing the amount of wasted time
 	// The onleaf func is called _serially_, so we can reuse the same account
 	// for unmarshalling every time.

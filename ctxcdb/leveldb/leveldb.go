@@ -491,6 +491,9 @@ func (b *batch) Replay(w ctxcdb.KeyValueWriter) error {
 	return b.b.Replay(&replayer{writer: w})
 }
 
+// Close closes the batch and releases all associated resources.
+func (b *batch) Close() {}
+
 // replayer is a small wrapper to implement the correct replay methods.
 type replayer struct {
 	writer  ctxcdb.KeyValueWriter

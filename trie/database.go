@@ -611,6 +611,7 @@ func (db *Database) Cap(limit common.StorageSize) error {
 		log.Error("Failed to write flush list to disk", "err", err)
 		return err
 	}
+	batch.Close()
 	// Write successful, clear out the flushed data
 
 	for db.oldest != oldest {
