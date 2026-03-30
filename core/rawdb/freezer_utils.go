@@ -22,6 +22,13 @@ import (
 	"path/filepath"
 )
 
+func atomicRename(src, dest string) error {
+	if err := os.Rename(src, dest); err != nil {
+		return err
+	}
+	return syncDir(filepath.Dir(src))
+}
+
 // copyFrom copies data from 'srcPath' at offset 'offset' into 'destPath'.
 // The 'destPath' is created if it doesn't exist, otherwise it is overwritten.
 // Before the copy is executed, there is a callback can be registered to
