@@ -26,83 +26,114 @@
 // Allow libutp consumers or prerequisites to override PACKED_ATTRIBUTE
 #ifndef PACKED_ATTRIBUTE
 #if defined BROKEN_GCC_STRUCTURE_PACKING && defined __GNUC__
-	// Used for gcc tool chains accepting but not supporting pragma pack
-	// See http://gcc.gnu.org/onlinedocs/gcc/Type-Attributes.html
-	#define PACKED_ATTRIBUTE __attribute__((__packed__))
+// Used for gcc tool chains accepting but not supporting pragma pack
+// See http://gcc.gnu.org/onlinedocs/gcc/Type-Attributes.html
+#define PACKED_ATTRIBUTE __attribute__((__packed__))
 #else
-	#define PACKED_ATTRIBUTE
+#define PACKED_ATTRIBUTE
 #endif // defined BROKEN_GCC_STRUCTURE_PACKING && defined __GNUC__
 #endif // ndef PACKED_ATTRIBUTE
 
 #ifdef __GNUC__
-	#define ALIGNED_ATTRIBUTE(x)  __attribute__((aligned (x)))
+#define ALIGNED_ATTRIBUTE(x) __attribute__((aligned(x)))
 #else
-	#define ALIGNED_ATTRIBUTE(x)
+#define ALIGNED_ATTRIBUTE(x)
 #endif
 
 // hash.cpp needs socket definitions, which is why this networking specific
 // code is inclued in utypes.h
 #ifdef WIN32
-	#define _CRT_SECURE_NO_DEPRECATE
-	#define WIN32_LEAN_AND_MEAN
-	#include <windows.h>
-	#include <winsock2.h>
-	#include <ws2tcpip.h>
-	#define IP_OPT_DONTFRAG IP_DONTFRAGMENT
-	#define SHUT_RD SD_RECEIVE
-	#define SHUT_WR SD_SEND
-	#define SHUT_RDWR SD_BOTH
+#define _CRT_SECURE_NO_DEPRECATE
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#define IP_OPT_DONTFRAG IP_DONTFRAGMENT
+#define SHUT_RD SD_RECEIVE
+#define SHUT_WR SD_SEND
+#define SHUT_RDWR SD_BOTH
 #else
-	#include <netinet/in.h>
-	#include <arpa/inet.h>
-	#include <unistd.h>
-	#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <sys/socket.h>
 
-	#ifdef IP_DONTFRAG
-		#define IP_OPT_DONTFRAG IP_DONTFRAG
-	#elif defined IP_DONTFRAGMENT
-		#define IP_OPT_DONTFRAG IP_DONTFRAGMENT
-	#else
-		//#warning "I don't know how to set DF bit on this system"
-	#endif
+#ifdef IP_DONTFRAG
+#define IP_OPT_DONTFRAG IP_DONTFRAG
+#elif defined IP_DONTFRAGMENT
+#define IP_OPT_DONTFRAG IP_DONTFRAGMENT
+#else
+// #warning "I don't know how to set DF bit on this system"
+#endif
 #endif
 
 #ifdef _MSC_VER
-	#include <BaseTsd.h>
-	typedef SSIZE_T ssize_t;
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
 #endif
 
 #ifdef POSIX
-	typedef struct sockaddr_storage SOCKADDR_STORAGE;
+typedef struct sockaddr_storage SOCKADDR_STORAGE;
 #endif
 
 #ifdef WIN32
-	#define I64u "%I64u"
+#define I64u "%I64u"
 #else
-	#define I64u "%Lu"
+#define I64u "%Lu"
 #endif
 
-// standard types
-typedef unsigned char byte;
-typedef unsigned char uint8;
-typedef signed char int8;
-typedef unsigned short uint16;
-typedef signed short int16;
-typedef unsigned int uint;
-typedef unsigned int uint32;
-typedef signed int int32;
+// Use standard integer and boolean types where possible.
+#include <stdint.h>
 
-#ifdef _MSC_VER
-typedef unsigned __int64 uint64;
-typedef signed __int64 int64;
-#else
-typedef unsigned long long uint64;
-typedef long long int64;
+// Prefer stdbool for boolean type in C; C++ has built-in bool.
+#if !defined(__cplusplus)
+#include <stdbool.h>
+#endif
+
+// standard types: define short aliases only if not already provided.
+#ifndef byte
+typedef unsigned char byte;
+#endif
+
+#ifndef uint8
+typedef uint8_t uint8;
+#endif
+
+#ifndef int8
+typedef int8_t int8;
+#endif
+
+#ifndef uint16
+typedef uint16_t uint16;
+#endif
+
+#ifndef int16
+typedef int16_t int16;
+#endif
+
+#ifndef uint
+typedef unsigned int uint;
+#endif
+
+#ifndef uint32
+typedef uint32_t uint32;
+#endif
+
+#ifndef int32
+typedef int32_t int32;
+#endif
+
+#ifndef uint64
+typedef uint64_t uint64;
+#endif
+
+#ifndef int64
+typedef int64_t int64;
 #endif
 
 /* compile-time assert */
 #ifndef CASSERT
-#define CASSERT( exp, name ) typedef int is_not_##name [ (exp ) ? 1 : -1 ];
+#define CASSERT(exp, name) typedef int is_not_##name[(exp) ? 1 : -1];
 #endif
 
 CASSERT(8 == sizeof(uint64), sizeof_uint64_is_8)
@@ -113,15 +144,11 @@ CASSERT(8 == sizeof(int64), sizeof_int64_is_8)
 #endif
 
 // always ANSI
-typedef const char * cstr;
-typedef char * str;
+typedef const char *cstr;
+typedef char *str;
 
-#ifndef __cplusplus
-#if defined __STDC_VERSION__ && __STDC_VERSION__ > 201710L
-/* bool, true and false are keywords.  */
-#else
-typedef uint8 bool;
-#endif
-#endif
+/* No explicit typedef for `bool` here: we include <stdbool.h> above for C
+	and rely on built-in `bool` in C++. Guarding typedefs for `bool` would
+`	clash with platforms that already provide it. */
 
 #endif //__UTP_TYPES_H__

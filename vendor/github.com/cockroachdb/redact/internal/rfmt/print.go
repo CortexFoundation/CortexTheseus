@@ -67,7 +67,7 @@ type Formatter interface {
 }
 
 // Stringer is implemented by any value that has a String method,
-// which defines the ``native'' format for that value.
+// which defines the `native` format for that value.
 // The String method is used to print values passed as an operand
 // to any format that accepts a string or to an unformatted printer
 // such as Print.
@@ -695,6 +695,7 @@ func (p *pp) handleMethods(verb rune) (handled bool) {
 	return false
 }
 
+
 func (p *pp) printArg(arg interface{}, verb rune) {
 	t := reflect.TypeOf(arg)
 	if safeTypeRegistry[t] {
@@ -707,8 +708,10 @@ func (p *pp) printArg(arg interface{}, verb rune) {
 		arg = arg.(w.UnsafeWrap).GetValue()
 	}
 
-	if _, ok := arg.(i.SafeValue); ok {
+	if _, isSafe := arg.(i.SafeValue); isSafe {
 		defer p.startSafeOverride().restore()
+	} else if _, ok := arg.(i.HashValue); ok {
+		defer p.startHashRedactable().restore()
 	}
 
 	p.arg = arg
@@ -788,8 +791,10 @@ func (p *pp) printArg(arg interface{}, verb rune) {
 
 			if f.CanInterface() {
 				p.arg = f.Interface()
-				if _, ok := p.arg.(i.SafeValue); ok {
+				if _, isSafe := p.arg.(i.SafeValue); isSafe {
 					defer p.startSafeOverride().restore()
+				} else if _, ok := p.arg.(i.HashValue); ok {
+					defer p.startHashRedactable().restore()
 				}
 				if p.handleMethods(verb) {
 					return
@@ -831,8 +836,10 @@ func (p *pp) printValue(value reflect.Value, verb rune, depth int) {
 
 		if value.CanInterface() {
 			p.arg = value.Interface()
-			if _, ok := p.arg.(i.SafeValue); ok {
+			if _, isSafe := p.arg.(i.SafeValue); isSafe {
 				defer p.startSafeOverride().restore()
+			} else if _, ok := p.arg.(i.HashValue); ok {
+				defer p.startHashRedactable().restore()
 			}
 			if p.handleMethods(verb) {
 				return

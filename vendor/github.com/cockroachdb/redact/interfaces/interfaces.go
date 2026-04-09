@@ -158,6 +158,61 @@ type SafeValue interface {
 	SafeValue()
 }
 
+// HashValue is a marker interface to be implemented by types whose
+// values should be hashed when redacted, instead of being replaced
+// with the redaction marker.
+//
+// This allows correlation between log entries while maintaining privacy.
+// The hash is computed during the Redact() call, not at log creation time.
+//
+// Types implementing this interface should alias base Go types.
+// The hash is applied to the string representation of the value.
+type HashValue interface {
+	HashValue()
+}
+
+// HashString represents a string that should be hashed when redacted.
+type HashString string
+
+// HashValue makes HashString a HashValue.
+func (HashString) HashValue() {}
+
+// HashInt represents an integer that should be hashed when redacted.
+type HashInt int64
+
+// HashValue makes HashInt a HashValue.
+func (HashInt) HashValue() {}
+
+// HashUint represents an unsigned integer that should be hashed when redacted.
+type HashUint uint64
+
+// HashValue makes HashUint a HashValue.
+func (HashUint) HashValue() {}
+
+// HashFloat represents a floating-point value that should be hashed when redacted.
+type HashFloat float64
+
+// HashValue makes HashFloat a HashValue.
+func (HashFloat) HashValue() {}
+
+// HashRune represents a rune that should be hashed when redacted.
+type HashRune rune
+
+// HashValue makes HashRune a HashValue.
+func (HashRune) HashValue() {}
+
+// HashByte represents a byte that should be hashed when redacted.
+type HashByte byte
+
+// HashValue makes HashByte a HashValue.
+func (HashByte) HashValue() {}
+
+// HashBytes represents a byte slice that should be hashed when redacted.
+type HashBytes []byte
+
+// HashValue makes HashBytes a HashValue.
+func (HashBytes) HashValue() {}
+
 // SafeMessager is an alternative to SafeFormatter used in previous
 // versions of CockroachDB.
 // NB: this interface is obsolete. Use SafeFormatter instead.

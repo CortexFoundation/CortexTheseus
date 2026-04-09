@@ -68,7 +68,10 @@ func (c *Conn) waitForConnect(ctx context.Context) error {
 	defer cancel()
 	go func() {
 		<-ctx.Done()
+		mu := c.cond.L
+		mu.Lock()
 		c.cond.Broadcast()
+		mu.Unlock()
 	}()
 	for {
 		if c.closed {

@@ -37,6 +37,7 @@ func InternalEscapeBytes(b []byte, startLoc int, breakNewLines, strip bool) (res
 	// accelerates the loops below.
 	start, ls := m.StartBytes, len(m.StartS)
 	end, le := m.EndBytes, len(m.EndS)
+	hashPrefix, lh := m.HashPrefixBytes, len(m.HashPrefixS)
 	escape := m.EscapeMarkBytes
 
 	// Trim final newlines/spaces, for convenience.
@@ -116,6 +117,15 @@ func InternalEscapeBytes(b []byte, startLoc int, breakNewLines, strip bool) (res
 			// Advance the counters by the length (in bytes) of the delimiter.
 			k = i + le
 			i += le - 1 /* -1 because we have i++ at the end of every iteration */
+		} else if i+lh <= len(b) && bytes.Equal(b[i:i+lh], hashPrefix) {
+			if !copied {
+				res = make([]byte, 0, len(b)+len(escape))
+				copied = true
+			}
+			res = append(res, b[k:i]...)
+			res = append(res, escape...)
+			k = i + lh
+			i += lh - 1
 		}
 	}
 	// If the string terminates with an invalid utf-8 sequence, we

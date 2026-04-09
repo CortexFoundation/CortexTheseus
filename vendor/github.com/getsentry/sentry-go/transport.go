@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,23 +16,15 @@ import (
 	httpinternal "github.com/getsentry/sentry-go/internal/http"
 	"github.com/getsentry/sentry-go/internal/protocol"
 	"github.com/getsentry/sentry-go/internal/ratelimit"
+	"github.com/getsentry/sentry-go/internal/util"
+	"github.com/getsentry/sentry-go/report"
 )
 
 const (
-	defaultBufferSize = 1000
-	defaultTimeout    = time.Second * 30
+	defaultBufferSize        = 1000
+	defaultTimeout           = time.Second * 30
+	defaultClientReportsTick = time.Second * 30
 )
-
-// maxDrainResponseBytes is the maximum number of bytes that transport
-// implementations will read from response bodies when draining them.
-//
-// Sentry's ingestion API responses are typically short and the SDK doesn't need
-// the contents of the response body. However, the net/http HTTP client requires
-// response bodies to be fully drained (and closed) for TCP keep-alive to work.
-//
-// maxDrainResponseBytes strikes a balance between reading too much data (if the
-// server is misbehaving) and reusing TCP connections.
-const maxDrainResponseBytes = 16 << 10
 
 // Transport is used by the Client to deliver events to remote server.
 type Transport interface {
@@ -134,6 +125,19 @@ func encodeAttachment(enc *json.Encoder, b io.Writer, attachment *Attachment) er
 	return nil
 }
 
+func encodeClientReport(enc *json.Encoder, cr *report.ClientReport) error {
+	payload, err := json.Marshal(cr)
+	if err != nil {
+		return err
+	}
+	err = encodeEnvelopeItem(enc, string(protocol.EnvelopeItemTypeClientReport), payload)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func encodeEnvelopeItem(enc *json.Encoder, itemType string, body json.RawMessage) error {
 	// Item header
 	err := enc.Encode(struct {
@@ -184,6 +188,54 @@ func encodeEnvelopeMetrics(enc *json.Encoder, count int, body json.RawMessage) e
 	return err
 }
 
+func recordForEvent(recorder report.ClientReportRecorder, reason report.DiscardReason, event *Event) {
+	category := event.toCategory()
+	switch event.Type {
+	case transactionType:
+		recorder.RecordOne(reason, category)
+		if count := event.GetSpanCount(); count > 0 {
+			recorder.Record(reason, ratelimit.CategorySpan, int64(count))
+		}
+	case logEvent.Type:
+		if count := len(event.Logs); count > 0 {
+			recorder.Record(reason, ratelimit.CategoryLog, int64(count))
+		}
+		if size := event.GetLogByteSize(); size > 0 {
+			recorder.Record(reason, ratelimit.CategoryLogByte, int64(size))
+		}
+	default:
+		recorder.RecordOne(reason, category)
+	}
+}
+
+func recordForBatchItem(recorder report.ClientReportRecorder, reason report.DiscardReason, item *batchItem) {
+	switch {
+	case item.logItemCount > 0:
+		recorder.Record(reason, ratelimit.CategoryLog, int64(item.logItemCount))
+		if item.logByteSize > 0 {
+			recorder.Record(reason, ratelimit.CategoryLogByte, int64(item.logByteSize))
+		}
+	default:
+		recorder.RecordOne(reason, item.category)
+		if item.spanCount > 0 {
+			recorder.Record(reason, ratelimit.CategorySpan, int64(item.spanCount))
+		}
+	}
+}
+
+// envelopeHeader represents the header of a Sentry envelope.
+type envelopeHeader struct {
+	EventID EventID           `json:"event_id,omitempty"`
+	SentAt  time.Time         `json:"sent_at"`
+	Dsn     string            `json:"dsn,omitempty"`
+	Sdk     map[string]string `json:"sdk,omitempty"`
+	Trace   map[string]string `json:"trace,omitempty"`
+}
+
+func encodeEnvelopeHeader(enc *json.Encoder, header *envelopeHeader) error {
+	return enc.Encode(header)
+}
+
 func envelopeFromBody(event *Event, dsn *Dsn, sentAt time.Time, body json.RawMessage) (*bytes.Buffer, error) {
 	var b bytes.Buffer
 	enc := json.NewEncoder(&b)
@@ -197,13 +249,7 @@ func envelopeFromBody(event *Event, dsn *Dsn, sentAt time.Time, body json.RawMes
 	}
 
 	// Envelope header
-	err := enc.Encode(struct {
-		EventID EventID           `json:"event_id"`
-		SentAt  time.Time         `json:"sent_at"`
-		Dsn     string            `json:"dsn"`
-		Sdk     map[string]string `json:"sdk"`
-		Trace   map[string]string `json:"trace,omitempty"`
-	}{
+	err := encodeEnvelopeHeader(enc, &envelopeHeader{
 		EventID: event.EventID,
 		SentAt:  sentAt,
 		Trace:   trace,
@@ -242,46 +288,39 @@ func envelopeFromBody(event *Event, dsn *Dsn, sentAt time.Time, body json.RawMes
 	return &b, nil
 }
 
-func getRequestFromEvent(ctx context.Context, event *Event, dsn *Dsn) (r *http.Request, err error) {
-	defer func() {
-		if r != nil {
-			r.Header.Set("User-Agent", fmt.Sprintf("%s/%s", event.Sdk.Name, event.Sdk.Version))
-			r.Header.Set("Content-Type", "application/x-sentry-envelope")
-
-			auth := fmt.Sprintf("Sentry sentry_version=%s, "+
-				"sentry_client=%s/%s, sentry_key=%s", apiVersion, event.Sdk.Name, event.Sdk.Version, dsn.GetPublicKey())
-
-			// The key sentry_secret is effectively deprecated and no longer needs to be set.
-			// However, since it was required in older self-hosted versions,
-			// it should still passed through to Sentry if set.
-			if dsn.GetSecretKey() != "" {
-				auth = fmt.Sprintf("%s, sentry_secret=%s", auth, dsn.GetSecretKey())
-			}
-
-			r.Header.Set("X-Sentry-Auth", auth)
-		}
-	}()
-
-	body := getRequestBodyFromEvent(event)
-	if body == nil {
-		return nil, errors.New("event could not be marshaled")
-	}
-
-	envelope, err := envelopeFromBody(event, dsn, time.Now(), body)
-	if err != nil {
-		return nil, err
-	}
-
+// getRequestFromEnvelope creates an HTTP request from a pre-built envelope.
+// sdkName and sdkVersion are used for User-Agent and authentication headers.
+func getRequestFromEnvelope(ctx context.Context, dsn *Dsn, envelope *bytes.Buffer, sdkName, sdkVersion string) (*http.Request, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	return http.NewRequestWithContext(
+	request, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodPost,
 		dsn.GetAPIURL().String(),
 		envelope,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	request.Header.Set("User-Agent", fmt.Sprintf("%s/%s", sdkName, sdkVersion))
+	request.Header.Set("Content-Type", "application/x-sentry-envelope")
+
+	auth := fmt.Sprintf("Sentry sentry_version=%s, "+
+		"sentry_client=%s/%s, sentry_key=%s", apiVersion, sdkName, sdkVersion, dsn.GetPublicKey())
+
+	// The key sentry_secret is effectively deprecated and no longer needs to be set.
+	// However, since it was required in older self-hosted versions,
+	// it should still be passed through to Sentry if set.
+	if dsn.GetSecretKey() != "" {
+		auth = fmt.Sprintf("%s, sentry_secret=%s", auth, dsn.GetSecretKey())
+	}
+
+	request.Header.Set("X-Sentry-Auth", auth)
+
+	return request, nil
 }
 
 // ================================
@@ -296,8 +335,15 @@ type batch struct {
 }
 
 type batchItem struct {
-	request  *http.Request
-	category ratelimit.Category
+	ctx             context.Context
+	envelope        *bytes.Buffer
+	sdkName         string
+	sdkVersion      string
+	category        ratelimit.Category
+	eventIdentifier string
+	spanCount       int
+	logItemCount    int
+	logByteSize     int
 }
 
 // HTTPTransport is the default, non-blocking, implementation of Transport.
@@ -309,6 +355,8 @@ type HTTPTransport struct {
 	dsn       *Dsn
 	client    *http.Client
 	transport http.RoundTripper
+	recorder  report.ClientReportRecorder
+	provider  report.ClientReportProvider
 
 	// buffer is a channel of batches. Calling Flush terminates work on the
 	// current in-flight items and starts a new batch for subsequent events.
@@ -335,11 +383,12 @@ func NewHTTPTransport() *HTTPTransport {
 		BufferSize: defaultBufferSize,
 		Timeout:    defaultTimeout,
 		done:       make(chan struct{}),
+		limits:     make(ratelimit.Map),
 	}
 	return &transport
 }
 
-// Configure is called by the Client itself, providing it it's own ClientOptions.
+// Configure is called by the Client itself, providing its own ClientOptions.
 func (t *HTTPTransport) Configure(options ClientOptions) {
 	dsn, err := NewDsn(options.Dsn)
 	if err != nil {
@@ -347,6 +396,13 @@ func (t *HTTPTransport) Configure(options ClientOptions) {
 		return
 	}
 	t.dsn = dsn
+
+	if t.recorder == nil {
+		t.recorder = report.NoopRecorder()
+	}
+	if t.provider == nil {
+		t.provider = report.NoopProvider()
+	}
 
 	// A buffered channel with capacity 1 works like a mutex, ensuring only one
 	// goroutine can access the current batch at a given time. Access is
@@ -395,11 +451,18 @@ func (t *HTTPTransport) SendEventWithContext(ctx context.Context, event *Event) 
 	category := event.toCategory()
 
 	if t.disabled(category) {
+		recordForEvent(t.recorder, report.ReasonRateLimitBackoff, event)
 		return
 	}
 
-	request, err := getRequestFromEvent(ctx, event, t.dsn)
+	body := getRequestBodyFromEvent(event)
+	if body == nil {
+		recordForEvent(t.recorder, report.ReasonInternalError, event)
+		return
+	}
+	envelope, err := envelopeFromBody(event, t.dsn, time.Now(), body)
 	if err != nil {
+		recordForEvent(t.recorder, report.ReasonInternalError, event)
 		return
 	}
 
@@ -416,26 +479,29 @@ func (t *HTTPTransport) SendEventWithContext(ctx context.Context, event *Event) 
 	// channel (used as a queue).
 	b := <-t.buffer
 
+	identifier := eventIdentifier(event)
+
 	select {
 	case b.items <- batchItem{
-		request:  request,
-		category: category,
+		ctx:             ctx,
+		envelope:        envelope,
+		sdkName:         event.Sdk.Name,
+		sdkVersion:      event.Sdk.Version,
+		category:        category,
+		eventIdentifier: identifier,
+		spanCount:       event.GetSpanCount(),
+		logItemCount:    len(event.Logs),
+		logByteSize:     event.GetLogByteSize(),
 	}:
-		var eventType string
-		if event.Type == transactionType {
-			eventType = "transaction"
-		} else {
-			eventType = fmt.Sprintf("%s event", event.Type)
-		}
 		debuglog.Printf(
-			"Sending %s [%s] to %s project: %s",
-			eventType,
-			event.EventID,
+			"Sending %s to %s project: %s",
+			identifier,
 			t.dsn.GetHost(),
 			t.dsn.GetProjectID(),
 		)
 	default:
 		debuglog.Println("Event dropped due to transport buffer being full.")
+		recordForEvent(t.recorder, report.ReasonQueueOverflow, event)
 	}
 
 	t.buffer <- b
@@ -522,6 +588,8 @@ func (t *HTTPTransport) Close() {
 }
 
 func (t *HTTPTransport) worker() {
+	crTicker := time.NewTicker(defaultClientReportsTick)
+	defer crTicker.Stop()
 	for b := range t.buffer {
 		// Signal that processing of the current batch has started.
 		close(b.started)
@@ -536,43 +604,87 @@ func (t *HTTPTransport) worker() {
 			select {
 			case <-t.done:
 				return
+			case <-crTicker.C:
+				r := t.provider.TakeReport()
+				if r != nil {
+					var buf bytes.Buffer
+					enc := json.NewEncoder(&buf)
+					if err := encodeEnvelopeHeader(enc, &envelopeHeader{
+						SentAt: time.Now(),
+						Dsn:    t.dsn.String(),
+						Sdk: map[string]string{
+							"name":    sdkIdentifier,
+							"version": SDKVersion,
+						},
+					}); err != nil {
+						continue
+					}
+					if err := encodeClientReport(enc, r); err != nil {
+						continue
+					}
+					req, err := getRequestFromEnvelope(context.Background(), t.dsn, &buf, sdkIdentifier, SDKVersion)
+					if err != nil {
+						debuglog.Printf("There was an issue when creating the request: %v", err)
+						continue
+					}
+					result, err := util.DoSendRequest(t.client, req, "client report")
+					if err != nil {
+						debuglog.Printf("There was an issue with sending an event: %v", err)
+						continue
+					}
+					t.mu.Lock()
+					t.limits.Merge(result.Limits)
+					t.mu.Unlock()
+				}
 			case item, open := <-b.items:
 				if !open {
 					break loop
 				}
 				if t.disabled(item.category) {
+					recordForBatchItem(t.recorder, report.ReasonRateLimitBackoff, &item)
 					continue
 				}
 
-				response, err := t.client.Do(item.request)
+				// Attach accumulated client report inside the worker to avoid background queue overflows.
+				t.attachClientReport(item.envelope)
+				request, err := getRequestFromEnvelope(item.ctx, t.dsn, item.envelope, item.sdkName, item.sdkVersion)
 				if err != nil {
-					debuglog.Printf("There was an issue with sending an event: %v", err)
+					debuglog.Printf("There was an issue when creating the request: %v", err)
+					recordForBatchItem(t.recorder, report.ReasonInternalError, &item)
 					continue
 				}
-				if response.StatusCode >= 400 && response.StatusCode <= 599 {
-					b, err := io.ReadAll(response.Body)
-					if err != nil {
-						debuglog.Printf("Error while reading response code: %v", err)
-					}
-					debuglog.Printf("Sending %s failed with the following error: %s", eventType, string(b))
+
+				result, err := util.DoSendRequest(t.client, request, item.eventIdentifier)
+				if err != nil {
+					debuglog.Printf("There was an issue with sending an event: %v", err)
+					recordForBatchItem(t.recorder, report.ReasonNetworkError, &item)
+					continue
+				}
+				if result.IsSendError() {
+					recordForBatchItem(t.recorder, report.ReasonSendError, &item)
 				}
 
 				t.mu.Lock()
-				if t.limits == nil {
-					t.limits = make(ratelimit.Map)
-				}
-				t.limits.Merge(ratelimit.FromResponse(response))
+				t.limits.Merge(result.Limits)
 				t.mu.Unlock()
-
-				// Drain body up to a limit and close it, allowing the
-				// transport to reuse TCP connections.
-				_, _ = io.CopyN(io.Discard, response.Body, maxDrainResponseBytes)
-				response.Body.Close()
 			}
 		}
 
 		// Signal that processing of the batch is done.
 		close(b.done)
+	}
+}
+
+// attachClientReport takes any pending client report from the provider and
+// appends it to the envelope buffer.
+func (t *HTTPTransport) attachClientReport(buf *bytes.Buffer) {
+	r := t.provider.TakeReport()
+	if r == nil {
+		return
+	}
+	enc := json.NewEncoder(buf)
+	if err := encodeClientReport(enc, r); err != nil {
+		debuglog.Printf("Failed to encode client report: %v", err)
 	}
 }
 
@@ -605,6 +717,8 @@ type HTTPSyncTransport struct {
 	dsn       *Dsn
 	client    *http.Client
 	transport http.RoundTripper
+	recorder  report.ClientReportRecorder
+	provider  report.ClientReportProvider
 
 	mu     sync.Mutex
 	limits ratelimit.Map
@@ -623,7 +737,7 @@ func NewHTTPSyncTransport() *HTTPSyncTransport {
 	return &transport
 }
 
-// Configure is called by the Client itself, providing it it's own ClientOptions.
+// Configure is called by the Client itself, providing its own ClientOptions.
 func (t *HTTPSyncTransport) Configure(options ClientOptions) {
 	dsn, err := NewDsn(options.Dsn)
 	if err != nil {
@@ -631,6 +745,13 @@ func (t *HTTPSyncTransport) Configure(options ClientOptions) {
 		return
 	}
 	t.dsn = dsn
+
+	if t.recorder == nil {
+		t.recorder = report.NoopRecorder()
+	}
+	if t.provider == nil {
+		t.provider = report.NoopProvider()
+	}
 
 	if options.HTTPTransport != nil {
 		t.transport = options.HTTPTransport
@@ -664,61 +785,58 @@ func (t *HTTPSyncTransport) SendEventWithContext(ctx context.Context, event *Eve
 		return
 	}
 
-	if t.disabled(event.toCategory()) {
+	category := event.toCategory()
+	if t.disabled(category) {
+		recordForEvent(t.recorder, report.ReasonRateLimitBackoff, event)
 		return
 	}
 
-	request, err := getRequestFromEvent(ctx, event, t.dsn)
+	body := getRequestBodyFromEvent(event)
+	if body == nil {
+		recordForEvent(t.recorder, report.ReasonInternalError, event)
+		return
+	}
+
+	envelope, err := envelopeFromBody(event, t.dsn, time.Now(), body)
 	if err != nil {
+		recordForEvent(t.recorder, report.ReasonInternalError, event)
 		return
 	}
 
-	var eventIdentifier string
-	switch event.Type {
-	case errorType:
-		eventIdentifier = "error"
-	case transactionType:
-		eventIdentifier = "transaction"
-	case logEvent.Type:
-		eventIdentifier = fmt.Sprintf("%d log events", len(event.Logs))
-	case traceMetricEvent.Type:
-		eventIdentifier = fmt.Sprintf("%d metric events", len(event.Metrics))
-	default:
-		eventIdentifier = fmt.Sprintf("%s event", event.Type)
+	if r := t.provider.TakeReport(); r != nil {
+		enc := json.NewEncoder(envelope)
+		if err := encodeClientReport(enc, r); err != nil {
+			debuglog.Printf("Failed to encode client report: %v", err)
+		}
 	}
+
+	request, err := getRequestFromEnvelope(ctx, t.dsn, envelope, event.Sdk.Name, event.Sdk.Version)
+	if err != nil {
+		recordForEvent(t.recorder, report.ReasonInternalError, event)
+		return
+	}
+
+	identifier := eventIdentifier(event)
 	debuglog.Printf(
-		"Sending %s [%s] to %s project: %s",
-		eventIdentifier,
-		event.EventID,
+		"Sending %s to %s project: %s",
+		identifier,
 		t.dsn.GetHost(),
 		t.dsn.GetProjectID(),
 	)
 
-	response, err := t.client.Do(request)
+	result, err := util.DoSendRequest(t.client, request, identifier)
 	if err != nil {
 		debuglog.Printf("There was an issue with sending an event: %v", err)
+		recordForEvent(t.recorder, report.ReasonNetworkError, event)
 		return
 	}
-	if response.StatusCode >= 400 && response.StatusCode <= 599 {
-		b, err := io.ReadAll(response.Body)
-		if err != nil {
-			debuglog.Printf("Error while reading response code: %v", err)
-		}
-		debuglog.Printf("Sending %s failed with the following error: %s", eventIdentifier, string(b))
+	if result.IsSendError() {
+		recordForEvent(t.recorder, report.ReasonSendError, event)
 	}
 
 	t.mu.Lock()
-	if t.limits == nil {
-		t.limits = make(ratelimit.Map)
-	}
-
-	t.limits.Merge(ratelimit.FromResponse(response))
+	t.limits.Merge(result.Limits)
 	t.mu.Unlock()
-
-	// Drain body up to a limit and close it, allowing the
-	// transport to reuse TCP connections.
-	_, _ = io.CopyN(io.Discard, response.Body, maxDrainResponseBytes)
-	response.Body.Close()
 }
 
 // Flush is a no-op for HTTPSyncTransport. It always returns true immediately.
@@ -786,6 +904,8 @@ func newInternalAsyncTransport() Transport {
 type internalAsyncTransportAdapter struct {
 	transport protocol.TelemetryTransport
 	dsn       *protocol.Dsn
+	recorder  report.ClientReportRecorder
+	provider  report.ClientReportProvider
 }
 
 func (a *internalAsyncTransportAdapter) Configure(options ClientOptions) {
@@ -796,6 +916,8 @@ func (a *internalAsyncTransportAdapter) Configure(options ClientOptions) {
 		HTTPProxy:     options.HTTPProxy,
 		HTTPSProxy:    options.HTTPSProxy,
 		CaCerts:       options.CaCerts,
+		Recorder:      a.recorder,
+		Provider:      a.provider,
 	}
 
 	a.transport = httpinternal.NewAsyncTransport(transportOptions)
@@ -822,6 +944,9 @@ func (a *internalAsyncTransportAdapter) SendEvent(event *Event) {
 	item, err := event.ToEnvelopeItem()
 	if err != nil {
 		debuglog.Printf("Failed to convert event to envelope item: %v", err)
+		if a.recorder != nil {
+			recordForEvent(a.recorder, report.ReasonInternalError, event)
+		}
 		return
 	}
 	envelope.AddItem(item)
