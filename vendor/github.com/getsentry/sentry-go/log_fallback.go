@@ -16,6 +16,7 @@ type noopLogger struct{}
 type noopLogEntry struct {
 	level       LogLevel
 	shouldPanic bool
+	shouldFatal bool
 }
 
 func (n *noopLogEntry) WithCtx(_ context.Context) LogEntry {
@@ -42,6 +43,22 @@ func (n *noopLogEntry) Bool(_ string, _ bool) LogEntry {
 	return n
 }
 
+func (n *noopLogEntry) StringSlice(_ string, _ []string) LogEntry {
+	return n
+}
+
+func (n *noopLogEntry) Int64Slice(_ string, _ []int64) LogEntry {
+	return n
+}
+
+func (n *noopLogEntry) Float64Slice(_ string, _ []float64) LogEntry {
+	return n
+}
+
+func (n *noopLogEntry) BoolSlice(_ string, _ []bool) LogEntry {
+	return n
+}
+
 func (n *noopLogEntry) Attributes(_ ...attribute.Builder) LogEntry {
 	return n
 }
@@ -52,7 +69,9 @@ func (n *noopLogEntry) Emit(args ...interface{}) {
 		if n.shouldPanic {
 			panic(args)
 		}
-		os.Exit(1)
+		if n.shouldFatal {
+			os.Exit(1)
+		}
 	}
 }
 
@@ -62,7 +81,9 @@ func (n *noopLogEntry) Emitf(message string, args ...interface{}) {
 		if n.shouldPanic {
 			panic(fmt.Sprintf(message, args...))
 		}
-		os.Exit(1)
+		if n.shouldFatal {
+			os.Exit(1)
+		}
 	}
 }
 
@@ -89,11 +110,15 @@ func (*noopLogger) Error() LogEntry {
 }
 
 func (*noopLogger) Fatal() LogEntry {
-	return &noopLogEntry{level: LogLevelFatal}
+	return &noopLogEntry{level: LogLevelFatal, shouldFatal: true}
 }
 
 func (*noopLogger) Panic() LogEntry {
 	return &noopLogEntry{level: LogLevelFatal, shouldPanic: true}
+}
+
+func (*noopLogger) LFatal() LogEntry {
+	return &noopLogEntry{level: LogLevelFatal}
 }
 
 func (*noopLogger) SetAttributes(...attribute.Builder) {

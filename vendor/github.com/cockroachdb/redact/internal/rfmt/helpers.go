@@ -81,6 +81,37 @@ func (r restorer) restore() {
 	r.p.override = r.prevOverride
 }
 
+type hashRestorer struct {
+	p            *pp
+	prevMode     b.OutputMode
+	prevOverride overrideMode
+	active       bool
+}
+
+func (r hashRestorer) restore() {
+	if r.active {
+		r.p.buf.SetMode(b.PreRedactable)
+		r.p.buf.WriteString(m.EndS)
+	}
+	r.p.buf.SetMode(r.prevMode)
+	r.p.override = r.prevOverride
+}
+
+func (p *pp) startHashRedactable() hashRestorer {
+	prevMode := p.buf.GetMode()
+	prevOverride := p.override
+	active := false
+	if p.override == noOverride {
+		p.buf.SetMode(b.PreRedactable)
+		p.buf.WriteString(m.StartS)
+		p.buf.WriteString(m.HashPrefixS)
+		p.buf.SetMode(b.SafeEscaped)
+		p.override = overrideSafe
+		active = true
+	}
+	return hashRestorer{p, prevMode, prevOverride, active}
+}
+
 func (p *pp) handleSpecialValues(
 	value reflect.Value, t reflect.Type, verb rune, depth int,
 ) (handled bool) {

@@ -11,6 +11,7 @@ import (
 	"math"
 	"net"
 	"net/netip"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -151,6 +152,7 @@ type Agent struct {
 
 	interfaceFilter func(string) (keep bool)
 	ipFilter        func(net.IP) (keep bool)
+	remoteIPFilter  func(net.IP) (keep bool)
 	includeLoopback bool
 
 	insecureSkipVerify bool
@@ -364,6 +366,7 @@ func createAgentBase(config *AgentConfig) (*Agent, error) {
 		forceCandidateContact:           make(chan bool, 1),
 		interfaceFilter:                 config.InterfaceFilter,
 		ipFilter:                        config.IPFilter,
+		remoteIPFilter:                  config.RemoteIPFilter,
 		insecureSkipVerify:              config.InsecureSkipVerify,
 		includeLoopback:                 config.IncludeLoopback,
 		disableActiveTCP:                config.DisableActiveTCP,
@@ -1104,12 +1107,23 @@ func remoteDialIPForLocalInterface(remoteIP, localIP netip.Addr) netip.Addr {
 }
 
 // addRemoteCandidate assumes you are holding the lock (must be execute using a.run).
-func (a *Agent) addRemoteCandidate(cand Candidate) { //nolint:cyclop
+// Returns true when the candidate is accepted (including duplicates).
+func (a *Agent) addRemoteCandidate(cand Candidate) bool { //nolint:cyclop
+	if !a.shouldAcceptRemoteCandidate(cand) {
+		return false
+	}
+
+	if len(a.networkTypes) > 0 && !slices.Contains(a.networkTypes, cand.NetworkType()) {
+		a.log.Infof("Ignoring remote candidate with disabled network type %s: %s", cand.NetworkType(), cand)
+
+		return false
+	}
+
 	set := a.remoteCandidates[cand.NetworkType()]
 
 	for _, candidate := range set {
 		if candidate.Equal(cand) {
-			return
+			return true
 		}
 	}
 
@@ -1139,6 +1153,29 @@ func (a *Agent) addRemoteCandidate(cand Candidate) { //nolint:cyclop
 	}
 
 	a.requestConnectivityCheck()
+
+	return true
+}
+
+func (a *Agent) shouldAcceptRemoteCandidate(cand Candidate) bool {
+	if a.remoteIPFilter == nil {
+		return true
+	}
+
+	ipAddr, _, _, err := parseAddr(cand.addr())
+	if err != nil {
+		a.log.Warnf("Ignoring remote candidate with unparsable address %q: %v", cand.addr(), err)
+
+		return false
+	}
+
+	if !a.remoteIPFilter(ipAddr.AsSlice()) {
+		a.log.Warnf("Ignoring remote candidate filtered by remote IP policy: %s", cand)
+
+		return false
+	}
+
+	return true
 }
 
 func (a *Agent) addCandidate(ctx context.Context, cand Candidate, candidateConn net.PacketConn) error {
@@ -1585,7 +1622,9 @@ func (a *Agent) handleInboundRequest(
 		remoteCandidate = prflxCandidate
 
 		a.log.Debugf("Adding a new peer-reflexive candidate: %s ", remote)
-		a.addRemoteCandidate(remoteCandidate)
+		if !a.addRemoteCandidate(remoteCandidate) {
+			return nil, false
+		}
 	}
 
 	// Support Remotes that don't set a TIE-BREAKER. Not standards compliant, but

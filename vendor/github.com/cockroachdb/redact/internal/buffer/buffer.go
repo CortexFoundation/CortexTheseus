@@ -218,18 +218,28 @@ func (b *Buffer) startWrite() {
 	}
 }
 
-// endRedactable adds the closing redaction marker.
+// startRedactable adds the opening redaction marker.
 func (b *Buffer) startRedactable() {
 	if bytes.HasSuffix(b.buf, m.EndBytes) {
-		// Special case: remove a trailing closing marker and call it a day.
-		b.buf = b.buf[:len(b.buf)-m.EndLen]
-	} else {
-		p, ok := b.tryGrowByReslice(len(m.StartS))
-		if !ok {
-			p = b.grow(len(m.StartS))
+		// Optimization: merge adjacent unsafe zones by removing the
+		// trailing › instead of writing a new ‹. However, we must NOT
+		// merge into a hash zone (‹†...›), because that would cause the
+		// next value to be hashed together with the hash-marked value.
+		preceding := b.buf[:len(b.buf)-m.EndLen]
+		startIdx := bytes.LastIndex(preceding, m.StartBytes)
+		isHashZone := startIdx >= 0 &&
+			bytes.HasPrefix(preceding[startIdx+m.StartLen:], m.HashPrefixBytes)
+		if !isHashZone {
+			b.buf = preceding
+			b.markerOpen = true
+			return
 		}
-		copy(b.buf[p:], m.StartS)
 	}
+	p, ok := b.tryGrowByReslice(len(m.StartS))
+	if !ok {
+		p = b.grow(len(m.StartS))
+	}
+	copy(b.buf[p:], m.StartS)
 	b.markerOpen = true
 }
 

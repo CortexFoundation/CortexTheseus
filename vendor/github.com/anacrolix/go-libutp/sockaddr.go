@@ -12,6 +12,7 @@ import (
 	"unsafe"
 
 	"github.com/anacrolix/missinggo/inproc"
+	"github.com/anacrolix/missinggo/v2/panicif"
 )
 
 func toSockaddrInet(ip net.IP, port int, zone string) (rsa syscall.RawSockaddrAny, len C.socklen_t) {
@@ -86,7 +87,9 @@ func netAddrToLibSockaddr(na net.Addr) (rsa syscall.RawSockaddrAny, len C.sockle
 		return toSockaddrInet(v.IP, v.Port, v.Zone)
 	case inproc.Addr:
 		rsa6 := (*syscall.RawSockaddrInet6)(unsafe.Pointer(&rsa))
-		rsa6.Port = uint16(v.Port)
+		u16Port := uint16(v.Port)
+		panicif.NotEq(int(u16Port), v.Port)
+		rsa6.Port = u16Port
 		len = C.socklen_t(unsafe.Sizeof(rsa))
 		return
 	default:

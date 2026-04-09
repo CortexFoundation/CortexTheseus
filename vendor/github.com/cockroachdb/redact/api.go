@@ -85,6 +85,32 @@ type SafeFloat = i.SafeFloat
 // SafeRune aliases rune. See the explanation for SafeString.
 type SafeRune = i.SafeRune
 
+// HashValue is a marker interface to be implemented by types whose
+// values should be hashed when redacted, instead of being replaced
+// with the redaction marker.
+type HashValue = i.HashValue
+
+// HashString represents a string that should be hashed when redacted.
+type HashString = i.HashString
+
+// HashInt represents an integer that should be hashed when redacted.
+type HashInt = i.HashInt
+
+// HashUint represents an unsigned integer that should be hashed when redacted.
+type HashUint = i.HashUint
+
+// HashFloat represents a floating-point value that should be hashed when redacted.
+type HashFloat = i.HashFloat
+
+// HashRune represents a rune that should be hashed when redacted.
+type HashRune = i.HashRune
+
+// HashByte represents a byte that should be hashed when redacted.
+type HashByte = i.HashByte
+
+// HashBytes represents a byte slice that should be hashed when redacted.
+type HashBytes = i.HashBytes
+
 // RedactableString is a string that contains a mix of safe and unsafe
 // bits of data, but where it is known that unsafe bits are enclosed
 // by redaction markers ‹ and ›, and occurrences of the markers
@@ -172,4 +198,18 @@ type StringBuilder = builder.StringBuilder
 // during the production of redactable strings.
 func RegisterSafeType(t reflect.Type) {
 	ifmt.RegisterSafeType(t)
+}
+
+// EnableHashing enables hash-based redaction with an optional salt.
+// Hash markers (‹†value›) will be replaced with hashes instead of being fully redacted.
+// When salt is nil, hash markers use plain SHA-256.
+// When salt is provided, hash markers use HMAC-SHA256 for better security.
+func EnableHashing(salt []byte) {
+	m.EnableHashing(salt)
+}
+
+// DisableHashing disables hash-based redaction.
+// Hash markers will be fully redacted instead of being replaced with hashes.
+func DisableHashing() {
+	m.DisableHashing()
 }
