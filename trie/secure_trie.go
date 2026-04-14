@@ -57,7 +57,7 @@ type StateTrie struct {
 	secKeyCache map[common.Hash][]byte
 }
 
-// NewSecure creates a trie with an existing root node from a backing database
+// NewStateTrie creates a trie with an existing root node from a backing database
 // and optional intermediate in-memory node pool.
 //
 // If root is the zero hash or the sha3 hash of an empty string, the
