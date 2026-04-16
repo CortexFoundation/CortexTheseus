@@ -8,7 +8,7 @@ require (
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 	github.com/CortexFoundation/torrentfs v1.0.73-0.20260223192041-9493f0ab021a
 	github.com/Microsoft/go-winio v0.6.2
-	github.com/ProjectZKM/Ziren/crates/go-runtime/zkvm_runtime v0.0.0-20260403213135-1d43121312d4
+	github.com/ProjectZKM/Ziren/crates/go-runtime/zkvm_runtime v0.0.0-20260416073033-7c2071eaa8d4
 	github.com/VictoriaMetrics/fastcache v1.13.3
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.41.5
@@ -64,13 +64,13 @@ require (
 	github.com/ucwong/color v1.10.1-0.20200624105241-fba1e010fe1e
 	github.com/urfave/cli/v2 v2.27.7
 	go.uber.org/automaxprocs v1.6.0
-	golang.org/x/crypto v0.49.0
+	golang.org/x/crypto v0.50.0
 	golang.org/x/mobile v0.0.0-20201217150744-e6ae53a27f4f
 	golang.org/x/sync v0.20.0
 	golang.org/x/sys v0.43.0
-	golang.org/x/text v0.35.0
+	golang.org/x/text v0.36.0
 	golang.org/x/time v0.15.0
-	golang.org/x/tools v0.43.0
+	golang.org/x/tools v0.44.0
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gopkg.in/urfave/cli.v1 v1.20.0
@@ -118,7 +118,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.30.15 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.19 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.10 // indirect
-	github.com/aws/smithy-go v1.24.3 // indirect
+	github.com/aws/smithy-go v1.25.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/benbjohnson/immutable v0.4.3 // indirect
@@ -130,7 +130,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/charmbracelet/colorprofile v0.4.3 // indirect
 	github.com/charmbracelet/lipgloss v1.1.0 // indirect
-	github.com/charmbracelet/x/ansi v0.11.6 // indirect
+	github.com/charmbracelet/x/ansi v0.11.7 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.15 // indirect
 	github.com/charmbracelet/x/term v0.2.2 // indirect
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
@@ -153,7 +153,7 @@ require (
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
 	github.com/felixge/fgprof v0.9.5 // indirect
 	github.com/garslo/gogen v0.0.0-20170306192744-1d203ffc1f61 // indirect
-	github.com/getsentry/sentry-go v0.45.0 // indirect
+	github.com/getsentry/sentry-go v0.45.1 // indirect
 	github.com/go-llsqlite/adapter v0.2.0 // indirect
 	github.com/go-llsqlite/crawshaw v0.6.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
@@ -196,7 +196,7 @@ require (
 	github.com/pion/datachannel v1.6.0 // indirect
 	github.com/pion/dtls/v2 v2.2.12 // indirect
 	github.com/pion/dtls/v3 v3.1.2 // indirect
-	github.com/pion/ice/v4 v4.2.2 // indirect
+	github.com/pion/ice/v4 v4.2.4 // indirect
 	github.com/pion/interceptor v0.1.44 // indirect
 	github.com/pion/logging v0.2.4 // indirect
 	github.com/pion/mdns/v2 v2.1.0 // indirect
@@ -248,16 +248,16 @@ require (
 	go.opentelemetry.io/otel/metric v1.43.0 // indirect
 	go.opentelemetry.io/otel/trace v1.43.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
-	golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90 // indirect
-	golang.org/x/mod v0.34.0 // indirect
-	golang.org/x/net v0.52.0 // indirect
-	golang.org/x/term v0.41.0 // indirect
+	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
+	golang.org/x/mod v0.35.0 // indirect
+	golang.org/x/net v0.53.0 // indirect
+	golang.org/x/term v0.42.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect
-	modernc.org/libc v1.70.0 // indirect
+	modernc.org/libc v1.72.0 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
-	modernc.org/sqlite v1.48.1 // indirect
+	modernc.org/sqlite v1.48.2 // indirect
 	zombiezen.com/go/sqlite v1.4.2 // indirect
 )

@@ -34,13 +34,13 @@ func (s *controllingSelector) Start() {
 func (s *controllingSelector) isNominatable(c Candidate) bool {
 	switch {
 	case c.Type() == CandidateTypeHost:
-		return time.Since(s.startTime).Nanoseconds() > s.agent.hostAcceptanceMinWait.Nanoseconds()
+		return time.Since(s.startTime).Nanoseconds() >= s.agent.hostAcceptanceMinWait.Nanoseconds()
 	case c.Type() == CandidateTypeServerReflexive:
-		return time.Since(s.startTime).Nanoseconds() > s.agent.srflxAcceptanceMinWait.Nanoseconds()
+		return time.Since(s.startTime).Nanoseconds() >= s.agent.srflxAcceptanceMinWait.Nanoseconds()
 	case c.Type() == CandidateTypePeerReflexive:
-		return time.Since(s.startTime).Nanoseconds() > s.agent.prflxAcceptanceMinWait.Nanoseconds()
+		return time.Since(s.startTime).Nanoseconds() >= s.agent.prflxAcceptanceMinWait.Nanoseconds()
 	case c.Type() == CandidateTypeRelay:
-		return time.Since(s.startTime).Nanoseconds() > s.agent.relayAcceptanceMinWait.Nanoseconds()
+		return time.Since(s.startTime).Nanoseconds() >= s.agent.relayAcceptanceMinWait.Nanoseconds()
 	}
 
 	s.log.Errorf("Invalid candidate type: %s", c.Type())
@@ -461,7 +461,15 @@ func (s *controlledSelector) HandleBindingRequest(message *stun.Message, local, 
 	}
 
 	s.agent.sendBindingSuccess(message, local, remote)
-	s.PingCandidate(local, remote)
+
+	// Only send a triggered check during ICE checking phase (RFC 8445 §7.3.1.4).
+	// Once the pair is established (succeeded + selected), sending a triggered check
+	// on every inbound request creates a ping-pong busy loop: the remote side responds
+	// and sends its own request, which triggers another check here, repeating at 1/RTT.
+	// After connection, consent freshness is maintained by checkKeepalive() on a timer.
+	if pair.state != CandidatePairStateSucceeded || s.agent.getSelectedPair() == nil {
+		s.PingCandidate(local, remote)
+	}
 
 	if s.agent.userBindingRequestHandler != nil {
 		if shouldSwitch := s.agent.userBindingRequestHandler(message, local, remote, pair); shouldSwitch {
