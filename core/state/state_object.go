@@ -454,9 +454,9 @@ func (s *stateObject) commit() error {
 	if s.dbErr != nil {
 		return s.dbErr
 	}
-	root, err := s.trie.Commit(nil)
+	_, err := s.trie.Commit(nil)
 	if err == nil {
-		s.data.Root = root
+		//s.data.Root = root
 		// Update original account data after commit
 		s.origin = s.data.Copy()
 	}
