@@ -99,6 +99,7 @@ func openFreezerFileForAppend(filename string) (*os.File, error) {
 	}
 	// Seek to end for append
 	if _, err = file.Seek(0, io.SeekEnd); err != nil {
+		file.Close()
 		return nil, err
 	}
 	return file, nil
