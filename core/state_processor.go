@@ -57,10 +57,10 @@ func (p *StateProcessor) chainConfig() *params.ChainConfig {
 // transactions failed to execute due to insufficient gas it will return an error.
 func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg vm.Config) (*ProcessResult, error) {
 	var (
-		config   = p.chainConfig()
-		receipts types.Receipts
-		usedGas  = new(uint64)
+		config  = p.chainConfig()
+		usedGas = new(uint64)
 		//quotaLimit = big.NewInt(0)//parent.quota+64k - parent.quotaUsed
+		receipts    = make(types.Receipts, 0, len(block.Transactions()))
 		header      = block.Header()
 		blockHash   = block.Hash()
 		blockNumber = block.Number()
