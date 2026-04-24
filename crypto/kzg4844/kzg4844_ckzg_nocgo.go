@@ -68,3 +68,15 @@ func ckzgVerifyBlobProof(blob *Blob, commitment Commitment, proof Proof) error {
 func ckzgComputeCellProofs(blob *Blob) ([]Proof, error) {
 	panic("unsupported platform")
 }
+
+func ckzgVerifyCells(cells []Cell, commitments []Commitment, cellProofs []Proof, cellIndices []uint64) error {
+	panic("unsupported platform")
+}
+
+func ckzgComputeCells(blobs []Blob) ([]Cell, error) {
+	panic("unsupported platform")
+}
+
+func ckzgRecoverBlobs(cells []Cell, cellIndices []uint64) ([]Blob, error) {
+	panic("unsupported platform")
+}
