@@ -263,7 +263,7 @@ func (d *fecDecoder) recoverPacket(fec *fecPacketState) (rtp.Packet, error) {
 				return rtp.Packet{}, fmt.Errorf("marshal received header: %w", err)
 			}
 			binary.BigEndian.PutUint16(receivedHeader[2:4], uint16(protectedPacket.packet.MarshalSize()-12)) //nolint:gosec
-			for i := 0; i < 8; i++ {
+			for i := range 8 {
 				headerRecovery[i] ^= receivedHeader[i]
 			}
 		} else {
@@ -312,7 +312,7 @@ func (d *fecDecoder) discardOldRecoveredPackets() {
 
 func decodeMask(mask uint64, bitCount uint16, seqNumBase uint16) []uint16 {
 	res := make([]uint16, 0)
-	for i := uint16(0); i < bitCount; i++ {
+	for i := range bitCount {
 		if (mask>>(bitCount-1-i))&1 == 1 {
 			res = append(res, seqNumBase+i)
 		}
