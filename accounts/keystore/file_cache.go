@@ -67,7 +67,7 @@ func (fc *fileCache) scan(keyDir string) (mapset.Set[string], mapset.Set[string]
 			log.Trace("Ignoring file on account scan", "path", path)
 			continue
 		}
-		// Gather the set of all and fresly modified files
+		// Gather the set of all and freshly modified files
 		all.Add(path)
 
 		modified := fi.ModTime()
