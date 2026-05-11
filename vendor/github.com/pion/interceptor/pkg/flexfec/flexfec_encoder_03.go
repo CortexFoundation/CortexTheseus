@@ -83,7 +83,7 @@ func (flex *FlexEncoder03) EncodeFec(mediaPackets []rtp.Packet, numFecPackets ui
 
 	// Generate FEC payloads
 	fecPackets := make([]rtp.Packet, 0, numFecPackets)
-	for fecPacketIndex := uint32(0); fecPacketIndex < numFecPackets; fecPacketIndex++ {
+	for fecPacketIndex := range numFecPackets {
 		fecPacket, ok := flex.encodeFlexFecPacket(fecPacketIndex, mediaPackets[0].SequenceNumber)
 		if ok {
 			fecPackets = append(fecPackets, fecPacket)

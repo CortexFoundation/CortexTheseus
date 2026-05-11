@@ -87,7 +87,7 @@ func (v VLA) preprocessForMashaling(ctx *vlaMarshalingContext) error { //nolint:
 
 func (v VLA) calcTargetBitratesSize(ctx *vlaMarshalingContext) {
 	for rtpStreamID := 0; rtpStreamID < v.RTPStreamCount; rtpStreamID++ {
-		for spatialID := 0; spatialID < 4; spatialID++ {
+		for spatialID := range 4 {
 			if idx := ctx.slIndices[rtpStreamID][spatialID]; idx >= 0 {
 				for _, kbps := range v.ActiveSpatialLayer[idx].TargetBitrates {
 					ctx.requiredLen += leb128Size(uint(kbps)) //nolint:gosec
@@ -158,7 +158,7 @@ func (v VLA) MarshalTo(buf []byte) (int, error) { //nolint:cyclop,gocognit
 	offset := 0
 
 	// RID, NS, sl_bm fields
-	buf[offset] = byte(v.RTPStreamID<<6) | byte(v.RTPStreamCount-1)<<4 | ctx.commonSLBM
+	buf[offset] = byte(v.RTPStreamID<<6) | byte(v.RTPStreamCount-1)<<4 | ctx.commonSLBM //nolint:gosec // values are small
 
 	if ctx.commonSLBM == 0 {
 		offset++
@@ -176,12 +176,13 @@ func (v VLA) MarshalTo(buf []byte) (int, error) { //nolint:cyclop,gocognit
 	offset++
 	var temporalLayerIndex int
 	for rtpStreamID := 0; rtpStreamID < v.RTPStreamCount; rtpStreamID++ {
-		for spatialID := 0; spatialID < 4; spatialID++ {
+		for spatialID := range 4 {
 			if idx := ctx.slIndices[rtpStreamID][spatialID]; idx >= 0 {
 				if temporalLayerIndex >= 4 {
 					temporalLayerIndex = 0
 					offset++
 				}
+				//nolint:gosec // values are small
 				buf[offset] |= byte(len(v.ActiveSpatialLayer[idx].TargetBitrates)-1) << (2 * (3 - temporalLayerIndex))
 				temporalLayerIndex++
 			}
@@ -191,7 +192,7 @@ func (v VLA) MarshalTo(buf []byte) (int, error) { //nolint:cyclop,gocognit
 	// Target bitrate fields
 	offset++
 	for rtpStreamID := 0; rtpStreamID < v.RTPStreamCount; rtpStreamID++ {
-		for spatialID := 0; spatialID < 4; spatialID++ {
+		for spatialID := range 4 {
 			if idx := ctx.slIndices[rtpStreamID][spatialID]; idx >= 0 {
 				for _, kbps := range v.ActiveSpatialLayer[idx].TargetBitrates {
 					offset += writeLeb128To(buf[offset:], uint(kbps)) //nolint:gosec
@@ -205,7 +206,7 @@ func (v VLA) MarshalTo(buf []byte) (int, error) { //nolint:cyclop,gocognit
 		for _, sl := range v.ActiveSpatialLayer {
 			binary.BigEndian.PutUint16(buf[offset+0:], uint16(sl.Width-1))  //nolint:gosec
 			binary.BigEndian.PutUint16(buf[offset+2:], uint16(sl.Height-1)) //nolint:gosec
-			buf[offset+4] = byte(sl.Framerate)
+			buf[offset+4] = byte(sl.Framerate)                              //nolint:gosec
 			offset += 5
 		}
 	}
@@ -231,7 +232,7 @@ func (v VLA) Marshal() ([]byte, error) {
 
 func commonSLBMValues(slMBs []uint8) uint8 {
 	var common uint8
-	for i := 0; i < len(slMBs); i++ {
+	for i := range slMBs {
 		if slMBs[i] == 0 {
 			continue
 		}
@@ -301,7 +302,7 @@ func (v *VLA) unmarshalTemporalLayers(ctx *vlaUnmarshalingContext) error { // no
 
 	var temporalLayerIndex int
 	for streamID := 0; streamID < v.RTPStreamCount; streamID++ {
-		for spatialID := 0; spatialID < 4; spatialID++ {
+		for spatialID := range 4 {
 			if ctx.slBMs[streamID]&(1<<spatialID) == 0 {
 				continue
 			}

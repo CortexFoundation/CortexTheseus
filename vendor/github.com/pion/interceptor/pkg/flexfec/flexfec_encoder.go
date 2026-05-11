@@ -65,7 +65,7 @@ func (flex *FlexEncoder20) EncodeFec(mediaPackets []rtp.Packet, numFecPackets ui
 
 	// Generate FEC payloads
 	fecPackets := make([]rtp.Packet, numFecPackets)
-	for fecPacketIndex := uint32(0); fecPacketIndex < numFecPackets; fecPacketIndex++ {
+	for fecPacketIndex := range numFecPackets {
 		fecPackets[fecPacketIndex] = flex.encodeFlexFecPacket(fecPacketIndex, mediaPackets[0].SequenceNumber)
 	}
 
@@ -200,7 +200,7 @@ func (flex *FlexEncoder20) encodeFlexFecRepairPayload(mediaPackets *util.MediaPa
 			copy(flexFecPayloadTmp, flexFecPayload)
 			flexFecPayload = flexFecPayloadTmp
 		}
-		for byteIndex := 0; byteIndex < len(mediaPacketPayload); byteIndex++ {
+		for byteIndex := range mediaPacketPayload {
 			flexFecPayload[byteIndex] ^= mediaPacketPayload[byteIndex]
 		}
 	}

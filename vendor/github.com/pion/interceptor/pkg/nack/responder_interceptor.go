@@ -145,8 +145,31 @@ func (n *ResponderInterceptor) BindLocalStream(
 // UnbindLocalStream is called when the Stream is removed. It can be used to clean up any data related to that track.
 func (n *ResponderInterceptor) UnbindLocalStream(info *interceptor.StreamInfo) {
 	n.streamsMu.Lock()
+	stream, ok := n.streams[info.SSRC]
 	delete(n.streams, info.SSRC)
 	n.streamsMu.Unlock()
+
+	if ok {
+		stream.rtpBufferMutex.Lock()
+		stream.rtpBuffer.Clear()
+		stream.rtpBufferMutex.Unlock()
+	}
+}
+
+// Close releases all resources held by the ResponderInterceptor.
+func (n *ResponderInterceptor) Close() error {
+	n.streamsMu.Lock()
+	streams := n.streams
+	n.streams = map[uint32]*localStream{}
+	n.streamsMu.Unlock()
+
+	for _, stream := range streams {
+		stream.rtpBufferMutex.Lock()
+		stream.rtpBuffer.Clear()
+		stream.rtpBufferMutex.Unlock()
+	}
+
+	return nil
 }
 
 func (n *ResponderInterceptor) resendPackets(nack *rtcp.TransportLayerNack) {
