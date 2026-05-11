@@ -26,7 +26,7 @@ import (
 	// "github.com/CortexFoundation/CortexTheseus/core/types"
 )
 
-// memoryGasCosts calculates the quadratic gas for memory expansion. It does so
+// memoryGasCost calculates the quadratic gas for memory expansion. It does so
 // only for the memory region that is expanded, not the total memory.
 func memoryGasCost(mem *Memory, newMemSize uint64) (uint64, error) {
 
