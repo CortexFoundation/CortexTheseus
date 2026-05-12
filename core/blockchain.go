@@ -889,6 +889,12 @@ func (bc *BlockChain) FastSyncCommitHead(hash common.Hash) error {
 	if bc.snaps != nil {
 		bc.snaps.Rebuild(block.Root())
 	}
+
+	// If all checks out, manually set the head block.
+	rawdb.WriteHeadBlockHash(bc.db, hash)
+	bc.currentBlock.Store(block.Header())
+	headBlockGauge.Update(int64(block.NumberU64()))
+
 	log.Info("Committed new head block", "number", block.Number(), "hash", hash)
 	return nil
 }
