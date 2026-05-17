@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -790,14 +791,14 @@ func (d *Downloader) findAncestorSpanSearch(p *peerConnection, mode SyncMode, re
 			}
 			// Check if a common ancestor was found
 			finished = true
-			for i := len(headers) - 1; i >= 0; i-- {
+			for _, header := range slices.Backward(headers) {
 				// Skip any headers that underflow/overflow our requested set
-				if headers[i].Number.Int64() < from || headers[i].Number.Uint64() > max {
+				if header.Number.Int64() < from || header.Number.Uint64() > max {
 					continue
 				}
 				// Otherwise check if we already know the header or not
-				h := headers[i].Hash()
-				n := headers[i].Number.Uint64()
+				h := header.Hash()
+				n := header.Number.Uint64()
 
 				var known bool
 				switch mode {

@@ -20,6 +20,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"slices"
 )
 
 // PointG2 is type for point in G2.
@@ -418,8 +419,8 @@ func (g *G2) MultiExp(r *PointG2, points []*PointG2, powers []*big.Int) (*PointG
 			powers[i] = new(big.Int).Rsh(powers[i], uint(c))
 		}
 		sum.Zero()
-		for i := len(bucket) - 1; i >= 0; i-- {
-			g.Add(sum, sum, bucket[i])
+		for _, b := range slices.Backward(bucket) {
+			g.Add(sum, sum, b)
 			g.Add(acc, acc, sum)
 		}
 		windows[j] = g.New()
@@ -428,11 +429,11 @@ func (g *G2) MultiExp(r *PointG2, points []*PointG2, powers []*big.Int) (*PointG
 		cur += c
 	}
 	acc.Zero()
-	for i := len(windows) - 1; i >= 0; i-- {
+	for _, window := range slices.Backward(windows) {
 		for j := uint32(0); j < c; j++ {
 			g.Double(acc, acc)
 		}
-		g.Add(acc, acc, windows[i])
+		g.Add(acc, acc, window)
 	}
 	return r.Set(acc), nil
 }
