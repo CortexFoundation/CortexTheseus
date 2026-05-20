@@ -25,6 +25,7 @@ import (
 	"io"
 	"math/big"
 	"reflect"
+	"slices"
 	"strings"
 	"sync"
 
@@ -115,8 +116,8 @@ func (err *decodeError) Error() string {
 	ctx := ""
 	if len(err.ctx) > 0 {
 		ctx = ", decoding into "
-		for i := len(err.ctx) - 1; i >= 0; i-- {
-			ctx += err.ctx[i]
+		for _, v := range slices.Backward(err.ctx) {
+			ctx += v
 		}
 	}
 	return fmt.Sprintf("rlp: %s for %v%s", err.msg, err.typ, ctx)
