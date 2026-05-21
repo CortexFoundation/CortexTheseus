@@ -190,6 +190,21 @@ func BindStringToObjectWithOptions(src string, dst interface{}, opts BindStringT
 		// We fall through to the error case below if we haven't handled the
 		// destination type above.
 		fallthrough
+	case reflect.Map:
+		// A bool-keyed map (such as nullable.Nullable[T], which is
+		// map[bool]T) is treated as a nullable wrapper: bind src into a
+		// fresh value of the inner type and store it under map[true].
+		if t.Kind() == reflect.Map && t.Key().Kind() == reflect.Bool {
+			elemPtr := reflect.New(t.Elem())
+			if bindErr := BindStringToObjectWithOptions(src, elemPtr.Interface(), opts); bindErr != nil {
+				return bindErr
+			}
+			newMap := reflect.MakeMap(t)
+			newMap.SetMapIndex(reflect.ValueOf(true), elemPtr.Elem())
+			v.Set(newMap)
+			return nil
+		}
+		fallthrough
 	default:
 		// We've got a bunch of types unimplemented, don't fail silently.
 		err = fmt.Errorf("can not bind to destination of type: %s", t.Kind())
