@@ -3,12 +3,12 @@ module github.com/CortexFoundation/CortexTheseus
 go 1.25.7
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.4
+	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.7.0
 	github.com/CortexFoundation/inference v1.0.2-0.20230307032835-9197d586a4e8
 	github.com/CortexFoundation/statik v0.0.0-20210315012922-8bb8a7b5dc66
 	github.com/CortexFoundation/torrentfs v1.0.73-0.20260223192041-9493f0ab021a
 	github.com/Microsoft/go-winio v0.6.2
-	github.com/ProjectZKM/Ziren/crates/go-runtime/zkvm_runtime v0.0.0-20260416073033-7c2071eaa8d4
+	github.com/ProjectZKM/Ziren/crates/go-runtime/zkvm_runtime v0.0.0-20260519063510-53a8eff4e716
 	github.com/VictoriaMetrics/fastcache v1.13.3
 	github.com/arsham/figurine v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.41.7
@@ -17,7 +17,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/route53 v1.62.7
 	github.com/cespare/cp v1.1.1
 	github.com/charmbracelet/bubbletea v1.3.10
-	github.com/cloudflare/cloudflare-go v0.116.0
+	github.com/cloudflare/cloudflare-go v0.117.0
 	github.com/cockroachdb/pebble v1.1.5
 	github.com/consensys/gnark-crypto v0.20.1
 	github.com/crate-crypto/go-eth-kzg v1.5.0
@@ -190,7 +190,7 @@ require (
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/nutsdb/nutsdb v1.1.0 // indirect
-	github.com/oapi-codegen/runtime v1.4.0 // indirect
+	github.com/oapi-codegen/runtime v1.4.1 // indirect
 	github.com/otiai10/copy v1.14.1 // indirect
 	github.com/otiai10/mint v1.6.3 // indirect
 	github.com/pion/datachannel v1.6.0 // indirect
@@ -210,7 +210,7 @@ require (
 	github.com/pion/transport/v2 v2.2.10 // indirect
 	github.com/pion/transport/v3 v3.1.1 // indirect
 	github.com/pion/transport/v4 v4.0.1 // indirect
-	github.com/pion/turn/v5 v5.0.3 // indirect
+	github.com/pion/turn/v5 v5.0.4 // indirect
 	github.com/pion/webrtc/v4 v4.2.12 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
