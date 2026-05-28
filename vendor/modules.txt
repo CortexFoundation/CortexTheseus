@@ -874,26 +874,6 @@ github.com/peterh/liner
 # github.com/pion/datachannel v1.6.0
 ## explicit; go 1.21
 github.com/pion/datachannel
-# github.com/pion/dtls/v2 v2.2.12
-## explicit; go 1.13
-github.com/pion/dtls/v2
-github.com/pion/dtls/v2/internal/ciphersuite
-github.com/pion/dtls/v2/internal/ciphersuite/types
-github.com/pion/dtls/v2/internal/closer
-github.com/pion/dtls/v2/internal/util
-github.com/pion/dtls/v2/pkg/crypto/ccm
-github.com/pion/dtls/v2/pkg/crypto/ciphersuite
-github.com/pion/dtls/v2/pkg/crypto/clientcertificate
-github.com/pion/dtls/v2/pkg/crypto/elliptic
-github.com/pion/dtls/v2/pkg/crypto/hash
-github.com/pion/dtls/v2/pkg/crypto/prf
-github.com/pion/dtls/v2/pkg/crypto/signature
-github.com/pion/dtls/v2/pkg/crypto/signaturehash
-github.com/pion/dtls/v2/pkg/protocol
-github.com/pion/dtls/v2/pkg/protocol/alert
-github.com/pion/dtls/v2/pkg/protocol/extension
-github.com/pion/dtls/v2/pkg/protocol/handshake
-github.com/pion/dtls/v2/pkg/protocol/recordlayer
 # github.com/pion/dtls/v3 v3.1.2
 ## explicit; go 1.24.0
 github.com/pion/dtls/v3
@@ -966,26 +946,10 @@ github.com/pion/sdp/v3
 # github.com/pion/srtp/v3 v3.0.10
 ## explicit; go 1.21
 github.com/pion/srtp/v3
-# github.com/pion/stun/v2 v2.0.0
-## explicit; go 1.12
-github.com/pion/stun/v2
-github.com/pion/stun/v2/internal/hmac
 # github.com/pion/stun/v3 v3.1.2
 ## explicit; go 1.24.0
 github.com/pion/stun/v3
 github.com/pion/stun/v3/internal/hmac
-# github.com/pion/transport/v2 v2.2.10
-## explicit; go 1.12
-github.com/pion/transport/v2/connctx
-github.com/pion/transport/v2/deadline
-github.com/pion/transport/v2/packetio
-github.com/pion/transport/v2/replaydetector
-github.com/pion/transport/v2/udp
-# github.com/pion/transport/v3 v3.1.1
-## explicit; go 1.21
-github.com/pion/transport/v3
-github.com/pion/transport/v3/stdnet
-github.com/pion/transport/v3/utils/xor
 # github.com/pion/transport/v4 v4.0.1
 ## explicit; go 1.21
 github.com/pion/transport/v4
@@ -1214,7 +1178,6 @@ golang.org/x/crypto/blake2s
 golang.org/x/crypto/cast5
 golang.org/x/crypto/cryptobyte
 golang.org/x/crypto/cryptobyte/asn1
-golang.org/x/crypto/curve25519
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/hkdf
 golang.org/x/crypto/openpgp
