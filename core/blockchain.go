@@ -2076,9 +2076,9 @@ func (bc *BlockChain) insertSideChain(block *types.Block, it *insertIterator) (i
 		blocks []*types.Block
 		memory uint64
 	)
-	for i := len(hashes) - 1; i >= 0; i-- {
+	for i, hashe := range slices.Backward(hashes) {
 		// Append the next block to our batch
-		block := bc.GetBlock(hashes[i], numbers[i])
+		block := bc.GetBlock(hashe, numbers[i])
 
 		blocks = append(blocks, block)
 		memory += block.Size()
@@ -2226,8 +2226,8 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Header) error {
 
 	// Deleted logs + blocks:
 	{
-		for i := len(oldChain) - 1; i >= 0; i-- {
-			block := bc.GetBlock(oldChain[i].Hash(), oldChain[i].Number.Uint64())
+		for _, o := range slices.Backward(oldChain) {
+			block := bc.GetBlock(o.Hash(), o.Number.Uint64())
 			if block == nil {
 				return errInvalidOldChain // Corrupt database, mostly here to avoid weird panics
 			}

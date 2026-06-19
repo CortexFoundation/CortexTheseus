@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"slices"
 	"strings"
 	"sync/atomic"
 
@@ -291,8 +292,8 @@ func WriteTrace(writer io.Writer, logs []StructLog) {
 
 		if len(log.Stack) > 0 {
 			fmt.Fprintln(writer, "Stack:")
-			for i := len(log.Stack) - 1; i >= 0; i-- {
-				fmt.Fprintf(writer, "%08d  %s\n", len(log.Stack)-i-1, log.Stack[i].Hex())
+			for i, v := range slices.Backward(log.Stack) {
+				fmt.Fprintf(writer, "%08d  %s\n", len(log.Stack)-i-1, v.Hex())
 			}
 		}
 		if len(log.Memory) > 0 {
