@@ -97,7 +97,7 @@ func (api *API) SubmitWork(nonce types.BlockNonce, hash common.Hash, solution st
 	return err == nil
 }
 
-// SubmitHashrate can be used for remote miners to submit their hash rate.
+// SubmitHashRate can be used for remote miners to submit their hash rate.
 // This enables the node to report the combined hash rate of all miners
 // which submit work through this node.
 //
